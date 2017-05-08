@@ -1,0 +1,30 @@
+{
+  "job_conf": {
+      "exec_target": "bee_aws",
+      "seq_run_script": "/home/jieyangchen/bee/bee_launcher/seq.sh",
+      "para_run_script": "/home/jieyangchen/bee/bee_launcher/para.sh",
+      "num_of_nodes": "2",
+      "proc_per_node": "4"
+  }, 
+  "docker_conf":{
+	     "docker_img_tag": "cjy7117/vpic",
+	     "docker_username": "vpic",
+	     "docker_shared_dir": "/mnt/vpicrun"
+  },
+  "exec_env_conf": {
+      "bee_vm": {
+	  "cpu_core_per_socket": "8",
+	  "cpu_thread_per_core": "1",
+	  "cpu_sockets": "2",
+	  "ram_size": "240G",
+	  "kvm_enabled": "True",
+	  "host_input_dir": "/home/jieyangchen/vpic_share"
+      },
+      "bee_aws": {
+	  "ami_image": "ami-bab826da",
+	  "aws_key_path": "/home/jieyangchen/.aws/BEE-AWS.pem",
+	  "aws_key_name": "BEE-AWS",
+	  "instance_type": "c4.xlarge"
+      } 
+  }
+}
