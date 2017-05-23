@@ -6,7 +6,7 @@ BEE Image Builder is used to build varity kinds of images for BEE, including VM 
 Download Packer binary [here](https://www.packer.io/downloads.html). Add Packer binary to `$PATH` environment variable, so that it can be called in command line.
 
 ##### Step 2. Get BEE Image Builder
-Checkout the BEE Image Builder from repo [here](https://gitlab.lanl.gov/BEE/packer-qemu/tree/dev-ic) (`dev-ic` branch).
+Checkout the BEE Image Builder from this repo.
 ##### Step 3. Build Images
 First, `cd` into the BEE Image Builder folder. 
 * (1) run `./build_bee_vm.sh` to build base image for `BEE-VM` (It must be build for each HPC platform.)
@@ -19,7 +19,7 @@ Pre-built AMIs:
 
 #### 2. BEE Launcher
 ##### Step 1. Get BEE Launcher
-Checkout the BEE Launcher from repo [here](https://gitlab.lanl.gov/BEE/BEE_Launcher_Integration).
+Checkout the BEE Launcher from this repo.
 
 ##### Step 2. Setup AWS Credentials
 Create a file under your home directory `~/.aws/credentials`.
