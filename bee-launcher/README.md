@@ -68,7 +68,7 @@ First, `cd` into the BEE Launcher folder and configure `bee-config.json` file:
 ##### Step 5. Use BEE Launcher
 ###### a. Prepare run scripts as necessary.
 ###### b. Open `2` console windows. One serves as daemon control, another serves as client control.
-###### c. Run `./bee_launcher_daemon.py` on daemon control window to start Bee Launcher daemon.
+###### c. Run `./bee_orc_ctl.py` on daemon control window to start Bee Launcher daemon.
 ###### d. Run `./bee_launcher.py` on client control window to launch Bee job.
 
 
