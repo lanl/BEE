@@ -4,9 +4,10 @@ from host import Host
 from qemu import QEMU
 from docker import Docker
 import os
+from termcolor import colored, cprint
 
 class BeeVM(object):
-    def __init__(self, hostname, host, rank, job_conf, bee_vm_conf, 
+    def __init__(self, group_num, hostname, host, rank, job_conf, bee_vm_conf, 
                  key_path, base_img, img, network_mode, storage_mode):
         
         # Basic configurations
@@ -33,7 +34,7 @@ class BeeVM(object):
         # 1st vNIC
         self.ssh_port = 5555
         # 2nd vNIC
-        self.subnet = 7 #to be replaced
+        self.subnet = group_num + 7 # Different group has different subnet
         self.mac_adder = "02:00:00:00:{0:02x}:{1:02x}".format(self.subnet, rank + 1)
         self.__IP = "192.168.{}.{}".format(self.subnet, rank + 1)
         # Multicast mode
@@ -57,17 +58,6 @@ class BeeVM(object):
         # Docker container
         self.__docker = ""
 
-        # Run command on this VM
-        # none root
-        self.__exec_cmd = ["ssh",
-                           "-p {}".format(self.ssh_port),
-                           "-o StrictHostKeyChecking=no",
-                           "-o ConnectTimeout=300",
-                           "-o UserKnownHostsFile=/dev/null",
-                           "-q",
-                           "-i {}".format(self.__key_path),
-                           "{}@localhost".format(self.__user_name),
-                           "-x"]
         # root
         self.__root_exec_cmd = ["ssh", 
                                 "-p {}".format(self.ssh_port),
@@ -88,6 +78,10 @@ class BeeVM(object):
 
         # Job Configuration
         self.__job_conf = job_conf
+        
+        # Output color list
+        self.__output_color_list = ["magenta", "cyan", "blue", "green", "red", "grey", "yellow"]
+        self.__output_color = self.__output_color_list[group_num % 7]
     
     def get_ip(self):
         return self.__IP
@@ -96,11 +90,13 @@ class BeeVM(object):
         return self.hostname
     
     def set_hostname(self):
+        cprint("["+self.hostname+"]: set hostname.", self.__output_color)
         cmd = ["hostname",
                self.hostname]
         self.root_run(cmd)
 
     def add_host_list(self, private_ip, hostname):
+        cprint("["+self.hostname+"]: set hosts file for MPI.", self.__output_color)
         cmd = ["echo",
                "\"{} {}\"".format(private_ip, hostname),
                "|",
@@ -123,14 +119,36 @@ class BeeVM(object):
         vm.connect_host.append(self.__host)
         vm.connect_port.append(new_listen_port)
 
-    def run(self, command):
+    def run(self, command, async = False):
         # Execute command on this VM.
-        cmd = self.__exec_cmd + ["'"] + command + ["'"]
-        self.__host.run(cmd)
-        
+        exec_cmd = ["ssh",
+                    "-p {}".format(self.ssh_port),
+                    "-o StrictHostKeyChecking=no",
+                    "-o ConnectTimeout=300",
+                    "-o UserKnownHostsFile=/dev/null",
+                    "-q",
+                    "-i {}".format(self.__key_path),
+                    "{}@localhost".format(self.__user_name),
+                    "-x"]
+        cmd = exec_cmd + ["'"] + command + ["'"]
+        if async == False:
+            self.__host.run(cmd)
+        else:
+            self.__host.run_async(cmd)
+
+
     def root_run(self, command):
         # Execute command with root previlege on this VM.
-        cmd = self.__root_exec_cmd + ["'"] + command + ["'"]
+        root_exec_cmd = ["ssh",
+                         "-p {}".format(self.ssh_port),
+                         "-o StrictHostKeyChecking=no",
+                         "-o ConnectTimeout=300",
+                         "-o UserKnownHostsFile=/dev/null",
+                         "-q",
+                         "-i {}".format(self.__key_path),
+                         "{}@localhost".format('root'),
+                         "-x"]
+        cmd = root_exec_cmd + ["'"] + command + ["'"]
         self.__host.run(cmd)
 
     def parallel_run(self, command, vms):
@@ -145,17 +163,37 @@ class BeeVM(object):
         cmd = cmd + command        
         self.run(cmd)
 
+    def run_pfwd(self, command, port, async = False):
+        # Execute command on this VM.
+        exec_cmd = ["ssh",
+                    "-p {}".format(self.ssh_port),
+                    "-o StrictHostKeyChecking=no",
+                    "-o ConnectTimeout=300",
+                    "-o UserKnownHostsFile=/dev/null",
+                    "-q",
+                    "-i {}".format(self.__key_path),
+                    "-L {}:localhost:{}".format(port, port),
+                    "{}@localhost".format(self.__user_name),
+                    "-x"]
+        cmd = exec_cmd + ["'"] + command + ["'"]
+        if async == False:
+            self.__host.run_pfwd(cmd, port)
+        else:
+            self.__host.run_pfwd_async(cmd, port)
+
     def set_data_img(self, base_data_img, data_img):
         self.base_data_img = base_data_img
         self.data_img = data_img
 
     def create_shared_dir(self):
         # Create directory
+        cprint("["+self.hostname+"]: create shared directory.", self.__output_color)
         cmd = ["mkdir",
                "{}".format(self.vm_shared_dir)]
         self.root_run(cmd)
 
     def update_ownership(self):
+        cprint("["+self.hostname+"]: update ownership of shared directory.", self.__output_color)
         cmd = ["chown",
                "-R",
                "{}:{}".format(self.__user_name,self.__user_name),
@@ -164,6 +202,7 @@ class BeeVM(object):
 
     # Storage mode 3
     def mount_virtio(self):
+        cprint("["+self.hostname+"]: mount shared directory (via 9p).", self.__output_color)
         # Mount host's shared dir to VM.
         cmd = ["mount",
                "-t 9p",
@@ -178,6 +217,7 @@ class BeeVM(object):
         self.data_img = data_img
 
     def mount_data_img(self):
+        cprint("["+self.hostname+"]: mount data image.", self.__output_color)
         # Mount data image.
         cmd = ["mount",
                "/dev/sdb",
@@ -185,6 +225,7 @@ class BeeVM(object):
         self.root_run(cmd)
 
     def mount_nfs(self, url):
+        cprint("["+self.hostname+"]: mount nfs.", self.__output_color)
         # Mount nfs directory
         cmd = ["mount",
                "{}".format(url),
@@ -192,10 +233,12 @@ class BeeVM(object):
         self.root_run(cmd)
 
     def mount_master_data_img(self):
+        cprint("["+self.hostname+"]: mount master data image.", self.__output_color)
         url = "{}:{}".format(self.master.get_hostname(), self.vm_shared_dir)
         self.mount_nfs(url)
 
     def update_uid(self): 
+        cprint("["+self.hostname+"]: update user UID.", self.__output_color)
         # Change user's UID to match host's UID.
         # This is necessary for dir sharing.
         cmd = ["usermod",
@@ -204,6 +247,7 @@ class BeeVM(object):
         self.root_run(cmd)
 
     def update_gid(self):
+        cprint("["+self.hostname+"]: update user GID.", self.__output_color)
         # Change user's GID to match host's GID.
         # This is necessary for dir sharing. 
         cmd = ["groupmod",
@@ -212,6 +256,7 @@ class BeeVM(object):
         self.root_run(cmd)
 
     def copy_file(self, src_path, dist_path):
+        cprint("["+self.hostname+"]: copy file:"+src_path+" --> "+dist_path+".", self.__output_color)
         cmd = ["scp",
                "-P {}".format(self.ssh_port),
                "-i {}".format(self.__key_path),
@@ -220,15 +265,19 @@ class BeeVM(object):
         self.__host.run(cmd)
 
     def create_os_img(self):
+        cprint("["+self.hostname+"]: create new OS image.", self.__output_color)
         self.__host.run(self.__hypervisor.create_img(self.base_img, self.img))
 
     def create_data_img(self):
+        cprint("["+self.hostname+"]: create new data image.", self.__output_color)
         self.__host.run(self.__hypervisor.create_img(self.base_data_img, self.data_img))
 
     def start(self):
+        cprint("["+self.hostname+"]: starting BEE-VM.", self.__output_color)
         self.__host.run(self.__hypervisor.start_vm(self))
     
     def kill(self):
+        cprint("["+self.hostname+"]: killing BEE-VM.", self.__output_color)
         self.__host.kill_all_vms()
     
 
@@ -241,27 +290,38 @@ class BeeVM(object):
         self.parallel_run(self.__docker.get_dockerfile(), vms)   
         
     def get_docker_img(self, vms):
+        cprint("["+self.hostname+"]: pull docker image in parallel.", self.__output_color)
         self.parallel_run(self.__docker.get_docker_img(), vms)
 
     def build_docker(self, vms):
         self.parallel_run(self.__docker.build_docker(), vms)      
 
     def start_docker(self, exec_cmd):
+        cprint("["+self.hostname+"]: start docker container.", self.__output_color)
         self.run(self.__docker.start_docker(exec_cmd)) 
         
     def docker_update_uid(self):
+        cprint("["+self.hostname+"][Docker]: update docker user UID.", self.__output_color)
         self.run(self.__docker.update_uid(os.getuid()))
 
     def docker_update_gid(self):
+        cprint("["+self.hostname+"][Docker]: update docker user GID.", self.__output_color)
         self.run(self.__docker.update_gid(os.getgid()))
         
     def docker_copy_file(self, src_path, dist_path):
+        cprint("["+self.hostname+"][Docker]: copy file to docker" + src_path + " --> " + dist_path +".", self.__output_color)
         self.run(self.__docker.copy_file(src_path, dist_path))
 
     def docker_seq_run(self, exec_cmd):
-        self.run(self.__docker.run([exec_cmd]))
+        cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
+        self.run(self.__docker.run([exec_cmd]), async = False)
+
+    def docker_seq_run_pfwd(self, exec_cmd, port):
+        cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+" with port fowarding.", self.__output_color)
+        self.run_pfwd(self.__docker.run([exec_cmd]), port, async = False)
 
     def docker_para_run(self, exec_cmd, vms):
+        cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
         np = int(self.__job_conf['proc_per_node']) * int(self.__job_conf['num_of_nodes'])
         cmd = ["mpirun",
                "--allow-run-as-root",
@@ -269,9 +329,21 @@ class BeeVM(object):
                "--hostfile /root/hostfile",
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
-        self.run(self.__docker.run(cmd))
+        self.run(self.__docker.run(cmd), async = True)
+
+    def docker_para_run_pfwd(self, exec_cmd, vms, port):
+        cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
+        np = int(self.__job_conf['proc_per_node']) * int(self.__job_conf['num_of_nodes'])
+        cmd = ["mpirun",
+               "--allow-run-as-root",
+               "--mca btl_tcp_if_include eth0",
+               "--hostfile /root/hostfile",
+                      "-np {}".format(np)]
+        cmd = cmd + [exec_cmd]
+        self.run_pfwd(self.__docker.run(cmd), port, async = True)
 
     def docker_make_hostfile(self, vms, tmp_dir):
+        cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
         hostfile_path = "{}/hostfile".format(tmp_dir)
         cmd = ["rm",
                hostfile_path]

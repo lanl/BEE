@@ -3,30 +3,39 @@ import time
 from docker import Docker
 from bee_aws import BeeAWS 
 import os
+from termcolor import colored, cprint
+
 
 class AWSLauncher(object):
-    def __init__(self, job_conf, bee_aws_conf, docker_conf):
+    def __init__(self, job_id, job_conf, bee_aws_conf, docker_conf):
         self.ec2_client = boto3.client('ec2')
         self.efs_client = boto3.client('efs')
         
+        self.__job_id = job_id
+        self.__job_name = 'job{}'.format(str(job_id).zfill(3))
+
         self.__job_conf = job_conf
         self.__bee_aws_conf = bee_aws_conf
         self.__docker_conf = docker_conf
         
-        self.__bee_aws_sgroup = 'bee-aws-security-group'
+        self.__bee_aws_sgroup = '{}-bee-aws-security-group'.format(self.__job_name)
         self.__aws_sgroup_desciption = 'Security group for BEE-AWS instances.'
-        self.__bee_aws_pgroup = 'bee-aws-placement-group'
-        self.__bee_aws_storage = 'bee-aws-storage'
+        self.__bee_aws_pgroup = '{}-bee-aws-placement-group'.format(self.__job_name)
         self.__bee_aws_list = []
 
         self.__user_name = os.getlogin()
         self.__bee_working_dir = "/home/{}/.bee".format(self.__user_name)
         self.__tmp_dir = self.__bee_working_dir + "/tmp"
 
+        # Output color list                                                                                                                                
+        self.__output_color_list = ["magenta", "cyan", "blue", "green", "red", "grey", "yellow"]
+        self.__output_color = self.__output_color_list[job_id % 7]
+
+
     def construct_bee_security_groups(self):
-        print('Construct security groups for BEE-AWS')
+        cprint('[' + self.__job_name + '] Construct security groups for BEE-AWS', self.__output_color)
         if self.get_bee_sg_id() == -1:
-            print('Create Security Group: bee-aws-security-group')
+            cprint('[' + self.__job_name + '] Create Security Group: ' + self.__bee_aws_sgroup, self.__output_color)
             bee_sg_id = self.ec2_client.create_security_group(GroupName = self.__bee_aws_sgroup,
                                                               Description = self.__aws_sgroup_desciption)
             
@@ -38,15 +47,15 @@ class AWSLauncher(object):
                                      CidrIp = '0.0.0.0/0')
 
     def construct_bee_placement_groups(self):
-        print('Construct placement group for BEE-AWS')
-        
+        cprint('[' + self.__job_name + '] Construct placement group for BEE-AWS', self.__output_color)
         if not self.is_bee_pg_exist():
-            print('Create Placement Group: bee-aws-placement-group')
+            cprint('[' + self.__job_name + '] Create Placement Group: ' + self.__bee_aws_pgroup, self.__output_color)
             self.ec2_client.create_placement_group(GroupName = self.__bee_aws_pgroup,
                                                    Strategy='cluster')
         
 
     def configure_hostnames(self):
+        cprint('[' + self.__job_name + '] Configure hostname for each node.', self.__output_color)
         for host1 in self.__bee_aws_list:
             for host2 in self.__bee_aws_list:
                 host2.add_host_list(host1.private_ip, host1.hostname)
@@ -68,12 +77,12 @@ class AWSLauncher(object):
             else:
                 hostname = "bee-worker{}".format(str(i).zfill(3))
 
-            node = BeeAWS(hostname, self.__bee_aws_conf, self.__job_conf,
+            node = BeeAWS(self.__job_id, hostname, self.__bee_aws_conf, self.__job_conf,
                           self.__bee_aws_sgroup, self.__bee_aws_pgroup)
             node.start()
             self.__bee_aws_list.append(node)
         
-        time.sleep(90)
+        time.sleep(60)
         for i in range(0, num_of_nodes):
             self.__bee_aws_list[i].wait()
             self.__bee_aws_list[i].set_hostname()
@@ -102,65 +111,62 @@ class AWSLauncher(object):
     def configure_run_script(self):
         seq_file = self.__job_conf['seq_run_script']
         para_file = self.__job_conf['para_run_script']
-        for bee_aws in self.__bee_aws_list:
-            bee_aws.copy_file(seq_file, '/home/ubuntu/seq_script.sh')
-            bee_aws.docker_copy_file('/home/ubuntu/seq_script.sh', '/root/seq_script.sh')
-            bee_aws.copy_file(para_file, '/home/ubuntu/para_script.sh')
-            bee_aws.docker_copy_file('/home/ubuntu/para_script.sh', '/root/para_script.sh')
+        if seq_file != "":
+            for bee_aws in self.__bee_aws_list:
+                bee_aws.copy_file(seq_file, '/home/ubuntu/seq_script.sh')
+                bee_aws.docker_copy_file('/home/ubuntu/seq_script.sh', '/root/seq_script.sh')
+            # Run sequential script on master
+            self.__bee_aws_list[0].docker_seq_run('/root/seq_script.sh')
+            
 
-        # Generate hostfile and copy to container                                                                                                          
-        self.__bee_aws_list[0].docker_make_hostfile(self.__bee_aws_list, self.__tmp_dir)
-        self.__bee_aws_list[0].copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
-        self.__bee_aws_list[0].docker_copy_file('/home/ubuntu/hostfile', '/root/hostfile')
+        if para_file != "":
+            for bee_aws in self.__bee_aws_list:
+                bee_aws.copy_file(para_file, '/home/ubuntu/para_script.sh')
+                bee_aws.docker_copy_file('/home/ubuntu/para_script.sh', '/root/para_script.sh')
+
+            # Generate hostfile and copy to container                                                                                                         
+            self.__bee_aws_list[0].docker_make_hostfile(self.__bee_aws_list, self.__tmp_dir)
+            self.__bee_aws_list[0].copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
+            self.__bee_aws_list[0].docker_copy_file('/home/ubuntu/hostfile', '/root/hostfile')
         
-        # Run sequential script on master                                                                                                                  
-        self.__bee_aws_list[0].docker_seq_run('/root/seq_script.sh')
-
-        # Run parallel script on all nodes                                                                                                                 
-        self.__bee_aws_list[0].docker_para_run('/root/para_script.sh', self.__bee_aws_list)
+            # Run parallel script on all nodes                                                                                                                 
+            if self.__job_conf['port_fwd'] != "":
+                self.__bee_aws_list[0].docker_para_run('/root/para_script.sh', self.__bee_aws_list, pfwd = self.__job_conf['port_fwd'])
+            else:
+                self.__bee_aws_list[0].docker_para_run('/root/para_script.sh', self.__bee_aws_list)
 
     def configure_efs(self):
-        if self.get_bee_efs_id() == -1:
-            self.efs_client.create_file_system(CreationToken=self.__bee_aws_storage, PerformanceMode='generalPurpose')
+        efs_id = self.__bee_aws_conf['efs_id']
+        resp = self.efs_client.describe_mount_targets(FileSystemId = efs_id)
+        mts = set()
+        for mt in resp['MountTargets']:
+            mts.add(mt['SubnetId'])
+        print(mts)
+        subnets = set()
+        for node in self.__bee_aws_list:
+            inst = node.getInstance()
+            subnet_id = inst['NetworkInterfaces'][0]['SubnetId']
             
-            
-            resp = self.efs_client.describe_file_systems(CreationToken = self.__bee_aws_storage)
-        
-            efs_id = resp['FileSystems'][0]['FileSystemId']
-            
-            print('Created new BEE EFS:' + efs_id)
-
-
-            self.wait_bee_efs()
-
-
-            self.efs_client.create_tags(FileSystemId = efs_id,
-                                        Tags=[{'Key':'Name', 'Value':self.__bee_aws_storage}])
-
-        
-            subnets = set()
-            for node in self.__bee_aws_list:
-                inst = node.getInstance()
-                subnet_id = inst['NetworkInterfaces'][0]['SubnetId']
+            if subnet_id not in subnets and subnet_id not in mts:
                 
-                if subnet_id not in subnets:
-                    resp = self.efs_client.create_mount_target(FileSystemId=efs_id,
-                                                               SubnetId=subnet_id)
-                    print('Mount target:' + resp['IpAddress'])
-                    mount_target_id = resp['MountTargetId']
+                resp = self.efs_client.create_mount_target(FileSystemId=efs_id,
+                                                           SubnetId=subnet_id)
+                cprint('[' + self.__job_name + '] Creating mount target:' + resp['IpAddress'], self.__output_color)
                 
+                mount_target_id = resp['MountTargetId']
+                
+                resp = self.efs_client.describe_mount_targets(MountTargetId = mount_target_id)
+                cprint('[' + self.__job_name + '] Waiting for mount target to become available', self.__output_color)
+                while resp['MountTargets'][0]['LifeCycleState'] != 'available':
+                    time.sleep(1)
                     resp = self.efs_client.describe_mount_targets(MountTargetId = mount_target_id)
-                    print('Waiting for mount target to become available')
-                    while resp['MountTargets'][0]['LifeCycleState'] != 'available':
-                        time.sleep(1)
-                        resp = self.efs_client.describe_mount_targets(MountTargetId = mount_target_id)
                     time.sleep(60)
                     subnets.add(subnet_id)
-
-                node.create_shared_dir()
-                node.mount_efs(efs_id)
-                node.change_ownership()
-            
+                    
+            #node.create_shared_dir()
+            node.mount_efs(efs_id)
+            node.change_ownership()
+                    
             
 
     def clear_all(self):
@@ -169,37 +175,24 @@ class AWSLauncher(object):
         bee_instance_ids = self.get_bee_instance_ids()
         num_of_all_existing = len(bee_instance_ids)
         if num_of_all_existing > 0:
-            print('Terminate all existing instances')
-            print(bee_instance_ids)
+            cprint('Terminate all existing instances', self.__output_color)
+            cprint(bee_instance_ids, self.__output_color)
             self.ec2_client.terminate_instances(InstanceIds = bee_instance_ids)
-            print('Waiting to terminate all instances')
+            cprint('Waiting to terminate all instances', self.__output_color)
             while len(self.get_bee_instance_ids()) > 0:
                 time.sleep(1)
-                print("\r{}/{} terminated".format(len(self.get_bee_instance_ids()), num_of_all_existing)),
+                #print("\r{}/{} terminated".format(len(self.get_bee_instance_ids()), num_of_all_existing)),
 
         # Delete BEE-AWS security group
         if self.get_bee_sg_id() != -1:
-            print('Delete existing security group:'+self.__bee_aws_sgroup)
+            cprint('Delete existing security group:'+self.__bee_aws_sgroup, self.__output_color)
             self.ec2_client.delete_security_group(GroupName = self.__bee_aws_sgroup)
                         
         # Delete BEE-AWS placement group
         if self.is_bee_pg_exist():
-            print('Delete existing placement group:'+self.__bee_aws_pgroup)
+            cprint('Delete existing placement group:'+self.__bee_aws_pgroup, self.__output_color)
             self.ec2_client.delete_placement_group(GroupName = self.__bee_aws_pgroup)
 
-        # Delete BEE-AWS storage
-        bee_efs_id = self.get_bee_efs_id()
-        if bee_efs_id != -1:
-            mount_target_ids = self.get_mount_target_ids()
-            for mount_target_id in mount_target_ids:
-                print('Delete mount target:' + mount_target_id)
-                self.efs_client.delete_mount_target(MountTargetId = mount_target_id)
-            while len(self.get_mount_target_ids()) != 0:
-                time.sleep(1)
-                continue
-            print('Delete efs:'+bee_efs_id)
-            self.efs_client.delete_file_system(FileSystemId = bee_efs_id)
-            
 
     # Get all instance ids of bee
     def get_bee_instance_ids(self):
@@ -233,15 +226,6 @@ class AWSLauncher(object):
                     
         return bee_placement_group_exist
 
-    # Get the id of bee efs, if not exist, -1 is returned.
-    def get_bee_efs_id(self):
-        all_efss = self.efs_client.describe_file_systems()
-        bee_efs_id = -1
-        for efs in all_efss['FileSystems']:
-            if efs['CreationToken'] == self.__bee_aws_storage:
-                bee_efs_id = efs['FileSystemId']
-        return bee_efs_id
-
     def get_mount_target_ids(self):
         bee_efs_id = self.get_bee_efs_id()
         resp = self.efs_client.describe_mount_targets(FileSystemId = bee_efs_id)
@@ -251,12 +235,3 @@ class AWSLauncher(object):
         
         return mount_target_ids
         
-
-
-    def wait_bee_efs(self):
-        print("Wait for EFS to become available.")
-        resp = self.efs_client.describe_file_systems(CreationToken = self.__bee_aws_storage)
-        state = resp['FileSystems'][0]['LifeCycleState']
-        while state != 'available':
-            resp = self.efs_client.describe_file_systems(CreationToken = self.__bee_aws_storage)
-            state = resp['FileSystems'][0]['LifeCycleState']

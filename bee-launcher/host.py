@@ -1,5 +1,6 @@
 import time
 import subprocess
+from subprocess import Popen
 import os
 from qemu import QEMU
 
@@ -11,13 +12,7 @@ class Host(object):
         self.__host_name = host_name
         self.__ssh_port = ssh_port
         self.__kvm = True
-        self.__exec_cmd = ["ssh",
-                         "-p {}".format(self.__ssh_port),
-                         "-o StrictHostKeyChecking=no",
-                         "-o UserKnownHostsFile=/dev/null",
-                         "-q",
-                         "{}@{}".format(self.__user_name, self.__host_name),
-                         "-x"]
+
         self.__vm = ""
         self.__vm_monitor = ""
         self.__hypervisor = QEMU(host_name, "qemu-system-x86_64", self.__kvm)
@@ -27,10 +22,56 @@ class Host(object):
         return self.__host_name
 
     def run(self, command):        
-        cmd = self.__exec_cmd + command
-        print(" ".join(cmd))
+        exec_cmd = ["ssh",
+                    "-p {}".format(self.__ssh_port),
+                    "-o StrictHostKeyChecking=no",
+                    "-o UserKnownHostsFile=/dev/null",
+                    "-q",
+                    "{}@{}".format(self.__user_name, self.__host_name),
+                    "-x"]
+        
+        cmd = exec_cmd + command
+        #print(" ".join(cmd))
         subprocess.call(cmd)
 
+    def run_pfwd(self, command, port):
+        exec_cmd = ["ssh",
+                    "-p {}".format(self.__ssh_port),
+                    "-o StrictHostKeyChecking=no",
+                    "-o UserKnownHostsFile=/dev/null",
+                    "-q",
+                    "-L {}:localhost:{}".format(port, port),
+                    "{}@{}".format(self.__user_name, self.__host_name),
+                    "-x"]
+        cmd = exec_cmd + command
+        #print(" ".join(cmd))  
+        subprocess.call(cmd)
+
+    def run_async(self, command):
+        exec_cmd = ["ssh",
+                    "-p {}".format(self.__ssh_port),
+                    "-o StrictHostKeyChecking=no",
+                    "-o UserKnownHostsFile=/dev/null",
+                    "-q",
+                    "{}@{}".format(self.__user_name, self.__host_name),
+                    "-x"]
+
+        cmd = exec_cmd + command
+        #print(" ".join(cmd))
+        Popen(cmd)
+
+    def run_pfwd_async(self, command, port):
+        exec_cmd = ["ssh",
+                    "-p {}".format(self.__ssh_port),
+                    "-o StrictHostKeyChecking=no",
+                    "-o UserKnownHostsFile=/dev/null",
+                    "-q",
+                    "-L {}:localhost:{}".format(port, port),
+                    "{}@{}".format(self.__user_name, self.__host_name),
+                    "-x"]
+        cmd = exec_cmd + command
+        #print(" ".join(cmd))
+        Popen(cmd)
     # Following are warpper functions of vms
 
     def add_vm(self, vm):

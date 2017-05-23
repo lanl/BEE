@@ -1,10 +1,15 @@
 import boto3
 import subprocess
+from subprocess import Popen
 import time
+from termcolor import colored, cprint
+
+
 class BeeAWS(object):
-    def __init__(self, name, bee_aws_conf, job_conf, security_group, placement_group):
+    def __init__(self, job_id, name, bee_aws_conf, job_conf, security_group, placement_group):
         
         self.ec2_client = boto3.client('ec2')
+        self.__job_name = 'job{}'.format(str(job_id).zfill(3))
         self.hostname = name
         self.__ami_image = bee_aws_conf['ami_image']
         self.__aws_key_path = bee_aws_conf['aws_key_path']
@@ -27,7 +32,9 @@ class BeeAWS(object):
 
         self.__job_conf = job_conf
 
-        
+        # Output color list                                                                                                                                
+        self.__output_color_list = ["magenta", "cyan", "blue", "green", "red", "grey", "yellow"]
+        self.__output_color = self.__output_color_list[job_id % 7]
 
     def start(self):
         resp = self.ec2_client.run_instances(ImageId = self.__ami_image,
@@ -41,7 +48,7 @@ class BeeAWS(object):
 
 
         self.__instance_id = resp['Instances'][0]['InstanceId']
-        print('Start instance:' + self.__instance_id)
+        cprint('[' + self.__job_name + '] Start instance:' + self.__instance_id, self.__output_color)
         
         # Setup name tag of this instance
         self.ec2_client.create_tags(Resources = [self.__instance_id], 
@@ -66,7 +73,7 @@ class BeeAWS(object):
         self.__host = resp['Reservations'][0]['Instances'][0]['PublicDnsName']
         self.private_ip = resp['Reservations'][0]['Instances'][0]['PrivateIpAddress']
 
-    def run(self, command):
+    def run(self, command, pfwd = '-1', async = False):
         exec_cmd = ["ssh",
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
@@ -75,12 +82,18 @@ class BeeAWS(object):
                     "-i", "{}".format(self.__aws_key_path),
                     "{}@{}".format(self.__user_name, self.__host),
                     "-x"]
-        
+        if pfwd != '-1':
+            exec_cmd.insert(7, "-L {}:localhost:{}".format(pfwd, pfwd))
         cmd = exec_cmd + command
-        print(" ".join(cmd))
-        subprocess.call(cmd)
+        
+        #print(" ".join(cmd))
+        
+        if async:
+            Popen(cmd)
+        else:
+            subprocess.call(cmd)
 
-    def parallel_run(self, command, nodes):
+    def parallel_run(self, command, nodes, pfwd = '-1', async = False):
         cmd = ["mpirun",
                "-host"]
         node_list = ""
@@ -88,15 +101,17 @@ class BeeAWS(object):
             node_list = node_list + node.hostname + ","
         cmd.append(node_list)
         cmd = cmd + command
-        self.run(cmd)
+        self.run(cmd, pfwd, async)
 
     def set_hostname(self):
+        cprint('[' + self.hostname + '] Set hostname.', self.__output_color)
         cmd = ["sudo",
                "hostname",
                self.hostname]
         self.run(cmd)
 
     def add_host_list(self, private_ip, hostname):
+        cprint('[' + self.hostname + '] Add entry to hostfile.', self.__output_color)
         cmd = ["echo",
                "\"{} {}\"".format(private_ip, hostname),
                "|",
@@ -105,11 +120,14 @@ class BeeAWS(object):
         self.run(cmd)
 
     def create_shared_dir(self):
+        cprint('[' + self.hostname + '] Create shared directory.', self.__output_color)
         cmd = ["mkdir",
                "{}".format(self.vm_shared_dir)]
         self.run(cmd)
 
     def mount_efs(self, efs_id):
+        
+        cprint('[' + self.hostname + '] Mount efs.', self.__output_color)
         my_session = boto3.session.Session()
         my_region = my_session.region_name
 
@@ -121,6 +139,7 @@ class BeeAWS(object):
         self.run(cmd)
 
     def change_ownership(self):
+        cprint("["+self.hostname+"]: Update ownership of shared directory.", self.__output_color)
         cmd = ["sudo",
                "chown",
                "-R",
@@ -130,11 +149,12 @@ class BeeAWS(object):
 
 
     def copy_file(self, src_path, dist_path):
+        cprint("["+self.hostname+"]: Copy file:"+src_path+" --> "+dist_path+".", self.__output_color)
         cmd = ["scp",
                "-i", "{}".format(self.__aws_key_path),
                "{}".format(src_path),
                "{}@{}:{}".format(self.__user_name, self.__host, dist_path)]
-        print(" ".join(cmd))
+        #print(" ".join(cmd))
         subprocess.call(cmd)
 
 
@@ -143,6 +163,7 @@ class BeeAWS(object):
         self.__docker = docker
 
     def get_dockerfile(self, vms):
+        cprint("["+self.hostname+"]: pull docker image in parallel.", self.__output_color)
         self.parallel_run(self.__docker.get_dockerfile(), vms)
 
     def get_docker_img(self, vms):
@@ -152,21 +173,27 @@ class BeeAWS(object):
         self.parallel_run(self.__docker.build_docker(), vms)
 
     def start_docker(self, exec_cmd):
+        cprint("["+self.hostname+"]: start docker container.", self.__output_color)
         self.run(self.__docker.start_docker(exec_cmd))
 
     def docker_update_uid(self, uid):
+        cprint("["+self.hostname+"][Docker]: update docker user UID.", self.__output_color)
         self.run(self.__docker.update_uid(uid))
     
     def docker_update_gid(self, gid):
+        cprint("["+self.hostname+"][Docker]: update docker user GID.", self.__output_color)
         self.run(self.__docker.update_gid(gid))
     
     def docker_copy_file(self, src_path, dist_path):
+        cprint("["+self.hostname+"][Docker]: copy file to docker" + src_path + " --> " + dist_path +".", self.__output_color)
         self.run(self.__docker.copy_file(src_path, dist_path))
 
-    def docker_seq_run(self, exec_cmd):
-        self.run(self.__docker.run([exec_cmd]))
+    def docker_seq_run(self, exec_cmd, pfwd = '-1', async = False):
+        cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
+        self.run(self.__docker.run([exec_cmd]), pfwd, async)
 
-    def docker_para_run(self, exec_cmd, vms):
+    def docker_para_run(self, exec_cmd, vms, pfwd = '-1', async = False):
+        cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
         np = int(self.__job_conf['proc_per_node']) * int(self.__job_conf['num_of_nodes'])
         cmd = ["mpirun",
                "--allow-run-as-root",
@@ -174,9 +201,10 @@ class BeeAWS(object):
                "--hostfile /root/hostfile",
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
-        self.run(self.__docker.run(cmd))
+        self.run(self.__docker.run(cmd), pfwd, async)
 
     def docker_make_hostfile(self, vms, tmp_dir):
+        cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
         hostfile_path = "{}/hostfile".format(tmp_dir)
         cmd = ["rm",
                hostfile_path]

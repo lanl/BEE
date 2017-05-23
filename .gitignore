@@ -1,0 +1,7 @@
+*~
+__pycache__
+*.qcow2
+*.pyc
+.DS_Store
+.#bee_config.json
+

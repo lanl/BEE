@@ -6,14 +6,15 @@ import subprocess
 import os
 
 class BeeVMLauncher(object):
-    def __init__(self, hosts, job_conf, bee_vm_conf, docker_conf):
+    def __init__(self, group_num, hosts, job_conf, bee_vm_conf, docker_conf):
         
-        self.__hosts = hosts
+        self.__hosts = bee_vm_conf['node_list']
         
         # User configuration
         self.__job_conf = job_conf
         self.__bee_vm_conf = bee_vm_conf
         self.__docker_conf = docker_conf
+        self.__group_num = group_num
 
         # System configuration
         self.__user_name = os.getlogin()
@@ -39,7 +40,7 @@ class BeeVMLauncher(object):
         for host in self.__hosts:
             curr_rank = len(self.__bee_vm_list)
             
-            img_path = "{}/img{}.qcow2".format(self.__vm_img_dir, curr_rank)
+            img_path = "{}/img{}-{}.qcow2".format(self.__vm_img_dir, self.__group_num, curr_rank)
             
             hostname = ""
             if curr_rank == 0:
@@ -47,8 +48,7 @@ class BeeVMLauncher(object):
             else:
                 hostname = "bee-worker{}".format(str(curr_rank).zfill(3))
     
-            bee_vm = BeeVM(hostname, host, curr_rank, self.__job_conf, self.__bee_vm_conf,
-                    self.__vm_key_path, self.__base_img_path, img_path, network_mode, storage_mode)
+            bee_vm = BeeVM(self.__group_num, hostname, host, curr_rank, self.__job_conf, self.__bee_vm_conf, self.__vm_key_path, self.__base_img_path, img_path, network_mode, storage_mode)
             
             # Add new VM to host
             self.__bee_vm_list.append(bee_vm)
@@ -90,7 +90,7 @@ class BeeVMLauncher(object):
             bee_vm.create_os_img()
             bee_vm.start()
 
-        time.sleep(30)
+        time.sleep(60)
 
 
         # Setup hostname
@@ -137,23 +137,30 @@ class BeeVMLauncher(object):
         # Copy run scripts (host --> BeeVM --> Docker container)
         seq_file = self.__job_conf['seq_run_script']
         para_file = self.__job_conf['para_run_script']
-        for bee_vm in self.__bee_vm_list:
-            bee_vm.copy_file(seq_file, '/home/ubuntu/seq_script.sh')
-            bee_vm.docker_copy_file('/home/ubuntu/seq_script.sh', '/root/seq_script.sh')
-            bee_vm.copy_file(para_file, '/home/ubuntu/para_script.sh')
-            bee_vm.docker_copy_file('/home/ubuntu/para_script.sh', '/root/para_script.sh')
+        master = self.__bee_vm_list[0]
+        if seq_file != "":
+            master.copy_file(seq_file, '/home/ubuntu/seq_script.sh')
+            master.docker_copy_file('/home/ubuntu/seq_script.sh', '/root/seq_script.sh')
+            if self.__job_conf['port_fwd'] == "":
+                master.docker_seq_run('/root/seq_script.sh')
+            else:
+                master.docker_seq_run_pfwd('/root/seq_script.sh', self.__job_conf['port_fwd'])
 
-        # Generate hostfile and copy to container
-        self.__bee_vm_list[0].docker_make_hostfile(self.__bee_vm_list, self.__tmp_dir)
-        self.__bee_vm_list[0].copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
-        self.__bee_vm_list[0].docker_copy_file('/home/ubuntu/hostfile', '/root/hostfile')
-        
-        # Run sequential script on master  
-        self.__bee_vm_list[0].docker_seq_run('/root/seq_script.sh')
-        
-        # Run parallel script on all nodes
-        self.__bee_vm_list[0].docker_para_run('/root/para_script.sh', self.__bee_vm_list)
-
+        if para_file != "":
+            for bee_vm in self.__bee_vm_list:
+                bee_vm.copy_file(para_file, '/home/ubuntu/para_script.sh')
+                bee_vm.docker_copy_file('/home/ubuntu/para_script.sh', '/root/para_script.sh')
+            
+            # Generate hostfile and copy to container
+            master.docker_make_hostfile(self.__bee_vm_list, self.__tmp_dir)
+            master.copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
+            master.docker_copy_file('/home/ubuntu/hostfile', '/root/hostfile')
+            # Run parallel script on all nodes
+            if self.__job_conf['port_fwd'] == "":
+                master.docker_para_run('/root/para_script.sh', self.__bee_vm_list)
+            else:
+                master.docker_para_run_pfwd('/root/para_script.sh', self.__bee_vm_list, self.__job_conf['port_fwd'])
+                
     def stop(self):
         for bee_vm in self.__bee_vm_list:
             bee_vm.kill()
