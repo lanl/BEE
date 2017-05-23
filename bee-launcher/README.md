@@ -52,13 +52,13 @@ First, `cd` into the BEE Launcher folder and configure `bee-config.json` file:
 
 * `exec_env_conf`: specifiying all configuration related to the execution environment.
 	* a. `bee_vm`: Execution configuration related to `BEE-VM`;
-                * a1. `node_list`: list of nodes on HPC system allocated to run this job;
-		* a2. `cpu_core_per_socket`: number of CPU cores per socket;
-		* a3. `cpu_thread_per_core`: number of CPU thread per core;
-		* a4. `cpu_sockets`: number of CPU sockets;
-		* a5. `ram_size`: RAM size (512M, 8G, etc.);
-		* a6. `kvm_enabled`: whether KVM is enabled or not;
-		* a7. `host_input_dir`: input file directory.
+          * a1. `node_list`: list of nodes on HPC system allocated to run this job;
+	  * a2. `cpu_core_per_socket`: number of CPU cores per socket;
+	  * a3. `cpu_thread_per_core`: number of CPU thread per core;
+	  * a4. `cpu_sockets`: number of CPU sockets;
+          * a5. `ram_size`: RAM size (512M, 8G, etc.);
+          * a6. `kvm_enabled`: whether KVM is enabled or not;
+	  * a7. `host_input_dir`: input file directory.
 	* b. `bee_aws`: Execution configuration related to `BEE-AWS`;
 		* b1. `ami_image`: the AMI image used to launch `BEE-AWS`;
 		* b2. `aws_key_path`: the path to the AWS key;
