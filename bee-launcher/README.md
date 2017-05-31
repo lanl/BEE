@@ -6,7 +6,7 @@ BEE Image Builder is used to build varity kinds of images for BEE, including VM 
 Download Packer binary [here](https://www.packer.io/downloads.html). Add Packer binary to `$PATH` environment variable, so that it can be called in command line.
 
 ##### Step 2. Get BEE Image Builder
-Checkout the BEE Image Builder from repo [here](https://gitlab.lanl.gov/BEE/packer-qemu/tree/dev-ic) (`dev-ic` branch).
+Checkout the BEE Image Builder from this repo.
 ##### Step 3. Build Images
 First, `cd` into the BEE Image Builder folder. 
 * (1) run `./build_bee_vm.sh` to build base image for `BEE-VM` (It must be build for each HPC platform.)
@@ -19,7 +19,7 @@ Pre-built AMIs:
 
 #### 2. BEE Launcher
 ##### Step 1. Get BEE Launcher
-Checkout the BEE Launcher from repo [here](https://gitlab.lanl.gov/BEE/BEE_Launcher_Integration).
+Checkout the BEE Launcher from this repo.
 
 ##### Step 2. Setup AWS Credentials
 Create a file under your home directory `~/.aws/credentials`.
@@ -52,13 +52,13 @@ First, `cd` into the BEE Launcher folder and configure `bee-config.json` file:
 
 * `exec_env_conf`: specifiying all configuration related to the execution environment.
 	* a. `bee_vm`: Execution configuration related to `BEE-VM`;
-                * a1. `node_list`: list of nodes on HPC system allocated to run this job;
-		* a2. `cpu_core_per_socket`: number of CPU cores per socket;
-		* a3. `cpu_thread_per_core`: number of CPU thread per core;
-		* a4. `cpu_sockets`: number of CPU sockets;
-		* a5. `ram_size`: RAM size (512M, 8G, etc.);
-		* a6. `kvm_enabled`: whether KVM is enabled or not;
-		* a7. `host_input_dir`: input file directory.
+	  * a1. `node_list`: list of nodes on HPC system allocated to run this job;
+	  * a2. `cpu_core_per_socket`: number of CPU cores per socket;
+	  * a3. `cpu_thread_per_core`: number of CPU thread per core;
+	  * a4. `cpu_sockets`: number of CPU sockets;
+	  * a5. `ram_size`: RAM size (512M, 8G, etc.);
+	  * a6. `kvm_enabled`: whether KVM is enabled or not;
+	  * a7. `host_input_dir`: input file directory.
 	* b. `bee_aws`: Execution configuration related to `BEE-AWS`;
 		* b1. `ami_image`: the AMI image used to launch `BEE-AWS`;
 		* b2. `aws_key_path`: the path to the AWS key;
@@ -68,7 +68,7 @@ First, `cd` into the BEE Launcher folder and configure `bee-config.json` file:
 ##### Step 5. Use BEE Launcher
 ###### a. Prepare run scripts as necessary.
 ###### b. Open `2` console windows. One serves as daemon control, another serves as client control.
-###### c. Run `./bee_launcher_daemon.py` on daemon control window to start Bee Launcher daemon.
+###### c. Run `./bee_orc_ctl.py` on daemon control window to start Bee Launcher daemon.
 ###### d. Run `./bee_launcher.py` on client control window to launch Bee job.
 
 
