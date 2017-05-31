@@ -73,7 +73,7 @@ class BeeAWS(object):
         self.__host = resp['Reservations'][0]['Instances'][0]['PublicDnsName']
         self.private_ip = resp['Reservations'][0]['Instances'][0]['PrivateIpAddress']
 
-    def run(self, command, pfwd = '-1', async = False):
+    def run(self, command, pfwd = '', async = False):
         exec_cmd = ["ssh",
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
@@ -82,18 +82,20 @@ class BeeAWS(object):
                     "-i", "{}".format(self.__aws_key_path),
                     "{}@{}".format(self.__user_name, self.__host),
                     "-x"]
-        if pfwd != '-1':
+        if pfwd != '':
             exec_cmd.insert(7, "-L {}:localhost:{}".format(pfwd, pfwd))
         cmd = exec_cmd + command
         
         #print(" ".join(cmd))
         
         if async:
+            #print("ASYNC")
             Popen(cmd)
         else:
+            #print("NON-ASYNC")
             subprocess.call(cmd)
 
-    def parallel_run(self, command, nodes, pfwd = '-1', async = False):
+    def parallel_run(self, command, nodes, pfwd = '', async = False):
         cmd = ["mpirun",
                "-host"]
         node_list = ""
@@ -101,7 +103,7 @@ class BeeAWS(object):
             node_list = node_list + node.hostname + ","
         cmd.append(node_list)
         cmd = cmd + command
-        self.run(cmd, pfwd, async)
+        self.run(cmd, pfwd = pfwd, async = async)
 
     def set_hostname(self):
         cprint('[' + self.hostname + '] Set hostname.', self.__output_color)
@@ -188,11 +190,11 @@ class BeeAWS(object):
         cprint("["+self.hostname+"][Docker]: copy file to docker" + src_path + " --> " + dist_path +".", self.__output_color)
         self.run(self.__docker.copy_file(src_path, dist_path))
 
-    def docker_seq_run(self, exec_cmd, pfwd = '-1', async = False):
+    def docker_seq_run(self, exec_cmd, pfwd = '', async = False):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
-        self.run(self.__docker.run([exec_cmd]), pfwd, async)
+        self.run(self.__docker.run([exec_cmd]), pfwd = pfwd, async = async)
 
-    def docker_para_run(self, exec_cmd, vms, pfwd = '-1', async = False):
+    def docker_para_run(self, exec_cmd, vms, pfwd = '', async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
         np = int(self.__job_conf['proc_per_node']) * int(self.__job_conf['num_of_nodes'])
         cmd = ["mpirun",
@@ -201,7 +203,7 @@ class BeeAWS(object):
                "--hostfile /root/hostfile",
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
-        self.run(self.__docker.run(cmd), pfwd, async)
+        self.run(self.__docker.run(cmd), pfwd = pfwd, async = async)
 
     def docker_make_hostfile(self, vms, tmp_dir):
         cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)

@@ -119,7 +119,7 @@ class BeeVM(object):
         vm.connect_host.append(self.__host)
         vm.connect_port.append(new_listen_port)
 
-    def run(self, command, async = False):
+    def run(self, command, pfwd = '', async = False):
         # Execute command on this VM.
         exec_cmd = ["ssh",
                     "-p {}".format(self.ssh_port),
@@ -130,14 +130,16 @@ class BeeVM(object):
                     "-i {}".format(self.__key_path),
                     "{}@localhost".format(self.__user_name),
                     "-x"]
+        if pfwd != '':
+            exec_cmd.insert(7, "-L {}:localhost:{}".format(pfwd, pfwd))
+
         cmd = exec_cmd + ["'"] + command + ["'"]
-        if async == False:
-            self.__host.run(cmd)
-        else:
-            self.__host.run_async(cmd)
+
+        self.__host.run(cmd, pfwd = pfwd, async = async)
 
 
-    def root_run(self, command):
+
+    def root_run(self, command, pfwd = '', async = False):
         # Execute command with root previlege on this VM.
         root_exec_cmd = ["ssh",
                          "-p {}".format(self.ssh_port),
@@ -151,7 +153,7 @@ class BeeVM(object):
         cmd = root_exec_cmd + ["'"] + command + ["'"]
         self.__host.run(cmd)
 
-    def parallel_run(self, command, vms):
+    def parallel_run(self, command, vms, pfwd = '', async = False):
         cmd = ["mpirun",
                "--mca btl_tcp_if_include eth0",
                "-host"]
@@ -161,25 +163,7 @@ class BeeVM(object):
             vm_list = vm_list + vm_name + ","
         cmd.append(vm_list)
         cmd = cmd + command        
-        self.run(cmd)
-
-    def run_pfwd(self, command, port, async = False):
-        # Execute command on this VM.
-        exec_cmd = ["ssh",
-                    "-p {}".format(self.ssh_port),
-                    "-o StrictHostKeyChecking=no",
-                    "-o ConnectTimeout=300",
-                    "-o UserKnownHostsFile=/dev/null",
-                    "-q",
-                    "-i {}".format(self.__key_path),
-                    "-L {}:localhost:{}".format(port, port),
-                    "{}@localhost".format(self.__user_name),
-                    "-x"]
-        cmd = exec_cmd + ["'"] + command + ["'"]
-        if async == False:
-            self.__host.run_pfwd(cmd, port)
-        else:
-            self.__host.run_pfwd_async(cmd, port)
+        self.run(cmd, pfwd = pfwd, async = async)
 
     def set_data_img(self, base_data_img, data_img):
         self.base_data_img = base_data_img
@@ -312,15 +296,11 @@ class BeeVM(object):
         cprint("["+self.hostname+"][Docker]: copy file to docker" + src_path + " --> " + dist_path +".", self.__output_color)
         self.run(self.__docker.copy_file(src_path, dist_path))
 
-    def docker_seq_run(self, exec_cmd):
+    def docker_seq_run(self, exec_cmd, pfwd = '', async = False):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
-        self.run(self.__docker.run([exec_cmd]), async = False)
+        self.run(self.__docker.run([exec_cmd]), pfwd = pfwd, async = async)
 
-    def docker_seq_run_pfwd(self, exec_cmd, port):
-        cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+" with port fowarding.", self.__output_color)
-        self.run_pfwd(self.__docker.run([exec_cmd]), port, async = False)
-
-    def docker_para_run(self, exec_cmd, vms):
+    def docker_para_run(self, exec_cmd, vms, pfwd = '', async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
         np = int(self.__job_conf['proc_per_node']) * int(self.__job_conf['num_of_nodes'])
         cmd = ["mpirun",
@@ -329,18 +309,7 @@ class BeeVM(object):
                "--hostfile /root/hostfile",
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
-        self.run(self.__docker.run(cmd), async = True)
-
-    def docker_para_run_pfwd(self, exec_cmd, vms, port):
-        cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
-        np = int(self.__job_conf['proc_per_node']) * int(self.__job_conf['num_of_nodes'])
-        cmd = ["mpirun",
-               "--allow-run-as-root",
-               "--mca btl_tcp_if_include eth0",
-               "--hostfile /root/hostfile",
-                      "-np {}".format(np)]
-        cmd = cmd + [exec_cmd]
-        self.run_pfwd(self.__docker.run(cmd), port, async = True)
+        self.run(self.__docker.run(cmd), pfwd = pfwd, async = async)
 
     def docker_make_hostfile(self, vms, tmp_dir):
         cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)

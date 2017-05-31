@@ -11,9 +11,9 @@ class BeeLauncherDaemon(object):
         self.__bee_vm_jobs = []
         self.__bee_aws_jobs = []
         
-    def launch_bee_vm(self, hosts, job_conf, bee_aws_conf, docker_conf):
+    def launch_bee_vm(self, job_conf, bee_aws_conf, docker_conf):
         print("Bee orchestration controller: received job launching request")
-        bee_vm_launcher = BeeVMLauncher(len(self.__bee_vm_jobs) + 1, hosts, job_conf, bee_aws_conf, docker_conf)
+        bee_vm_launcher = BeeVMLauncher(len(self.__bee_vm_jobs) + 1, job_conf, bee_aws_conf, docker_conf)
         self.__bee_vm_jobs.append(bee_vm_launcher)
         bee_vm_launcher.start()
 

@@ -21,7 +21,7 @@ class Host(object):
     def get_name(self):
         return self.__host_name
 
-    def run(self, command):        
+    def run(self, command, pfwd = '', async = False):        
         exec_cmd = ["ssh",
                     "-p {}".format(self.__ssh_port),
                     "-o StrictHostKeyChecking=no",
@@ -29,49 +29,16 @@ class Host(object):
                     "-q",
                     "{}@{}".format(self.__user_name, self.__host_name),
                     "-x"]
+        if pfwd!= '':
+            exec_cmd.insert(6, "-L {}:localhost:{}".format(pfwd, pfwd))
         
         cmd = exec_cmd + command
         #print(" ".join(cmd))
-        subprocess.call(cmd)
-
-    def run_pfwd(self, command, port):
-        exec_cmd = ["ssh",
-                    "-p {}".format(self.__ssh_port),
-                    "-o StrictHostKeyChecking=no",
-                    "-o UserKnownHostsFile=/dev/null",
-                    "-q",
-                    "-L {}:localhost:{}".format(port, port),
-                    "{}@{}".format(self.__user_name, self.__host_name),
-                    "-x"]
-        cmd = exec_cmd + command
-        #print(" ".join(cmd))  
-        subprocess.call(cmd)
-
-    def run_async(self, command):
-        exec_cmd = ["ssh",
-                    "-p {}".format(self.__ssh_port),
-                    "-o StrictHostKeyChecking=no",
-                    "-o UserKnownHostsFile=/dev/null",
-                    "-q",
-                    "{}@{}".format(self.__user_name, self.__host_name),
-                    "-x"]
-
-        cmd = exec_cmd + command
-        #print(" ".join(cmd))
-        Popen(cmd)
-
-    def run_pfwd_async(self, command, port):
-        exec_cmd = ["ssh",
-                    "-p {}".format(self.__ssh_port),
-                    "-o StrictHostKeyChecking=no",
-                    "-o UserKnownHostsFile=/dev/null",
-                    "-q",
-                    "-L {}:localhost:{}".format(port, port),
-                    "{}@{}".format(self.__user_name, self.__host_name),
-                    "-x"]
-        cmd = exec_cmd + command
-        #print(" ".join(cmd))
-        Popen(cmd)
+        if async:
+            Popen(cmd)
+        else:
+            subprocess.call(cmd)
+            
     # Following are warpper functions of vms
 
     def add_vm(self, vm):
