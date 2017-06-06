@@ -46,16 +46,16 @@ Configure `<task_name>.beefile` file as follow:
     * a4. `efs_id`: the id of EFS that each AWS instance will mount to.
 
 ##### Step 2. Launch task
-###### a. Prepare run scripts as necessary.
-###### b. Open `2` console windows. One serves as daemon control, another serves as client control.
-###### c. Run `bee_orc_ctl.py` on daemon control window to start Bee Launcher daemon. The daemon is necessary for keeping the launching, running, and monitoring process. So, running it in oridinary shell session could cause unexpected shutdown during to shell session timeout or disconnection. For long term exection, it is recommended to run the daemon on a separated `screen`. For details of using `screen`, please refer to [here](https://www.rackaid.com/blog/linux-screen-tutorial-and-how-to/)
+* a. Prepare run scripts as necessary.
+* b. Open `2` console windows. One serves as daemon control, another serves as client control.
+* c. Run `bee_orc_ctl.py` on daemon control window to start Bee Launcher daemon. The daemon is necessary for keeping the launching, running, and monitoring process. So, running it in oridinary shell session could cause unexpected shutdown during to shell session timeout or disconnection. For long term exection, it is recommended to run the daemon on a separated `screen`. For details of using `screen`, please refer to [here](https://www.rackaid.com/blog/linux-screen-tutorial-and-how-to/)
 
-###### d. Run `bee_launcher.py` on client control window to launch Bee job. Several option let you launch, control and monotor tasks.
-* (1) `-l <task_name>`: runs task specified by <task_name>.beefile;
-* (2) `-s`: list all tasks with status;
-* (3) `-t <task_name>`: terminate task <task_name>;
-* (4) `-d <task_name>`: terminate and delete task <task_name> from task list;
-* (5) `-e <efs_name>`: create new efs with name <efs_name>.
+* d. Run `bee_launcher.py` on client control window to launch Bee job. Several option let you launch, control and monotor tasks.
+  * (1) `-l <task_name>`: runs task specified by <task_name>.beefile;
+  * (2) `-s`: list all tasks with status;
+  * (3) `-t <task_name>`: terminate task <task_name>;
+  * (4) `-d <task_name>`: terminate and delete task <task_name> from task list;
+  * (5) `-e <efs_name>`: create new efs with name <efs_name>.
    
 
 
