@@ -18,6 +18,25 @@ To build BEE-AWS image:
 ##### Step 3. Add bee launcher to $PATH
 Add the directory of bee-launcher to $PATH, so that it can run anywhere.    
 
+##### Step 4. Configure AWS credentials and keys
+(1) Get AWS access key pair from AWS. Create a `credentials` file in `~/.aws/`. Fill in the file as follow:
+```
+[default]
+aws_access_key_id = <access_key_id>
+aws_secret_access_key = <secret_access_key>
+
+[default]
+region = <aws_region>
+
+```
+(2) Get an AWS ssh key. Create a `sshkey.json` file in `~/.aws/`. Fill in the file as follow:
+```
+{
+    "aws_key_name": "<key_name>",
+    "aws_key_path": "<path_to_key>"
+}
+```
+
 #### Launch BEE-VM task
 
 ##### Step 1. Configure task file

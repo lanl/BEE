@@ -3,20 +3,28 @@ import subprocess
 from subprocess import Popen
 import time
 from termcolor import colored, cprint
+import json
+import os
 
 
 class BeeAWS(object):
-    def __init__(self, job_id, name, bee_aws_conf, job_conf, security_group, placement_group):
+    def __init__(self, task_id, name, bee_aws_conf, task_conf, security_group, placement_group):
         
         self.ec2_client = boto3.client('ec2')
-        self.__job_name = 'job{}'.format(str(job_id).zfill(3))
+        self.__task_name = 'Task-{}'.format(task_conf['task_name'])
         self.hostname = name
         self.__ami_image = bee_aws_conf['ami_image']
-        self.__aws_key_path = bee_aws_conf['aws_key_path']
-        self.__aws_key_name = bee_aws_conf['aws_key_name']
         self.__instance_type = bee_aws_conf['instance_type']
         self.__security_group = security_group
         self.__placement_group = placement_group
+
+
+        # read from ~/.aws/sshkey.json
+        f = open("/home/" + os.getlogin() + "/.aws/sshkey.json", "r")
+        sshkey = json.load(f)
+        self.__aws_key_path = sshkey['aws_key_path']
+        self.__aws_key_name = sshkey['aws_key_name']
+
         
         # Will be set after running
         self.__instance_id = 0
@@ -30,11 +38,12 @@ class BeeAWS(object):
 
         self.__docker = ""
 
-        self.__job_conf = job_conf
+        self.__task_conf = task_conf
 
-        # Output color list                                                                                                                                
+        # Output color list                                    
         self.__output_color_list = ["magenta", "cyan", "blue", "green", "red", "grey", "yellow"]
-        self.__output_color = self.__output_color_list[job_id % 7]
+        #self.__output_color = self.__output_color_list[task_id % 7]
+        self.__output_color = "cyan"
 
     def start(self):
         resp = self.ec2_client.run_instances(ImageId = self.__ami_image,
@@ -48,7 +57,7 @@ class BeeAWS(object):
 
 
         self.__instance_id = resp['Instances'][0]['InstanceId']
-        cprint('[' + self.__job_name + '] Start instance:' + self.__instance_id, self.__output_color)
+        cprint('[' + self.__task_name + '] Start instance:' + self.__instance_id, self.__output_color)
         
         # Setup name tag of this instance
         self.ec2_client.create_tags(Resources = [self.__instance_id], 
@@ -194,9 +203,9 @@ class BeeAWS(object):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
         self.run(self.__docker.run([exec_cmd]), pfwd = pfwd, async = async)
 
-    def docker_para_run(self, exec_cmd, vms, pfwd = '', async = False):
+    def docker_para_run(self, run_conf, exec_cmd, pfwd = '', async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
-        np = int(self.__job_conf['proc_per_node']) * int(self.__job_conf['num_of_nodes'])
+        np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
         cmd = ["mpirun",
                "--allow-run-as-root",
                "--mca btl_tcp_if_include eth0",
@@ -205,7 +214,7 @@ class BeeAWS(object):
         cmd = cmd + [exec_cmd]
         self.run(self.__docker.run(cmd), pfwd = pfwd, async = async)
 
-    def docker_make_hostfile(self, vms, tmp_dir):
+    def docker_make_hostfile(self, run_conf, vms, tmp_dir):
         cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
         hostfile_path = "{}/hostfile".format(tmp_dir)
         cmd = ["rm",
@@ -224,7 +233,7 @@ class BeeAWS(object):
                    "localhost",
                    "-x",
                    "echo",
-                   "\"{} slots={} \"".format(vm.get_hostname(), self.__job_conf['proc_per_node']),
+                   "\"{} slots={} \"".format(vm.get_hostname(), run_conf['proc_per_node']),
                    "|",
                    "tee --append",
                    hostfile_path]

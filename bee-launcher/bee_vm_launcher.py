@@ -4,17 +4,22 @@ from docker import Docker
 import time
 import subprocess
 import os
+from threading import Thread
+from threading import Event
+from bee_task import BeeTask
 
-class BeeVMLauncher(object):
-    def __init__(self, group_num, job_conf, bee_vm_conf, docker_conf):
-        
-        self.__hosts = bee_vm_conf['node_list']
+
+class BeeVMLauncher(BeeTask):
+    def __init__(self, task_id, beefile):
+        BeeTask.__init__(self)
         
         # User configuration
-        self.__job_conf = job_conf
-        self.__bee_vm_conf = bee_vm_conf
-        self.__docker_conf = docker_conf
-        self.__group_num = group_num
+        self.__task_conf = beefile['task_conf']
+        self.__bee_vm_conf = beefile['exec_env_conf']['bee_vm']
+        self.__docker_conf = beefile['docker_conf']
+        self.__hosts = self.__bee_vm_conf['node_list']
+        self.__task_name = self.__task_conf['task_name'] 
+        self.__task_id = task_id
 
         # System configuration
         self.__user_name = os.getlogin()
@@ -28,24 +33,64 @@ class BeeVMLauncher(object):
 
         # bee-vms
         self.__bee_vm_list = []
+        
+        # Events for workflow
+        self.__begin_event = Event()
+        self.__end_event = Event()
+        self.__event_list = []
 
-    def start(self):
-        self.kill_all()
+        # Current status
+        self.__current_status = "Initializing"
+
+    
+    def get_begin_event(self):
+        return self.__begin_event
+
+    def get_end_event(self):
+        return self.__end_event
+
+    def add_wait_event(self, new_event):
+        self.__event_list.append(new_event)
+
+    def get_current_status(self):
+        return self.__current_status
+
+    def run(self):
+
+        # wait for other tasks 
+        for event in self.__event_list:
+            event.wait()
+
+        # set out flag as begin launching
+        self.__begin_event.set()
+
+        self.launch()
+
+        # set out flag as finish launching
+        self.__end_event.set()
+
+    def launch(self):
+        self.terminate()
+        self.__current_status = "Launching"
+        
+        #self.kill_all()
         network_mode = 1
         storage_mode = 3
 
         for host in self.__hosts:
             curr_rank = len(self.__bee_vm_list)
             
-            img_path = "{}/img_{}_{}.qcow2".format(self.__vm_img_dir, self.__job_conf['job_name'], curr_rank)
+            img_path = "{}/img_{}_{}.qcow2".format(self.__vm_img_dir, self.__task_name, curr_rank)
             
             hostname = ""
             if curr_rank == 0:
-                hostname = "{}-bee-master".format(self.__job_conf['job_name'])
+                hostname = "{}-bee-master".format(self.__task_name)
             else:
-                hostname = "{}-bee-worker{}".format(self.__job_conf['job_name'], str(curr_rank).zfill(3))
+                hostname = "{}-bee-worker{}".format(self.__task_name, str(curr_rank).zfill(3))
     
-            bee_vm = BeeVM(self.__group_num, hostname, host, curr_rank, self.__job_conf, self.__bee_vm_conf, self.__vm_key_path, self.__base_img_path, img_path, network_mode, storage_mode)
+            bee_vm = BeeVM(self.__task_id, hostname, host, curr_rank, 
+                           self.__task_conf, self.__bee_vm_conf, 
+                           self.__vm_key_path, self.__base_img_path, img_path, network_mode, storage_mode)
             
             # Add new VM to host
             self.__bee_vm_list.append(bee_vm)
@@ -132,44 +177,44 @@ class BeeVMLauncher(object):
             #bee_vm.docker_update_gid()
 
         # Copy run scripts (host --> BeeVM --> Docker container)
+        
+        self.__current_status = "Running"
         # General sequential script
         master = self.__bee_vm_list[0]
-        count = 0
-        for run_conf in self.__job_conf['general_run']:
+        for run_conf in self.__task_conf['general_run']:
             host_script_path = run_conf['script_path']
-            vm_script_path = '/home/ubuntu/{}_general_script_{}.sh'.format(self.__job_conf['job_name'], count)
-            docker_script_path = '/root/{}_general_script_{}.sh'.format(self.__job_conf['job_name'], count)
-
+            vm_script_path = '/home/ubuntu/general_script.sh'
+            docker_script_path = '/root/general_script.sh'
             master.copy_file(host_script_path, vm_script_path)
             master.docker_copy_file(vm_script_path, docker_script_path)
-            
-            master.docker_seq_run(docker_script_path, pfwd = run_conf['port_fwd'], async = run_conf['async'])
-            
-            count = count + 1
+            master.docker_seq_run(docker_script_path, pfwd = run_conf['port_fwd'], async = False)
         
-        count = 0
-        for run_conf in self.__job_conf['mpi_run']:
+        for run_conf in self.__task_conf['mpi_run']:
             host_script_path = run_conf['script_path']
-            vm_script_path = '/home/ubuntu/{}_mpi_script_{}.sh'.format(self.__job_conf['job_name'], count)
-            docker_script_path = '/root/{}_mpi_script_{}.sh'.format(self.__job_conf['job_name'], count)    
+            vm_script_path = '/home/ubuntu/mpi_script.sh'
+            docker_script_path = '/root/mpi_script.sh'    
             for bee_vm in self.__bee_vm_list:
                 bee_vm.copy_file(host_script_path, vm_script_path)
-                bee_vm.docker_copy_file(vm_script_path, docker_script_path)
-            
+                bee_vm.docker_copy_file(vm_script_path, docker_script_path)            
             # Generate hostfile and copy to container
-            master.docker_make_hostfile(self.__bee_vm_list, self.__tmp_dir)
+            master.docker_make_hostfile(run_conf, self.__bee_vm_list, self.__tmp_dir)
             master.copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
             master.docker_copy_file('/home/ubuntu/hostfile', '/root/hostfile')
             # Run parallel script on all nodes
-            master.docker_para_run(docker_script_path, self.__bee_vm_list, pfwd = run_conf['port_fwd'], async = run_conf['async'])
-            
-            count = count + 1
-                
+            master.docker_para_run(run_conf, docker_script_path, pfwd = run_conf['port_fwd'], async = False)
+        
+        self.__current_status = "Finished"
+        
+        if self.__task_conf['terminate_after_exec']:
+            self.terminate()
+
+        
     def stop(self):
         for bee_vm in self.__bee_vm_list:
             bee_vm.kill()
 
-    def kill_all(self):
+    def terminate(self):
         for host in self.__hosts:
             h = Host(host)
             h.kill_all_vms()
+            self.__current_status = "Terminated"

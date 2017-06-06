@@ -7,7 +7,7 @@ import os
 from termcolor import colored, cprint
 
 class BeeVM(object):
-    def __init__(self, group_num, hostname, host, rank, job_conf, bee_vm_conf, 
+    def __init__(self, task_id, hostname, host, rank, task_conf, bee_vm_conf, 
                  key_path, base_img, img, network_mode, storage_mode):
         
         # Basic configurations
@@ -34,7 +34,7 @@ class BeeVM(object):
         # 1st vNIC
         self.ssh_port = 5555
         # 2nd vNIC
-        self.subnet = group_num + 7 # Different group has different subnet
+        self.subnet = task_id + 7 # Different group has different subnet
         self.mac_adder = "02:00:00:00:{0:02x}:{1:02x}".format(self.subnet, rank + 1)
         self.__IP = "192.168.{}.{}".format(self.subnet, rank + 1)
         # Multicast mode
@@ -77,12 +77,13 @@ class BeeVM(object):
         self.__hypervisor = QEMU(host, "qemu-system-x86_64", self.__kvm)
 
         # Job Configuration
-        self.__job_conf = job_conf
+        self.__task_conf = task_conf
         
         # Output color list
         self.__output_color_list = ["magenta", "cyan", "blue", "green", "red", "grey", "yellow"]
-        self.__output_color = self.__output_color_list[group_num % 7]
-    
+        #self.__output_color = self.__output_color_list[task_id % 7]
+        self.__output_color = "cyan"
+
     def get_ip(self):
         return self.__IP
 
@@ -300,9 +301,9 @@ class BeeVM(object):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
         self.run(self.__docker.run([exec_cmd]), pfwd = pfwd, async = async)
 
-    def docker_para_run(self, exec_cmd, vms, pfwd = '', async = False):
+    def docker_para_run(self, run_conf, exec_cmd, pfwd = '', async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
-        np = int(self.__job_conf['proc_per_node']) * int(self.__job_conf['num_of_nodes'])
+        np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
         cmd = ["mpirun",
                "--allow-run-as-root",
                "--mca btl_tcp_if_include eth0",
@@ -311,20 +312,19 @@ class BeeVM(object):
         cmd = cmd + [exec_cmd]
         self.run(self.__docker.run(cmd), pfwd = pfwd, async = async)
 
-    def docker_make_hostfile(self, vms, tmp_dir):
+    def docker_make_hostfile(self, run_conf, vms, tmp_dir):
         cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
         hostfile_path = "{}/hostfile".format(tmp_dir)
-        cmd = ["rm",
-               hostfile_path]
+        # Remove old hostfile
+        cmd = ["rm",hostfile_path]
         self.__host.run(cmd)
-
-        cmd = ["touch",
-               hostfile_path]
+        # Create new hostfile
+        cmd = ["touch", hostfile_path]
         self.__host.run(cmd)
-        
+        # Add nodes to hostfile
         for vm in vms:
             cmd = ["echo",
-                   "\"{} slots={} \"".format(vm.get_hostname(), self.__job_conf['proc_per_node']),
+                   "\"{} slots={} \"".format(vm.get_hostname(), run_conf['proc_per_node']),
                    "|",
                    "tee --append",
                    hostfile_path]

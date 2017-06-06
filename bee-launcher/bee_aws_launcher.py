@@ -4,37 +4,79 @@ from docker import Docker
 from bee_aws import BeeAWS 
 import os
 from termcolor import colored, cprint
-
-
-class AWSLauncher(object):
-    def __init__(self, job_id, job_conf, bee_aws_conf, docker_conf):
+from threading import Thread
+from threading import Event
+from bee_task import BeeTask
+class BeeAWSLauncher(BeeTask):
+    def __init__(self, task_id, beefile):
+        
+        BeeTask.__init__(self)
         self.ec2_client = boto3.client('ec2')
         self.efs_client = boto3.client('efs')
         
-        self.__job_id = job_id
-
-        self.__job_conf = job_conf
-        self.__bee_aws_conf = bee_aws_conf
-        self.__docker_conf = docker_conf
+        # User configuration
+        self.__task_conf = beefile['task_conf']
+        self.__bee_aws_conf = beefile['exec_env_conf']['bee_aws']
+        self.__docker_conf = beefile['docker_conf']
+        self.__task_name = self.__task_conf['task_name']
+        self.__task_id = task_id
         
-        self.__bee_aws_sgroup = '{}-bee-aws-security-group'.format(self.__job_conf['job_name'])
+        # AWS configuration
+        self.__bee_aws_sgroup = '{}-bee-aws-security-group'.format(self.__task_name)
         self.__aws_sgroup_desciption = 'Security group for BEE-AWS instances.'
-        self.__bee_aws_pgroup = '{}-bee-aws-placement-group'.format(self.__job_conf['job_name'])
-        self.__bee_aws_list = []
+        self.__bee_aws_pgroup = '{}-bee-aws-placement-group'.format(self.__task_name)
 
+        # System configuration
         self.__user_name = os.getlogin()
         self.__bee_working_dir = "/home/{}/.bee".format(self.__user_name)
         self.__tmp_dir = self.__bee_working_dir + "/tmp"
 
-        # Output color list                                                                                                                                
+        # bee-aws list
+        self.__bee_aws_list = []
+
+        # Output color list
         self.__output_color_list = ["magenta", "cyan", "blue", "green", "red", "grey", "yellow"]
-        self.__output_color = self.__output_color_list[job_id % 7]
+        #self.__output_color = self.__output_color_list[task_id % 7]
+        self.__output_color = "cyan"
 
 
+        # Current status
+        self.__current_status = "Initializing"
+
+        # Events for workflow
+        self.__begin_event = Event()
+        self.__end_event = Event()
+        self.__event_list = []
+
+    def get_current_status(self):
+        return self.__current_status
+
+    def get_begin_event(self):
+        return self.__begin_event
+
+    def get_end_event(self):
+        return self.__end_event
+
+    def add_wait_event(self, new_event):
+        self.__event_list.append(new_event)
+
+    def run(self):
+        # wait for other tasks                                                                                          
+        for event in self.__event_list:
+            event.wait()
+
+        # set out flag as begin launching                                                                               
+        self.__begin_event.set()
+
+        self.launch()
+
+        # set out flag as finish launching                                                                              
+        self.__end_event.set()
+    
     def construct_bee_security_groups(self):
-        cprint('[' + self.__job_conf['job_name'] + '] Construct security groups for BEE-AWS', self.__output_color)
+        cprint('[' + self.__task_name + '] Construct security groups for BEE-AWS', self.__output_color)
         if self.get_bee_sg_id() == -1:
-            cprint('[' + self.__job_conf['job_name'] + '] Create Security Group: ' + self.__bee_aws_sgroup, self.__output_color)
+            cprint('[' + self.__task_name + '] Create Security Group: ' + self.__bee_aws_sgroup, self.__output_color)
             bee_sg_id = self.ec2_client.create_security_group(GroupName = self.__bee_aws_sgroup,
                                                               Description = self.__aws_sgroup_desciption)
             
@@ -46,37 +88,38 @@ class AWSLauncher(object):
                                      CidrIp = '0.0.0.0/0')
 
     def construct_bee_placement_groups(self):
-        cprint('[' + self.__job_conf['job_name'] + '] Construct placement group for BEE-AWS', self.__output_color)
+        cprint('[' + self.__task_name + '] Construct placement group for BEE-AWS', self.__output_color)
         if not self.is_bee_pg_exist():
-            cprint('[' + self.__job_conf['job_name'] + '] Create Placement Group: ' + self.__bee_aws_pgroup, self.__output_color)
+            cprint('[' + self.__task_name + '] Create Placement Group: ' + self.__bee_aws_pgroup, self.__output_color)
             self.ec2_client.create_placement_group(GroupName = self.__bee_aws_pgroup,
                                                    Strategy='cluster')
         
 
     def configure_hostnames(self):
-        cprint('[' + self.__job_conf['job_name'] + '] Configure hostname for each node.', self.__output_color)
+        cprint('[' + self.__task_name + '] Configure hostname for each node.', self.__output_color)
         for host1 in self.__bee_aws_list:
             for host2 in self.__bee_aws_list:
                 host2.add_host_list(host1.private_ip, host1.hostname)
 
 
-    def start(self):
+    def launch(self):
+        self.terminate()
+        self.__current_status = "Launching"
 
-        self.clear_all()
         self.construct_bee_security_groups()
         self.construct_bee_placement_groups()
 
-        # Start each workers
-        num_of_nodes = int(self.__job_conf['num_of_nodes'])
+        # Start each worker
+        num_of_nodes = int(self.__bee_aws_conf['num_of_nodes'])
         
         for i in range(0, num_of_nodes):
             hostname = ""
             if i == 0:
-                hostname = "{}-bee-master".format(self.__job_conf['job_name'])
+                hostname = "{}-bee-master".format(self.__task_name)
             else:
-                hostname = "{}-bee-worker{}".format(self.__job_conf['job_name'], str(i).zfill(3))
+                hostname = "{}-bee-worker{}".format(self.__task_name, str(i).zfill(3))
 
-            node = BeeAWS(self.__job_id, hostname, self.__bee_aws_conf, self.__job_conf,
+            node = BeeAWS(self.__task_id, hostname, self.__bee_aws_conf, self.__task_conf,
                           self.__bee_aws_sgroup, self.__bee_aws_pgroup)
             node.start()
             self.__bee_aws_list.append(node)
@@ -91,6 +134,7 @@ class AWSLauncher(object):
         self.configure_hostnames()
         self.configure_efs()
         self.configure_dockers()
+        self.__current_status = "Running"
         self.configure_run_script()
         
 
@@ -109,37 +153,33 @@ class AWSLauncher(object):
 
     def configure_run_script(self):
         master = self.__bee_aws_list[0]
-        count = 0
-        for run_conf in self.__job_conf['general_run']:
+        for run_conf in self.__task_conf['general_run']:
             host_script_path = run_conf['script_path']
-            vm_script_path = '/home/ubuntu/{}_general_script_{}.sh'.format(self.__job_conf['job_name'], count)
-            docker_script_path = '/root/{}_general_script_{}.sh'.format(self.__job_conf['job_name'], count)
-
+            vm_script_path = '/home/ubuntu/general_script.sh'
+            docker_script_path = '/root/general_script.sh'
             master.copy_file(host_script_path, vm_script_path)
             master.docker_copy_file(vm_script_path, docker_script_path)
-
-            master.docker_seq_run(docker_script_path, pfwd = run_conf['port_fwd'], async = run_conf['async'])
-
-            count = count + 1
+            master.docker_seq_run(docker_script_path, pfwd = run_conf['port_fwd'], async = False)
 
         count = 0
-        for run_conf in self.__job_conf['mpi_run']:
+        for run_conf in self.__task_conf['mpi_run']:
             host_script_path = run_conf['script_path']
-            vm_script_path = '/home/ubuntu/{}_mpi_script_{}.sh'.format(self.__job_conf['job_name'], count)
-            docker_script_path = '/root/{}_mpi_script_{}.sh'.format(self.__job_conf['job_name'], count)
+            vm_script_path = '/home/ubuntu/mpi_script.sh'
+            docker_script_path = '/root/mpi_script.sh'
             for bee_aws in self.__bee_aws_list:
                 bee_aws.copy_file(host_script_path, vm_script_path)
                 bee_aws.docker_copy_file(vm_script_path, docker_script_path)
 
             # Generate hostfile and copy to container                                                                    
-            master.docker_make_hostfile(self.__bee_aws_list, self.__tmp_dir)
+            master.docker_make_hostfile(run_conf, self.__bee_aws_list, self.__tmp_dir)
             master.copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
             master.docker_copy_file('/home/ubuntu/hostfile', '/root/hostfile')
             # Run parallel script on all nodes                                                                           
-            master.docker_para_run(docker_script_path, self.__bee_aws_list, pfwd = run_conf['port_fwd'], async = run_conf\
-['async'])
+            master.docker_para_run(run_conf, docker_script_path, pfwd = run_conf['port_fwd'], async = False)
 
-            count = count + 1
+        self.__current_status = "Finished"
+        if self.__task_conf['terminate_after_exec']:
+            self.terminate()
 
     def configure_efs(self):
         efs_id = self.__bee_aws_conf['efs_id']
@@ -147,7 +187,7 @@ class AWSLauncher(object):
         mts = set()
         for mt in resp['MountTargets']:
             mts.add(mt['SubnetId'])
-        print(mts)
+        #print(mts)
         subnets = set()
         for node in self.__bee_aws_list:
             inst = node.getInstance()
@@ -157,12 +197,12 @@ class AWSLauncher(object):
                 
                 resp = self.efs_client.create_mount_target(FileSystemId=efs_id,
                                                            SubnetId=subnet_id)
-                cprint('[' + self.__job_conf['job_name'] + '] Creating mount target:' + resp['IpAddress'], self.__output_color)
+                cprint('[' + self.__task_name + '] Creating mount target:' + resp['IpAddress'], self.__output_color)
                 
                 mount_target_id = resp['MountTargetId']
                 
                 resp = self.efs_client.describe_mount_targets(MountTargetId = mount_target_id)
-                cprint('[' + self.__job_conf['job_name'] + '] Waiting for mount target to become available', self.__output_color)
+                cprint('[' + self.__task_name + '] Waiting for mount target to become available', self.__output_color)
                 while resp['MountTargets'][0]['LifeCycleState'] != 'available':
                     time.sleep(1)
                     resp = self.efs_client.describe_mount_targets(MountTargetId = mount_target_id)
@@ -175,7 +215,7 @@ class AWSLauncher(object):
                     
             
 
-    def clear_all(self):
+    def terminate(self):
         print('Clear all')
         # Terminate all BEE-AWS instances
         bee_instance_ids = self.get_bee_instance_ids()
@@ -198,7 +238,7 @@ class AWSLauncher(object):
         if self.is_bee_pg_exist():
             cprint('Delete existing placement group:'+self.__bee_aws_pgroup, self.__output_color)
             self.ec2_client.delete_placement_group(GroupName = self.__bee_aws_pgroup)
-
+        self.__current_status = "Terminated"
 
     # Get all instance ids of bee
     def get_bee_instance_ids(self):

@@ -1,0 +1,37 @@
+{
+  "task_conf": {
+      "task_name": "vpic",
+      "exec_target": "bee_vm",
+      "general_run": [
+	  {
+	      "script_path": "seq-tom-vpic.sh",
+	      "port_fwd": ""
+	  }
+      ],
+      "mpi_run": [
+	  {	   
+	      "script_path": "para-tom-vpic.sh",
+	      "port_fwd": "",
+	      "num_of_nodes": "2",
+	      "proc_per_node": "4"
+	  }
+      ],
+      "terminate_after_exec": false
+  }, 
+  "docker_conf":{
+      "docker_img_tag": "cjy7117/tom-vpic2",
+      "docker_username": "vpic",
+      "docker_shared_dir": "/mnt/vpicrun"
+  },
+  "exec_env_conf": {
+      "bee_vm": {
+	  "node_list": ["cn30", "cn31"],
+	  "cpu_core_per_socket": "8",
+	  "cpu_thread_per_core": "1",
+	  "cpu_sockets": "2",
+	  "ram_size": "240G",
+	  "kvm_enabled": true,
+	  "host_input_dir": "/home/jieyangchen/vpic_share"
+      }
+  }
+}
