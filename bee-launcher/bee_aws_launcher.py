@@ -22,9 +22,9 @@ class BeeAWSLauncher(BeeTask):
         self.__task_id = task_id
         
         # AWS configuration
-        self.__bee_aws_sgroup = '{}-bee-aws-security-group'.format(self.__task_name)
+        self.__bee_aws_sgroup = '{}-{}-bee-aws-security-group'.format(os.getlogin(), self.__task_name)
         self.__aws_sgroup_desciption = 'Security group for BEE-AWS instances.'
-        self.__bee_aws_pgroup = '{}-bee-aws-placement-group'.format(self.__task_name)
+        self.__bee_aws_pgroup = '{}-{}-bee-aws-placement-group'.format(os.getlogin(), self.__task_name)
 
         # System configuration
         self.__user_name = os.getlogin()
@@ -115,9 +115,9 @@ class BeeAWSLauncher(BeeTask):
         for i in range(0, num_of_nodes):
             hostname = ""
             if i == 0:
-                hostname = "{}-bee-master".format(self.__task_name)
+                hostname = "{}-{}-bee-master".format(os.getlogin(), self.__task_name)
             else:
-                hostname = "{}-bee-worker{}".format(self.__task_name, str(i).zfill(3))
+                hostname = "{}-{}-bee-worker{}".format(os.getlogin(), self.__task_name, str(i).zfill(3))
 
             node = BeeAWS(self.__task_id, hostname, self.__bee_aws_conf, self.__task_conf,
                           self.__bee_aws_sgroup, self.__bee_aws_pgroup)

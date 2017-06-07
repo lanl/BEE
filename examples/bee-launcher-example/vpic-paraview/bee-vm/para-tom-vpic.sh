@@ -1,4 +1,4 @@
 #!/bin/bash
-#cd /mnt/vpicrun/mytest
-#./turbulence_master.Linux
-hostname
+cd /mnt/vpicrun/mytest
+./turbulence_master.Linux
+
