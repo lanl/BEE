@@ -162,6 +162,9 @@ class BeeAWS(object):
     def copy_file(self, src_path, dist_path):
         cprint("["+self.hostname+"]: Copy file:"+src_path+" --> "+dist_path+".", self.__output_color)
         cmd = ["scp",
+               "-o StrictHostKeyChecking=no",
+               "-o ConnectTimeout=300",
+               "-o UserKnownHostsFile=/dev/null",
                "-i", "{}".format(self.__aws_key_path),
                "{}".format(src_path),
                "{}@{}:{}".format(self.__user_name, self.__host, dist_path)]
