@@ -232,13 +232,6 @@ class BeeAWS(object):
 
         for vm in vms:
             print(vm.get_hostname())
-            cmd = ["ssh",
-                   "localhost",
-                   "-x",
-                   "echo",
-                   "\"{} slots={} \"".format(vm.get_hostname(), run_conf['proc_per_node']),
-                   "|",
-                   "tee --append",
-                   hostfile_path]
+            cmd = "echo \"{} slots={}\" >> {}".format(vm.get_hostname(), run_conf['proc_per_node'], hostfile_path)
             print(" ".join(cmd))
-            subprocess.call(cmd)
+            subprocess.call([cmd], shell=True)
