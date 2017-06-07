@@ -3,10 +3,12 @@ import time
 from docker import Docker
 from bee_aws import BeeAWS 
 import os
+from os.path import expanduser
 from termcolor import colored, cprint
 from threading import Thread
 from threading import Event
 from bee_task import BeeTask
+
 class BeeAWSLauncher(BeeTask):
     def __init__(self, task_id, beefile):
         
@@ -28,7 +30,7 @@ class BeeAWSLauncher(BeeTask):
 
         # System configuration
         self.__user_name = os.getlogin()
-        self.__bee_working_dir = "/home/{}/.bee".format(self.__user_name)
+        self.__bee_working_dir = expanduser("~") + "/.bee".format(self.__user_name)
         self.__tmp_dir = self.__bee_working_dir + "/tmp"
 
         # bee-aws list
@@ -148,8 +150,8 @@ class BeeAWSLauncher(BeeTask):
         
         for node in self.__bee_aws_list:
             node.start_docker("/usr/sbin/sshd -D")
-            #node.docker_update_uid(1000)
-            #node.docker_update_gid(1000)
+            node.docker_update_uid(1000)
+            node.docker_update_gid(1000)
 
     def configure_run_script(self):
         master = self.__bee_aws_list[0]

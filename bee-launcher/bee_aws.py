@@ -5,7 +5,7 @@ import time
 from termcolor import colored, cprint
 import json
 import os
-
+from os.path import expanduser
 
 class BeeAWS(object):
     def __init__(self, task_id, name, bee_aws_conf, task_conf, security_group, placement_group):
@@ -20,7 +20,7 @@ class BeeAWS(object):
 
 
         # read from ~/.aws/sshkey.json
-        f = open("/home/" + os.getlogin() + "/.aws/sshkey.json", "r")
+        f = open(expanduser("~") + "/.aws/sshkey.json", "r")
         sshkey = json.load(f)
         self.__aws_key_path = sshkey['aws_key_path']
         self.__aws_key_name = sshkey['aws_key_name']

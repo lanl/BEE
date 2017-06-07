@@ -4,6 +4,7 @@ from docker import Docker
 import time
 import subprocess
 import os
+from os.path import expanduser
 from threading import Thread
 from threading import Event
 from bee_task import BeeTask
@@ -23,7 +24,7 @@ class BeeVMLauncher(BeeTask):
 
         # System configuration
         self.__user_name = os.getlogin()
-        self.__bee_working_dir = "/home/{}/.bee".format(self.__user_name)
+        self.__bee_working_dir = expanduser("~") + "/.bee"
         self.__vm_key_path = self.__bee_working_dir + "/ssh_key/id_rsa"
         self.__base_img_path = self.__bee_working_dir + "/base_img/base_img"
         self.__base_data_img_path = self.__bee_working_dir + "/base_img/base_data_img"
@@ -173,8 +174,8 @@ class BeeVMLauncher(BeeTask):
        
         for bee_vm in self.__bee_vm_list:
             bee_vm.start_docker("/usr/sbin/sshd -D")
-            #bee_vm.docker_update_uid()
-            #bee_vm.docker_update_gid()
+            bee_vm.docker_update_uid()
+            bee_vm.docker_update_gid()
 
         # Copy run scripts (host --> BeeVM --> Docker container)
         
