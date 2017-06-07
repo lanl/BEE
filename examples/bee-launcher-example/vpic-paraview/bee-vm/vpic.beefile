@@ -20,7 +20,7 @@
   }, 
   "docker_conf":{
       "docker_img_tag": "cjy7117/tom-vpic2",
-      "docker_username": "vpic",
+      "docker_username": "root",
       "docker_shared_dir": "/mnt/vpicrun"
   },
   "exec_env_conf": {
