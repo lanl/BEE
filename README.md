@@ -38,7 +38,7 @@ To be added
 
 # Mail List and Contact
 
-For bugs and problems report, suggestions and other general questions regarding the PFSEFI project, Please subscribe to the [bee-user mailing list](bee-user-group@googlegroups.com)(via Google Groups) and post your quesitons. 
+For bugs and problems report, suggestions and other general questions regarding the BEE project, Please subscribe to the [bee-user mailing list](bee-user-group@googlegroups.com)(via Google Groups) and post your quesitons. 
 
 
 # Release
