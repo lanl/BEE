@@ -13,6 +13,9 @@ class BeeAWSLauncher(BeeTask):
     def __init__(self, task_id, beefile):
         
         BeeTask.__init__(self)
+        
+        self.__current_status = 0 #Initializing
+
         self.ec2_client = boto3.client('ec2')
         self.efs_client = boto3.client('efs')
         
@@ -41,14 +44,12 @@ class BeeAWSLauncher(BeeTask):
         #self.__output_color = self.__output_color_list[task_id % 7]
         self.__output_color = "cyan"
 
-
-        # Current status
-        self.__current_status = "Initializing"
-
         # Events for workflow
         self.__begin_event = Event()
         self.__end_event = Event()
         self.__event_list = []
+
+        self.__current_status = 1 # initialized
 
     def get_current_status(self):
         return self.__current_status
@@ -63,17 +64,7 @@ class BeeAWSLauncher(BeeTask):
         self.__event_list.append(new_event)
 
     def run(self):
-        # wait for other tasks                                                                                          
-        for event in self.__event_list:
-            event.wait()
-
-        # set out flag as begin launching                                                                               
-        self.__begin_event.set()
-
         self.launch()
-
-        # set out flag as finish launching                                                                              
-        self.__end_event.set()
     
     def construct_bee_security_groups(self):
         cprint('[' + self.__task_name + '] Construct security groups for BEE-AWS', self.__output_color)
@@ -88,6 +79,7 @@ class BeeAWSLauncher(BeeTask):
                                      FromPort = 22,
                                      ToPort = 22,
                                      CidrIp = '0.0.0.0/0')
+            time.sleep(10)
 
     def construct_bee_placement_groups(self):
         cprint('[' + self.__task_name + '] Construct placement group for BEE-AWS', self.__output_color)
@@ -95,7 +87,7 @@ class BeeAWSLauncher(BeeTask):
             cprint('[' + self.__task_name + '] Create Placement Group: ' + self.__bee_aws_pgroup, self.__output_color)
             self.ec2_client.create_placement_group(GroupName = self.__bee_aws_pgroup,
                                                    Strategy='cluster')
-        
+            time.sleep(10)
 
     def configure_hostnames(self):
         cprint('[' + self.__task_name + '] Configure hostname for each node.', self.__output_color)
@@ -105,8 +97,8 @@ class BeeAWSLauncher(BeeTask):
 
 
     def launch(self):
-        self.terminate()
-        self.__current_status = "Launching"
+        self.terminate(clean = True)
+        self.__current_status = 3 # Launching
 
         self.construct_bee_security_groups()
         self.construct_bee_placement_groups()
@@ -131,15 +123,14 @@ class BeeAWSLauncher(BeeTask):
             self.__bee_aws_list[i].wait()
             self.__bee_aws_list[i].set_hostname()
         
-    
-        
         self.configure_hostnames()
         self.configure_efs()
         self.configure_dockers()
-        self.__current_status = "Running"
-        self.configure_run_script()
+        self.wait_for_others()
+        self.run_script()
+        if self.__task_conf['terminate_after_exec']:
+            self.terminate()
         
-
     def configure_dockers(self):
         for node in self.__bee_aws_list:
             docker = Docker(self.__docker_conf)
@@ -153,7 +144,25 @@ class BeeAWSLauncher(BeeTask):
             node.docker_update_uid(1000)
             node.docker_update_gid(1000)
 
-    def configure_run_script(self):
+    def wait_for_others(self):
+        self.__current_status = 2 # waiting
+        # wait for other tasks
+        for event in self.__event_list:
+            event.wait()
+
+    def run_script(self):
+        self.__current_status = 4 # Running
+        # set out flag as begin launching
+        self.__begin_event.set()
+        if self.__task_conf['batch_mode']:
+            self.batch_run()
+        else:
+            self.general_run()
+        self.__current_status = 5 # finished
+        # set out flag after finished
+        self.__end_event.set()
+
+    def general_run(self):
         master = self.__bee_aws_list[0]
         for run_conf in self.__task_conf['general_run']:
             host_script_path = run_conf['script_path']
@@ -161,7 +170,8 @@ class BeeAWSLauncher(BeeTask):
             docker_script_path = '/root/general_script.sh'
             master.copy_file(host_script_path, vm_script_path)
             master.docker_copy_file(vm_script_path, docker_script_path)
-            master.docker_seq_run(docker_script_path, pfwd = run_conf['port_fwd'], async = False)
+            master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
+                                  remote_pfwd = run_conf['remote_port_fwd'], async = False)
 
         count = 0
         for run_conf in self.__task_conf['mpi_run']:
@@ -171,17 +181,35 @@ class BeeAWSLauncher(BeeTask):
             for bee_aws in self.__bee_aws_list:
                 bee_aws.copy_file(host_script_path, vm_script_path)
                 bee_aws.docker_copy_file(vm_script_path, docker_script_path)
-
             # Generate hostfile and copy to container                                                                    
             master.docker_make_hostfile(run_conf, self.__bee_aws_list, self.__tmp_dir)
             master.copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
             master.docker_copy_file('/home/ubuntu/hostfile', '/root/hostfile')
             # Run parallel script on all nodes                                                                           
-            master.docker_para_run(run_conf, docker_script_path, pfwd = run_conf['port_fwd'], async = False)
+            master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],
+                                   remote_pfwd = run_conf['remote_port_fwd'], async = False)
 
-        self.__current_status = "Finished"
-        if self.__task_conf['terminate_after_exec']:
-            self.terminate()
+
+    def batch_run(self):
+        run_conf_list = self.__task_conf['general_run']
+        if len(run_conf_list) != len(self.__bee_aws_list):
+            print("[Error] Scripts and BEE-VM not match in numbers!")
+        popen_list = []
+        count = 0
+        for run_conf in run_conf_list:
+            bee_aws = self.__bee_aws_list[count]
+            count = count + 1
+            host_script_path = run_conf['script_path']
+            vm_script_path = '/home/ubuntu/general_script.sh'
+            docker_script_path = '/root/general_script.sh'
+            bee_aws.copy_file(host_script_path, vm_script_path)
+            bee_aws.docker_copy_file(vm_script_path, docker_script_path)
+            p = bee_aws.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
+                                       remote_pfwd = run_conf['remote_port_fwd'], async = True)
+            popen_list.append(p)
+        for popen in popen_list:
+            popen.wait()
+
 
     def configure_efs(self):
         efs_id = self.__bee_aws_conf['efs_id']
@@ -212,12 +240,13 @@ class BeeAWSLauncher(BeeTask):
                     subnets.add(subnet_id)
                     
             #node.create_shared_dir()
+            time.sleep(10)
             node.mount_efs(efs_id)
             node.change_ownership()
                     
             
 
-    def terminate(self):
+    def terminate(self, clean = False):
         print('Clear all')
         # Terminate all BEE-AWS instances
         bee_instance_ids = self.get_bee_instance_ids()
@@ -240,7 +269,8 @@ class BeeAWSLauncher(BeeTask):
         if self.is_bee_pg_exist():
             cprint('Delete existing placement group:'+self.__bee_aws_pgroup, self.__output_color)
             self.ec2_client.delete_placement_group(GroupName = self.__bee_aws_pgroup)
-        self.__current_status = "Terminated"
+        if not clean:
+            self.__current_status = 6 # terminated
 
     # Get all instance ids of bee
     def get_bee_instance_ids(self):

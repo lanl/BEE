@@ -1,0 +1,10 @@
+{
+    "vpic": {
+	"dependency_list" : [] 
+    },
+    "pv": {
+	"dependency_list": ["vpic"],
+	"storage": "/home/jieyangchen/vpic_share",
+	"dependency_mode": "in-situ"
+    }
+}

@@ -47,13 +47,11 @@ class BeeLauncherDaemon(object):
         beetask = self.__beetasks[beetask_name].terminate()
         del self.__beetasks[beetask_name]
 
-
     def list_all_tasks(self):
         tasks_and_status = {}
         for beetask_name in self.__beetasks:
             tasks_and_status[beetask_name] = self.__beetasks[beetask_name].get_current_status()
         return tasks_and_status
-
 
     def create_bee_aws_storage(self, efs_name, perf_mode = 'generalPurpose'):
         print("Bee orchestration controller: received bee-aws storage creating request")
@@ -68,8 +66,6 @@ class BeeLauncherDaemon(object):
                                Tags=[{'Key':'Name', 'Value':efs_name}])
         self.wait_bee_efs(efs_name)
         print('Created new BEE EFS:' + efs_id)
-        
-        
         return efs_id
 
     # Get the id of bee efs, if not exist, -1 is returned.                     
@@ -94,8 +90,6 @@ class BeeLauncherDaemon(object):
         efs_daemon_beefile = os.path.dirname(os.path.abspath(__file__)) + "efs-daemon.beefile"
         f = open(efs_daemon_beefile, "r")
         beefile = json.load(f)
-        
-
 
     def launch_beeflow(self, beeflow, beefiles):
         # Initialize each task
@@ -138,12 +132,9 @@ def main():
     bldaemon_uri = daemon.register(bldaemon)
     ns = Pyro4.locateNS(port = open_port, hmac_key = os.getlogin())
     ns.register("bee_launcher.daemon", bldaemon_uri)
-    
-    print("Bee orchestration controller started.")
-    
+    print("Bee orchestration controller started.")    
     daemon.requestLoop()
     
-
 def update_system_conf(open_port):
     pydir = os.path.dirname(os.path.abspath(__file__))
     f = open(pydir + "/bee_conf.json", "r")

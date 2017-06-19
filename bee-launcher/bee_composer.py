@@ -4,14 +4,30 @@ from beeflow_loader import BeeflowLoader
 from beefile_loader import BeefileLoader
 import sys
 import getopt
+import os
+import json
 
 class BeeComposer(object):
     def __init__(self):
-        self.bldaemon = Pyro4.Proxy("PYRONAME:bee_launcher.daemon")
+        self.__pydir = os.path.dirname(os.path.abspath(__file__))
+        self.__cwdir = os.getcwd()
+        f = open(self.__pydir + "/bee_conf.json", "r")
+        data = json.load(f)
+        port = int(data["pyro4-ns-port"])
+        ns = Pyro4.locateNS(port = port, hmac_key = os.getlogin())
+        uri = ns.lookup("bee_launcher.daemon")
+        self.bldaemon = Pyro4.Proxy(uri)
     
     def launch(self, beeflow, beefiles):
+        for beetask in beefiles:
+            self.encode_cwd(beefiles[beetask])
         self.bldaemon.launch_beeflow(beeflow, beefiles)
-    
+
+    def encode_cwd(self, beefile):
+        for run_conf in beefile['task_conf']['general_run']:
+            run_conf['script_path'] = self.__cwdir + "/" + run_conf['script_path']
+        for run_conf in beefile['task_conf']['mpi_run']:
+            run_conf['script_path'] = self.__cwdir + "/"+ run_conf['script_path']
 
 
 def main(argv):

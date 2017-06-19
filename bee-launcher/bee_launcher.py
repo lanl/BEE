@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import Pyro4
 from beefile_loader import BeefileLoader
 import sys
@@ -6,6 +7,10 @@ import getopt
 import os
 import json
 from termcolor import colored, cprint
+from tabulate import tabulate
+import time
+
+
 class BeeLauncher(object):
     def __init__(self):
         self.__pydir = os.path.dirname(os.path.abspath(__file__))
@@ -16,6 +21,8 @@ class BeeLauncher(object):
         ns = Pyro4.locateNS(port = port, hmac_key = os.getlogin())
         uri = ns.lookup("bee_launcher.daemon")
         self.bldaemon = Pyro4.Proxy(uri) #Pyro4.Proxy("PYRONAME:bee_launcher.daemon")
+        self.__status = ["Initializing", "Initialized", "Waiting", "Launching", "Running", "Finished", "Terminated"]
+        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta', 'red']
 
     def launch(self, beefile):
         self.encode_cwd(beefile)
@@ -40,6 +47,8 @@ class BeeLauncher(object):
             run_conf['script_path'] = self.__cwdir + "/"+ run_conf['script_path']
 
 def main(argv):
+    status_list = ["Initializing", "Initialized", "Waiting", "Launching", "Running", "Finished", "Terminated"]
+    status_color_list = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta', 'red']
     bee_launcher = BeeLauncher()
     beefile = ""
     try:
@@ -58,25 +67,22 @@ def main(argv):
             exit()
 
         elif opt in ("-s", "--status"):
-            status = bee_launcher.list_all_tasks()
-            if len(status) == 0:
-                print("No task exist.")
-            count = 1
-            for beetask in status:
-                color_status = ""
-                if status[beetask] == "Initialized":
-                    color_status = colored("Initialized", 'grey')
-                elif status[beetask] == "Launching":
-                    color_status = colored("Launching", 'cyan')
-                elif status[beetask] == "Running":
-                    color_status = colored("Running", 'green')
-                elif status[beetask] == "Finished":
-                    color_status = colored("Finished", 'magenta')
-                elif status[beetask] == "Terminated":
-                    color_status = colored("Terminated", 'red')
-
-                print(str(count) + ". " + beetask + " [" + color_status + "]")
-                count = count + 1
+            while True:
+                status = bee_launcher.list_all_tasks()
+                if len(status) == 0:
+                    print("No task exist.")
+                    
+                table = []
+                    
+                count = 1
+                for beetask in status:
+                    color_status = colored(status_list[status[beetask]], status_color_list[status[beetask]])
+                    #print(str(count) + ". " + beetask + " [" + color_status + "]")
+                    table.append([str(count), beetask, color_status])
+                    count = count + 1
+                os.system('clear')
+                print(tabulate(table, headers=['No.', 'Task Name', 'Status']))
+                time.sleep(1)
             exit()
 
         elif opt in ("-t", "--terminate"):

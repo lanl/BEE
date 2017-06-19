@@ -21,7 +21,7 @@ class Host(object):
     def get_name(self):
         return self.__host_name
 
-    def run(self, command, pfwd = '', async = False):        
+    def run(self, command, local_pfwd = [], remote_pfwd = [], async = False):        
         exec_cmd = ["ssh",
                     "-p {}".format(self.__ssh_port),
                     "-o StrictHostKeyChecking=no",
@@ -29,15 +29,17 @@ class Host(object):
                     "-q",
                     "{}@{}".format(self.__user_name, self.__host_name),
                     "-x"]
-        if pfwd!= '':
-            exec_cmd.insert(6, "-L {}:localhost:{}".format(pfwd, pfwd))
+        for port in  local_pfwd:
+            exec_cmd.insert(5, "-L {}:localhost:{}".format(port, port))
+        for port in  remote_pfwd:
+            exec_cmd.insert(5, "-R {}:localhost:{}".format(port, port))
         
         cmd = exec_cmd + command
-        #print(" ".join(cmd))
+#        print(" ".join(cmd))
         if async:
-            Popen(cmd)
+            return Popen(cmd)
         else:
-            subprocess.call(cmd)
+            return subprocess.call(cmd)
             
     # Following are warpper functions of vms
 

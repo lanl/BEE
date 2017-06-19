@@ -120,7 +120,7 @@ class BeeVM(object):
         vm.connect_host.append(self.__host)
         vm.connect_port.append(new_listen_port)
 
-    def run(self, command, pfwd = '', async = False):
+    def run(self, command, local_pfwd = [], remote_pfwd = [], async = False):
         # Execute command on this VM.
         exec_cmd = ["ssh",
                     "-p {}".format(self.ssh_port),
@@ -131,16 +131,18 @@ class BeeVM(object):
                     "-i {}".format(self.__key_path),
                     "{}@localhost".format(self.__user_name),
                     "-x"]
-        if pfwd != '':
-            exec_cmd.insert(7, "-L {}:localhost:{}".format(pfwd, pfwd))
+        for port in local_pfwd:
+            exec_cmd.insert(7, "-L {}:localhost:{}".format(port, port))
+        for port in remote_pfwd:
+            exec_cmd.insert(7, "-R {}:localhost:{}".format(port, port))
 
         cmd = exec_cmd + ["'"] + command + ["'"]
 
-        self.__host.run(cmd, pfwd = pfwd, async = async)
+        return self.__host.run(cmd, local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
 
 
-    def root_run(self, command, pfwd = '', async = False):
+    def root_run(self, command, local_pfwd = [], remote_pfwd = [], async = False):
         # Execute command with root previlege on this VM.
         root_exec_cmd = ["ssh",
                          "-p {}".format(self.ssh_port),
@@ -151,10 +153,15 @@ class BeeVM(object):
                          "-i {}".format(self.__key_path),
                          "{}@localhost".format('root'),
                          "-x"]
-        cmd = root_exec_cmd + ["'"] + command + ["'"]
-        self.__host.run(cmd)
+        for port in local_pfwd:
+            exec_cmd.insert(7, "-L {}:localhost:{}".format(port, port))
+        for port in remote_pfwd:
+            exec_cmd.insert(7, "-R {}:localhost:{}".format(port, port))
 
-    def parallel_run(self, command, vms, pfwd = '', async = False):
+        cmd = root_exec_cmd + ["'"] + command + ["'"]
+        return self.__host.run(cmd, local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
+
+    def parallel_run(self, command, vms, local_pfwd = [], remote_pfwd = [], async = False):
         cmd = ["mpirun",
                "--mca btl_tcp_if_include eth0",
                "-host"]
@@ -164,7 +171,7 @@ class BeeVM(object):
             vm_list = vm_list + vm_name + ","
         cmd.append(vm_list)
         cmd = cmd + command        
-        self.run(cmd, pfwd = pfwd, async = async)
+        return self.run(cmd, local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
     def set_data_img(self, base_data_img, data_img):
         self.base_data_img = base_data_img
@@ -297,11 +304,11 @@ class BeeVM(object):
         cprint("["+self.hostname+"][Docker]: copy file to docker" + src_path + " --> " + dist_path +".", self.__output_color)
         self.run(self.__docker.copy_file(src_path, dist_path))
 
-    def docker_seq_run(self, exec_cmd, pfwd = '', async = False):
+    def docker_seq_run(self, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
-        self.run(self.__docker.run([exec_cmd]), pfwd = pfwd, async = async)
+        return self.run(self.__docker.run([exec_cmd]), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
-    def docker_para_run(self, run_conf, exec_cmd, pfwd = '', async = False):
+    def docker_para_run(self, run_conf, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
         np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
         cmd = ["mpirun",
@@ -310,7 +317,7 @@ class BeeVM(object):
                "--hostfile /root/hostfile",
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
-        self.run(self.__docker.run(cmd), pfwd = pfwd, async = async)
+        return self.run(self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
     def docker_make_hostfile(self, run_conf, vms, tmp_dir):
         cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
