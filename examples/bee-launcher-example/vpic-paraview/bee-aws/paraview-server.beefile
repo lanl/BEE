@@ -2,11 +2,13 @@
   "task_conf": {
       "task_name": "paraview-server",
       "exec_target": "bee_aws",
+      "batch_mode": false,
       "general_run": [],
       "mpi_run": [
 	  {
-	      "script_path": "para-pv.sh",
-	      "port_fwd": "11111",
+	      "script": "para-pv.sh",
+	      "local_port_fwd": ["11111"],
+	      "remote_port_fwd": [],
 	      "num_of_nodes": "2",
 	      "proc_per_node": "1"
 	  }

@@ -4,7 +4,7 @@
       "exec_target": "bee_aws",
       "general_run": [
 	  {
-	      "script_path": "flecsale_run.sh",
+	      "script": "flecsale_run.sh",
 	      "local_port_fwd": [],
 	      "remote_port_fwd": ["22222","22223"]
 	  }

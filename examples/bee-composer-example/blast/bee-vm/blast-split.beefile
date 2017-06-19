@@ -5,8 +5,9 @@
       "batch_mode": false,
       "general_run": [
 	  {
-	      "script_path": "blast-split.sh",
-	      "port_fwd": ""
+	      "script": "blast-split.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": []
 	  }
       ],
       "mpi_run": [],

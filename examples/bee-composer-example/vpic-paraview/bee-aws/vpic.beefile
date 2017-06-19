@@ -5,14 +5,14 @@
       "batch_mode": false,
       "general_run": [
 	  {
-	      "script_path": "seq-tom-vpic.sh",
+	      "script": "seq-tom-vpic.sh",
 	      "local_port_fwd": [],
 	      "remote_port_fwd": []
 	  }
       ],
       "mpi_run": [
 	  {	   
-	      "script_path": "para-tom-vpic.sh",
+	      "script": "para-tom-vpic.sh",
 	      "local_port_fwd": [],
 	      "remote_port_fwd": [],
 	      "num_of_nodes": "2",

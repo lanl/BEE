@@ -2,16 +2,19 @@
   "task_conf": {
       "task_name": "vpic",
       "exec_target": "bee_vm",
+      "batch_mode": false,
       "general_run": [
 	  {
-	      "script_path": "seq-tom-vpic.sh",
-	      "port_fwd": ""
+	      "script": "seq-tom-vpic.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": []
 	  }
       ],
       "mpi_run": [
 	  {	   
-	      "script_path": "para-tom-vpic.sh",
-	      "port_fwd": "",
+	      "script": "para-tom-vpic.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": [],
 	      "num_of_nodes": "2",
 	      "proc_per_node": "4"
 	  }
