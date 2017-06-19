@@ -3,6 +3,7 @@
 # Install necessary libraries
 pip install pyro4 --user
 pip install boto3 --user
+pip install termcolor --user
 
 # Remove old files
 rm -rf ~/.bee
