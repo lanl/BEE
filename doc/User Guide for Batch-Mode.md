@@ -14,4 +14,4 @@ Follow the `Installation` section of `User Guide for BEE-VM` or `User Guide for 
 * (4) Make sure the number of scripts matches the number of nodes (i.e. `node_list` for `BEE-VM` or `num_of_nodes` in `BEE-AWS`).
 
 #### Step 3. Launch task
-Run task same as in regular `BEE-VM` or `BEE-AWS` task.
+Run task as same as launching regular `BEE-VM` or `BEE-AWS` task.
