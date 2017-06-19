@@ -42,9 +42,9 @@ class BeeLauncher(object):
     
     def encode_cwd(self, beefile):
         for run_conf in beefile['task_conf']['general_run']:
-            run_conf['script_path'] = self.__cwdir + "/" + run_conf['script_path']
+            run_conf['script'] = self.__cwdir + "/" + run_conf['script']
         for run_conf in beefile['task_conf']['mpi_run']:
-            run_conf['script_path'] = self.__cwdir + "/"+ run_conf['script_path']
+            run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
 
 def main(argv):
     status_list = ["Initializing", "Initialized", "Waiting", "Launching", "Running", "Finished", "Terminated"]

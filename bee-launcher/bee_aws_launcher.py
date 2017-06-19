@@ -165,7 +165,7 @@ class BeeAWSLauncher(BeeTask):
     def general_run(self):
         master = self.__bee_aws_list[0]
         for run_conf in self.__task_conf['general_run']:
-            host_script_path = run_conf['script_path']
+            host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
             docker_script_path = '/root/general_script.sh'
             master.copy_file(host_script_path, vm_script_path)
@@ -175,7 +175,7 @@ class BeeAWSLauncher(BeeTask):
 
         count = 0
         for run_conf in self.__task_conf['mpi_run']:
-            host_script_path = run_conf['script_path']
+            host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/mpi_script.sh'
             docker_script_path = '/root/mpi_script.sh'
             for bee_aws in self.__bee_aws_list:
@@ -199,7 +199,7 @@ class BeeAWSLauncher(BeeTask):
         for run_conf in run_conf_list:
             bee_aws = self.__bee_aws_list[count]
             count = count + 1
-            host_script_path = run_conf['script_path']
+            host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
             docker_script_path = '/root/general_script.sh'
             bee_aws.copy_file(host_script_path, vm_script_path)

@@ -5,17 +5,17 @@
       "batch_mode": true,
       "general_run": [
 	  {
-	      "script_path": "test_script1.sh",
+	      "script": "test_script1.sh",
 	      "local_port_fwd": [],
 	      "remote_port_fwd": []
 	  },
 	  {
-              "script_path": "test_script2.sh",
+              "script": "test_script2.sh",
               "local_port_fwd": [],
               "remote_port_fwd": []
           },
 	  {
-              "script_path": "test_script3.sh",
+              "script": "test_script3.sh",
               "local_port_fwd": [],
               "remote_port_fwd": []
           }

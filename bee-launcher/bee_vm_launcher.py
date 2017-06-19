@@ -200,7 +200,7 @@ class BeeVMLauncher(BeeTask):
         # General sequential script
         master = self.__bee_vm_list[0]
         for run_conf in self.__task_conf['general_run']:
-            host_script_path = run_conf['script_path']
+            host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
             docker_script_path = '/root/general_script.sh'
             master.copy_file(host_script_path, vm_script_path)
@@ -209,7 +209,7 @@ class BeeVMLauncher(BeeTask):
                                   remote_pfwd = run_conf['remote_port_fwd'], async = False)
 
         for run_conf in self.__task_conf['mpi_run']:
-            host_script_path = run_conf['script_path']
+            host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/mpi_script.sh'
             docker_script_path = '/root/mpi_script.sh'
             for bee_vm in self.__bee_vm_list:
@@ -232,7 +232,7 @@ class BeeVMLauncher(BeeTask):
         for run_conf in run_conf_list:
             bee_vm = self.__bee_vm_list[count]
             count = count + 1
-            host_script_path = run_conf['script_path']
+            host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
             docker_script_path = '/root/general_script.sh'
             bee_vm.copy_file(host_script_path, vm_script_path)
