@@ -1,5 +1,6 @@
 # Add ssh key
 cp ssh_key/id_rsa ~/.bee/ssh_key/id_rsa
+chmod 600 ~/.bee/ssh_key/id_rsa
 
 # Build and add base image
 cp ubuntu1404-qemu-template.json ubuntu1404-qemu.json
