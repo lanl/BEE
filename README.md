@@ -38,7 +38,7 @@ To be added
 
 # Mail List and Contact
 
-For bugs and problems report, suggestions and other general questions regarding the BEE project, Please subscribe tobee-user-group@googlegroups.com  and post your quesitons. 
+For bugs and problems report, suggestions and other general questions regarding the BEE project, Please subscribe to bee-user-group@googlegroups.com  and post your quesitons. 
 
 
 # Release
