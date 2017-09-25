@@ -34,7 +34,7 @@ class BeeVM(object):
         # 1st vNIC
         self.ssh_port = 5555
         # 2nd vNIC
-        self.subnet = task_id + 7 # Different group has different subnet
+        self.subnet = task_id + 9 # Different group has different subnet
         self.mac_adder = "02:00:00:00:{0:02x}:{1:02x}".format(self.subnet, rank + 1)
         self.__IP = "192.168.{}.{}".format(self.subnet, rank + 1)
         # Multicast mode
@@ -50,7 +50,7 @@ class BeeVM(object):
         self.mount_tag = "hostshare"
         self.host_shared_dir = bee_vm_conf['host_input_dir']
         self.vm_shared_dir = "/home/ubuntu/vmshare"
-        
+
         # Network & Storage mode flags
         self.network_mode = network_mode
         self.storage_mode = storage_mode
@@ -196,12 +196,16 @@ class BeeVM(object):
     def mount_virtio(self):
         cprint("["+self.hostname+"]: mount shared directory (via 9p).", self.__output_color)
         # Mount host's shared dir to VM.
-        cmd = ["mount",
+        ''' 
+	cmd = ["mount",
                "-t 9p",
                "-o trans=virtio,version=9p2000.L",
                "{}".format(self.mount_tag),
                "{}".format(self.vm_shared_dir)]
-        self.root_run(cmd)
+        '''
+	cmd = ["mount", "-t 9p", "-o trans=virtio,msize=262144", "{}".format(self.mount_tag), "{}".format(self.vm_shared_dir), "-oversion=9p2000.L"]
+	# cmd = ["mount", "-t 9p", "-o trans=virtio,msize=524288,version=9p2000.L", "{}".format(self.mount_tag), "{}".format(self.vm_shared_dir)]
+	self.root_run(cmd)
 
     # Storage mode 1
     def set_data_img(self, base_data_img, data_img):
@@ -246,6 +250,13 @@ class BeeVM(object):
                "-g {} {}".format(os.getgid(), self.__user_name)]
         
         self.root_run(cmd)
+
+    def update_mtu(self):
+	cprint("["+self.hostname+"]: change eth0 mtu.", self.__output_color)
+	# Change MTU for eth0 in vm
+	# Necessary for good network performance
+	cmd = ["ifconfig", "eth0", "mtu", "15000"]
+	self.root_run(cmd)
 
     def copy_file(self, src_path, dist_path):
         cprint("["+self.hostname+"]: copy file:"+src_path+" --> "+dist_path+".", self.__output_color)

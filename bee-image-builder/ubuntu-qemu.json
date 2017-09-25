@@ -3,7 +3,7 @@
     "builders": [
         {
             "type": "qemu",
-	    "boot_command": [
+            "boot_command": [
                 "{{ user `boot_command_prefix` }}",
                 "/install/vmlinuz noapic ",
                 "file=/floppy/{{ user `preseed` }} ",
@@ -19,7 +19,9 @@
                 "passwd/username={{ user `ssh_username` }} ",
                 "initrd=/install/initrd.gz -- <enter>"
             ],
+            "disk_interface": "virtio",
             "disk_size": "{{ user `disk_size` }}",
+            "net_device": "virtio-net",
             "floppy_files": [
                 "http/{{ user `preseed` }}"
             ],

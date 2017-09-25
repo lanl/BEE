@@ -17,7 +17,8 @@ class QEMU(Hypervisor):
                "-b {}".format(base_img_path),
                "-f qcow2",
                "{}".format(img_path)]
-        return cmd
+        print cmd
+	return cmd
 
         
     def start_vm(self, vm):
@@ -37,8 +38,8 @@ class QEMU(Hypervisor):
             cmd.append("-cpu host")
         cmd.append("-smp cores={},threads={},sockets={}".format(vm.cpu_cores, vm.cpu_threads, vm.cpu_sockets))
         
-        cmd.append("-net nic,macaddr={},model=virtio".format(vm.mac_adder))
-        
+        #cmd.append("-net nic,macaddr={},model=virtio".format(vm.mac_adder))
+
         # Network
         if vm.network_mode == 2:
             for port in vm.listen_port:
@@ -49,21 +50,28 @@ class QEMU(Hypervisor):
                 cmd.append("-net socket,connect={}:{}".format(host, port))
                 i = i + 1
         else:
-            cmd.append("-net socket,mcast=230.0.0.1:{}".format(vm.mcast_port))
+            #cmd.append("-net socket,mcast=230.0.0.1:{}".format(vm.mcast_port))
+            cmd.append("-netdev socket,id=net,mcast=230.0.0.1:{}".format(vm.mcast_port))
+            cmd.append("-device virtio-net-pci,netdev=net,mac={}".format(vm.mac_adder))
         
-        cmd.append("-net nic,vlan=1 -net user,vlan=1,hostfwd=tcp::{}-:22".format(vm.ssh_port))
+        #cmd.append("-net nic,vlan=1 -net user,vlan=1,hostfwd=tcp::{}-:22".format(vm.ssh_port))
+        cmd.append("-netdev user,id=net0,hostfwd=tcp::{}-:22".format(vm.ssh_port))
+        cmd.append("-device virtio-net-pci,netdev=net0")
+
         cmd.append("-qmp tcp:{}:{},server,nowait".format(self.__host_name, 6666))
         
         # Storage
-        cmd.append("-hda {}".format(vm.img))
+        #cmd.append("-hda {}".format(vm.img))
+        cmd.append("-drive file={},cache=none,if=virtio".format(vm.img))
 
         if vm.storage_mode == 3: # virtual IO
-        	cmd.append("-fsdev local,security_model=none,id=fsdev0,path={}".format(vm.host_shared_dir))
+        	#cmd.append("-fsdev local,security_model=none,id=fsdev0,path={}".format(vm.host_shared_dir))
+                cmd.append("-fsdev local,security_model=none,id=fsdev0,path={}".format(vm.host_shared_dir))
         	cmd.append("-device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag={}".format(vm.mount_tag))
         if vm.storage_mode == 1 and vm.get_hostname() == vm.master.get_hostname(): # data img + nfs
         	cmd.append("-hdb {}".format(vm.data_img))
 
         vm.status = 'Running'
-
+	print cmd
         return cmd
         

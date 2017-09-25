@@ -35,7 +35,7 @@ class Host(object):
             exec_cmd.insert(5, "-R {}:localhost:{}".format(port, port))
         
         cmd = exec_cmd + command
-#        print(" ".join(cmd))
+        print(" ".join(cmd))
         if async:
             return Popen(cmd)
         else:
@@ -134,4 +134,5 @@ class Host(object):
         cmd = ["pkill",
                "-u {}".format(self.__user_name),
                "qemu-system-x86"]
-        self.run(cmd)
+        print cmd
+	self.run(cmd)

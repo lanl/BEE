@@ -48,7 +48,7 @@ class Docker(object):
                "-v {}:{}".format(self.__vm_shared_dir, self.__docker_shared_dir),
                "{}".format(self.__docker_img_tag),
                "{}".format(exec_cmd)]
-
+	print(cmd)
         return cmd
 
     def run(self, exec_cmd):

@@ -153,9 +153,10 @@ class BeeVMLauncher(BeeTask):
             bee_vm.update_uid()
             bee_vm.update_gid()
             bee_vm.update_ownership()
-        
+            bee_vm.update_mtu()
+
+        print "vm conf done"
         time.sleep(20)
-        
 
         self.configure_dockers()
         self.wait_for_others()
@@ -163,6 +164,7 @@ class BeeVMLauncher(BeeTask):
         
         if self.__task_conf['terminate_after_exec']:
             self.terminate()
+	print "docker conf done"
 
     def configure_dockers(self):
         for bee_vm in self.__bee_vm_list:

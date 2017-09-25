@@ -13,7 +13,7 @@
     "preseed" : "preseed.cfg",
     "version" : "0.1.0",
     "boot_command_prefix": "<esc><esc><enter><wait>",
-    "output_dir": "/home/UUU/.bee/base_img"
+    "output_dir": "/home/UUU/.bee/base_img_new"
 }
 
 

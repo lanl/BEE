@@ -97,7 +97,7 @@ class BeeAWS(object):
             exec_cmd.insert(7, "-R {}:localhost:{}".format(port, port))
         cmd = exec_cmd + command
         
-        print(" ".join(cmd))
+        #print(" ".join(cmd))
         
         if async:
             #print("ASYNC")
