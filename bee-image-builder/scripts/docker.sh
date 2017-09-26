@@ -10,6 +10,10 @@ apt-get -y update
 apt-get -y install docker-engine
 echo "export http_proxy="$http_proxy >> /etc/default/docker
 echo "export https_proxy="$https_proxy >> /etc/default/docker
+
+# Docker Experimental Mode
+echo "DOCKER_OPTS=\"--experimental\"" >> /etc/default/docker
+
 #  Should not do this in the wild! But, we'er in a VM, the whole purpose of
 #  which is to deal with this docker as root security hole.
 # groupadd docker

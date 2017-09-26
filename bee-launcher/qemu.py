@@ -17,7 +17,7 @@ class QEMU(Hypervisor):
                "-b {}".format(base_img_path),
                "-f qcow2",
                "{}".format(img_path)]
-        print cmd
+        print(" ".join(cmd))
 	return cmd
 
         
@@ -72,6 +72,6 @@ class QEMU(Hypervisor):
         	cmd.append("-hdb {}".format(vm.data_img))
 
         vm.status = 'Running'
-	print cmd
+	print(" ".join(cmd))
         return cmd
         
