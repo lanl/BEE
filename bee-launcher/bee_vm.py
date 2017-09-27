@@ -5,10 +5,14 @@ from qemu import QEMU
 from docker import Docker
 import os
 from termcolor import colored, cprint
+import pexpect,sys
 
 class BeeVM(object):
     def __init__(self, task_id, hostname, host, rank, task_conf, bee_vm_conf, 
                  key_path, base_img, img, network_mode, storage_mode):
+        
+        #qemu process
+        self.__pexpect_child = ""
         
         # Basic configurations
         self.status = ""
@@ -263,6 +267,9 @@ class BeeVM(object):
         cmd = ["scp",
                "-P {}".format(self.ssh_port),
                "-i {}".format(self.__key_path),
+               "-o StrictHostKeyChecking=no",
+               "-o ConnectTimeout=300",
+               "-o UserKnownHostsFile=/dev/null",
                "{}".format(src_path),
                "{}@localhost:{}".format(self.__user_name, dist_path)]
         self.__host.run(cmd)
@@ -277,8 +284,29 @@ class BeeVM(object):
 
     def start(self):
         cprint("["+self.hostname+"]: starting BEE-VM.", self.__output_color)
-        self.__host.run(self.__hypervisor.start_vm(self))
+        cmd = self.__host.compose_cmd(self.__hypervisor.start_vm(self))
+        cmd = " ".join(cmd)
+        print(cmd)
+        self.__pexpect_child = pexpect.spawn(cmd)
+        self.__pexpect_child.logfile = sys.stdout 
+        
+        # do nothing just used for starting the process
+        self.__pexpect_child.expect('(qemu)')
+        self.__pexpect_child.sendline('info snapshots')
+
+    def checkpoint(self):
+        cprint("["+self.hostname+"]: checkpointing BEE-VM.", self.__output_color)
+        self.__pexpect_child.expect('(qemu)')
+        self.__pexpect_child.sendline('savevm bee_saved')
+        cprint("["+self.hostname+"]: checkpointing BEE-VM complete.", self.__output_color)
+
+    def restore(self):
+        cprint("["+self.hostname+"]: restoringing BEE-VM.", self.__output_color)
+        self.__pexpect_child.expect('(qemu)')
+        self.__pexpect_child.sendline('loadvm bee_saved')
+        cprint("["+self.hostname+"]: restoringing BEE-VM complete.", self.__output_color)
     
+
     def kill(self):
         cprint("["+self.hostname+"]: killing BEE-VM.", self.__output_color)
         self.__host.kill_all_vms()

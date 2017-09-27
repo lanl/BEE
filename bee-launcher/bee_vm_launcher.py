@@ -11,7 +11,7 @@ from bee_task import BeeTask
 
 
 class BeeVMLauncher(BeeTask):
-    def __init__(self, task_id, beefile):
+    def __init__(self, task_id, beefile, restore = False):
         BeeTask.__init__(self)
         
         self.__current_status = 0 # initializing
@@ -21,7 +21,7 @@ class BeeVMLauncher(BeeTask):
         self.__bee_vm_conf = beefile['exec_env_conf']['bee_vm']
         self.__docker_conf = beefile['docker_conf']
         self.__hosts = self.__bee_vm_conf['node_list']
-        self.__task_name = self.__task_conf['task_name'] 
+        self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
 
         # System configuration
@@ -33,6 +33,7 @@ class BeeVMLauncher(BeeTask):
         self.__data_img_path = "data.qcow2"
         self.__vm_img_dir = self.__bee_working_dir + "/vm_imgs"
         self.__tmp_dir = self.__bee_working_dir + "/tmp"
+        self.__restore = restore
 
         # bee-vms
         self.__bee_vm_list = []
@@ -119,14 +120,22 @@ class BeeVMLauncher(BeeTask):
             self.__bee_vm_list[0].set_data_img(base_data_img_path, data_img_path)
             self.__bee_vm_list[0].create_data_img()
         
+        # if restoring use old OS images, otherwise create new ones
+        if not self.__restore:
+            for bee_vm in self.__bee_vm_list:
+                bee_vm.create_os_img()
+            
+
         # Start VMs
         for bee_vm in self.__bee_vm_list:
-            bee_vm.create_os_img()
             bee_vm.start()
-
+        
         time.sleep(60)
 
-
+        if self.__restore:
+            for bee_vm in self.__bee_vm_list:
+                bee_vm.restore()
+                
         # Setup hostname
         for bee_vm in self.__bee_vm_list:
             bee_vm.set_hostname()
@@ -246,7 +255,13 @@ class BeeVMLauncher(BeeTask):
             popen.wait()
             
 
+    def checkpoint(self):
+        for bee_vm in self.__bee_vm_list:
+            bee_vm.checkpoint()
 
+    def restore(self):
+        for bee_vm in self.__bee_vm_list:
+            bee_vm.restore()
 
     def terminate(self, clean = False):
         for host in self.__hosts:

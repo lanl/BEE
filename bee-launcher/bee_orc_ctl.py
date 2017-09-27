@@ -19,13 +19,13 @@ class BeeLauncherDaemon(object):
         print(os.path.dirname(os.path.abspath(__file__)))
         self.__py_dir = os.path.dirname(os.path.abspath(__file__))
 
-    def create_task(self, beefile):
+    def create_task(self, beefile, restore = False):
         print("Bee orchestration controller: received task creating request")
         exec_target = beefile['task_conf']['exec_target']
         beetask_name = beefile['task_conf']['task_name']
         total_tasks = len(self.__beetasks)
         if exec_target == 'bee_vm':
-            beetask = BeeVMLauncher(total_tasks + 1, beefile)
+            beetask = BeeVMLauncher(total_tasks + 1, beefile, restore)
             self.__beetasks[beetask_name] = beetask
             return beetask
         elif exec_target == 'bee_aws':
@@ -36,9 +36,12 @@ class BeeLauncherDaemon(object):
     def launch_task(self, beetask):
         beetask.start()
     
-    def create_and_launch_task(self, beefile):
-        beetask = self.create_task(beefile)
+    def create_and_launch_task(self, beefile, restore = False):
+        beetask = self.create_task(beefile, restore)
         self.launch_task(beetask)
+
+    def checkpoint_task(self, beetask_name):
+        self.__beetasks[beetask_name].checkpoint()
 
     def terminate_task(self, beetask_name):
         beetask = self.__beetasks[beetask_name].terminate()

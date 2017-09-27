@@ -3,6 +3,7 @@ import subprocess
 from subprocess import Popen
 import os
 from qemu import QEMU
+import pexpect,sys
 
 class Host(object):
     def __init__(self, host_name, ssh_port = 22):
@@ -16,12 +17,12 @@ class Host(object):
         self.__vm = ""
         self.__vm_monitor = ""
         self.__hypervisor = QEMU(host_name, "qemu-system-x86_64", self.__kvm)
-        
+        self.__pexpect_child = ""
 
     def get_name(self):
         return self.__host_name
 
-    def run(self, command, local_pfwd = [], remote_pfwd = [], async = False):        
+    def compose_cmd(self, command, local_pfwd = [], remote_pfwd = [], async = False):
         exec_cmd = ["ssh",
                     "-p {}".format(self.__ssh_port),
                     "-o StrictHostKeyChecking=no",
@@ -33,8 +34,14 @@ class Host(object):
             exec_cmd.insert(5, "-L {}:localhost:{}".format(port, port))
         for port in  remote_pfwd:
             exec_cmd.insert(5, "-R {}:localhost:{}".format(port, port))
-        
+
         cmd = exec_cmd + command
+        return cmd
+
+    def run(self, command, local_pfwd = [], remote_pfwd = [], async = False):        
+        
+
+        cmd = self.compose_cmd(command = command, local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
         print(" ".join(cmd))
         if async:
             return Popen(cmd)
@@ -43,25 +50,45 @@ class Host(object):
             
     # Following are warpper functions of vms
 
-    def add_vm(self, vm):
-        self.__vm = vm
+    
 
-    def add_hypervisor(self, hypervisor):
-        self.__hypervisor = hypervisor
+    #def add_vm(self, vm):
+    #    self.__vm = vm
 
-    def qemu_create_vm_img(self):
-        print("create os img for vm[" + self.__vm.get_hostname() + "]")
-        self.run(self.__hypervisor.create_img(self.__vm.base_img, self.__vm.img))
+    #def add_hypervisor(self, hypervisor):
+    #    self.__hypervisor = hypervisor
 
-    def qemu_create_vm_data_img(self):
-        print("create data img for vm[" + self.__vm.get_hostname() + "]")
-        self.run(self.__hypervisor.create_img(self.__vm.base_data_img, self.__vm.data_img))
+    #def qemu_create_vm_img(self):
+    #    print("create os img for vm[" + self.__vm.get_hostname() + "]")
+    #    self.run(self.__hypervisor.create_img(self.__vm.base_img, self.__vm.img))
+
+    #def qemu_create_vm_data_img(self):
+    #    print("create data img for vm[" + self.__vm.get_hostname() + "]")
+    #    self.run(self.__hypervisor.create_img(self.__vm.base_data_img, self.__vm.data_img))
         
-    def qemu_start_vm(self):
-        print("create vm[" +  self.__vm.get_hostname() + "] on" + self.__host_name)
-        self.run(self.__hypervisor.start_vm(self.__vm))
-        if not self.__kvm:
-            time.sleep(360)
+    #def qemu_start_vm(self):
+    #    print("create vm[" +  self.__vm.get_hostname() + "] on" + self.__host_name)
+        #self.run(self.__hypervisor.start_vm(self.__vm))
+        # Running on pexpect instead
+    #    cmd = self.run_cmd(self.__hypervisor.start_vm(self.__vm))  
+    #    cmd = " ".join(cmd)
+    #    print(cmd)
+        #self.__pexpect_child = pexpect.spawn(cmd)
+    #    print("here!!!!!!!!!")
+        #self.__pexpect_child.logfile = sys.stdout
+    #    print("here++++++++++++++++++++++")
+    #    if not self.__kvm:
+    #        time.sleep(360)
+
+    #def checkpoint_vm(self):
+    #    cprint("["+self.__host_name+"][QEMU]: checkpointing VM.", self.__output_color)
+    #    self.__pexpect_child.expect('(qemu)')
+    #    sendline('savevm bee_saved')
+
+    #def restore_vm(self):
+    #    cprint("["+self.__host_name+"][QEMU]: restoringing VM.", self.__output_color)
+    #    self.__pexpect_child.expect('(qemu)')
+    #    sendline('loadvm bee_saved')
 
 #    def vm_create_shared_dir(self):
 #        print("vm[" + self.__vm.get_hostname() + "]:create shared dir")

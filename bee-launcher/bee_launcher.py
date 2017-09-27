@@ -24,13 +24,16 @@ class BeeLauncher(object):
         self.__status = ["Initializing", "Initialized", "Waiting", "Launching", "Running", "Finished", "Terminated"]
         self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta', 'red']
 
-    def launch(self, beefile):
+    def launch(self, beefile, restore = False):
         self.encode_cwd(beefile)
-        self.bldaemon.create_and_launch_task(beefile)
+        self.bldaemon.create_and_launch_task(beefile, restore)
 
     def list_all_tasks(self):
         return self.bldaemon.list_all_tasks()
-
+        
+    def checkpoint_task(self, beetask_name):
+        return self.bldaemon.checkpoint_task(beetask_name)
+    
     def terminate_task(self, beetask_name):
         self.bldaemon.terminate_task(beetask_name)
 
@@ -52,7 +55,7 @@ def main(argv):
     bee_launcher = BeeLauncher()
     beefile = ""
     try:
-        opts, args = getopt.getopt(argv, "l:st:d:e:", ["launch=", "status", "terminate=", "delete=", "efs="])
+        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:", ["launch=", "checkpoint=", "restore=", "status", "terminate=", "delete=", "efs="])
     except getopt.GetoptError:
         print("Please provide beefile or efs name.")
         exit()
@@ -64,6 +67,21 @@ def main(argv):
             beefile_loader = BeefileLoader(beefile)
             beefile = beefile_loader.get_beefile()
             bee_launcher.launch(beefile)
+            exit()
+
+        elif opt in ("-c", "--checkpoint"):
+            beetask_name = arg
+            print("Sending checkpoint request.")
+            bee_launcher.checkpoint_task(beetask_name)
+            print("Task: " + beetask_name + " is checkpointed.")
+            exit()
+
+        if opt in ("-r", "--restore"):
+            beefile = arg
+            print("Sending launching request.")
+            beefile_loader = BeefileLoader(beefile)
+            beefile = beefile_loader.get_beefile()
+            bee_launcher.launch(beefile, True)
             exit()
 
         elif opt in ("-s", "--status"):

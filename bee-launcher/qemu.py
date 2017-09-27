@@ -2,12 +2,17 @@ from hypervisor import Hypervisor
 import subprocess
 from qmp import QEMUMonitorProtocol
 import time
+import pexpect,sys
+from termcolor import colored, cprint
 
 class QEMU(Hypervisor):
     def __init__(self, host_name, qemu_exec, kvm_enabled):
         self.__qemu_exec = qemu_exec
         self.__kvm_enabled = kvm_enabled
         self.__host_name = host_name
+        self.__pexpect_child = ""
+        self.__vm = ""
+        self.__output_color = "green"
 
     def get_hypervisor_name(self):
         return "qemu-system-x86"
@@ -17,14 +22,20 @@ class QEMU(Hypervisor):
                "-b {}".format(base_img_path),
                "-f qcow2",
                "{}".format(img_path)]
-        print(" ".join(cmd))
+        
+        #cprint("["+self.__host_name+"][QEMU]: creating VM image.", self.__output_color)
+        #print(" ".join(cmd))
 	return cmd
 
         
     def start_vm(self, vm):
+        # Save vm info
+        self.__vm = vm
+        
         # Construct command for starting vm
         cmd = ["{}".format(self.__qemu_exec)]
-        cmd.append("-daemonize")
+        # cannot use with qemu monitoring
+        #cmd.append("-daemonize")
         cmd.append("-vnc none")
 
         # KVM
@@ -70,8 +81,26 @@ class QEMU(Hypervisor):
         	cmd.append("-device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag={}".format(vm.mount_tag))
         if vm.storage_mode == 1 and vm.get_hostname() == vm.master.get_hostname(): # data img + nfs
         	cmd.append("-hdb {}".format(vm.data_img))
+        
+        # Qemu monitoring
+        cmd.append("-monitor stdio")
 
         vm.status = 'Running'
-	print(" ".join(cmd))
-        return cmd
+	
+        #cprint("["+self.__host_name+"][QEMU]: starting VM.", self.__output_color)
+        #print(" ".join(cmd))
         
+        return cmd
+        # Running on pexpect instead
+        #self.__pexpect_child = pexpect.spawn(cmd)
+        #child.logfile = sys.stdout
+
+    def checkpoint_vm(self):
+        cprint("["+self.__host_name+"][QEMU]: checkpointing VM.", self.__output_color)
+        self.__pexpect_child.expect('(qemu)')
+        sendline('savevm bee_saved')
+        
+    def restore_vm(self):
+        cprint("["+self.__host_name+"][QEMU]: restoringing VM.", self.__output_color)
+        self.__pexpect_child.expect('(qemu)')
+        sendline('loadvm bee_saved')
