@@ -7,9 +7,9 @@ The following guide shows you how to run `BEE-VM` on HPC environment.
 If this is your first time using BEE, run `install.sh` first.
 
 ##### Step 2. Build BEE-VM image
-Before using BEE to launch `BEE-VM` tasks, building BEE-VM images using the BEE Image Builder is necessary. The BEE-VM image only need to be build once. 
+Before using BEE to launch `BEE-VM` tasks, building BEE-VM images using the BEE Image Builder is necessary. The BEE-VM image only needs to be built once. 
 * (1) Download Packer binary [here](https://www.packer.io/downloads.html). Add Packer binary to `$PATH` environment variable, so that it can run anywhere. (You can skip this step if you already have Packer.)
-* (2) `cd` into the `bee-image-builder` folder of this repo. Run `./build_bee_vm.sh` to build base image for `BEE-VM`. This step must be done on a QEMU-enabled machine and would usually take 10-20 minutes with KVM-enabled and longer time without KVM. 
+* (2) `cd` into the `bee-image-builder` folder of this repo. Run `./build_bee_vm.sh` to build base image for `BEE-VM`. This step must be done on a QEMU-enabled machine and will usually take 10-20 minutes with KVM-enabled and longer time without KVM. 
 
 ##### Step 3. Add bee launcher to $PATH
 Add the directory of bee-launcher to $PATH, so that it can run anywhere.    
@@ -24,11 +24,11 @@ Configure `<task_name>.beefile` file as follow:
    * b. `exec_target`: execution target. It should be `bee_vm`;
    * c. `batch_mode`: `true` or `false`. Turn on or off batch mode. For details, refer to `User Guide for Batch Mode`.
    * d. `general_run`: list of scripts that will be run after launching;
-     * d1. `script`: name of the script. The script file need to be in current directory.
+     * d1. `script`: name of the script. The script file needs to be in current directory.
      * d2. `local_port_fwd`: list of port forwarding numbers (local --> BEE) to be used when running this script. `[]` indicates no port forwarding used.
      * d3. `remote_port_fwd`: list of port forwarding numbers (BEE --> local) to be used when running this script. `[]` indicates no port forwarding used.
    * e. `mpi_run`: list of scripts that will be run in parallel by MPI after launching;
-     * e1. `script`: name of the script. The script file need to be in current directory.
+     * e1. `script`: name of the script. The script file needs to be in current directory.
      * e2. `local_port_fwd`: list of port forwarding numbers (local --> BEE) to be used when running this script. `[]` indicates no port forwarding used.
      * e3. `remote_port_fwd`: list of port forwarding numbers (BEE --> local) to be used when running this script. `[]` indicates no port forwarding used.
      * e4. `num_of_nodes`: number of nodes needed to run target job;
