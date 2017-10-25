@@ -22,12 +22,12 @@ between software components can be tracked.
 no real need to test on the actual HPC platform (performance testing obviously
 requires target hardware).
 - Checkpoint and restore operations can happen at a higher level, e.g., node level. The entire
-computation, as it sits in memory, can be saved an restarted obviating the need
+computation, as it sits in memory, can be saved and restarted, obviating the need
 for application level checkpoints.
 
 The BEE project uses Docker to containerize applications. Docker has become the de
-facto standard container system and is used widely in the cloud and web
-environment. Continuous integration services have been built on Docker, allowing application
+facto standard container system and is used widely in cloud and web
+environments. Continuous integration services have been built on Docker, allowing application
 developers to describe compile and execution environments with Docker. When code is checked into 
 a repository, it can be automatically tested across a suite of different software environments.
 
