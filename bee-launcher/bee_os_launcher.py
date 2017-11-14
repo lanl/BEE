@@ -12,7 +12,7 @@ from glanceclient import Client as glanceClient
 from novaclient.client import Client as novaClient
 from neutronclient.v2_0.client import Client as neutronClient
 
-class BeeOSLauncher(object):
+class BeeOSLauncher(BeeTask):
 
 	def __init__(self, task_id, beefile):
 	    # Authentication
@@ -28,4 +28,6 @@ class BeeOSLauncher(object):
 	    self.nova = novaClient('2', session = session) 
 
 	    self.neutron = neutronClient(session = sess)
+
+	    
 
