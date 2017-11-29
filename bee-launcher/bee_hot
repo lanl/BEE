@@ -26,7 +26,7 @@ resources:
     type: OS::Nova::Server
     properties:
       flavor: baremetal
-      image: CC-CentOS7-BEE
+      image: CC-CentOS7
       key_name: { get_param: key_name }
       networks:
          - network: sharednet1
@@ -56,7 +56,7 @@ resources:
         type: OS::Nova::Server
         properties:
           flavor: baremetal
-          image: CC-CentOS7-BEE
+          image: CC-CentOS7
           key_name: { get_param: key_name }
           networks:
              - network: sharednet1
@@ -82,7 +82,7 @@ parameters:
     description: Number of NFS client instances
     default: 1
     constraints:
-      - range: { min: 1 }
+      - range: { min: 0 }
         description: There must be at least one client.
   key_name:
     type: string

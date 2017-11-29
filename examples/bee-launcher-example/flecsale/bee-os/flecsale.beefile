@@ -18,11 +18,8 @@
       "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
-     "bee_aws": {
-          "num_of_nodes": "1",
-          "ami_image": "ami-ad5952d4",
-          "instance_type": "c3.4xlarge",
-          "efs_id": "fs-98e73431"
+     "bee_os": {
+          "num_of_nodes": "0"
       }
   }
 }

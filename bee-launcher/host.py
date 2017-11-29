@@ -39,8 +39,6 @@ class Host(object):
         return cmd
 
     def run(self, command, local_pfwd = [], remote_pfwd = [], async = False):        
-        
-
         cmd = self.compose_cmd(command = command, local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
         print(" ".join(cmd))
         if async:
