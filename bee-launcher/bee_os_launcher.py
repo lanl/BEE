@@ -168,7 +168,7 @@ class BeeOSLauncher(BeeTask):
         cprint('[' + self.__task_name + '] Wait for all node to become active.', self.__output_color)
         while (len(self.get_active_node()) != int(self.__bee_os_conf['num_of_nodes'])):
             time.sleep(5)
-        time.sleep(60)
+        time.sleep(120)
         cprint('[' + self.__task_name + '] All nodes are active.', self.__output_color)
 
     def get_master_node(self):
