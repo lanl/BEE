@@ -86,12 +86,12 @@ class BeeOSLauncher(BeeTask):
         self.get_worker_nodes()
         self.setup_sshkey()
         self.setup_sshconfig()
-        self.setup_hostname()
-        self.setup_hostfile()
-        self.add_docker()
-        self.get_docker_img()
-        self.start_docker()
-        self.general_run()
+        #self.setup_hostname()
+        #self.setup_hostfile()
+        #self.add_docker()
+        #self.get_docker_img()
+        #self.start_docker()
+        #self.general_run()
         #f = open(expanduser("~") + '/.bee/ssh_key/id_rsa.pub','r')
         #publickey = f.readline()[:-1]
         #keypair = nova.keypairs.create('bee-key', publickey)
@@ -127,7 +127,7 @@ class BeeOSLauncher(BeeTask):
         
         cmd = ['openstack stack delete -y {}'.format(self.__stack_name)]
         print(" ".join(cmd))
-        subprocess.call(cmd, shell=True)
+        subprocess.call(" ".join(cmd), shell=True)
         time.sleep(45)
 
     def create_key(self):
@@ -168,6 +168,7 @@ class BeeOSLauncher(BeeTask):
         cprint('[' + self.__task_name + '] Wait for all node to become active.', self.__output_color)
         while (len(self.get_active_node()) != int(self.__bee_os_conf['num_of_nodes'])):
             time.sleep(5)
+        time.sleep(60)
         cprint('[' + self.__task_name + '] All nodes are active.', self.__output_color)
 
     def get_master_node(self):
@@ -259,7 +260,7 @@ class BeeOSLauncher(BeeTask):
 
 
     def general_run(self):
-         cprint('[' + self.__task_name + '] Execute run scripts.', self.__output_color)
+        cprint('[' + self.__task_name + '] Execute run scripts.', self.__output_color)
         # General sequential script
         master = self.__bee_os_list[0]
         for run_conf in self.__task_conf['general_run']:

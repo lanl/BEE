@@ -67,7 +67,8 @@ resources:
               template: |
                 #!/bin/bash
                 yum install -y nfs-utils
-                echo "$nfs_server_ip:/exports/example    /mnt/    nfs" > /etc/fstab
+                mkdir -p /exports/host_share
+                echo "$nfs_server_ip:/exports/host_share    /exports/host_share    nfs" > /etc/fstab
                 mount -a
                 systemctl start docker
               params:
