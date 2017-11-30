@@ -246,7 +246,7 @@ class BeeOSLauncher(BeeTask):
         cprint('[' + self.__task_name + '] Initialize docker', self.__output_color)
         for bee_os in self.__bee_os_list:
             docker = Docker(self.__docker_conf)
-            docker.set_shared_dir('/home/cc/host_share')
+            docker.set_shared_dir('/exports/host_share/')
             bee_os.add_docker_container(docker)
 
     def get_docker_img(self):
