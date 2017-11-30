@@ -19,7 +19,7 @@
   },
   "exec_env_conf": {
      "bee_os": {
-          "num_of_nodes": "0"
+          "num_of_nodes": "1"
       }
   }
 }

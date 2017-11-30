@@ -28,6 +28,9 @@ class Docker(object):
                "pull",
                "{}".format(self.__docker_img_tag)]
         return cmd
+
+    def set_shared_dir(self, shared_dir):
+      self.__vm_shared_dir = shared_dir
         
     def build_docker(self):
         # Build Docker image from dockerfile.

@@ -10,7 +10,7 @@ resources:
   bee_master_floating_ip:
     type: OS::Nova::FloatingIP
     properties:
-      pool: ext-net
+      pool: public
 
   bee_security_group:
     type: OS::Neutron::SecurityGroup
@@ -26,7 +26,7 @@ resources:
     type: OS::Nova::Server
     properties:
       flavor: baremetal
-      image: CC-CentOS7
+      image: CC-CentOS7-BEE
       key_name: { get_param: key_name }
       networks:
          - network: sharednet1
@@ -35,9 +35,9 @@ resources:
       user_data: |
         #!/bin/bash
         yum install -y nfs-utils
-        mkdir -p /home/cc/host_share
-        chown -R cc:cc /home/cc/host_share
-        echo '/home/cc/host_share 10.140.80.0/22(rw,async) 10.40.0.0/23(rw,async)' >> /etc/exports
+        mkdir -p /exports/host_share
+        chown -R cc:cc /exports
+        echo '/exports/host_share 10.140.80.0/22(rw,async) 10.40.0.0/23(rw,async)' >> /etc/exports
         systemctl enable rpcbind && systemctl start rpcbind
         systemctl enable nfs-server && systemctl start nfs-server
         systemctl start docker
@@ -56,7 +56,7 @@ resources:
         type: OS::Nova::Server
         properties:
           flavor: baremetal
-          image: CC-CentOS7
+          image: CC-CentOS7-BEE
           key_name: { get_param: key_name }
           networks:
              - network: sharednet1
@@ -67,9 +67,7 @@ resources:
               template: |
                 #!/bin/bash
                 yum install -y nfs-utils
-                mkdir -p /home/cc/host_share
-                chown -R cc:cc /home/cc/host_share
-                echo "$nfs_server_ip:/home/cc/host_share    /home/cc/host_share    nfs" > /etc/fstab
+                echo "$nfs_server_ip:/exports/example    /mnt/    nfs" > /etc/fstab
                 mount -a
                 systemctl start docker
               params:

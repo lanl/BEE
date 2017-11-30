@@ -12,7 +12,7 @@ class BeeOS(object):
         self.master = master
         self.__user_name = "cc"
         self.__key_path = key_path
-        self.__remote_key_path = '/home/cc/.ssh/'
+        self.__remote_key_path = '/home/cc/.ssh/id_rsa'
 
         # Network
         self.private_ip = private_ip
@@ -25,8 +25,7 @@ class BeeOS(object):
         self.__output_color = "cyan"
 
     def run_on_master(self, command, local_pfwd = [], remote_pfwd = [], async = False):
-    	exec_cmd = ["ssh",
-                    "-p {}".format(self.ssh_port),
+        exec_cmd = ["ssh",
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
                     "-o UserKnownHostsFile=/dev/null",
@@ -39,21 +38,22 @@ class BeeOS(object):
         for port in remote_pfwd:
             exec_cmd.insert(7, "-R {}:localhost:{}".format(port, port))
 
-        cmd = exec_cmd + ["'"] + command + ["'"]
+        cmd = exec_cmd + command
+
+        print(' '.join(cmd))
         if async:
-            return Popen(cmd)
+            return Popen(' '.join(cmd))
         else:
-            return subprocess.call(cmd)
+            return subprocess.call(' '.join(cmd), shell = True)
 
 
     def run_on_worker(self, command, local_pfwd = [], remote_pfwd = [], async = False):
-    	exec_cmd = ["ssh",
-                    "-p {}".format(self.ssh_port),
+        exec_cmd = ["ssh",
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
                     "-o UserKnownHostsFile=/dev/null",
                     "-q",
-                    "-i {}".format(self.__key_path),
+                    "-i {}".format(self.__remote_key_path),
                     "{}@{}".format(self.__user_name, self.private_ip),
                     "-x"]
         for port in local_pfwd:
@@ -61,16 +61,27 @@ class BeeOS(object):
         for port in remote_pfwd:
             exec_cmd.insert(7, "-R {}:localhost:{}".format(port, port))
 
-        cmd = exec_cmd + ["'"] + command + ["'"]
+        cmd = exec_cmd + command
         self.master.run_on_master(cmd, local_pfwd, remote_pfwd, async)
 
     def run(self, command, local_pfwd = [], remote_pfwd = [], async = False):
-    	if (master == ""):
+    	if (self.master == ""):
     		# this is the master node
     		self.run_on_master(command, local_pfwd, remote_pfwd, async)
     	else:
     		# this is one of the worker nodes
     		self.run_on_worker(command, local_pfwd, remote_pfwd, async)
+
+    def parallel_run(self, command, nodes, local_pfwd = [], remote_pfwd = [], async = False):
+        cmd = ["mpirun",
+               "-host"]
+        node_list = ""
+        for node in nodes:
+            node_name = node.get_hostname()
+            node_list = node_list + node_name + ","
+        cmd.append(node_list)
+        cmd = cmd + command        
+        return self.run(cmd, local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
     def copy_to_master(self, src, dest):
         cprint("["+self.hostname+"]: copy file to master: "+src+" --> "+dest+".", self.__output_color)
@@ -79,9 +90,10 @@ class BeeOS(object):
                "-o StrictHostKeyChecking=no",
                "-o ConnectTimeout=300",
                "-o UserKnownHostsFile=/dev/null",
-               "{}".format(src_path),
-               "{}@{}:{}".format(self.__user_name, self.master_public_ip, dist_path)]
-        subprocess.call(cmd)
+               "{}".format(src),
+               "{}@{}:{}".format(self.__user_name, self.master_public_ip, dest)]
+        print(' '.join(cmd))
+        subprocess.call(' '.join(cmd), shell = True)
 
     def copy_to_worker(self, src, dest, worker):
     	cprint("["+self.hostname+"]: copy file to worker: "+ src +" --> "+dest +".", self.__output_color)
@@ -90,8 +102,8 @@ class BeeOS(object):
                "-o StrictHostKeyChecking=no",
                "-o ConnectTimeout=300",
                "-o UserKnownHostsFile=/dev/null",
-               "{}".format(src_path),
-               "{}@{}:{}".format(self.__user_name, worker.private_ip, dist_path)]
+               "{}".format(src),
+               "{}@{}:{}".format(self.__user_name, worker.private_ip, dest)]
         self.run_on_master(cmd)
 
 
@@ -112,6 +124,55 @@ class BeeOS(object):
         cmd = ["sudo echo",
                "\"{} {}\"".format(private_ip, hostname),
                "|",
-               "tee --append",
-               " /etc/hosts"]
-        self.run(cmd)
+               "sudo tee --append",
+               "/etc/hosts"]
+        self.run(["'"] + cmd + ["'"])
+
+
+    def add_docker_container(self, docker):
+        self.__docker = docker
+
+    def get_docker_img(self, nodes):
+        cprint("["+self.hostname+"]: pull docker image in parallel.", self.__output_color)
+        self.parallel_run(['sudo'] + self.__docker.get_docker_img(), nodes)
+
+    def start_docker(self, exec_cmd):
+        cprint("["+self.hostname+"]: start docker container.", self.__output_color)
+        self.run(['sudo'] + self.__docker.start_docker(exec_cmd)) 
+
+
+    def docker_copy_file(self, src, dest):
+        cprint("["+self.hostname+"][Docker]: copy file to docker " + src + " --> " + dest +".", self.__output_color)
+        self.run(['sudo'] + self.__docker.copy_file(src, dest))
+
+    def docker_seq_run(self, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
+        cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
+        self.run(['sudo'] + self.__docker.run([exec_cmd]), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
+
+    def docker_para_run(self, run_conf, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
+        cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
+        np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
+        cmd = ["mpirun",
+               "--allow-run-as-root",
+               "--hostfile /root/hostfile",
+               "-np {}".format(np)]
+        cmd = cmd + [exec_cmd]
+        self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
+
+    def docker_make_hostfile(self, run_conf, nodes, tmp_dir):
+        cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
+        hostfile_path = "{}/hostfile".format(tmp_dir)
+        # Remove old hostfile
+        cmd = ["rm",hostfile_path]
+        subprocess.call(' '.join(cmd), shell = True)
+        # Create new hostfile
+        cmd = ["touch", hostfile_path]
+        subprocess.call(' '.join(cmd), shell = True)
+        # Add nodes to hostfile
+        for node in nodes:
+            cmd = ["echo",
+                   "\"{} slots={} \"".format(node.get_hostname(), run_conf['proc_per_node']),
+                   "|",
+                   "tee --append",
+                   hostfile_path]
+            subprocess.call(' '.join(cmd), shell = True)

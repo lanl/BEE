@@ -1,0 +1,34 @@
+{
+  "task_conf": {
+      "task_name": "vpic",
+      "exec_target": "bee_os",
+      "batch_mode": false,
+      "general_run": [
+	  {
+	      "script": "seq-tom-vpic.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": []
+	  }
+      ],
+      "mpi_run": [
+	  {	   
+	      "script": "para-tom-vpic.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": [],
+	      "num_of_nodes": "2",
+	      "proc_per_node": "4"
+	  }
+      ],
+      "terminate_after_exec": false
+  }, 
+  "docker_conf":{
+      "docker_img_tag": "cjy7117/tom-vpic2",
+      "docker_username": "root",
+      "docker_shared_dir": "/mnt/vpicrun"
+  },
+  "exec_env_conf": {
+      "bee_os": {
+           "num_of_nodes": "2"
+      }
+  }
+}
