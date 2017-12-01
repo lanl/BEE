@@ -86,12 +86,12 @@ class BeeOSLauncher(BeeTask):
         self.get_worker_nodes()
         self.setup_sshkey()
         self.setup_sshconfig()
-        #self.setup_hostname()
-        #self.setup_hostfile()
-        #self.add_docker()
-        #self.get_docker_img()
-        #self.start_docker()
-        #self.general_run()
+        self.setup_hostname()
+        self.setup_hostfile()
+        self.add_docker()
+        self.get_docker_img()
+        self.start_docker()
+        self.general_run()
         #f = open(expanduser("~") + '/.bee/ssh_key/id_rsa.pub','r')
         #publickey = f.readline()[:-1]
         #keypair = nova.keypairs.create('bee-key', publickey)
@@ -165,7 +165,7 @@ class BeeOSLauncher(BeeTask):
         return active_nodes
 
     def wait_for_nodes(self):
-        cprint('[' + self.__task_name + '] Wait for all node to become active.', self.__output_color)
+        cprint('[' + self.__task_name + '] Waiting for all nodes to become active.', self.__output_color)
         while (len(self.get_active_node()) != int(self.__bee_os_conf['num_of_nodes'])):
             time.sleep(5)
         time.sleep(120)
@@ -265,8 +265,8 @@ class BeeOSLauncher(BeeTask):
         master = self.__bee_os_list[0]
         for run_conf in self.__task_conf['general_run']:
             local_script_path = run_conf['script']
-            node_script_path = '/home/cc/host_share/general_script.sh'
-            docker_script_path = '/root/general_script.sh'
+            node_script_path = '/exports/host_share/general_script.sh'
+            docker_script_path = '/home/beeuser/general_script.sh'
             master.copy_to_master(local_script_path, node_script_path)
             master.docker_copy_file(node_script_path, docker_script_path)
             master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
@@ -274,14 +274,15 @@ class BeeOSLauncher(BeeTask):
 
         for run_conf in self.__task_conf['mpi_run']:
             local_script_path = run_conf['script']
-            node_script_path = '/home/cc/host_share/mpi_script.sh'
-            docker_script_path = '/root/mpi_script.sh'
+            node_script_path = '/exports/host_share/mpi_script.sh'
+            docker_script_path = '/home/beeuser/mpi_script.sh'
             master.copy_to_master(local_script_path, node_script_path)
             for bee_os in self.__bee_os_list:
                 bee_os.docker_copy_file(node_script_path, docker_script_path)
             # Generate hostfile and copy to container
             master.docker_make_hostfile(run_conf, self.__bee_os_list, self.__tmp_dir)
             master.copy_to_master(self.__tmp_dir + '/hostfile', '/home/cc/hostfile')
-            master.docker_copy_file('/home/cc/hostfile', '/root/hostfile')
+            docker_script_path = '/home/beeuser/mpi_script.sh'
+            master.docker_copy_file('/home/cc/hostfile', '/home/beeuser/hostfile')
             # Run parallel script on all nodes
             master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)

@@ -154,7 +154,7 @@ class BeeOS(object):
         np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
         cmd = ["mpirun",
                "--allow-run-as-root",
-               "--hostfile /root/hostfile",
+               "--hostfile /home/beeuser/hostfile",
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
         self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
@@ -173,6 +173,7 @@ class BeeOS(object):
             cmd = ["echo",
                    "\"{} slots={} \"".format(node.get_hostname(), run_conf['proc_per_node']),
                    "|",
-                   "tee --append",
+                   "tee -a",
                    hostfile_path]
+            print(' '.join(cmd))
             subprocess.call(' '.join(cmd), shell = True)

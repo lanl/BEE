@@ -1,5 +1,5 @@
 # This describes what is deployed by this template.
-description: NFS server and clients deployed with Heat on Chameleon
+description: BEE customized stack on Chameleon
 
 # This defines the minimum Heat version required by this template.
 heat_template_version: 2015-10-15
@@ -19,9 +19,7 @@ resources:
       name: { get_param: security_group_name }
       rules: [{direction: ingress, port_range_max: 22, port_range_min: 22, protocol: tcp, remote_ip_prefix: 0.0.0.0/0},
               {direction: ingress, port_range_max: 22, port_range_min: 22, protocol: udp, remote_ip_prefix: 0.0.0.0/0}]
-
-
-
+              
   bee_master:
     type: OS::Nova::Server
     properties:
@@ -34,6 +32,7 @@ resources:
       scheduler_hints: { reservation: { get_param: reservation_id } }
       user_data: |
         #!/bin/bash
+        usermod -aG docker $USER
         yum install -y nfs-utils
         mkdir -p /exports/host_share
         chown -R cc:cc /exports
@@ -66,6 +65,7 @@ resources:
             str_replace:
               template: |
                 #!/bin/bash
+                usermod -aG docker $USER
                 yum install -y nfs-utils
                 mkdir -p /exports/host_share
                 echo "$nfs_server_ip:/exports/host_share    /exports/host_share    nfs" > /etc/fstab

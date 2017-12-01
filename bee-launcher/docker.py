@@ -48,16 +48,18 @@ class Docker(object):
                "--name {}".format(self.__docker_container_name),
                "--net=host",
                "-d",
+               "--user root",
                "-v {}:{}".format(self.__vm_shared_dir, self.__docker_shared_dir),
                "{}".format(self.__docker_img_tag),
                "{}".format(exec_cmd)]
-	print(cmd)
+        print(cmd)
         return cmd
 
     def run(self, exec_cmd):
         #execute command on the running Docker container
         cmd = ["docker",
                "exec",
+               "--user {}".format(self.__docker_username),
                "{}".format(self.__docker_container_name)]
         cmd = cmd + exec_cmd
         return cmd
