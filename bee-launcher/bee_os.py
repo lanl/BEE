@@ -74,6 +74,7 @@ class BeeOS(object):
 
     def parallel_run(self, command, nodes, local_pfwd = [], remote_pfwd = [], async = False):
         cmd = ["mpirun",
+        	   "--mca btl_tcp_if_include eno1",
                "-host"]
         node_list = ""
         for node in nodes:
@@ -113,7 +114,6 @@ class BeeOS(object):
     def get_hostname(self):
         return self.hostname
 
-    
     def set_hostname(self):
         cprint("["+self.hostname+"]: set hostname.", self.__output_color)
         cmd = ["sudo hostname", self.hostname]
@@ -154,6 +154,7 @@ class BeeOS(object):
         np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
         cmd = ["mpirun",
                "--allow-run-as-root",
+               "--mca btl_tcp_if_include eno1",
                "--hostfile /home/beeuser/hostfile",
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]

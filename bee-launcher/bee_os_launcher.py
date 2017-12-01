@@ -92,31 +92,6 @@ class BeeOSLauncher(BeeTask):
         self.get_docker_img()
         self.start_docker()
         self.general_run()
-        #f = open(expanduser("~") + '/.bee/ssh_key/id_rsa.pub','r')
-        #publickey = f.readline()[:-1]
-        #keypair = nova.keypairs.create('bee-key', publickey)
-        #f.close()
-
-
-        # flavors = self.nova.flavors.list()
-        # print (flavors)
-        # f = flavors[0]
-
-        #images = self.glance.images.list()
-        #for image in images:
-        #   print image
-
-        # i = self.glance.images.get('10c1c632-1c4d-4c9d-bdd8-7938eeba9f14')
-
-        # print(i)
-        #k = self.nova.keypairs.create(name = 'bee-key')        
-
-        # self.nova.servers.create(name = 'bee-os',
-        #                          images = i,
-        #                          flavor = f,
-        #                          scheduler_hints = {'reservation': 'ac2cd341-cf88-4238-b45a-50fab07de465'},
-        #                          key_name = 'bee-key'
-        #                          )
 
 
     def clean(self):
@@ -168,8 +143,10 @@ class BeeOSLauncher(BeeTask):
         cprint('[' + self.__task_name + '] Waiting for all nodes to become active.', self.__output_color)
         while (len(self.get_active_node()) != int(self.__bee_os_conf['num_of_nodes'])):
             time.sleep(5)
+        cprint('[' + self.__task_name + '] All nodes are active, wait for networks to become available.', self.__output_color)
         time.sleep(120)
-        cprint('[' + self.__task_name + '] All nodes are active.', self.__output_color)
+        cprint('[' + self.__task_name + '] Start BEE configuration.', self.__output_color)
+        
 
     def get_master_node(self):
         cprint('[' + self.__task_name + '] Find the ip for the master node.', self.__output_color)
