@@ -29,6 +29,9 @@ class Docker(object):
                "{}".format(self.__docker_img_tag)]
         return cmd
 
+    def get_docker_username(self):
+      return self.__docker_username
+
     def set_shared_dir(self, shared_dir):
       self.__vm_shared_dir = shared_dir
         
