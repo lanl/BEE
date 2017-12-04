@@ -263,7 +263,7 @@ class BeeOSLauncher(BeeTask):
         for run_conf in self.__task_conf['general_run']:
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/general_script.sh'
-            docker_script_path = '/home/beeuser/general_script.sh'
+            docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
             master.copy_to_master(local_script_path, node_script_path)
             master.docker_copy_file(node_script_path, docker_script_path)
             master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
@@ -272,14 +272,14 @@ class BeeOSLauncher(BeeTask):
         for run_conf in self.__task_conf['mpi_run']:
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/mpi_script.sh'
-            docker_script_path = '/home/beeuser/mpi_script.sh'
+            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
             master.copy_to_master(local_script_path, node_script_path)
             for bee_os in self.__bee_os_list:
                 bee_os.docker_copy_file(node_script_path, docker_script_path)
             # Generate hostfile and copy to container
             master.docker_make_hostfile(run_conf, self.__bee_os_list, self.__tmp_dir)
             master.copy_to_master(self.__tmp_dir + '/hostfile', '/home/cc/hostfile')
-            docker_script_path = '/home/beeuser/mpi_script.sh'
-            master.docker_copy_file('/home/cc/hostfile', '/home/beeuser/hostfile')
+            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+            master.docker_copy_file('/home/cc/hostfile', '/home/{}/hostfile'.format(self.__docker_conf['docker_username']))
             # Run parallel script on all nodes
             master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)

@@ -155,7 +155,7 @@ class BeeOS(object):
         cmd = ["mpirun",
                "--allow-run-as-root",
                "--mca btl_tcp_if_include eno1",
-               "--hostfile /home/beeuser/hostfile",
+               "--hostfile /home/{}/hostfile".format(self.__docker.get_docker_username()),
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
         self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)

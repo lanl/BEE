@@ -353,7 +353,7 @@ class BeeVM(object):
         cmd = ["mpirun",
                "--allow-run-as-root",
                "--mca btl_tcp_if_include eth0",
-               "--hostfile /root/hostfile",
+               "--hostfile /home/{}/hostfile".format(self.__docker.get_docker_username()),
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
         return self.run(self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
