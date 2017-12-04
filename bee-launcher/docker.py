@@ -104,4 +104,4 @@ class Docker(object):
         cmd = ['chown',
                '{}:{}'.format(self.__docker_username,self.__docker_username),
                 file_path]
-        self.root_run(cmd)
+        return self.root_run(cmd)
