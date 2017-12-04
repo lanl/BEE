@@ -20,7 +20,7 @@
   "exec_env_conf": {
      "bee_os": {
           "num_of_nodes": "1",
-          "reservation_id": "e9bb49a6-dedc-4229-94ab-a23e46501645"
+          "reservation_id": "3a644ad9-c264-42ed-9a15-dbc6e9c95455"
       }
   }
 }

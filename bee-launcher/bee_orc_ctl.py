@@ -59,7 +59,8 @@ class BeeLauncherDaemon(object):
     def list_all_tasks(self):
         tasks_and_status = {}
         for beetask_name in self.__beetasks:
-            tasks_and_status[beetask_name] = self.__beetasks[beetask_name].get_current_status()
+            tasks_and_status[beetask_name] = {"status" : self.__beetasks[beetask_name].get_current_status(),
+                                              "platform" : self.__beetasks[beetask_name].get_platform()}
         return tasks_and_status
 
     def create_bee_aws_storage(self, efs_name, perf_mode = 'generalPurpose'):

@@ -13,6 +13,8 @@ from bee_task import BeeTask
 class BeeVMLauncher(BeeTask):
     def __init__(self, task_id, beefile, restore = False):
         BeeTask.__init__(self)
+
+        self.__platform = 'BEE-VM'
         
         self.__current_status = 0 # initializing
         
@@ -58,6 +60,9 @@ class BeeVMLauncher(BeeTask):
 
     def get_current_status(self):
         return self.__current_status
+
+    def get_platform(self):
+        return self.__platform
 
     def run(self):
         self.launch()

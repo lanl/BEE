@@ -13,6 +13,8 @@ class BeeAWSLauncher(BeeTask):
     def __init__(self, task_id, beefile):
         
         BeeTask.__init__(self)
+
+        self.__platform = 'BEE-AWS'
         
         self.__current_status = 0 #Initializing
 
@@ -53,6 +55,9 @@ class BeeAWSLauncher(BeeTask):
 
     def get_current_status(self):
         return self.__current_status
+
+    def get_platform(self):
+        return self.__platform
 
     def get_begin_event(self):
         return self.__begin_event

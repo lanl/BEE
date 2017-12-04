@@ -24,6 +24,11 @@ class BeeOSLauncher(BeeTask):
     def __init__(self, task_id, beefile):
 
         BeeTask.__init__(self)
+
+        self.__platform = 'BEE-OpenStack'
+
+        self.__current_status = 0 #Initializing
+
         # User configuration
         self.__task_conf = beefile['task_conf']
         self.__bee_os_conf = beefile['exec_env_conf']['bee_os']
@@ -31,8 +36,6 @@ class BeeOSLauncher(BeeTask):
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
         self.__reservation_id = self.__bee_os_conf['reservation_id']
-
-        #'e9bb49a6-dedc-4229-94ab-a23e46501645'
 
         # OS configuration
         self.__bee_os_sgroup = '{}-{}-bee-os-security-group'.format(os.getlogin(), self.__task_name)
@@ -56,12 +59,20 @@ class BeeOSLauncher(BeeTask):
         self.__bee_os_list = []
         self.__output_color = "cyan"
 
+
+        # Events for workflow
+        self.__begin_event = Event()
+        self.__end_event = Event()
+        self.__event_list = []
+
+        self.__current_status = 1 # initialized
+
     def run(self):
         self.launch()
 
-
     def launch(self):
-        self.clean()
+        self.__current_status = 3 # Launching
+        self.terminate()
         self.create_key()
         self.launch_stack()
         self.wait_for_nodes()
@@ -74,10 +85,35 @@ class BeeOSLauncher(BeeTask):
         self.add_docker()
         self.get_docker_img()
         self.start_docker()
+        self.__current_status = 2 # waiting
+        self.wait_for_others()
+        self.__current_status = 4 # Running
         self.general_run()
+        self.__current_status = 5 # finished
 
 
-    def clean(self):
+    def wait_for_others(self):
+        # wait for other tasks
+        for event in self.__event_list:
+            event.wait()
+
+    def get_current_status(self):
+        return self.__current_status
+
+    def get_platform(self):
+        return self.__platform
+
+    def get_begin_event(self):
+        return self.__begin_event
+
+    def get_end_event(self):
+        return self.__end_event
+
+    def add_wait_event(self, new_event):
+        self.__event_list.append(new_event)
+
+
+    def terminate(self):
         cprint('[' + self.__task_name + '] Clean old keys and stacks.', self.__output_color)
         for existing_key in self.nova.keypairs.list():
             if (existing_key.id == self.__ssh_key):
@@ -127,7 +163,7 @@ class BeeOSLauncher(BeeTask):
         while (len(self.get_active_node()) != int(self.__bee_os_conf['num_of_nodes'])):
             time.sleep(5)
         cprint('[' + self.__task_name + '] All nodes are active, wait for networks to become available.', self.__output_color)
-        time.sleep(120)
+        time.sleep(200)
         cprint('[' + self.__task_name + '] Start BEE configuration.', self.__output_color)
         
 
@@ -220,6 +256,7 @@ class BeeOSLauncher(BeeTask):
 
 
     def general_run(self):
+
         cprint('[' + self.__task_name + '] Execute run scripts.', self.__output_color)
         # General sequential script
         master = self.__bee_os_list[0]
