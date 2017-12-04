@@ -30,11 +30,13 @@ class BeeOSLauncher(BeeTask):
         self.__docker_conf = beefile['docker_conf']
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
+        self.__reservation_id = self.__bee_os_conf['reservation_id']
+
+        #'e9bb49a6-dedc-4229-94ab-a23e46501645'
 
         # OS configuration
         self.__bee_os_sgroup = '{}-{}-bee-os-security-group'.format(os.getlogin(), self.__task_name)
         self.__ssh_key = '{}-{}-bee-os-sshkey'.format(os.getlogin(), self.__task_name)
-        self.__reservation_id = 'e9bb49a6-dedc-4229-94ab-a23e46501645'
         self.__stack_name = '{}-{}-bee-os-stack'.format(os.getlogin(), self.__task_name)
 
 
@@ -45,30 +47,11 @@ class BeeOSLauncher(BeeTask):
 
         self.os_key = ""
 
-        # Authentication
-        # auth = v2.Password(username = os.environ['OS_USERNAME'], 
-        #                    password = os.environ['OS_PASSWORD'], 
-        #                    tenant_name = os.environ['OS_TENANT_NAME'], 
-        #                    auth_url = os.environ['OS_AUTH_URL'])
-
-        # auth = v2.Password(username = 'cjy7117',
-        #            password = 'Wait4aTrain7!',
-        #            tenant_name = 'CH-819321',
-        #            auth_url = 'https://chi.tacc.chameleoncloud.org:5000/v2.0')
-        
-        # self.session = session.Session(auth = auth)
-        
-        # self.glance = glanceClient('2', session = self.session)
-
-        # self.nova = novaClient('2', session = self.session)
-
-        # self.neutron = neutronClient(session = self.session)
-
         self.nova = novaClient('2', 
-                                  'cjy7117', 
-                                  'Wait4aTrain7!', 
-                                  '3dbec77dc346466380d53adf7d39753b', 
-                                  'https://chi.uc.chameleoncloud.org:5000')
+                               os.environ['OS_USERNAME'], 
+                               os.environ['OS_PASSWORD'], 
+                               os.environ['OS_TENANT_ID'], 
+                               os.environ['OS_AUTH_URL'])
 
         self.__bee_os_list = []
         self.__output_color = "cyan"

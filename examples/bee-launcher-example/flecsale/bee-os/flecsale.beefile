@@ -14,12 +14,13 @@
   }, 
   "docker_conf":{
       "docker_img_tag": "cjy7117/flecsale",
-      "docker_username": "root",
+      "docker_username": "beeuser",
       "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
      "bee_os": {
-          "num_of_nodes": "1"
+          "num_of_nodes": "1",
+          "reservation_id": "e9bb49a6-dedc-4229-94ab-a23e46501645"
       }
   }
 }
