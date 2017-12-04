@@ -66,6 +66,15 @@ class Docker(object):
                "{}".format(self.__docker_container_name)]
         cmd = cmd + exec_cmd
         return cmd
+
+    def root_run(self, exec_cmd):
+        #execute command on the running Docker container
+        cmd = ["docker",
+               "exec",
+               "--user root",
+               "{}".format(self.__docker_container_name)]
+        cmd = cmd + exec_cmd
+        return cmd
         
     def update_uid(self, uid):
         # Change user's UID to match host's UID.  
@@ -90,3 +99,9 @@ class Docker(object):
                "{}".format(src_path),
                "{}:{}".format(self.__docker_container_name, dist_path)]
         return cmd
+
+    def update_file_ownership(self, file_path):
+        cmd = ['chown',
+               '{}:{}'.format(self.__docker_username,self.__docker_username),
+                file_path]
+        self.root_run(cmd)

@@ -342,6 +342,7 @@ class BeeVM(object):
     def docker_copy_file(self, src_path, dist_path):
         cprint("["+self.hostname+"][Docker]: copy file to docker" + src_path + " --> " + dist_path +".", self.__output_color)
         self.run(self.__docker.copy_file(src_path, dist_path))
+        self.run(self.__docker.update_file_ownership(dist_path))
 
     def docker_seq_run(self, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)

@@ -8,6 +8,7 @@ pip install tabulate --user
 pip install pexpect --user
 pip install python-openstackclient --user
 pip install python-heatclient --user
+pip install python-neutronclient --user
 
 
 # Remove old files
