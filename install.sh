@@ -6,6 +6,8 @@ pip install boto3 --user
 pip install termcolor --user
 pip install tabulate --user
 pip install pexpect --user
+pip install python-openstackclient --user
+pip install python-heatclient --user
 
 
 # Remove old files

@@ -34,7 +34,7 @@
 	  "cpu_sockets": "2",
 	  "ram_size": "240G",
 	  "kvm_enabled": true,
-	  "host_input_dir": "/home/jieyangchen/vpic_share"
+	  "host_input_dir": "/home/jieyang/bee_share"
       }
   }
 }
