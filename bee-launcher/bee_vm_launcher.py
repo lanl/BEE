@@ -13,6 +13,8 @@ from bee_task import BeeTask
 class BeeVMLauncher(BeeTask):
     def __init__(self, task_id, beefile, restore = False):
         BeeTask.__init__(self)
+
+        self.__platform = 'BEE-VM'
         
         self.__current_status = 0 # initializing
         
@@ -58,6 +60,9 @@ class BeeVMLauncher(BeeTask):
 
     def get_current_status(self):
         return self.__current_status
+
+    def get_platform(self):
+        return self.__platform
 
     def run(self):
         self.launch()
@@ -213,7 +218,7 @@ class BeeVMLauncher(BeeTask):
         for run_conf in self.__task_conf['general_run']:
             host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
-            docker_script_path = '/root/general_script.sh'
+            docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
             master.copy_file(host_script_path, vm_script_path)
             master.docker_copy_file(vm_script_path, docker_script_path)
             master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
@@ -222,14 +227,14 @@ class BeeVMLauncher(BeeTask):
         for run_conf in self.__task_conf['mpi_run']:
             host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/mpi_script.sh'
-            docker_script_path = '/root/mpi_script.sh'
+            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
             for bee_vm in self.__bee_vm_list:
                 bee_vm.copy_file(host_script_path, vm_script_path)
                 bee_vm.docker_copy_file(vm_script_path, docker_script_path)
             # Generate hostfile and copy to container
             master.docker_make_hostfile(run_conf, self.__bee_vm_list, self.__tmp_dir)
             master.copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
-            master.docker_copy_file('/home/ubuntu/hostfile', '/root/hostfile')
+            master.docker_copy_file('/home/ubuntu/hostfile', '/home/{}/hostfile'.format(self.__docker_conf['docker_username']))
             # Run parallel script on all nodes
             master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)
 
@@ -245,7 +250,7 @@ class BeeVMLauncher(BeeTask):
             count = count + 1
             host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
-            docker_script_path = '/root/general_script.sh'
+            docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
             bee_vm.copy_file(host_script_path, vm_script_path)
             bee_vm.docker_copy_file(vm_script_path, docker_script_path)
             p = bee_vm.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],

@@ -1,14 +1,11 @@
 #!/bin/sh
 
 # Install necessary libraries
-pip install pyro4 --user
-pip install boto3 --user
-pip install termcolor --user
-pip install tabulate --user
-pip install pexpect --user
-pip install python-openstackclient --user
-pip install python-heatclient --user
-pip install python-neutronclient --user
+pip install pyro4 
+pip install boto3 
+pip install termcolor
+pip install tabulate
+pip install pexpect
 
 
 # Remove old files

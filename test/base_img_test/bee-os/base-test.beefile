@@ -1,0 +1,19 @@
+{
+  "task_conf": {
+      "task_name": "base-test",
+      "exec_target": "bee_os",
+      "general_run": [],
+      "mpi_run": [],
+      "terminate_after_exec": false
+  }, 
+  "docker_conf":{
+      "docker_img_tag": "cjy7117/ubuntu-ompi",
+      "docker_username": "beeuser",
+      "docker_shared_dir": "/mnt/docker_share"
+  },
+  "exec_env_conf": {
+     "bee_os": {
+          "num_of_nodes": "2"
+      }
+  }
+}

@@ -2,8 +2,10 @@ from hypervisor import Hypervisor
 import subprocess
 from qmp import QEMUMonitorProtocol
 import time
-import pexpect,sys
 from termcolor import colored, cprint
+import pexpect
+import sys
+#from termcolor import colored, cprint
 
 class QEMU(Hypervisor):
     def __init__(self, host_name, qemu_exec, kvm_enabled):

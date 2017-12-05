@@ -1,7 +1,7 @@
 {
   "task_conf": {
       "task_name": "vpic",
-      "exec_target": "bee_vm",
+      "exec_target": "bee_os",
       "batch_mode": false,
       "general_run": [
 	  {
@@ -27,14 +27,9 @@
       "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
-      "bee_vm": {
-	  "node_list": ["cn30", "cn31"],
-	  "cpu_core_per_socket": "8",
-	  "cpu_thread_per_core": "1",
-	  "cpu_sockets": "2",
-	  "ram_size": "240G",
-	  "kvm_enabled": true,
-	  "host_input_dir": "/home/jieyang/bee_share"
+      "bee_os": {
+           "num_of_nodes": "2",
+           "reservation_id": "e9bb49a6-dedc-4229-94ab-a23e46501645"
       }
   }
 }

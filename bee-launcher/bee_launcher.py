@@ -94,12 +94,13 @@ def main(argv):
                     
                 count = 1
                 for beetask in status:
-                    color_status = colored(status_list[status[beetask]], status_color_list[status[beetask]])
+                    color_status = colored(status_list[status[beetask]['status']], status_color_list[status[beetask]['status']])
                     #print(str(count) + ". " + beetask + " [" + color_status + "]")
-                    table.append([str(count), beetask, color_status])
+                    platform = status[beetask]['platform']
+                    table.append([str(count), beetask, color_status, platform])
                     count = count + 1
                 os.system('clear')
-                print(tabulate(table, headers=['No.', 'Task Name', 'Status']))
+                print(tabulate(table, headers=['No.', 'Task Name', 'Status', 'Platform']))
                 time.sleep(1)
             exit()
 

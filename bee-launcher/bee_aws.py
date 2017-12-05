@@ -199,9 +199,10 @@ class BeeAWS(object):
         cprint("["+self.hostname+"][Docker]: update docker user GID.", self.__output_color)
         self.run(self.__docker.update_gid(gid))
     
-    def docker_copy_file(self, src_path, dist_path):
-        cprint("["+self.hostname+"][Docker]: copy file to docker" + src_path + " --> " + dist_path +".", self.__output_color)
-        self.run(self.__docker.copy_file(src_path, dist_path))
+    def docker_copy_file(self, src, dest):
+        cprint("["+self.hostname+"][Docker]: copy file to docker" + src + " --> " + dest +".", self.__output_color)
+        self.run(self.__docker.copy_file(src, dest))
+        self.run(self.__docker.update_file_ownership(dest))
 
     def docker_seq_run(self, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
@@ -213,7 +214,7 @@ class BeeAWS(object):
         cmd = ["mpirun",
                "--allow-run-as-root",
                "--mca btl_tcp_if_include eth0",
-               "--hostfile /root/hostfile",
+               "--hostfile /home/{}/hostfile".format(self.__docker.get_docker_username()),
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
         return self.run(self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)

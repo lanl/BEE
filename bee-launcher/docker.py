@@ -28,6 +28,12 @@ class Docker(object):
                "pull",
                "{}".format(self.__docker_img_tag)]
         return cmd
+
+    def get_docker_username(self):
+      return self.__docker_username
+
+    def set_shared_dir(self, shared_dir):
+      self.__vm_shared_dir = shared_dir
         
     def build_docker(self):
         # Build Docker image from dockerfile.
@@ -45,16 +51,27 @@ class Docker(object):
                "--name {}".format(self.__docker_container_name),
                "--net=host",
                "-d",
+               "--user root",
                "-v {}:{}".format(self.__vm_shared_dir, self.__docker_shared_dir),
                "{}".format(self.__docker_img_tag),
                "{}".format(exec_cmd)]
-	print(cmd)
+        print(cmd)
         return cmd
 
     def run(self, exec_cmd):
         #execute command on the running Docker container
         cmd = ["docker",
                "exec",
+               "--user {}".format(self.__docker_username),
+               "{}".format(self.__docker_container_name)]
+        cmd = cmd + exec_cmd
+        return cmd
+
+    def root_run(self, exec_cmd):
+        #execute command on the running Docker container
+        cmd = ["docker",
+               "exec",
+               "--user root",
                "{}".format(self.__docker_container_name)]
         cmd = cmd + exec_cmd
         return cmd
@@ -64,7 +81,7 @@ class Docker(object):
         # This is necessary for dir sharing. 
         cmd = ["usermod",
                "-u {} {}".format(uid, self.__docker_username)]
-        return self.run(cmd)
+        return self.root_run(cmd)
 
 
     def update_gid(self, gid):
@@ -73,7 +90,7 @@ class Docker(object):
         cmd = ["groupmod",
                "-g {} {}".format(gid, self.__docker_username)]
 
-        return self.run(cmd)
+        return self.root_run(cmd)
 
 
     def copy_file(self, src_path, dist_path):
@@ -82,3 +99,9 @@ class Docker(object):
                "{}".format(src_path),
                "{}:{}".format(self.__docker_container_name, dist_path)]
         return cmd
+
+    def update_file_ownership(self, file_path):
+        cmd = ['chown',
+               '{}:{}'.format(self.__docker_username,self.__docker_username),
+                file_path]
+        return self.root_run(cmd)

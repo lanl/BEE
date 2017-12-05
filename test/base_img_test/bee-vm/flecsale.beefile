@@ -1,0 +1,32 @@
+{
+  "task_conf": {
+      "task_name": "flecsale",
+      "exec_target": "bee_vm",
+      "batch_mode": false,
+      "general_run": [
+	  {
+	      "script": "flecsale_run.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": ["22222","22223"]
+	  }
+      ],
+      "mpi_run": [],
+      "terminate_after_exec": false
+  }, 
+  "docker_conf":{
+      "docker_img_tag": "cjy7117/flecsale",
+      "docker_username": "root",
+      "docker_shared_dir": "/mnt/docker_share"
+  },
+  "exec_env_conf": {
+      "bee_vm": {
+	  "node_list": ["cn31"],
+	  "cpu_core_per_socket": "8",
+	  "cpu_thread_per_core": "1",
+	  "cpu_sockets": "2",
+	  "ram_size": "16G",
+	  "kvm_enabled": true,
+	  "host_input_dir": "/home/jieyang/flecsale_share"
+      }
+  }
+}

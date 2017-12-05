@@ -1,0 +1,26 @@
+{
+  "task_conf": {
+      "task_name": "flecsale",
+      "exec_target": "bee_os",
+      "general_run": [
+	  {
+	      "script": "flecsale_run.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": ["22222","22223"]
+	  }
+      ],
+      "mpi_run": [],
+      "terminate_after_exec": false
+  }, 
+  "docker_conf":{
+      "docker_img_tag": "cjy7117/flecsale",
+      "docker_username": "beeuser",
+      "docker_shared_dir": "/mnt/docker_share"
+  },
+  "exec_env_conf": {
+     "bee_os": {
+          "num_of_nodes": "1",
+          "reservation_id": "3a644ad9-c264-42ed-9a15-dbc6e9c95455"
+      }
+  }
+}
