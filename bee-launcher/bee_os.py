@@ -140,7 +140,6 @@ class BeeOS(object):
         cprint("["+self.hostname+"]: start docker container.", self.__output_color)
         self.run(['sudo'] + self.__docker.start_docker(exec_cmd)) 
 
-
     def docker_copy_file(self, src, dest):
         cprint("["+self.hostname+"][Docker]: copy file to docker " + src + " --> " + dest +".", self.__output_color)
         self.run(['sudo'] + self.__docker.copy_file(src, dest))
