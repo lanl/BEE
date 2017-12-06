@@ -45,8 +45,7 @@ Configure `<task_name>.beefile` file as follow:
   * c. `docker_shared_dir`: the directory inside Docker container that is shared among all Docker containers.
 * `exec_env_conf`: specifiying all configuration related to the execution environment.
   * a. `bee_os`: Execution configuration for `BEE-OpenStack`;
-    * a1. `num_of_nodes`: number of node to run on AWS;
-    * a2. `reservation_id`: the id of the reserveration you want to use.
+  * b. `reservation_id`: the id of the reserveration you want to use.
 
 ##### Step 2. Launch task
 * a. Prepare run scripts as necessary.
