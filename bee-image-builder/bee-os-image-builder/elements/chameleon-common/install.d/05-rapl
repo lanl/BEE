@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+ARTIFACT_VER=0.1.0
+ARTIFACT_NAME=etrace2-cent7
+ARTIFACT_TARGET=/usr/bin/etrace2
+
+sudo curl https://github.com/ChameleonCloud/intercoolr/releases/download/${ARTIFACT_VER}/${ARTIFACT_NAME} \
+    -o $ARTIFACT_TARGET \
+    -L
+
+sudo chmod +x $ARTIFACT_TARGET
