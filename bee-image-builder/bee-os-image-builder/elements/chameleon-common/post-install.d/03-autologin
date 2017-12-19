@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -eu
+set -o pipefail
+
+# Configure auto-login
+rm '/etc/systemd/system/getty.target.wants/getty@tty1.service'
+
+cp '/lib/systemd/system/getty@.service' '/etc/systemd/system/getty@tty1.service'
+sed -i 's/ExecStart.*/ExecStart=-\/sbin\/agetty --autologin cc --noclear %I $TERM/g' '/etc/systemd/system/getty@tty1.service'
+
+echo ";Alias=getty@tty1.service" >> '/etc/systemd/system/getty@tty1.service'
+ln -s '/etc/systemd/system/getty@tty1.service' '/etc/systemd/system/getty.target.wants/getty@tty1.service'
+
+# SOL console is on ttyS0
+cp '/etc/systemd/system/getty@tty1.service' '/etc/systemd/system/getty@ttyS0.service'
+sed -i 's/tty1/ttyS0/g' '/etc/systemd/system/getty@ttyS0.service'
+ln -s '/etc/systemd/system/getty@ttyS0.service' '/etc/systemd/system/getty.target.wants/getty@ttyS0.service'

@@ -1,0 +1,176 @@
+#!/bin/bash
+
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -eu
+set -o pipefail
+
+mkdir /opt/chameleon
+
+cat > /opt/chameleon/simple.py <<'EOF'
+#!/usr/bin/env python
+
+import sys
+import subprocess
+
+def write_stdout(s):
+    sys.stdout.write(s)
+    sys.stdout.flush()
+
+def write_stderr(s):
+    sys.stderr.write(s)
+    sys.stderr.flush()
+
+def main(args):
+    while 1:
+        write_stdout('READY\n') # transition from ACKNOWLEDGED to READY
+        line = sys.stdin.readline()  # read header line from stdin
+        write_stderr(line) # print it out to stderr
+        headers = dict([ x.split(':') for x in line.split() ])
+        data = sys.stdin.read(int(headers['len'])) # read the event payload
+        res = subprocess.call(args, stdout=sys.stderr); # don't mess with real stdout
+        write_stderr(data)
+        write_stdout('RESULT 2\nOK') # transition from READY to ACKNOWLEDGED
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
+    import sys
+EOF
+
+cat > /opt/chameleon/publish_node_info.py <<'EOF'
+#!/usr/bin/env python
+
+import amqp
+import datetime
+import json
+import os
+import pickle
+import psutil
+
+def get_connection_info(use_pickling=False):
+    if use_pickling:
+        vendor_data = pickle.load(open("/var/lib/cloud/instance/obj.pkl"))
+        return vendor_data.vendordata_pure
+    else:
+        import json
+        import urllib2
+        url = "http://169.254.169.254/openstack/latest/vendor_data.json"
+        response = urllib2.urlopen(url)
+        data = response.read()
+        values = json.loads(data)
+        return values
+
+
+def publish():
+    conn_info = get_connection_info()
+    rabbit_host = str(conn_info.get("rabbit_host"))
+    rabbit_port = str(conn_info.get("rabbit_port"))
+    rabbit_userid = str(conn_info.get("rabbit_userid"))
+    rabbit_password = str(conn_info.get("rabbit_password"))
+    rabbit_exchange = str(conn_info.get("rabbit_exchange"))
+    rabbit_routing_key = str(conn_info.get("rabbit_routing_key"))
+
+    conn = amqp.Connection(host=rabbit_host,
+                           userid=rabbit_userid,
+                           password=rabbit_password)
+    channel = conn.channel()
+    channel.basic_publish(createMessage(),exchange=rabbit_exchange,routing_key=rabbit_routing_key)
+    channel.close()
+    conn.close()
+
+def createMessage():
+    message = {}
+    message["priority"] = "INFO"
+    message["event_type"] = "node.status"
+    message["payload"] = getPayload()
+    addMetadata(message["payload"])
+    message["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+    return amqp.Message(body=json.dumps(message),
+                        content_encoding="utf-8",
+                        content_type="application/json")
+
+def getPayload():
+    payload = {}
+    addMetadata(payload)
+    addMeasurements(payload)
+    return payload
+
+def addMetadata(payload):
+    ds = pickle.load(open("/var/lib/cloud/instance/obj.pkl"))  # only readable by root
+    #print(dir(ds))
+
+    payload["instance_id"] = ds.metadata["instance-id"]
+    payload["instance_name"] = ds.metadata["name"]
+
+    # we added this extra info to vendor data
+    payload["user_id"] = ds.vendordata_pure["user_id"]
+    payload["project_id"] = ds.vendordata_pure["project_id"]
+
+def addMeasurements(payload):
+    addUptime(payload)
+    addCpu(payload)
+    addDiskSize(payload)
+    addMemory(payload)
+    addNetwork(payload)
+    addDiskIO(payload)
+
+def addUptime(measurements):
+    measurements["uptime"] = float(open("/proc/uptime").read().split()[0])
+
+# use underscores since these keys can end up in mongodb and it doesn't like dots in keys
+
+def addCpu(measurements):
+    load = os.getloadavg()
+    measurements["cpu_load1"] = load[0]
+    measurements["cpu_load5"] = load[1]
+    measurements["cpu_load15"] = load[2]
+
+    measurements["cpu_idle_percent"] = 100 - psutil.cpu_percent()
+
+    times = psutil.cpu_times()
+    measurements["cpu_cumulative"] = times.user + times.nice + times.system
+
+def addDiskSize(measurements):
+    usage = map(lambda part: psutil.disk_usage(part.mountpoint),psutil.disk_partitions())
+    measurements["disk_total"] = sum(map(lambda u: u.total,usage))
+    measurements["disk_used"] = sum(map(lambda u: u.used,usage))
+
+def addMemory(measurements):
+    vmem = psutil.virtual_memory()
+    smem = psutil.swap_memory()
+    measurements["memory_total"] = vmem.total
+    measurements["memory_used"] = vmem.used
+    measurements["memory_swap"] = smem.total
+    measurements["memory_available"] = vmem.available
+
+def addNetwork(measurements):
+    stats = psutil.network_io_counters(pernic=True).values()
+    measurements["network_incoming_bytes"] = sum(map(lambda s: s.bytes_recv,stats))
+    measurements["network_outgoing_bytes"] = sum(map(lambda s: s.bytes_sent,stats))
+    measurements["network_incoming_errors"] = sum(map(lambda s: s.errin,stats))
+    measurements["network_outgoing_errors"] = sum(map(lambda s: s.errout,stats))
+    measurements["network_incoming_packets"] = sum(map(lambda s: s.packets_recv,stats))
+    measurements["network_outgoing_packets"] = sum(map(lambda s: s.packets_sent,stats))
+
+def addDiskIO(measurements):
+    stat = psutil.disk_io_counters(perdisk=False)
+    measurements["disk_read_bytes"] = stat.read_bytes
+    measurements["disk_write_bytes"] = stat.write_bytes
+    measurements["disk_read_count"] = stat.read_count
+    measurements["disk_write_count"] = stat.write_count
+
+if __name__ == "__main__":
+    publish()
+EOF
+
+chmod +x /opt/chameleon/simple.py /opt/chameleon/publish_node_info.py
+
+cat > /etc/supervisord.d/ceilometer.ini <<'EOF'
+[eventlistener:passthru]
+command=/opt/chameleon/simple.py /opt/chameleon/publish_node_info.py
+events=TICK_60
+EOF
+
+systemctl enable supervisord
+

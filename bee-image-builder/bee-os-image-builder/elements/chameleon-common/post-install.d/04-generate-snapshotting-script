@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -eu
+set -o pipefail
+
+# Clone the "cc-snapshot" script
+git clone https://github.com/ChameleonCloud/cc-snapshot.git
+
+# Ensure that "cc-snapshot" is executable
+chmod +x cc-snapshot/cc-snapshot
+
+# Move the "cc-snapshot" executable to /usr/bin
+mv cc-snapshot/cc-snapshot /usr/bin
+
+# Clean up
+rm -rf cc-snapshot
+
+exit 0
