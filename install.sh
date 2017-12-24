@@ -22,6 +22,10 @@ mkdir ~/.bee/tmp
 
 # Create SSH Key
 ssh-keygen -t rsa -f ~/.bee/ssh_key/id_rsa -q -P ""
+chmod 600 ~/.bee/ssh_key/id_rsa
+
+# Add authorized_keys
+cat ~/.bee/ssh_key/id_rsa.pub >> ~/.bee/ssh_key/authorized_keys
 
 # Setup SSH config
 echo "Host *" >> ~/.bee/ssh_key/config
