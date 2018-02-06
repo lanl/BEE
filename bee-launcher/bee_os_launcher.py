@@ -161,8 +161,14 @@ class BeeOSLauncher(BeeTask):
 
     def wait_for_nodes(self):
         cprint('[' + self.__task_name + '] Waiting for all nodes to become active.', self.__output_color)
+        counter = 0
         while (len(self.get_active_node()) != int(self.__bee_os_conf['num_of_nodes'])):
             time.sleep(5)
+            counter += 1
+            # output something to avoid accident termination by Travis CI
+            if (counter % 30 == 0):
+                print("."),
+        print(" ")
         cprint('[' + self.__task_name + '] All nodes are active, wait for networks to become available.', self.__output_color)
         time.sleep(200)
         cprint('[' + self.__task_name + '] Start BEE configuration.', self.__output_color)
