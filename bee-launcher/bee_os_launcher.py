@@ -2,6 +2,7 @@ import os
 import subprocess
 import time
 from os.path import expanduser
+import getpass
 
 from docker import Docker
 from termcolor import colored, cprint
@@ -38,9 +39,9 @@ class BeeOSLauncher(BeeTask):
         self.__reservation_id = self.__bee_os_conf['reservation_id']
 
         # OS configuration
-        self.__bee_os_sgroup = '{}-{}-bee-os-security-group'.format(os.getlogin(), self.__task_name)
-        self.__ssh_key = '{}-{}-bee-os-sshkey'.format(os.getlogin(), self.__task_name)
-        self.__stack_name = '{}-{}-bee-os-stack'.format(os.getlogin(), self.__task_name)
+        self.__bee_os_sgroup = '{}-{}-bee-os-security-group'.format(getpass.getuser(), self.__task_name)
+        self.__ssh_key = '{}-{}-bee-os-sshkey'.format(getpass.getuser(), self.__task_name)
+        self.__stack_name = '{}-{}-bee-os-stack'.format(getpass.getuser(), self.__task_name)
 
 
         self.__key_path = expanduser("~") + '/.bee/ssh_key/id_rsa'
