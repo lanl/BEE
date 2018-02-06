@@ -3,6 +3,8 @@ import subprocess
 import time
 from os.path import expanduser
 import getpass
+import sys
+
 
 from docker import Docker
 from termcolor import colored, cprint
@@ -146,9 +148,7 @@ class BeeOSLauncher(BeeTask):
                 "{}".format(self.__stack_name)]
         print(" ".join(cmd))
         subprocess.call(cmd, shell=True)
-
         
-
     def get_active_node(self):
         active_nodes = []
         all_active_servers = self.nova.servers.list(search_opts={'status': 'ACTIVE'})
@@ -167,7 +167,8 @@ class BeeOSLauncher(BeeTask):
             counter += 1
             # output something to avoid accident termination by Travis CI
             if (counter % 30 == 0):
-                print("."),
+                sys.stdout.write('.')
+                sys.stdout.flush()
         print(" ")
         cprint('[' + self.__task_name + '] All nodes are active, wait for networks to become available.', self.__output_color)
         time.sleep(200)
