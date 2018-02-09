@@ -50,9 +50,10 @@ def main(argv):
         print("Please provide beefile or efs name.")
         exit()
 
+    reservation_id = ""
     for opt, arg in opts: 
         if opt in ("-r", "--reservation"):
-            self.reservation_id = arg
+            reservation_id = arg
 
     for opt, arg in opts: 
         if opt in ("-l", "--launch"):
@@ -60,7 +61,8 @@ def main(argv):
             print("Sending launching request.")
             beefile_loader = BeefileLoader(beefile)
             beefile = beefile_loader.get_beefile()
-            beefile["exec_env_conf"]["bee_os"]["reservation_id"] = self.reservation_id
+            if (reservation_id != ""):
+                beefile["exec_env_conf"]["bee_os"]["reservation_id"] = reservation_id
             bee_ci_launcher = BeeCILauncher()
             bee_ci_launcher.create_and_launch_task(beefile)
             exit()
