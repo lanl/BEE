@@ -126,7 +126,7 @@ class BeeOSLauncher(BeeTask):
         cmd = ['openstack stack delete -y {}'.format(self.__stack_name)]
         print(" ".join(cmd))
         subprocess.call(" ".join(cmd), shell=True)
-        time.sleep(45)
+        time.sleep(60)
 
     def create_key(self):
         cprint('[' + self.__task_name + '] Create new ssh key.', self.__output_color)
