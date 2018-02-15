@@ -1,16 +1,50 @@
 {
     "_comment": "Build with `packer build ubuntu.json`",
     "builders": [
-	{
-	    "type": "amazon-ebs",
-	    "access_key": "{{user `aws_access_key`}}",
-	    "secret_key": "{{user `aws_secret_key`}}",
-	    "region": "us-west-2",
-	    "source_ami": "ami-00158160",
-	    "instance_type": "c3.4xlarge",
-	    "ssh_username": "ubuntu",
-	    "ami_name": "packer-example {{timestamp}}"
-	}
+        {
+            "type": "qemu",
+            "boot_command": [
+                "{{ user `boot_command_prefix` }}",
+                "/install/vmlinuz noapic ",
+                "file=/floppy/{{ user `preseed` }} ",
+                "debian-installer={{ user `locale` }} auto locale={{ user `locale` }} kbd-chooser/method=us ",
+                "hostname={{ user `hostname` }} ",
+                "fb=false debconf/frontend=noninteractive ",
+                "keyboard-configuration/modelcode=SKIP ",
+                "keyboard-configuration/layout=USA ",
+                "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+                "passwd/user-fullname={{ user `ssh_fullname` }} ",
+                "passwd/user-password={{ user `ssh_password` }} ",
+                "passwd/user-password-again={{ user `ssh_password` }} ",
+                "passwd/username={{ user `ssh_username` }} ",
+                "initrd=/install/initrd.gz -- <enter>"
+            ],
+            "disk_interface": "virtio",
+            "disk_size": "{{ user `disk_size` }}",
+            "net_device": "virtio-net",
+            "floppy_files": [
+                "http/{{ user `preseed` }}"
+            ],
+            "headless": "{{ user `headless` }}",
+            "http_directory": "http",
+            "iso_checksum": "{{ user `iso_checksum` }}",
+            "iso_checksum_type": "{{ user `iso_checksum_type` }}",
+            "iso_urls": [
+                "{{ user `iso_url` }}"
+            ],
+	    "format": "qcow2",
+            "output_directory": "{{ user `output_dir` }}",
+            "shutdown_command": "echo '{{ user `ssh_password` }}'|sudo -S shutdown -P now",
+            "ssh_password": "{{ user `ssh_password` }}",
+            "ssh_username": "{{ user `ssh_username` }}",
+            "ssh_wait_timeout": "10000s",
+            "vm_name": "{{ user `vm_name` }}",
+	    "accelerator": "kvm",
+            "qemuargs": [
+                [ "-m", "{{ user `memory` }}" ],
+                [ "-smp", "cpus={{ user `cpus`}}"]
+            ]
+        }
     ],
     "provisioners": [
 	{
@@ -30,22 +64,22 @@
         },
 	{
             "type": "file",
-            "source": "~/.bee/ssh_key/id_rsa",
+            "source": "./ssh_key/id_rsa",
             "destination": "/home/ubuntu/tmp/id_rsa"
         },
 	{
             "type": "file",
-            "source": "~/.bee/ssh_key/id_rsa.pub",
+            "source": "./ssh_key/id_rsa.pub",
             "destination": "/home/ubuntu/tmp/id_rsa.pub"
         },
 	{
             "type": "file",
-            "source": "~/.bee/ssh_key/authorized_keys",
+            "source": "./ssh_key/authorized_keys",
             "destination": "/home/ubuntu/tmp/authorized_keys"
         },
 	{
             "type": "file",
-            "source": "~/.bee/ssh_key/config",
+            "source": "./ssh_key/config",
             "destination": "/home/ubuntu/tmp/config"
         },
 	{
@@ -57,13 +91,14 @@
             ],
             "execute_command": "echo '{{ user `ssh_password` }}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
             "scripts": [
-		"scripts/update_kernel.sh",
                 "scripts/packages.sh",
 		"scripts/mpi.sh",
                 "scripts/docker.sh",
                 "scripts/prometheus.sh",
                 "scripts/ushell.sh",
                 "scripts/conf_user.sh",
+                "scripts/sshd.sh",
+		"scripts/network.sh",
 		"scripts/shared_volumn.sh"
             ],
             "type": "shell"
@@ -72,7 +107,7 @@
     "variables": {
         "boot_command_prefix": "<enter><wait><f6><esc><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
         "cleanup_pause": "",
-        "cpus": "1",
+        "cpus": "16",
         "custom_script": ".",
         "desktop": "false",
         "disk_size": "65536",
@@ -84,7 +119,7 @@
         "iso_name": "ubuntu-16.04-server-amd64.iso",
         "iso_url": "http://releases.ubuntu.com/16.04/ubuntu-16.04-server-amd64.iso",
         "locale": "en_US",
-        "memory": "512",
+        "memory": "8192",
         "preseed" : "preseed.cfg",
         "rsync_proxy": "{{env `rsync_proxy`}}",
         "hostname": "ubuntu",
