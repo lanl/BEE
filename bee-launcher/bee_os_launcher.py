@@ -86,6 +86,7 @@ class BeeOSLauncher(BeeTask):
         self.setup_hostname()
         self.setup_hostfile()
         self.add_docker()
+        self.__bee_os_list[0].parallel_run(['hostname'], self.__bee_os_list)
         self.get_docker_img()
         self.start_docker()
         self.__current_status = 2 # waiting
