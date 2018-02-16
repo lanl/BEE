@@ -21,8 +21,10 @@ class BeeLauncher(object):
         ns = Pyro4.locateNS(port = port, hmac_key = os.getlogin())
         uri = ns.lookup("bee_launcher.daemon")
         self.bldaemon = Pyro4.Proxy(uri) #Pyro4.Proxy("PYRONAME:bee_launcher.daemon")
-        self.__status = ["Initializing", "Initialized", "Waiting", "Launching", "Running", "Finished", "Terminated"]
-        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta', 'red']
+        self.__status = ["Initializing", "Initialized", "Waiting", "Launching", 
+             "Running", "Finished", "Terminated"]
+        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green', 
+             'magenta', 'red']
 
     def launch(self, beefile, restore = False):
         self.encode_cwd(beefile)
@@ -50,12 +52,16 @@ class BeeLauncher(object):
             run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
 
 def main(argv):
-    status_list = ["Initializing", "Initialized", "Waiting", "Launching", "Running", "Finished", "Terminated"]
-    status_color_list = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta', 'red']
+    status_list = ["Initializing", "Initialized", "Waiting", "Launching", 
+       "Running", "Finished", "Terminated"]
+    status_color_list = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta',
+       'red']
     bee_launcher = BeeLauncher()
     beefile = ""
     try:
-        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:", ["launch=", "checkpoint=", "restore=", "status", "terminate=", "delete=", "efs="])
+        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:", 
+            ["launch=", "checkpoint=", "restore=", "status", "terminate=", 
+             "delete=", "efs="])
     except getopt.GetoptError:
         print("Please provide beefile or efs name.")
         exit()
@@ -91,16 +97,16 @@ def main(argv):
                     print("No task exist.")
                     
                 table = []
-                    
                 count = 1
                 for beetask in status:
-                    color_status = colored(status_list[status[beetask]['status']], status_color_list[status[beetask]['status']])
-                    #print(str(count) + ". " + beetask + " [" + color_status + "]")
+                    color_status = colored(status_list[status[beetask]['status']], 
+                        status_color_list[status[beetask]['status']])
                     platform = status[beetask]['platform']
                     table.append([str(count), beetask, color_status, platform])
                     count = count + 1
                 os.system('clear')
-                print(tabulate(table, headers=['No.', 'Task Name', 'Status', 'Platform']))
+                print(tabulate(table, 
+                     headers=['No.', 'Task Name', 'Status', 'Platform']))
                 time.sleep(1)
             exit()
 

@@ -7,6 +7,7 @@ from subprocess import Popen
 from bee_aws_launcher import BeeAWSLauncher 
 from bee_vm_launcher import BeeVMLauncher
 from bee_os_launcher import BeeOSLauncher
+from bee_cc_launcher import BeeCCLauncher
 import boto3
 from threading import Thread
 from bee_task import BeeTask
@@ -36,6 +37,10 @@ class BeeLauncherDaemon(object):
             return beetask
         elif exec_target == 'bee_os':
             beetask = BeeOSLauncher(total_tasks + 1, beefile)
+            self.__beetasks[beetask_name] = beetask
+            return beetask
+        elif exec_target == 'bee_cc':
+            beetask = BeeCCLauncher(total_tasks + 1, beefile)
             self.__beetasks[beetask_name] = beetask
             return beetask
         
