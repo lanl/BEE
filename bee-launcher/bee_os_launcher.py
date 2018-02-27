@@ -33,7 +33,7 @@ class BeeOSLauncher(BeeTask):
         self.__current_status = 0 #Initializing
 
 
-        if ("storage" in beefile && beefile['storage'] == "true"):
+        if ("storage" in beefile and beefile['storage'] == "true"):
             self.storage_mode = True
         else
             self.storage_mode = False
