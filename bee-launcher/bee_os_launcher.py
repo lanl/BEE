@@ -77,7 +77,7 @@ class BeeOSLauncher(BeeTask):
         self.__current_status = 1 # initialized
 
     def run(self):
-        if (self.storage_mode = False):
+        if (self.storage_mode == False):
             self.launch()
         else:
             self.launch_storage()
