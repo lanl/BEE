@@ -3,17 +3,14 @@ from docker import Docker
 import os
 from termcolor import colored, cprint
 
-class BeeCC(object):
+class BeeCharliecloud(object):
     def __init__(self, task_id, hostname, rank, task_conf, bee_os_conf, key_path, private_ip, 
            master_public_ip, master = ""):
         # Basic configurations
         self.status = ""
         self.hostname = hostname
-        self.__rank = rank
         self.master = master
-        self.__user_name = "cc"
-        self.__key_path = key_path
-        self.__remote_key_path = '/home/cc/.ssh/id_rsa'
+        self.__user_name = "charlie"
 
         # Network
         self.private_ip = private_ip
