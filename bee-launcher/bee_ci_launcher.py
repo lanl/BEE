@@ -20,6 +20,7 @@ class BeeCILauncher(object):
     def __init__(self):
         print("Launching BEE task on CI.")
         self.beetask = ""
+        self.reservation_id = ""
 
     def create_task(self, beefile):
         print("Bee orchestration controller: received task creating request")
@@ -44,10 +45,15 @@ class BeeCILauncher(object):
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:", ["launch=", "checkpoint=", "restore=", "status", "terminate=", "delete=", "efs="])
+        opts, args = getopt.getopt(argv, "l:r:", ["launch=", "reservation="])
     except getopt.GetoptError:
         print("Please provide beefile or efs name.")
         exit()
+
+    reservation_id = ""
+    for opt, arg in opts: 
+        if opt in ("-r", "--reservation"):
+            reservation_id = arg
 
     for opt, arg in opts: 
         if opt in ("-l", "--launch"):
@@ -55,6 +61,8 @@ def main(argv):
             print("Sending launching request.")
             beefile_loader = BeefileLoader(beefile)
             beefile = beefile_loader.get_beefile()
+            if (reservation_id != ""):
+                beefile["exec_env_conf"]["bee_os"]["reservation_id"] = reservation_id
             bee_ci_launcher = BeeCILauncher()
             bee_ci_launcher.create_and_launch_task(beefile)
             exit()

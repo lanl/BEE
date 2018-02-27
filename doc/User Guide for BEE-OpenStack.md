@@ -11,14 +11,14 @@ If this is your first time using BEE, run `install.sh` first.
 Add the directory of bee-launcher to $PATH, so that it can run anywhere.    
 
 ##### Step 4. Configure OpenStack credentials
-* Login to Chameleon Cloud web interface -> Click 'Hardware' -> Choose one the platfrom and login
+* Login to Chameleon Cloud web interface -> Click 'Hardware' -> Choose the platform and login
 * Click 'Compute' -> API access -> Download 'OpenStack RC File V2.0'
 * Source the file in the console that you plan to run the `BEE Orchestration Controller`
 
 #### Launch BEE-VM task
 
 ##### Step 1. Make a Bare Metal nodes reservation
-* Login to Chameleon Cloud web interface -> Click 'Hardware' -> Choose one the platfrom and login
+* Login to Chameleon Cloud web interface -> Click 'Hardware' -> Choose the platform and login
 * Click 'Reservations' -> 'Leases' -> 'Create Leases'
 * Locate the reservation id (needed later) by clicking on the reservation name and finding it near the bottom and next to 'id'.
 
@@ -26,7 +26,7 @@ Add the directory of bee-launcher to $PATH, so that it can run anywhere.
 Configure `<task_name>.beefile` file as follow:
 
 * `task_conf`: specifiying configurations related to the task.
-   * a. `task_name`: the name of the task to be execution. This has to be unique among all your tasks;
+   * a. `task_name`: the name of the task to be executed. This has to be unique among all your tasks;
    * b. `exec_target`: execution target. It can be `bee_vm` or `bee_aws` or 'bee_os';
    * c. `batch_mode`: `true` or `false`. Turn on or off batch mode. For details, refer to `User Guide for Batch Mode`.
    * d. `general_run`: list of scripts that will be run after launching;
@@ -50,11 +50,11 @@ Configure `<task_name>.beefile` file as follow:
 ##### Step 2. Launch task
 * a. Prepare run scripts as necessary.
 * b. Open `2` console windows. One serves as daemon control, another serves as client control.
-* c. Run `bee_orc_ctl.py` on daemon control window to start Bee Launcher daemon. The daemon is necessary for keeping the launching, running, and monitoring process. So, running it in oridinary shell session could cause unexpected shutdown due to shell session timeout or disconnection. For long term execution, it is recommended to run the daemon on a separated `screen`. For details of using `screen`, please refer to [here](https://www.rackaid.com/blog/linux-screen-tutorial-and-how-to/)
+* c. Run `bee_orc_ctl.py` on daemon control window to start Bee Launcher daemon. The daemon is necessary for keeping the launching, running, and monitoring processes running. So, running it in an ordinary shell session could cause unexpected shutdown due to shell session timeout or disconnection. For long term execution, it is recommended to run the daemon on a separated `screen`. For details of using `screen`, please refer to [here](https://www.rackaid.com/blog/linux-screen-tutorial-and-how-to/)
 
-* d. Run `bee_launcher.py` on client control window to launch Bee job. Several options let you launch, control and monotor tasks.
-  * (1) `-l <task_name>`: runs task specified by <task_name>.beefile, which need to be in the current directory;
-  * (2) `-s`: list all tasks with status, which will automically update status;;
+* d. Run `bee_launcher.py` on client control window to launch Bee job. Several options let you launch, control and monitor tasks.
+  * (1) `-l <task_name>`: runs task specified by <task_name>.beefile, that needs to be in the current directory;
+  * (2) `-s`: list all tasks with status, automatically updates status;;
   * (3) `-t <task_name>`: terminate task <task_name>;
   * (4) `-d <task_name>`: terminate and delete task <task_name> from task list;
   * (5) `-e <efs_name>`: create new efs with name <efs_name>.

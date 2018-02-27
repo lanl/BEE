@@ -24,13 +24,19 @@ from neutronclient.v2_0.client import Client as neutronClient
 
 class BeeOSLauncher(BeeTask):
 
-    def __init__(self, task_id, beefile):
+    def __init__(self, task_id, beefile = ""):
 
         BeeTask.__init__(self)
 
         self.__platform = 'BEE-OpenStack'
 
         self.__current_status = 0 #Initializing
+
+
+        if ("storage" in beefile && beefile['storage'] == "true"):
+            self.storage_mode = True
+        else
+            self.storage_mode = False
 
         # User configuration
         self.__task_conf = beefile['task_conf']
@@ -71,7 +77,10 @@ class BeeOSLauncher(BeeTask):
         self.__current_status = 1 # initialized
 
     def run(self):
-        self.launch()
+        if (self.storage_mode = False):
+            self.launch()
+        else:
+            self.launch_storage()
 
     def launch(self):
         self.__current_status = 3 # Launching
@@ -86,6 +95,7 @@ class BeeOSLauncher(BeeTask):
         self.setup_hostname()
         self.setup_hostfile()
         self.add_docker()
+        self.__bee_os_list[0].parallel_run(['hostname'], self.__bee_os_list)
         self.get_docker_img()
         self.start_docker()
         self.__current_status = 2 # waiting
@@ -93,6 +103,19 @@ class BeeOSLauncher(BeeTask):
         self.__current_status = 4 # Running
         self.general_run()
         self.__current_status = 5 # finished
+
+    def launch_storage(self):
+        self.__current_status = 3 # Launching
+        self.terminate()
+        self.create_key()
+        self.launch_stack()
+        self.wait_for_nodes()
+        self.get_master_node()
+        self.get_worker_nodes()
+        self.setup_sshkey()
+        self.setup_sshconfig()
+        self.setup_hostname()
+        self.setup_hostfile()
 
 
     def wait_for_others(self):
@@ -125,7 +148,7 @@ class BeeOSLauncher(BeeTask):
         cmd = ['openstack stack delete -y {}'.format(self.__stack_name)]
         print(" ".join(cmd))
         subprocess.call(" ".join(cmd), shell=True)
-        time.sleep(45)
+        time.sleep(60)
 
     def create_key(self):
         cprint('[' + self.__task_name + '] Create new ssh key.', self.__output_color)
@@ -138,6 +161,21 @@ class BeeOSLauncher(BeeTask):
         cprint('[' + self.__task_name + '] Launch stack', self.__output_color)
         curr_dir = os.path.dirname(os.path.abspath(__file__))
         hot_template_dir = curr_dir + "/bee_hot"
+        cmd = [ "openstack " +
+                "stack create " + 
+                "-t {} ".format(hot_template_dir) + 
+                "--parameter bee_workers_count={} ".format(int(self.__bee_os_conf['num_of_nodes']) - 1) +
+                "--parameter key_name={} ".format(self.__ssh_key) +
+                "--parameter reservation_id={} ".format(self.__reservation_id) +
+                "--parameter security_group_name={} ".format(self.__bee_os_sgroup) +
+                "{}".format(self.__stack_name)]
+        print(" ".join(cmd))
+        subprocess.call(cmd, shell=True)
+
+    def launch_stack_storage(self):
+        cprint('[' + self.__task_name + '] Launch stack', self.__output_color)
+        curr_dir = os.path.dirname(os.path.abspath(__file__))
+        hot_template_dir = curr_dir + "/bee_hot_storage"
         cmd = [ "openstack " +
                 "stack create " + 
                 "-t {} ".format(hot_template_dir) + 
@@ -196,6 +234,8 @@ class BeeOSLauncher(BeeTask):
                                        ip_list[1])
                         self.__bee_os_list.insert(0, master)
                         print('find master with ip: ' + ip_list[0] + ", " + ip_list[1])
+    def get_master_ip(self):
+        return self.__bee_os_list[0].master_public_ip
 
     def get_worker_nodes(self):
         cprint('[' + self.__task_name + '] Find the ip for worker nodes.', self.__output_color)
