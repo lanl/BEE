@@ -26,7 +26,8 @@ class Docker(object):
         # Get Docker image fron DockerHub.
         cmd = ["docker",
                "pull",
-               "{}".format(self.__docker_img_tag)]
+               "{}".format(self.__docker_img_tag),
+               "| cat"]
         return cmd
 
     def get_docker_username(self):

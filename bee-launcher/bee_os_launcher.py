@@ -84,10 +84,10 @@ class BeeOSLauncher(BeeTask):
 
     def launch(self):
         self.__current_status = 3 # Launching
-        # self.terminate()
-        # self.create_key()
-        # self.launch_stack()
-        # self.wait_for_nodes()
+        self.terminate()
+        self.create_key()
+        self.launch_stack()
+        self.wait_for_nodes()
         self.get_master_node()
         self.get_worker_nodes()
         self.setup_sshkey()
