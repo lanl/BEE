@@ -1,10 +1,10 @@
 from bee_charliecloud import BeeCharliecloud
-#from host import Host
 import time
 import subprocess
 import os
-from os.path import expanduser
-from threading import Thread
+from termcolor import colored, cprint
+#from os.path import expanduser
+#from threading import Thread
 from threading import Event
 from bee_task import BeeTask
 
@@ -12,35 +12,25 @@ from bee_task import BeeTask
 class BeeCharliecloudLauncher(BeeTask):
     def __init__(self, task_id, beefile, restore = False):
         BeeTask.__init__(self)
-
         self.__platform = 'BEE-Charliecloud'
-        
         self.__current_status = 0 # initializing
-        
+
         # User configuration
         self.__task_conf = beefile['task_conf']
         self.__bee_charliecloud_conf = beefile['exec_env_conf']['bee_charliecloud']
-        self.__container_conf = beefile['container_conf']
-        self.__hosts = self.__bee_charliecloud_conf['node_list']
+        self.__container_path = beefile['container_conf']['container_path']
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
 
         # System configuration
         self.__user_name = os.getlogin()
-        self.__bee_working_dir = expanduser("~") + "/.bee"
-        self.__charliecloud_key_path = self.__bee_working_dir + "/ssh_key/id_rsa"
-        self.__tmp_dir = self.__bee_working_dir + "/tmp"
         self.__restore = restore
-        print("HERE CCL init:", str(self.__bee_charliecloud_conf))
-
         
         # Events for workflow
         self.__begin_event = Event()
         self.__end_event = Event()
         self.__event_list = []
-        
         self.__current_status = 1 # initialized
-
     
     def get_begin_event(self):
         return self.__begin_event
@@ -61,14 +51,28 @@ class BeeCharliecloudLauncher(BeeTask):
         self.launch()
 
     def launch(self):
-        self.terminate(clean = True)
         self.__current_status = 3 # Launching
-        
-        print ("HERE CCL")
-        print "charlecloud conf done"
-        exit()
-        time.sleep(1)
+        print "charliecloud conf done"
 
+        # Check if there is an allocation to unpack images on        
+        if 'SLURM_JOBID' in os.environ:
+            cprint (os.environ['SLURM_NODELIST'] + ": Launching " + 
+                str(self.__task_name) ,"cyan")
+            # if restore re-use image other wise unpack image
+            # not really a restore yet
+            if not self.__restore:
+                self.unpack_image()
+        else:
+            cprint ("No nodes allocated!","red")
+            self.terminate()
+       
+        self.run_scripts()
+
+    def unpack_image(self):
+            cmd = ' srun  ch-tar2dir ' + self.__container_path + ' /var/tmp'
+            subprocess.call( cmd, shell = True)
+
+   
     def terminate(self, clean = False):
-            if not clean:
-                self.__current_status = 6 #Terminated
+        if not clean:
+            self.__current_status = 6 #Terminated

@@ -1,16 +1,12 @@
 import subprocess
-from docker import Docker
 import os
 from termcolor import colored, cprint
 
 class BeeCharliecloud(object):
-    def __init__(self, task_id, hostname, rank, task_conf, bee_os_conf, key_path, private_ip, 
-           master_public_ip, master = ""):
+    def __init__(self, task_id, task_conf, container_conf ):
         # Basic configurations
         self.status = ""
-        self.hostname = hostname
-        self.master = master
-        self.__user_name = "charlie"
+        print ("HERE CC init: ", task_conf, task_id, container_conf)
 
         # Network
         self.private_ip = private_ip

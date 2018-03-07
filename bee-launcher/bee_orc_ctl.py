@@ -40,9 +40,8 @@ class BeeLauncherDaemon(object):
             self.__beetasks[beetask_name] = beetask
             return beetask
         elif exec_target == 'bee_charliecloud':
-            beetask = BeeCharliecloudLauncher(total_tasks + 1, beefile)
+            beetask = BeeCharliecloudLauncher(total_tasks + 1, beefile, restore)
             self.__beetasks[beetask_name] = beetask
-            print("HERE ORC create task cc", str(beetask))
             return beetask
         
     def launch_task(self, beetask):
@@ -142,7 +141,7 @@ def main():
     update_system_conf(open_port)
     #Pyro4.naming.startNSloop(port = open_port, hmac = os.getlogin())
     Popen(['python', '-m', 'Pyro4.naming', '-k', os.getlogin(), '-p', str(open_port)])
-    time.sleep(1) #HERE was 5
+    time.sleep(5)
     bldaemon = BeeLauncherDaemon()
     daemon = Pyro4.Daemon()
     bldaemon_uri = daemon.register(bldaemon)
