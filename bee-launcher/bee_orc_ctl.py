@@ -141,7 +141,7 @@ def main():
     update_system_conf(open_port)
     #Pyro4.naming.startNSloop(port = open_port, hmac = os.getlogin())
     Popen(['python', '-m', 'Pyro4.naming', '-k', os.getlogin(), '-p', str(open_port)])
-    time.sleep(5)
+    time.sleep(1)
     bldaemon = BeeLauncherDaemon()
     daemon = Pyro4.Daemon()
     bldaemon_uri = daemon.register(bldaemon)

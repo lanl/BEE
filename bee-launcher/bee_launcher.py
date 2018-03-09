@@ -107,7 +107,7 @@ def main(argv):
                 os.system('clear')
                 print(tabulate(table, 
                      headers=['No.', 'Task Name', 'Status', 'Platform']))
-                time.sleep(1)
+                time.sleep(5)
             exit()
 
         elif opt in ("-t", "--terminate"):
