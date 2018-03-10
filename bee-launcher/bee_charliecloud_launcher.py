@@ -1,7 +1,7 @@
 from bee_charliecloud import BeeCharliecloud
 import time
 import subprocess
-from subprocess import Popen
+#from subprocess import Popen
 import os
 from termcolor import colored, cprint
 #from os.path import expanduser
@@ -31,6 +31,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__begin_event = Event()
         self.__end_event = Event()
         self.__event_list = []
+
         self.__current_status = 1 # initialized
     
     def get_begin_event(self):
@@ -59,11 +60,13 @@ class BeeCharliecloudLauncher(BeeTask):
         if 'SLURM_JOBID' in os.environ:
             cprint (os.environ['SLURM_NODELIST'] + ": Launching " + 
                 str(self.__task_name) ,"cyan")
-            # if restore re-use image other wise unpack image
-            # not really a restore yet
+
+            # if -r re-use image other wise unpack image
+            # not really a restore yet 
             if not self.__restore:
                 self.unpack_image()
             self.run_scripts()
+
         else:
             cprint ("No nodes allocated!","red")
             self.terminate()
@@ -91,32 +94,13 @@ class BeeCharliecloudLauncher(BeeTask):
             subprocess.call(cmd)
 
         for run_conf in self.__task_conf['mpi_run']:
-            cprint ("Mpi scripts not implemented for Bee_Charliecloud runs!","red")
-            cprint ("You can run mpi in a general script.","red")
+            cprint("Bee_Charliecloud does not support mpi_run option!","red")
+            cprint("Use general_run and specify mpirun command in script.", "red")
 
 
     def batch_run(self):
         cprint ("Batch mode not implemented for Bee_Chaliecloud yet!","red")
-         
-        run_conf_list = self.__task_conf['general_run']
-        if len(run_conf_list) != len(self.__bee_vm_list):
-            print("[Error] Scripts and BEE-VM not match in numbers!")
-        popen_list = []
-        count = 0
-        for run_conf in run_conf_list:
-            bee_vm = self.__bee_vm_list[count]
-            count = count + 1
-            host_script_path = run_conf['script']
-            vm_script_path = '/home/ubuntu/general_script.sh'
-            docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
-            bee_vm.copy_file(host_script_path, vm_script_path)
-            bee_vm.docker_copy_file(vm_script_path, docker_script_path)
-            p = bee_vm.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
-                                      remote_pfwd = run_conf['remote_port_fwd'], async = True)
-            popen_list.append(p)
-        for popen in popen_list:
-            popen.wait()
-
+        self.terminate()
    
     def terminate(self, clean = False):
         if not clean:
