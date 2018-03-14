@@ -54,7 +54,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
     def launch(self):
         self.__current_status = 3 # Launching
-        print "charliecloud conf done"
+        print "Charliecloud configuration done"
 
         # Check if there is an allocation to unpack images on        
         if 'SLURM_JOBID' in os.environ:
@@ -72,7 +72,9 @@ class BeeCharliecloudLauncher(BeeTask):
             self.terminate()
 
     def unpack_image(self):
-        cmd = ['srun','ch-tar2dir', self.__container_path, '/var/tmp']
+        #Unpack image on each allocated node
+        cmd = ['mpirun','--map-by','ppr:1:node',
+               'ch-tar2dir', self.__container_path, '/var/tmp']
         subprocess.call(cmd)
 
     def run_scripts(self):
@@ -88,12 +90,45 @@ class BeeCharliecloudLauncher(BeeTask):
 
     def general_run(self):
         # General script
+
         for run_conf in self.__task_conf['general_run']:
             script_path = run_conf['script']
             cmd = ['sh', script_path ]
             subprocess.call(cmd)
 
+        # Check mpi options for mpi_run all tasks
+        # The checks are done after running general_run tasks  
+        # If map_by is invalid - terminate
+        # If map_by is set but map_num is not - ignore map_by 
+        # If map_by is not set but map_num is not - terminate
+        valid_map = ['socket', 'node']
         for run_conf in self.__task_conf['mpi_run']:
+            cmd = ['mpirun']
+            if ('map_by' in run_conf): 
+                if (run_conf['map_by'] not in valid_map):
+                    cprint("For mpi_run the 'map_by' option is not valid!","red")
+                    print("Use a valid option or remove 'map_by'"+
+                          " and 'map_num' to use default.")
+                    self.terminate() 
+                elif ('map_num' not in run_conf):
+                    cprint("For mpi_run 'map_num' is not set "+ 
+                        "'map_by' is ignored!", "red")
+                else:
+                    cmd.append(" -map-by ppr:{}:{}".format(str(map_num),map_by))
+            elif ('map_num' in run_conf):
+                cprint("For mpi_run when specifying 'map_num',"+
+                       " 'map_by' must also be set!", "red")
+                self.terminate() 
+
+            if 'host' in run_conf:
+                #myString = ",".join(myList )
+                my_hosts = ",".join(run_conf['host'])
+                #print ("my_hosts = ", my_hosts)
+                exit()
+                cmd.append("{}".format(host))
+                cmd.append(" -host ")
+            cmd.append(run_conf['script'])
+      
             cprint("Bee_Charliecloud does not support mpi_run option!","red")
             cprint("Use general_run and specify mpirun command in script.", "red")
 
