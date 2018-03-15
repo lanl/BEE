@@ -1,28 +1,28 @@
 {
   "task_conf": {
-      "task_name": "lammps_cc",
+      "task_name": "lammps_cc_mpi",
       "exec_target": "bee_charliecloud",
       "batch_mode": false,
       "general_run": [],
       "mpi_run": [
           {
-            "script": "run_lammps_cc_para.sh",
+            "script": "run_lammps_cc_mpi.sh",
             "node_list": ["cn30", "cn31", "cn32"],
             "map_by": "node",
             "map_num": 16
           },
           {
-            "script": "run_lammps_cc_para.sh",
+            "script": "run_lammps_cc_mpi.sh",
             "node_list": ["cn31", "cn32"],
             "map_by": "socket",
             "map_num": 4
           },
           {
-            "script": "run_lammps_cc_para.sh",
+            "script": "run_lammps_cc_mpi.sh",
             "node_list": ["cn30", "cn31"]
           },
           {
-            "script": "run_lammps_cc_para.sh"
+            "script": "run_lammps_cc_mpi.sh"
           }
       ],
       "terminate_after_exec": false
