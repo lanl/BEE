@@ -101,36 +101,43 @@ class BeeCharliecloudLauncher(BeeTask):
         # If map_by is invalid - terminate
         # If map_by is set but map_num is not - ignore map_by 
         # If map_by is not set but map_num is not - terminate
+
         valid_map = ['socket', 'node']
         for run_conf in self.__task_conf['mpi_run']:
             cmd = ['mpirun']
+ 
+            # run on node_list
+            if 'node_list' in run_conf:
+                my_nodes= ",".join(run_conf['node_list'])
+                cmd.append("-host")
+                cmd.append(my_nodes)
+  
+            # run on node_list
+
             if ('map_by' in run_conf): 
                 if (run_conf['map_by'] not in valid_map):
                     cprint("For mpi_run the 'map_by' option is not valid!","red")
                     print("Use a valid option or remove 'map_by'"+
                           " and 'map_num' to use default.")
                     self.terminate() 
+
                 elif ('map_num' not in run_conf):
                     cprint("For mpi_run 'map_num' is not set "+ 
                         "'map_by' is ignored!", "red")
+
                 else:
-                    cmd.append(" -map-by ppr:{}:{}".format(str(map_num),map_by))
+                    cmd.append("-map-by") 
+                    cmd.append("ppr:{}:{}".format(str(run_conf['map_num']),
+                                run_conf['map_by']))
+                    
             elif ('map_num' in run_conf):
                 cprint("For mpi_run when specifying 'map_num',"+
                        " 'map_by' must also be set!", "red")
                 self.terminate() 
 
-            if 'host' in run_conf:
-                #myString = ",".join(myList )
-                my_hosts = ",".join(run_conf['host'])
-                #print ("my_hosts = ", my_hosts)
-                exit()
-                cmd.append("{}".format(host))
-                cmd.append(" -host ")
             cmd.append(run_conf['script'])
-      
-            cprint("Bee_Charliecloud does not support mpi_run option!","red")
-            cprint("Use general_run and specify mpirun command in script.", "red")
+            #cprint("cmd = "+str(cmd), "cyan")
+            subprocess.call(cmd)
 
 
     def batch_run(self):
