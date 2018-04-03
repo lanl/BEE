@@ -24,7 +24,7 @@ from neutronclient.v2_0.client import Client as neutronClient
 
 class BeeOSLauncher(BeeTask):
 
-    def __init__(self, task_id, beefile = ""):
+    def __init__(self, task_id, beefile = "", scalability_test = False):
 
         BeeTask.__init__(self)
 
@@ -74,6 +74,8 @@ class BeeOSLauncher(BeeTask):
         self.__end_event = Event()
         self.__event_list = []
 
+        self.__scalability_test = scalability_test
+
         self.__current_status = 1 # initialized
 
     def run(self):
@@ -101,7 +103,10 @@ class BeeOSLauncher(BeeTask):
         self.__current_status = 2 # waiting
         self.wait_for_others()
         self.__current_status = 4 # Running
-        self.general_run()
+        if (self.__scalability_test):
+            self.scalability_test_run()
+        else:
+            self.general_run()
         self.__current_status = 5 # finished
 
     def launch_storage(self):
@@ -304,7 +309,6 @@ class BeeOSLauncher(BeeTask):
 
 
     def general_run(self):
-
         cprint('[' + self.__task_name + '] Execute run scripts.', self.__output_color)
         # General sequential script
         master = self.__bee_os_list[0]
@@ -320,6 +324,26 @@ class BeeOSLauncher(BeeTask):
         for run_conf in self.__task_conf['mpi_run']:
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/mpi_script.sh'
+            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+            master.copy_to_master(local_script_path, node_script_path)
+            for bee_os in self.__bee_os_list:
+                bee_os.docker_copy_file(node_script_path, docker_script_path)
+            # Generate hostfile and copy to container
+            master.docker_make_hostfile(run_conf, self.__bee_os_list, self.__tmp_dir)
+            master.copy_to_master(self.__tmp_dir + '/hostfile', '/home/cc/hostfile')
+            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+            master.docker_copy_file('/home/cc/hostfile', '/home/{}/hostfile'.format(self.__docker_conf['docker_username']))
+            # Run parallel script on all nodes
+            master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)
+
+
+    def scalability_test_run(self):
+        cprint('[' + self.__task_name + '] Start scalability test.', self.__output_color)
+        master = self.__bee_os_list[0]
+
+        for run_conf in self.__task_conf['mpi_run']:
+            local_script_path = run_conf['script']
+            node_script_path = 'bash -c time /exports/host_share/mpi_script.sh >> result_{}_{}'.format(run_conf['proc_per_node'], run_conf['num_of_nodes'])
             docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
             master.copy_to_master(local_script_path, node_script_path)
             for bee_os in self.__bee_os_list:
