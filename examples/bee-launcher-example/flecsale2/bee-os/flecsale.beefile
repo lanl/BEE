@@ -14,8 +14,8 @@
           "script": "flecsale_run.sh",
           "local_port_fwd": [],
           "remote_port_fwd": [],
-          "num_of_nodes": "2",
-          "proc_per_node": "1"
+          "num_of_nodes": "8",
+          "proc_per_node": "4"
        }
     ]
   }, 
@@ -26,7 +26,7 @@
   },
   "exec_env_conf": {
      "bee_os": {
-          "num_of_nodes": "2",
+          "num_of_nodes": "8",
           "reservation_id": "ddf31d80-a961-4126-8ffe-311c74247721"
       }
   }
