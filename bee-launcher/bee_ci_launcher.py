@@ -31,7 +31,7 @@ class BeeCILauncher(object):
         elif exec_target == 'bee_aws':
             self.beetask = BeeAWSLauncher(0, beefile)
         elif exec_target == 'bee_os':
-            self.beetask = BeeOSLauncher(0, beefile)
+            self.beetask = BeeOSLauncher(0, beefile = beefile, scalability_test = True)
            
     def launch_task(self):
         self.beetask.start()

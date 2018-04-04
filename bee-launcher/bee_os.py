@@ -107,6 +107,20 @@ class BeeOS(object):
                "{}@{}:{}".format(self.__user_name, worker.private_ip, dest)]
         self.run_on_master(cmd)
 
+    def copy_from_master(self, src, dest):
+        cprint("["+self.hostname+"]: copy file from master: "+src+" --> "+dest+".", self.__output_color)
+        cmd = ["scp",
+               "-i {}".format(self.__key_path),
+               "-o StrictHostKeyChecking=no",
+               "-o ConnectTimeout=300",
+               "-o UserKnownHostsFile=/dev/null",
+               "{}@{}:{}".format(self.__user_name, self.master_public_ip, src),
+               "{}".format(dist)]
+               
+        print(' '.join(cmd))
+        subprocess.call(' '.join(cmd), shell = True)
+
+
 
     def get_ip(self):
         return self.private_ip    
@@ -128,7 +142,6 @@ class BeeOS(object):
                "/etc/hosts"]
         self.run(["'"] + cmd + ["'"])
 
-
     def add_docker_container(self, docker):
         self.__docker = docker
 
@@ -144,6 +157,10 @@ class BeeOS(object):
         cprint("["+self.hostname+"][Docker]: copy file to docker " + src + " --> " + dest +".", self.__output_color)
         self.run(['sudo'] + self.__docker.copy_file(src, dest))
         self.run(['sudo'] + self.__docker.update_file_ownership(dest))
+
+    def docker_copy_file_out(self, src, dest):
+        cprint("["+self.hostname+"][Docker]: copy file from docker " + src + " --> " + dest +".", self.__output_color)
+        self.run(['sudo'] + self.__docker.copy_file_out(src, dest))
 
     def docker_seq_run(self, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)

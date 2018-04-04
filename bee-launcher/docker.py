@@ -101,6 +101,13 @@ class Docker(object):
                "{}:{}".format(self.__docker_container_name, dist_path)]
         return cmd
 
+    def copy_file_out(self, src_path, dist_path):
+        cmd = ["docker",
+               "cp",
+               "{}:{}".format(self.__docker_container_name, src_path),
+               "{}".format(dist_path)]
+        return cmd
+
     def update_file_ownership(self, file_path):
         cmd = ['chown',
                '{}:{}'.format(self.__docker_username,self.__docker_username),
