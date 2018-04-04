@@ -185,7 +185,7 @@ class BeeOS(object):
                "--mca btl_tcp_if_include eno1",
                "--hostfile /home/{}/hostfile".format(self.__docker.get_docker_username()),
                "-np {}".format(np)]
-        cmd = cmd + [exec_cmd] + [">>", "result_{}".format(np)]
+        cmd = cmd + [exec_cmd] + [">>", "result_{}".format(str(np).zfill(3))]
         self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
 
