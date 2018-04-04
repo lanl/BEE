@@ -180,8 +180,7 @@ class BeeOS(object):
     def docker_para_run_scalability_test(self, run_conf, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
         np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
-        cmd = ["bash -c time",
-               "mpirun",
+        cmd = ["mpirun",
                "--allow-run-as-root",
                "--mca btl_tcp_if_include eno1",
                "--hostfile /home/{}/hostfile".format(self.__docker.get_docker_username()),
