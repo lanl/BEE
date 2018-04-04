@@ -355,5 +355,4 @@ class BeeOSLauncher(BeeTask):
             master.docker_copy_file('/home/cc/hostfile', '/home/{}/hostfile'.format(self.__docker_conf['docker_username']))
 
             # Run parallel script on all nodes
-            docker_script_path = 'bash -c time /home/{}/mpi_script.sh >> result_{}_{}'.format(self.__docker_conf['docker_username'], run_conf['proc_per_node'], run_conf['num_of_nodes'])
-            master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)
+            master.docker_para_run_scalability_test(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)

@@ -177,6 +177,19 @@ class BeeOS(object):
         cmd = cmd + [exec_cmd]
         self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
+    def docker_para_run_scalability_test(self, run_conf, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
+        cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
+        np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
+        cmd = ["bash -c time",
+               "mpirun",
+               "--allow-run-as-root",
+               "--mca btl_tcp_if_include eno1",
+               "--hostfile /home/{}/hostfile".format(self.__docker.get_docker_username()),
+               "-np {}".format(np)]
+        cmd = cmd + [exec_cmd] + [">>", "result_{}_{}".format(run_conf['proc_per_node'], run_conf['num_of_nodes'])]
+        self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
+
+
     def docker_make_hostfile(self, run_conf, nodes, tmp_dir):
         cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
         hostfile_path = "{}/hostfile".format(tmp_dir)
