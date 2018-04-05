@@ -2,6 +2,7 @@ import subprocess
 from docker import Docker
 import os
 from termcolor import colored, cprint
+import time
 
 class BeeOS(object):
     def __init__(self, task_id, hostname, rank, task_conf, bee_os_conf, key_path, private_ip, master_public_ip, master = ""):
@@ -185,8 +186,18 @@ class BeeOS(object):
                "--mca btl_tcp_if_include eno1",
                "--hostfile /home/{}/hostfile".format(self.__docker.get_docker_username()),
                "-np {}".format(np)]
-        cmd = cmd + [exec_cmd] + [">>", "result_{}".format(str(np).zfill(3))]
+        #cmd = cmd + [exec_cmd] + [">>", "result_{}".format(str(np).zfill(3))]
+        md = cmd + [exec_cmd]
+        t = time.time()
         self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
+        t = time.time() - t
+        cmd = ["echo",
+               "{},{}".format(np, t),
+               ">>", 
+               "result_{}".format(str(np).zfill(3))]
+        self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
+
+
 
 
     def docker_make_hostfile(self, run_conf, nodes, tmp_dir):
