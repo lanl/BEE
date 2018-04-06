@@ -75,7 +75,12 @@ class BeeCharliecloudLauncher(BeeTask):
         #Unpack image on each allocated node
         cmd = ['mpirun','--map-by','ppr:1:node',
                'ch-tar2dir', self.__container_path, '/var/tmp']
-        subprocess.call(cmd)
+
+        
+        try:
+            subprocess.call(cmd)
+        except:
+            cprint(" Error while unpacking image:","red")
 
     def run_scripts(self):
         self.__current_status = 4 #Running
@@ -87,7 +92,6 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__current_status = 5 # finished
         self.__end_event.set()
 
-
     def general_run(self):
         # General script
 
@@ -97,6 +101,7 @@ class BeeCharliecloudLauncher(BeeTask):
             subprocess.call(cmd)
 
         # Check mpi options for mpi_run all tasks
+
         # The checks are done after running general_run tasks  
         # If map_by is invalid - terminate
         # If map_by is set but map_num is not - ignore map_by 
@@ -104,6 +109,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
         valid_map = ['socket', 'node']
         for run_conf in self.__task_conf['mpi_run']:
+            script_path = run_conf['script']
             cmd = ['mpirun']
  
             # run on node_list
@@ -135,9 +141,13 @@ class BeeCharliecloudLauncher(BeeTask):
                        " 'map_by' must also be set!", "red")
                 self.terminate() 
 
-            cmd.append(run_conf['script'])
-            #cprint("cmd = "+str(cmd), "cyan")
-            subprocess.call(cmd)
+            cmd.append(script_path)
+            #cprint("cmd = "+str(cmd), "red")
+            try:
+                subprocess.call(cmd)
+            except:
+                cprint(" Error running script:" + script_path, "red")
+                cprint(" Check path to mpirun.","red")
 
 
     def batch_run(self):
