@@ -186,19 +186,8 @@ class BeeOS(object):
                "--mca btl_tcp_if_include eno1",
                "--hostfile /home/{}/hostfile".format(self.__docker.get_docker_username()),
                "-np {}".format(np)]
-        #cmd = cmd + [exec_cmd] + [">>", "result_{}".format(str(np).zfill(3))]
-        md = cmd + [exec_cmd]
-        t = time.time()
+        cmd = cmd + [exec_cmd] + [">>", "bee_scalability_test_{}_{}_.output".format(str(run_conf['num_of_nodes']).zfill(3), str(run_conf['proc_per_node']).zfill(3))]
         self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
-        t = time.time() - t
-        cmd = ["echo",
-               "{},{}".format(np, t),
-               ">>", 
-               "result_{}".format(str(np).zfill(3))]
-        self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
-
-
-
 
     def docker_make_hostfile(self, run_conf, nodes, tmp_dir):
         cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
