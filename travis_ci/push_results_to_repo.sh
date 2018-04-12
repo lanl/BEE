@@ -8,7 +8,7 @@ setup_git() {
 commit_website_files() {
   git checkout ${TRAVIS_BRANCH}
 #  touch scaliability_result_${TRAVIS_BUILD_NUMBER}.csv
-  git add scaliability_result_${TRAVIS_BUILD_NUMBER}.csv
+  git add bee_scalability_test_result_build_${TRAVIS_BUILD_NUMBER}.csv
   git commit --message "Travis build: ${TRAVIS_BUILD_NUMBER} [skip ci]"
 }
 
