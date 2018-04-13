@@ -199,7 +199,7 @@ class BeeOS(object):
         cmd = ["touch", hostfile_path]
         subprocess.call(' '.join(cmd), shell = True)
         # Add nodes to hostfile
-        for i in int(run_conf['num_of_nodes']):
+        for i in range(int(run_conf['num_of_nodes'])):
             cmd = ["echo",
                    "\"{} slots={} \"".format(nodes[i].get_hostname(), run_conf['proc_per_node']),
                    "|",
