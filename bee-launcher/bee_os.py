@@ -178,9 +178,9 @@ class BeeOS(object):
         cmd = cmd + [exec_cmd]
         self.run(['sudo'] + self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
-    def docker_para_run_scalability_test(self, np, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
+    def docker_para_run_scalability_test(self, run_conf, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
-        #np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
+        np = int(run_conf['proc_per_node']) * int(run_conf['num_of_nodes'])
         cmd = ["mpirun",
                "--allow-run-as-root",
                "--mca btl_tcp_if_include eno1",
@@ -199,9 +199,9 @@ class BeeOS(object):
         cmd = ["touch", hostfile_path]
         subprocess.call(' '.join(cmd), shell = True)
         # Add nodes to hostfile
-        for node in nodes:
+        for i in int(run_conf['num_of_nodes']):
             cmd = ["echo",
-                   "\"{} slots={} \"".format(node.get_hostname(), run_conf['proc_per_node']),
+                   "\"{} slots={} \"".format(nodes[i].get_hostname(), run_conf['proc_per_node']),
                    "|",
                    "tee -a",
                    hostfile_path]
