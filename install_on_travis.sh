@@ -35,3 +35,4 @@ echo "Host *" >> ~/.bee/ssh_key/config
 echo "     Port 22" >> ~/.bee/ssh_key/config
 echo "     StrictHostKeyChecking no" >> ~/.bee/ssh_key/config
 echo "     UserKnownHostsFile=/dev/null" >> ~/.bee/ssh_key/config
+chmod 600 ~/.bee/ssh_key/config
