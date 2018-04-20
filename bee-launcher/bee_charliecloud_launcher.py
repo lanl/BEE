@@ -1,4 +1,3 @@
-from bee_charliecloud import BeeCharliecloud
 import time
 import subprocess
 #from subprocess import Popen
