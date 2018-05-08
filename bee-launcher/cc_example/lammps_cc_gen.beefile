@@ -1,0 +1,25 @@
+{
+  "task_conf": {
+      "task_name": "lammps_cc",
+      "exec_target": "bee_charliecloud",
+      "batch_mode": false,
+      "general_run": [
+	      {
+	        "script": "run_lammps_cc_gen.sh",
+	        "local_port_fwd": [],
+	        "remote_port_fwd": []
+	      }
+      ],
+      "mpi_run": [],
+      "terminate_after_exec": false
+  }, 
+  "container_conf":{
+    "container_path": "/home/pagrubel/cc_scratch/lammps_example.tar.gz" 
+  },
+  
+  "exec_env_conf": {
+      "bee_charliecloud": {
+	  "share_dir": "/home/pagrubel/share/bee_cc_share"
+      }
+  }
+}

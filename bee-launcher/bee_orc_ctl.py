@@ -7,6 +7,7 @@ from subprocess import Popen
 from bee_aws_launcher import BeeAWSLauncher 
 from bee_vm_launcher import BeeVMLauncher
 from bee_os_launcher import BeeOSLauncher
+from bee_charliecloud_launcher import BeeCharliecloudLauncher
 import boto3
 from threading import Thread
 from bee_task import BeeTask
@@ -36,6 +37,10 @@ class BeeLauncherDaemon(object):
             return beetask
         elif exec_target == 'bee_os':
             beetask = BeeOSLauncher(total_tasks + 1, beefile)
+            self.__beetasks[beetask_name] = beetask
+            return beetask
+        elif exec_target == 'bee_charliecloud':
+            beetask = BeeCharliecloudLauncher(total_tasks + 1, beefile, restore)
             self.__beetasks[beetask_name] = beetask
             return beetask
         
@@ -150,7 +155,7 @@ def main():
     update_system_conf(open_port)
     #Pyro4.naming.startNSloop(port = open_port, hmac = os.getlogin())
     Popen(['python', '-m', 'Pyro4.naming', '-k', os.getlogin(), '-p', str(open_port)])
-    time.sleep(5)
+    time.sleep(1)
     bldaemon = BeeLauncherDaemon()
     daemon = Pyro4.Daemon()
     bldaemon_uri = daemon.register(bldaemon)
