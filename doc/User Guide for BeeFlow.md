@@ -45,7 +45,7 @@ For example, we have three tasks: Task A, Task B, and Task C. Task B much wait T
 ### Example BeeFlow with off-line dependecy
 We use BLAST as an example to show how to launch a traditional workflow with BeeFlow. The dependecies in the workflow is as follows:
 
-![](figures/blast-dag.pdf)
+![](https://raw.githubusercontent.com/cjy7117/BEE-Doc-Images/master/beeflow/blast-dag.jpg)
 
 We first need to prepare beefile and run script for each component in the workflow. All files can be found in `examples/bee-composer-example/blast`. Then we compose the beeflow file.
 
@@ -76,7 +76,7 @@ Assume we use two BLAST workers, the beeflow file should be:
 ### Example BeeFlow with in-situ dependecy
 We use the worklfow containing Vector Particle-In-Cell (VPIC) and ParaView as an example to show how to launch an in-sity workflow with BeeFlow. The dependecies in the workflow is as follows:
 
-![](figures/vpic-dag.pdf)
+![](https://raw.githubusercontent.com/cjy7117/BEE-Doc-Images/master/beeflow/vpic-dag.jpg)
 
 We first need to prepare beefile and run script for each component in the workflow. All files can be found in `examples/bee-composer-example/vpic-paraview`. Then we compose the beeflow file.
 
