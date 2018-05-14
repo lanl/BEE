@@ -42,8 +42,58 @@ For example, we have three tasks: Task A, Task B, and Task C. Task B much wait T
 * d. Run the BeeFlow launcher on client control window to launch BeeFlow:
   * `bee_composer -f <workflow_name>`: runs workflow specified by <workflow>.beeflow, which need to be in the current directory;
   
-### Example run of worklfow with off-line dependecy
-We use BLAST as an example to show how to launch a traditional workflow with BeeFlow. 
+### Example BeeFlow with off-line dependecy
+We use BLAST as an example to show how to launch a traditional workflow with BeeFlow. The dependecies in the workflow is as follows:
+
+![](figures/blast-dag.pdf)
+
+We first need to prepare beefile and run script for each component in the workflow. All files can be found in `examples/bee-composer-example/blast`. Then we compose the beeflow file.
+
+Assume we use two BLAST workers, the beeflow file should be:
+
+````
+{
+    "blast-split": {
+		"dependency_list" : [] 
+    },
+    "blast-worker001": {
+		"dependency_list": ["blast-split"],
+		"dependency_mode": "off-line"
+    },
+    "blast-worker002": {
+    	"dependency_list": ["blast-split"],
+	"dependency_mode": "off-line"
+    },
+    "blast-output": {
+        "dependency_list": ["blast-worker001",
+        						"blast-worker002"],
+        "dependency_mode": "off-line"
+    }
+}
+
+````
+
+### Example BeeFlow with in-situ dependecy
+We use the worklfow containing Vector Particle-In-Cell (VPIC) and ParaView as an example to show how to launch an in-sity workflow with BeeFlow. The dependecies in the workflow is as follows:
+
+![](figures/vpic-dag.pdf)
+
+We first need to prepare beefile and run script for each component in the workflow. All files can be found in `examples/bee-composer-example/vpic-paraview`. Then we compose the beeflow file.
+
+Here we use filesystem (disk-based) to share in-situ data between VPIC and ParaView server. The ParaView client runs on users local machine, so it is should be started manually by users and not included in BeeFlow orchestration. The beeflow file is as follows:
+
+````
+{
+    "vpic": {
+	"dependency_list" : [] 
+    },
+    "paraview-server": {
+	"dependency_list": ["vpic"],
+	"dependency_mode": "in-situ"
+    }
+}
+````
+
 
  
 
