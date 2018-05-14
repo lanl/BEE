@@ -5,6 +5,7 @@ from beefile_loader import BeefileLoader
 import sys
 import getopt
 import os
+import getpass
 import json
 from termcolor import colored, cprint
 from tabulate import tabulate
@@ -18,7 +19,7 @@ class BeeLauncher(object):
         f = open(self.__pydir + "/bee_conf.json", "r")
         data = json.load(f)
         port = int(data["pyro4-ns-port"])
-        ns = Pyro4.locateNS(port = port, hmac_key = os.getlogin())
+        ns = Pyro4.locateNS(port = port, hmac_key = getpass.getuser())
         uri = ns.lookup("bee_launcher.daemon")
         self.bldaemon = Pyro4.Proxy(uri) #Pyro4.Proxy("PYRONAME:bee_launcher.daemon")
         self.__status = ["Initializing", "Initialized", "Waiting", "Launching", 
