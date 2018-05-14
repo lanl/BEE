@@ -4,6 +4,7 @@ import Pyro4
 from beefile_loader import BeefileLoader
 import sys
 import getopt
+import getpass
 import os
 import getpass
 import json
