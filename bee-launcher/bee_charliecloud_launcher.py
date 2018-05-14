@@ -3,6 +3,7 @@ import time
 import subprocess
 #from subprocess import Popen
 import os
+import getpass
 from termcolor import colored, cprint
 #from os.path import expanduser
 #from threading import Thread
@@ -24,7 +25,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__task_id = task_id
 
         # System configuration
-        self.__user_name = os.getlogin()
+        self.__user_name = getpass.getuser()
         self.__restore = restore
         
         # Events for workflow
