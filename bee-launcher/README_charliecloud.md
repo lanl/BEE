@@ -1,5 +1,9 @@
 # Some charliecloud notes:
 
+Running on arm nodes on darwin, use bee_orc_ctl_arm.py. Some of the dependencies
+for python are missing so this excludes them. 
+
+
 Unpacking on all allocated nodes when using -l
 
 
@@ -40,6 +44,6 @@ if you use general run you can specify -map-by ppr:n:node or ppr:n:socket
 and -host or -H cn30,cn31 etc. there are many other flags you can specify with
 mpirun yourself so mpi_run might not even be necessary
 
-This leaves room for using tasking models that do not depend on mpi although I
-believe even those can be run with an mpirun command
+This leaves room for using tasking models that do not depend on mpi, although
+even those can be run with an mpirun command.
 
