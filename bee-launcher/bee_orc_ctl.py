@@ -7,7 +7,7 @@ from subprocess import Popen
 from bee_aws_launcher import BeeAWSLauncher 
 from bee_vm_launcher import BeeVMLauncher
 from bee_os_launcher import BeeOSLauncher
-from bee_charliecloud_launcher import BeeCharliecloudLauncher
+#from bee_charliecloud_launcher import BeeCharliecloudLauncher
 import boto3
 from threading import Thread
 from bee_task import BeeTask
