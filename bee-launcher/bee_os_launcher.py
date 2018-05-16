@@ -315,7 +315,13 @@ class BeeOSLauncher(BeeTask):
         for run_conf in self.__task_conf['general_run']:
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/general_script.sh'
-            docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+            
+            docker_script_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/general_script.sh'
+            else:
+                docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+            
             master.copy_to_master(local_script_path, node_script_path)
             master.docker_copy_file(node_script_path, docker_script_path)
             master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
@@ -324,17 +330,30 @@ class BeeOSLauncher(BeeTask):
         for run_conf in self.__task_conf['mpi_run']:
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/mpi_script.sh'
-            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+            
+            docker_script_path = ''
+            hostfile_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/mpi_script.sh'
+                hostfile_path = '/root/hostfile'
+            else:
+                docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+                hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
+            
             master.copy_to_master(local_script_path, node_script_path)
             for bee_os in self.__bee_os_list:
                 bee_os.docker_copy_file(node_script_path, docker_script_path)
             # Generate hostfile and copy to container
             master.docker_make_hostfile(run_conf, self.__bee_os_list, self.__tmp_dir)
             master.copy_to_master(self.__tmp_dir + '/hostfile', '/home/cc/hostfile')
-            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
-            master.docker_copy_file('/home/cc/hostfile', '/home/{}/hostfile'.format(self.__docker_conf['docker_username']))
+            master.docker_copy_file('/home/cc/hostfile', hostfile_path)    
             # Run parallel script on all nodes
-            master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)
+            master.docker_para_run(run_conf, 
+                                   docker_script_path, 
+                                   hostfile_path, 
+                                   local_pfwd = run_conf['local_port_fwd'],
+                                   remote_pfwd = run_conf['remote_port_fwd'],
+                                   async = False)
 
 
     def scalability_test_run(self):
@@ -344,7 +363,16 @@ class BeeOSLauncher(BeeTask):
         for run_conf in self.__task_conf['mpi_run']:
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/mpi_script.sh'
-            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+
+            docker_script_path = ''
+            hostfile_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/mpi_script.sh'
+                hostfile_path = '/root/hostfile'
+            else:
+                docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+                hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
+
             master.copy_to_master(local_script_path, node_script_path)
             for bee_os in self.__bee_os_list:
                 bee_os.docker_copy_file(node_script_path, docker_script_path)
@@ -352,9 +380,10 @@ class BeeOSLauncher(BeeTask):
             # Generate hostfile and copy to container
             master.docker_make_hostfile(run_conf, self.__bee_os_list, self.__tmp_dir)
             master.copy_to_master(self.__tmp_dir + '/hostfile', '/home/cc/hostfile')
-            master.docker_copy_file('/home/cc/hostfile', '/home/{}/hostfile'.format(self.__docker_conf['docker_username']))
+            master.docker_copy_file('/home/cc/hostfile', hostfile_path)
             master.docker_para_run_scalability_test(run_conf, 
                                                     docker_script_path, 
+                                                    hostfile_path,
                                                     local_pfwd = run_conf['local_port_fwd'],
                                                     remote_pfwd = run_conf['remote_port_fwd'], 
                                                     async = False)
