@@ -3,6 +3,7 @@ import time
 from docker import Docker
 from bee_aws import BeeAWS 
 import os
+import getpass
 from os.path import expanduser
 from termcolor import colored, cprint
 from threading import Thread
@@ -29,12 +30,12 @@ class BeeAWSLauncher(BeeTask):
         self.__task_id = task_id
         
         # AWS configuration
-        self.__bee_aws_sgroup = '{}-{}-bee-aws-security-group'.format(os.getlogin(), self.__task_name)
+        self.__bee_aws_sgroup = '{}-{}-bee-aws-security-group'.format(getpass.getuser(), self.__task_name)
         self.__aws_sgroup_desciption = 'Security group for BEE-AWS instances.'
-        self.__bee_aws_pgroup = '{}-{}-bee-aws-placement-group'.format(os.getlogin(), self.__task_name)
+        self.__bee_aws_pgroup = '{}-{}-bee-aws-placement-group'.format(getpass.getuser(), self.__task_name)
 
         # System configuration
-        self.__user_name = os.getlogin()
+        self.__user_name = getpass.getuser()
         self.__bee_working_dir = expanduser("~") + "/.bee".format(self.__user_name)
         self.__tmp_dir = self.__bee_working_dir + "/tmp"
 
@@ -114,9 +115,9 @@ class BeeAWSLauncher(BeeTask):
         for i in range(0, num_of_nodes):
             hostname = ""
             if i == 0:
-                hostname = "{}-{}-bee-master".format(os.getlogin(), self.__task_name)
+                hostname = "{}-{}-bee-master".format(getpass.getuser(), self.__task_name)
             else:
-                hostname = "{}-{}-bee-worker{}".format(os.getlogin(), self.__task_name, str(i).zfill(3))
+                hostname = "{}-{}-bee-worker{}".format(getpass.getuser(), self.__task_name, str(i).zfill(3))
 
             node = BeeAWS(self.__task_id, hostname, self.__bee_aws_conf, self.__task_conf,
                           self.__bee_aws_sgroup, self.__bee_aws_pgroup)
@@ -204,8 +205,7 @@ class BeeAWSLauncher(BeeTask):
                 bee_aws.docker_copy_file(vm_script_path, docker_script_path)
             # Generate hostfile and copy to container                                                                    
             master.docker_make_hostfile(run_conf, self.__bee_aws_list, self.__tmp_dir)
-            master.copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')            
-            master.docker_copy_file('/home/ubuntu/hostfile', hostfile_path)
+            master.copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu me/ubuntu/hostfile', hostfile_path)
             # Run parallel script on all nodes
             master.docker_para_run(run_conf, docker_script_path, hostfile_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)
 

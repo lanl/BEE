@@ -4,6 +4,7 @@ from docker import Docker
 import time
 import subprocess
 import os
+import getpass
 from os.path import expanduser
 from threading import Thread
 from threading import Event
@@ -27,7 +28,7 @@ class BeeVMLauncher(BeeTask):
         self.__task_id = task_id
 
         # System configuration
-        self.__user_name = os.getlogin()
+        self.__user_name = getpass.getuser()
         self.__bee_working_dir = expanduser("~") + "/.bee"
         self.__vm_key_path = self.__bee_working_dir + "/ssh_key/id_rsa"
         self.__base_img_path = self.__bee_working_dir + "/base_img/base_img"

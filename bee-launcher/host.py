@@ -2,12 +2,13 @@ import time
 import subprocess
 from subprocess import Popen
 import os
+import getpass
 from qemu import QEMU
 import pexpect,sys
 
 class Host(object):
     def __init__(self, host_name, ssh_port = 22):
-        self.__user_name = os.getlogin()
+        self.__user_name = getpass.getuser()
         self.__uid = os.getuid()
         self.__gid = os.getgid()
         self.__host_name = host_name
