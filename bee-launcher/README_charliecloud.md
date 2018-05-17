@@ -1,5 +1,7 @@
 # Some charliecloud notes:
 
+Chaliecloud launcher is disabled in this branch.
+
 Unpacking on all allocated nodes when using -l
 
 
