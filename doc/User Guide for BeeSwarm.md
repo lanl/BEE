@@ -2,10 +2,30 @@
 
 The following guide shows you how to run `BeeSwarm` to enable scalability test in Continuous Integration. `BeeSwarm` currently support Travis CI with scalability test on Chameleon cloud. More platforms will be supported later.
 
-### Step 1: Configure the `.travis.yml` file
-The first step is to modifiy the original `.travis.yml` file to enable scalability test. Since BEE only supports containerized applications, all application must be in container image format (e.g., Docker container) and upload to container registery (e.g., DockerHub) that can be accessed from scalability test environments. 
+### Step 1: Create directory in the repository dedicated for scalability test
+Let's assume we created a dedicated directory in repository: `<repo_name>/<bee_scalability_test_dir>`
 
-Suppose we have a directory in the repository dadicated for scalability test (contains `output_parser` and final results): `<bee_scalability_test_dir>`
+### Step 2: Create `beefile`
+* Inside `<repo_name>/<bee_scalability_test_dir>`, create a beefile named as `<application_name>.beefile`. 
+* Follow the instruction for BEE-OpenStack Luancher to compose the beefile with two differences
+	*  In `exec_env_conf`->`bee_os`->`num_of_nodes` section, input the maximum number of nodes needed to complete the whole scalability test.
+	*  In 'task_conf'->`mpi_run`, provide a list of parallel run configutations for scalability test. Each of them will be executed during the test.
+
+### Step 4: Add an executable result parser
+
+* For each execution in scalability test, `BeeSwarn` will save its output at `<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_<number of nodes>_{processes per node}_.output`. 
+* It is the developers' responsibility to create a executable result parser (e.g., Shell script, Python script, etc.) to parse information out of those output files and gather into one single result file: `<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_result_build_${TRAVIS_BUILD_NUMBER}.csv`. `${TRAVIS_BUILD_NUMBER}` is a environment variable set by Travis CI and we use that in the filename to avoid file overwrite between builds.
+* Place the result parser also in `<repo_name>/<bee_scalability_test_dir>`.
+
+### Step 5: Setup environment variable in Travis CI
+* Depending on the platform chosen some environment variables needs to be set in Travis CI sepecially for credential propose.
+* For example
+
+
+
+
+### Step 6: Configure the `.travis.yml` file
+The final step is to modifiy the original `.travis.yml` file to enable scalability test. Since BEE only supports containerized applications, all applications must be in container image format (e.g., Docker container) and upload to container registery (e.g., DockerHub) that can be accessed from scalability test environments. 
 
 Place all scripts in the section `after_success` in order:
 
@@ -17,15 +37,11 @@ Place all scripts in the section `after_success` in order:
 *  `- export PATH=${HOME}/build/${TRAVIS_REPO_SLUG}/<bee_scalability_test_dir>:$PATH`
 *  ` - source ${HOME}/build/${TRAVIS_REPO_SLUG}/<bee_scalability_test_dir>/<open_stack_rc_file>`
 *  `- cd ${HOME}/build/${TRAVIS_REPO_SLUG}/<bee_scalability_test_dir>`  
-*  `- travis_wait 120 bee_ci_launcher.py -l <app_name> -r $OS_RESERVATION_ID`
+*  `- travis_wait <allocated time> bee_ci_launcher.py -l <app_name> -r $OS_RESERVATION_ID`
 *  `- output_parser.py`
 *  `- push_results_to_repo.sh`
 
-### Step 2: Configure the `<app_name>.beefile` file
 
 
-### Step 3: Configure Travis CI
-
-### Step 4: Add customized result parser
 
 
