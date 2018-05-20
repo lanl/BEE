@@ -13,14 +13,27 @@ Let's assume we created a dedicated directory in repository: `<repo_name>/<bee_s
 
 ### Step 4: Add an executable result parser
 
-* For each execution in scalability test, `BeeSwarn` will save its output at `<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_<number of nodes>_{processes per node}_.output`. 
-* It is the developers' responsibility to create a executable result parser (e.g., Shell script, Python script, etc.) to parse information out of those output files and gather into one single result file: `<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_result_build_${TRAVIS_BUILD_NUMBER}.csv`. `${TRAVIS_BUILD_NUMBER}` is a environment variable set by Travis CI and we use that in the filename to avoid file overwrite between builds.
+* For each execution in scalability test, `BeeSwarn` will save its output at 
+```
+<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_<number of nodes>_{processes per node}_.output
+```. 
+* It is the developers' responsibility to create a executable result parser (e.g., Shell script, Python script, etc.) to parse information out of those output files and gather into one single result file with name: ```<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_result_build_${TRAVIS_BUILD_NUMBER}.csv```. 
+* `${TRAVIS_BUILD_NUMBER}` is a environment variable set by Travis CI and we use that in the filename to avoid files being overwritten between builds.
 * Place the result parser also in `<repo_name>/<bee_scalability_test_dir>`.
 
 ### Step 5: Setup environment variable in Travis CI
-* Depending on the platform chosen some environment variables needs to be set in Travis CI sepecially for credential propose.
-* For example
+* Depending on the platform chosen some environment variables needs to be set in Travis CI.
+* For example, when using Chameleon cloud, we need to set the following environment variables:
+	* `OS_AUTH_URL`
+	* `OS_TENANT_ID`
+	* `OS_TENANT_NAME`
+	* `OS_REGION_NAME`
+	* `OS_USERNAME`
+	* `OS_PASSWORD`
 
+* If using BEE_Private repo, a GitHub personal token also need to be created and set environment variable: `GH_TOKEN`.
+
+* Those environment variables can be set either in `.travis.yml` or Travis CI settings. It is recommand to set environment variables that contains password or tokens in Travis CI settings, since it is automically hidden in Travis CI output.
 
 
 
