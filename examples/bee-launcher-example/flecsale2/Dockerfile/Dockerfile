@@ -1,4 +1,4 @@
-FROM laristra/flecsi-sp:fedora_serial
+FROM laristra/flecsi-sp:ubuntu_mpi_master
 
 ARG CC
 ARG CXX
@@ -68,7 +68,11 @@ RUN chown -R flecsi:flecsi /home/flecsi/.ssh
 RUN mkdir /mnt/docker_share
 RUN chown -R flecsi:flecsi /mnt
 
-COPY flecsale /home/flecsi/flecsale
+#COPY flecsale /home/flecsi/flecsale
+WORKDIR /home/flecsi
+RUN git clone https://github.com/cjy7117/flecsale.git
+WORKDIR /home/flecsi/flecsale
+RUN git submodule update --init --recursive
 USER root
 RUN chown -R flecsi:flecsi /home/flecsi/flecsale
 USER flecsi
