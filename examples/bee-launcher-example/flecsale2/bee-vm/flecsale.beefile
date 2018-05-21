@@ -2,20 +2,26 @@
   "task_conf": {
       "task_name": "flecsale",
       "exec_target": "bee_vm",
-      "batch_mode": false,
       "general_run": [
 	  {
 	      "script": "flecsale_run.sh",
 	      "local_port_fwd": [],
-	      "remote_port_fwd": ["22222","22223"]
+	      "remote_port_fwd": []
 	  }
       ],
-      "mpi_run": [],
-      "terminate_after_exec": false
+     "mpi_run": [
+       {
+          "script": "flecsale_run.sh",
+          "local_port_fwd": [],
+          "remote_port_fwd": [],
+          "num_of_nodes": "1",
+          "proc_per_node": "32"
+       }
+    ]
   }, 
   "docker_conf":{
-      "docker_img_tag": "cjy7117/flecsale",
-      "docker_username": "beeuser",
+      "docker_img_tag": "cjy7117/flecsale2",
+      "docker_username": "flecsi",
       "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
