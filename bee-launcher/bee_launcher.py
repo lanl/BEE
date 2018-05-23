@@ -16,7 +16,8 @@ class BeeLauncher(object):
     def __init__(self):
         self.__pydir = os.path.dirname(os.path.abspath(__file__))
         self.__cwdir = os.getcwd()
-        f = open(self.__pydir + "/bee_conf.json", "r")
+        self.__hdir = os.path.expanduser('~')
+        f = open(home_dir + "/.bee/bee_conf.json", "r")
         data = json.load(f)
         port = int(data["pyro4-ns-port"])
         ns = Pyro4.locateNS(port = port, hmac_key = getpass.getuser())

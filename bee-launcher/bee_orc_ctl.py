@@ -166,10 +166,10 @@ def main():
     daemon.requestLoop()
     
 def update_system_conf(open_port):
-    pydir = os.path.dirname(os.path.abspath(__file__))
-    f = open(pydir + "/bee_conf.json", "r")
+    hdir = os.path.expanduser('~')
+    f = open(home_dir + "/.bee/bee_conf.json", "r")
     data = json.load(f)
-    f = open(pydir + "/bee_conf.json", "w")
+    f = open(home_dir + "/.bee/bee_conf.json", "w")
     data["pyro4-ns-port"] = open_port
     json.dump(data, f)
 
