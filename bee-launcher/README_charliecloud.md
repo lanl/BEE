@@ -1,5 +1,7 @@
 # Some charliecloud notes:
 
+These are temporary notes
+
 Running on arm nodes on darwin, use bee_orc_ctl_arm.py. Some of the dependencies
 for python are missing so this excludes them. 
 

@@ -101,12 +101,14 @@ class BeeCharliecloudLauncher(BeeTask):
             cmd = ['sh', script_path ]
             subprocess.call(cmd)
 
-        # Check mpi options for mpi_run all tasks
+        '''  
+        Check mpi options for mpi_run all tasks:
 
-        # The checks are done after running general_run tasks  
-        # If map_by is invalid - terminate
-        # If map_by is set but map_num is not - ignore map_by 
-        # If map_by is not set but map_num is not - terminate
+        The checks are done after running general_run tasks.
+        If map_by is invalid - terminate
+        If map_by is set but map_num is not - ignore map_by 
+        If map_by is not set but map_num is not - terminate
+        '''
 
         valid_map = ['socket', 'node']
         for run_conf in self.__task_conf['mpi_run']:
