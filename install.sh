@@ -35,4 +35,4 @@ echo "     StrictHostKeyChecking no" >> ~/.bee/ssh_key/config
 echo "     UserKnownHostsFile=/dev/null" >> ~/.bee/ssh_key/config
 
 # Create bee_conf.json
-echo "{\"pyro4-ns-port\": 00000}" >> ~/.bee/bee_conf.json
+echo "{\"pyro4-ns-port\": 12345}" >> ~/.bee/bee_conf.json
