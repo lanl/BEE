@@ -166,10 +166,6 @@ class BeeOS(object):
     def docker_seq_run(self, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
         self.run(['sudo'] + self.__docker.run([exec_cmd]), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
-        
-    def docker_seq_root_run(self, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
-        cprint("["+self.hostname+"][Docker]: run script using root:"+exec_cmd+".", self.__output_color)
-        self.run(['sudo'] + self.__docker.root_run([exec_cmd]), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
     def docker_para_run(self, run_conf, exec_cmd, hostfile_path, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)

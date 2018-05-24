@@ -63,15 +63,6 @@ class Docker(object):
         #execute command on the running Docker container
         cmd = ["docker",
                "exec",
-               "--user {}".format(self.__docker_username),
-               "{}".format(self.__docker_container_name)]
-        cmd = cmd + exec_cmd
-        return cmd
-
-    def root_run(self, exec_cmd):
-        #execute command on the running Docker container
-        cmd = ["docker",
-               "exec",
                "--user root",
                "{}".format(self.__docker_container_name)]
         cmd = cmd + exec_cmd

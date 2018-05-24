@@ -346,7 +346,7 @@ class BeeVM(object):
 
     def docker_seq_run(self, exec_cmd, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run script:"+exec_cmd+".", self.__output_color)
-        return self.run(self.__docker.root_run([exec_cmd]), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
+        return self.run(self.__docker.run([exec_cmd]), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
     def docker_para_run(self, run_conf, exec_cmd, hostfile_path, local_pfwd = [], remote_pfwd = [], async = False):
         cprint("["+self.hostname+"][Docker]: run parallel script:" + exec_cmd + ".", self.__output_color)
@@ -357,7 +357,7 @@ class BeeVM(object):
                "--hostfile {}".format(hostfile_path),
                "-np {}".format(np)]
         cmd = cmd + [exec_cmd]
-        return self.run(self.__docker.root_run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
+        return self.run(self.__docker.run(cmd), local_pfwd = local_pfwd, remote_pfwd = remote_pfwd, async = async)
 
     def docker_make_hostfile(self, run_conf, vms, tmp_dir):
         cprint("["+self.hostname+"][Docker]: prepare hostfile.", self.__output_color)
