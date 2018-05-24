@@ -13,7 +13,7 @@ If this is your first time using BEE, follow the installation part of BEE-Charli
 Configure `<task_name>.beefile` file for each task in the workflow. Make sure the working directory matches if you want two tasks sharing data through the filesystem. Detailed guide for configuring beefile can be found in the guide for launching single task on a specific platform.
 
 ##### Step 2. Configure beeflow file
-The beeflow file contains a list of tasks in the workflow in JSON format. Each entry correspond to one task. In each entry, the task name and its dependencies are stored. 
+The beeflow file contains a list of tasks in the workflow in JSON format. Each entry corresponds to one task. In each entry, the task name and its dependencies are stored. 
 
 For example, we have three tasks: Task A, Task B, and Task C. Task B must wait until Task A finishes before it can start (off-line dependency). Task C can start as soon as Task B starts. The beeflow file should be composed as follows:
 
@@ -37,7 +37,7 @@ For example, we have three tasks: Task A, Task B, and Task C. Task B must wait u
 ##### Step 2. Launch workflow
 * a. Prepare run scripts as necessary.
 * b. Open `2` console windows. One serves as daemon control; another serves as client control.
-* c. Run `bee_orc_ctl.py` on daemon control window to start BEE daemon. The daemon is necessary for keeping the launching, running, and monitoring processes running. So, running it in ordinary shell session could cause unexpected shutdown due to shell session timeout or disconnection. For long term exection, it is recommended to run the daemon on a separated `screen`. For details of using `screen`, please refer to this [tutorial](https://www.rackaid.com/blog/linux-screen-tutorial-and-how-to/).
+* c. Run `bee_orc_ctl.py` on daemon control window to start BEE daemon. The daemon is necessary for keeping the launching, running, and monitoring processes running. So, running it in an ordinary shell session can cause unexpected shutdown due to shell session timeout or disconnection. For long term execution, it is recommended to run the daemon on a separated `screen`. For details of using `screen`, please refer to this [tutorial](https://www.rackaid.com/blog/linux-screen-tutorial-and-how-to/).
 
 * d. Run the BeeFlow launcher on client control window to launch BeeFlow:
   * `bee_composer.py -f <workflow_name>`   
