@@ -2,6 +2,7 @@
   "task_conf": {
       "task_name": "flecsale",
       "exec_target": "bee_vm",
+      "batch_mode": false,
       "general_run": [
 	  {
 	      "script": "flecsale_run.sh",
@@ -17,7 +18,8 @@
           "num_of_nodes": "1",
           "proc_per_node": "32"
        }
-    ]
+    ],
+    "terminate_after_exec": false
   }, 
   "docker_conf":{
       "docker_img_tag": "cjy7117/flecsale2",
@@ -26,7 +28,7 @@
   },
   "exec_env_conf": {
       "bee_vm": {
-	  "node_list": ["localhost"],
+	  "node_list": ["cn30"],
 	  "cpu_core_per_socket": "8",
 	  "cpu_thread_per_core": "1",
 	  "cpu_sockets": "2",
