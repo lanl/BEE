@@ -73,7 +73,7 @@ class Docker(object):
         # This is necessary for dir sharing. 
         cmd = ["usermod",
                "-u {} {}".format(uid, self.__docker_username)]
-        return self.root_run(cmd)
+        return self.run(cmd)
 
 
     def update_gid(self, gid):
@@ -82,7 +82,7 @@ class Docker(object):
         cmd = ["groupmod",
                "-g {} {}".format(gid, self.__docker_username)]
 
-        return self.root_run(cmd)
+        return self.run(cmd)
 
 
     def copy_file(self, src_path, dist_path):
@@ -103,4 +103,4 @@ class Docker(object):
         cmd = ['chown',
                '{}:{}'.format(self.__docker_username,self.__docker_username),
                 file_path]
-        return self.root_run(cmd)
+        return self.run(cmd)
