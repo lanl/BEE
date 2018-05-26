@@ -1,4 +1,0 @@
-Host *
-     Port 22
-     StrictHostKeyChecking no
-     UserKnownHostsFile=/dev/null

@@ -1,7 +1,7 @@
 {
   "task_conf": {
       "task_name": "vpic",
-      "exec_target": "bee_aws",
+      "exec_target": "bee_vm",
       "batch_mode": false,
       "general_run": [
 	  {
@@ -22,9 +22,9 @@
       "terminate_after_exec": false
   }, 
   "docker_conf":{
-      "docker_img_tag": "cjy7117/tom-vpic2",
-      "docker_username": "vpic",
-      "docker_shared_dir": "/mnt/vpicrun"
+	  "docker_img_tag": "cjy7117/vpic",
+      "docker_username": "beeuser",
+      "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
       "bee_vm": {

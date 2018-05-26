@@ -104,11 +104,25 @@ class BeeLauncherDaemon(object):
             resp = efs_client.describe_file_systems(CreationToken = efs_name)
             state = resp['FileSystems'][0]['LifeCycleState']
 
-    def launch_efs_daemon(self, efs_id):
-        efs_daemon_beefile = os.path.dirname(os.path.abspath(__file__)) + "efs-daemon.beefile"
-        f = open(efs_daemon_beefile, "r")
-        beefile = json.load(f)
+    # def create_os_storage(self, name, reservation_id):
+    #     # beefile = { "storage": "true",
+    #     #             "task_conf": {
+    #     #                         "task_name": "{}-bee-storage".format(name), 
+    #     #                         "exec_target": "bee_os", 
+    #     #                         "terminate_after_exec": false}
+    #     #                         },
+    #     #             "docker_conf": {},
+    #     #             "exec_env_conf": {
+    #     #                             "bee_os":{
+    #     #                                     "num_of_nodes": "1",
+    #     #                                     "reservation_id": "{}".format(reservation_id)
 
+    #     #                             }
+    #     #             }
+    #     beetask = BeeOSLauncher(0, beefile)
+    #     beetask.start()
+
+ 
     def launch_beeflow(self, beeflow, beefiles):
         # Initialize each task
         beeflow_tasks = {}
@@ -154,10 +168,10 @@ def main():
     daemon.requestLoop()
     
 def update_system_conf(open_port):
-    pydir = os.path.dirname(os.path.abspath(__file__))
-    f = open(pydir + "/bee_conf.json", "r")
+    hdir = os.path.expanduser('~')
+    f = open(hdir + "/.bee/bee_conf.json", "r")
     data = json.load(f)
-    f = open(pydir + "/bee_conf.json", "w")
+    f = open(hdir + "/.bee/bee_conf.json", "w")
     data["pyro4-ns-port"] = open_port
     json.dump(data, f)
 
