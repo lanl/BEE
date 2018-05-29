@@ -1,15 +1,10 @@
 import time
 import subprocess
-#from subprocess import Popen
-import getpass
 import os
 import getpass
 from termcolor import colored, cprint
-#from os.path import expanduser
-#from threading import Thread
 from threading import Event
 from bee_task import BeeTask
-
 
 class BeeCharliecloudLauncher(BeeTask):
     def __init__(self, task_id, beefile, restore = False):
