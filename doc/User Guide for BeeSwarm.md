@@ -14,15 +14,21 @@ Let's assume we created a dedicated directory in repository: `<repo_name>/<bee_s
 ### Step 4: Add an executable result parser
 
 * For each execution in scalability test, `BeeSwarn` will save its output at 
-```
-<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_<number of nodes>_{processes per node}_.output
-```. 
-* It is the developers' responsibility to create a executable result parser (e.g., Shell script, Python script, etc.) to parse information out of those output files and gather into one single result file with name: ```<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_result_build_${TRAVIS_BUILD_NUMBER}.csv```. 
+
+```<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_<number of nodes>_{processes per node}_.output``` 
+
+* It is the developers' responsibility to create a executable result parser (e.g., Shell script, Python script, etc.) to parse information out of those output files and gather into one single result file with name: 
+
+```<repo_name>/<bee_scalability_test_dir>/bee_scalability_test_result_build_${TRAVIS_BUILD_NUMBER}.csv```
+
 * `${TRAVIS_BUILD_NUMBER}` is a environment variable set by Travis CI and we use that in the filename to avoid files being overwritten between builds.
+
 * Place the result parser also in `<repo_name>/<bee_scalability_test_dir>`.
 
 ### Step 5: Setup environment variable in Travis CI
+
 * Depending on the platform chosen some environment variables needs to be set in Travis CI.
+
 * For example, when using Chameleon cloud, we need to set the following environment variables:
 	* `OS_AUTH_URL`
 	* `OS_TENANT_ID`
