@@ -46,7 +46,8 @@ Runs the workflow specified by \<workflow_name\>.beeflow (needs to be in the cur
 ### Example BeeFlow with off-line dependency
 We use BLAST as an example to show how to launch a traditional workflow with BeeFlow. The dependencies in the workflow are illustrated below. 
 
-![](https://raw.githubusercontent.com/lanl/BEE_Private/jieyang-dev/doc/figures/blast-dag.jpg?token=ABmT_ZEKIl0Z-NZXBj7vVcfINpi3580rks5bA0SqwA%3D%3D)
+![](https://raw.githubusercontent.com/lanl/BEE_Private/add-beeflow-user-doc/doc/figures/blast-dag.jpg?token=ABmT_YDYhhFrHX2fdGz-p3HGEGrh6YMyks5bGBpqwA%3D%3D)
+
 
 We first need to prepare a beefile and run script for each component in the workflow. All files can be found in `examples/bee-composer-example/blast`. Then we compose the beeflow file.
 
@@ -77,7 +78,7 @@ Assume we use two BLAST workers, the beeflow file should be:
 ### Example BeeFlow with in-situ dependency
 We use the workfow containing Vector Particle-In-Cell (VPIC) and ParaView as an example to show how to launch an in-situ workflow with BeeFlow. The dependencies in the workflow are illustrated below. 
 
-![](https://raw.githubusercontent.com/lanl/BEE_Private/jieyang-dev/doc/figures/vpic-dag.jpg?token=ABmT_eQtKH9nU-GfjIExHNo3JW-jey40ks5bA0TYwA%3D%3D)
+![](https://raw.githubusercontent.com/lanl/BEE_Private/add-beeflow-user-doc/doc/figures/vpic-dag.jpg?token=ABmT_VJBo415AVrpAecBlSiSrPswgCzcks5bGBqewA%3D%3D)
 
 We first need to prepare  a beefile and run script for each component in the workflow. All files can be found in `examples/bee-composer-example/vpic-paraview`. Then we compose the beeflow file.
 
