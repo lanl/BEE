@@ -4,21 +4,21 @@ The following guide shows you how to run `BEE-Charliecloud` on HPC environment.
 
 ### Installation
 ##### Step 1. Install dependecies
-If this is your first time using BEE, run `install.sh` first.
+If this is your first time using BEE, run `install.sh`.
 
 ##### Step 2. Add bee launcher to $PATH
 Add the directory of bee-launcher to $PATH, so that it can run anywhere.    
 
 ### Launch BEE-Charliecloud task
 
-##### Step 1. Configure task (beefile) file
+##### Step 1. Configure task (beefile) file (see examples/bee-charliecloud-examples)
 Configure `<task_name>.beefile` file as follow:
 
 * `task_conf`: specifiying configurations related to the task.
    * a. `task_name`: name of task to be executed; should be unique
          and the same as the beefile;
 
-   * b. `exec_target`: execution target; `bee-charliecloud`;
+   * b. `exec_target`: `bee-charliecloud`;
 
    * c. `batch_mode`: `true` or `false`; For details, 
             refer to `User Guide for Batch Mode`.
@@ -26,12 +26,9 @@ Configure `<task_name>.beefile` file as follow:
    * d. `general_run`: list of scripts that will be run after launching;
      * 1. `script`: name of the script. The script file needs to be in current
             directory.
-     * 2. `local_port_fwd`: list of port forwarding numbers (local --> BEE) 
-             to be used when running this script. `[]` indicates no port 
+     * 2. `local_port_fwd`: `[]` indicates no port 
              forwarding used.
-     * 3. `remote_port_fwd`: list of port forwarding numbers (BEE --> local) 
-           to be used when running this script. 
-           `[]` indicates no port forwarding used.
+     * 3. `remote_port_fwd`: `[]` indicates no port forwarding used.
 
    * e. `mpi_run`: list of scripts that will be run in parallel by MPI after 
          launching;
@@ -58,21 +55,29 @@ Configure `<task_name>.beefile` file as follow:
 
 * c. On the `Daemon Control` window:
   * 1. Make your allocation.
-  * 2. Load charliecloud and openmpi modules. For flecsale or lammps examples source the env... file.
-  * 3. cd into a directory where you wish to send output.
+  * 2. Load charliecloud and openmpi modules. 
+         (For flecsale or lammps examples source the env... file.)
+  * 3. cd to a directory where you wish to send output.
   * 4. Run `bee_orc_ctl.py` to start the Bee Orchestration daemon. 
 
 * c. On the `Client Control` window:
-  * 1. ssh to allocated node (same as on the `Daemon Control` window.
-  * 2. cd into a directory where you wish to send output.
-  * 3. Load charliecloud and openmpi modules. 
-       (For flecsale or lammps examples, source the env... file.)
-  * 4. Run `bee_launcher.py`  to launch Bee job. 
-       (i.e. bee_launcher.py -l task (task.beefile defines the job you just launched.)
+  * 1. ssh to the same node as on the `Daemon Control` window.
+  * 2. cd to the directory containing beefile and scripts. 
+  * 3. Run `bee_launcher.py`  to launch Bee job. 
+       (i.e. bee_launcher.py -l task (task.beefile defines the job to launch.)
+       ** Note: If you get the message "Failed to locate nameserver":
+          Make sure:
+          1.  You are on the same nodes in both windows.
+          2.  That bee_orc_cnt.py is runnin in the `Daemon Control` window.
+ 
 
       Options to launch, control, and monitor tasks.  
-     `-l <task_name>`: runs task specified by <task_name>.beefile 
+     `-l <task_name>`: unpacks Charliecloud image on /var/tmp then 
+                       runs task specified by <task_name>.beefile 
                        in the current directory;
+
+     `-r <task_name>`: reuse image, runs task specified by <task_name>.beefile 
+                       (this option allows tasks to use previously unpacked images)
 
      `-s`: list all tasks with status, automatically updates status;
 
