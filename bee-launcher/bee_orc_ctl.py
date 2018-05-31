@@ -40,12 +40,10 @@ class BeeLauncherDaemon(object):
             beetask = BeeOSLauncher(total_tasks + 1, beefile)
             self.__beetasks[beetask_name] = beetask
             return beetask
-        #elif exec_target == 'bee_charliecloud':
-        #    beetask = BeeCharliecloudLauncher(total_tasks + 1, beefile, restore)
-        #    self.__beetasks[beetask_name] = beetask
-        #    return beetask
-
-# Need error checking for none of the above
+        elif exec_target == 'bee_charliecloud':
+            beetask = BeeCharliecloudLauncher(total_tasks + 1, beefile, restore)
+            self.__beetasks[beetask_name] = beetask
+            return beetask
         
     def launch_task(self, beetask):
         beetask.start()
@@ -154,10 +152,10 @@ def main():
     daemon.requestLoop()
     
 def update_system_conf(open_port):
-    pydir = os.path.dirname(os.path.abspath(__file__))
-    f = open(pydir + "/bee_conf.json", "r")
+    hdir = os.path.expanduser('~')
+    f = open(hdir + "/.bee/bee_conf.json", "r")
     data = json.load(f)
-    f = open(pydir + "/bee_conf.json", "w")
+    f = open(hdir + "/.bee/bee_conf.json", "w")
     data["pyro4-ns-port"] = open_port
     json.dump(data, f)
 
