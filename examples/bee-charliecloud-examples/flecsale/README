@@ -15,13 +15,13 @@ On Window 2 (in this directory)
 ssh to node allocated in Window 1
 and cd to this directory
 
-bee_launcher.py -l flecsale_bee_cc
+bee_launcher.py -l flecsale_gen
 
 output will be in the output directory where window 1 is pointing
 
 If you want to rerun it without unpacking the tarball (as long as you still have 
     allocation )  use:
-bee_launcher.py -r flecsale_bee_cc
+bee_launcher.py -r flecsale_gen
 Also to see the status:
 
 bee_launcher.py -s
