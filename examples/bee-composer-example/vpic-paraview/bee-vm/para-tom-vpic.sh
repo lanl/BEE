@@ -1,4 +1,3 @@
 #!/bin/bash
-#cd /mnt/vpicrun/mytest
-#./turbulence_master.Linux
-hostname
+cd /mnt/docker_share/mytest
+./turbulence_master.Linux

@@ -2,6 +2,7 @@
   "task_conf": {
       "task_name": "flecsale",
       "exec_target": "bee_aws",
+      "batch_mode": false,
       "general_run": [
 	  {
 	      "script": "flecsale_run.sh",
