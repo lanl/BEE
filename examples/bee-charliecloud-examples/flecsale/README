@@ -1,7 +1,8 @@
 To run this example on darwin:
 
-BEE must be installed and the path to must include BEE_Private/bee-launcher 
-You must be on pats_dev branch
+BEE must be installed and the path must include BEE_Private/bee-launcher 
+
+This file describes running the example on darwin, a test bed at LANL. 
 
 Open two windows with both on the same front end of darwin:
 
