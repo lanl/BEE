@@ -1,19 +1,18 @@
 #!/usr/bin/env python
-import pexpect
+#import pexpect
 import Pyro4
 import Pyro4.naming
 import subprocess
 import getpass
 from subprocess import Popen
-from bee_aws_launcher import BeeAWSLauncher 
-from bee_vm_launcher import BeeVMLauncher
-from bee_os_launcher import BeeOSLauncher
+#from bee_aws_launcher import BeeAWSLauncher
+#from bee_vm_launcher import BeeVMLauncher
+#from bee_os_launcher import BeeOSLauncher
 from bee_charliecloud_launcher import BeeCharliecloudLauncher
 import boto3
 from threading import Thread
 from bee_task import BeeTask
 import os
-import getpass
 import json
 import time
 @Pyro4.expose
@@ -45,8 +44,6 @@ class BeeLauncherDaemon(object):
             beetask = BeeCharliecloudLauncher(total_tasks + 1, beefile, restore)
             self.__beetasks[beetask_name] = beetask
             return beetask
-
-# Need error checking for none of the above
         
     def launch_task(self, beetask):
         beetask.start()
