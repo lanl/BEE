@@ -7,6 +7,7 @@ import getopt
 import os
 import getpass
 import json
+import argparse
 from termcolor import colored, cprint
 from tabulate import tabulate
 import time
@@ -51,7 +52,7 @@ class BeeLauncher(object):
             run_conf['script'] = self.__cwdir + "/" + run_conf['script']
         for run_conf in beefile['task_conf']['mpi_run']:
             run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
-
+"""
 def main(argv):
     status_list = ["Initializing", "Initialized", "Waiting", "Launching", 
        "Running", "Finished", "Terminated"]
@@ -132,6 +133,46 @@ def main(argv):
             else:
                 print("EFS created: " + efs_id)
             exit()
+"""
+
+parser = argparse.ArgumentParser(description="BEE Launcher")
+
+
+# Launching/removing a task is currently only supported individually, thus
+# they should remain mutually exclusive (launch_group)
+launch_group = parser.add_mutually_exclusive_group()
+launch_group.add_argument("-l", "--launch",
+                          dest='task_name', nargs=1,
+                          help="Runs task specified by <TASK_NAME>.beefile, "
+                               "that needs to be in the current directory")
+launch_group.add_argument("-r", "--restore",
+                          dest='task_name', nargs=1,
+                          help="Restores task specified by <TASK_NAME>.beefile,"
+                               " that needs to be in the current directory")
+launch_group.add_argument("-t", "--terminate",
+                          dest='task_name', nargs=1,
+                          help="Terminate tasks <TASK_NAME>")
+launch_group.add_argument("-d", "--delete",
+                          dest='task_name', nargs=1,
+                          help="Terminate and delete task <TASK_NAME> from"
+                               " the task list")
+launch_group.add_argument("-e", "--efs",
+                          dest='efs_name', nargs=1,
+                          help="Create new efs with specified name <EFS_NAME>")
+
+# Can be 
+parser.add_argument("-s", "--status",
+                    action='store_true',
+                    help="List all tasks with status, automatically "
+                         "updates status")
+
+
+def main():
+    try:
+        args = parser.parse_args()
+    except argparse.ArgumentError, e:
+        print(e.message)
+
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
