@@ -2,15 +2,13 @@
 from __future__ import print_function
 # system
 import argparse
-import getopt
 import getpass
 import json
 import os
 import Pyro4
-import sys
 import time
 from tabulate import tabulate
-from termcolor import colored, cprint
+from termcolor import colored
 # project
 from beefile_loader import BeefileLoader
 
@@ -116,7 +114,6 @@ launch_group.add_argument("-e", "--efs",
                           help="Create new efs with specified name <EFS_NAME>")
 
 # Can be proceeding launch_group
-# TODO: Can I force this to always be last?
 parser.add_argument("-s", "--status",
                     action='store_true',
                     help="List all tasks with status, automatically "
@@ -208,8 +205,8 @@ def opt_efs(args, bee_launcher):
 
 def opt_status(bee_launcher):
     """
-
-    :param bee_launcher:
+    Retrieve status of tasks from daemon
+    :param bee_launcher: BEELauncher() object
     :return: None
     """
     while True:
@@ -236,6 +233,7 @@ def main():
         args = parser.parse_args()
         bee_launcher = BeeLauncher()
 
+        # execute task if argument is present
         if args.launch_task:
             opt_launch(args, bee_launcher)
 
@@ -254,6 +252,7 @@ def main():
         if args.efs_name:
             opt_efs(args, bee_launcher)
 
+        # ensure status remains low in order
         if args.status:
             opt_status(bee_launcher)
 
