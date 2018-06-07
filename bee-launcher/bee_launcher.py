@@ -21,15 +21,15 @@ class BeeLauncher(object):
         f = open(self.__hdir + "/.bee/bee_conf.json", "r")
         data = json.load(f)
         port = int(data["pyro4-ns-port"])
-        ns = Pyro4.locateNS(port = port, hmac_key = getpass.getuser())
+        ns = Pyro4.locateNS(port=port, hmac_key=getpass.getuser())
         uri = ns.lookup("bee_launcher.daemon")
-        self.bldaemon = Pyro4.Proxy(uri) #Pyro4.Proxy("PYRONAME:bee_launcher.daemon")
-        self.__status = ["Initializing", "Initialized", "Waiting", "Launching", 
-             "Running", "Finished", "Terminated"]
-        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green', 
-             'magenta', 'red']
+        self.bldaemon = Pyro4.Proxy(uri)  # Pyro4.Proxy("PYRONAME:bee_launcher.daemon")
+        self.__status = ["Initializing", "Initialized", "Waiting", "Launching",
+                         "Running", "Finished", "Terminated"]
+        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green',
+                               'magenta', 'red']
 
-    def launch(self, beefile, restore = False):
+    def launch(self, beefile, restore=False):
         self.encode_cwd(beefile)
         self.bldaemon.create_and_launch_task(beefile, restore)
 
@@ -53,6 +53,18 @@ class BeeLauncher(object):
             run_conf['script'] = self.__cwdir + "/" + run_conf['script']
         for run_conf in beefile['task_conf']['mpi_run']:
             run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
+
+    def get_status_list(self):
+        """
+        :return: List of valid BeeLauncher status
+        """
+        return self.__status
+
+    def get_status_color(self):
+        """
+        :return: List of valid BeeLauncher status colors
+        """
+        return self.__status_color
 """
 def main(argv):
     status_list = ["Initializing", "Initialized", "Waiting", "Launching", 
@@ -161,7 +173,7 @@ launch_group.add_argument("-e", "--efs",
                           dest='efs_name', nargs=1,
                           help="Create new efs with specified name <EFS_NAME>")
 
-# Can be 
+# Can be proceeding launch_group
 parser.add_argument("-s", "--status",
                     action='store_true',
                     help="List all tasks with status, automatically "
