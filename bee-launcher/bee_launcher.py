@@ -1,16 +1,18 @@
 #!/usr/bin/python
 from __future__ import print_function
-import Pyro4
-from beefile_loader import BeefileLoader
-import sys
+# system
+import argparse
 import getopt
-import os
 import getpass
 import json
-import argparse
-from termcolor import colored, cprint
-from tabulate import tabulate
+import os
+import Pyro4
+import sys
 import time
+from tabulate import tabulate
+from termcolor import colored, cprint
+# project
+from beefile_loader import BeefileLoader
 
 
 class BeeLauncher(object):
@@ -65,88 +67,23 @@ class BeeLauncher(object):
         :return: List of valid BeeLauncher status colors
         """
         return self.__status_color
-"""
-def main(argv):
-    status_list = ["Initializing", "Initialized", "Waiting", "Launching", 
-       "Running", "Finished", "Terminated"]
-    status_color_list = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta',
-       'red']
-    bee_launcher = BeeLauncher()
-    beefile = ""
-    try:
-        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:", 
-            ["launch=", "checkpoint=", "restore=", "status", "terminate=", 
-             "delete=", "efs="])
-    except getopt.GetoptError:
-        print("Please provide beefile or efs name.")
-        exit()
 
-    for opt, arg in opts: 
-        if opt in ("-l", "--launch"):
-            beefile = arg
-            print("Sending launching request.")
-            beefile_loader = BeefileLoader(beefile)
-            beefile = beefile_loader.get_beefile()
-            bee_launcher.launch(beefile)
-            exit()
 
-        elif opt in ("-c", "--checkpoint"):
-            beetask_name = arg
-            print("Sending checkpoint request.")
-            bee_launcher.checkpoint_task(beetask_name)
-            print("Task: " + beetask_name + " is checkpointed.")
-            exit()
+# Parser supporting functions
+def verify_single_beefile(file):
+    """
+    Checks if file specified exists, if not errors and
+    halts application
+    :param file: argument provided by user (name)
+    :return: argument IF .beefile found
+    """
+    tar = os.getcwd() + '/' + file + '.beefile'
+    if os.path.isfile(tar):
+        return file
+    else:
+        print(file + ".beefile cannot be found")
+        exit(1)
 
-        if opt in ("-r", "--restore"):
-            beefile = arg
-            print("Sending launching request.")
-            beefile_loader = BeefileLoader(beefile)
-            beefile = beefile_loader.get_beefile()
-            bee_launcher.launch(beefile, True)
-            exit()
-
-        elif opt in ("-s", "--status"):
-            while True:
-                status = bee_launcher.list_all_tasks()
-                if len(status) == 0:
-                    print("No task exist.")
-                    
-                table = []
-                count = 1
-                for beetask in status:
-                    color_status = colored(status_list[status[beetask]['status']], 
-                        status_color_list[status[beetask]['status']])
-                    platform = status[beetask]['platform']
-                    table.append([str(count), beetask, color_status, platform])
-                    count = count + 1
-                os.system('clear')
-                print(tabulate(table, 
-                     headers=['No.', 'Task Name', 'Status', 'Platform']))
-                time.sleep(5)
-            exit()
-
-        elif opt in ("-t", "--terminate"):
-            beetask_name = arg
-            print("Sending termination request.")
-            bee_launcher.terminate_task(beetask_name)
-            print("Task: " + beetask_name + " is terminated.")
-            exit()
-
-        elif opt in ("-d", "--delete"):
-            beetask_name = arg
-            print("Sending deletion request.")
-            bee_launcher.delete_task(beetask_name)
-            print("Task: " + beetask_name + " is deleted.")
-            exit()
-
-        elif opt in ("-e", "--efs"):
-            efs_id = bee_launcher.create_bee_aws_storage(arg)
-            if efs_id == "-1":
-                print("EFS name already exists!")
-            else:
-                print("EFS created: " + efs_id)
-            exit()
-"""
 
 parser = argparse.ArgumentParser(description="BEE Launcher")
 
@@ -155,34 +92,171 @@ parser = argparse.ArgumentParser(description="BEE Launcher")
 # they should remain mutually exclusive (launch_group)
 launch_group = parser.add_mutually_exclusive_group()
 launch_group.add_argument("-l", "--launch",
-                          dest='task_name', nargs=1,
-                          help="Runs task specified by <TASK_NAME>.beefile, "
+                          dest='launch_task', nargs=1,
+                          type=verify_single_beefile,
+                          help="Runs task specified by <LAUNCH_TASK>.beefile, "
                                "that needs to be in the current directory")
 launch_group.add_argument("-r", "--restore",
-                          dest='task_name', nargs=1,
-                          help="Restores task specified by <TASK_NAME>.beefile,"
+                          dest='restore_task', nargs=1,
+                          type=verify_single_beefile,
+                          help="Restores task specified by <RESTORE_TASK>.beefile,"
                                " that needs to be in the current directory")
+launch_group.add_argument("-c", "--checkpoint",
+                          dest='checkpoint_task', nargs=1,
+                          help="Checkpoint specified <CHECKPOINT_TASK>")
 launch_group.add_argument("-t", "--terminate",
-                          dest='task_name', nargs=1,
-                          help="Terminate tasks <TASK_NAME>")
+                          dest='terminate_task', nargs=1,
+                          help="Terminate tasks <TERMINATE_TASK>")
 launch_group.add_argument("-d", "--delete",
-                          dest='task_name', nargs=1,
-                          help="Terminate and delete task <TASK_NAME> from"
+                          dest='delete_task', nargs=1,
+                          help="Terminate and delete task <delete_task> from"
                                " the task list")
 launch_group.add_argument("-e", "--efs",
                           dest='efs_name', nargs=1,
                           help="Create new efs with specified name <EFS_NAME>")
 
 # Can be proceeding launch_group
+# TODO: Can I force this to always be last?
 parser.add_argument("-s", "--status",
                     action='store_true',
                     help="List all tasks with status, automatically "
                          "updates status")
 
 
+def opt_launch(args, bee_launcher):
+    """
+    Send launch request for single task to daemon
+    :param args: command line argument namespace
+    :param bee_launcher: BeeLauncher() object
+    :return: None
+    """
+    beefile = args.launch_task[0]
+    print("Sending launching request.")
+    beefile_loader = BeefileLoader(beefile)
+    beefile = beefile_loader.get_beefile()
+    bee_launcher.launch(beefile)
+
+
+def opt_checkpoint(args, bee_launcher):
+    """
+    Send checkpoint request for single task to daemon
+    :param args: command line argument namespace
+    :param bee_launcher: BEELauncher() object
+    :return: None
+    """
+    beetask_name = args.checkpoint_task[0]
+    print("Sending checkpoint request.")
+    bee_launcher.checkpoint_task(beetask_name)
+    print("Task: " + beetask_name + " is checkpointed.")
+
+
+def opt_restore(args, bee_launcher):
+    """
+    Send launch request for specified file to daemon,
+    however restore from existing files
+    :param args: command line argument namespace
+    :param bee_launcher: BEELauncher() object
+    :return: None
+    """
+    beefile = args.restore_task[0]
+    print("Sending launching request.")
+    beefile_loader = BeefileLoader(beefile)
+    beefile = beefile_loader.get_beefile()
+    bee_launcher.launch(beefile, True)
+
+
+def opt_terminate(args, bee_launcher):
+    """
+    Send termination request for specific task to daemon
+    :param args: command line argument namespace
+    :param bee_launcher: BEELauncher() object
+    :return: None
+    """
+    beetask_name = args.terminate_task[0]
+    print("Sending termination request.")
+    bee_launcher.terminate_task(beetask_name)
+    print("Task: " + beetask_name + " is terminated.")
+
+
+def opt_delete(args, bee_launcher):
+    """
+    Send delete request for specific task to daemon
+    :param args: command line argument namespace
+    :param bee_launcher: BEELauncher() object
+    :return: None
+    """
+    beetask_name = args.delete_task[0]
+    print("Sending deletion request.")
+    bee_launcher.delete_task(beetask_name)
+    print("Task: " + beetask_name + " is deleted.")
+
+
+def opt_efs(args, bee_launcher):
+    """
+    Create new efs with specified name
+    :param args: command line argument namespace
+    :param bee_launcher: BEELauncher() object
+    :return: None
+    """
+    arg = args.args.efs_name[0]
+    efs_id = bee_launcher.create_bee_aws_storage(arg)
+    if efs_id == "-1":
+        print("EFS name already exists!")
+    else:
+        print("EFS created: " + efs_id)
+
+
+def opt_status(bee_launcher):
+    """
+
+    :param bee_launcher:
+    :return: None
+    """
+    while True:
+        status = bee_launcher.list_all_tasks()
+        if len(status) == 0:
+            print("No task exist.")
+
+        table = []
+        count = 1
+        for beetask in status:
+            color_status = colored(bee_launcher.get_status_list()[status[beetask]['status']],
+                                   bee_launcher.get_status_color()[status[beetask]['status']])
+            platform = status[beetask]['platform']
+            table.append([str(count), beetask, color_status, platform])
+            count = count + 1
+        os.system('clear')
+        print(tabulate(table,
+                       headers=['No.', 'Task Name', 'Status', 'Platform']))
+        time.sleep(5)
+
+
 def main():
     try:
         args = parser.parse_args()
+        bee_launcher = BeeLauncher()
+
+        if args.launch_task:
+            opt_launch(args, bee_launcher)
+
+        if args.restore_task:
+            opt_restore(args, bee_launcher)
+
+        if args.checkpoint_task:
+            opt_checkpoint(args, bee_launcher)
+
+        if args.terminate_task:
+            opt_terminate(args, bee_launcher)
+
+        if args.delete_task:
+            opt_delete(args, bee_launcher)
+
+        if args.efs_name:
+            opt_efs(args, bee_launcher)
+
+        if args.status:
+            opt_status(bee_launcher)
+
     except argparse.ArgumentError, e:
         print(e.message)
 
