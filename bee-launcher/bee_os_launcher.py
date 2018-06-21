@@ -300,6 +300,7 @@ class BeeOSLauncher(BeeTask):
 
     def general_run(self):
         cprint('[' + self.__task_name + '] Execute run scripts.', self.__output_color)
+        
         # General sequential script
         master = self.__bee_os_list[0]
         for run_conf in self.__task_conf['general_run']:
@@ -311,6 +312,11 @@ class BeeOSLauncher(BeeTask):
                 docker_script_path = '/root/general_script.sh'
             else:
                 docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
+                                            local_pfwd = run_conf['local_port_fwd'],
+                                            remote_pfwd = run_conf['remote_port_fwd'], 
+                                            sync = False)
             
             master.copy_to_master(local_script_path, node_script_path)
             master.docker_copy_file(node_script_path, docker_script_path)
@@ -329,10 +335,12 @@ class BeeOSLauncher(BeeTask):
             else:
                 docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
                 hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
-		for bee_os in self.__bee_os_list:
-		    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
-					  local_pfwd = run_conf['local_port_fwd'],
-                                          remote_pfwd = run_conf['remote_port_fwd'], async = False)	
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
+                                            local_pfwd = run_conf['local_port_fwd'],
+                                            remote_pfwd = run_conf['remote_port_fwd'], 
+                                            async = False)
+			
             
             master.copy_to_master(local_script_path, node_script_path)
             for bee_os in self.__bee_os_list:

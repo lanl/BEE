@@ -31,7 +31,6 @@ class BeeOS(object):
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
                     "-o UserKnownHostsFile=/dev/null",
-                    #"-q",
                     "-i {}".format(self.__key_path),
                     "{}@{}".format(self.__user_name, self.master_public_ip),
                     "-x"]
@@ -54,7 +53,6 @@ class BeeOS(object):
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
                     "-o UserKnownHostsFile=/dev/null",
-                    #"-q",
                     "-i {}".format(self.__remote_key_path),
                     "{}@{}".format(self.__user_name, self.private_ip),
                     "-x"]

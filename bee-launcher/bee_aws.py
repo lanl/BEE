@@ -87,7 +87,6 @@ class BeeAWS(object):
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
                     "-o UserKnownHostsFile=/dev/null",
-                    "-q",
                     "-i", "{}".format(self.__aws_key_path),
                     "{}@{}".format(self.__user_name, self.__host),
                     "-x"]

@@ -216,6 +216,7 @@ class BeeVMLauncher(BeeTask):
     def general_run(self):
         # General sequential script
         master = self.__bee_vm_list[0]
+        
         for run_conf in self.__task_conf['general_run']:
             host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
@@ -225,6 +226,11 @@ class BeeVMLauncher(BeeTask):
                 docker_script_path = '/root/general_script.sh'
             else:
                 docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+                for bee_vm in self.__bee_vm_list:
+                    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
+                                            local_pfwd = run_conf['local_port_fwd'],
+                                            remote_pfwd = run_conf['remote_port_fwd'], 
+                                            async = False)
 
             master.copy_file(host_script_path, vm_script_path)
             master.docker_copy_file(vm_script_path, docker_script_path)
@@ -243,10 +249,12 @@ class BeeVMLauncher(BeeTask):
             else:
                 docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
                 hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
-		for bee_vm in self.__bee_vm_list:
-		    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
-					  local_pfwd = run_conf['local_port_fwd'],
-                                          remote_pfwd = run_conf['remote_port_fwd'], async = False)	
+                for bee_vm in self.__bee_vm_list:
+                    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
+                                            local_pfwd = run_conf['local_port_fwd'],
+                                            remote_pfwd = run_conf['remote_port_fwd'], 
+                                            async = False)
+			
 
             for bee_vm in self.__bee_vm_list:
                 bee_vm.copy_file(host_script_path, vm_script_path)
