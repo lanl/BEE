@@ -1,7 +1,7 @@
 {
 	"task_conf": {
 		"task_name": "lammps",
-		"exec_target": "bee_os",
+		"exec_target": "bee_vm”,
 		"batch_mode": false,
 		"general_run": [],
 		"mpi_run": [{
