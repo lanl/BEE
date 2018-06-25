@@ -316,7 +316,7 @@ class BeeOSLauncher(BeeTask):
                     bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
                                             local_pfwd = run_conf['local_port_fwd'],
                                             remote_pfwd = run_conf['remote_port_fwd'], 
-                                            sync = False)
+                                            async = False)
             
             master.copy_to_master(local_script_path, node_script_path)
             master.docker_copy_file(node_script_path, docker_script_path)
