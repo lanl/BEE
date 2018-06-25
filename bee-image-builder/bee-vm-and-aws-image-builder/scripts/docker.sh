@@ -1,4 +1,7 @@
 # Install Docker
+# Ubuntu 14.04
+# https://docs.docker.com/install/linux/docker-ce/ubuntu
+
 #apt-get -y install apt-transport-https ca-certificates
 #apt-key adv \
 #     --keyserver hkp://ha.pool.sks-keyservers.net:80 \
