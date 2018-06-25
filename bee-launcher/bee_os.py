@@ -191,6 +191,12 @@ class BeeOS(object):
         cmd = ["sudo mount -a"]
         self.run(cmd)
 
+    def set_file_permssion(self, path):
+	cmd = ['sudo chmod',
+               '766',
+	       '{}'.format(path)]
+        self.run(cmd)
+        
 
     def add_docker_container(self, docker):
         self.__docker = docker

@@ -319,6 +319,7 @@ class BeeOSLauncher(BeeTask):
                                             async = False)
             
             master.copy_to_master(local_script_path, node_script_path)
+            master.set_file_permssion(node_script_path)
             master.docker_copy_file(node_script_path, docker_script_path)
             master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
                                   remote_pfwd = run_conf['remote_port_fwd'], async = False)
@@ -343,6 +344,7 @@ class BeeOSLauncher(BeeTask):
 			
             
             master.copy_to_master(local_script_path, node_script_path)
+            master.set_file_permssion(node_script_path)
             for bee_os in self.__bee_os_list:
                 bee_os.docker_copy_file(node_script_path, docker_script_path)
 		
