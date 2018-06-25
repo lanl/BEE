@@ -1,0 +1,29 @@
+{
+	"task_conf": {
+		"task_name": "lammps",
+		"exec_target": "bee_aws”,
+		"batch_mode": false,
+		"general_run": [],
+		"mpi_run": [{
+			"script": "mpi_lammps.sh",
+			"local_port_fwd": [],
+			"remote_port_fwd": [],
+			"num_of_nodes": "2",
+			"proc_per_node": "1"
+		}],
+		"terminate_after_exec": false
+	},
+	"docker_conf": {
+		"docker_img_tag": "pagrubel/lammps-beeuser",
+		"docker_username": "beeuser",
+		"docker_shared_dir": "/mnt/docker_share"
+	},
+	"exec_env_conf": {
+		"bee_aws": {
+          		"num_of_nodes": "2",
+          		"ami_image": "ami-ad5952d4",
+          		"instance_type": "c3.4xlarge",
+          		"efs_id": "fs-98e73431"
+      }
+	}
+}

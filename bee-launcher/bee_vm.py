@@ -68,7 +68,6 @@ class BeeVM(object):
                                 "-o StrictHostKeyChecking=no",
                                 "-o ConnectTimeout=300",
                                 "-o UserKnownHostsFile=/dev/null",
-                                "-q",
                                 "-i {}".format(self.__key_path),
                                 "{}@localhost".format('root'),
                                 "-x"]
@@ -131,7 +130,6 @@ class BeeVM(object):
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
                     "-o UserKnownHostsFile=/dev/null",
-                    "-q",
                     "-i {}".format(self.__key_path),
                     "{}@localhost".format(self.__user_name),
                     "-x"]
@@ -153,7 +151,6 @@ class BeeVM(object):
                          "-o StrictHostKeyChecking=no",
                          "-o ConnectTimeout=300",
                          "-o UserKnownHostsFile=/dev/null",
-                         "-q",
                          "-i {}".format(self.__key_path),
                          "{}@localhost".format('root'),
                          "-x"]

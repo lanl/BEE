@@ -15,11 +15,11 @@ class Docker(object):
         # Get Dockerfile from git repository.
         cmd = ["git",
                "clone",
-               "{}".format(dockerfile_git_url)]
+               "{}".format(self.__dockerfile_git_url)]
 
         # Resolve repository folder name.
-        self.__dockerfile_path = dockerfile_git_url.split("/")[-1].split(".")[0]
-        self.__docker_img_tag = __dockerfile_path
+        self.__dockerfile_path = self.__dockerfile_git_url.split("/")[-1].split(".")[0]
+        self.__docker_img_tag = self.__dockerfile_path
         return cmd
 
     def get_docker_img(self):        

@@ -36,9 +36,9 @@ resources:
         #!/bin/bash
         usermod -aG docker $USER
         yum install -y nfs-utils
-        mkdir -p /exports/host_share
-        chown -R cc:cc /exports
-        echo '/exports/host_share 10.140.80.0/22(rw,async) 10.40.0.0/23(rw,async)' >> /etc/exports
+        #mkdir -p /exports/host_share
+        #chown -R cc:cc /exports
+        #echo '/exports/host_share 10.140.80.0/22(rw,async) 10.40.0.0/23(rw,async)' >> /etc/exports
         systemctl enable rpcbind && systemctl start rpcbind
         systemctl enable nfs-server && systemctl start nfs-server
         systemctl start docker
@@ -63,18 +63,18 @@ resources:
              - network: sharednet1
           security_groups: [{ get_resource: bee_security_group }]
           scheduler_hints: { reservation: { get_param: reservation_id } }
-          user_data:
-            str_replace:
-              template: |
-                #!/bin/bash
-                usermod -aG docker $USER
-                yum install -y nfs-utils
-                mkdir -p /exports/host_share
-                echo "$nfs_server_ip:/exports/host_share    /exports/host_share    nfs" > /etc/fstab
-                mount -a
-                systemctl start docker
-              params:
-                $nfs_server_ip: { get_attr: [bee_master, first_address] }
+          user_data: |
+            #!/bin/bash
+            usermod -aG docker $USER
+            yum install -y nfs-utils
+            systemctl start docker
+            #str_replace:
+            #template: |
+            #mkdir -p /exports/host_share
+            #echo "$nfs_server_ip:/exports/host_share    /exports/host_share    nfs" > /etc/fstab
+            #mount -a
+            #params:
+            #  $nfs_server_ip: { get_attr: [bee_master, first_address] }
 
 # The parameters section gathers configuration from the user.
 parameters:
