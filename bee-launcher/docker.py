@@ -15,18 +15,19 @@ class Docker(object):
         # Get Dockerfile from git repository.
         cmd = ["git",
                "clone",
-               "{}".format(dockerfile_git_url)]
+               "{}".format(self.__dockerfile_git_url)]
 
         # Resolve repository folder name.
-        self.__dockerfile_path = dockerfile_git_url.split("/")[-1].split(".")[0]
-        self.__docker_img_tag = __dockerfile_path
+        self.__dockerfile_path = self.__dockerfile_git_url.split("/")[-1].split(".")[0]
+        self.__docker_img_tag = self.__dockerfile_path
         return cmd
 
     def get_docker_img(self):        
         # Get Docker image fron DockerHub.
         cmd = ["docker",
                "pull",
-               "{}".format(self.__docker_img_tag)]
+               "{}".format(self.__docker_img_tag),
+               "| cat"]
         return cmd
 
     def get_docker_username(self):
@@ -62,15 +63,6 @@ class Docker(object):
         #execute command on the running Docker container
         cmd = ["docker",
                "exec",
-               "--user {}".format(self.__docker_username),
-               "{}".format(self.__docker_container_name)]
-        cmd = cmd + exec_cmd
-        return cmd
-
-    def root_run(self, exec_cmd):
-        #execute command on the running Docker container
-        cmd = ["docker",
-               "exec",
                "--user root",
                "{}".format(self.__docker_container_name)]
         cmd = cmd + exec_cmd
@@ -81,7 +73,7 @@ class Docker(object):
         # This is necessary for dir sharing. 
         cmd = ["usermod",
                "-u {} {}".format(uid, self.__docker_username)]
-        return self.root_run(cmd)
+        return self.run(cmd)
 
 
     def update_gid(self, gid):
@@ -90,7 +82,7 @@ class Docker(object):
         cmd = ["groupmod",
                "-g {} {}".format(gid, self.__docker_username)]
 
-        return self.root_run(cmd)
+        return self.run(cmd)
 
 
     def copy_file(self, src_path, dist_path):
@@ -100,8 +92,15 @@ class Docker(object):
                "{}:{}".format(self.__docker_container_name, dist_path)]
         return cmd
 
+    def copy_file_out(self, src_path, dist_path):
+        cmd = ["docker",
+               "cp",
+               "{}:{}".format(self.__docker_container_name, src_path),
+               "{}".format(dist_path)]
+        return cmd
+
     def update_file_ownership(self, file_path):
         cmd = ['chown',
                '{}:{}'.format(self.__docker_username,self.__docker_username),
                 file_path]
-        return self.root_run(cmd)
+        return self.run(cmd)
