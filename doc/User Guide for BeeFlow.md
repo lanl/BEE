@@ -1,21 +1,21 @@
 ## Build and Execute Environment (BEE) User Guide for `BeeFlow`
 
-The following guide shows you how to run `BeeFlow` on HPC environment.
+The following guide shows you how to run `BeeFlow` on HPC environments.
 
 ### Installation
 
 If this is your first time using BEE, follow the installation part of BEE-Charliecloud, BEE-VM, BEE-AWS, or BEE-OpenStack to install and configure BEE. You may need to refer to the specific guide depending on the platform you intend to use.
 
 
-### Launch BeeFlow task
+### Launch BeeFlow Tasks
 
-##### Step 1. Configure beefile
-Configure `<task_name>.beefile` file for each task in the workflow. Make sure the working directory matches if you want two tasks sharing data through the filesystem. Detailed guide for configuring beefile can be found in the guide for launching single task on a specific platform.
+##### Step 1. Configure beefiles
+Configure `<task_name>.beefile` file for each task in the workflow. Make sure the working directories (specified in the beefiles) match if you want tasks to share data through the filesystem. Detailed information for configuring a task beefile can be found in the guide for launching a single task on a specific platform (AWS, Charliecloud, OpenStack etc.).
 
 ##### Step 2. Configure beeflow file
-The beeflow file contains a list of tasks in the workflow in JSON format. Each entry corresponds to one task. In each entry, the task name and its dependencies are stored. 
+The beeflow file contains a list of tasks in the workflow in JSON format. Each entry corresponds to one task, specifying the task name and its dependencies. 
 
-For example, we have three tasks: Task A, Task B, and Task C. Task B must wait until Task A finishes before it can start (off-line dependency). Task C can start as soon as Task B starts. The beeflow file should be composed as follows:
+For example, we have three tasks: Task A, Task B, and Task C. Task B must wait until Task A finishes before it can start (off-line dependency). Task C can start as soon as Task B starts (in-situ). The beeflow file should be composed as follows:
 
 ````
 {
@@ -49,9 +49,9 @@ We use BLAST as an example to show how to launch a traditional workflow with Bee
 ![](https://raw.githubusercontent.com/lanl/BEE_Private/add-beeflow-user-doc/doc/figures/blast-dag.jpg?token=ABmT_YDYhhFrHX2fdGz-p3HGEGrh6YMyks5bGBpqwA%3D%3D)
 
 
-We first need to prepare a beefile and run script for each component in the workflow. All files can be found in `examples/bee-composer-example/blast`. Then we compose the beeflow file.
+We first need to prepare a beefile and run script for each task in the workflow. The beefiles and run scripts referred to in this example can be found in `examples/bee-composer-example/blast`. Then we compose the beeflow file.
 
-Assume we use two BLAST workers, the beeflow file should be:
+Assume we use two BLAST workers, the example beeflow file is:
 
 ````
 {
@@ -80,7 +80,7 @@ We use the workfow containing Vector Particle-In-Cell (VPIC) and ParaView as an 
 
 ![](https://raw.githubusercontent.com/lanl/BEE_Private/add-beeflow-user-doc/doc/figures/vpic-dag.jpg?token=ABmT_VJBo415AVrpAecBlSiSrPswgCzcks5bGBqewA%3D%3D)
 
-We first need to prepare  a beefile and run script for each component in the workflow. All files can be found in `examples/bee-composer-example/vpic-paraview`. Then we compose the beeflow file.
+We first need to prepare a beefile and run script for each task in the workflow. The beefiles and run scripts referred to in this example can be found in `examples/bee-composer-example/blast`. Then we compose the beeflow file.
 
 We use the filesystem (disk-based) to share data between VPIC and ParaView server. The ParaView client runs on the user's local machine, so it is should be started manually and not included in BeeFlow orchestration. The beeflow file is:
 
