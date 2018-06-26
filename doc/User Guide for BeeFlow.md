@@ -80,9 +80,9 @@ We use the workfow containing Vector Particle-In-Cell (VPIC) and ParaView as an 
 
 ![](https://raw.githubusercontent.com/lanl/BEE_Private/add-beeflow-user-doc/doc/figures/vpic-dag.jpg?token=ABmT_VJBo415AVrpAecBlSiSrPswgCzcks5bGBqewA%3D%3D)
 
-We first need to prepare a beefile and run script for each task in the workflow. The beefiles and run scripts referred to in this example can be found in `examples/bee-composer-example/blast`. Then we compose the beeflow file.
+We first need to prepare a beefile and run script for each task in the workflow. The beefiles and run scripts referred to in this example can be found in `examples/bee-composer-example/vpic-paraview`. Then we compose the beeflow file.
 
-We use the filesystem (disk-based) to share data between VPIC and ParaView server. The ParaView client runs on the user's local machine, so it is should be started manually and not included in BeeFlow orchestration. The beeflow file is:
+We use the filesystem (disk-based) to share data between VPIC and ParaView server. The ParaView client runs on the local machine, so it is should be started manually and not included in BeeFlow orchestration. The beeflow file is:
 
 ````
 {
