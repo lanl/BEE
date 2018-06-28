@@ -1,0 +1,27 @@
+{
+  "task_conf": {
+      "task_name": "paraview-server",
+      "exec_target": "bee_charliecloud",
+      "batch_mode": false,
+      "general_run": [],
+      "mpi_run": [
+	  {
+	      "script": "para-pv.sh",
+	      "local_port_fwd": ["11111"],
+	      "remote_port_fwd": [],
+	      "num_of_nodes": "2",
+	      "proc_per_node": "1"
+	  }
+      ],
+      "terminate_after_exec": false
+  }, 
+  "container_conf":{
+	  "container_path": "/scratch/beedev/blast/blast.tar.gz"
+  },
+  "exec_env_conf": {
+      "bee_charliecloud": {
+	  "node_list": ["cn30", "cn31"],
+	  "host_input_dir": "/home/pbryant/vpic_share"
+      }
+  }
+}

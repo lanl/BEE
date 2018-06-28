@@ -1,0 +1,25 @@
+{
+  "task_conf": {
+      "task_name": "blast-split",
+      "exec_target": "bee_charliecloud",
+      "batch_mode": false,
+      "general_run": [
+	  {
+	      "script": "blast-split.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": []
+	  }
+      ],
+      "mpi_run": [],
+      "terminate_after_exec": false
+  }, 
+  "container_conf":{
+      "container_path": "/scratch/beedev/blast/blast.tar.gz"
+  },
+  "exec_env_conf": {
+      "bee_charlielcoud": {
+	    "node_list": ["cn30"],
+	    "host_input_dir": "/home/pbryant/blast_share"
+    }
+  }
+}
