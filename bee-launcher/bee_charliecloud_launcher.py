@@ -2,7 +2,6 @@
 import subprocess
 import os
 import getpass
-import shutil
 from termcolor import cprint
 from threading import Event
 # project
@@ -158,7 +157,7 @@ class BeeCharliecloudLauncher(BeeTask):
                 self.terminate()
 
             cmd.append(script_path)
-            # cprint("cmd = "+str(cmd), "red")
+
             try:
                 subprocess.call(cmd)
             except:
@@ -182,6 +181,7 @@ class BeeCharliecloudLauncher(BeeTask):
                'rm' '-rf']
 
         cp = self.__container_path
+
         if cp[-7:] is ".tar.gz":  # TODO: move to unpack step
             cp = cp[cp.rfind('/') + 1:-7]
             tar_dir = self.__ch_dir + "/{}".format(cp)
@@ -189,6 +189,7 @@ class BeeCharliecloudLauncher(BeeTask):
         else:
             cprint("Error: invalid container file format detected", "red")
             return
+
         try:
             subprocess.call(cmd)
         except:
