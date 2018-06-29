@@ -39,6 +39,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__output_color_list = ["magenta", "cyan", "blue", "green",
                                     "red", "grey", "yellow"]
         self.__output_color = "cyan"
+        self.__error_color = "red"
 
         # Events for workflow
         self.__begin_event = Event()
@@ -67,13 +68,12 @@ class BeeCharliecloudLauncher(BeeTask):
 
     def launch(self):
         self.__current_status = 3  # Launching
-        print "Charliecloud configuration done"
+        cprint("Charliecloud configuration done", self.__output_color)
 
         # Check if there is an allocation to unpack images on
-        # TODO: review goal and possible elif (e.g. local, non-mpi)
         if 'SLURM_JOBID' in os.environ:
             cprint(os.environ['SLURM_NODELIST'] + ": Launching " +
-                   str(self.__task_name), "cyan")
+                   str(self.__task_name), self.__output_color)
 
             # if -r re-use image other wise unpack image
             # not really a restore yet 
@@ -81,9 +81,13 @@ class BeeCharliecloudLauncher(BeeTask):
                 for hosts in self.__hosts:
                     self.unpack_image(hosts)
             self.run_scripts()
-
+        elif self.__hosts == ["localhost"]:
+            cprint("Launching local instance " + str(self.__task_name),
+                   self.__output_color)
+            # TODO: copy implementation from Paul_Dev
+            pass
         else:
-            cprint("No nodes allocated!", "red")
+            cprint("No nodes allocated!", self.__error_color)
             self.terminate()
 
     def unpack_image(self, host):
@@ -96,7 +100,7 @@ class BeeCharliecloudLauncher(BeeTask):
         try:
             subprocess.call(cmd)
         except:
-            cprint(" Error while unpacking image:", "red")
+            cprint(" Error while unpacking image:", self.__error_color)
 
     def run_scripts(self):
         self.__current_status = 4  # Running
@@ -147,7 +151,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
                 elif 'map_num' not in run_conf:
                     cprint("For mpi_run 'map_num' is not set " +
-                           "'map_by' is ignored!", "red")
+                           "'map_by' is ignored!", self.__error_color)
 
                 else:
                     cmd.append("-map-by")
@@ -156,7 +160,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
             elif 'map_num' in run_conf:
                 cprint("For mpi_run when specifying 'map_num'," +
-                       " 'map_by' must also be set!", "red")
+                       " 'map_by' must also be set!", self.__error_color)
                 self.terminate()
 
             cmd.append(script_path)
@@ -164,8 +168,9 @@ class BeeCharliecloudLauncher(BeeTask):
             try:
                 subprocess.call(cmd)
             except:
-                cprint(" Error running script:" + script_path, "red")
-                cprint(" Check path to mpirun.", "red")
+                cprint(" Error running script:" + script_path,
+                       self.__error_color)
+                cprint(" Check path to mpirun.", self.__error_color)
 
     def batch_run(self):
         cprint("Batch mode not implemented for Bee_Chaliecloud yet!", "red")
