@@ -1,2 +1,2 @@
 #!/bin/bash  
-/root/launch.sh
+/home/beeuser/launch.sh

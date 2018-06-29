@@ -33,12 +33,6 @@ class BeeOSLauncher(BeeTask):
 
         self.__current_status = 0 #Initializing
 
-        self.storage_mode = False
-
-        if ("storage" in beefile and beefile['storage'] == "true"):
-            self.storage_mode = True
-            
-
         # User configuration
         self.__task_conf = beefile['task_conf']
         self.__bee_os_conf = beefile['exec_env_conf']['bee_os']
@@ -80,10 +74,7 @@ class BeeOSLauncher(BeeTask):
         self.__current_status = 1 # initialized
 
     def run(self):
-        if (self.storage_mode == False):
-            self.launch()
-        else:
-            self.launch_storage()
+        self.launch()
 
     def launch(self):
         self.__current_status = 3 # Launching
@@ -97,6 +88,7 @@ class BeeOSLauncher(BeeTask):
         self.setup_sshconfig()
         self.setup_hostname()
         self.setup_hostfile()
+        self.setup_storage()
         self.add_docker()
         self.__bee_os_list[0].parallel_run(['hostname'], self.__bee_os_list)
         self.get_docker_img()
@@ -110,18 +102,13 @@ class BeeOSLauncher(BeeTask):
             self.general_run()
         self.__current_status = 5 # finished
 
-    def launch_storage(self):
-        self.__current_status = 3 # Launching
-        self.terminate()
-        self.create_key()
-        self.launch_stack()
-        self.wait_for_nodes()
-        self.get_master_node()
-        self.get_worker_nodes()
-        self.setup_sshkey()
-        self.setup_sshconfig()
-        self.setup_hostname()
-        self.setup_hostfile()
+    def setup_storage(self):
+        # set nfs on master
+        self.__bee_os_list[0].set_nfs_master();
+        master_private_ip = self.__bee_os_list[0].private_ip
+        for i in range(1, len(self.__bee_os_list)):
+            worker = self.__bee_os_list[i]
+            worker.set_nfs_worker(master_private_ip)
 
 
     def wait_for_others(self):
@@ -292,6 +279,8 @@ class BeeOSLauncher(BeeTask):
             for node2 in self.__bee_os_list:
                 node2.add_host_list(node1.get_ip(), node1.get_hostname())
 
+
+
     def add_docker(self):
         cprint('[' + self.__task_name + '] Initialize docker', self.__output_color)
         for bee_os in self.__bee_os_list:
@@ -311,6 +300,7 @@ class BeeOSLauncher(BeeTask):
 
     def general_run(self):
         cprint('[' + self.__task_name + '] Execute run scripts.', self.__output_color)
+        
         # General sequential script
         master = self.__bee_os_list[0]
         for run_conf in self.__task_conf['general_run']:
@@ -322,8 +312,14 @@ class BeeOSLauncher(BeeTask):
                 docker_script_path = '/root/general_script.sh'
             else:
                 docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
+                                            local_pfwd = run_conf['local_port_fwd'],
+                                            remote_pfwd = run_conf['remote_port_fwd'], 
+                                            async = False)
             
             master.copy_to_master(local_script_path, node_script_path)
+            master.set_file_permssion(node_script_path)
             master.docker_copy_file(node_script_path, docker_script_path)
             master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
                                   remote_pfwd = run_conf['remote_port_fwd'], async = False)
@@ -340,10 +336,18 @@ class BeeOSLauncher(BeeTask):
             else:
                 docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
                 hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
+                                            local_pfwd = run_conf['local_port_fwd'],
+                                            remote_pfwd = run_conf['remote_port_fwd'], 
+                                            async = False)
+			
             
             master.copy_to_master(local_script_path, node_script_path)
+            master.set_file_permssion(node_script_path)
             for bee_os in self.__bee_os_list:
                 bee_os.docker_copy_file(node_script_path, docker_script_path)
+		
             # Generate hostfile and copy to container
             master.docker_make_hostfile(run_conf, self.__bee_os_list, self.__tmp_dir)
             master.copy_to_master(self.__tmp_dir + '/hostfile', '/home/cc/hostfile')
@@ -373,6 +377,11 @@ class BeeOSLauncher(BeeTask):
             else:
                 docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
                 hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
+                                            local_pfwd = run_conf['local_port_fwd'],
+                                            remote_pfwd = run_conf['remote_port_fwd'], 
+                                            async = False)
 
             master.copy_to_master(local_script_path, node_script_path)
             for bee_os in self.__bee_os_list:

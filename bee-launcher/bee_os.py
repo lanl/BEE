@@ -14,6 +14,7 @@ class BeeOS(object):
         self.__user_name = "cc"
         self.__key_path = key_path
         self.__remote_key_path = '/home/cc/.ssh/id_rsa'
+        self.__instance_share_dir = '/exports/host_share'
 
         # Network
         self.private_ip = private_ip
@@ -30,7 +31,6 @@ class BeeOS(object):
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
                     "-o UserKnownHostsFile=/dev/null",
-                    #"-q",
                     "-i {}".format(self.__key_path),
                     "{}@{}".format(self.__user_name, self.master_public_ip),
                     "-x"]
@@ -53,7 +53,6 @@ class BeeOS(object):
                     "-o StrictHostKeyChecking=no",
                     "-o ConnectTimeout=300",
                     "-o UserKnownHostsFile=/dev/null",
-                    #"-q",
                     "-i {}".format(self.__remote_key_path),
                     "{}@{}".format(self.__user_name, self.private_ip),
                     "-x"]
@@ -66,16 +65,16 @@ class BeeOS(object):
         self.master.run_on_master(cmd, local_pfwd, remote_pfwd, async)
 
     def run(self, command, local_pfwd = [], remote_pfwd = [], async = False):
-    	if (self.master == ""):
-    		# this is the master node
-    		self.run_on_master(command, local_pfwd, remote_pfwd, async)
-    	else:
-    		# this is one of the worker nodes
-    		self.run_on_worker(command, local_pfwd, remote_pfwd, async)
+        if (self.master == ""):
+            # this is the master node
+            self.run_on_master(command, local_pfwd, remote_pfwd, async)
+        else:
+            # this is one of the worker nodes
+            self.run_on_worker(command, local_pfwd, remote_pfwd, async)
 
     def parallel_run(self, command, nodes, local_pfwd = [], remote_pfwd = [], async = False):
         cmd = ["mpirun",
-        	   "--mca btl_tcp_if_include eno1",
+             "--mca btl_tcp_if_include eno1",
                "-host"]
         node_list = ""
         for node in nodes:
@@ -98,8 +97,8 @@ class BeeOS(object):
         subprocess.call(' '.join(cmd), shell = True)
 
     def copy_to_worker(self, src, dest, worker):
-    	cprint("["+self.hostname+"]: copy file to worker: "+ src +" --> "+dest +".", self.__output_color)
-    	cmd = ["scp",
+        cprint("["+self.hostname+"]: copy file to worker: "+ src +" --> "+dest +".", self.__output_color)
+        cmd = ["scp",
                "-i {}".format(self.__remote_key_path),
                "-o StrictHostKeyChecking=no",
                "-o ConnectTimeout=300",
@@ -121,8 +120,6 @@ class BeeOS(object):
         print(' '.join(cmd))
         subprocess.call(' '.join(cmd), shell = True)
 
-
-
     def get_ip(self):
         return self.private_ip    
 
@@ -139,9 +136,65 @@ class BeeOS(object):
         cmd = ["sudo echo",
                "\"{} {}\"".format(private_ip, hostname),
                "|",
-               "sudo tee --append",
-               "/etc/hosts"]
+               "ssh",
+               "{}@{}".format(self.__user_name, self.private_ip),
+               "\"sudo tee --append /etc/hosts\""]
         self.run(["'"] + cmd + ["'"])
+
+    def set_nfs_master(self):
+        cprint("["+self.hostname+"]: set NFS on master.", self.__output_color)
+        cmd = ["sudo mkdir",
+               "-p",
+               "{}".format(self.__instance_share_dir)]
+        self.run(cmd)
+
+        cmd = ["sudo chown",
+               "-R",
+               "cc:cc",
+               "{}".format(self.__instance_share_dir)]
+        self.run(cmd)
+
+        cmd = ["sudo echo",
+               "\"{} 10.140.80.0/22(rw,async) 10.40.0.0/23(rw,async)\"".format(self.__instance_share_dir),
+               "|",
+               "ssh",
+               "{}@{}".format(self.__user_name, self.private_ip),
+               "\"sudo tee --append /etc/exports\""]
+        self.run(["'"] + cmd + ["'"])
+
+        cmd = ["sudo exportfs -a"]
+        self.run(cmd)
+
+    def set_nfs_worker(self, master_private_ip):
+        cprint("["+self.hostname+"]: set NFS on worker.", self.__output_color)
+        cmd = ["sudo mkdir",
+               "-p",
+               "{}".format(self.__instance_share_dir)]
+        self.run(cmd)
+
+        cmd = ["sudo chown",
+               "-R",
+               "cc:cc",
+               "{}".format(self.__instance_share_dir)]
+        self.run(cmd)
+
+        cmd = ["sudo echo",
+               "\"{}:{}    {}    nfs\"".format(master_private_ip, self.__instance_share_dir, self.__instance_share_dir),
+               "|",
+               "ssh",
+               "{}@{}".format(self.__user_name, self.private_ip),
+               "\"sudo tee --append /etc/fstab\""]
+        self.run(["'"] + cmd + ["'"])
+
+        cmd = ["sudo mount -a"]
+        self.run(cmd)
+
+    def set_file_permssion(self, path):
+        cmd = ["sudo chmod",
+               "766",
+               "{}".format(path)]
+        self.run(cmd)
+        
 
     def add_docker_container(self, docker):
         self.__docker = docker

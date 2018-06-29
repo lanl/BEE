@@ -15,8 +15,8 @@
   }, 
   "docker_conf":{
       "docker_img_tag": "cjy7117/blast",
-      "docker_username": "root",
-      "docker_shared_dir": "/mnt/blast"
+      "docker_username": "beeuser",
+      "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
      "bee_aws": {

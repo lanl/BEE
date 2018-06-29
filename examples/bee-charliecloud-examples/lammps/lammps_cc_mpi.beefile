@@ -6,34 +6,30 @@
       "general_run": [],
       "mpi_run": [
           {
-            "script": "run_lammps_cc_mpi.sh",
+            "script": "lammps_cc_mpi_1.sh",
             "node_list": ["cn30", "cn31", "cn32"],
             "map_by": "node",
             "map_num": 16
           },
           {
-            "script": "run_lammps_cc_mpi.sh",
+            "script": "lammps_cc_mpi_2.sh",
             "node_list": ["cn31", "cn32"],
             "map_by": "socket",
             "map_num": 4
           },
           {
-            "script": "run_lammps_cc_mpi.sh",
-            "node_list": ["cn30", "cn31"]
-          },
-          {
-            "script": "run_lammps_cc_mpi.sh"
+            "script": "lammps_cc_mpi_3.sh"
           }
       ],
       "terminate_after_exec": false
   }, 
   "container_conf":{
-    "container_path": "/home/pagrubel/cc_scratch/lammps_example.tar.gz" 
+    "container_path": "/scratch/beedev/lammps_bee_cc/lammps_example.tar.gz" 
   },
   
   "exec_env_conf": {
       "bee_charliecloud": {
-	  "share_dir": "/home/pagrubel/share/bee_cc_share"
+	  "share_dir": "/scratch/beedev/lammps_bee_cc/inputs"
       }
   }
 }
