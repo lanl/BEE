@@ -19,14 +19,16 @@ class BeeCharliecloudLauncher(BeeTask):
         # User configuration
         self.__task_conf = beefile['task_conf']
         self.__bee_charliecloud_conf = beefile['exec_env_conf']['bee_charliecloud']
-        self.__container_path = beefile['container_conf']['container_path']
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
-
         try:
             self.__hosts = self.__bee_charliecloud_conf['node_list']
         except:
             self.__hosts = ["localhost"]
+
+        # User configuration - container information
+        self.__container_path = beefile['container_conf']['container_path']
+        self.__container_name = self.__verify_container_name()
 
         # System configuration
         self.__user_name = getpass.getuser()
@@ -168,32 +170,38 @@ class BeeCharliecloudLauncher(BeeTask):
         cprint("Batch mode not implemented for Bee_Chaliecloud yet!", "red")
         self.terminate()
 
+    def __verify_container_name(self):
+        """
+        Using self.__container_path verify if the user specified is a valid
+        tarball and extract the name that will be referenced by Charliecloud
+        :return: If container correct, return name (without extension)
+        """
+        cp = self.__container_path
+
+        if cp[-7:] is ".tar.gz":
+            cp = cp[cp.rfind('/') + 1:-7]
+            return cp
+        # TODO: check if tar via python?
+        else:
+            cprint("Error: invalid container file format detected", "red")
+            exit(2)  # TODO: discuss error codes
+
     def __remove_ch_dir(self, host_node):  # TODO: move to node specific class?
         """
         Remove directory created via ch-tar2dir (self.unpack()) on
-        a single host, verifies acceptable container and ignore non-
-        existent directories.
+        a single host, ignores non-existent directories without error
         :param host_node: Host/node on which the process should be invoked
         """
         cprint("Removing any existing Charliecloud directory from {}".
                format(host_node), self.__output_color)
         cmd = ['mpirun', '-host', host_node, '--map-by', 'ppr:1:node',
-               'rm' '-rf']
-
-        cp = self.__container_path
-
-        if cp[-7:] is ".tar.gz":  # TODO: move to unpack step
-            cp = cp[cp.rfind('/') + 1:-7]
-            tar_dir = self.__ch_dir + "/{}".format(cp)
-            cmd.append(tar_dir)
-        else:
-            cprint("Error: invalid container file format detected", "red")
-            return
+               'rm' '-rf', self.__container_name]
 
         try:
             subprocess.call(cmd)
         except:
-            cprint("Error: unable to remove Charliecloud created directory", "red")
+            cprint("Error: unable to remove Charliecloud created directory",
+                   "red")
 
     def terminate(self, clean=False):
         for host_node in self.__hosts:
