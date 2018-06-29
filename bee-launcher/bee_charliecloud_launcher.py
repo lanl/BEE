@@ -169,20 +169,33 @@ class BeeCharliecloudLauncher(BeeTask):
         cprint("Batch mode not implemented for Bee_Chaliecloud yet!", "red")
         self.terminate()
 
+    def __remove_ch_dir(self, host_node):  # TODO: move to node specific class?
+        """
+        Remove directory created via ch-tar2dir (self.unpack()) on
+        a single host, verifies acceptable container and ignore non-
+        existent directories.
+        :param host_node: Host/node on which the process should be invoked
+        """
+        cprint("Removing any existing Charliecloud directory from {}".
+               format(host_node), self.__output_color)
+        cmd = ['mpirun', '-host', host_node, '--map-by', 'ppr:1:node',
+               'rm' '-rf']
+
+        cp = self.__container_path
+        if cp[-7:] is ".tar.gz":  # TODO: move to unpack step
+            cp = cp[cp.rfind('/') + 1:-7]
+            tar_dir = self.__ch_dir + "/{}".format(cp)
+            cmd.append(tar_dir)
+        else:
+            cprint("Error: invalid container file format detected", "red")
+            return
+        try:
+            subprocess.call(cmd)
+        except:
+            cprint("Error: unable to remove Charliecloud created directory", "red")
+
     def terminate(self, clean=False):
-        for hosts in self.__hosts:
-            # TODO: identify need for removal?
-            # I think if the restore flag is not set then we should
-            # completely remove the existing image
-            cp = self.__container_path
-            if cp[-4:] is ".tar":
-                pass  # TODO: do we support tar???
-            elif cp[-7:] is ".tar.gz":
-                cp = cp[cp.rfind('/')+1:-7]
-                tar_dir = self.__ch_dir + "/{}".format(cp)
-                if os.path.exists(tar_dir):
-                    shutil.rmtree(tar_dir)
-            else:
-                cprint("Error: invalid container file format detected!", "red")
+        for host_node in self.__hosts:
+            self.__remove_ch_dir(host_node)
             if not clean:
                 self.__current_status = 6  # Terminated
