@@ -87,6 +87,7 @@ class BeeCharliecloudLauncher(BeeTask):
             self.terminate()
 
     def unpack_image(self, host):
+        # TODO: identify best method for async commands
         # Unpack image on each allocated node
         cprint("Unpacking container to {}".format(host), self.__output_color)
         cmd = ['mpirun', '-host', host, '--map-by', 'ppr:1:node',
