@@ -19,7 +19,7 @@
   "exec_env_conf": {
       "bee_charliecloud": {
 	  "node_list": ["cn31"],
-	  "host_input_dir": "/home/charliecloud/blast_share"
+	  "host_input_dir": "/home/pbryant/blast_share"
       }
   }
 }

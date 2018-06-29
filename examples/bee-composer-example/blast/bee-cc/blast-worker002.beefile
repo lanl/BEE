@@ -1,7 +1,7 @@
 {
   "task_conf": {
       "task_name": "blast-worker002",
-      "exec_target": "bee_vm",
+      "exec_target": "bee_charliecloud",
       "batch_mode": false,
       "general_run": [
 	  {
@@ -13,20 +13,13 @@
       "mpi_run": [],
       "terminate_after_exec": false
   }, 
-  "docker_conf":{
-      "docker_img_tag": "cjy7117/blast",
-      "docker_username": "beeuser",
-      "docker_shared_dir": "/mnt/docker_share"
+  "container_conf":{
+      "container_path": "/scratch/beedev/blast/blast.tar.gz"
   },
   "exec_env_conf": {
-      "bee_vm": {
+      "bee_charliecloud": {
 	  "node_list": ["cn32"],
-	  "cpu_core_per_socket": "8",
-	  "cpu_thread_per_core": "1",
-	  "cpu_sockets": "2",
-	  "ram_size": "240G",
-	  "kvm_enabled": true,
-	  "host_input_dir": "/home/jieyang/blast_share"
+	  "host_input_dir": "/home/pbryant/blast_share"
       }
   }
 }

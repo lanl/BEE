@@ -17,7 +17,7 @@
       "container_path": "/scratch/beedev/blast/blast.tar.gz"
   },
   "exec_env_conf": {
-      "bee_charlielcoud": {
+      "bee_charliecloud": {
 	    "node_list": ["cn30"],
 	    "host_input_dir": "/home/pbryant/blast_share"
     }

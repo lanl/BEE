@@ -18,5 +18,4 @@
     "dependency_list": ["blast-worker001", "blast-worker002"],
         "dependency_mode": "off-line"
     }
-    
 }
