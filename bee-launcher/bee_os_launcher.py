@@ -377,6 +377,11 @@ class BeeOSLauncher(BeeTask):
             else:
                 docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
                 hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
+                                            local_pfwd = run_conf['local_port_fwd'],
+                                            remote_pfwd = run_conf['remote_port_fwd'], 
+                                            async = False)
 
             master.copy_to_master(local_script_path, node_script_path)
             for bee_os in self.__bee_os_list:
