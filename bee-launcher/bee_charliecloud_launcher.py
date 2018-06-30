@@ -66,7 +66,8 @@ class BeeCharliecloudLauncher(BeeTask):
     def run(self):
         self.launch()
 
-    def launch(self):
+    def launch(self, reuse=False):
+        self.terminate(clean=!(reuse))
         self.__current_status = 3  # Launching
         cprint("Charliecloud configuration done", self.__output_color)
 
