@@ -8,6 +8,7 @@ from threading import Event
 from bee_task import BeeTask
 
 
+# Manipulates all nodes
 class BeeCharliecloudLauncher(BeeTask):
     def __init__(self, task_id, beefile, restore=False):
         BeeTask.__init__(self)
@@ -67,7 +68,9 @@ class BeeCharliecloudLauncher(BeeTask):
         self.launch()
 
     def launch(self, reuse=False):
-        self.terminate(clean=!(reuse))
+        # TODO: document (reuse implies the tar2dir already ran)
+        # TODO: check that reuse is valid (maybe at time of args?)
+        self.terminate(clean=(not reuse))
         self.__current_status = 3  # Launching
         cprint("Charliecloud configuration done", self.__output_color)
 
