@@ -1,6 +1,5 @@
 # system
 import os
-import subprocess
 from termcolor import cprint
 # project
 from host import Host
@@ -76,7 +75,7 @@ class BeeNode(object):
     def parallel_run(self, command, vms, local_pfwd=None, remote_pfwd=None, async=False):
         pass
 
-    # Directory / storeage support functions
+    # Directory / storage support functions
     def create_shared_dir(self):
         # Create directory
         # TODO: implement checks
