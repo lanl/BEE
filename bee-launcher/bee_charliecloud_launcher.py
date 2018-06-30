@@ -6,6 +6,7 @@ from termcolor import cprint
 from threading import Event
 # project
 from bee_task import BeeTask
+from bee_charliecloud import BeeCharliecloud
 
 
 # Manipulates all nodes
@@ -33,7 +34,8 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # System configuration
         self.__user_name = getpass.getuser()
-        self.__restore = restore
+        self.__restore = restore    # TODO: change to reuse???
+                                    # TODO: update launcher to support reuse
         self.__ch_dir = '/var/tmp'  # ch-tar2dir
 
         # Output colors
@@ -42,6 +44,9 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__output_color = "cyan"
         self.__error_color = "red"
 
+        # bee-charliecloud
+        self.__bee_cc_list = []
+
         # Events for workflow
         self.__begin_event = Event()
         self.__end_event = Event()
@@ -49,6 +54,14 @@ class BeeCharliecloudLauncher(BeeTask):
 
         self.__current_status = 1  # initialized
 
+    # Accessors
+    def get_current_status(self):
+        return self.__current_status
+
+    def get_platform(self):
+        return self.__platform
+
+    # Event/Trigger management
     def get_begin_event(self):
         return self.__begin_event
 
@@ -58,12 +71,7 @@ class BeeCharliecloudLauncher(BeeTask):
     def add_wait_event(self, new_event):
         self.__event_list.append(new_event)
 
-    def get_current_status(self):
-        return self.__current_status
-
-    def get_platform(self):
-        return self.__platform
-
+    # Task management
     def run(self):
         self.launch()
 
@@ -72,7 +80,27 @@ class BeeCharliecloudLauncher(BeeTask):
         # TODO: check that reuse is valid (maybe at time of args?)
         self.terminate(clean=(not reuse))
         self.__current_status = 3  # Launching
-        cprint("Charliecloud configuration done", self.__output_color)
+
+        cprint("Charliecloud launching", self.__output_color)
+
+        # Fill bee_cc_list of running hosts (nodes)
+        # Each element is an BeeCharliecloud object
+        for host in self.__hosts:
+            curr_rank = len(self.__bee_cc_list)
+
+            if curr_rank == 0:
+                hostname = "{}=bee-maser".format(self.__task_name)
+            else:
+                hostname = "{}-bee-worker{}".format(self.__task_name,
+                                                    str(curr_rank).zfill(3))
+
+            bee_cc = BeeCharliecloud(task_id=self.__task_id, hostname=hostname,
+                                     host=host, rank=curr_rank, task_conf=self.__task_conf,
+                                     bee_cc_conf=self.__bee_charliecloud_conf,
+                                     container_name=self.__container_name)
+            # Add new CC to host
+            self.__bee_cc_list.append(bee_cc)
+            bee_cc.set_master(self.__bee_cc_list[0])
 
         # Check if there is an allocation to unpack images on
         if 'SLURM_JOBID' in os.environ:
@@ -82,29 +110,18 @@ class BeeCharliecloudLauncher(BeeTask):
             # if -r re-use image other wise unpack image
             # not really a restore yet 
             if not self.__restore:
-                for hosts in self.__hosts:
-                    self.unpack_image(hosts)
+                for host in self.__bee_cc_list:
+                    host.unpack_image(self.__container_path,
+                                      self.__ch_dir)
             self.run_scripts()
-        elif self.__hosts == ["localhost"]:
+        elif self.__hosts == ["localhost"]:  # single node local instance
             cprint("Launching local instance " + str(self.__task_name),
                    self.__output_color)
-            # TODO: copy implementation from Paul_Dev
-            pass
+            self.__local_launch()
+
         else:
             cprint("No nodes allocated!", self.__error_color)
             self.terminate()
-
-    def unpack_image(self, host):
-        # TODO: identify best method for async commands
-        # Unpack image on each allocated node
-        cprint("Unpacking container to {}".format(host), self.__output_color)
-        cmd = ['mpirun', '-host', host, '--map-by', 'ppr:1:node',
-               'ch-tar2dir', self.__container_path, self.__ch_dir]
-
-        try:
-            subprocess.call(cmd)
-        except:
-            cprint(" Error while unpacking image:", self.__error_color)
 
     def run_scripts(self):
         self.__current_status = 4  # Running
@@ -179,6 +196,11 @@ class BeeCharliecloudLauncher(BeeTask):
     def batch_run(self):
         cprint("Batch mode not implemented for Bee_Chaliecloud yet!", "red")
         self.terminate()
+
+    # Task management support functions (private)
+    def __local_launch(self):
+        # TODO: implement local launch (from Paul_Dev)
+        pass
 
     def __verify_container_name(self):
         """
