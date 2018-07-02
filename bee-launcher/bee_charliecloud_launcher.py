@@ -113,6 +113,7 @@ class BeeCharliecloudLauncher(BeeTask):
                 for host in self.__bee_cc_list:
                     host.unpack_image(self.__container_path,
                                       self.__ch_dir)
+            self.wait_for_others()
             self.run_scripts()
         elif self.__hosts == ["localhost"]:  # single node or local instance
             cprint("Launching local instance " + str(self.__task_name),
@@ -239,6 +240,11 @@ class BeeCharliecloudLauncher(BeeTask):
         except:
             cprint("Error: unable to remove Charliecloud created directory",
                    "red")
+
+    def wait_for_others(self):
+        self.__current_status = 2  # Waiting
+        for event in self.__event_list:
+            event.wait()
 
     def terminate(self, clean=False):
         # TODO: rethink logic to support reuse
