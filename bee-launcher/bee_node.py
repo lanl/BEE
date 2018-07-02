@@ -54,19 +54,17 @@ class BeeNode(object):
 
     # Run / CLI related functions
     def run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
-        # TODO: document
-        # return self.host.run(command=command, local_pfwd=local_pfwd,
-        #                     remote_pfwd=remote_pfwd, async=async)
-        subprocess.call(command)
+        return self.host.run(command=command, local_pfwd=local_pfwd,
+                             remote_pfwd=remote_pfwd, async=async)
 
     def root_run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
-        # TODO: document
         return self.host.run(command=command, local_pfwd=local_pfwd,
                              remote_pfwd=remote_pfwd, async=async)
 
     def parallel_run(self, command, local_pfwd=None, remote_pfwd=None,
-                     async=False):
-        pass
+                     async=True):
+        self.run(command=command, local_pfwd=local_pfwd,
+                 remote_pfwd=remote_pfwd, async=async)
 
     # Task configuration run mode
     def general_run(self, script_path):
