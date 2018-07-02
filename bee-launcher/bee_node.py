@@ -32,22 +32,22 @@ class BeeNode(object):
         self.error_color = "red"
 
     @property
-    def __hostname(self):
+    def hostname(self):
         return self.__hostname
 
-    @__hostname.setter
-    def __hostname(self, h):
+    @hostname.setter
+    def hostname(self, h):
         cprint("[" + self.__hostname + "]: setting hostname to " + h,
                self.output_color)
         cmd = ["hostname", self.__hostname]
         self.root_run(cmd)
 
     @property
-    def __status(self):
+    def status(self):
         return self.__status
 
-    @__status.setter
-    def __status(self, status):
+    @status.setter
+    def status(self, status):
         cprint("[" + self.__hostname + "]: Setting status", self.output_color)
         self.__status = status
 
