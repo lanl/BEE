@@ -16,7 +16,7 @@
       "terminate_after_exec": false
   }, 
   "docker_conf":{
-	    "docker_img_tag": "cjy7117/vpic",
+	    "docker_img_tag": "beelanl/vpic",
       "docker_username": "beeuser",
       "docker_shared_dir": "/mnt/docker_share"
   },

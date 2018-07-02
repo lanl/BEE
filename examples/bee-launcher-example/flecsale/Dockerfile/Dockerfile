@@ -1,6 +1,6 @@
 # Download base image ubuntu 16.04
 #FROM ubuntu:16.04
-FROM cjy7117/ubuntu-ompi
+FROM beelanl/openmpi_2.0.2
 # Author
 MAINTAINER Pascal Grosset
 
