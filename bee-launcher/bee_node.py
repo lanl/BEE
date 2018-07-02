@@ -55,9 +55,9 @@ class BeeNode(object):
     # Run / CLI related functions
     def run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
         # TODO: document
-        #return self.host.run(command=command, local_pfwd=local_pfwd,
+        # return self.host.run(command=command, local_pfwd=local_pfwd,
         #                     remote_pfwd=remote_pfwd, async=async)
-	subprocess.call(command)	
+        subprocess.call(command)
 
     def root_run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
         # TODO: document
