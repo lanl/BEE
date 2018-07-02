@@ -215,7 +215,7 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         cp = self.__container_path
 
-        if cp[-7:] is ".tar.gz":
+        if cp[-7:] == ".tar.gz":
             cp = cp[cp.rfind('/') + 1:-7]
             return cp
         # TODO: check if tar via python?
