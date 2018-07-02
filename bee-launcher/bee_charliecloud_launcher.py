@@ -114,33 +114,36 @@ class BeeCharliecloudLauncher(BeeTask):
                     host.unpack_image(self.__container_path,
                                       self.__ch_dir)
             self.run_scripts()
-        elif self.__hosts == ["localhost"]:  # single node local instance
+        elif self.__hosts == ["localhost"]:  # single node or local instance
             cprint("Launching local instance " + str(self.__task_name),
                    self.__output_color)
             self.__local_launch()
 
-        else:
+        else:  # TODO: identify other cases that could arrise?
             cprint("No nodes allocated!", self.__error_color)
             self.terminate()
 
     def run_scripts(self):
         self.__current_status = 4  # Running
         self.__begin_event.set()
+        # TODO: Question, is there any demand for combining modes?
         if self.__task_conf['batch_mode']:
             self.batch_run()
         else:
             self.general_run()
         self.__current_status = 5  # finished
+        # TODO: test and verify set() method working with larger CH-RUN
         self.__end_event.set()
 
     def general_run(self):
         # General script
-
         for run_conf in self.__task_conf['general_run']:
-            script_path = run_conf['script']
-            cmd = ['sh', script_path]
-            subprocess.call(cmd)
+            for host in self.__bee_cc_list:
+                host.general_run(run_conf['script'])
 
+    def mpi_run(self):
+        # TODO: implement and test
+        pass
         '''  
         Check mpi options for mpi_run all tasks:
 
@@ -149,7 +152,6 @@ class BeeCharliecloudLauncher(BeeTask):
         If map_by is set but map_num is not - ignore map_by 
         If map_by is not set but map_num is not - terminate
         '''
-
         valid_map = ['socket', 'node']
         for run_conf in self.__task_conf['mpi_run']:
             script_path = run_conf['script']
@@ -189,11 +191,13 @@ class BeeCharliecloudLauncher(BeeTask):
             try:
                 subprocess.call(cmd)
             except:
-                cprint(" Error running script:" + script_path,
+                cprint("Error running script:" + script_path,
                        self.__error_color)
-                cprint(" Check path to mpirun.", self.__error_color)
+                cprint("Check path to mpirun.", self.__error_color)
+
 
     def batch_run(self):
+        # TODO: implement and test
         cprint("Batch mode not implemented for Bee_Chaliecloud yet!", "red")
         self.terminate()
 

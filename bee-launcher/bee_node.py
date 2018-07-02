@@ -72,7 +72,7 @@ class BeeNode(object):
         return self.__host.run(command=command, local_pfwd=local_pfwd,
                                remote_pfwd=remote_pfwd, async=async)
 
-    def parallel_run(self, command, vms, local_pfwd=None, remote_pfwd=None, async=False):
+    def parallel_run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
         pass
 
     # Directory / storage support functions

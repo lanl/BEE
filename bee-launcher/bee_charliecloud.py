@@ -17,14 +17,24 @@ class BeeCharliecloud(BeeNode):
         self.__bee_charliecloud_conf = bee_cc_conf
         self.__container_name = container_name
 
+    def parallel_run(self, command, local_pfwd=None, remote_pfwd=None,
+                     async=True):
+        cmd = ["mpirun",
+               "-host", self.__host,
+               "--map-by", "ppr:1:node"]
+        cmd += command
+        self.run(command=cmd, local_pfwd=local_pfwd, remote_pfwd=remote_pfwd,
+                 async=async)
+
     def unpack_image(self, container_path, ch_dir):
         # TODO: identify best method for async commands
         # Unpack image on each allocated node
         cprint("Unpacking container to {}".format(self.__host), self.__output_color)
-        cmd = ['mpirun', '-host', self.__host, '--map-by', 'ppr:1:node',
-               'ch-tar2dir', container_path, ch_dir]
-
+        cmd = ['ch-tar2dir', container_path, ch_dir]
         try:
-            subprocess.call(cmd)
-        except:
+            self.parallel_run(command=cmd)
+        except:  # TODO: drop except, move responsibility to run?
             cprint(" Error while unpacking image:", self.__error_color)
+
+    def general_run(self, script_path):
+        cmd = ['sh', script_path]
