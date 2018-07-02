@@ -1,5 +1,4 @@
 # system
-import subprocess
 from termcolor import cprint
 # project
 from bee_node import BeeNode
@@ -36,5 +35,4 @@ class BeeCharliecloud(BeeNode):
         except:  # TODO: drop except, move responsibility to run?
             cprint(" Error while unpacking image:", self.__error_color)
 
-    def general_run(self, script_path):
-        cmd = ['sh', script_path]
+

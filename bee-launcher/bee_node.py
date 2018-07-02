@@ -68,12 +68,20 @@ class BeeNode(object):
                                remote_pfwd=remote_pfwd, async=async)
 
     def root_run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
-        # TODO: docucment
+        # TODO: document
         return self.__host.run(command=command, local_pfwd=local_pfwd,
                                remote_pfwd=remote_pfwd, async=async)
 
-    def parallel_run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
+    def parallel_run(self, command, local_pfwd=None, remote_pfwd=None,
+                     async=False):
         pass
+
+    # Task configuration run mode
+    def general_run(self, script_path):
+        cmd = ['sh', script_path]
+        cprint("[" + self.__hostname + "] general run: " + str(cmd),
+               self.__output_color)
+        self.run(cmd)
 
     # Directory / storage support functions
     def create_shared_dir(self):

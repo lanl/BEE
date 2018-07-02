@@ -34,8 +34,8 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # System configuration
         self.__user_name = getpass.getuser()
-        self.__restore = restore    # TODO: change to reuse???
-                                    # TODO: update launcher to support reuse
+        self.__restore = restore  # TODO: change to reuse???
+        # TODO: update launcher to support reuse
         self.__ch_dir = '/var/tmp'  # ch-tar2dir
 
         # Output colors
@@ -129,41 +129,43 @@ class BeeCharliecloudLauncher(BeeTask):
         # TODO: Question, is there any demand for combining modes?
         if self.__task_conf['batch_mode']:
             self.batch_run()
+        elif self.__task_conf['mpi_run']:
+            self.mpi_run()
         else:
             self.general_run()
         self.__current_status = 5  # finished
         # TODO: test and verify set() method working with larger CH-RUN
+        cprint("[" + self.__task_name + "] end event", self.__output_color)
         self.__end_event.set()
 
     def general_run(self):
-        # General script
+        """
+        General sequential script run on each node
+        """
         for run_conf in self.__task_conf['general_run']:
             for host in self.__bee_cc_list:
                 host.general_run(run_conf['script'])
 
     def mpi_run(self):
-        # TODO: implement and test
-        pass
-        '''  
-        Check mpi options for mpi_run all tasks:
-
-        The checks are done after running general_run tasks.
-        If map_by is invalid - terminate
-        If map_by is set but map_num is not - ignore map_by 
-        If map_by is not set but map_num is not - terminate
-        '''
+        """
+        MPI script run on each node declared
+        """
         valid_map = ['socket', 'node']
         for run_conf in self.__task_conf['mpi_run']:
             script_path = run_conf['script']
             cmd = ['mpirun']
-
-            # run on node_list
+            ###################################################################
+            # Check mpi options for mpi_run all tasks:
+            #
+            # The checks are done after running general_run tasks.
+            # If map_by is invalid - terminate
+            # If map_by is set but map_num is not - ignore map_by
+            # If map_by is not set but map_num is not - terminate
+            ###################################################################
             if 'node_list' in run_conf:
                 my_nodes = ",".join(run_conf['node_list'])
                 cmd.append("-host")
                 cmd.append(my_nodes)
-
-            # run on node_list
 
             if 'map_by' in run_conf:
                 if run_conf['map_by'] not in valid_map:
@@ -187,14 +189,13 @@ class BeeCharliecloudLauncher(BeeTask):
                 self.terminate()
 
             cmd.append(script_path)
-
+            # TODO: move run to node class
             try:
                 subprocess.call(cmd)
             except:
                 cprint("Error running script:" + script_path,
                        self.__error_color)
                 cprint("Check path to mpirun.", self.__error_color)
-
 
     def batch_run(self):
         # TODO: implement and test
