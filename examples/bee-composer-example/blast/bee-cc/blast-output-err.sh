@@ -7,7 +7,7 @@
 BLAST_CH=/var/tmp/blast
 
 if [ -z "$1" ]; then
-    BLAST_OUT=/var/tmp/output
+    BLAST_OUT=~/blast_output
 else
     BLAST_OUT=$1
 fi
