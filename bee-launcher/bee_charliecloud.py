@@ -1,7 +1,6 @@
 # system
 from termcolor import cprint
-from subprocess import Popen, PIPE, \
-    STDOUT, CalledProcessError
+from subprocess import Popen
 # project
 from bee_node import BeeNode
 
@@ -36,7 +35,7 @@ class BeeCharliecloud(BeeNode):
             # TODO: investigate alternative methods
             Popen(cmd)
         else:
-            self.__run_popen_safe(cmd)
+            self.run_popen_safe(cmd)
 
     def unpack_image(self, container_path, ch_dir):
         """
@@ -46,39 +45,4 @@ class BeeCharliecloud(BeeNode):
         cprint("[" + self.__node + "]Unpacking container to {}".format(ch_dir),
                self.output_color)
         cmd = ['ch-tar2dir', str(container_path), ch_dir]
-        self.__run_popen_safe(cmd)
-
-    # Support functions
-    def __run_popen_safe(self, command, shell=False):
-        """
-        Run defined command via Popen, try/except statements
-        built in and message output when appropriate
-        :param command: Command to be run
-        :param shell: Shell flag (boolean), default false
-        :return:
-        """
-        try:
-            p = Popen(command, shell, stdout=PIPE, stderr=STDOUT)
-            out, err = p.communicate()
-            if out:
-                print()
-                self.__handle_message(msg=out)
-            if err:
-                self.__handle_message(msg=err, color=self.error_color)
-        except CalledProcessError as e:
-            self.__handle_message(msg="Error during - " + str(command) + "\n" +
-                                  str(e), color=self.error_color)
-        except OSError as e:
-            self.__handle_message(msg="Error during - " + str(command) + "\n" +
-                                  str(e), color=self.error_color)
-
-    def __handle_message(self, msg, color=None):
-        """
-        :param msg: To be printed to console
-        :param color: If message is be colored via termcolor
-                        Default = none (normal print)
-        """
-        if color is None:
-            print("[" + self.__node + "] " + msg)
-        else:
-            cprint("[" + self.__node + "] " + msg, color)
+        self.run_popen_safe(cmd)

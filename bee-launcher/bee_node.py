@@ -1,6 +1,7 @@
 # system
 import os
-import subprocess
+from subprocess import Popen, PIPE, \
+    STDOUT, CalledProcessError
 from termcolor import cprint
 # project
 from host import Host
@@ -20,6 +21,7 @@ class BeeNode(object):
         self.task_conf = task_conf
 
         # Host machine
+        self.__node = host
         self.host = Host(host)
 
         # Shared resourced
@@ -123,3 +125,38 @@ class BeeNode(object):
 
     def kill(self):
         pass
+
+    # Task management support functions (private)
+    def run_popen_safe(self, command, shell=False):
+        """
+        Run defined command via Popen, try/except statements
+        built in and message output when appropriate
+        :param command: Command to be run
+        :param shell: Shell flag (boolean), default false
+        :return:
+        """
+        try:
+            p = Popen(command, shell, stdout=PIPE, stderr=STDOUT)
+            out, err = p.communicate()
+            if out:
+                print()
+                self.__handle_message(msg=out)
+            if err:
+                self.__handle_message(msg=err, color=self.error_color)
+        except CalledProcessError as e:
+            self.__handle_message(msg="Error during - " + str(command) + "\n" +
+                                  str(e), color=self.error_color)
+        except OSError as e:
+            self.__handle_message(msg="Error during - " + str(command) + "\n" +
+                                  str(e), color=self.error_color)
+
+    def __handle_message(self, msg, color=None):
+        """
+        :param msg: To be printed to console
+        :param color: If message is be colored via termcolor
+                        Default = none (normal print)
+        """
+        if color is None:
+            print("[" + self.__node + "] " + msg)
+        else:
+            cprint("[" + self.__node + "] " + msg, color)

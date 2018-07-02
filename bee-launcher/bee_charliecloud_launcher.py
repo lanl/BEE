@@ -1,5 +1,4 @@
 # system
-import subprocess
 import os
 import getpass
 import tarfile
@@ -9,7 +8,7 @@ from bee_cluster import BeeTask
 from bee_charliecloud import BeeCharliecloud
 
 
-# Manipulates all nodes
+# Manipulates all nodes in a task
 class BeeCharliecloudLauncher(BeeTask):
     def __init__(self, task_id, beefile, restore=False):
         BeeTask.__init__(self)
@@ -184,13 +183,16 @@ class BeeCharliecloudLauncher(BeeTask):
                 self.terminate()
 
             cmd.append(script_path)
-
+            self.run_popen_safe(cmd)
+            """
+            # TODO: remove after testing
             try:
                 subprocess.call(cmd)
             except subprocess.CalledProcessError as e:
                 cprint("Error running script:" + script_path + "\n"
                        + e.message, self.error_color)
                 cprint("Check path to mpirun.", self.error_color)
+            """
 
     def batch_run(self):
         # TODO: implement and test
@@ -247,12 +249,16 @@ class BeeCharliecloudLauncher(BeeTask):
                self.output_color)
         cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
                'ch-tar2dir', self.__container_path, self.__ch_dir]
+        self.run_popen_safe(command=cmd, nodes=hosts)
+        """
+        # TODO: remove after testing
         try:
             subprocess.call(cmd)
         except subprocess.CalledProcessError as e:
             cprint("Error: unable to unpack Charliecloud to directory\n"
                    + e.message,
                    self.error_color)
+        """
 
     def __remove_ch_dir(self, hosts):
         """
@@ -265,12 +271,16 @@ class BeeCharliecloudLauncher(BeeTask):
                format(hosts), self.output_color)
         cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
                'rm' '-rf ', self.__ch_dir + "/" + self.__container_name]
+        self.run_popen_safe(command=cmd, nodes=hosts)
+        """
+        # TODO: remove after testing
         try:
             subprocess.call(cmd)
         except subprocess.CalledProcessError as e:
             cprint("Error: unable to remove Charliecloud created directory\n"
                    + e.message,
                    self.error_color)
+        """
 
     def __fetch_beefile_value(self, key, dictionary, default=None):
         """
