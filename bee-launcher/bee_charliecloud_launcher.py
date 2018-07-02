@@ -100,7 +100,7 @@ class BeeCharliecloudLauncher(BeeTask):
                                      container_name=self.__container_name)
             # Add new CC to host
             self.__bee_cc_list.append(bee_cc)
-            bee_cc.set_master(self.__bee_cc_list[0])
+            bee_cc.master = self.__bee_cc_list[0]
 
         # Check if there is an allocation to unpack images on
         if 'SLURM_JOBID' in os.environ:
