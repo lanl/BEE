@@ -241,6 +241,7 @@ class BeeCharliecloudLauncher(BeeTask):
                    "red")
 
     def terminate(self, clean=False):
+        # TODO: rethink logic to support reuse
         for host_node in self.__hosts:
             self.__remove_ch_dir(host_node)
             if not clean:
