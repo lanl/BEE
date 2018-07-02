@@ -67,7 +67,7 @@ class BeeTask(Thread):
         """
         self.__event_list.append(new_event)
 
-    # Task management support functions (private)
+    # Task management support functions (public)
     def run_popen_safe(self, command, nodes=None, shell=False):
         """
         Run defined command via Popen, try/except statements
@@ -95,6 +95,7 @@ class BeeTask(Thread):
             self.__handle_message(msg="Error during - " + str(command) + "\n" +
                                   str(e), nodes=nodes,  color=self.error_color)
 
+    # Task management support functions (private)
     @staticmethod
     def __handle_message(msg, nodes=None, color=None):
         """

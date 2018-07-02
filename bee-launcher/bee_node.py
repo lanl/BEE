@@ -29,8 +29,8 @@ class BeeNode(object):
         self.user_name = user_name
 
         # Output color list
-        self.output_color_list = ["magenta", "cyan", "blue", "green",
-                                  "red", "grey", "yellow"]
+        self.__output_color_list = ["magenta", "cyan", "blue", "green",
+                                    "red", "grey", "yellow"]
         self.output_color = "cyan"
         self.error_color = "red"
 
@@ -78,7 +78,6 @@ class BeeNode(object):
     # Directory / storage support functions
     def create_shared_dir(self):
         # Create directory
-        # TODO: implement checks
         cprint("[" + self.__hostname + "]: create shared directory.",
                self.output_color)
         cmd = ["mkdir",
@@ -86,7 +85,6 @@ class BeeNode(object):
         self.root_run(cmd)
 
     def update_ownership(self):
-        # TODO: implement checks
         cprint("[" + self.__hostname + "]: update ownership of shared directory.",
                self.output_color)
         cmd = ["chown",

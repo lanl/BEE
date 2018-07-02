@@ -109,6 +109,7 @@ class BeeCharliecloudLauncher(BeeTask):
             cprint("Launching local instance " + str(self.__task_name),
                    self.output_color)
             self.__local_launch()
+            self.run_scripts()
 
         else:  # TODO: identify other cases that could arrise?
             cprint("No nodes allocated!", self.error_color)
@@ -219,8 +220,12 @@ class BeeCharliecloudLauncher(BeeTask):
 
     # Task management support functions (private)
     def __local_launch(self):
-        # TODO: implement local launch (from Paul_Dev)
-        pass
+        """
+        Run Charliecloud exclusively using local instance
+        Note, this is useful when attempting to use bee-cc
+        outside of a HPC environment or single node
+        """
+        self.__unpack_ch_dir(self.__hosts)
 
     def __verify_container_name(self):
         """
@@ -247,9 +252,13 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         cprint("Unpacking {} to {}".format(self.__container_name, self.__ch_dir),
                self.output_color)
-        cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
-               'ch-tar2dir', self.__container_path, self.__ch_dir]
-        self.run_popen_safe(command=cmd, nodes=hosts)
+        if self.__hosts != ["localhost"]:
+            cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
+                   'ch-tar2dir', self.__container_path, self.__ch_dir]
+            self.run_popen_safe(command=cmd, nodes=hosts)
+        else:  # To be used when local instance of task only!
+            cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
+            self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
         """
         # TODO: remove after testing
         try:
@@ -269,9 +278,13 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         cprint("Removing any existing Charliecloud directory from {}".
                format(hosts), self.output_color)
-        cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
-               'rm' '-rf ', self.__ch_dir + "/" + self.__container_name]
-        self.run_popen_safe(command=cmd, nodes=hosts)
+        if self.__hosts != ["localhost"]:
+            cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
+                   'rm' '-rf ', self.__ch_dir + "/" + self.__container_name]
+            self.run_popen_safe(command=cmd, nodes=hosts)
+        else:  # To be used when local instance of task only!
+            cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
+            self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
         """
         # TODO: remove after testing
         try:
