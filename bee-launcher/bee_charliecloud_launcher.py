@@ -2,6 +2,7 @@
 import subprocess
 import os
 import getpass
+import tarfile
 from termcolor import cprint
 from threading import Event
 # project
@@ -23,10 +24,17 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__bee_charliecloud_conf = beefile['exec_env_conf']['bee_charliecloud']
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
+
+        # TODO: implement method __fetch_beefile(key, default=None) -> return something
         try:
             self.__hosts = self.__bee_charliecloud_conf['node_list']
         except:
             self.__hosts = ["localhost"]
+
+        try:
+            self.__delete_after = self.__task_conf["delete_after_exec"]
+        except:
+            self.__delete_after = True
 
         # User configuration - container information
         self.__container_path = beefile['container_conf']['container_path']
@@ -87,9 +95,9 @@ class BeeCharliecloudLauncher(BeeTask):
         # Each element is an BeeCharliecloud object
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
-
+            # TODO: determine need hostname formatting?
             if curr_rank == 0:
-                hostname = "{}=bee-maser".format(self.__task_name)
+                hostname = "{}=bee-master".format(self.__task_name)
             else:
                 hostname = "{}-bee-worker{}".format(self.__task_name,
                                                     str(curr_rank).zfill(3))
@@ -108,7 +116,8 @@ class BeeCharliecloudLauncher(BeeTask):
                    str(self.__task_name), self.__output_color)
 
             # if -r re-use image other wise unpack image
-            # not really a restore yet 
+            # not really a restore yet
+            # TODO: rename (user-exhisting or reuse)
             if not self.__restore:
                 for host in self.__bee_cc_list:
                     host.unpack_image(self.__container_path,
@@ -138,6 +147,8 @@ class BeeCharliecloudLauncher(BeeTask):
         # TODO: test and verify set() method working with larger CH-RUN
         cprint("[" + self.__task_name + "] end event", self.__output_color)
         self.__end_event.set()
+        if self.__delete_after:
+            self.terminate()
 
     def general_run(self):
         """
@@ -203,6 +214,22 @@ class BeeCharliecloudLauncher(BeeTask):
         cprint("Batch mode not implemented for Bee_Chaliecloud yet!", "red")
         self.terminate()
 
+    def wait_for_others(self):
+        self.__current_status = 2  # Waiting
+        for event in self.__event_list:
+            event.wait()
+
+    def terminate(self, clean=False):
+        """
+
+        :param clean: ???
+        """
+        if self.__delete_after:
+            # Remove ALL ch-directories found on nodes
+            self.__remove_ch_dir(self.__hosts)
+        if not clean:
+            self.__current_status = 6  # Terminated
+
     # Task management support functions (private)
     def __local_launch(self):
         # TODO: implement local launch (from Paul_Dev)
@@ -216,39 +243,28 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         cp = self.__container_path
 
-        if cp[-7:] == ".tar.gz":
+        if cp[-7:] == ".tar.gz" and tarfile.is_tarfile(cp):
             cp = cp[cp.rfind('/') + 1:-7]
             return cp
-        # TODO: check if tar via python?
         else:
-            cprint("Error: invalid container file format detected", "red")
+            cprint("Error: invalid container file format detected\n"
+                   "Please verify the file is properly compressed (<name>.tar.gz)", "red")
             exit(2)  # TODO: discuss error codes
 
-    def __remove_ch_dir(self, host_node):  # TODO: move to node specific class?
+    def __remove_ch_dir(self, hosts):
         """
         Remove directory created via ch-tar2dir (self.unpack()) on
         a single host, ignores non-existent directories without error
-        :param host_node: Host/node on which the process should be invoked
+        :param hosts:   Hosts/nodes on which the process should be invoked
+                        list format [node1, node2, ...]
         """
         cprint("Removing any existing Charliecloud directory from {}".
-               format(host_node), self.__output_color)
-        cmd = ['mpirun', '-host', host_node, '--map-by', 'ppr:1:node',
+               format(hosts), self.__output_color)
+        cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
                'rm' '-rf', self.__container_name]
-
+        # TODO: offload try/except and subprocess to specific method
         try:
             subprocess.call(cmd)
         except:
             cprint("Error: unable to remove Charliecloud created directory",
                    "red")
-
-    def wait_for_others(self):
-        self.__current_status = 2  # Waiting
-        for event in self.__event_list:
-            event.wait()
-
-    def terminate(self, clean=False):
-        # TODO: rethink logic to support reuse
-        for host_node in self.__hosts:
-            self.__remove_ch_dir(host_node)
-            if not clean:
-                self.__current_status = 6  # Terminated
