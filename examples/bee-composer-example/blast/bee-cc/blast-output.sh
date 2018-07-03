@@ -5,7 +5,7 @@
 #               Must remain constant across flow
 
 BLAST_CH=/var/tmp/blast
-BLAST_LOC=/bast
+BLAST_LOC=/blast
 
 if [ -z "$1" ]; then
     BLAST_OUT=~/blast_output
