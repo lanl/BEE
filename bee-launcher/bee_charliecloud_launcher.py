@@ -25,7 +25,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
 
-        # TODO: implement method __fetch_beefile(key, default=None) -> return something
+        # TODO: implement method  -> return something
         try:
             self.__hosts = self.__bee_charliecloud_conf['node_list']
         except:
@@ -268,3 +268,26 @@ class BeeCharliecloudLauncher(BeeTask):
         except:
             cprint("Error: unable to remove Charliecloud created directory",
                    "red")
+
+    def __fetch_beefile_value(self, key, dictionary, default=None):
+        """
+        Fetch a specific key/value pair from the .beefile and
+        raise error is no default supplied and nothing found
+        :param key: Key for value in dictionary
+        :param dictionary: dictionary to be searched
+                            e.g. self.__beefile['task_conf']
+        :param default: Returned if no value found, if None (def)
+                        then error message surfaced
+        :return: Value for key. Data type dependent on beefile,
+                    and not verification beyond existence
+        """
+        # TODO: further implement to make more robust
+        # At this moment it is a very limited check
+        try:
+            return dictionary[key]
+        except:
+            if default is not None:
+                return default
+            else:
+                cprint("Key: " + str(key) + " was not found in: " +
+                       str(dictionary), self.__error_color)
