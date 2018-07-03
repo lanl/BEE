@@ -15,6 +15,11 @@ fi
 rm -rf $BLAST_OUT
 mkdir $BLAST_OUT
 
+# Create error files (empty)
+touch $BLAST_OUT/input.fasta.0.err \
+        $BLAST_OUT/input.fasta.1.err \
+        $BLAST_OUT/output.fasta.err
+
 # Temp solution until Dockerfile can be edited
 cp -R /var/tmp/blast/home/beeuser/makeflow-examples/blast /var/tmp/blast/
 
