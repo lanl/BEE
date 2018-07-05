@@ -19,6 +19,14 @@ class BeeCharliecloudLauncher(BeeTask):
 
         self.__current_status = 0  # initializing
 
+        # Output colors
+        # TODO: move to BEETask??
+        self.__output_color_list = ["magenta", "cyan", "blue", "green",
+                                    "red", "grey", "yellow"]
+        self.__output_color = "cyan"
+        self.__error_color = "red"
+        self.__warning_color = "yellow"
+
         # User configuration
         self.__task_conf = beefile['task_conf']
         self.__bee_charliecloud_conf = beefile['exec_env_conf']['bee_charliecloud']
@@ -26,7 +34,8 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__task_id = task_id
 
         # Task configuration
-        self.__hosts = self.__fetch_beefile_value("node_list", self.__task_conf,
+        self.__hosts = self.__fetch_beefile_value("node_list",
+                                                  self.__bee_charliecloud_conf,
                                                   ["localhost"])
 
         # Container configuration
@@ -42,12 +51,6 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__user_name = getpass.getuser()
         self.__restore = restore  # TODO: change to reuse???
         # TODO: update launcher to support reuse
-
-        # Output colors
-        self.__output_color_list = ["magenta", "cyan", "blue", "green",
-                                    "red", "grey", "yellow"]
-        self.__output_color = "cyan"
-        self.__error_color = "red"
 
         # bee-charliecloud
         self.__bee_cc_list = []
@@ -249,7 +252,8 @@ class BeeCharliecloudLauncher(BeeTask):
             return cp
         else:
             cprint("Error: invalid container file format detected\n"
-                   "Please verify the file is properly compressed (<name>.tar.gz)", "red")
+                   "Please verify the file is properly compressed (<name>.tar.gz)",
+                   self.__error_color)
             exit(1)  # TODO: discuss error codes
 
     def __remove_ch_dir(self, hosts):
@@ -288,7 +292,7 @@ class BeeCharliecloudLauncher(BeeTask):
             if default is not None:
                 cprint("User defined value for [" + str(key) +
                        "] was not found, default value: " + str(default) +
-                       " used.", self.__output_color)
+                       " used.", self.__warning_color)
                 return default
             else:
                 cprint("Key: " + str(key) + " was not found in: " +
