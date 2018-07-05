@@ -38,7 +38,8 @@ class BeeCharliecloudLauncher(BeeTask):
                                                   self.__bee_charliecloud_conf,
                                                   ["localhost"])
         # __host_mpi formatted to be used with mpirun -host *
-        self.__hosts_mpi = ",".join(self.__hosts['node_list'])
+        # filled during launch event (string, to be used in cmd list)
+        self.__hosts_mpi = None
 
         # Container configuration
         self.__container_path = beefile['container_conf']['container_path']
@@ -97,6 +98,7 @@ class BeeCharliecloudLauncher(BeeTask):
         # Each element is an BeeCharliecloud object
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
+            self.__hosts_mpi = str(host) + ","
             # TODO: determine need hostname formatting?
             if curr_rank == 0:
                 hostname = "{}=bee-master".format(self.__task_name)
