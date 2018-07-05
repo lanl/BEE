@@ -25,18 +25,18 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
 
-        # Task configuration (with default values)
+        # Task configuration
         self.__hosts = self.__fetch_beefile_value("node_list", self.__task_conf,
                                                   ["localhost"])
-        self.__delete_after = self.__fetch_beefile_value("delete_after_exec",
-                                                         self.__task_conf, True)
+
+        # Container configuration
+        self.__container_path = beefile['container_conf']['container_path']
+        self.__container_name = self.__verify_container_name()
         self.__ch_dir = self.__fetch_beefile_value("container_tar2dir",
                                                    self.__bee_charliecloud_conf,
                                                    "/var/tmp")  # ch-tar2dir
-
-        # User configuration - container information
-        self.__container_path = beefile['container_conf']['container_path']
-        self.__container_name = self.__verify_container_name()
+        self.__delete_after = self.__fetch_beefile_value("delete_after_exec",
+                                                         self.__task_conf, True)
 
         # System configuration
         self.__user_name = getpass.getuser()
@@ -282,11 +282,9 @@ class BeeCharliecloudLauncher(BeeTask):
         :return: Value for key. Data type dependent on beefile,
                     and not verification beyond existence
         """
-        # TODO: further implement to make more robust
-        # At this moment it is a very limited check
         try:
             return dictionary[key]
-        except:
+        except KeyError:
             if default is not None:
                 return default
             else:
