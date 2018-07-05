@@ -148,7 +148,6 @@ class BeeCharliecloudLauncher(BeeTask):
             if self.__task_conf['general_run']:
                 self.general_run()
         self.__current_status = 5  # finished
-        # TODO: test and verify set() method working with larger CH-RUN
         cprint("[" + self.__task_name + "] end event", self.__output_color)
         self.__end_event.set()
         if self.__delete_after:
@@ -205,12 +204,12 @@ class BeeCharliecloudLauncher(BeeTask):
                 self.terminate()
 
             cmd.append(script_path)
-            # TODO: move run to node class
+
             try:
                 subprocess.call(cmd)
-            except:
-                cprint("Error running script:" + script_path,
-                       self.__error_color)
+            except subprocess.CalledProcessError as e:
+                cprint("Error running script:" + script_path + "\n"
+                       + e.message, self.__error_color)
                 cprint("Check path to mpirun.", self.__error_color)
 
     def batch_run(self):
@@ -285,7 +284,7 @@ class BeeCharliecloudLauncher(BeeTask):
         cprint("Removing any existing Charliecloud directory from {}".
                format(hosts), self.__output_color)
         cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
-               'rm' '-rf', self.__container_name]
+               'rm' '-rf ', self.__ch_dir + "/" + self.__container_name]
         try:
             subprocess.call(cmd)
         except subprocess.CalledProcessError as e:
