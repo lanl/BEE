@@ -232,7 +232,7 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         if self.__delete_after:
             # Remove ALL ch-directories found on nodes
-            self.__remove_ch_dir(self.__hosts)
+            self.__remove_ch_dir(self.__hosts_mpi)
         if not clean:
             self.__current_status = 6  # Terminated
 
