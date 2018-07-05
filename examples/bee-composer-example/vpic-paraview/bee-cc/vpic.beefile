@@ -18,16 +18,15 @@
 	      "num_of_nodes": "2",
 	      "proc_per_node": "4"
 	  }
-      ],
-      "terminate_after_exec": false
+      ]
   }, 
   "container_conf":{
-	  "container_path": "/scratch/beedev/blast/blast.tar.gz"
+	  "container_path": "/scratch/beedev/vpic-paraview/vpic.tar.gz",
+	  "container_shared_dir": ["/home/pbryant/vpic_share"]
   },
   "exec_env_conf": {
       "bee_charliecloud": {
-	  "node_list": ["cn30", "cn31"],
-	  "host_input_dir": "/home/pbryant/vpic_share"
+	  "node_list": ["cn30", "cn31"]
       }
   }
 }

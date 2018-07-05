@@ -37,6 +37,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__hosts = self.__fetch_beefile_value("node_list",
                                                   self.__bee_charliecloud_conf,
                                                   ["localhost"])
+        self.__hosts_mpi = None  # String list of node_list, used in MPIRUN commands
 
         # Container configuration
         self.__container_path = beefile['container_conf']['container_path']
@@ -95,6 +96,7 @@ class BeeCharliecloudLauncher(BeeTask):
         # Each element is an BeeCharliecloud object
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
+            self.__hosts_mpi = host + ","
             # TODO: determine need hostname formatting?
             if curr_rank == 0:
                 hostname = "{}=bee-master".format(self.__task_name)
@@ -256,12 +258,15 @@ class BeeCharliecloudLauncher(BeeTask):
                    self.__error_color)
             exit(1)  # TODO: discuss error codes
 
+    def __unpack_ch_dir(self, hosts):
+        pass
+
     def __remove_ch_dir(self, hosts):
         """
         Remove directory created via ch-tar2dir (self.unpack()) on
         a single host, ignores non-existent directories without error
         :param hosts:   Hosts/nodes on which the process should be invoked
-                        list format [node1, node2, ...]
+                        format node1, node2, ...
         """
         cprint("Removing any existing Charliecloud directory from {}".
                format(hosts), self.__output_color)

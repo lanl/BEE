@@ -30,6 +30,7 @@ class BeeCharliecloud(BeeNode):
                  async=async)
 
     def unpack_image(self, container_path, ch_dir):
+        # TODO: create mass unpack for launcher
         # Unpack image on each allocated node
         cprint("[" + self.__node + "]Unpacking container to {}".format(ch_dir), self.output_color)
         cmd = ['ch-tar2dir', str(container_path), ch_dir]
