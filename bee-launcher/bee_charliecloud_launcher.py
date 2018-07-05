@@ -26,8 +26,13 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__task_id = task_id
 
         # Task configuration (with default values)
-        self.__hosts = self.__fetch_beefile_value("node_list", self.__task_conf, ["localhost"])
-        self.__delete_after = self.__fetch_beefile_value("delete_after_exec", self.__task_conf, True)
+        self.__hosts = self.__fetch_beefile_value("node_list", self.__task_conf,
+                                                  ["localhost"])
+        self.__delete_after = self.__fetch_beefile_value("delete_after_exec",
+                                                         self.__task_conf, True)
+        self.__ch_dir = self.__fetch_beefile_value("container_tar2dir",
+                                                   self.__bee_charliecloud_conf,
+                                                   "/var/tmp")  # ch-tar2dir
 
         # User configuration - container information
         self.__container_path = beefile['container_conf']['container_path']
@@ -37,7 +42,6 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__user_name = getpass.getuser()
         self.__restore = restore  # TODO: change to reuse???
         # TODO: update launcher to support reuse
-        self.__ch_dir = '/var/tmp'  # ch-tar2dir
 
         # Output colors
         self.__output_color_list = ["magenta", "cyan", "blue", "green",
@@ -110,7 +114,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
             # if -r re-use image other wise unpack image
             # not really a restore yet
-            # TODO: rename (user-exhisting or reuse)
+            # TODO: rename (user-existing or reuse)
             if not self.__restore:
                 for host in self.__bee_cc_list:
                     host.unpack_image(self.__container_path,
