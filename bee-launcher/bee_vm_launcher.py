@@ -227,10 +227,7 @@ class BeeVMLauncher(BeeTask):
             else:
                 docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
                 for bee_vm in self.__bee_vm_list:
-                    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
-                                            local_pfwd = run_conf['local_port_fwd'],
-                                            remote_pfwd = run_conf['remote_port_fwd'], 
-                                            async = False)
+                    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']))
 
             master.copy_file(host_script_path, vm_script_path)
             master.docker_copy_file(vm_script_path, docker_script_path)
@@ -250,10 +247,7 @@ class BeeVMLauncher(BeeTask):
                 docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
                 hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
                 for bee_vm in self.__bee_vm_list:
-                    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']),
-                                            local_pfwd = run_conf['local_port_fwd'],
-                                            remote_pfwd = run_conf['remote_port_fwd'], 
-                                            async = False)
+                    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']))
 			
 
             for bee_vm in self.__bee_vm_list:
