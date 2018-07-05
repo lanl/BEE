@@ -32,7 +32,7 @@ class BeeCharliecloud(BeeNode):
     def unpack_image(self, container_path, ch_dir):
         # TODO: identify best method for async commands
         # Unpack image on each allocated node
-        cprint("Unpacking container to {}".format(ch_dir), self.output_color)
+        cprint("[" + self.__node + "]Unpacking container to {}".format(ch_dir), self.output_color)
         cmd = ['ch-tar2dir', str(container_path), ch_dir]
         try:
             self.parallel_run(command=cmd)

@@ -286,6 +286,9 @@ class BeeCharliecloudLauncher(BeeTask):
             return dictionary[key]
         except KeyError:
             if default is not None:
+                cprint("User defined value for [" + str(key) +
+                       "] was not found, default value: " + str(default) +
+                       " used.", self.__output_color)
                 return default
             else:
                 cprint("Key: " + str(key) + " was not found in: " +
