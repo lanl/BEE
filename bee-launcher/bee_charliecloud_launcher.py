@@ -37,7 +37,8 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__hosts = self.__fetch_beefile_value("node_list",
                                                   self.__bee_charliecloud_conf,
                                                   ["localhost"])
-        self.__hosts_mpi = None  # String list of node_list, used in MPIRUN commands
+        # __host_mpi formatted to be used with mpirun -host *
+        self.__hosts_mpi = ",".join(self.__hosts['node_list'])
 
         # Container configuration
         self.__container_path = beefile['container_conf']['container_path']
@@ -96,7 +97,6 @@ class BeeCharliecloudLauncher(BeeTask):
         # Each element is an BeeCharliecloud object
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
-            self.__hosts_mpi = host + ","
             # TODO: determine need hostname formatting?
             if curr_rank == 0:
                 hostname = "{}=bee-master".format(self.__task_name)
@@ -121,9 +121,7 @@ class BeeCharliecloudLauncher(BeeTask):
             # not really a restore yet
             # TODO: rename (user-existing or reuse)
             if not self.__restore:
-                for host in self.__bee_cc_list:
-                    host.unpack_image(self.__container_path,
-                                      self.__ch_dir)
+                self.__unpack_ch_dir(self.__hosts_mpi)
             self.wait_for_others()
             self.run_scripts()
         elif self.__hosts == ["localhost"]:  # single node or local instance
@@ -259,7 +257,21 @@ class BeeCharliecloudLauncher(BeeTask):
             exit(1)  # TODO: discuss error codes
 
     def __unpack_ch_dir(self, hosts):
-        pass
+        """
+        Unpack container via ch-tar2dir to defined directory
+        :param hosts: Hosts/nodes on which the process should be invoked
+                        format node1, node2, ...
+        """
+        cprint("Unpacking {} to {}".format(self.__container_name, self.__ch_dir),
+               self.__output_color)
+        cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
+               'ch-tar2dir', self.__container_path, self.__ch_dir]
+        try:
+            subprocess.call(cmd)
+        except subprocess.CalledProcessError as e:
+            cprint("Error: unable to unpack Charliecloud to directory\n"
+                   + e.message,
+                   self.__error_color)
 
     def __remove_ch_dir(self, hosts):
         """
@@ -272,12 +284,12 @@ class BeeCharliecloudLauncher(BeeTask):
                format(hosts), self.__output_color)
         cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
                'rm' '-rf', self.__container_name]
-        # TODO: offload try/except and subprocess to specific method
         try:
             subprocess.call(cmd)
-        except:
-            cprint("Error: unable to remove Charliecloud created directory",
-                   "red")
+        except subprocess.CalledProcessError as e:
+            cprint("Error: unable to remove Charliecloud created directory\n"
+                   + e.message,
+                   self.__error_color)
 
     def __fetch_beefile_value(self, key, dictionary, default=None):
         """
@@ -289,7 +301,7 @@ class BeeCharliecloudLauncher(BeeTask):
         :param default: Returned if no value found, if None (def)
                         then error message surfaced
         :return: Value for key. Data type dependent on beefile,
-                    and not verification beyond existence
+                    and no verification beyond existence
         """
         try:
             return dictionary[key]
