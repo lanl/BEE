@@ -35,7 +35,7 @@ For example, we have three tasks: Task A, Task B, and Task C. Task B must wait u
 ````
 
 ##### Step 2. Launch workflow
-* a. Prepare run scripts as necessary.
+* a. Prepare run scripts as necessary (see ../examples).
 * b. Open `2` console windows. One serves as daemon control; another serves as client control.
 * c. Run `bee_orc_ctl.py` on daemon control window to start BEE daemon. The daemon is necessary for keeping the launching, running, and monitoring processes running. So, running it in an ordinary shell session can cause unexpected shutdown due to shell session timeout or disconnection. For long term execution, it is recommended to run the daemon on a separated `screen`. For details of using `screen`, please refer to this [tutorial](https://www.rackaid.com/blog/linux-screen-tutorial-and-how-to/).
 
@@ -44,12 +44,12 @@ For example, we have three tasks: Task A, Task B, and Task C. Task B must wait u
 Runs the workflow specified by \<workflow_name\>.beeflow (needs to be in the current directory).
   
 ### Example BeeFlow with off-line dependency
-We use BLAST as an example to show how to launch a traditional workflow with BeeFlow. The dependencies in the workflow are illustrated below. 
+We use BLAST as an example to show how to launch an off-line workflow with BeeFlow. The dependencies in the workflow are illustrated below.
 
 ![](https://raw.githubusercontent.com/lanl/BEE_Private/add-beeflow-user-doc/doc/figures/blast-dag.jpg?token=ABmT_YDYhhFrHX2fdGz-p3HGEGrh6YMyks5bGBpqwA%3D%3D)
 
 
-We first need to prepare a beefile and run script for each task in the workflow. The beefiles and run scripts referred to in this example can be found in `examples/bee-composer-example/blast`. Then we compose the beeflow file.
+We first need to prepare a beefile and run script for each task in the workflow. (The beefiles and run scripts referred to in this example can be found in `../examples/bee-composer-example/blast`.) Then we compose the beeflow file.
 
 Assume we use two BLAST workers, the example beeflow file is:
 
@@ -76,11 +76,11 @@ Assume we use two BLAST workers, the example beeflow file is:
 ````
 
 ### Example BeeFlow with in-situ dependency
-We use the workfow containing Vector Particle-In-Cell (VPIC) and ParaView as an example to show how to launch an in-situ workflow with BeeFlow. The dependencies in the workflow are illustrated below. 
+We use the workfow containing Vector Particle-In-Cell (VPIC) and ParaView as an example to show how to launch an in-situ workflow with BeeFlow. (Detailed instructions for running this example are in ../examples/bee-composer-example/vpic-paraview/README.md.) The dependencies in the workflow are illustrated below. 
 
 ![](https://raw.githubusercontent.com/lanl/BEE_Private/add-beeflow-user-doc/doc/figures/vpic-dag.jpg?token=ABmT_VJBo415AVrpAecBlSiSrPswgCzcks5bGBqewA%3D%3D)
 
-We first need to prepare a beefile and run script for each task in the workflow. The beefiles and run scripts referred to in this example can be found in `examples/bee-composer-example/vpic-paraview`. Then we compose the beeflow file.
+We first need to prepare a beefile and run script for each task in the workflow. (The beefiles and run scripts referred to in this example can be found in `../examples/bee-composer-example/vpic-paraview`.) Then we compose the beeflow file.
 
 We use the filesystem (disk-based) to share data between VPIC and ParaView server. The ParaView client runs on the local machine, so it is should be started manually and not included in BeeFlow orchestration. The beeflow file is:
 
