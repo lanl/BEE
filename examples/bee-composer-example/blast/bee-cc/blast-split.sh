@@ -23,5 +23,5 @@ touch $BLAST_OUT/input.fasta.0.err \
 # Temp solution until Dockerfile can be edited
 cp -R /var/tmp/blast/home/beeuser/makeflow-examples/blast /var/tmp/blast/
 
-ch-run -b $BLAST_OUT $BLAST_CH -- cp /blast/small.fasta /mnt/0
-ch-run -b $BLAST_OUT $BLAST_CH -- /blast/split_fasta 100 /mnt/0/small.fasta
+ch-run -b $BLAST_OUT $BLAST_CH -- sh -c "cp /blast/small.fasta /mnt/0 && \
+                                /blast/split_fasta 100 /mnt/0/small.fasta"

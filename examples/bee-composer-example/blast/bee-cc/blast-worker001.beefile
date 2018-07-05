@@ -14,12 +14,12 @@
       "delete_after_exec": true
   }, 
   "container_conf":{
-      "container_path": "/scratch/beedev/blast/blast.tar.gz"
+      "container_path": "/scratch/beedev/blast/blast.tar.gz",
+      "container_shared_dir": ["/home/pbryant/blast_output"]
   },
   "exec_env_conf": {
       "bee_charliecloud": {
-	  "node_list": ["cn31"],
-	  "host_input_dir": "/home/pbryant/blast_share"
+	  "node_list": ["cn31"]
       }
   }
 }
