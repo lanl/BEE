@@ -230,7 +230,7 @@ class BeeCharliecloudLauncher(BeeTask):
         :param clean: Flag if terminate function should be run
                 but the status should NOT be set to terminated (6)
         """
-        if self.__delete_after:
+        if self.__delete_after and self.__hosts_mpi is not None:
             # Remove ALL ch-directories found on nodes
             self.__remove_ch_dir(self.__hosts_mpi)
         if not clean:
