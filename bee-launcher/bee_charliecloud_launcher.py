@@ -25,16 +25,9 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
 
-        # TODO: implement method  -> return something
-        try:
-            self.__hosts = self.__bee_charliecloud_conf['node_list']
-        except:
-            self.__hosts = ["localhost"]
-
-        try:
-            self.__delete_after = self.__task_conf["delete_after_exec"]
-        except:
-            self.__delete_after = True
+        # Task configuration (with default values)
+        self.__hosts = self.__fetch_beefile_value("node_list", self.__task_conf, ["localhost"])
+        self.__delete_after = self.__fetch_beefile_value("delete_after_exec", self.__task_conf, True)
 
         # User configuration - container information
         self.__container_path = beefile['container_conf']['container_path']
@@ -136,13 +129,15 @@ class BeeCharliecloudLauncher(BeeTask):
     def run_scripts(self):
         self.__current_status = 4  # Running
         self.__begin_event.set()
-        # TODO: Question, is there any demand for combining modes?
+        # Batch mode and MPI run can bother defined and ran together
+        # in the same beefile; however, batch mode is exclusive
         if self.__task_conf['batch_mode']:
             self.batch_run()
-        elif self.__task_conf['mpi_run']:
-            self.mpi_run()
         else:
-            self.general_run()
+            if self.__task_conf['mpi_run']:
+                self.mpi_run()
+            if self.__task_conf['general_run']:
+                self.general_run()
         self.__current_status = 5  # finished
         # TODO: test and verify set() method working with larger CH-RUN
         cprint("[" + self.__task_name + "] end event", self.__output_color)
@@ -221,8 +216,10 @@ class BeeCharliecloudLauncher(BeeTask):
 
     def terminate(self, clean=False):
         """
-
-        :param clean: ???
+        Terminate the task
+        Remove ALL
+        :param clean: Flag if terminate function should be run
+                but the status should NOT be set to terminated (6)
         """
         if self.__delete_after:
             # Remove ALL ch-directories found on nodes
@@ -249,7 +246,7 @@ class BeeCharliecloudLauncher(BeeTask):
         else:
             cprint("Error: invalid container file format detected\n"
                    "Please verify the file is properly compressed (<name>.tar.gz)", "red")
-            exit(2)  # TODO: discuss error codes
+            exit(1)  # TODO: discuss error codes
 
     def __remove_ch_dir(self, hosts):
         """
