@@ -4,9 +4,8 @@ import os
 import getpass
 import tarfile
 from termcolor import cprint
-from threading import Event
 # project
-from bee_task import BeeTask
+from bee_cluster import BeeTask
 from bee_charliecloud import BeeCharliecloud
 
 
@@ -15,17 +14,9 @@ class BeeCharliecloudLauncher(BeeTask):
     def __init__(self, task_id, beefile, restore=False):
         BeeTask.__init__(self)
 
-        self.__platform = 'BEE-Charliecloud'
-
         self.__current_status = 0  # initializing
 
-        # Output colors
-        # TODO: move to BEETask??
-        self.__output_color_list = ["magenta", "cyan", "blue", "green",
-                                    "red", "grey", "yellow"]
-        self.__output_color = "cyan"
-        self.__error_color = "red"
-        self.__warning_color = "yellow"
+        self.__platform = 'BEE-Charliecloud'
 
         # User configuration
         self.__task_conf = beefile['task_conf']
@@ -58,12 +49,7 @@ class BeeCharliecloudLauncher(BeeTask):
         # bee-charliecloud
         self.__bee_cc_list = []
 
-        # Events for workflow
-        self.__begin_event = Event()
-        self.__end_event = Event()
-        self.__event_list = []
-
-        self.__current_status = 1  # initialized
+        self.current_status = 1  # initialized
 
     # Accessors
     def get_current_status(self):
@@ -71,16 +57,6 @@ class BeeCharliecloudLauncher(BeeTask):
 
     def get_platform(self):
         return self.__platform
-
-    # Event/Trigger management
-    def get_begin_event(self):
-        return self.__begin_event
-
-    def get_end_event(self):
-        return self.__end_event
-
-    def add_wait_event(self, new_event):
-        self.__event_list.append(new_event)
 
     # Task management
     def run(self):
@@ -92,7 +68,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.terminate(clean=(not reuse))
         self.__current_status = 3  # Launching
 
-        cprint("Charliecloud launching", self.__output_color)
+        cprint("Charliecloud launching", self.output_color)
 
         # Fill bee_cc_list of running hosts (nodes)
         # Each element is an BeeCharliecloud object
@@ -117,7 +93,7 @@ class BeeCharliecloudLauncher(BeeTask):
         # Check if there is an allocation to unpack images on
         if 'SLURM_JOBID' in os.environ:
             cprint(os.environ['SLURM_NODELIST'] + ": Launching " +
-                   str(self.__task_name), self.__output_color)
+                   str(self.__task_name), self.output_color)
 
             # if -r re-use image other wise unpack image
             # not really a restore yet
@@ -128,16 +104,16 @@ class BeeCharliecloudLauncher(BeeTask):
             self.run_scripts()
         elif self.__hosts == ["localhost"]:  # single node or local instance
             cprint("Launching local instance " + str(self.__task_name),
-                   self.__output_color)
+                   self.output_color)
             self.__local_launch()
 
         else:  # TODO: identify other cases that could arrise?
-            cprint("No nodes allocated!", self.__error_color)
+            cprint("No nodes allocated!", self.error_color)
             self.terminate()
 
     def run_scripts(self):
         self.__current_status = 4  # Running
-        self.__begin_event.set()
+        self.begin_event = True
         # Batch mode and MPI run can bother defined and ran together
         # in the same beefile; however, batch mode is exclusive
         if self.__task_conf['batch_mode']:
@@ -148,8 +124,8 @@ class BeeCharliecloudLauncher(BeeTask):
             if self.__task_conf['general_run']:
                 self.general_run()
         self.__current_status = 5  # finished
-        cprint("[" + self.__task_name + "] end event", self.__output_color)
-        self.__end_event.set()
+        cprint("[" + self.__task_name + "] end event", self.output_color)
+        self.end_event = True
         if self.__delete_after:
             self.terminate()
 
@@ -191,7 +167,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
                 elif 'map_num' not in run_conf:
                     cprint("For mpi_run 'map_num' is not set " +
-                           "'map_by' is ignored!", self.__error_color)
+                           "'map_by' is ignored!", self.error_color)
 
                 else:
                     cmd.append("-map-by")
@@ -200,7 +176,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
             elif 'map_num' in run_conf:
                 cprint("For mpi_run when specifying 'map_num'," +
-                       " 'map_by' must also be set!", self.__error_color)
+                       " 'map_by' must also be set!", self.error_color)
                 self.terminate()
 
             cmd.append(script_path)
@@ -209,18 +185,13 @@ class BeeCharliecloudLauncher(BeeTask):
                 subprocess.call(cmd)
             except subprocess.CalledProcessError as e:
                 cprint("Error running script:" + script_path + "\n"
-                       + e.message, self.__error_color)
-                cprint("Check path to mpirun.", self.__error_color)
+                       + e.message, self.error_color)
+                cprint("Check path to mpirun.", self.error_color)
 
     def batch_run(self):
         # TODO: implement and test
         cprint("Batch mode not implemented for Bee_Chaliecloud yet!", "red")
         self.terminate()
-
-    def wait_for_others(self):
-        self.__current_status = 2  # Waiting
-        for event in self.__event_list:
-            event.wait()
 
     def terminate(self, clean=False):
         """
@@ -234,6 +205,11 @@ class BeeCharliecloudLauncher(BeeTask):
             self.__remove_ch_dir(self.__hosts_mpi)
         if not clean:
             self.__current_status = 6  # Terminated
+
+    def wait_for_others(self):
+        self.current_status = 2  # Waiting
+        for event in self.event_list:
+            event.wait()
 
     # Task management support functions (private)
     def __local_launch(self):
@@ -254,8 +230,8 @@ class BeeCharliecloudLauncher(BeeTask):
         else:
             cprint("Error: invalid container file format detected\n"
                    "Please verify the file is properly compressed (<name>.tar.gz)",
-                   self.__error_color)
-            exit(1)  # TODO: discuss error codes
+                   self.error_color)
+            exit(1)
 
     def __unpack_ch_dir(self, hosts):
         """
@@ -264,7 +240,7 @@ class BeeCharliecloudLauncher(BeeTask):
                         format node1, node2, ...
         """
         cprint("Unpacking {} to {}".format(self.__container_name, self.__ch_dir),
-               self.__output_color)
+               self.output_color)
         cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
                'ch-tar2dir', self.__container_path, self.__ch_dir]
         try:
@@ -272,7 +248,7 @@ class BeeCharliecloudLauncher(BeeTask):
         except subprocess.CalledProcessError as e:
             cprint("Error: unable to unpack Charliecloud to directory\n"
                    + e.message,
-                   self.__error_color)
+                   self.error_color)
 
     def __remove_ch_dir(self, hosts):
         """
@@ -282,7 +258,7 @@ class BeeCharliecloudLauncher(BeeTask):
                         format node1, node2, ...
         """
         cprint("Removing any existing Charliecloud directory from {}".
-               format(hosts), self.__output_color)
+               format(hosts), self.output_color)
         cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
                'rm' '-rf ', self.__ch_dir + "/" + self.__container_name]
         try:
@@ -290,7 +266,7 @@ class BeeCharliecloudLauncher(BeeTask):
         except subprocess.CalledProcessError as e:
             cprint("Error: unable to remove Charliecloud created directory\n"
                    + e.message,
-                   self.__error_color)
+                   self.error_color)
 
     def __fetch_beefile_value(self, key, dictionary, default=None):
         """
@@ -310,8 +286,8 @@ class BeeCharliecloudLauncher(BeeTask):
             if default is not None:
                 cprint("User defined value for [" + str(key) +
                        "] was not found, default value: " + str(default) +
-                       " used.", self.__warning_color)
+                       " used.", self.warning_color)
                 return default
             else:
                 cprint("Key: " + str(key) + " was not found in: " +
-                       str(dictionary), self.__error_color)
+                       str(dictionary), self.error_color)
