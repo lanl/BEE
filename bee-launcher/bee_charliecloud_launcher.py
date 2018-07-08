@@ -58,6 +58,10 @@ class BeeCharliecloudLauncher(BeeTask):
     def get_platform(self):
         return self.__platform
 
+    # Wait events (support for existing bee_orc_ctl)
+    def add_wait_event(self, new_event):
+        self.event_list = new_event
+
     # Task management
     def run(self):
         self.launch()
