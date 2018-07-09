@@ -78,7 +78,6 @@ class BeeTask(Thread):
                         applies too (pass string!)
         :param shell: Shell flag (boolean), default false
         :param err_exit: Exit upon error, default True
-        :return:
         """
         try:
             p = Popen(command, shell, stdout=PIPE, stderr=STDOUT)

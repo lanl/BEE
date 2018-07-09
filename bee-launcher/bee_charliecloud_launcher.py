@@ -185,15 +185,6 @@ class BeeCharliecloudLauncher(BeeTask):
 
             cmd.append(script_path)
             self.run_popen_safe(cmd)
-            """
-            # TODO: remove after testing
-            try:
-                subprocess.call(cmd)
-            except subprocess.CalledProcessError as e:
-                cprint("Error running script:" + script_path + "\n"
-                       + e.message, self.error_color)
-                cprint("Check path to mpirun.", self.error_color)
-            """
 
     def batch_run(self):
         # TODO: implement and test
@@ -259,15 +250,6 @@ class BeeCharliecloudLauncher(BeeTask):
         else:  # To be used when local instance of task only!
             cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
-        """
-        # TODO: remove after testing
-        try:
-            subprocess.call(cmd)
-        except subprocess.CalledProcessError as e:
-            cprint("Error: unable to unpack Charliecloud to directory\n"
-                   + e.message,
-                   self.error_color)
-        """
 
     def __remove_ch_dir(self, hosts):
         """
@@ -285,15 +267,6 @@ class BeeCharliecloudLauncher(BeeTask):
         else:  # To be used when local instance of task only!
             cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
-        """
-        # TODO: remove after testing
-        try:
-            subprocess.call(cmd)
-        except subprocess.CalledProcessError as e:
-            cprint("Error: unable to remove Charliecloud created directory\n"
-                   + e.message,
-                   self.error_color)
-        """
 
     def __fetch_beefile_value(self, key, dictionary, default=None):
         """
