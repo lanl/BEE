@@ -28,10 +28,10 @@ class BeeCharliecloud(BeeNode):
             # should be discussed further before implementing
             cprint("Error: port-forwarding via run is not support, please contact "
                    "the developer", self.error_color)
-            if async:
-                Popen(command)
-            else:
-                self.run_popen_safe(command)
+        if async:
+            Popen(command)
+        else:
+            self.run_popen_safe(command)
 
     def parallel_run(self, command, local_pfwd=None, remote_pfwd=None,
                      async=False):
@@ -41,10 +41,7 @@ class BeeCharliecloud(BeeNode):
         Use async to run command without try/except
         """
         print(BeeNode.hostname.__get__(self))
-        cmd = ["mpirun",
-               "-host", self.__node,
-               "--map-by", "ppr:1:node"]
-        cmd += command
+        cmd = self.__prepare_mpirun(command)
         if async:
             # TODO: investigate alternative methods
             Popen(cmd)
@@ -60,3 +57,15 @@ class BeeCharliecloud(BeeNode):
                self.output_color)
         cmd = ['ch-tar2dir', str(container_path), ch_dir]
         self.run_popen_safe(cmd)
+
+    # Task management support functions (private)
+    def __prepare_mpirun(self, command):
+        """
+        :param command: Linux command, list formant
+        :return: List, mpirun command to be run via subprocess
+        """
+        cmd = ["mpirun",
+               "-host", self.__node,
+               "--map-by", "ppr:1:node"]
+        cmd += command
+        return cmd
