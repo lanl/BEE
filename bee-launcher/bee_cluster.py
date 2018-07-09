@@ -68,7 +68,7 @@ class BeeTask(Thread):
         self.__event_list.append(new_event)
 
     # Task management support functions (public)
-    def run_popen_safe(self, command, nodes=None, shell=False):
+    def run_popen_safe(self, command, nodes=None, shell=False, err_exit=True):
         """
         Run defined command via Popen, try/except statements
         built in and message output when appropriate
@@ -77,6 +77,7 @@ class BeeTask(Thread):
                         Use to specify range of nodes message
                         applies too (pass string!)
         :param shell: Shell flag (boolean), default false
+        :param err_exit: Exit upon error, default True
         :return:
         """
         try:
@@ -91,9 +92,13 @@ class BeeTask(Thread):
         except CalledProcessError as e:
             self.__handle_message(msg="Error during - " + str(command) + "\n" +
                                   str(e), nodes=nodes, color=self.error_color)
+            if err_exit:
+                exit(1)
         except OSError as e:
             self.__handle_message(msg="Error during - " + str(command) + "\n" +
                                   str(e), nodes=nodes,  color=self.error_color)
+            if err_exit:
+                exit(1)
 
     # Task management support functions (private)
     @staticmethod
