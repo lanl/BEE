@@ -33,7 +33,6 @@ class BeeCharliecloud(BeeNode):
             else:
                 self.run_popen_safe(command)
 
-
     def parallel_run(self, command, local_pfwd=None, remote_pfwd=None,
                      async=False):
         """
