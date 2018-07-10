@@ -90,7 +90,6 @@ class BeeCharliecloudLauncher(BeeTask):
             bee_cc.master = self.__bee_cc_list[0]
 
         # Check if there is an allocation to unpack images on
-        # TODO: Check for mpirun
         if 'SLURM_JOBID' in os.environ:
             cprint(os.environ['SLURM_NODELIST'] + ": Launching " +
                    str(self.__task_name), self.output_color)
@@ -106,7 +105,7 @@ class BeeCharliecloudLauncher(BeeTask):
                    self.output_color)
             self.__local_launch()
             self.run_scripts()
-        else:  # TODO: check for charliecloud???
+        else:
             cprint("No nodes allocated!", self.error_color)
             self.terminate()
 

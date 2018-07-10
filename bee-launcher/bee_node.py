@@ -56,15 +56,27 @@ class BeeNode(object):
 
     # Run / CLI related functions
     def run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
+        if local_pfwd is None:
+            local_pfwd = []
+        if remote_pfwd is None:
+            remote_pfwd = []
         return self.host.run(command=command, local_pfwd=local_pfwd,
                              remote_pfwd=remote_pfwd, async=async)
 
     def root_run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
+        if local_pfwd is None:
+            local_pfwd = []
+        if remote_pfwd is None:
+            remote_pfwd = []
         return self.host.run(command=command, local_pfwd=local_pfwd,
                              remote_pfwd=remote_pfwd, async=async)
 
     def parallel_run(self, command, local_pfwd=None, remote_pfwd=None,
                      async=True):
+        if local_pfwd is None:
+            local_pfwd = []
+        if remote_pfwd is None:
+            remote_pfwd = []
         self.run(command=command, local_pfwd=local_pfwd,
                  remote_pfwd=remote_pfwd, async=async)
 
