@@ -10,7 +10,7 @@ from bee_charliecloud import BeeCharliecloud
 
 # Manipulates all nodes in a task
 class BeeCharliecloudLauncher(BeeTask):
-    def __init__(self, task_id, beefile, restore=False):
+    def __init__(self, task_id, beefile, use_existing=False):
         BeeTask.__init__(self)
 
         self.__current_status = 0  # initializing
@@ -42,9 +42,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # System configuration
         self.__user_name = getpass.getuser()
-        self.__restore = restore  # TODO: change to reuse???
-        # TODO: update launcher to support reuse
-        # TODO: update to -u --use-existing
+        self.__use_existing = use_existing
 
         # bee-charliecloud
         self.__bee_cc_list = []
@@ -66,10 +64,8 @@ class BeeCharliecloudLauncher(BeeTask):
     def run(self):
         self.launch()
 
-    def launch(self, reuse=False):
-        # TODO: document (reuse implies the tar2dir already ran)
-        # TODO: check that reuse is valid (maybe at time of args?)
-        self.terminate(clean=(not reuse))
+    def launch(self):
+        self.terminate(clean=(not self.__use_existing))
         self.__current_status = 3  # Launching
 
         cprint("Charliecloud launching", self.output_color)
@@ -84,7 +80,7 @@ class BeeCharliecloudLauncher(BeeTask):
             else:
                 hostname = "{}-bee-worker{}".format(self.__task_name,
                                                     str(curr_rank).zfill(3))
-
+            # Each object represent a node
             bee_cc = BeeCharliecloud(task_id=self.__task_id, hostname=hostname,
                                      host=host, rank=curr_rank, task_conf=self.__task_conf,
                                      bee_cc_conf=self.__bee_charliecloud_conf,
@@ -99,10 +95,9 @@ class BeeCharliecloudLauncher(BeeTask):
             cprint(os.environ['SLURM_NODELIST'] + ": Launching " +
                    str(self.__task_name), self.output_color)
 
-            # if -r re-use image other wise unpack image
-            # not really a restore yet
-            # TODO: rename (user-existing or reuse)
-            if not self.__restore:
+            # use_existing (invoked via flag at runtime)
+            # leverages an already existing unpacked image
+            if not self.__use_existing:
                 self.__unpack_ch_dir(self.__hosts_mpi)
             self.wait_for_others()
             self.run_scripts()
@@ -111,7 +106,7 @@ class BeeCharliecloudLauncher(BeeTask):
                    self.output_color)
             self.__local_launch()
             self.run_scripts()
-        else:  # TODO: identify other cases that could arrise?
+        else:  # TODO: check for charliecloud???
             cprint("No nodes allocated!", self.error_color)
             self.terminate()
 
