@@ -1,0 +1,24 @@
+{
+  "task_conf": {
+      "task_name": "blast-worker001",
+      "exec_target": "bee_charliecloud",
+      "batch_mode": false,
+      "general_run": [
+	  {
+	      "script": "blast-worker001.sh",
+	      "local_port_fwd": [],
+	      "remote_port_fwd": []
+	  }
+      ],
+      "mpi_run": [],
+      "delete_after_exec": true
+  }, 
+  "container_conf":{
+      "container_path": "/scratch/beedev/blast/blast.tar.gz"
+  },
+  "exec_env_conf": {
+      "bee_charliecloud": {
+	  "node_list": ["cn31"]
+      }
+  }
+}
