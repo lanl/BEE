@@ -38,7 +38,7 @@ class BeeCharliecloudLauncher(BeeTask):
                                                    self.__bee_charliecloud_conf,
                                                    "/var/tmp")  # ch-tar2dir
         self.__delete_after = self.__fetch_beefile_value("delete_after_exec",
-                                                         self.__task_conf, True)
+                                                         self.__task_conf, False)
 
         # System configuration
         self.__user_name = getpass.getuser()
