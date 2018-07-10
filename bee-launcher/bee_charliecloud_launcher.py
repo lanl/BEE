@@ -44,6 +44,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__user_name = getpass.getuser()
         self.__restore = restore  # TODO: change to reuse???
         # TODO: update launcher to support reuse
+        # TODO: update to -u --use-existing
 
         # bee-charliecloud
         self.__bee_cc_list = []
@@ -78,9 +79,8 @@ class BeeCharliecloudLauncher(BeeTask):
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
             self.__hosts_mpi = str(host) + ","
-            # TODO: determine need hostname formatting?
             if curr_rank == 0:
-                hostname = "{}=bee-master".format(self.__task_name)
+                hostname = "{}=bee-head".format(self.__task_name)
             else:
                 hostname = "{}-bee-worker{}".format(self.__task_name,
                                                     str(curr_rank).zfill(3))
@@ -94,6 +94,7 @@ class BeeCharliecloudLauncher(BeeTask):
             bee_cc.master = self.__bee_cc_list[0]
 
         # Check if there is an allocation to unpack images on
+        # TODO: Check for mpirun
         if 'SLURM_JOBID' in os.environ:
             cprint(os.environ['SLURM_NODELIST'] + ": Launching " +
                    str(self.__task_name), self.output_color)
@@ -110,7 +111,6 @@ class BeeCharliecloudLauncher(BeeTask):
                    self.output_color)
             self.__local_launch()
             self.run_scripts()
-
         else:  # TODO: identify other cases that could arrise?
             cprint("No nodes allocated!", self.error_color)
             self.terminate()
