@@ -21,5 +21,8 @@ touch $BLAST_OUT/input.fasta.0.err \
         $BLAST_OUT/input.fasta.1.err \
         $BLAST_OUT/output.fasta.err
 
+# Temporary workaround - required due to SSH limitations (?)
+module load charliecloud
+
 ch-run --no-home -b $BLAST_OUT $BLAST_CH -- sh -c "cp $BLAST_LOC/small.fasta /mnt/0 && \
                                 $BLAST_LOC/split_fasta 100 /mnt/0/small.fasta"
