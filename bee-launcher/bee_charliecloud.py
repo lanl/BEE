@@ -29,7 +29,6 @@ class BeeCharliecloud(BeeNode):
         print(BeeNode.hostname.__get__(self))
         cmd = self.__prepare_mpirun(command)
         if async:
-            # TODO: investigate alternative methods
             Popen(cmd)
         else:
             self.run_popen_safe(cmd)
