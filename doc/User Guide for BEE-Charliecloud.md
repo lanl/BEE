@@ -22,6 +22,7 @@ Configure `<task_name>.beefile` file as follow:
 
    * c. `batch_mode`: `true` or `false`; For details, 
             refer to `User Guide for Batch Mode`.
+            NOTE: As of the current release this is unspported by the Charliecloud launcher
 
    * d. `general_run`: list of scripts that will be run after launching;
      * 1. `script`: name of the script. The script file needs to be in current
@@ -39,6 +40,7 @@ Configure `<task_name>.beefile` file as follow:
             map_by flag for mpirun command i.e. "node" or "core", invalid if 
             no map_num
      * 4. `map_num`:  argument to map_by flag.
+   * f. 'delete_after_exec': Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
 
 * `container_conf`: Charliecloud container info.
   * a. `container_path`: entire path for the Charlicloud tarred image;
@@ -68,22 +70,15 @@ Configure `<task_name>.beefile` file as follow:
        ** Note: If you get the message "Failed to locate nameserver":
           Make sure:
           1.  You are on the same nodes in both windows.
-          2.  That bee_orc_cnt.py is runnin in the `Daemon Control` window.
+          2.  That bee_orc_ctl.py is running in the `Daemon Control` window.
  
-
       Options to launch, control, and monitor tasks.  
      `-l <task_name>`: unpacks Charliecloud image on /var/tmp then 
                        runs task specified by <task_name>.beefile 
                        in the current directory;
 
-     `-r <task_name>`: reuse image, runs task specified by <task_name>.beefile 
-                       (this option allows tasks to use previously unpacked images)
-
      `-s`: list all tasks with status, automatically updates status;
 
      `-t <task_name>`: terminate task <task_name>;
 
-     `-d <task_name>`: terminate and delete task <task_name> from task list;
-
-     `-e <efs_name>`: create new efs with name <efs_name>.
-   
+     `-d <task_name>`: terminate and delete task <task_name> from task list;   
