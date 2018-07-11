@@ -241,9 +241,14 @@ class BeeCharliecloudLauncher(BeeTask):
                self.output_color)
         cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
         if self.__hosts != ["localhost"]:
-            for host in self.__bee_cc_list:
-                str_cmd = ["\"module load charliecloud && " + " ".join(cmd) + "\""]
-                host.run(str_cmd, async=False)
+            ###############################################################
+            # Temporary workaround due to perceived SSH limitation.
+            # We will have to use mpirun for the time being.
+            # TODO: implement non-mpi reliant method
+            ###############################################################
+            cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
+                   'ch-tar2dir', self.__container_path, self.__ch_dir]
+            self.run_popen_safe(command=cmd, nodes=hosts)
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 

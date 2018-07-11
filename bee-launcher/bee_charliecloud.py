@@ -25,10 +25,9 @@ class BeeCharliecloud(BeeNode):
         Load Charliecloud prior to running the script...
         """
         cmd = ['sh', script_path]
-        str_cmd = ["\"module load charliecloud && " + " ".join(cmd) + "\""]
         cprint("[" + self.__node + "] general run: " + str(cmd),
                self.output_color)
-        self.run(str_cmd, local_pfwd, remote_pfwd)
+        self.run(cmd, local_pfwd, remote_pfwd)
 
     def mpi_parallel_run(self, command, async=False):
         """
