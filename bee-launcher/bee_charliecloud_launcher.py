@@ -243,7 +243,7 @@ class BeeCharliecloudLauncher(BeeTask):
         if self.__hosts != ["localhost"]:
             for host in self.__bee_cc_list:
                 str_cmd = ["\"module load charliecloud && " + " ".join(cmd) + "\""]
-                host.run(str_cmd, async=True)
+                host.run(str_cmd, async=False)
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 
