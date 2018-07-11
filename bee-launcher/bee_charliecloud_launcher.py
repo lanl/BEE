@@ -242,7 +242,7 @@ class BeeCharliecloudLauncher(BeeTask):
         cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
         if self.__hosts != ["localhost"]:
             for host in self.__bee_cc_list:
-                str_cmd = "\"module load charliecloud && " + " ".join(cmd) + "\""
+                str_cmd = ["\"module load charliecloud && " + " ".join(cmd) + "\""]
                 host.run(str_cmd, async=True)
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))

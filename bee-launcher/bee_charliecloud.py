@@ -25,7 +25,7 @@ class BeeCharliecloud(BeeNode):
         Load Charliecloud prior to running the script...
         """
         cmd = ['sh', script_path]
-        str_cmd = "\"module load charliecloud && " + " ".join(cmd) + "\""
+        str_cmd = ["\"module load charliecloud && " + " ".join(cmd) + "\""]
         cprint("[" + self.__hostname + "] general run: " + str(cmd),
                self.output_color)
         self.run(str_cmd, local_pfwd, remote_pfwd)
