@@ -49,12 +49,20 @@ class BeeCharliecloudLauncher(BeeTask):
 
         self.current_status = 1  # initialized
 
-    # Accessors
+    # Accessors kept for historical reasons
+    # Whenever possible we should remove these
+    # or convert them to @property
     def get_current_status(self):
         return self.__current_status
 
     def get_platform(self):
         return self.__platform
+
+    def get_end_event(self):
+        return self.end_event
+
+    def get_begin_event(self):
+        return self.begin_event
 
     # Wait events (support for existing bee_orc_ctl)
     def add_wait_event(self, new_event):
