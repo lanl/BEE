@@ -19,6 +19,17 @@ class BeeCharliecloud(BeeNode):
         self.__bee_charliecloud_conf = bee_cc_conf
         self.__container_name = container_name
 
+    def general_run(self, script_path, local_pfwd=None, remote_pfwd=None):
+        """
+        Override base general_run in order to implement module work around.
+        Load Charliecloud prior to running the script...
+        """
+        cmd = ['sh', script_path]
+        str_cmd = "\"module load charliecloud && " + " ".join(cmd) + "\""
+        cprint("[" + self.__hostname + "] general run: " + str(cmd),
+               self.output_color)
+        self.run(str_cmd, local_pfwd, remote_pfwd)
+
     def mpi_parallel_run(self, command, async=False):
         """
         Using mpirun
