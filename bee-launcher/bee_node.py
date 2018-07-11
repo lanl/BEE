@@ -77,11 +77,11 @@ class BeeNode(object):
                  remote_pfwd=remote_pfwd, async=async)
 
     # Task configuration run mode
-    def general_run(self, script_path):
+    def general_run(self, script_path, local_pfwd=None, remote_pfwd=None):
         cmd = ['sh', script_path]
         cprint("[" + self.__hostname + "] general run: " + str(cmd),
                self.output_color)
-        self.run(cmd)
+        self.run(cmd, local_pfwd, remote_pfwd)
 
     # Directory / storage support functions
     def create_shared_dir(self):

@@ -19,23 +19,9 @@ class BeeCharliecloud(BeeNode):
         self.__bee_charliecloud_conf = bee_cc_conf
         self.__container_name = container_name
 
-    # Override the parent in order to support running with Host class
-    def run(self, command, local_pfwd=None, remote_pfwd=None, async=False):
-        if local_pfwd is not None or remote_pfwd is not None:
-            # TODO: review and possibly implement
-            # The Charliecloud launcher at this moment does not support the
-            # port forwarding functionality found in other modules. This
-            # should be discussed further before implementing
-            cprint("Error: port-forwarding via run is not support, please contact "
-                   "the developer", self.error_color)
-        if async:
-            Popen(command)
-        else:
-            self.run_popen_safe(command)
-
-    def parallel_run(self, command, local_pfwd=None, remote_pfwd=None,
-                     async=False):
+    def mpi_parallel_run(self, command, async=False):
         """
+        Using mpirun
         Run command via mpirun on this node (self.__node)
         NOTE: local_pfwd & remote_pfwd are not utilized
         Use async to run command without try/except
@@ -48,8 +34,9 @@ class BeeCharliecloud(BeeNode):
         else:
             self.run_popen_safe(cmd)
 
-    def unpack_image(self, container_path, ch_dir):
+    def mpi_unpack_image(self, container_path, ch_dir):
         """
+        Using mpirun
         Unpack image via ch-tar2dir on a single node
         ch-tar2dir container_path ch_dir
         """

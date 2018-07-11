@@ -133,7 +133,9 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         for run_conf in self.__task_conf['general_run']:
             for host in self.__bee_cc_list:
-                host.general_run(run_conf['script'])
+                host.general_run(run_conf['script'],
+                                 local_pfwd=run_conf['local_port_fwd'],
+                                 remote_pfwd=run_conf['remote_port_fwd'])
 
     def mpi_run(self):
         """
@@ -237,12 +239,11 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         cprint("Unpacking {} to {}".format(self.__container_name, self.__ch_dir),
                self.output_color)
+        cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
         if self.__hosts != ["localhost"]:
-            cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
-                   'ch-tar2dir', self.__container_path, self.__ch_dir]
-            self.run_popen_safe(command=cmd, nodes=hosts)
+            for host in self.__bee_cc_list:
+                host.run(cmd, async=True)
         else:  # To be used when local instance of task only!
-            cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 
     def __remove_ch_dir(self, hosts):
@@ -254,12 +255,11 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         cprint("Removing any existing Charliecloud directory from {}".
                format(hosts), self.output_color)
+        cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
         if self.__hosts != ["localhost"]:
-            cmd = ['mpirun', '-host', hosts, '--map-by', 'ppr:1:node',
-                   'rm' '-rf ', self.__ch_dir + "/" + self.__container_name]
-            self.run_popen_safe(command=cmd, nodes=hosts)
+            for host in self.__bee_cc_list:
+                host.run(cmd, async=True)
         else:  # To be used when local instance of task only!
-            cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 
     def __fetch_beefile_value(self, key, dictionary, default=None):
