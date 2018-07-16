@@ -29,6 +29,7 @@ class BeeCharliecloud(BeeNode):
                self.output_color)
         self.run(cmd, local_pfwd, remote_pfwd)
 
+    # MPI supporting functions
     def mpi_parallel_run(self, command, async=False):
         """
         Using mpirun

@@ -161,6 +161,19 @@ class BeeNode(object):
             if err_exit:
                 exit(1)
 
+    @staticmethod
+    def compose_srun(command, hosts):
+        """
+        Compose SRUN command to be run via subprocess
+        https://slurm.schedmd.com/srun.html
+        :param command: Command to be run [List]
+        :param hosts: List of specific hosts (nodes) command is to be run on
+        :return: [List] to be run via subprocess
+        """
+        srun_cmd = ["srun", "-w,", "--nodelist=", hosts]
+        srun_cmd += command
+        return srun_cmd
+
     def __handle_message(self, msg, color=None):
         """
         :param msg: To be printed to console
