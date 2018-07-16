@@ -140,7 +140,6 @@ class BeeNode(object):
         :param command: Command to be run
         :param shell: Shell flag (boolean), default false
         :param err_exit: Exit upon error, default True
-        :return:
         """
         try:
             p = Popen(command, shell, stdout=PIPE, stderr=STDOUT)

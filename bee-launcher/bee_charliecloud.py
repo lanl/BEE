@@ -27,7 +27,7 @@ class BeeCharliecloud(BeeNode):
         cmd = ['sh', script_path]
         cprint("[" + self.__node + "] general run: " + str(cmd),
                self.output_color)
-        self.run(cmd, local_pfwd, remote_pfwd)
+        self.run_popen_safe(self.compose_srun(command=cmd, hosts=self.__node))
 
     # MPI supporting functions
     def mpi_parallel_run(self, command, async=False):
