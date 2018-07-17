@@ -28,9 +28,10 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__hosts = self.__fetch_beefile_value("node_list",
                                                   self.__bee_charliecloud_conf,
                                                   ["localhost"])
-        # __host_mpi formatted to be used with mpirun -host *
+        # __host_mpi formatted to be used with srun/mpirun -host *
         # filled during launch event (string, to be used in cmd list)
         self.__hosts_mpi = None
+        self.__hosts_total = 0
 
         # Container configuration
         self.__container_path = beefile['container_conf']['container_path']
@@ -85,6 +86,7 @@ class BeeCharliecloudLauncher(BeeTask):
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
             self.__hosts_mpi = str(host) + ","
+            self.__hosts_total += 1
             if curr_rank == 0:
                 hostname = "{}=bee-head".format(self.__task_name)
             else:
@@ -114,7 +116,7 @@ class BeeCharliecloudLauncher(BeeTask):
             # use_existing (invoked via flag at runtime)
             # leverages an already existing unpacked image
             if not self.__use_existing:
-                self.__unpack_ch_dir(self.__hosts_mpi)
+                self.__unpack_ch_dir(self.__hosts_mpi, self.__hosts_total)
             self.wait_for_others()
             self.run_scripts()
         elif self.__hosts == ["localhost"]:  # single node or local instance
@@ -151,7 +153,8 @@ class BeeCharliecloudLauncher(BeeTask):
         for run_conf in self.__task_conf['general_run']:
             cmd = run_conf['script']
             if self.__hosts != ["localhost"]:
-                self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi),
+                self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi,
+                                                              self.__hosts_total),
                                     nodes=self.__hosts_mpi)
             else:  # To be used when local instance of task only!
                 self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
@@ -265,18 +268,21 @@ class BeeCharliecloudLauncher(BeeTask):
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 
-    def __remove_ch_dir(self, hosts):
+    def __remove_ch_dir(self, hosts, total_hosts):
         """
         Remove directory created via ch-tar2dir (self.unpack()) on
         a single host, ignores non-existent directories without error
         :param hosts:   Hosts/nodes on which the process should be invoked
                         format node1, node2, ...
+        :param total_hosts: Min/Max number of nodes/hosts to be allocation
+                            Should match the number of nodes listed in
+                            the hosts string parameter
         """
         cprint("Removing any existing Charliecloud directory from {}".
                format(hosts), self.output_color)
         cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
         if self.__hosts != ["localhost"]:
-            self.run_popen_safe(command=self.compose_srun(cmd, hosts),
+            self.run_popen_safe(command=self.compose_srun(cmd, hosts, total_hosts),
                                 nodes=hosts)
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))

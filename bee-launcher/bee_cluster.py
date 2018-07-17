@@ -99,15 +99,18 @@ class BeeTask(Thread):
                 exit(1)
 
     @staticmethod
-    def compose_srun(command, hosts):
+    def compose_srun(command, hosts, num_nodes):
         """
         Compose SRUN command to be run via subprocess
         https://slurm.schedmd.com/srun.html
+        e.g. - srun --nodelist=cn30,cn31 --nodes=2-2 <command>
         :param command: Command to be run [List]
         :param hosts: Specific hosts (nodes) command is to be run on (str)
+        :param num_nodes: Min/Max number of nodes allocated to job
         :return: [List] to be run via subprocess
         """
-        srun_cmd = ["srun", "-w,", "--nodelist=" + hosts]
+        srun_cmd = ["srun", "--nodelist=" + hosts, "--nodes=" + num_nodes
+                    + "-" + num_nodes]
         srun_cmd += command
         return srun_cmd
 
