@@ -11,7 +11,7 @@
 	  }
       ],
       "mpi_run": [],
-      "delete_after_exec": true
+      "delete_after_exec": false
   }, 
   "container_conf":{
       "container_path": "/scratch/beedev/blast/blast.tar.gz"

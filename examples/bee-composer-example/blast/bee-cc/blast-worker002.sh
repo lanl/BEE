@@ -13,6 +13,6 @@ else
     BLAST_OUT=$1
 fi
 
-ch-run -b $BLAST_OUT $BLAST_CH -- $BLAST_LOC/blastall -p blastn \
+ch-run --no-home -b $BLAST_OUT $BLAST_CH -- $BLAST_LOC/blastall -p blastn \
     -d nt/nt -i /mnt/0/small.fasta.1 -o /mnt/0/input.fasta.1.out \
     -l /mnt/0/input.fasta.1.err
