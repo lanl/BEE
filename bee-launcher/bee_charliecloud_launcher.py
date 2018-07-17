@@ -97,6 +97,10 @@ class BeeCharliecloudLauncher(BeeTask):
             self.__bee_cc_list.append(bee_cc)
             bee_cc.master = self.__bee_cc_list[0]
 
+        # Remove erroneous comma (less impact), for readability
+        if self.__hosts_mpi[-1] == ",":
+            self.__hosts_mpi = self.__hosts_mpi[:-1]
+
         cprint("Preparing launch " + self.__task_name + " for nodes "
                + self.__hosts_mpi, self.output_color)
 
