@@ -29,7 +29,7 @@
   
   "exec_env_conf": {
       "bee_charliecloud": {
-	  "share_dir": "/scratch/beedev/lammps_bee_cc/inputs"
+	    "node_list": ["cn30", "cn31", "cn32"]
       }
   }
 }
