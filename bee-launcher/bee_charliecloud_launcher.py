@@ -151,7 +151,7 @@ class BeeCharliecloudLauncher(BeeTask):
         General sequential script run on each node
         """
         for run_conf in self.__task_conf['general_run']:
-            cmd = ["sh" + str(run_conf['script'])]
+            cmd = ["sh",  str(run_conf['script'])]
             if self.__hosts != ["localhost"]:
                 self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi,
                                                               self.__hosts_total),
