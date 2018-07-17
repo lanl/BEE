@@ -12,8 +12,5 @@ else
     BLAST_OUT=$1
 fi
 
-# Temporary workaround - required due to SSH limitations (?)
-module load charliecloud
-
 ch-run -b $BLAST_OUT $BLAST_CH -- sh -c "cat /mnt/0/input.fasta.0.err \
     /mnt/0/input.fasta.1.err > /mnt/0/output.fasta.err"
