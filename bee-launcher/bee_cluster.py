@@ -83,7 +83,6 @@ class BeeTask(Thread):
             p = Popen(command, shell, stdout=PIPE, stderr=STDOUT)
             out, err = p.communicate()
             if out:
-                print()
                 self.__handle_message(msg=out, nodes=nodes)
             if err:
                 self.__handle_message(msg=err, nodes=nodes,

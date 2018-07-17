@@ -145,7 +145,6 @@ class BeeNode(object):
             p = Popen(command, shell, stdout=PIPE, stderr=STDOUT)
             out, err = p.communicate()
             if out:
-                print()
                 self.__handle_message(msg=out)
             if err:
                 self.__handle_message(msg=err, color=self.error_color)
