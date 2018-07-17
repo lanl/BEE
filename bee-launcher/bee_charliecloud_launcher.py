@@ -136,10 +136,10 @@ class BeeCharliecloudLauncher(BeeTask):
         if self.__task_conf['batch_mode']:
             self.batch_run()
         else:
-            if self.__task_conf['mpi_run']:
-                self.mpi_run()
             if self.__task_conf['general_run']:
                 self.general_run()
+            if self.__task_conf['mpi_run']:
+                self.mpi_run()
         self.__current_status = 5  # finished
         cprint("[" + self.__task_name + "] end event", self.output_color)
         self.end_event = True
@@ -151,7 +151,7 @@ class BeeCharliecloudLauncher(BeeTask):
         General sequential script run on each node
         """
         for run_conf in self.__task_conf['general_run']:
-            cmd = run_conf['script']
+            cmd = ["sh" + str(run_conf['script'])]
             if self.__hosts != ["localhost"]:
                 self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi,
                                                               self.__hosts_total),
