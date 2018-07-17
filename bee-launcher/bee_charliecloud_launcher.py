@@ -316,6 +316,7 @@ class BeeCharliecloudLauncher(BeeTask):
         Verify Charliecloud command (ch-run) is available, print
         error and exit if not available or unknown error
         """
+        # TODO: this should be moved to the bee_launcher in a future PR
         try:
             call(["ch-run", "--version"])
         except OSError as e:
