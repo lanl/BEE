@@ -104,10 +104,10 @@ class BeeTask(Thread):
         Compose SRUN command to be run via subprocess
         https://slurm.schedmd.com/srun.html
         :param command: Command to be run [List]
-        :param hosts: List of specific hosts (nodes) command is to be run on
+        :param hosts: Specific hosts (nodes) command is to be run on (str)
         :return: [List] to be run via subprocess
         """
-        srun_cmd = ["srun", "-w,", "--nodelist=", hosts]
+        srun_cmd = ["srun", "-w,", "--nodelist=" + hosts]
         srun_cmd += command
         return srun_cmd
 
