@@ -218,7 +218,7 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         if self.__delete_after and self.__hosts_mpi is not None:
             # Remove ALL ch-directories found on nodes
-            self.__remove_ch_dir(self.__hosts_mpi)
+            self.__remove_ch_dir(self.__hosts_mpi, self.__hosts_total)
         if not clean:
             self.__current_status = 6  # Terminated
 
@@ -234,7 +234,7 @@ class BeeCharliecloudLauncher(BeeTask):
         Note, this is useful when attempting to use bee-cc
         outside of a HPC environment or single node
         """
-        self.__unpack_ch_dir(self.__hosts)
+        self.__unpack_ch_dir(self.__hosts, 1)
 
     def __verify_container_name(self):
         """
@@ -253,17 +253,20 @@ class BeeCharliecloudLauncher(BeeTask):
                    self.error_color)
             exit(1)
 
-    def __unpack_ch_dir(self, hosts):
+    def __unpack_ch_dir(self, hosts, total_hosts):
         """
         Unpack container via ch-tar2dir to defined directory
         :param hosts: Hosts/nodes on which the process should be invoked
                         format node1, node2, ...
+        :param total_hosts: Min/Max number of nodes/hosts to be allocation
+                            Should match the number of nodes listed in
+                            the hosts string parameter
         """
         cprint("Unpacking {} to {}".format(self.__container_name, self.__ch_dir),
                self.output_color)
         cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
         if self.__hosts != ["localhost"]:
-            self.run_popen_safe(command=self.compose_srun(cmd, hosts),
+            self.run_popen_safe(command=self.compose_srun(cmd, hosts, total_hosts),
                                 nodes=hosts)
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
