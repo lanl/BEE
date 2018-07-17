@@ -3,6 +3,7 @@ import os
 import getpass
 import tarfile
 from termcolor import cprint
+from subprocess import call
 # project
 from bee_cluster import BeeTask
 from bee_charliecloud import BeeCharliecloud
@@ -302,3 +303,19 @@ class BeeCharliecloudLauncher(BeeTask):
             else:
                 cprint("Key: " + str(key) + " was not found in: " +
                        str(dictionary), self.error_color)
+
+    def __check_charlie(self):
+        """
+        Verify Charliecloud command (ch-run) is available, print
+        error and exit if not available or unknown error
+        """
+        try:
+            call(["ch-run", "--version"])
+        except OSError as e:
+            if e.errno == os.errno.ENOENT:
+                cprint("Error: Charliecloud not available please verify that "
+                       "the program/module is properly installed", self.error_color)
+            else:
+                cprint("Error: encountered when checking for Charliecloud\n"
+                       + e.message, self.error_color)
+            exit(1)
