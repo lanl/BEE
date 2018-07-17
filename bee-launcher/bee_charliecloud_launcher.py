@@ -71,6 +71,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
     # Task management
     def run(self):
+        self.__check_charlie()
         self.launch()
 
     def launch(self):
