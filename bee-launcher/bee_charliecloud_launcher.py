@@ -97,6 +97,9 @@ class BeeCharliecloudLauncher(BeeTask):
             self.__bee_cc_list.append(bee_cc)
             bee_cc.master = self.__bee_cc_list[0]
 
+        cprint("Preparing launch " + self.__task_name + " for nodes "
+               + self.__hosts_mpi, self.output_color)
+
         # Check if there is an allocation to unpack images on
         if 'SLURM_JOBID' in os.environ:
             cprint(os.environ['SLURM_NODELIST'] + ": Launching " +
