@@ -109,8 +109,8 @@ class BeeTask(Thread):
         :param num_nodes: Min/Max number of nodes allocated to job
         :return: [List] to be run via subprocess
         """
-        srun_cmd = ["srun", "--nodelist=" + hosts, "--nodes=" + num_nodes
-                    + "-" + num_nodes]
+        srun_cmd = ["srun", "--nodelist=" + hosts, "--nodes=" + str(num_nodes)
+                    + "-" + str(num_nodes)]
         srun_cmd += command
         return srun_cmd
 
