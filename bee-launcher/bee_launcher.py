@@ -52,7 +52,7 @@ class BeeLauncher(object):
             run_conf['script'] = self.__cwdir + "/" + run_conf['script']
         for run_conf in beefile['task_conf']['mpi_run']:
             run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
-        try:
+        try:  # optional to avoid affecting existing
             for run_conf in beefile['task_conf']['srun_run']:
                 run_conf['script'] = self.__cwdir + "/" + run_conf['script']
         except KeyError:

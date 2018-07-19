@@ -138,8 +138,11 @@ class BeeCharliecloudLauncher(BeeTask):
         else:
             if self.__task_conf['general_run']:
                 self.general_run()
-            if self.__task_conf['srun_run']:
-                self.srun_run()
+            try:  # optional to avoid affecting existing
+                if self.__task_conf['srun_run']:
+                    self.srun_run()
+            except KeyError:
+                pass
             if self.__task_conf['mpi_run']:
                 self.mpi_run()
         self.__current_status = 5  # finished
