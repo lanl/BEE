@@ -1,10 +1,11 @@
-# system
-import os
-import getpass
+import time
 import subprocess
 from subprocess import Popen
-# project
+import os
+import getpass
 from qemu import QEMU
+import pexpect, sys
+import socket
 
 
 class Host(object):
@@ -32,10 +33,12 @@ class Host(object):
                     "-q",
                     "{}@{}".format(self.__user_name, self.__host_name),
                     "-x"]
-        for port in local_pfwd:
-            exec_cmd.insert(5, "-L {}:localhost:{}".format(port, port))
-        for port in remote_pfwd:
-            exec_cmd.insert(5, "-R {}:localhost:{}".format(port, port))
+
+        if socket.gethostname() != self.__host_name:
+            for port in local_pfwd:
+                exec_cmd.insert(5, "-L {}:localhost:{}".format(port, port))
+            for port in remote_pfwd:
+                exec_cmd.insert(5, "-R {}:localhost:{}".format(port, port))
 
         cmd = exec_cmd + command
         return cmd
@@ -68,7 +71,7 @@ class Host(object):
     #    print("create vm[" +  self.__vm.get_hostname() + "] on" + self.__host_name)
     # self.run(self.__hypervisor.start_vm(self.__vm))
     # Running on pexpect instead
-    #    cmd = self.run_cmd(self.__hypervisor.start_vm(self.__vm))  
+    #    cmd = self.run_cmd(self.__hypervisor.start_vm(self.__vm))
     #    cmd = " ".join(cmd)
     #    print(cmd)
     # self.__pexpect_child = pexpect.spawn(cmd)
