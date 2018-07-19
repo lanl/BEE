@@ -79,7 +79,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.terminate(clean=(not self.__use_existing))
         self.__current_status = 3  # Launching
 
-        cprint("Charliecloud launching", self.output_color)
+        cprint("[" + self.__task_name + "] Charliecloud launching", self.output_color)
 
         # Fill bee_cc_list of running hosts (nodes)
         # Each element is an BeeCharliecloud object
@@ -125,7 +125,7 @@ class BeeCharliecloudLauncher(BeeTask):
             self.__local_launch()
             self.run_scripts()
         else:
-            cprint("No nodes allocated!", self.error_color)
+            cprint("[" + self.__task_name + "] No nodes allocated!", self.error_color)
             self.terminate()
 
     def run_scripts(self):
@@ -148,16 +148,26 @@ class BeeCharliecloudLauncher(BeeTask):
 
     def general_run(self):
         """
-        General sequential script run on each node
+        General run (sh <script/cmd>) via orchestrator node
         """
         for run_conf in self.__task_conf['general_run']:
             cmd = ["sh",  str(run_conf['script'])]
             if self.__hosts != ["localhost"]:
-                self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi,
-                                                              self.__hosts_total),
+                self.run_popen_safe(command=cmd,
                                     nodes=self.__hosts_mpi)
             else:  # To be used when local instance of task only!
                 self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
+
+    def srun_run(self):
+        """
+        SRUN script run on each node via srun --nodelist derived from
+        beefile's node list
+        """
+        for run_conf in self.__task_conf['srun_run']:
+            cmd = ["sh", str(run_conf['script'])]
+            self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi,
+                                                          self.__hosts_total),
+                                nodes=self.__hosts_mpi)
 
     def mpi_run(self):
         """

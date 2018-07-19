@@ -3,7 +3,8 @@
       "task_name": "blast-worker001",
       "exec_target": "bee_charliecloud",
       "batch_mode": false,
-      "general_run": [
+      "general_run": [],
+      "srun_run": [
 	  {
 	      "script": "blast-worker001.sh"
 	  }
