@@ -79,6 +79,7 @@ class BeeTask(Thread):
         :param shell: Shell flag (boolean), default false
         :param err_exit: Exit upon error, default True
         """
+        self.__handle_message("Executing: " + str(command), nodes)
         try:
             p = Popen(command, shell, stdout=PIPE, stderr=STDOUT)
             out, err = p.communicate()
