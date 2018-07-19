@@ -52,6 +52,8 @@ class BeeLauncher(object):
             run_conf['script'] = self.__cwdir + "/" + run_conf['script']
         for run_conf in beefile['task_conf']['mpi_run']:
             run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
+        for run_conf in beefile['task_conf']['srun_run']:
+            run_conf['script'] = self.__cwdir + "/" + run_conf['script']
 
 def main(argv):
     status_list = ["Initializing", "Initialized", "Waiting", "Launching", 
