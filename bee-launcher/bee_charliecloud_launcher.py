@@ -27,11 +27,13 @@ class BeeCharliecloudLauncher(BeeTask):
         # Task configuration
         self.__hosts = self.__fetch_beefile_value("node_list",
                                                   self.__bee_charliecloud_conf,
-                                                  ["localhost"])
+                                                  None)
         # __host_mpi formatted to be used with srun/mpirun -host *
         # filled during launch event (string, to be used in cmd list)
         self.__hosts_mpi = None
-        self.__hosts_total = 0
+        self.__hosts_total = self.__fetch_beefile_value("node_quantity",
+                                                        self.__bee_charliecloud_conf,
+                                                        0, quite=True)
 
         # Container configuration
         self.__container_path = beefile['container_conf']['container_path']
@@ -284,6 +286,7 @@ class BeeCharliecloudLauncher(BeeTask):
             self.run_popen_safe(command=self.compose_srun(cmd, hosts, total_hosts),
                                 nodes=hosts)
         else:  # To be used when local instance of task only!
+
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 
     def __remove_ch_dir(self, hosts, total_hosts):
@@ -305,7 +308,7 @@ class BeeCharliecloudLauncher(BeeTask):
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 
-    def __fetch_beefile_value(self, key, dictionary, default=None):
+    def __fetch_beefile_value(self, key, dictionary, default=None, quite=False):
         """
         Fetch a specific key/value pair from the .beefile and
         raise error is no default supplied and nothing found
@@ -320,7 +323,7 @@ class BeeCharliecloudLauncher(BeeTask):
         try:
             return dictionary[key]
         except KeyError:
-            if default is not None:
+            if default is not None and quite is not False:
                 cprint("User defined value for [" + str(key) +
                        "] was not found, default value: " + str(default) +
                        " used.", self.warning_color)

@@ -160,7 +160,7 @@ class BeeNode(object):
                 exit(1)
 
     @staticmethod
-    def compose_srun(command, hosts, num_nodes):
+    def compose_srun(command, hosts=None, num_nodes=None):
         """
         Compose SRUN command to be run via subprocess
         https://slurm.schedmd.com/srun.html
@@ -170,8 +170,11 @@ class BeeNode(object):
         :param num_nodes: Min/Max number of nodes allocated to job
         :return: [List] to be run via subprocess
         """
-        srun_cmd = ["srun", "--nodelist=" + hosts, "--nodes=" + str(num_nodes)
-                    + "-" + str(num_nodes)]
+        srun_cmd = ["srun"]
+        if hosts is not None:
+            srun_cmd += ["--nodelist=" + hosts]
+        if num_nodes is not None:
+            srun_cmd += ["--nodes=" + str(num_nodes) + "-" + str(num_nodes)]
         srun_cmd += command
         return srun_cmd
 
