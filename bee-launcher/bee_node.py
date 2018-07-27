@@ -170,7 +170,8 @@ class BeeNode(object):
         :param num_nodes: Min/Max number of nodes allocated to job
         :return: [List] to be run via subprocess
         """
-        srun_cmd = ["srun"]
+        # TODO: remove -v after testing complete
+        srun_cmd = ["srun", "-v"]
         if hosts is not None:
             srun_cmd += ["--nodelist=" + hosts]
         if num_nodes is not None:
