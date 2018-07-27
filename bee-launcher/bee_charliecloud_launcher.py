@@ -31,6 +31,7 @@ class BeeCharliecloudLauncher(BeeTask):
         # __host_mpi formatted to be used with srun/mpirun -host *
         # filled during launch event (string, to be used in cmd list)
         self.__hosts_mpi = None
+        # TODO: change this to initialize to 0 and move to launcher
         self.__hosts_total = self.__fetch_beefile_value("node_quantity",
                                                         self.__bee_charliecloud_conf,
                                                         0, quite=True)
@@ -85,6 +86,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # Fill bee_cc_list of running hosts (nodes)
         # Each element is an BeeCharliecloud object
+        # TODO: change to incorperate idea that min/max hosts will be paseed
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
             self.__hosts_mpi = str(host) + ","
