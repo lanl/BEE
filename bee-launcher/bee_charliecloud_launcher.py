@@ -89,7 +89,7 @@ class BeeCharliecloudLauncher(BeeTask):
         # TODO: change to incorporate idea that min/max hosts will be paseed
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
-            self.__hosts_mpi = str(host) + ","
+            self.__hosts_mpi += str(host) + ","
             self.__hosts_total += 1
             if curr_rank == 0:
                 hostname = "{}=bee-head".format(self.__task_name)
