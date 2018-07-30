@@ -86,7 +86,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # Fill bee_cc_list of running hosts (nodes)
         # Each element is an BeeCharliecloud object
-        # TODO: change to incorperate idea that min/max hosts will be paseed
+        # TODO: change to incorporate idea that min/max hosts will be paseed
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
             self.__hosts_mpi = str(host) + ","
@@ -325,7 +325,7 @@ class BeeCharliecloudLauncher(BeeTask):
         try:
             return dictionary[key]
         except KeyError:
-            if default is not None and quite is not False:
+            if default is not None and not quite:
                 cprint("User defined value for [" + str(key) +
                        "] was not found, default value: " + str(default) +
                        " used.", self.warning_color)
