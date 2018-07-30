@@ -100,7 +100,7 @@ class BeeTask(Thread):
                 exit(1)
 
     @staticmethod
-    def compose_srun(command, hosts=None, num_nodes=None):
+    def compose_srun(command, hosts=None, num_nodes=None, tasks=None):
         """
         Compose SRUN command to be run via subprocess
         https://slurm.schedmd.com/srun.html
@@ -116,12 +116,13 @@ class BeeTask(Thread):
             srun_cmd += ["--nodelist=" + hosts]
         if num_nodes is not None:
             srun_cmd += ["--nodes=" + str(num_nodes) + "-" + str(num_nodes)]
+        if tasks is not None:
+            srun_cmd += ["-ntasks=" + tasks]
         srun_cmd += command
         return srun_cmd
 
     @staticmethod
     def compose_mpirun(command, hosts):
-        # TODO: document
         srun_cmd = ["mpirun", "-host,", hosts, "--map-by", "ppr:1:node"]
         srun_cmd += command
         return srun_cmd

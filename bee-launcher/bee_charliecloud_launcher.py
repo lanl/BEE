@@ -174,8 +174,15 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         for run_conf in self.__task_conf['srun_run']:
             cmd = ["sh", str(run_conf['script'])]
+            # TODO: implement better solution
+            ntasks = None
+            try:
+                ntasks = run_conf['ntasks']
+            except:
+                pass
             self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi,
-                                                          self.__hosts_total),
+                                                          self.__hosts_total,
+                                                          ntasks),
                                 nodes=self.__hosts_mpi)
 
     def mpi_run(self):
