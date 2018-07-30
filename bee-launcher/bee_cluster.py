@@ -117,7 +117,7 @@ class BeeTask(Thread):
         if num_nodes is not None:
             srun_cmd += ["--nodes=" + str(num_nodes) + "-" + str(num_nodes)]
         if tasks is not None:
-            srun_cmd += ["-ntasks=" + tasks]
+            srun_cmd += ["-ntasks=" + str(tasks)]
         srun_cmd += command
         return srun_cmd
 
