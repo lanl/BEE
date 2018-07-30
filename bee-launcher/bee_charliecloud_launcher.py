@@ -34,7 +34,7 @@ class BeeCharliecloudLauncher(BeeTask):
         # TODO: change this to initialize to 0 and move to launcher
         self.__hosts_total = self.__fetch_beefile_value("node_quantity",
                                                         self.__bee_charliecloud_conf,
-                                                        0, quite=True)
+                                                        0)
 
         # Container configuration
         self.__container_path = beefile['container_conf']['container_path']
@@ -340,6 +340,7 @@ class BeeCharliecloudLauncher(BeeTask):
             else:
                 cprint("Key: " + str(key) + " was not found in: " +
                        str(dictionary), self.error_color)
+                exit(1)
 
     def __check_charlie(self):
         """
