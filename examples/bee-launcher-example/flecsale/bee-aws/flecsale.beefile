@@ -14,8 +14,8 @@
       "terminate_after_exec": false
   }, 
   "docker_conf":{
-      "docker_img_tag": "cjy7117/flecsale",
-      "docker_username": "root",
+      "docker_img_tag": "beelanl/flecsale",
+      "docker_username": "beeuser",
       "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
