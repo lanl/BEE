@@ -86,7 +86,6 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # Fill bee_cc_list of running hosts (nodes)
         # Each element is an BeeCharliecloud object
-        # TODO: change to incorporate idea that min/max hosts will be paseed
         for host in self.__hosts:
             curr_rank = len(self.__bee_cc_list)
             self.__hosts_mpi += str(host) + ","
@@ -348,7 +347,8 @@ class BeeCharliecloudLauncher(BeeTask):
         error and exit if not available or unknown error
         """
         # TODO: this should be moved to the bee_launcher in a future PR
-        cprint("Verifying that Charliecloud is available...", self.output_color)
+        cprint("[" + self.__task_name + "] Verifying that Charliecloud is available...",
+               self.output_color)
         try:
             call(["ch-run", "--version"])
         except OSError as e:
