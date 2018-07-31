@@ -287,7 +287,8 @@ class BeeCharliecloudLauncher(BeeTask):
                             Should match the number of nodes listed in
                             the hosts string parameter
         """
-        cprint("Unpacking {} to {}".format(self.__container_name, self.__ch_dir),
+        cprint("[" + self.__task_name + "] Unpacking {} to {}".
+               format(self.__container_name, self.__ch_dir),
                self.output_color)
         cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
         if self.__hosts != ["localhost"]:
@@ -307,8 +308,8 @@ class BeeCharliecloudLauncher(BeeTask):
                             Should match the number of nodes listed in
                             the hosts string parameter
         """
-        cprint("Removing any existing Charliecloud directory from {}".
-               format(hosts), self.output_color)
+        cprint("[" + self.__task_name + "] Removing any existing Charliecloud"
+                                        " directory from {}".format(hosts), self.output_color)
         cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
         if self.__hosts != ["localhost"]:
             self.run_popen_safe(command=self.compose_srun(cmd, hosts, total_hosts),
