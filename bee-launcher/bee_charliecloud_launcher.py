@@ -332,12 +332,12 @@ class BeeCharliecloudLauncher(BeeTask):
             return dictionary[key]
         except KeyError:
             if default is not None and not quite:
-                cprint("User defined value for [" + str(key) +
-                       "] was not found, default value: " + str(default) +
-                       " used.", self.warning_color)
+                cprint("[" + self.__task_name + "] User defined value for ["
+                       + str(key) + "] was not found, default value: "
+                       + str(default) + " used.", self.warning_color)
                 return default
             else:
-                cprint("Key: " + str(key) + " was not found in: " +
+                cprint("[" + self.__task_name + "] Key: " + str(key) + " was not found in: " +
                        str(dictionary), self.error_color)
                 exit(1)
 
@@ -353,9 +353,12 @@ class BeeCharliecloudLauncher(BeeTask):
             call(["ch-run", "--version"])
         except OSError as e:
             if e.errno == os.errno.ENOENT:
-                cprint("Error: Charliecloud not available please verify that "
-                       "the program/module is properly installed", self.error_color)
+                cprint("[" + self.__task_name +
+                       "] Error: Charliecloud not available please verify that "
+                       "the program/module is properly installed",
+                       self.error_color)
             else:
-                cprint("Error: encountered when checking for Charliecloud\n"
+                cprint("[" + self.__task_name + "] Error: encountered when "
+                                                "checking for Charliecloud\n"
                        + e.message, self.error_color)
             exit(1)
