@@ -13,5 +13,5 @@ else
     BLAST_OUT=$1
 fi
 
-ch-run --no-home -b $BLAST_OUT $BLAST_CH -- $BLAST_LOC/cat_blast \
-    output.fasta input.fasta.0.out input.fasta.1.out
+ch-run --no-home -b $BLAST_OUT $BLAST_CH -- sh - c "$BLAST_LOC/cat_blast \
+    output.fasta input.fasta.0.out input.fasta.1.out"
