@@ -22,7 +22,7 @@
     "terminate_after_exec": false
   }, 
   "docker_conf":{
-      "docker_img_tag": "cjy7117/flecsale2",
+      "docker_img_tag": "beelanl/flecsale2",
       "docker_username": "flecsi",
       "docker_shared_dir": "/mnt/docker_share"
   },

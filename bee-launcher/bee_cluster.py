@@ -108,6 +108,7 @@ class BeeTask(Thread):
         :param command: Command to be run [List]
         :param hosts: Specific hosts (nodes) command is to be run on (str)
         :param num_nodes: Min/Max number of nodes allocated to job
+        :param tasks: Number of tasks (command) that are run within alloc
         :return: [List] to be run via subprocess
         """
         srun_cmd = ["srun"]

@@ -134,7 +134,7 @@ class BeeCharliecloudLauncher(BeeTask):
     def run_scripts(self):
         self.__current_status = 4  # Running
         self.begin_event = True
-        # Batch mode and MPI run can bother defined and ran together
+        # General, SRUN, and MPI run can be run together & defined
         # in the same beefile; however, batch mode is exclusive
         if self.__task_conf['batch_mode']:
             self.batch_run()
