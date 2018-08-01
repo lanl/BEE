@@ -19,7 +19,7 @@
       ]
   }, 
   "container_conf":{
-      "container_path": "/usr/projects/beedev/vpic-paraview/vpic.tar.gz"
+      "container_path": "/scratch/beedev/paraview-vpic/vpic.tar.gz"
   },
   "exec_env_conf": {
       "bee_charliecloud": {

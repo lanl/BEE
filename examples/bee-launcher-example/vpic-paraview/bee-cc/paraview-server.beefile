@@ -15,7 +15,7 @@
       ]
   }, 
   "container_conf":{
-      "container_path": "/usr/projects/beedev/vpic-paraview/paraview-server.tar.gz"
+      "container_path": "/scratch/beedev/paraview-vpic/paraview-server.tar.gz"
   },
   "exec_env_conf": {
       "bee_charliecloud": {
