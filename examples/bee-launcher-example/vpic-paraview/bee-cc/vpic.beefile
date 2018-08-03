@@ -10,11 +10,9 @@
       ],
       "mpi_run": [
 	  {	   
-	      "script": "para-tom-vpic.sh",
-	      "local_port_fwd": [],
-	      "remote_port_fwd": [],
-	      "num_of_nodes": "2",
-	      "proc_per_node": "4"
+	      "script": "para-tom-vpic.sh"
+	      "map_num": "4",
+	      "map_by": "node"
 	  }
       ]
   }, 

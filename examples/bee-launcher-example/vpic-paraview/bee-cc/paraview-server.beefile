@@ -8,9 +8,8 @@
 	  {
 	      "script": "para-pv.sh",
 	      "local_port_fwd": ["11111"],
-	      "remote_port_fwd": [],
-	      "num_of_nodes": "2",
-	      "proc_per_node": "1"
+	      "map_by": "node",
+	      "map_num": "1"
 	  }
       ]
   }, 
