@@ -1,9 +1,0 @@
-{
-    "vpic": {
-	"dependency_list" : [] 
-    },
-    "paraview-server": {
-	"dependency_list": ["vpic"],
-	"dependency_mode": "in-situ"
-    }
-}

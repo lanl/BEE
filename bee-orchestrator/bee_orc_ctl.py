@@ -1,15 +1,11 @@
 #!/usr/bin/env python
-import pexpect
 import Pyro4
 import Pyro4.naming
-import subprocess
 from subprocess import Popen
 from bee_aws_launcher import BeeAWSLauncher 
 from bee_vm_launcher import BeeVMLauncher
 from bee_os_launcher import BeeOSLauncher
 import boto3
-from threading import Thread
-from bee_task import BeeTask
 import os
 import json
 import time

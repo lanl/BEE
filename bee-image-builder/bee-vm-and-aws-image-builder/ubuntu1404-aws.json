@@ -1,7 +1,0 @@
-{
-    "_comment": "Build with `packer build -var-file=ubuntu1404.json ubuntu.json`"
-}
-
-
-
-
