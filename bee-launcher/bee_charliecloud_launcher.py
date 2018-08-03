@@ -31,10 +31,9 @@ class BeeCharliecloudLauncher(BeeTask):
         # __host_mpi formatted to be used with srun/mpirun -host *
         # filled during launch event (string, to be used in cmd list)
         self.__hosts_mpi = ""
-        # TODO: change this to initialize to 0 and move to launcher
-        self.__hosts_total = self.__fetch_beefile_value("node_quantity",
-                                                        self.__bee_charliecloud_conf,
-                                                        0)
+        self.__hosts_total = self.__fetch_beefile_value(key="node_quantity",
+                                                        dictionary=self.__bee_charliecloud_conf,
+                                                        default=0, silent=True)
 
         # Container configuration
         self.__container_path = beefile['container_conf']['container_path']
@@ -173,11 +172,10 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         for run_conf in self.__task_conf['srun_run']:
             cmd = ["sh", str(run_conf['script'])]
-            # TODO: implement better solution
             ntasks = None
             try:
                 ntasks = run_conf['ntasks']
-            except:
+            except KeyError:
                 pass
             self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi,
                                                           self.__hosts_total,
@@ -317,7 +315,8 @@ class BeeCharliecloudLauncher(BeeTask):
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 
-    def __fetch_beefile_value(self, key, dictionary, default=None, quite=False):
+    def __fetch_beefile_value(self, key, dictionary, default=None, quit_err=False,
+                              silent=False):
         """
         Fetch a specific key/value pair from the .beefile and
         raise error is no default supplied and nothing found
@@ -326,16 +325,19 @@ class BeeCharliecloudLauncher(BeeTask):
                             e.g. self.__beefile['task_conf']
         :param default: Returned if no value found, if None (def)
                         then error message surfaced
+        :param quit_err: Exit with non-zero (default=False)
+        :param silent: Hide warning message (default=False)
         :return: Value for key. Data type dependent on beefile,
                     and no verification beyond existence
         """
         try:
             return dictionary[key]
         except KeyError:
-            if default is not None and not quite:
-                cprint("[" + self.__task_name + "] User defined value for ["
-                       + str(key) + "] was not found, default value: "
-                       + str(default) + " used.", self.warning_color)
+            if default is not None and not quit_err:
+                if not silent:
+                    cprint("[" + self.__task_name + "] User defined value for ["
+                           + str(key) + "] was not found, default value: "
+                           + str(default) + " used.", self.warning_color)
                 return default
             else:
                 cprint("[" + self.__task_name + "] Key: " + str(key) + " was not found in: " +
