@@ -10,7 +10,7 @@
       ],
       "mpi_run": [
 	  {	   
-	      "script": "para-tom-vpic.sh"
+	      "script": "para-tom-vpic.sh",
 	      "map_num": "4",
 	      "map_by": "node"
 	  }
