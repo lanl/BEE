@@ -6,3 +6,6 @@ bee_orc_ctl.py
 
 and used on the 2nd screen
 ssh <headnode (cn30)> 
+
+The container needs to be fixed. Commenting out the line "SendEnv LANG LC_*" 
+may work.
