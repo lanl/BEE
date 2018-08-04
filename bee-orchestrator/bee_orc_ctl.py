@@ -1,14 +1,13 @@
 #!/usr/bin/env python
+# system
 import Pyro4
 import Pyro4.naming
-from subprocess import Popen
-from bee_aws_launcher import BeeAWSLauncher 
-from bee_vm_launcher import BeeVMLauncher
-from bee_os_launcher import BeeOSLauncher
-import boto3
 import os
 import json
 import time
+from subprocess import Popen
+# project
+
 @Pyro4.expose
 class BeeLauncherDaemon(object):
     def __init__(self):
