@@ -1,4 +1,4 @@
-class SlurmAdaptee:
+class LocalhostAdaptee:
     def __init__(self, config):
         self._config = config
 

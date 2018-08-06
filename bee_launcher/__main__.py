@@ -3,7 +3,7 @@ import argparse
 from os import getcwd, path
 from termcolor import cprint
 # project
-from bee_launcher import BeeArguments
+from bee_launch import BeeArguments
 from bee_flow import BeeFlow
 
 
