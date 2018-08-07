@@ -6,4 +6,4 @@ export SLURM_MPI_TYPE="pmi2"
 
 env|egrep -i mpi 
 
-ch-run -w --no-home /var/tmp/flecsale -b output:/mnt/0 --cd /mnt/0 -- /home/flecsi/flecsale/build/apps/hydro/2d/hydro_2d -m  /home/flecsi/flecsale/specializations/data/meshes/2d/square/square_32x32.g
+ch-run -w -v --no-home -b output --cd /mnt/0 /var/tmp/flecsale -- /home/flecsi/flecsale/build/apps/hydro/2d/hydro_2d -m  /home/flecsi/flecsale/specializations/data/meshes/2d/square/square_32x32.g
