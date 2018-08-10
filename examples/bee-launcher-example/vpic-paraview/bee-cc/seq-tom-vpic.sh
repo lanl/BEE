@@ -1,8 +1,7 @@
 #!/bin/bash
+mkdir -p vpic_share
+srun cp -R /var/tmp/vpic/usr/local/paraview.bin/lib /var/tmp/vpic/usr
+srun cp -R /var/tmp/vpic/usr/local/lib /var/tmp/vpic/usr
 
-VPIC_CH=/var/tmp/vpic
-VPIC_OUT=~/vpic_share
-LAUNCH_LOC=/home/beeuser/launch.sh
-
-ch-run --no-home -b $VPIC_OUT:/mnt/docker_share $VPIC_CH -- \
-	/home/beeuser/./launch.sh
+ch-run --no-home -b vpic_share:/mnt/docker_share /var/tmp/vpic -- \
+	/home/beeuser/launch.sh

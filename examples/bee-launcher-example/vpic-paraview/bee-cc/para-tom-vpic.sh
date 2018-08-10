@@ -1,7 +1,4 @@
 #!/bin/bash
 
-VPIC_CH=/var/tmp/vpic
-VPIC_OUT=~/vpic_share
-
-ch-run --no-home -b $VPIC_OUT:/mnt/docker_share $VPIC_CH -- \
-    sh -c "cd /mnt/docker_share/mytest/ && ./turbulence_master.Linux"
+ch-run --no-home -b vpic_share:/mnt/docker_share -c /mnt/docker_share/mytest /var/tmp/vpic \
+-- sh -c ./turbulence_master.Linux
