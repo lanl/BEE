@@ -5,19 +5,17 @@
       "batch_mode": false,
       "general_run": [],
       "mpi_run": [
-	  {	   
-	      "script": "para-tom-vpic.sh",
-	      "map_num": "2",
-	      "map_by": "socket"
+	  {
+ "script": "harris_run.sh"
 	  }
       ]
   }, 
   "container_conf":{
-      "container_path": "/usr/projects/beedev/vpic/vpic.tar.gz"
+      "container_path": "/scratch/beedev/vpic/vpic.tar.gz"
   },
   "exec_env_conf": {
       "bee_charliecloud": {
-	  "node_list": ["cn30", "cn31"]
+	  "node_list": ["cn31", "cn32"]
       }
   }
 }
