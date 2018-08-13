@@ -40,14 +40,18 @@ Configure `<task_name>.beefile` file as follow:
             map_by flag for mpirun command i.e. "node" or "core", invalid if 
             no map_num
      * 4. `map_num`:  argument to map_by flag.
-   * f. 'delete_after_exec': Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
+   * f. `srun_run`: list of scripts that will be run via `srun` across all nodes specified via `exec_env_conf`.
+     * 1. `ntasks`: specific the number of tasks to be run, defaults to one per node
+   * g. 'delete_after_exec': Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
 
 * `container_conf`: Charliecloud container info.
   * a. `container_path`: entire path for the Charlicloud tarred image;
 
 * `exec_env_conf`: specifiying all configuration related to the execution 
     environment.
-  * a. `bee_charlicloud`: {}
+  * a. `bee_charlicloud`: {
+     * 1. `node_list`: nodes i.e. ["cn30", "cn31" ...] to be utlized, this list specifies which nodes should be utilized as part of task. Insure that it is utlized to avoid potential conflicts and wasted resources when utlizing BeeFlow.
+  }
 
 ##### Step 2. Launch task
 * a. Prepare run scripts and beefile. See examples/bee-charliecloud-examples.
