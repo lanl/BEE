@@ -5,9 +5,7 @@
       "batch_mode": false,
       "general_run": [
 	      {
-	        "script": "lammps_cc_gen_run.sh",
-	        "local_port_fwd": [],
-	        "remote_port_fwd": []
+	        "script": "lammps_cc_gen_run.sh"
 	      }
       ],
       "mpi_run": [],
@@ -19,7 +17,7 @@
   
   "exec_env_conf": {
       "bee_charliecloud": {
-	  "share_dir": "/scratch/beedev/lammps_bee_cc/inputs"
+	    "node_list": ["cn30"]
       }
   }
 }

@@ -7,9 +7,9 @@
       "mpi_run": [
           {
             "script": "lammps_cc_mpi_1.sh",
-            "node_list": ["cn30", "cn31", "cn32"],
+            "node_list": ["cn30", "cn31"],
             "map_by": "node",
-            "map_num": 16
+            "map_num": 4 
           },
           {
             "script": "lammps_cc_mpi_2.sh",
@@ -29,7 +29,7 @@
   
   "exec_env_conf": {
       "bee_charliecloud": {
-	  "share_dir": "/scratch/beedev/lammps_bee_cc/inputs"
+	    "node_list": ["cn30", "cn31", "cn32"]
       }
   }
 }

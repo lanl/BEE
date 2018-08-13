@@ -9,8 +9,7 @@
 # or a path set to openmpi and charliecloud
 mkdir -p out
 mpirun ch-run \
- -b out \
- /var/tmp/lammps_example \
- -- /lammps/src/lmp_mpi \
- -in /lammps/examples/melt/in.melt -log /mnt/0/lammps_gen.log # has larger region 50 steps
-
+	-b out \
+	/var/tmp/lammps_example \
+	-- /lammps/src/lmp_mpi \
+	-in /lammps/examples/melt/in.melt -log /mnt/0/lammps_gen.log # has larger region 50 steps

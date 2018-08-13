@@ -5,9 +5,7 @@
       "batch_mode": false,
       "general_run": [
 	      {
-	        "script": "flecsale_gen_run.sh",
-	        "local_port_fwd": [],
-	        "remote_port_fwd": []
+	        "script": "flecsale_gen_run.sh"
 	      }
       ],
       "mpi_run": [],
@@ -19,6 +17,7 @@
   
   "exec_env_conf": {
       "bee_charliecloud": {
+        "node_list": ["cn30"]
       }
   }
 }

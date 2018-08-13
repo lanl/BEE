@@ -1,12 +1,15 @@
-#!/usr/bin/python                                                                                                       
+#!/usr/bin/python
+# system
 import Pyro4
-from beeflow_loader import BeeflowLoader
-from beefile_loader import BeefileLoader
 import sys
 import getopt
 import os
 import getpass
 import json
+# project
+from beeflow_loader import BeeflowLoader
+from beefile_loader import BeefileLoader
+
 
 class BeeComposer(object):
     def __init__(self):
@@ -29,7 +32,12 @@ class BeeComposer(object):
         for run_conf in beefile['task_conf']['general_run']:
             run_conf['script'] = self.__cwdir + "/" + run_conf['script']
         for run_conf in beefile['task_conf']['mpi_run']:
-            run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
+            run_conf['script'] = self.__cwdir + "/" + run_conf['script']
+        try:  # optional to avoid affecting existing
+            for run_conf in beefile['task_conf']['srun_run']:
+                run_conf['script'] = self.__cwdir + "/" + run_conf['script']
+        except KeyError:
+            pass
 
 
 def main(argv):
@@ -57,7 +65,6 @@ def main(argv):
         beefiles[task] = beefile
     
     bee_composer.launch(beeflow, beefiles)
-    
 
     
 if __name__ == "__main__":

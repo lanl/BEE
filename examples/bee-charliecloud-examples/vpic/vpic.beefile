@@ -1,0 +1,21 @@
+{
+  "task_conf": {
+      "task_name": "vpic",
+      "exec_target": "bee_charliecloud",
+      "batch_mode": false,
+      "general_run": [],
+      "mpi_run": [
+	  {
+ "script": "harris_run.sh"
+	  }
+      ]
+  }, 
+  "container_conf":{
+      "container_path": "/scratch/beedev/vpic/vpic.tar.gz"
+  },
+  "exec_env_conf": {
+      "bee_charliecloud": {
+	  "node_list": ["cn31", "cn32"]
+      }
+  }
+}

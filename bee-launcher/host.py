@@ -5,7 +5,6 @@ import os
 import getpass
 from qemu import QEMU
 import pexpect,sys
-import socket
 
 class Host(object):
     def __init__(self, host_name, ssh_port = 22):
@@ -32,12 +31,10 @@ class Host(object):
                     "-q",
                     "{}@{}".format(self.__user_name, self.__host_name),
                     "-x"]
-                    
-        if socket.gethostname() != self.__host_name:
-            for port in  local_pfwd:
-                exec_cmd.insert(5, "-L {}:localhost:{}".format(port, port))
-            for port in  remote_pfwd:
-                exec_cmd.insert(5, "-R {}:localhost:{}".format(port, port))
+        for port in  local_pfwd:
+            exec_cmd.insert(5, "-L {}:localhost:{}".format(port, port))
+        for port in  remote_pfwd:
+            exec_cmd.insert(5, "-R {}:localhost:{}".format(port, port))
 
         cmd = exec_cmd + command
         return cmd

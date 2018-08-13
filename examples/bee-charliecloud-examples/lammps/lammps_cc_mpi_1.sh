@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir -p out
 
 # parallel run of lammps for BEE Charliecloud launcher
 ch-run \
