@@ -3,21 +3,17 @@
       "task_name": "vpic",
       "exec_target": "bee_charliecloud",
       "batch_mode": false,
-      "general_run": [
-	  {
-	      "script": "seq-tom-vpic.sh"
-	  }
-      ],
+      "general_run": [],
       "mpi_run": [
 	  {	   
 	      "script": "para-tom-vpic.sh",
-	      "map_num": "4",
-	      "map_by": "node"
+	      "map_num": "2",
+	      "map_by": "socket"
 	  }
       ]
   }, 
   "container_conf":{
-      "container_path": "/scratch/beedev/paraview-vpic/vpic.tar.gz"
+      "container_path": "/usr/projects/beedev/vpic/vpic.tar.gz"
   },
   "exec_env_conf": {
       "bee_charliecloud": {
