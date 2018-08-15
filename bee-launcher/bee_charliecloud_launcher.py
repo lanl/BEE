@@ -175,7 +175,7 @@ class BeeCharliecloudLauncher(BeeTask):
             flags = None
             try:
                 flags = []
-                for key, value in run_conf['flags']:
+                for key, value in run_conf['flags'].items():
                     flags.append(str(key))
                     if value is not None:
                         flags.append(str(value))
