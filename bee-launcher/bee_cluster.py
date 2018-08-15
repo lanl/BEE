@@ -100,7 +100,7 @@ class BeeTask(Thread):
                 exit(1)
 
     @staticmethod
-    def compose_srun(command, hosts=None, num_nodes=None, tasks=None):
+    def compose_srun(command, hosts=None, num_nodes=None, custom_flags=None):
         """
         Compose SRUN command to be run via subprocess
         https://slurm.schedmd.com/srun.html
@@ -108,7 +108,7 @@ class BeeTask(Thread):
         :param command: Command to be run [List]
         :param hosts: Specific hosts (nodes) command is to be run on (str)
         :param num_nodes: Min/Max number of nodes allocated to job
-        :param tasks: Number of tasks (command) that are run within alloc
+        :param custom_flags: List of custom flags ["-n","8", ...]
         :return: [List] to be run via subprocess
         """
         srun_cmd = ["srun"]
@@ -116,8 +116,8 @@ class BeeTask(Thread):
             srun_cmd += ["--nodelist=" + hosts]
         if num_nodes is not None:
             srun_cmd += ["--nodes=" + str(num_nodes) + "-" + str(num_nodes)]
-        if tasks is not None:
-            srun_cmd += ["--ntasks=" + str(tasks)]
+        if custom_flags is not None:
+            srun_cmd += custom_flags
         srun_cmd += command
         return srun_cmd
 
