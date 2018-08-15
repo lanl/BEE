@@ -24,7 +24,7 @@ Configure `<task_name>.beefile` file as follow:
             refer to `User Guide for Batch Mode`.
             NOTE: As of the current release this is unspported by the Charliecloud launcher
 
-   * d. `general_run`: list of scripts that will be run after launching;
+   * d. `general_run`: list of scripts that will be invoked on the head-node in the allocation after launching;
      * 1. `script`: name of the script. The script file needs to be in current
             directory.
      * 2. `local_port_fwd`: `[]` indicates no port 
@@ -40,7 +40,7 @@ Configure `<task_name>.beefile` file as follow:
             map_by flag for mpirun command i.e. "node" or "core", invalid if 
             no map_num
      * 4. `map_num`:  argument to map_by flag.
-   * f. `srun_run`: list of scripts that will be run via `srun` across all nodes specified via `exec_env_conf`.
+   * f. `srun_run`: list of scripts that will be run via `srun` across all nodes specified via `node_list` under  `exec_env_conf`.
      * 1. `ntasks`: specific the number of tasks to be run, defaults to one per node
    * g. 'delete_after_exec': Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
 
