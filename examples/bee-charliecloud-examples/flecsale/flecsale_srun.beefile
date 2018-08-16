@@ -22,7 +22,7 @@
   
   "exec_env_conf": {
       "bee_charliecloud": {
-        "node_list": ["cn30"]
+        "node_list": ["cn30","cn31"]
       }
   }
 }
