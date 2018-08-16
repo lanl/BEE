@@ -94,5 +94,5 @@ Configure `<task_name>.beefile` file as follow:
 
      `-d <task_name>`: terminate and delete task <task_name> from task list;   
 
-##### Additional Notes
+### Additional Notes
 Support for `BeeFlow` has been added for the `Bee-Charliecloud` launcher. Please refer to the [documentation](https://github.com/lanl/BEE_Private/blob/master/doc/User%20Guide%20for%20BeeFlow.md) for details on how to create a workflow.
