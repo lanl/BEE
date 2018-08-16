@@ -7,7 +7,7 @@
       "mpi_run": [],
       "srun_run": [
         {
-            "scripts": "flecsale_srun_run.sh",
+            "script": "flecsale_srun_run.sh",
             "flags": {
                 "-n": "5",
                 "--mpi=pmi2": null
