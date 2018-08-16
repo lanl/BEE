@@ -40,8 +40,14 @@ Configure `<task_name>.beefile` file as follow:
             map_by flag for mpirun command i.e. "node" or "core", invalid if 
             no map_num
      * 4. `map_num`:  argument to map_by flag.
-   * f. `srun_run`: list of scripts that will be run via `srun` across all nodes specified via `node_list` under  `exec_env_conf`.
-     * 1. `ntasks`: specific the number of tasks to be run, defaults to one per node
+   * f. `srun_run`: list of scripts that will be run via `srun` across all nodes specified via `node_list` under  `exec_env_conf`. This is beneficial when utlizing the `BeeFlow` functionality within a single allocation.
+     * 1. `flags`: A set of key/value pairs that equate to options for the `srun` command. Anything provided via this method is not verified and you are responsible for ensuring the accuracy of these options. For example, the below values would would be seen as: `srun -n 8 --mpi=pmi2 ...`. Make note of the use of `null` if you are utilizing long names/value in a single key.
+      ```json
+      "flags": {
+        "-n": "8",
+        "--mpi=pmi2": null
+      }
+      ```
    * g. 'delete_after_exec': Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
 
 * `container_conf`: Charliecloud container info.
@@ -86,3 +92,6 @@ Configure `<task_name>.beefile` file as follow:
      `-t <task_name>`: terminate task <task_name>;
 
      `-d <task_name>`: terminate and delete task <task_name> from task list;   
+
+##### Additional Notes
+Support for `BeeFlow` has been added for the `Bee-Charliecloud` launcher. Please refer to the [documentation](https://github.com/lanl/BEE_Private/blob/master/doc/User%20Guide%20for%20BeeFlow.md) for details on how to create a workflow.
