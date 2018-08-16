@@ -16,11 +16,11 @@ Log into your target system, you can either open two seperate terminals or work 
 
 #### Step 3. - On Window 1 
 * `$ salloc -p <partition> -N <number of nodes>`
-* `$ source setenv_cc_ompi_2.1.2` # loads charliecloud and openmpi
+* `$ source env_cc_ompi_2.1.2` # loads charliecloud and openmpi (this is just an example for a particular cluster)jj
 * `$ bee_orc_ctl.py` 
 
 ##### Step 4. - On Window 2
-* Connect to node allocatin in step 3
+* Connect to node allocation in step 3
 * `cd` to the example directory
 * `$ bee_launcher.py -l flecsale_gen` # Alternatively you can speicifcy any other `.beefile`
 
