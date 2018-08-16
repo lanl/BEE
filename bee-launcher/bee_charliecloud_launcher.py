@@ -248,6 +248,8 @@ class BeeCharliecloudLauncher(BeeTask):
             self.__remove_ch_dir(self.__hosts_mpi, self.__hosts_total)
         if not clean:
             self.__current_status = 6  # Terminated
+            cprint("[" + self.__task_name + "] Has been successfully Terminated",
+                   self.output_color)
 
     def wait_for_others(self):
         self.current_status = 2  # Waiting
