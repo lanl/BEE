@@ -14,8 +14,8 @@
  * 2.2. CD to example directory
  * 2.3. Verify `lammps_cc_gen.beefile` properties
       * `"container_path": "..."`: Is pointing to the correct location of the Flecsale Charliecloud container.
-      * `"node_list": ["??", "??"]"`: Any instalce of `node_list` have been properly updated.
- * 2.4. `$ source env_cc_ompi1.10`
+      * `"node_list": ["??", "??"]"`: Any instance of `node_list` have been properly updated.
+ * 2.4. `$ source env_cc_ompi1.10` # sets up environment (This is just and example for a particular cluster.)
  * 2.5. `$ bee_orc_ctl.py`
  * 2.6. Leave terminal open
 3. Via `Client Control` terminal
@@ -30,7 +30,7 @@
  * 2.1. `$ salloc -p <partitionName> -N3`
  * 2.2. CD to example directory
  * 2.3. Verify `lammps_cc_mpi.beefile` properties, care any referenced `nodes`
- * 2.4. `$ source env_cc_ompi1.10`
+ * 2.4. `$ source env_cc_ompi1.10` # sets up environment (This is just and example for a particular cluster.)
  * 2.5. `$ bee_orc_ctl.py`
  * 2.6 Leave terminal open
 3. Via `Client Control` terminal
