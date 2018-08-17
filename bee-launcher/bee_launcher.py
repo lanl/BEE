@@ -43,9 +43,6 @@ class BeeLauncher(object):
 
     def delete_task(self, beetask_name):
         self.bldaemon.delete_task(beetask_name)
-
-    def create_bee_aws_storage(self, efs_name, perf_mode = 'generalPurpose'):
-        return self.bldaemon.create_bee_aws_storage(efs_name, perf_mode)
     
     def encode_cwd(self, beefile):
         for run_conf in beefile['task_conf']['general_run']:
@@ -131,13 +128,6 @@ def main(argv):
             print("Task: " + beetask_name + " is deleted.")
             exit()
 
-        elif opt in ("-e", "--efs"):
-            efs_id = bee_launcher.create_bee_aws_storage(arg)
-            if efs_id == "-1":
-                print("EFS name already exists!")
-            else:
-                print("EFS created: " + efs_id)
-            exit()
 
 if __name__ == "__main__":
     main(sys.argv[1:])

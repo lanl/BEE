@@ -1,20 +1,10 @@
 #!/usr/bin/env python
-import subprocess
-from subprocess import Popen
-from bee_aws_launcher import BeeAWSLauncher 
 from bee_vm_launcher import BeeVMLauncher
 from bee_os_launcher import BeeOSLauncher
 from beefile_loader import BeefileLoader
-import boto3
-from threading import Thread
-from bee_task import BeeTask
-import os
-import json
-import time
 import sys
 import getopt
-import os
-import json
+
 
 class BeeCILauncher(object):
     def __init__(self):
@@ -28,8 +18,6 @@ class BeeCILauncher(object):
         beetask_name = beefile['task_conf']['task_name']
         if exec_target == 'bee_vm':
             self.beetask = BeeVMLauncher(0, beefile)
-        elif exec_target == 'bee_aws':
-            self.beetask = BeeAWSLauncher(0, beefile)
         elif exec_target == 'bee_os':
             self.beetask = BeeOSLauncher(0, beefile = beefile, scalability_test = True)
            
@@ -42,6 +30,7 @@ class BeeCILauncher(object):
 
     def terminate_task(self, beetask_name):
         self.beetask.terminate()
+
 
 def main(argv):
     try:
@@ -66,6 +55,7 @@ def main(argv):
             bee_ci_launcher = BeeCILauncher()
             bee_ci_launcher.create_and_launch_task(beefile)
             exit()
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
