@@ -32,23 +32,36 @@ developers to describe compile and execution environments with Docker. When code
 a repository, it can be automatically tested across a suite of different software environments.
 
 
-# Build Instructions
+# Deployment Instructions
+### Requirements
+- Linux OS
+- Python 2.7
+- Pip
 
-To be added
+Note, that in order to fully utlize all BEE modules you may need additonal software not installed during the normal deployment process.
+#### BEE-VM
+- [QEMU](https://www.qemu.org/)
+- [Packer](https://www.packer.io/downloads.html)
+#### BEE-Charliecloud
+- [Charliecloud](https://github.com/hpc/charliecloud)
+- Slurm
+
+### Process
+1. Clone repostory
+2. Run `./install.sh`, this will install all necessary Python modules and `.ssh` keys used during `BEE-VM`
+3. Add the `bee-launcher\` folder to your environmental `PATH`
 
 # Mail List and Contact
 
 For bugs and problems report, suggestions and other general questions regarding the BEE project, Please subscribe to [BEE-LANL](https://groups.google.com/forum/#!forum/BEE-User-Group) and post your quesitons. 
 
-
 # Release
 
 This software has been approved for open source release and has been assigned **BEE C17056**.
 
+# Publications
 
-# Troubleshooting
-
-
+- [BeeFlow: A Workflow Management System for In Situ Processing across HPC and Cloud Systems](https://ieeexplore.ieee.org/abstract/document/8416366/)
 
 # Copyright
 License can be found [here](https://github.com/lanl/BEE/blob/master/LICENSE)
