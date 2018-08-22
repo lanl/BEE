@@ -78,7 +78,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.launch()
 
     def launch(self):
-        self.terminate(clean=(not self.__use_existing))
+        self.terminate(clean=True)
         self.__current_status = 3  # Launching
 
         cprint("[" + self.__task_name + "] Charliecloud launching", self.output_color)
@@ -248,6 +248,8 @@ class BeeCharliecloudLauncher(BeeTask):
             self.__remove_ch_dir(self.__hosts_mpi, self.__hosts_total)
         if not clean:
             self.__current_status = 6  # Terminated
+            cprint("[" + self.__task_name + "] Has been successfully Terminated",
+                   self.output_color)
 
     def wait_for_others(self):
         self.current_status = 2  # Waiting
@@ -318,6 +320,8 @@ class BeeCharliecloudLauncher(BeeTask):
                                 nodes=hosts)
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
+        cprint("[" + self.__task_name + "] Removed Charliecloud container " + self.__container_name
+              + "from " + self.__ch_dir, self.output_color)
 
     def __fetch_beefile_value(self, key, dictionary, default=None, quit_err=False,
                               silent=False):
