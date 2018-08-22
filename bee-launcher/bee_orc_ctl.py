@@ -1,21 +1,21 @@
 #!/usr/bin/env python
-import pexpect
+# system
+import boto3
+import os
+import getpass
+import json
 import Pyro4
 import Pyro4.naming
-import subprocess
-import getpass
 from subprocess import Popen
+from time import sleep
+from pwd import getpwuid
+# project
 from bee_aws_launcher import BeeAWSLauncher 
 from bee_vm_launcher import BeeVMLauncher
 from bee_os_launcher import BeeOSLauncher
 from bee_charliecloud_launcher import BeeCharliecloudLauncher
-import boto3
-from threading import Thread
-from bee_task import BeeTask
-import os
-import getpass
-import json
-import time
+
+
 @Pyro4.expose
 class BeeLauncherDaemon(object):
     def __init__(self):
@@ -141,9 +141,10 @@ class BeeLauncherDaemon(object):
 def main():
     open_port = get_open_port()
     update_system_conf(open_port)
-    #Pyro4.naming.startNSloop(port = open_port, hmac = getpass.getuser())
-    Popen(['python', '-m', 'Pyro4.naming', '-k', getpass.getuser(), '-p', str(open_port)])
-    time.sleep(1)
+    hmac_key = getpwuid(os.getuid())[0]
+    os.environ["PYRO_HMAC_KEY"] = hmac_key
+    Popen(['python', '-m', 'Pyro4.naming', '-p', str(open_port)])
+    sleep(5)
     bldaemon = BeeLauncherDaemon()
     daemon = Pyro4.Daemon()
     bldaemon_uri = daemon.register(bldaemon)
