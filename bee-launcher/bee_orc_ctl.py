@@ -2,7 +2,6 @@
 # system
 import boto3
 import os
-import getpass
 import json
 import Pyro4
 import Pyro4.naming
@@ -10,7 +9,7 @@ from subprocess import Popen
 from time import sleep
 from pwd import getpwuid
 # project
-from bee_aws_launcher import BeeAWSLauncher 
+from bee_aws_launcher import BeeAWSLauncher
 from bee_vm_launcher import BeeVMLauncher
 from bee_os_launcher import BeeOSLauncher
 from bee_charliecloud_launcher import BeeCharliecloudLauncher
@@ -24,7 +23,7 @@ class BeeLauncherDaemon(object):
         print(os.path.dirname(os.path.abspath(__file__)))
         self.__py_dir = os.path.dirname(os.path.abspath(__file__))
 
-    def create_task(self, beefile, restore = False):
+    def create_task(self, beefile, restore=False):
         print("Bee orchestration controller: received task creating request")
         exec_target = beefile['task_conf']['exec_target']
         beetask_name = beefile['task_conf']['task_name']
@@ -45,11 +44,11 @@ class BeeLauncherDaemon(object):
             beetask = BeeCharliecloudLauncher(total_tasks + 1, beefile, restore)
             self.__beetasks[beetask_name] = beetask
             return beetask
-        
+
     def launch_task(self, beetask):
         beetask.start()
-    
-    def create_and_launch_task(self, beefile, restore = False):
+
+    def create_and_launch_task(self, beefile, restore=False):
         beetask = self.create_task(beefile, restore)
         self.launch_task(beetask)
 
@@ -57,30 +56,30 @@ class BeeLauncherDaemon(object):
         self.__beetasks[beetask_name].checkpoint()
 
     def terminate_task(self, beetask_name):
-        beetask = self.__beetasks[beetask_name].terminate()
+        self.__beetasks[beetask_name].terminate()
 
     def delete_task(self, beetask_name):
-        beetask = self.__beetasks[beetask_name].terminate()
+        self.__beetasks[beetask_name].terminate()
         del self.__beetasks[beetask_name]
 
     def list_all_tasks(self):
         tasks_and_status = {}
         for beetask_name in self.__beetasks:
-            tasks_and_status[beetask_name] = {"status" : self.__beetasks[beetask_name].get_current_status(),
-                                              "platform" : self.__beetasks[beetask_name].get_platform()}
+            tasks_and_status[beetask_name] = {"status": self.__beetasks[beetask_name].get_current_status(),
+                                              "platform": self.__beetasks[beetask_name].get_platform()}
         return tasks_and_status
 
-    def create_bee_aws_storage(self, efs_name, perf_mode = 'generalPurpose'):
+    def create_bee_aws_storage(self, efs_name, perf_mode='generalPurpose'):
         print("Bee orchestration controller: received bee-aws storage creating request")
         if self.get_bee_efs_id(efs_name) != -1:
             print("EFS named " + efs_name + " already exist!")
-            return  '-1'
+            return '-1'
         efs_client = boto3.client('efs')
-        efs_client.create_file_system(CreationToken = efs_name, PerformanceMode = perf_mode)
-        resp = efs_client.describe_file_systems(CreationToken = efs_name)
+        efs_client.create_file_system(CreationToken=efs_name, PerformanceMode=perf_mode)
+        resp = efs_client.describe_file_systems(CreationToken=efs_name)
         efs_id = resp['FileSystems'][0]['FileSystemId']
-        efs_client.create_tags(FileSystemId = efs_id,
-                               Tags=[{'Key':'Name', 'Value':efs_name}])
+        efs_client.create_tags(FileSystemId=efs_id,
+                               Tags=[{'Key': 'Name', 'Value': efs_name}])
         self.wait_bee_efs(efs_name)
         print('Created new BEE EFS:' + efs_id)
         return efs_id
@@ -97,10 +96,10 @@ class BeeLauncherDaemon(object):
     def wait_bee_efs(self, efs_name):
         print("Wait for EFS to become available.")
         efs_client = boto3.client('efs')
-        resp = efs_client.describe_file_systems(CreationToken = efs_name)
+        resp = efs_client.describe_file_systems(CreationToken=efs_name)
         state = resp['FileSystems'][0]['LifeCycleState']
         while state != 'available':
-            resp = efs_client.describe_file_systems(CreationToken = efs_name)
+            resp = efs_client.describe_file_systems(CreationToken=efs_name)
             state = resp['FileSystems'][0]['LifeCycleState']
 
     def launch_efs_daemon(self, efs_id):
@@ -116,7 +115,7 @@ class BeeLauncherDaemon(object):
             beetask = self.create_task(beefile)
             beeflow_tasks[task_name] = beetask
             self.__beetasks[task_name] = beetask
-            
+
         # Create dependency
         for task_name in beeflow:
             beetask = beeflow_tasks[task_name]
@@ -133,7 +132,7 @@ class BeeLauncherDaemon(object):
                         print("Creating in-situ dependecy:" + task_name + " --> " + dependent_name + ".")
                         begin_event = dependent_beetask.get_begin_event()
                         beetask.add_wait_event(begin_event)
-        
+
         # Launch tasks
         for task_name in beeflow_tasks:
             self.launch_task(beeflow_tasks[task_name])
@@ -149,9 +148,9 @@ def main():
     bldaemon = BeeLauncherDaemon()
     daemon = Pyro4.Daemon()
     bldaemon_uri = daemon.register(bldaemon)
-    ns = Pyro4.locateNS(port = open_port, hmac_key = getpass.getuser())
+    ns = Pyro4.locateNS(port=open_port, hmac_key=hmac_key)
     ns.register("bee_launcher.daemon", bldaemon_uri)
-    print("Bee orchestration controller started.")    
+    print("Bee orchestration controller started.")
     daemon.requestLoop()
 
 
@@ -165,14 +164,14 @@ def update_system_conf(open_port):
 
 
 def get_open_port():
-        import socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(("",0))
-        s.listen(1)
-        port = s.getsockname()[1]
-        s.close()
-        return port
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
