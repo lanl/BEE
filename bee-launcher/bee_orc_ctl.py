@@ -138,6 +138,7 @@ class BeeLauncherDaemon(object):
         for task_name in beeflow_tasks:
             self.launch_task(beeflow_tasks[task_name])
 
+
 def main():
     open_port = get_open_port()
     update_system_conf(open_port)
@@ -152,7 +153,8 @@ def main():
     ns.register("bee_launcher.daemon", bldaemon_uri)
     print("Bee orchestration controller started.")    
     daemon.requestLoop()
-    
+
+
 def update_system_conf(open_port):
     hdir = os.path.expanduser('~')
     f = open(hdir + "/.bee/bee_conf.json", "r")
@@ -160,6 +162,7 @@ def update_system_conf(open_port):
     f = open(hdir + "/.bee/bee_conf.json", "w")
     data["pyro4-ns-port"] = open_port
     json.dump(data, f)
+
 
 def get_open_port():
         import socket
@@ -169,6 +172,7 @@ def get_open_port():
         port = s.getsockname()[1]
         s.close()
         return port
+
 
 if __name__=="__main__":
     main()
