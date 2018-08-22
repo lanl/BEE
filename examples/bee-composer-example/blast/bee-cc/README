@@ -1,0 +1,11 @@
+The only way I could get this example to run without an error from blast-output.sh
+was if I allocated the nodes with this command
+LANG=C salloc -p galton -N5
+then ran 
+bee_orc_ctl.py
+
+and used on the 2nd screen
+ssh <headnode (cn30)> 
+
+The container needs to be fixed. Commenting out the line "SendEnv LANG LC_*" 
+may work.

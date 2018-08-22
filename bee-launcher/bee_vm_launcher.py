@@ -4,6 +4,7 @@ from docker import Docker
 import time
 import subprocess
 import os
+import getpass
 from os.path import expanduser
 from threading import Thread
 from threading import Event
@@ -27,7 +28,7 @@ class BeeVMLauncher(BeeTask):
         self.__task_id = task_id
 
         # System configuration
-        self.__user_name = os.getlogin()
+        self.__user_name = getpass.getuser()
         self.__bee_working_dir = expanduser("~") + "/.bee"
         self.__vm_key_path = self.__bee_working_dir + "/ssh_key/id_rsa"
         self.__base_img_path = self.__bee_working_dir + "/base_img/base_img"
@@ -215,10 +216,19 @@ class BeeVMLauncher(BeeTask):
     def general_run(self):
         # General sequential script
         master = self.__bee_vm_list[0]
+        
         for run_conf in self.__task_conf['general_run']:
             host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
-            docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+
+            docker_script_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/general_script.sh'
+            else:
+                docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+                for bee_vm in self.__bee_vm_list:
+                    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']))
+
             master.copy_file(host_script_path, vm_script_path)
             master.docker_copy_file(vm_script_path, docker_script_path)
             master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
@@ -227,16 +237,34 @@ class BeeVMLauncher(BeeTask):
         for run_conf in self.__task_conf['mpi_run']:
             host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/mpi_script.sh'
-            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+
+            docker_script_path = ''
+            hostfile_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/mpi_script.sh'
+                hostfile_path = '/root/hostfile'
+            else:
+                docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+                hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
+                for bee_vm in self.__bee_vm_list:
+                    bee_vm.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']))
+			
+
             for bee_vm in self.__bee_vm_list:
                 bee_vm.copy_file(host_script_path, vm_script_path)
                 bee_vm.docker_copy_file(vm_script_path, docker_script_path)
+            
             # Generate hostfile and copy to container
             master.docker_make_hostfile(run_conf, self.__bee_vm_list, self.__tmp_dir)
             master.copy_file(self.__tmp_dir + '/hostfile', '/home/ubuntu/hostfile')
-            master.docker_copy_file('/home/ubuntu/hostfile', '/home/{}/hostfile'.format(self.__docker_conf['docker_username']))
+            master.docker_copy_file('/home/ubuntu/hostfile', hostfile_path)
             # Run parallel script on all nodes
-            master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)
+            master.docker_para_run(run_conf,
+                                   docker_script_path, 
+                                   hostfile_path, 
+                                   local_pfwd = run_conf['local_port_fwd'],
+                                   remote_pfwd = run_conf['remote_port_fwd'],
+                                   async = False)
 
 
     def batch_run(self):
@@ -250,7 +278,13 @@ class BeeVMLauncher(BeeTask):
             count = count + 1
             host_script_path = run_conf['script']
             vm_script_path = '/home/ubuntu/general_script.sh'
-            docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+
+            docker_script_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/general_script.sh'
+            else:
+                docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+
             bee_vm.copy_file(host_script_path, vm_script_path)
             bee_vm.docker_copy_file(vm_script_path, docker_script_path)
             p = bee_vm.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],

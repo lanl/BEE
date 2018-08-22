@@ -1,7 +1,7 @@
 {
   "task_conf": {
       "task_name": "paraview-server",
-      "exec_target": "bee_aws",
+      "exec_target": "bee_os",
       "batch_mode": false,
       "general_run": [],
       "mpi_run": [
@@ -16,16 +16,14 @@
       "terminate_after_exec": false
   }, 
   "docker_conf":{
-	     "docker_img_tag": "cjy7117/tom-vpic2",
-	     "docker_username": "root",
-	     "docker_shared_dir": "/mnt/vpicrun"
+      "docker_img_tag": "beelanl/vpic",
+      "docker_username": "beeuser",
+      "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
-      "bee_aws": {
-	  "num_of_nodes": "2",
-	  "ami_image": "ami-908e15f0",
-	  "instance_type": "c3.4xlarge",
-	  "efs_id": "fs-58bc6ff1"
-      } 
+      "bee_os": {
+           "num_of_nodes": "2",
+           "reservation_id": "e9bb49a6-dedc-4229-94ab-a23e46501645"
+      }
   }
 }

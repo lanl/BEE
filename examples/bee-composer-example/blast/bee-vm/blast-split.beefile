@@ -14,19 +14,19 @@
       "terminate_after_exec": false
   }, 
   "docker_conf":{
-      "docker_img_tag": "cjy7117/blast",
-      "docker_username": "root",
-      "docker_shared_dir": "/mnt/blast"
+      "docker_img_tag": "beelanl/blast",
+      "docker_username": "beeuser",
+      "docker_shared_dir": "/mnt/docker_share"
   },
   "exec_env_conf": {
       "bee_vm": {
-	  "node_list": ["cn30"],
-	  "cpu_core_per_socket": "8",
-	  "cpu_thread_per_core": "1",
-	  "cpu_sockets": "2",
-	  "ram_size": "240G",
-	  "kvm_enabled": true,
-	  "host_input_dir": "/home/jieyang/blast_share"
-      }
+	    "node_list": ["cn30"],
+	    "cpu_core_per_socket": "8",
+	    "cpu_thread_per_core": "1",
+	    "cpu_sockets": "2",
+	    "ram_size": "240G",
+	    "kvm_enabled": true,
+	    "host_input_dir": "/home/jieyang/blast_share"
+    }
   }
 }

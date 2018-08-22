@@ -5,6 +5,7 @@ from beefile_loader import BeefileLoader
 import sys
 import getopt
 import os
+import getpass
 import json
 from termcolor import colored, cprint
 from tabulate import tabulate
@@ -15,14 +16,17 @@ class BeeLauncher(object):
     def __init__(self):
         self.__pydir = os.path.dirname(os.path.abspath(__file__))
         self.__cwdir = os.getcwd()
-        f = open(self.__pydir + "/bee_conf.json", "r")
+        self.__hdir = os.path.expanduser('~')
+        f = open(self.__hdir + "/.bee/bee_conf.json", "r")
         data = json.load(f)
         port = int(data["pyro4-ns-port"])
-        ns = Pyro4.locateNS(port = port, hmac_key = os.getlogin())
+        ns = Pyro4.locateNS(port = port, hmac_key = getpass.getuser())
         uri = ns.lookup("bee_launcher.daemon")
         self.bldaemon = Pyro4.Proxy(uri) #Pyro4.Proxy("PYRONAME:bee_launcher.daemon")
-        self.__status = ["Initializing", "Initialized", "Waiting", "Launching", "Running", "Finished", "Terminated"]
-        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta', 'red']
+        self.__status = ["Initializing", "Initialized", "Waiting", "Launching", 
+             "Running", "Finished", "Terminated"]
+        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green', 
+             'magenta', 'red']
 
     def launch(self, beefile, restore = False):
         self.encode_cwd(beefile)
@@ -39,23 +43,29 @@ class BeeLauncher(object):
 
     def delete_task(self, beetask_name):
         self.bldaemon.delete_task(beetask_name)
-
-    def create_bee_aws_storage(self, efs_name, perf_mode = 'generalPurpose'):
-        return self.bldaemon.create_bee_aws_storage(efs_name, perf_mode)
     
     def encode_cwd(self, beefile):
         for run_conf in beefile['task_conf']['general_run']:
             run_conf['script'] = self.__cwdir + "/" + run_conf['script']
         for run_conf in beefile['task_conf']['mpi_run']:
             run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
+        try:  # optional to avoid affecting existing
+            for run_conf in beefile['task_conf']['srun_run']:
+                run_conf['script'] = self.__cwdir + "/" + run_conf['script']
+        except KeyError:
+            pass
 
 def main(argv):
-    status_list = ["Initializing", "Initialized", "Waiting", "Launching", "Running", "Finished", "Terminated"]
-    status_color_list = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta', 'red']
+    status_list = ["Initializing", "Initialized", "Waiting", "Launching", 
+       "Running", "Finished", "Terminated"]
+    status_color_list = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta',
+       'red']
     bee_launcher = BeeLauncher()
     beefile = ""
     try:
-        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:", ["launch=", "checkpoint=", "restore=", "status", "terminate=", "delete=", "efs="])
+        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:", 
+            ["launch=", "checkpoint=", "restore=", "status", "terminate=", 
+             "delete=", "efs="])
     except getopt.GetoptError:
         print("Please provide beefile or efs name.")
         exit()
@@ -91,17 +101,17 @@ def main(argv):
                     print("No task exist.")
                     
                 table = []
-                    
                 count = 1
                 for beetask in status:
-                    color_status = colored(status_list[status[beetask]['status']], status_color_list[status[beetask]['status']])
-                    #print(str(count) + ". " + beetask + " [" + color_status + "]")
+                    color_status = colored(status_list[status[beetask]['status']], 
+                        status_color_list[status[beetask]['status']])
                     platform = status[beetask]['platform']
                     table.append([str(count), beetask, color_status, platform])
                     count = count + 1
                 os.system('clear')
-                print(tabulate(table, headers=['No.', 'Task Name', 'Status', 'Platform']))
-                time.sleep(1)
+                print(tabulate(table, 
+                     headers=['No.', 'Task Name', 'Status', 'Platform']))
+                time.sleep(5)
             exit()
 
         elif opt in ("-t", "--terminate"):
@@ -118,13 +128,6 @@ def main(argv):
             print("Task: " + beetask_name + " is deleted.")
             exit()
 
-        elif opt in ("-e", "--efs"):
-            efs_id = bee_launcher.create_bee_aws_storage(arg)
-            if efs_id == "-1":
-                print("EFS name already exists!")
-            else:
-                print("EFS created: " + efs_id)
-            exit()
 
 if __name__ == "__main__":
     main(sys.argv[1:])

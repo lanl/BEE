@@ -1,7 +1,11 @@
 import os
+import getpass
 import subprocess
 import time
 from os.path import expanduser
+import getpass
+import sys
+
 
 from docker import Docker
 from termcolor import colored, cprint
@@ -21,7 +25,7 @@ from neutronclient.v2_0.client import Client as neutronClient
 
 class BeeOSLauncher(BeeTask):
 
-    def __init__(self, task_id, beefile):
+    def __init__(self, task_id, beefile = "", scalability_test = False):
 
         BeeTask.__init__(self)
 
@@ -38,9 +42,9 @@ class BeeOSLauncher(BeeTask):
         self.__reservation_id = self.__bee_os_conf['reservation_id']
 
         # OS configuration
-        self.__bee_os_sgroup = '{}-{}-bee-os-security-group'.format(os.getlogin(), self.__task_name)
-        self.__ssh_key = '{}-{}-bee-os-sshkey'.format(os.getlogin(), self.__task_name)
-        self.__stack_name = '{}-{}-bee-os-stack'.format(os.getlogin(), self.__task_name)
+        self.__bee_os_sgroup = '{}-{}-bee-os-security-group'.format(getpass.getuser(), self.__task_name)
+        self.__ssh_key = '{}-{}-bee-os-sshkey'.format(getpass.getuser(), self.__task_name)
+        self.__stack_name = '{}-{}-bee-os-stack'.format(getpass.getuser(), self.__task_name)
 
 
         self.__key_path = expanduser("~") + '/.bee/ssh_key/id_rsa'
@@ -65,6 +69,8 @@ class BeeOSLauncher(BeeTask):
         self.__end_event = Event()
         self.__event_list = []
 
+        self.__scalability_test = scalability_test
+
         self.__current_status = 1 # initialized
 
     def run(self):
@@ -82,14 +88,27 @@ class BeeOSLauncher(BeeTask):
         self.setup_sshconfig()
         self.setup_hostname()
         self.setup_hostfile()
+        self.setup_storage()
         self.add_docker()
+        self.__bee_os_list[0].parallel_run(['hostname'], self.__bee_os_list)
         self.get_docker_img()
         self.start_docker()
         self.__current_status = 2 # waiting
         self.wait_for_others()
         self.__current_status = 4 # Running
-        self.general_run()
+        if (self.__scalability_test):
+            self.scalability_test_run()
+        else:
+            self.general_run()
         self.__current_status = 5 # finished
+
+    def setup_storage(self):
+        # set nfs on master
+        self.__bee_os_list[0].set_nfs_master();
+        master_private_ip = self.__bee_os_list[0].private_ip
+        for i in range(1, len(self.__bee_os_list)):
+            worker = self.__bee_os_list[i]
+            worker.set_nfs_worker(master_private_ip)
 
 
     def wait_for_others(self):
@@ -122,7 +141,7 @@ class BeeOSLauncher(BeeTask):
         cmd = ['openstack stack delete -y {}'.format(self.__stack_name)]
         print(" ".join(cmd))
         subprocess.call(" ".join(cmd), shell=True)
-        time.sleep(45)
+        time.sleep(60)
 
     def create_key(self):
         cprint('[' + self.__task_name + '] Create new ssh key.', self.__output_color)
@@ -146,8 +165,21 @@ class BeeOSLauncher(BeeTask):
         print(" ".join(cmd))
         subprocess.call(cmd, shell=True)
 
+    def launch_stack_storage(self):
+        cprint('[' + self.__task_name + '] Launch stack', self.__output_color)
+        curr_dir = os.path.dirname(os.path.abspath(__file__))
+        hot_template_dir = curr_dir + "/bee_hot_storage"
+        cmd = [ "openstack " +
+                "stack create " + 
+                "-t {} ".format(hot_template_dir) + 
+                "--parameter bee_workers_count={} ".format(int(self.__bee_os_conf['num_of_nodes']) - 1) +
+                "--parameter key_name={} ".format(self.__ssh_key) +
+                "--parameter reservation_id={} ".format(self.__reservation_id) +
+                "--parameter security_group_name={} ".format(self.__bee_os_sgroup) +
+                "{}".format(self.__stack_name)]
+        print(" ".join(cmd))
+        subprocess.call(cmd, shell=True)
         
-
     def get_active_node(self):
         active_nodes = []
         all_active_servers = self.nova.servers.list(search_opts={'status': 'ACTIVE'})
@@ -160,8 +192,15 @@ class BeeOSLauncher(BeeTask):
 
     def wait_for_nodes(self):
         cprint('[' + self.__task_name + '] Waiting for all nodes to become active.', self.__output_color)
+        counter = 0
         while (len(self.get_active_node()) != int(self.__bee_os_conf['num_of_nodes'])):
             time.sleep(5)
+            counter += 1
+            # output something to avoid accident termination by Travis CI
+            if (counter % 30 == 0):
+                sys.stdout.write('.')
+                sys.stdout.flush()
+        print(" ")
         cprint('[' + self.__task_name + '] All nodes are active, wait for networks to become available.', self.__output_color)
         time.sleep(200)
         cprint('[' + self.__task_name + '] Start BEE configuration.', self.__output_color)
@@ -188,6 +227,8 @@ class BeeOSLauncher(BeeTask):
                                        ip_list[1])
                         self.__bee_os_list.insert(0, master)
                         print('find master with ip: ' + ip_list[0] + ", " + ip_list[1])
+    def get_master_ip(self):
+        return self.__bee_os_list[0].master_public_ip
 
     def get_worker_nodes(self):
         cprint('[' + self.__task_name + '] Find the ip for worker nodes.', self.__output_color)
@@ -238,6 +279,8 @@ class BeeOSLauncher(BeeTask):
             for node2 in self.__bee_os_list:
                 node2.add_host_list(node1.get_ip(), node1.get_hostname())
 
+
+
     def add_docker(self):
         cprint('[' + self.__task_name + '] Initialize docker', self.__output_color)
         for bee_os in self.__bee_os_list:
@@ -256,15 +299,24 @@ class BeeOSLauncher(BeeTask):
 
 
     def general_run(self):
-
         cprint('[' + self.__task_name + '] Execute run scripts.', self.__output_color)
+        
         # General sequential script
         master = self.__bee_os_list[0]
         for run_conf in self.__task_conf['general_run']:
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/general_script.sh'
-            docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+            
+            docker_script_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/general_script.sh'
+            else:
+                docker_script_path = '/home/{}/general_script.sh'.format(self.__docker_conf['docker_username'])
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']))
+            
             master.copy_to_master(local_script_path, node_script_path)
+            master.set_file_permssion(node_script_path)
             master.docker_copy_file(node_script_path, docker_script_path)
             master.docker_seq_run(docker_script_path, local_pfwd = run_conf['local_port_fwd'],
                                   remote_pfwd = run_conf['remote_port_fwd'], async = False)
@@ -272,14 +324,67 @@ class BeeOSLauncher(BeeTask):
         for run_conf in self.__task_conf['mpi_run']:
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/mpi_script.sh'
-            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+            
+            docker_script_path = ''
+            hostfile_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/mpi_script.sh'
+                hostfile_path = '/root/hostfile'
+            else:
+                docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+                hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']))
+			
+            
             master.copy_to_master(local_script_path, node_script_path)
+            master.set_file_permssion(node_script_path)
             for bee_os in self.__bee_os_list:
                 bee_os.docker_copy_file(node_script_path, docker_script_path)
+		
             # Generate hostfile and copy to container
             master.docker_make_hostfile(run_conf, self.__bee_os_list, self.__tmp_dir)
             master.copy_to_master(self.__tmp_dir + '/hostfile', '/home/cc/hostfile')
-            docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
-            master.docker_copy_file('/home/cc/hostfile', '/home/{}/hostfile'.format(self.__docker_conf['docker_username']))
+            master.docker_copy_file('/home/cc/hostfile', hostfile_path)    
             # Run parallel script on all nodes
-            master.docker_para_run(run_conf, docker_script_path, local_pfwd = run_conf['local_port_fwd'],remote_pfwd = run_conf['remote_port_fwd'], async = False)
+            master.docker_para_run(run_conf, 
+                                   docker_script_path, 
+                                   hostfile_path, 
+                                   local_pfwd = run_conf['local_port_fwd'],
+                                   remote_pfwd = run_conf['remote_port_fwd'],
+                                   async = False)
+
+
+    def scalability_test_run(self):
+        cprint('[' + self.__task_name + '] Start scalability test.', self.__output_color)
+        master = self.__bee_os_list[0]
+
+        for run_conf in self.__task_conf['mpi_run']:
+            local_script_path = run_conf['script']
+            node_script_path = '/exports/host_share/mpi_script.sh'
+
+            docker_script_path = ''
+            hostfile_path = ''
+            if (self.__docker_conf['docker_username'] == 'root'):
+                docker_script_path = '/root/mpi_script.sh'
+                hostfile_path = '/root/hostfile'
+            else:
+                docker_script_path = '/home/{}/mpi_script.sh'.format(self.__docker_conf['docker_username'])
+                hostfile_path = '/home/{}/hostfile'.format(self.__docker_conf['docker_username'])
+                for bee_os in self.__bee_os_list:
+                    bee_os.docker_seq_run('cp -r /home/{}/.ssh /root/'.format(self.__docker_conf['docker_username']))
+
+            master.copy_to_master(local_script_path, node_script_path)
+            for bee_os in self.__bee_os_list:
+                bee_os.docker_copy_file(node_script_path, docker_script_path)
+
+            # Generate hostfile and copy to container
+            master.docker_make_hostfile(run_conf, self.__bee_os_list, self.__tmp_dir)
+            master.copy_to_master(self.__tmp_dir + '/hostfile', '/home/cc/hostfile')
+            master.docker_copy_file('/home/cc/hostfile', hostfile_path)
+            master.docker_para_run_scalability_test(run_conf, 
+                                                    docker_script_path, 
+                                                    hostfile_path,
+                                                    local_pfwd = run_conf['local_port_fwd'],
+                                                    remote_pfwd = run_conf['remote_port_fwd'], 
+                                                    async = False)
