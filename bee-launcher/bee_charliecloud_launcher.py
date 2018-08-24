@@ -84,52 +84,66 @@ class BeeCharliecloudLauncher(BeeTask):
 
         cprint("[" + self.__task_name + "] Charliecloud launching", self.output_color)
 
-        # Fill bee_cc_list of running hosts (nodes)
-        # Each element is an BeeCharliecloud object
-        for host in self.__hosts:
-            curr_rank = len(self.__bee_cc_list)
-            self.__hosts_mpi += str(host) + ","
-            self.__hosts_total += 1
-            if curr_rank == 0:
-                hostname = "{}=bee-head".format(self.__task_name)
+        ###########################################################################
+        # The node_list key is used to define which specific nodes in an allocation
+        # should be utilized by BEE. When this is not set (none) then the entire
+        # allocation will be used for any and all tasks
+        ###########################################################################
+
+        if self.__hosts is not None:
+            # Fill bee_cc_list of running hosts (nodes)
+            # Each element is an BeeCharliecloud object
+            for host in self.__hosts:
+                curr_rank = len(self.__bee_cc_list)
+                self.__hosts_mpi += str(host) + ","
+                self.__hosts_total += 1
+                if curr_rank == 0:
+                    hostname = "{}=bee-head".format(self.__task_name)
+                else:
+                    hostname = "{}-bee-worker{}".format(self.__task_name,
+                                                        str(curr_rank).zfill(3))
+                # Each object represent a node
+                bee_cc = BeeCharliecloud(task_id=self.__task_id, hostname=hostname,
+                                         host=host, rank=curr_rank, task_conf=self.__task_conf,
+                                         bee_cc_conf=self.__bee_charliecloud_conf,
+                                         container_name=self.__container_name)
+                # Add new CC to host
+                self.__bee_cc_list.append(bee_cc)
+                bee_cc.master = self.__bee_cc_list[0]
+
+            # Remove erroneous comma (less impact), for readability
+            if self.__hosts_mpi[-1] == ",":
+                self.__hosts_mpi = self.__hosts_mpi[:-1]
+
+            cprint("Preparing launch " + self.__task_name + " for nodes "
+                   + self.__hosts_mpi, self.output_color)
+
+            # Check if there is an allocation to unpack images on
+            if 'SLURM_JOBID' in os.environ:
+                cprint(os.environ['SLURM_NODELIST'] + ": Launching " +
+                       str(self.__task_name), self.output_color)
+
+                # use_existing (invoked via flag at runtime)
+                # leverages an already existing unpacked image
+                if not self.__use_existing:
+                    self.__unpack_ch_dir(self.__hosts_mpi, self.__hosts_total)
+                self.wait_for_others()
+                self.run_scripts()
+            elif self.__hosts == ["localhost"]:  # single node or local instance
+                cprint("Launching local instance " + str(self.__task_name),
+                       self.output_color)
+                self.__local_launch()
+                self.run_scripts()
             else:
-                hostname = "{}-bee-worker{}".format(self.__task_name,
-                                                    str(curr_rank).zfill(3))
-            # Each object represent a node
-            bee_cc = BeeCharliecloud(task_id=self.__task_id, hostname=hostname,
-                                     host=host, rank=curr_rank, task_conf=self.__task_conf,
-                                     bee_cc_conf=self.__bee_charliecloud_conf,
-                                     container_name=self.__container_name)
-            # Add new CC to host
-            self.__bee_cc_list.append(bee_cc)
-            bee_cc.master = self.__bee_cc_list[0]
-
-        # Remove erroneous comma (less impact), for readability
-        if self.__hosts_mpi[-1] == ",":
-            self.__hosts_mpi = self.__hosts_mpi[:-1]
-
-        cprint("Preparing launch " + self.__task_name + " for nodes "
-               + self.__hosts_mpi, self.output_color)
-
-        # Check if there is an allocation to unpack images on
-        if 'SLURM_JOBID' in os.environ:
-            cprint(os.environ['SLURM_NODELIST'] + ": Launching " +
-                   str(self.__task_name), self.output_color)
-
-            # use_existing (invoked via flag at runtime)
-            # leverages an already existing unpacked image
+                cprint("[" + self.__task_name + "] No nodes allocated!", self.error_color)
+                self.terminate()
+        else:  # No node_list has been defined, using entire allocation
+            cprint("Preparing launch " + self.__task_name + " for entire allocation.",
+                   self.output_color)
             if not self.__use_existing:
-                self.__unpack_ch_dir(self.__hosts_mpi, self.__hosts_total)
+                self.__unpack_ch_dir()
             self.wait_for_others()
             self.run_scripts()
-        elif self.__hosts == ["localhost"]:  # single node or local instance
-            cprint("Launching local instance " + str(self.__task_name),
-                   self.output_color)
-            self.__local_launch()
-            self.run_scripts()
-        else:
-            cprint("[" + self.__task_name + "] No nodes allocated!", self.error_color)
-            self.terminate()
 
     def run_scripts(self):
         self.__current_status = 4  # Running
@@ -280,7 +294,7 @@ class BeeCharliecloudLauncher(BeeTask):
                    self.error_color)
             exit(1)
 
-    def __unpack_ch_dir(self, hosts, total_hosts):
+    def __unpack_ch_dir(self, hosts=None, total_hosts=None):
         """
         Unpack container via ch-tar2dir to defined directory
         :param hosts: Hosts/nodes on which the process should be invoked
@@ -294,10 +308,13 @@ class BeeCharliecloudLauncher(BeeTask):
                self.output_color)
         cmd = ['ch-tar2dir', self.__container_path, self.__ch_dir]
         if self.__hosts != ["localhost"]:
-            self.run_popen_safe(command=self.compose_srun(cmd, hosts, total_hosts),
-                                nodes=hosts)
+            if hosts is not None and total_hosts is not None:
+                self.run_popen_safe(command=self.compose_srun(cmd, hosts,
+                                                              total_hosts),
+                                    nodes=hosts)
+            else:  # use entire allocation
+                self.run_popen_safe(command=self.compose_srun(cmd))
         else:  # To be used when local instance of task only!
-
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
 
     def __remove_ch_dir(self, hosts, total_hosts):
