@@ -11,7 +11,7 @@ setup(
     description='BEE: Build and Execute Environment',
     install_requires=[
         'termcolor',
-        'PyYAML'
+        'PyYAML', 'pexpect'
     ],
     entry_points={
         'console_scripts': [

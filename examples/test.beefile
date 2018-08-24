@@ -1,0 +1,38 @@
+class: BEE-Charliecloud
+id: Test
+label: New BEE implementation test
+requirements:
+    ResourceRequirement:
+        numNodes: 2
+        partition: galton
+        system: darwin-fe
+        jobTime: "1:00:00"
+        rjms: slurm
+        custom:
+            --hello: world
+            --test: this/stuff
+    SoftwarePackages:
+        charliecloud:
+        openmpi:
+            version: 2.1.1
+    CharliecloudRequirement:
+        source: /var/tmp/alpine.tar.gz
+        tarDir: /var/tmp
+        deleteAfter: False
+workerBees:
+    test.sh:
+        program:
+            system: sh
+            custom:
+                --test: temp
+        arguments:
+            extra:
+            key: thing
+    slurm.sh:
+        program:
+            system: slurm
+            custom:
+                -np: 8
+        arguments:
+            -h: world
+baseCommand: echo

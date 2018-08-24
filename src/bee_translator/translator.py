@@ -1,6 +1,7 @@
 # system
 import abc
 from termcolor import cprint
+# project
 from tar_slurm import SlurmAdaptee
 from tar_ssh import SSHAdaptee
 
@@ -9,12 +10,21 @@ class Target(metaclass=abc.ABCMeta):
     """
     Define the domain-specific interface that Client uses
     """
-    def __init__(self, system, config):
+    def __init__(self, system, config, file_loc, task_name):
         self.__system = str(system).lower()
+
+        # Beefile related
         self._config = config
+        self._file_loc = file_loc
+        self._task_name = task_name
+
         self._adaptee = None
+        self.update_adaptee()
+
+    def update_adaptee(self):
         if self.__system == "slurm":
-            self._adaptee = SlurmAdaptee(self._config)
+            self._adaptee = SlurmAdaptee(self._config, self._file_loc,
+                                         self._task_name)
         else:
             cprint("Unable to support target system: " + self.__system +
                    " attempting ssh.", "yellow")

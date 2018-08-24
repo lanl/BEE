@@ -8,7 +8,7 @@ from translator import Adapter
 
 
 class BeeLauncher(object):
-    def __init__(self, log, log_dest):
+    def __init__(self, log=False, log_dest="None"):
         # Logging configuration
         self.__log = log  # log flag (T/F)
         self.__log_dest = log_dest + ".launcher"  # log file destinations
@@ -23,7 +23,7 @@ class BeeLauncher(object):
         self.__status = ["Initializing", "Initialized", "Waiting", "Launching",
                          "Running", "Finished", "Terminated"]
 
-    def launch(self, beefile, task_name):
+    def launch(self, beefile, task_name, file_loc):
         # TODO: offload all messaging requirements to bee_logging
         # TODO: implement beefile verification step???
         b_class = self._fetch_beefile_value(dictionary=beefile, key="class",
@@ -33,7 +33,8 @@ class BeeLauncher(object):
         cprint("[" + str(task_name) + "] Preparing to launch..." +
                "\n\tClass: " + str(b_class) + "\n\tRJMS: " + str(b_rjms),
                self.__message_color)
-        adapt = Adapter(system=b_rjms, config=beefile)
+        adapt = Adapter(system=b_rjms, config=beefile, file_loc=file_loc,
+                        task_name=task_name)
         adapt.allocate()
 
     def list_all_tasks(self):
@@ -96,7 +97,9 @@ class BeeArguments(BeeLauncher):
         """
         beefile = str(args.launch_task[0])
         f = BeefileLoader(beefile)
-        self.launch(beefile=f.beefile, task_name=beefile)
+        self.launch(beefile=f.beefile, task_name=beefile,
+                    file_loc=os.path.dirname(os.path.abspath("{}.beefile".format
+                                                             (beefile))))
 
     def opt_terminate(self, args):
         """

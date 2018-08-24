@@ -12,3 +12,4 @@ class BeeflowLoader(object):
     def __init__(self, flow_name):
         stream = open("{}.beeflow".format(flow_name), "r")
         self.beefile = load(stream)
+

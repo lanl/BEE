@@ -53,7 +53,7 @@ def launch_default(args):
         bee_args = BeeArguments(args.logflag, args.log_dest)
     except Exception as e:
         print(e)
-        cprint("Verify Bee Orchestrator is running!", "Red")
+        cprint("Verify Bee Orchestrator is running!", "red")
         exit(2)
 
     # execute task if argument is present
@@ -73,8 +73,8 @@ def flow_default(args):
     BeeFlow(args.logflag, args.log_dest).main(args.launch_flow[0])
 
 
-parser = argparse.ArgumentParser(description="BEE Launcher\nhttps://github.com/"
-                                             "lanl/BEE_Private")
+parser = argparse.ArgumentParser(description="BEE Launcher\n"
+                                             "https://github.com/lanl/BEE")
 
 ###############################################################################
 # Un-organized arguments that can be
@@ -149,7 +149,7 @@ def main():
         args = parser.parse_args()
         args.func(args)
     except argparse.ArgumentError as e:
-        print(e)
+        cprint(e, "red")
         exit(2)
 
 
