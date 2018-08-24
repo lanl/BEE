@@ -14,11 +14,11 @@
             }
         }
       ],
-      "terminate_after_exec": false,
-      "delete_after_exec": true 
+      "terminate_after_exec": false
   }, 
   "container_conf":{
-    "container_path": "/scratch/beedev/flecsale_bee_cc/flecsale.tar.gz" 
+    "container_path": "/scratch/beedev/flecsale_bee_cc/flecsale.tar.gz",
+    "remove_after_exec": true
   },
   
   "exec_env_conf": {
