@@ -4,11 +4,15 @@ The following guide shows you how to run `BEE-Charliecloud` on HPC environment.
 Note that in order to utilize `BEE-Charliecloud` you will need to be in a `Slurm` environment and have access to [Charliecloud](https://github.com/hpc/charliecloud/).
 
 ### Installation
-##### Step 1. Install dependecies
+##### Step 1. Install dependencies
 If this is your first time using BEE, run `install.sh`.
 
 ##### Step 2. Add bee launcher to $PATH
-Add the directory of bee-launcher to $PATH, so that it can run anywhere.    
+Add the directory of bee-launcher to $PATH, so that it can run anywhere.  
+
+##### Step 3. Verify additional requirements are satisfied
+- [Charliecloud](https://github.com/hpc/charliecloud)
+- Slurm  
 
 ### Launch BEE-Charliecloud task
 
@@ -23,7 +27,7 @@ Configure `<task_name>.beefile` file as follow:
 
    * c. `batch_mode`: `true` or `false`; For details, 
             refer to `User Guide for Batch Mode`.
-            NOTE: As of the current release this is unspported by the Charliecloud launcher
+            NOTE: As of the current release this is unsupported by the Charliecloud launcher
 
    * d. `general_run`: list of scripts that will be invoked on the head-node in the allocation after launching;
      * 1. `script`: name of the script. The script file needs to be in current
@@ -40,7 +44,7 @@ Configure `<task_name>.beefile` file as follow:
      * 3. `map_by`: (optional)
             map_by flag for mpirun command i.e. "node" or "core", invalid if 
             no map_num
-     * 4. `map_num`:  argument to map_by flag.
+     * 4. `map_num`: argument to map_by flag.
    * f. `srun_run`: list of scripts that will be run via `srun` across all nodes specified via `node_list` under  `exec_env_conf`. This is beneficial when utlizing the `BeeFlow` functionality within a single allocation.
      * 1. `flags`: A set of key/value pairs that equate to options for the `srun` command. Anything provided via this method is not verified and you are responsible for ensuring the accuracy of these options. For example, the below values would would be seen as: `srun -n 8 --mpi=pmi2 ...`. Make note of the use of `null` if you are utilizing long names/value in a single key.
       ```json
@@ -54,10 +58,10 @@ Configure `<task_name>.beefile` file as follow:
   * a. `container_path`: entire path for the Charlicloud tarred image;
   * b. `remove_after_exec`: Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
 
-* `exec_env_conf`: specifiying all configuration related to the execution 
+* `exec_env_conf`: specifying all configuration related to the execution 
     environment.
   * a. `bee_charlicloud`: {
-     * 1. `node_list`: nodes i.e. ["cn30", "cn31" ...] to be utlized, this list specifies which nodes should be utilized as part of task. Insure that it is utlized to avoid potential conflicts and wasted resources when utlizing BeeFlow.
+     * 1. `node_list`: nodes i.e. ["cn30", "cn31" ...] to be utilized, this list specifies which nodes should be utilized as part of task. Insure that it is utlized to avoid potential conflicts and wasted resources when utlizing BeeFlow.
   }
 
 ##### Step 2. Launch task
