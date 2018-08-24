@@ -48,15 +48,22 @@ class BeeLauncher(object):
         return self.bldaemon.create_bee_aws_storage(efs_name, perf_mode)
     
     def encode_cwd(self, beefile):
-        for run_conf in beefile['task_conf']['general_run']:
-            run_conf['script'] = self.__cwdir + "/" + run_conf['script']
-        for run_conf in beefile['task_conf']['mpi_run']:
-            run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
-        try:  # optional to avoid affecting existing
-            for run_conf in beefile['task_conf']['srun_run']:
+        # General Run
+        general_run = beefile['task_conf'].get('general_run', None)
+        if general_run is not None:
+            for run_conf in general_run:
                 run_conf['script'] = self.__cwdir + "/" + run_conf['script']
-        except KeyError:
-            pass
+        # MPIRUN
+        mpi_run = beefile['task_conf'].get('mpi_run', None)
+        if mpi_run is not None:
+            for run_conf in mpi_run:
+                run_conf['script'] = self.__cwdir + "/" + run_conf['script']
+        # SRUN (SLRUM)
+        srun_run = beefile['task_conf'].get('srun_run', None)
+        if srun_run is not None:
+            for run_conf in srun_run:
+                run_conf['script'] = self.__cwdir + "/" + run_conf['script']
+
 
 def main(argv):
     status_list = ["Initializing", "Initialized", "Waiting", "Launching", 
