@@ -49,10 +49,10 @@ Configure `<task_name>.beefile` file as follow:
         "--mpi=pmi2": null
       }
       ```
-   * g. 'delete_after_exec': Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
 
 * `container_conf`: Charliecloud container info.
   * a. `container_path`: entire path for the Charlicloud tarred image;
+  * b. `remove_after_exec`: Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
 
 * `exec_env_conf`: specifiying all configuration related to the execution 
     environment.
