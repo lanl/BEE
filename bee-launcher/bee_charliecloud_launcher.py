@@ -318,8 +318,8 @@ class BeeCharliecloudLauncher(BeeTask):
                                 nodes=hosts)
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
-        cprint("[" + self.__task_name + "] Removed Charliecloud container " + self.__container_name
-              + "from " + self.__ch_dir, self.output_color)
+        cprint("[" + self.__task_name + "] Removed Charliecloud container " +
+               self.__container_name + "from " + self.__ch_dir, self.output_color)
 
     def __fetch_beefile_value(self, key, dictionary, default=None, quit_err=False,
                               silent=False):
