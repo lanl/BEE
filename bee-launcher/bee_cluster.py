@@ -122,10 +122,12 @@ class BeeTask(Thread):
         return srun_cmd
 
     @staticmethod
-    def compose_mpirun(command, hosts):
-        srun_cmd = ["mpirun", "-host,", hosts, "--map-by", "ppr:1:node"]
-        srun_cmd += command
-        return srun_cmd
+    def compose_mpirun(command, hosts=None):
+        mpi_cmd = ["mpirun"]
+        if hosts is not None:
+            mpi_cmd += ["-host,", hosts]
+        mpi_cmd += command
+        return mpi_cmd
 
     # Task management support functions (private)
     @staticmethod
