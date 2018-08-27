@@ -2,8 +2,9 @@
 import abc
 from termcolor import cprint
 # project
-from tar_slurm import SlurmAdaptee
-from tar_ssh import SSHAdaptee
+from orc_targets.tar_localhost import LocalhostAdaptee
+from orc_targets.tar_ssh import SSHAdaptee
+from orc_targets.tar_slurm import SlurmAdaptee
 
 
 class Target(metaclass=abc.ABCMeta):
@@ -25,29 +26,17 @@ class Target(metaclass=abc.ABCMeta):
         if self.__system == "slurm":
             self._adaptee = SlurmAdaptee(self._config, self._file_loc,
                                          self._task_name)
+        if self.__system == "localhost":
+            self._adaptee = LocalhostAdaptee(self._config, self._file_loc,
+                                             self._task_name)
         else:
             cprint("Unable to support target system: " + self.__system +
                    " attempting ssh.", "yellow")
-            self._adaptee = SSHAdaptee(self._config)
-
-    @abc.abstractmethod
-    def allocate(self):
-        pass
+            self._adaptee = SSHAdaptee(self._config, self._file_loc,
+                                       self._task_name)
 
     @abc.abstractmethod
     def execute(self):
-        pass
-
-    @abc.abstractmethod
-    def schedule(self):
-        pass
-
-    @abc.abstractmethod
-    def query_job(self):
-        pass
-
-    @abc.abstractmethod
-    def query_scheduler(self):
         pass
 
     @abc.abstractmethod
@@ -63,20 +52,8 @@ class Adapter(Target):
     """
     Adapt the interface of adaptee to the target request
     """
-    def allocate(self):
-        self._adaptee.specific_allocate()
-
     def execute(self):
         self._adaptee.specific_execute()
-
-    def schedule(self):
-        self._adaptee.specific_schedule()
-
-    def query_job(self):
-        self._adaptee.specific_query_job()
-
-    def query_scheduler(self):
-        self._adaptee.specific_schedule()
 
     def shutdown(self):
         self._adaptee.specific_shutdown()

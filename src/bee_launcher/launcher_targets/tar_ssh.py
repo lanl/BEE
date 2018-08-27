@@ -1,20 +1,15 @@
 class SSHAdaptee:
-    def __init__(self, config):
+    def __init__(self, config, file_loc, task_name):
         self._config = config
+        self._config_req = self._config['requirements']
+        self._file_loc = file_loc
+        self._task_name = task_name
+        self._encode = 'UTF-8'
 
     def specific_allocate(self):
         pass
 
-    def specific_execute(self):
-        pass
-
     def specific_schedule(self):
-        pass
-
-    def specific_query_job(self):
-        pass
-
-    def specific_query_scheduler(self):
         pass
 
     def specific_shutdown(self):

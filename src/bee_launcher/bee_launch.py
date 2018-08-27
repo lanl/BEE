@@ -4,7 +4,7 @@ import os
 from termcolor import cprint
 # project
 from beefile_manager import BeefileLoader
-from translator import Adapter
+from launcher_translator import Adapter
 
 
 class BeeLauncher(object):

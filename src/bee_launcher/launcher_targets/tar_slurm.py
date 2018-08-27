@@ -32,16 +32,7 @@ class SlurmAdaptee:
         self._run_sbatch(tmp_f.name)
         tmp_f.close()
 
-    def specific_execute(self):
-        pass
-
     def specific_schedule(self):
-        pass
-
-    def specific_query_job(self):
-        pass
-
-    def specific_query_scheduler(self):
         pass
 
     def specific_shutdown(self):
