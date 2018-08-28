@@ -17,6 +17,7 @@ requirements:
             version: 2.1.1
     CharliecloudRequirement:
         source: /var/tmp/alpine.tar.gz
+        # repo_img: alpine
         tarDir: /var/tmp
         deleteAfter: False
 workerBees:
@@ -25,14 +26,16 @@ workerBees:
             system: sh
             custom:
                 --test: temp
-        arguments:
+        flags:
             extra:
             key: thing
+        output: var_one
     slurm.sh:
         program:
             system: slurm
             custom:
                 -np: 8
-        arguments:
+        flags:
             -h: world
+            -i: $var_one
 baseCommand: echo

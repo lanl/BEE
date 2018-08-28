@@ -1,0 +1,74 @@
+#!/bin/bash
+
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -eu
+set -o pipefail
+
+cat > /etc/yum.repos.d/CentOS-Base.repo <<'EOF'
+# CentOS-Base.repo
+#
+# The mirror system uses the connecting IP address of the client and the
+# update status of each mirror to pick mirrors that are updated to and
+# geographically close to the client.  You should use this for CentOS updates
+# unless you are manually picking other mirrors.
+#
+# If the mirrorlist= does not work for you, as a fall back you can try the
+# remarked out baseurl= line instead.
+#
+#
+
+[base]
+name=CentOS-$releasever - Base
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os&infra=$infra
+baseurl=http://mirror.utexas.edu/centos/$releasever/os/$basearch/
+        http://mirror.centos.org/centos/$releasever/os/$basearch/
+failovermethod=priority
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#released updates
+[updates]
+name=CentOS-$releasever - Updates
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=updates&infra=$infra
+baseurl=http://mirror.utexas.edu/centos/$releasever/updates/$basearch/
+        http://mirror.centos.org/centos/$releasever/updates/$basearch/
+failovermethod=priority
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#additional packages that may be useful
+[extras]
+name=CentOS-$releasever - Extras
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=extras&infra=$infra
+baseurl=http://mirror.utexas.edu/centos/$releasever/extras/$basearch/
+        http://mirror.centos.org/centos/$releasever/extras/$basearch/
+failovermethod=priority
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#additional packages that extend functionality of existing packages
+[centosplus]
+name=CentOS-$releasever - Plus
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=centosplus&infra=$infra
+baseurl=http://mirror.utexas.edu/centos/$releasever/centosplus/$basearch/
+        http://mirror.centos.org/centos/$releasever/centosplus/$basearch/
+failovermethod=priority
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+EOF
+
+cat > /etc/yum.repos.d/CC-CentOS7.repo <<'EOF'
+[CC-CentOS7]
+name=Copr repo for CC-CentOS7
+baseurl=https://copr-be.cloud.fedoraproject.org/results/priteau/CC-CentOS7/epel-7-$basearch/
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://copr-be.cloud.fedoraproject.org/results/priteau/CC-CentOS7/pubkey.gpg
+enabled=1
+enabled_metadata=1
+EOF
+
+sed -i -e 's/^enabled=1/enabled=0/' /etc/yum/pluginconf.d/fastestmirror.conf

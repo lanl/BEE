@@ -1,0 +1,55 @@
+#!/bin/bash
+
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -eu
+set -o pipefail
+
+yum install -y rubygem-g5k-checks
+
+ln -s /usr/bin/g5k-checks /usr/bin/cc-checks
+
+cat > /etc/g5k-checks.conf <<'EOF'
+# This is a yaml file for G5kchecks configuration
+---
+# list of check enabled;
+# testlist:
+#  - mem
+#  - bios
+testlist:
+  - all
+
+# directory destination of g5kchecks output file in failure case
+output_dir: /var/lib/g5kchecks/
+
+# list of check removed
+removetestlist:
+  - bmc
+  - clk
+  - mountpoint
+  - part
+  - testdisk
+  - os
+
+# check if directory bellow are mounted
+#mountpoint:
+#  - /export/home
+#  - /dev/sda5
+
+# type of input description (retrieve json from rest or file)
+retrieve_from: rest
+
+# in case of rest, should provide an url
+retrieve_url: https://api.chameleoncloud.org
+
+# specify a branch at the end of uri (syntax will be: ?branch=mybranch at the
+# end of uri)
+#branch: mybranch
+
+# Add another branch if the first url doesn't work
+fallback_branch: testing
+
+# in case of file, should provide a directory
+#retrieve_dir: /tmp/
+EOF

@@ -1,0 +1,102 @@
+#!/bin/bash
+
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -eu
+set -o pipefail
+
+# NOTE: UIDs MUST be strings/quoted
+cat > /etc/cloud/cloud.cfg <<'EOF'
+users:
+ - default
+ - name: ccadmin
+   uid: '1010'
+   lock-passwd: true
+   gecos: Chameleon Cloud Admin User
+   groups: [wheel, adm, systemd-journal]
+   sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+   shell: /bin/bash
+   ssh-authorized-keys:
+    - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDPmeZ9wJIrKftXm4blsXVWT5u7Cm9EeQg4MEnIiGonv4EMLZWKjSSfQfTAd9WjMuF+gmrRN1bSxpMBsWymKETGQJaZlw5Yg5MgZbPsWFmsMg169yPzr+cltOtqTENYxVC/C72zpjGurOsPET7Sema99HWLDFQP0kho5XzJWRPZs+F+HV4D1cRpPfCFE2aj/N5MwnpC3K2p2/m4stf8v1+O6VvK6SSKhPZMPnvHZsSmotoSVOOyiIl9xbZ2e07rz9jHo9vaMOceXZsPZLiGHyYnn14Ceh6kEf2dF7epyR3h3trRaiUYknnY0IaclgaK6dxFp6kzdvGQMSkbSdqTyGH9 ccadmin
+
+disable_root: 1
+ssh_pwauth:   0
+
+locale_configfile: /etc/sysconfig/i18n
+mount_default_fields: [~, ~, 'auto', 'defaults,nofail', '0', '2']
+resize_rootfs_tmp: /dev
+ssh_deletekeys:   0
+ssh_genkeytypes:  ~
+syslog_fix_perms: ~
+preserve_hostname: false
+
+datasource:
+  OpenStack:
+    metadata_urls:
+      - "http://169.254.169.254"
+    #timeout: 5 # (default 5)
+    #retries: 5 # (default 5)
+    #max_wait: 10 # (default -1)
+
+cloud_init_modules:
+ - migrator
+ - seed_random
+ - bootcmd
+ - write-files
+ - growpart
+ - resizefs
+ - set_hostname
+ - update_hostname
+ - update_etc_hosts
+ - ca-certs
+ - rsyslog
+ - users-groups
+ - ssh
+
+cloud_config_modules:
+ - emit_upstart
+ - disk_setup
+ - mounts
+ - ssh-import-id
+ - locale
+ - set-passwords
+ - yum-add-repo
+ - package-update-upgrade-install
+ - landscape
+ - timezone
+ - puppet
+ - chef
+ - mcollective
+ - disable-ec2-metadata
+ - runcmd
+ - byobu
+
+cloud_final_modules:
+ - rightscale_userdata
+ - scripts-vendor
+ - scripts-per-once
+ - scripts-per-boot
+ - scripts-per-instance
+ - scripts-user
+ - ssh-authkey-fingerprints
+ - keys-to-console
+ - phone-home
+ - final-message
+ - power-state-change
+
+system_info:
+  default_user:
+    name: cc
+    uid: '1000'
+    lock_passwd: true
+    gecos: Chameleon Cloud User
+    groups: [wheel, adm, systemd-journal]
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+  distro: rhel
+  paths:
+    cloud_dir: /var/lib/cloud
+    templates_dir: /etc/cloud/templates
+  ssh_svcname: sshd
+EOF
