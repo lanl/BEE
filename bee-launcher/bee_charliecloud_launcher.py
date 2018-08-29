@@ -26,7 +26,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # Task configuration
         self.__hosts = self.__bee_charliecloud_conf.get('node_list', None)
-        
+
         # __host_mpi formatted to be used with srun/mpirun -host *
         # filled during launch event (string, to be used in cmd list)
         self.__hosts_mpi = ""
@@ -191,7 +191,7 @@ class BeeCharliecloudLauncher(BeeTask):
                     if value is not None:
                         flags.append(str(value))
             except KeyError:
-                pass
+                pass  # no flags found, optional so no need for error?run_conf['script']
             self.run_popen_safe(command=self.compose_srun(cmd, self.__hosts_mpi,
                                                           self.__hosts_total,
                                                           flags),
@@ -201,10 +201,7 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         MPI script run on each node declared
         """
-        valid_map = ['socket', 'node']
         for run_conf in self.__task_conf['mpi_run']:
-            script_path = run_conf['script']
-            cmd = ['mpirun']
             ###################################################################
             # Check mpi options for mpi_run all tasks:
             #
@@ -213,34 +210,43 @@ class BeeCharliecloudLauncher(BeeTask):
             # If map_by is set but map_num is not - ignore map_by
             # If map_by is not set but map_num is not - terminate
             ###################################################################
+            my_nodes = None
             if 'node_list' in run_conf:
                 my_nodes = ",".join(run_conf['node_list'])
-                cmd.append("-host")
-                cmd.append(my_nodes)
 
+            map_by = None
+            valid_map = ['socket', 'node']
             if 'map_by' in run_conf:
                 if run_conf['map_by'] not in valid_map:
-                    cprint("For mpi_run the 'map_by' option is not valid!", "red")
+                    cprint("For mpi_run the 'map_by' option is not valid!", self.error_color)
                     print("Use a valid option or remove 'map_by'" +
                           " and 'map_num' to use default.")
                     self.terminate()
-
                 elif 'map_num' not in run_conf:
                     cprint("For mpi_run 'map_num' is not set " +
                            "'map_by' is ignored!", self.error_color)
-
                 else:
-                    cmd.append("-map-by")
-                    cmd.append("ppr:{}:{}".format(str(run_conf['map_num']),
-                                                  run_conf['map_by']))
-
+                    map_by = "ppr:{}:{}".format(str(run_conf['map_num']), run_conf['map_by'])
             elif 'map_num' in run_conf:
-                cprint("For mpi_run when specifying 'map_num'," +
-                       " 'map_by' must also be set!", self.error_color)
+                cprint("For mpi_run when specifying 'map_num', 'map_by' must also be set!", self.error_color)
                 self.terminate()
+            # else: nothing occurs and no map-by flag used
 
-            cmd.append(script_path)
-            self.run_popen_safe(cmd)
+            flags = None
+            try:
+                flags = []
+                for key, value in run_conf['flags'].items():
+                    flags.append(str(key))
+                    if value is not None:
+                        flags.append(str(value))
+            except KeyError:
+                pass  # no flags found, optional so no need for error?run_conf['script']
+
+            self.run_popen_safe(command=self.compose_mpirun(command=run_conf['script'],
+                                                            hosts=my_nodes,
+                                                            map_by=map_by,
+                                                            custom_flags=flags),
+                                nodes=my_nodes)
 
     def batch_run(self):
         # TODO: implement and test
