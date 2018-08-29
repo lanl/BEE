@@ -122,10 +122,23 @@ class BeeTask(Thread):
         return srun_cmd
 
     @staticmethod
-    def compose_mpirun(command, hosts=None):
-        mpi_cmd = ["mpirun"]
+    def compose_mpirun(command, hosts=None, map_by=None, custom_flags=None):
+        """
+        Compose MPIRUN command to be run via subprocess
+        e.g. mpirun -host wc013,wc014 -map_by ppr:1:node <command>
+        :param command: Command to be run [List]
+        :param hosts: Specific hosts (nodes) command is to be run on (str)
+        :param map_by: ppr:<num>:<type> as string
+        :param custom_flags: List of custom flags ["-n","8", ...]
+        :return: [List] to be run via subprocess
+        """
+        mpi_cmd = ['mpirun']
         if hosts is not None:
-            mpi_cmd += ["-host,", hosts]
+            mpi_cmd += ['-host', hosts]
+        if map_by is not None:
+            mpi_cmd += ['-map-by']
+        if custom_flags is not None:
+            mpi_cmd += custom_flags
         mpi_cmd += command
         return mpi_cmd
 
