@@ -218,13 +218,13 @@ class BeeCharliecloudLauncher(BeeTask):
             valid_map = ['socket', 'node']
             if 'map_by' in run_conf:
                 if run_conf['map_by'] not in valid_map:
-                    cprint("For mpi_run the 'map_by' option is not valid!", self.error_color)
+                    cprint("For mpi_run the 'map_by' option is not valid!", self.warning_color)
                     print("Use a valid option or remove 'map_by'" +
                           " and 'map_num' to use default.")
                     self.terminate()
                 elif 'map_num' not in run_conf:
                     cprint("For mpi_run 'map_num' is not set " +
-                           "'map_by' is ignored!", self.error_color)
+                           "'map_by' is ignored!", self.warning_color)
                 else:
                     map_by = "ppr:{}:{}".format(str(run_conf['map_num']), run_conf['map_by'])
             elif 'map_num' in run_conf:
