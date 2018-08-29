@@ -25,8 +25,9 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__task_id = task_id
 
         # Task configuration
-        self.__hosts = self.__bee_charliecloud_conf('node_list', None)
-
+        self.__hosts = self.__fetch_beefile_value(key='node_list',
+                                                  dictionary=self.__bee_charliecloud_conf,
+                                                  default=None)
         # __host_mpi formatted to be used with srun/mpirun -host *
         # filled during launch event (string, to be used in cmd list)
         self.__hosts_mpi = ""
