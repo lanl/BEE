@@ -250,7 +250,7 @@ class BeeCharliecloudLauncher(BeeTask):
 
     def batch_run(self):
         # TODO: implement and test
-        cprint("Batch mode not implemented for Bee_Chaliecloud yet!", "red")
+        cprint("Batch mode not implemented for Bee_Chaliecloud yet!", self.error_color)
         self.terminate()
 
     def terminate(self, clean=False):
