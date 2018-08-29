@@ -15,53 +15,43 @@ class BeeLauncher(object):
 
         self.__cwdir = os.getcwd()
 
-        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green',
-                               'magenta', 'red']
-        self.__error_color = 'red'
-        self.__message_color = 'cyan'
-        self.__warning_color = 'yellow'
-        self.__status = ["Initializing", "Initialized", "Waiting", "Launching",
-                         "Running", "Finished", "Terminated"]
+        self._status_color = ['grey', 'white', 'yellow', 'cyan', 'green',
+                            'magenta', 'red']
+        self._error_color = 'red'
+        self._message_color = 'cyan'
+        self._warning_color = 'yellow'
+        self._status = ["Initializing", "Initialized", "Waiting", "Launching",
+                        "Running", "Finished", "Terminated"]
 
     def launch(self, beefile, task_name, file_loc):
-        # TODO: offload all messaging requirements to bee_logging
-        # TODO: implement beefile verification step???
         b_class = self._fetch_beefile_value(dictionary=beefile, key="class",
                                             quit_err=True)
         b_rjms = self._fetch_beefile_value(dictionary=beefile['requirements']['ResourceRequirement'],
                                            key="rjms", quit_err=True)
         cprint("[" + str(task_name) + "] Preparing to launch..." +
                "\n\tClass: " + str(b_class) + "\n\tRJMS: " + str(b_rjms),
-               self.__message_color)
+               self._message_color)
         adapt = Adapter(system=b_rjms, config=beefile, file_loc=file_loc,
                         task_name=task_name)
         adapt.allocate()
 
     def list_all_tasks(self):
+        # TODO: implement
         pass
 
     def terminate_task(self, beetask_name):
+        # TODO: implement
         pass
 
-    def get_status_list(self):
-        """
-        :return: List of valid BeeLauncher status
-        """
-        return self.__status
-
-    def get_status_color(self):
-        """
-        :return: List of valid BeeLauncher status colors
-        """
-        return self.__status_color
-
-    def get_log_flag(self):
+    @property
+    def log_flag(self):
         """
         :return: Boolean, True if logging enabled
         """
         return self.__log
 
-    def get_log_destination(self):
+    @property
+    def log_dest(self):
         """
         :return: File (path) where logging is stored
         """
@@ -76,11 +66,11 @@ class BeeLauncher(object):
                 if not silent:
                     cprint("User defined value for ["
                            + str(key) + "] was not found, default value: "
-                           + str(default) + " used.", self.__warning_color)
+                           + str(default) + " used.", self._warning_color)
                 return default
             else:
                 cprint("Key: " + str(key) + " was not found",
-                       self.__error_color)
+                       self._error_color)
             exit(1)
 
 

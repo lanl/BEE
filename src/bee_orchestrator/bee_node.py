@@ -23,8 +23,6 @@ class BeeNode(object):
         self.user_name = user_name
 
         # Output color list
-        self.__output_color_list = ["magenta", "cyan", "blue", "green",
-                                    "red", "grey", "yellow"]
         self.output_color = "cyan"
         self.error_color = "red"
 

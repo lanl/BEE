@@ -2,10 +2,9 @@
 import os
 import tarfile
 from termcolor import cprint
-from subprocess import call
 # project
 from bee_cluster import BeeTask
-from bee_charliecloud_node import BeeCharliecloud
+from bee_charliecloud_node import BeeCharliecloudNode
 
 
 # Manipulates all nodes in a task
@@ -19,6 +18,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.platform = 'BEE-Charliecloud'
 
         # Container configuration
+        # TODO: add verification steps
         self.__cc_source = self._beefile['requirements']['CharliecloudRequirement']\
             .get('tarDir')
         self.__cc_tarDir = self._beefile['requirements']['CharliecloudRequirement']\
@@ -38,7 +38,6 @@ class BeeCharliecloudLauncher(BeeTask):
 
     # Task management
     def run(self):
-        self.__check_charlie()
         self.launch()
 
     def launch(self):
@@ -59,7 +58,7 @@ class BeeCharliecloudLauncher(BeeTask):
                 hostname = "{}-bee-worker{}".format(self.__task_name,
                                                     str(curr_rank).zfill(3))
             # Each object represent a node
-            bee_cc = BeeCharliecloud(task_id=self.__task_id, hostname=hostname,
+            bee_cc = BeeCharliecloudNode(task_id=self.__task_id, hostname=hostname,
                                      host=host, rank=curr_rank, task_conf=self.__task_conf,
                                      bee_cc_conf=self.__bee_charliecloud_conf,
                                      container_name=self.__container_name)
@@ -213,25 +212,3 @@ class BeeCharliecloudLauncher(BeeTask):
                 cprint("[" + self._task_id + "] Key: " + str(key) + " was not found in: " +
                        str(dictionary), self.error_color)
                 exit(1)
-
-    def __check_charlie(self):
-        """
-        Verify Charliecloud command (ch-run) is available, print
-        error and exit if not available or unknown error
-        """
-        # TODO: this should be moved to the bee_launcher in a future PR
-        cprint("[" + self._task_id + "] Verifying that Charliecloud is available...",
-               self.output_color)
-        try:
-            call(["ch-run", "--version"])
-        except OSError as e:
-            if e.errno == os.errno.ENOENT:
-                cprint("[" + self._task_id +
-                       "] Error: Charliecloud not available please verify that "
-                       "the program/module is properly installed",
-                       self.error_color)
-            else:
-                cprint("[" + self._task_id + "] Error: encountered when "
-                                             "checking for Charliecloud\n"
-                       + str(e), self.error_color)
-            exit(1)
