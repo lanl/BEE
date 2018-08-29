@@ -91,6 +91,9 @@ class BeeTask(Thread):
         except CalledProcessError as e:
             self.__handle_message(msg="Error during - " + str(command) + "\n" +
                                   str(e), nodes=nodes, color=self.error_color)
+            self.__handle_message(msg="Verify that all required programs and files"
+                                      " are available on your system.",
+                                  nodes=nodes, color=self.warning_color)
             if err_exit:
                 exit(1)
         except OSError as e:
