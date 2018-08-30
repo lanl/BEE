@@ -11,6 +11,7 @@ If this is your first time using BEE, run `install.sh`.
 Add the directory of bee-launcher to $PATH, so that it can run anywhere.  
 
 ##### Step 3. Verify additional requirements are satisfied
+- Bash
 - [Charliecloud](https://github.com/hpc/charliecloud)
 - Slurm  
 
@@ -32,9 +33,13 @@ Configure `<task_name>.beefile` file as follow:
    * d. `general_run`: list of scripts that will be invoked on the head-node in the allocation after launching;
      * 1. `script`: name of the script. The script file needs to be in current
             directory.
-     * 2. `local_port_fwd`: `[]` indicates no port 
-             forwarding used.
-     * 3. `remote_port_fwd`: `[]` indicates no port forwarding used.
+     * 2. `flags`: A set of key/value pairs that equate to options for the `general_run` command. Anything provided via this method is not verified and you are responsible for ensuring the accuracy of these options. For example, the below values would would be seen as: `myscripts -ex 8 customValue ...`. Make note of the use of `null` if you are utilizing long names/value in a single key.
+      ```json
+      "flags": {
+        "-ex": "8",
+        "customValue": null
+      }
+      ```
 
    * e. `mpi_run`: list of scripts that will be run in parallel by MPI after 
          launching;
@@ -45,6 +50,13 @@ Configure `<task_name>.beefile` file as follow:
             map_by flag for mpirun command i.e. "node" or "core", invalid if 
             no map_num
      * 4. `map_num`: argument to map_by flag.
+     * 5. `flags`: A set of key/value pairs that equate to options for the `mpirun` command. Anything provided via this method is not verified and you are responsible for ensuring the accuracy of these options. For example, the below values would would be seen as: `mpirun -np 8 --quite ...`. Make note of the use of `null` if you are utilizing long names/value in a single key.
+      ```json
+      "flags": {
+        "-np": "8",
+        "--quite": null
+      }
+      ```
    * f. `srun_run`: list of scripts that will be run via `srun` across all nodes specified via `node_list` under  `exec_env_conf`. This is beneficial when utlizing the `BeeFlow` functionality within a single allocation.
      * 1. `flags`: A set of key/value pairs that equate to options for the `srun` command. Anything provided via this method is not verified and you are responsible for ensuring the accuracy of these options. For example, the below values would would be seen as: `srun -n 8 --mpi=pmi2 ...`. Make note of the use of `null` if you are utilizing long names/value in a single key.
       ```json
@@ -62,6 +74,8 @@ Configure `<task_name>.beefile` file as follow:
     environment.
   * a. `bee_charlicloud`: {
      * 1. `node_list`: nodes i.e. ["cn30", "cn31" ...] to be utilized, this list specifies which nodes should be utilized as part of task. Insure that it is utlized to avoid potential conflicts and wasted resources when utlizing BeeFlow.
+     
+     Note: It is possible to not include `node_list` and BEE will use your entire allocation. For example, if the key is not found BEE will simply run all commands across the entire allocation, this means that the Charliecloud unpack step (`ch-tar2dir ...`) or any `srun_run` scripts will occurs on each node. This may lead to undesirable affects when the task is part of a workflow.
   }
 
 ##### Step 2. Launch task
@@ -93,10 +107,6 @@ Configure `<task_name>.beefile` file as follow:
                        in the current directory;
 
      `-s`: list all tasks with status, automatically updates status;
-
-     `-t <task_name>`: terminate task <task_name>;
-
-     `-d <task_name>`: terminate and delete task <task_name> from task list;   
 
 ### Additional Notes
 Support for `BeeFlow` has been added for the `Bee-Charliecloud` launcher. Please refer to the [documentation](https://github.com/lanl/BEE_Private/blob/master/doc/User%20Guide%20for%20BeeFlow.md) for details on how to create a workflow.
