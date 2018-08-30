@@ -170,6 +170,19 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         for run_conf in self.__task_conf['general_run']:
             cmd = ["sh",  str(run_conf['script'])]
+
+            flags = None
+            try:
+                flags = []
+                for key, value in run_conf['flags'].items():
+                    flags.append(str(key))
+                    if value is not None:
+                        flags.append(str(value))
+            except KeyError:
+                pass  # no flags found, optional so no need for error?run_conf['script']
+            if flags is not None:
+                cmd += flags
+
             if self.__hosts != ["localhost"]:
                 self.run_popen_safe(command=cmd,
                                     nodes=self.__hosts_mpi)
