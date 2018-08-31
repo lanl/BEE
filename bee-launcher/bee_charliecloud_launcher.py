@@ -275,7 +275,10 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         if self.__delete_after:
             # Remove ALL ch-directories found on nodes
-            self.__remove_ch_dir(self.__hosts_mpi, self.__hosts_total)
+            if self.__hosts is None:
+                self.__remove_ch_dir(None, None)
+            else:  # hosts defined
+                self.__remove_ch_dir(self.__hosts_mpi, self.__hosts_total)
         if not clean:
             self.__current_status = 6  # Terminated
             cprint("[" + self.__task_name + "] Has been successfully Terminated",
