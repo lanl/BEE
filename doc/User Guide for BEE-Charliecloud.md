@@ -69,6 +69,7 @@ Configure `<task_name>.beefile` file as follow:
 * `container_conf`: Charliecloud container info.
   * a. `container_path`: entire path for the Charlicloud tarred image;
   * b. `remove_after_exec`: Upon the completion of the task remove the directory created via 'ch-tar2dir' (default value is false)
+  * c. `container_tar2dir`: Directory the container (defined via `container_path`) is extracted to. Default location is `/var/tmp`
 
 * `exec_env_conf`: specifying all configuration related to the execution 
     environment.
