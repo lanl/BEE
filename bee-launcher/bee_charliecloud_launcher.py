@@ -273,7 +273,7 @@ class BeeCharliecloudLauncher(BeeTask):
         :param clean: Flag if terminate function should be run
                 but the status should NOT be set to terminated (6)
         """
-        if self.__delete_after and self.__hosts_mpi is not None:
+        if self.__delete_after:
             # Remove ALL ch-directories found on nodes
             self.__remove_ch_dir(self.__hosts_mpi, self.__hosts_total)
         if not clean:
@@ -345,9 +345,15 @@ class BeeCharliecloudLauncher(BeeTask):
                             Should match the number of nodes listed in
                             the hosts string parameter
         """
+        cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
+
+        if hosts is None:
+            cprint("[" + self.__task_name + "] Removing any existing Charliecloud from allocation.",
+                   self.output_color)
+            self.run_popen_safe(command=cmd)
+
         cprint("[" + self.__task_name + "] Removing any existing Charliecloud"
                                         " directory from {}".format(hosts), self.output_color)
-        cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
         if self.__hosts != ["localhost"]:
             self.run_popen_safe(command=self.compose_srun(cmd, hosts, total_hosts),
                                 nodes=hosts)
