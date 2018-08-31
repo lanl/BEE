@@ -254,8 +254,8 @@ class BeeCharliecloudLauncher(BeeTask):
                         flags.append(str(value))
             except KeyError:
                 pass  # no flags found, optional so no need for error?run_conf['script']
-
-            self.run_popen_safe(command=self.compose_mpirun(command=run_conf['script'],
+            cmd = [str(run_conf['script'])]
+            self.run_popen_safe(command=self.compose_mpirun(command=cmd,
                                                             hosts=my_nodes,
                                                             map_by=map_by,
                                                             custom_flags=flags),
