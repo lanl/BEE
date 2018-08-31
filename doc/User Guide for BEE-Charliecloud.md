@@ -1,14 +1,15 @@
 ## Build and Execute Environment (BEE) User Guide for `BEE-Charliecloud`
 
 The following guide shows you how to run `BEE-Charliecloud` on HPC environment.
-Note that in order to utilize `BEE-Charliecloud` you will need to be in a `Slurm` environment and have access to [Charliecloud](https://github.com/hpc/charliecloud/).
+Note that in order to utilize `BEE-Charliecloud` you will need to be in a `Slurm` environment and have access to [Charliecloud](https://github.com/hpc/charliecloud/). Additionally some aspects of 
 
 ### Installation
 ##### Step 1. Install dependencies
 If this is your first time using BEE, run `install.sh`.
 
 ##### Step 2. Add bee launcher to $PATH
-Add the directory of bee-launcher to $PATH, so that it can run anywhere.  
+Add the directory of bee-launcher to $PATH, so that it can run anywhere.
+`$ export PATH=<path_to_git_location>/BEE_Private/bee-launcher:$PATH`
 
 ##### Step 3. Verify additional requirements are satisfied
 - Bash
