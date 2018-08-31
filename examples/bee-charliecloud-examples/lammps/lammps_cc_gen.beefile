@@ -10,6 +10,7 @@
   }, 
   "container_conf":{
     "container_path": "/scratch/beedev/lammps_bee_cc/lammps_example.tar.gz",
+    "container_tar2dir": "/var/tmp",
     "remove_after_exec": true
   },
   
