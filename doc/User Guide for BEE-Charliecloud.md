@@ -33,7 +33,7 @@ Configure `<task_name>.beefile` file as follow:
    * d. `general_run`: list of scripts that will be invoked on the head-node in the allocation after launching;
      * 1. `script`: name of the script. The script file needs to be in current
             directory.
-     * 2. `flags`: A set of key/value pairs that equate to options for the `general_run` command. Anything provided via this method is not verified and you are responsible for ensuring the accuracy of these options. For example, the below values would would be seen as: `myscripts -ex 8 customValue ...`. Make note of the use of `null` if you are utilizing long names/value in a single key.
+     * 2. `flags`: A set of key/value pairs that equate to options for the `general_run` command. Anything provided via this method is not verified and you are responsible for ensuring the accuracy of these options. For example, the below values would would be seen as: `sh myscripts -ex 8 customValue ...`. Make note of the use of `null` if you are utilizing long names/value in a single key.
       ```json
       "flags": {
         "-ex": "8",
