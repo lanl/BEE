@@ -139,7 +139,7 @@ class BeeTask(Thread):
         if hosts is not None:
             mpi_cmd += ['-host', hosts]
         if map_by is not None:
-            mpi_cmd += ['-map-by']
+            mpi_cmd += ['--map-by', map_by]
         if custom_flags is not None:
             mpi_cmd += custom_flags
         mpi_cmd += command
