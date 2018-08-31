@@ -9,7 +9,7 @@ If this is your first time using BEE, run `install.sh`.
 
 ##### Step 2. Add bee launcher to $PATH
 Add the directory of bee-launcher to $PATH, so that it can run anywhere.
-`$ export PATH=<path_to_git_location>/BEE_Private/bee-launcher:$PATH`
+- `$ export PATH=<path_to_git_location>/BEE_Private/bee-launcher:$PATH`
 
 ##### Step 3. Verify additional requirements are satisfied
 - Bash
