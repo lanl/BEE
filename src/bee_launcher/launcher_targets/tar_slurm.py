@@ -1,5 +1,8 @@
 # system
 from tempfile import NamedTemporaryFile
+from subprocess import Popen, PIPE, \
+    STDOUT, CalledProcessError
+from termcolor import cprint
 
 
 class SlurmAdaptee:
@@ -10,11 +13,17 @@ class SlurmAdaptee:
         self._task_name = task_name
         self._encode = 'UTF-8'
 
+        # Termcolor
+        self.error_color = "red"
+        self.warning_color = "yellow"
+        self.message_color = "cyan"
+
     def specific_allocate(self):
         """
         Create sbatch file utilizing Beefile's desfined 'requirements' then
         execute this sbatch via subprocess.
         At this moment this system must be run on the login node of the cluster
+        :return: unique job id associated with successful allocation
         """
         tmp_f = NamedTemporaryFile()
         tmp_f.write(bytes("#!\\bin\\bash\n\n", 'UTF-8'))
@@ -29,8 +38,9 @@ class SlurmAdaptee:
         self.__deploy_bee_orchestrator(temp_file=tmp_f)
 
         tmp_f.seek(0)
-        self._run_sbatch(tmp_f.name)
+        out, err = self._run_sbatch(tmp_f.name)
         tmp_f.close()
+        return out, err
 
     def specific_schedule(self):
         pass
@@ -46,15 +56,14 @@ class SlurmAdaptee:
         pass
 
     def _run_sbatch(self, file):
-        # TODO: execute via subprocess?
-        print("sbatch -> " + str(file))
-        import subprocess
-        subprocess.call(['cp', str(file), '/home/paul/Downloads'])
+        cmd = ['sbatch', file]
+        out, err = self._run_popen_safe(command=cmd, err_exit=False)
+        return out, err
 
     def __resource_requirement(self, temp_file):
         """
-
-        :param temp_file: Named Temporary File
+        sbatch resource requirements, add to file
+        :param temp_file: Target sbatch file (named temp file)
         """
         for key, value in self.\
                 _config['requirements']['ResourceRequirement'].items():
@@ -76,10 +85,13 @@ class SlurmAdaptee:
     @staticmethod
     def __generate_sbatch_line(key, value):
         """
-
-        :param key:
-        :param value:
-        :return:
+        Generate single line for sbatch file
+            e.g. #SBATCH --nodes=2
+        :param key: sbatch key
+                https://slurm.schedmd.com/sbatch.html
+        :param value: associated with key
+                Currently not verification!
+        :return: sbatch line (string)
         """
         # supported sbtach scripting options
         result = {
@@ -97,8 +109,8 @@ class SlurmAdaptee:
 
     def __software_packages(self, temp_file):
         """
-
-        :param temp_file:
+        Module load <target(s)>, add to file
+        :param temp_file: Target sbatch file (named temp file)
         """
         temp_file.write(bytes("\n\n# Load Modules\n", self._encode))
         for key, value in self.\
@@ -110,11 +122,12 @@ class SlurmAdaptee:
 
     def __deploy_charliecloud(self, temp_file):
         """
-
-        :param temp_file:
+        Identify and un-tar Charliecloud container, add to file
+        :param temp_file: Target sbatch file (named temp file)
         """
         temp_file.write(bytes("\n# Deploy Charliecloud Container\n", self._encode))
         # TODO: better error handling?
+        # TODO: options for build/pull?
         cc_task = self._config_req['CharliecloudRequirement']
         cc_deploy = "srun ch-tar2dir " + str(cc_task['source']) + " " + \
                     str(cc_task.get('tarDir', '/var/tmp')) + "\n"
@@ -122,8 +135,8 @@ class SlurmAdaptee:
 
     def __deploy_bee_orchestrator(self, temp_file):
         """
-
-        :param temp_file:
+        Scripting to launch bee_orchestrator, add to file
+        :param temp_file: Target sbatch file (named temp file)
         """
         temp_file.write(bytes("\n# Launch BEE\n", self._encode))
         bee_deploy = [
@@ -134,3 +147,48 @@ class SlurmAdaptee:
         ]
         for data in bee_deploy:
             temp_file.write(bytes(data + "\n", self._encode))
+
+    def _run_popen_safe(self, command, shell=False, err_exit=True):
+        """
+        Run defined command via Popen, try/except statements
+        built in and message output when appropriate
+        :param command: Command to be run
+        :param shell: Shell flag (boolean), default false
+        :param err_exit: Exit upon error, default True
+        :return: tuple [out, err] from p.communicate() based upon results
+                    of command run via subprocess
+                None, error message returned if except reached
+                    and err_exit=False
+        """
+        self._handle_message("Executing: " + str(command))
+        try:
+            p = Popen(command, shell, stdout=PIPE, stderr=STDOUT)
+            out, err = p.communicate()
+            return out, err
+        except CalledProcessError as e:
+            self._handle_message(msg="Error during - " + str(command) + "\n" +
+                                 str(e), color=self.error_color)
+            if err_exit:
+                exit(1)
+            else:
+                return None, str(e)
+        except OSError as e:
+            self._handle_message(msg="Error during - " + str(command) + "\n" +
+                                 str(e), color=self.error_color)
+            if err_exit:
+                exit(1)
+            else:
+                return None, str(e)
+
+    # Task management support functions (private)
+    def _handle_message(self, msg, color=None):
+        """
+        :param msg: To be printed to console
+        :param color: If message is be colored via termcolor
+                        Default = none (normal print)
+        """
+
+        if color is None:
+            print("[{}] {}".format(self._task_name, msg))
+        else:
+            cprint("[{}] {}".format(self._task_name, msg), color)
