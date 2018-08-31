@@ -38,7 +38,7 @@ class BeeCharliecloudLauncher(BeeTask):
         self.__container_path = beefile['container_conf']['container_path']
         self.__container_name = self.__verify_container_name()
         self.__ch_dir = self.__fetch_beefile_value("container_tar2dir",
-                                                   self.__bee_charliecloud_conf,
+                                                   beefile['container_conf'],
                                                    "/var/tmp")  # ch-tar2dir
         self.__delete_after = self.__fetch_beefile_value("remove_after_exec",
                                                          beefile['container_conf'],
