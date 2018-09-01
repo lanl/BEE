@@ -5,7 +5,7 @@ requirements:
     ResourceRequirement:
         numNodes: 1
         jobTime: "0:10:00"
-        rjms: slurm
+        manageSys: slurm
         custom:
             --hello: world
             --test: this/stuff
@@ -15,6 +15,11 @@ requirements:
         source: /var/tmp/alpine.tar.gz
         tarDir: /var/tmp
         deleteAfter: False
+    EnvVarRequirements:
+        envDef:
+            BEE_ALPINE: /var/tmp/alpine
+        sourceDef:
+            activate: bee_env
 workerBees:
     helloTime.sh:
         program:

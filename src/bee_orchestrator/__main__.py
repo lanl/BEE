@@ -14,7 +14,7 @@ def verify_pyro4_conf():
     Create json file used to share port set by Pryo4 across
     instance running orchestrator
     """
-    conf_file = str(Path.home()) + "/.bee/bee_conf.json"
+    conf_file = str(Path.home()) + "/.bee/port_conf.json"
     if path.isfile(conf_file):
         remove(conf_file)
     with open(conf_file, 'w') as file:

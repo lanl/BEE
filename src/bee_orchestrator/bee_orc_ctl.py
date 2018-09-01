@@ -81,7 +81,7 @@ def main(beefile=None, file_name=None):
 
 
 def update_system_conf(open_port):
-    conf_file = str(Path.home()) + "/.bee/bee_conf.json"
+    conf_file = str(Path.home()) + "/.bee/port_conf.json"
     with open(conf_file, 'r+') as file:
         data = load(file)
         data["pyro4-ns-port"] = open_port

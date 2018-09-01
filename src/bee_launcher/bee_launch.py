@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # system
 import os
+import sqlite3
+from pathlib import Path
 from termcolor import cprint
 # project
 from beefile_manager import BeefileLoader
@@ -14,26 +16,34 @@ class BeeLauncher(object):
         self.__log_dest = log_dest + ".launcher"  # log file destinations
 
         self.__cwdir = os.getcwd()
+        self.__homedir = str(Path.home())
 
-        self._status_color = ['grey', 'white', 'yellow', 'cyan', 'green',
-                            'magenta', 'red']
+        # Database Tracking
+        self._db_full = self.__homedir + "/.bee/launcher.db"
+        self.__db_conn = None  # Database connection
+
+        # Termcolor messages
         self._error_color = 'red'
         self._message_color = 'cyan'
         self._warning_color = 'yellow'
-        self._status = ["Initializing", "Initialized", "Waiting", "Launching",
-                        "Running", "Finished", "Terminated"]
 
     def launch(self, beefile, task_name, file_loc):
         b_class = self._fetch_beefile_value(dictionary=beefile, key="class",
                                             quit_err=True)
         b_rjms = self._fetch_beefile_value(dictionary=beefile['requirements']['ResourceRequirement'],
-                                           key="rjms", quit_err=True)
+                                           key="manageSys", quit_err=True)
         cprint("[" + str(task_name) + "] Preparing to launch..." +
                "\n\tClass: " + str(b_class) + "\n\tRJMS: " + str(b_rjms),
                self._message_color)
         adapt = Adapter(system=b_rjms, config=beefile, file_loc=file_loc,
                         task_name=task_name)
-        adapt.allocate()
+        out, err = adapt.allocate()
+
+        if out is None:
+            # Error during allocation phase
+            pass
+        else:  # Success
+            pass
 
     def list_all_tasks(self):
         # TODO: implement
@@ -72,6 +82,39 @@ class BeeLauncher(object):
                 cprint("Key: " + str(key) + " was not found",
                        self._error_color)
             exit(1)
+
+    ###########################################################################
+    # Database reflated functions
+    #
+    ###########################################################################
+    def __connect_db(self):
+        self.__db_conn = sqlite3.connect(self._db_full)
+        return self.__db_conn.cursor()
+
+    def __close_db(self):
+        self.__db_conn.close()
+
+    def __launcher_table(self, cursor):
+        try:
+            cursor.execute("CREATE TABLE IF NOT EXISTS launcher "
+                           "(tableID INTEGER PRIMARY KEY, "
+                           "jobID TEXT NOT NULL, "
+                           "class TEXT NOT NULL, "
+                           "manageSys TEXT, "
+                           "status TEXT, "
+                           "beefileName TEXT, "
+                           "beefileFull TEXT, "
+                           "beeflowName TEXT, "
+                           "beeflowFull TEXT, "
+                           "errDetails TEXT, "
+                           "time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)")
+        except sqlite3.Error as e:
+            cprint("[" + self._db_full + "]Error while creating launcher table",
+                   self._error_color)
+            print(e)
+
+    def __insert_launch_event(self):
+        pass
 
 
 # Manage main argument responses

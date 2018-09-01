@@ -31,9 +31,16 @@ class SlurmAdaptee:
         # Prepare SBATCH file
         # TODO: further document
         #######################################################################
-        self.__resource_requirement(temp_file=tmp_f)
-        self.__software_packages(temp_file=tmp_f)
-        if self._config_req.get('CharliecloudRequirement', None) is not None:
+        if self._config_req.get('ResourceRequirement') is not None:
+            self.__resource_requirement(temp_file=tmp_f)
+        else:
+            cprint("[" + self._task_name + "] ResourceRequirement key is required for"
+                                           " allocation", self.error_color)
+        if self._config_req.get('SoftwarePackages') is not None:
+            self.__software_packages(temp_file=tmp_f)
+        if self._config_req.get('EnvVarRequirements') is not None:
+            self.__env_variables(temp_file=tmp_f)
+        if self._config_req.get('CharliecloudRequirement') is not None:
             self.__deploy_charliecloud(temp_file=tmp_f)
         self.__deploy_bee_orchestrator(temp_file=tmp_f)
 
@@ -57,6 +64,14 @@ class SlurmAdaptee:
 
     def _run_sbatch(self, file):
         cmd = ['sbatch', file]
+        """
+        # TODO: remove test code
+        print(cmd)
+        command = ['mousepad', file]
+        p = Popen(command, stdout=PIPE, stderr=STDOUT)
+        p.communicate()
+        exit(0)
+        """
         out, err = self._run_popen_safe(command=cmd, err_exit=False)
         return out, err
 
@@ -128,10 +143,30 @@ class SlurmAdaptee:
         temp_file.write(bytes("\n# Deploy Charliecloud Container\n", self._encode))
         # TODO: better error handling?
         # TODO: options for build/pull?
-        cc_task = self._config_req['CharliecloudRequirement']
-        cc_deploy = "srun ch-tar2dir " + str(cc_task['source']) + " " + \
-                    str(cc_task.get('tarDir', '/var/tmp')) + "\n"
-        temp_file.write(bytes(cc_deploy, self._encode))
+        for cc in self._config_req['CharliecloudRequirement']:
+            cc_task = self._config_req['CharliecloudRequirement'][cc]
+            cc_deploy = "srun ch-tar2dir " + str(cc_task['source']) + " " + \
+                         str(cc_task.get('tarDir', '/var/tmp')) + "\n"
+            temp_file.write(bytes(cc_deploy, self._encode))
+
+    def __env_variables(self, temp_file):
+        """
+        Added source <key> <value> and export <key> <value>:$<key>
+        in order to establish the environment
+        :param temp_file: Target sbatch file (named temp file)
+        """
+        temp_file.write(bytes("\n# Environmental Requirements\n", self._encode))
+        env_dict = self._config_req['EnvVarRequirements']
+        if env_dict.get('envDef') is not None:
+            for key, value in env_dict.get('envDef').items():
+                export = "export {} {}:${}".format(str(key), str(value), str(key))
+                temp_file.write(bytes(export + "\n", 'UTF-8'))
+        if env_dict.get('sourceDef') is not None:
+            for key, value in env_dict.get('sourceDef').items():
+                source = "source {}".format(str(key))
+                if value is not None:
+                    source += str(value)
+                temp_file.write(bytes(source + "\n", 'UTF-8'))
 
     def __deploy_bee_orchestrator(self, temp_file):
         """
@@ -140,10 +175,8 @@ class SlurmAdaptee:
         """
         temp_file.write(bytes("\n# Launch BEE\n", self._encode))
         bee_deploy = [
-            "screen -S bee_orc -d -m " +
-            "(cd " + self._file_loc + " ; python3 -m bee_orchestrator -o -t " +
-            self._task_name + ") ",
-            "screen -X -S bee_orc quit"
+            "python3 -m bee-orchestrator -o -t " + self._file_loc +
+            "/" + self._task_name + ") "
         ]
         for data in bee_deploy:
             temp_file.write(bytes(data + "\n", self._encode))
