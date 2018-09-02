@@ -94,10 +94,13 @@ def manage_args(args):
 def main():
     try:
         args = parser.parse_args()
-        manage_args(args)
+        args.func(args)
+    except AttributeError:
+        cprint("Command line arguments required", "red")
+        parser.parse_args(['-h'])
     except argparse.ArgumentError as e:
-        cprint(e, "Red")
-        exit(2)
+        cprint(e, "red")
+        exit(1)
 
 
 if __name__ == "__main__":
