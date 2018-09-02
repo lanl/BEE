@@ -2,9 +2,9 @@
 import abc
 from termcolor import cprint
 # project
-from orc_targets.tar_localhost import LocalhostAdaptee
-from orc_targets.tar_ssh import SSHAdaptee
-from orc_targets.tar_slurm import SlurmAdaptee
+from .tar_localhost import LocalhostAdaptee
+from .tar_ssh import SSHAdaptee
+from .tar_slurm import SlurmAdaptee
 
 
 class Target(metaclass=abc.ABCMeta):

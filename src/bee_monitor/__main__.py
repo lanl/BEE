@@ -1,5 +1,5 @@
 def main():
-    print("bee-status")
+    print("bee-monitor coming soon!")
 
 
 if __name__ == "__main__":

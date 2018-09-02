@@ -4,7 +4,7 @@ import os
 import getpass
 import json
 # project
-from beefile_manager import BeeflowLoader, BeefileLoader
+from .beefile_manager import BeeflowLoader, BeefileLoader
 
 
 class BeeFlow(object):

@@ -2,11 +2,10 @@
 # system
 import os
 import sqlite3
-from pathlib import Path
 from termcolor import cprint
 # project
-from beefile_manager import BeefileLoader
-from launcher_translator import Adapter
+from .beefile_manager import BeefileLoader
+from .launcher_translator import Adapter
 
 
 class BeeLauncher(object):
@@ -16,7 +15,7 @@ class BeeLauncher(object):
         self.__log_dest = log_dest + ".launcher"  # log file destinations
 
         self.__cwdir = os.getcwd()
-        self.__homedir = str(Path.home())
+        self.__homedir = os.path.expanduser('~')
 
         # Database Tracking
         self._db_full = self.__homedir + "/.bee/launcher.db"

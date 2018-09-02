@@ -1,10 +1,11 @@
 # system
 import argparse
+import sys
 from os import getcwd, path
 from termcolor import cprint
 # project
-from bee_launch import BeeArguments
-from bee_flow import BeeFlow
+from .bee_launch import BeeArguments
+from .bee_flow import BeeFlow
 
 
 # Parser supporting functions
@@ -107,7 +108,7 @@ parser.add_argument("--logfile",
 ###############################################################################
 subparser = parser.add_subparsers(title="BEE Modules")
 sub_launch_group = subparser.add_parser("launch",
-                                        help="bee_launcher.py")
+                                        help="bee_launch.py")
 sub_flow_group = subparser.add_parser("flow",
                                       help="bee_flow.py")
 
@@ -148,9 +149,12 @@ def main():
     try:
         args = parser.parse_args()
         args.func(args)
+    except AttributeError:
+        cprint("Command line arguments required", "red")
+        parser.parse_args(['-h'])
     except argparse.ArgumentError as e:
         cprint(e, "red")
-        exit(2)
+        exit(1)
 
 
 if __name__ == "__main__":
