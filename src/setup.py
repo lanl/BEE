@@ -7,7 +7,11 @@ setuptools.setup(
     author="Paul",
     author_email="pbryant1@kent.edu",
     packages=[
-        "bee_launcher"
+        "bee_launcher",
+        "bee_monitor",
+        "bee_logging",
+        "bee_internal",
+        "bee_orchestrator"
     ],
     include_package_date=False,
     url="https://github.com/paulbry/BEE",
