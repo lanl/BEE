@@ -2,9 +2,8 @@
 import argparse
 from termcolor import cprint
 from os import path, remove, chdir
-from pathlib import Path
 # project
-import bee_orc_ctl
+from .bee_orc_ctl import main as boc
 from beefile_manager import BeefileLoader
 
 
@@ -14,7 +13,7 @@ def verify_pyro4_conf():
     Create json file used to share port set by Pryo4 across
     instance running orchestrator
     """
-    conf_file = str(Path.home()) + "/.bee/port_conf.json"
+    conf_file = str(path.expanduser('~')) + "/.bee/port_conf.json"
     if path.isfile(conf_file):
         remove(conf_file)
     with open(conf_file, 'w') as file:
@@ -73,14 +72,14 @@ def manage_args(args):
             t = p.rfind("/")
             chdir(p[:t])
             f = BeefileLoader(args.task[0])
-            bee_orc_ctl.main(f.beefile, p[t+1:len(p)])
+            boc(f.beefile, p[t+1:len(p)])
         elif args.orc_arm:
             cprint("ARM support not ready at the moment!", 'red')
         else:
             cprint("Please specify a valid orchestrator!", 'red')
 
     elif args.orc:
-        bee_orc_ctl.main()
+        boc()
     elif args.orc_arm:
         cprint("ARM support not ready at the moment!", 'red')
 
