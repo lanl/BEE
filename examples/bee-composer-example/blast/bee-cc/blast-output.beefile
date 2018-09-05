@@ -2,14 +2,11 @@
   "task_conf": {
       "task_name": "blast-output",
       "exec_target": "bee_charliecloud",
-      "batch_mode": false,
-      "general_run": [],
       "srun_run": [
 	  {
 	      "script": "blast-output.sh"
 	  }
-      ],
-      "mpi_run": []
+      ]
   }, 
   "container_conf":{
       "container_path": "/scratch/beedev/blast/blast.tar.gz",
