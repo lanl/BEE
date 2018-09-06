@@ -9,7 +9,7 @@ If this is your first time using BEE, run `install.sh` first.
 ##### Step 2. Build BEE-VM image
 Before using BEE to launch `BEE-VM` tasks, building BEE-VM images using the BEE Image Builder is necessary. The BEE-VM image only needs to be built once. 
 * (1) Download Packer binary [here](https://www.packer.io/downloads.html). Add Packer binary to `$PATH` environment variable, so that it can run anywhere. (You can skip this step if you already have Packer.)
-* (2) `cd` into the `bee-image-builder` folder of this repo. Run `./build_bee_vm.sh` to build base image for `BEE-VM`. This step must be done on a QEMU-enabled machine and will usually take 10-20 minutes with KVM-enabled and longer time without KVM. 
+* (2) `cd` into the `bee-image-builder/bee-vm-and-aws-image-builder` folder of this repo. Run `./build_bee_vm.sh` to build base image for `BEE-VM`. This step must be done on a QEMU-enabled machine and will usually take 10-20 minutes with KVM-enabled and longer time without KVM. 
 
 ##### Step 3. Add bee launcher to $PATH
 Add the directory of bee-launcher to $PATH, so that it can run anywhere.    
