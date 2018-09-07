@@ -117,7 +117,7 @@ class BeeTask(Thread):
         srun_cmd = ["srun"]
         if hosts is not None:
             srun_cmd += ["--nodelist=" + hosts]
-        if num_nodes is not None:
+        if num_nodes is not None and (num_nodes != 0 or num_nodes != '0'):
             srun_cmd += ["--nodes=" + str(num_nodes) + "-" + str(num_nodes)]
         if custom_flags is not None:
             srun_cmd += custom_flags
