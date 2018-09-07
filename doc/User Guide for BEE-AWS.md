@@ -13,7 +13,7 @@ Building AMI image is not necessary unless special customization is needed. Two 
 
 To build BEE-AWS image:
 * (1) Download Packer binary [here](https://www.packer.io/downloads.html). Add Packer binary to `$PATH` environment variable, so that it can run anywhere. (You can skip this step if you already have Packer.)
-* (2) `cd` into the `bee-image-builder` folder of this repo. Run `./build_bee_aws.sh` to build base image for `BEE-AWS`.
+* (2) `cd` into the `bee-image-builder/bee-vm-and-aws-image-builder` folder of this repo. Run `./build_bee_aws.sh` to build base image for `BEE-AWS`.
 
 ##### Step 3. Add bee launcher to $PATH
 Add the directory of bee-launcher to $PATH, so that it can run anywhere.    

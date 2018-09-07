@@ -20,13 +20,13 @@ class BeeLauncher(object):
         f = open(self.__hdir + "/.bee/bee_conf.json", "r")
         data = json.load(f)
         port = int(data["pyro4-ns-port"])
-        ns = Pyro4.locateNS(port = port, hmac_key = getpass.getuser())
+        ns = Pyro4.locateNS(port=port, hmac_key=getpass.getuser())
         uri = ns.lookup("bee_launcher.daemon")
         self.bldaemon = Pyro4.Proxy(uri) #Pyro4.Proxy("PYRONAME:bee_launcher.daemon")
-        self.__status = ["Initializing", "Initialized", "Waiting", "Launching", 
-             "Running", "Finished", "Terminated"]
-        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green', 
-             'magenta', 'red']
+        self.__status = ["Initializing", "Initialized", "Waiting", "Launching",
+                         "Running", "Finished", "Terminated"]
+        self.__status_color = ['grey', 'white', 'yellow', 'cyan', 'green',
+                               'magenta', 'red']
 
     def launch(self, beefile, restore = False):
         self.encode_cwd(beefile)
@@ -48,27 +48,33 @@ class BeeLauncher(object):
         return self.bldaemon.create_bee_aws_storage(efs_name, perf_mode)
     
     def encode_cwd(self, beefile):
-        for run_conf in beefile['task_conf']['general_run']:
-            run_conf['script'] = self.__cwdir + "/" + run_conf['script']
-        for run_conf in beefile['task_conf']['mpi_run']:
-            run_conf['script'] = self.__cwdir + "/"+ run_conf['script']
-        try:  # optional to avoid affecting existing
-            for run_conf in beefile['task_conf']['srun_run']:
+        # General Run
+        general_run = beefile['task_conf'].get('general_run', None)
+        if general_run is not None:
+            for run_conf in general_run:
                 run_conf['script'] = self.__cwdir + "/" + run_conf['script']
-        except KeyError:
-            pass
+        # MPIRUN
+        mpi_run = beefile['task_conf'].get('mpi_run', None)
+        if mpi_run is not None:
+            for run_conf in mpi_run:
+                run_conf['script'] = self.__cwdir + "/" + run_conf['script']
+        # SRUN (SLRUM)
+        srun_run = beefile['task_conf'].get('srun_run', None)
+        if srun_run is not None:
+            for run_conf in srun_run:
+                run_conf['script'] = self.__cwdir + "/" + run_conf['script']
+
 
 def main(argv):
-    status_list = ["Initializing", "Initialized", "Waiting", "Launching", 
-       "Running", "Finished", "Terminated"]
+    status_list = ["Initializing", "Initialized", "Waiting", "Launching",
+                   "Running", "Finished", "Terminated"]
     status_color_list = ['grey', 'white', 'yellow', 'cyan', 'green', 'magenta',
-       'red']
+                         'red']
     bee_launcher = BeeLauncher()
-    beefile = ""
     try:
-        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:", 
-            ["launch=", "checkpoint=", "restore=", "status", "terminate=", 
-             "delete=", "efs="])
+        opts, args = getopt.getopt(argv, "l:c:r:st:d:e:",
+                                   ["launch=", "checkpoint=", "restore=", "status",
+                                    "terminate=", "delete=", "efs="])
     except getopt.GetoptError:
         print("Please provide beefile or efs name.")
         exit()
@@ -106,16 +112,15 @@ def main(argv):
                 table = []
                 count = 1
                 for beetask in status:
-                    color_status = colored(status_list[status[beetask]['status']], 
-                        status_color_list[status[beetask]['status']])
+                    color_status = colored(status_list[status[beetask]['status']],
+                                           status_color_list[status[beetask]['status']])
                     platform = status[beetask]['platform']
                     table.append([str(count), beetask, color_status, platform])
                     count = count + 1
                 os.system('clear')
-                print(tabulate(table, 
-                     headers=['No.', 'Task Name', 'Status', 'Platform']))
+                print(tabulate(table, headers=['No.', 'Task Name',
+                                               'Status', 'Platform']))
                 time.sleep(5)
-            exit()
 
         elif opt in ("-t", "--terminate"):
             beetask_name = arg
@@ -138,6 +143,7 @@ def main(argv):
             else:
                 print("EFS created: " + efs_id)
             exit()
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
