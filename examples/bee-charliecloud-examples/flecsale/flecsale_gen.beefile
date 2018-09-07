@@ -10,9 +10,5 @@
   }, 
   "container_conf":{
     "container_path": "/scratch/beedev/flecsale_bee_cc/flecsale.tar.gz" 
-  },
-  
-  "exec_env_conf": {
-      "bee_charliecloud": {}
   }
 }
