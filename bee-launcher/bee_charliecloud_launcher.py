@@ -313,13 +313,17 @@ class BeeCharliecloudLauncher(BeeTask):
         """
         cp = self.__container_path
 
-        if cp[-7:] == ".tar.gz" and tarfile.is_tarfile(cp):
-            cp = cp[cp.rfind('/') + 1:-7]
-            return cp
+        if os.path.isfile(file):
+            if cp[-7:] == ".tar.gz" and tarfile.is_tarfile(cp):
+                cp = cp[cp.rfind('/') + 1:-7]
+                return cp
+            else:
+                cprint("Error: invalid container file format detected\n"
+                       "Please verify the file is properly compressed (<name>.tar.gz)",
+                        self.error_color)
+                exit(1)
         else:
-            cprint("Error: invalid container file format detected\n"
-                   "Please verify the file is properly compressed (<name>.tar.gz)",
-                   self.error_color)
+            cprint("Error: container not found -> " + str(cp), self.error_color)
             exit(1)
 
     def __unpack_ch_dir(self, hosts=None, total_hosts=None):
