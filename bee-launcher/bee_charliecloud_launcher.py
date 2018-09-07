@@ -362,11 +362,11 @@ class BeeCharliecloudLauncher(BeeTask):
         cmd = ['rm', '-rf', self.__ch_dir + "/" + self.__container_name]
 
         if hosts is None:
-            cprint("[" + self.__task_name + "] Removing any existing Charliecloud from allocation.",
+            cprint("[" + self.__task_name + "] Removing existing Charliecloud from allocation.",
                    self.output_color)
             self.run_popen_safe(command=cmd)
 
-        cprint("[" + self.__task_name + "] Removing any existing Charliecloud"
+        cprint("[" + self.__task_name + "] Removing existing Charliecloud"
                                         " directory from {}".format(hosts), self.output_color)
         if self.__hosts != ["localhost"]:
             self.run_popen_safe(command=self.compose_srun(cmd, hosts, total_hosts),
@@ -374,7 +374,7 @@ class BeeCharliecloudLauncher(BeeTask):
         else:  # To be used when local instance of task only!
             self.run_popen_safe(command=cmd, nodes=str(self.__hosts))
         cprint("[" + self.__task_name + "] Removed Charliecloud container " +
-               self.__container_name + "from " + self.__ch_dir, self.output_color)
+               self.__container_name + " from " + self.__ch_dir, self.output_color)
 
     def __fetch_beefile_value(self, key, dictionary, default=None, quit_err=False,
                               silent=False):
