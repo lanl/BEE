@@ -20,12 +20,18 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # User configuration
         self.__task_conf = beefile['task_conf']
-        self.__bee_charliecloud_conf = beefile['exec_env_conf']['bee_charliecloud']
+        if beefile.get('exec_env_conf') is not None:
+            self.__bee_charliecloud_conf = beefile['exec_env_conf'].get('bee_charliecloud')
+        else:
+            self.__bee_charliecloud_conf = None
         self.__task_name = self.__task_conf['task_name']
         self.__task_id = task_id
 
         # Task configuration
-        self.__hosts = self.__bee_charliecloud_conf.get('node_list', None)
+        if self.__bee_charliecloud_conf is not None:
+            self.__hosts = self.__bee_charliecloud_conf.get('node_list', None)
+        else:
+            self.__hosts = None
 
         # __host_mpi formatted to be used with srun/mpirun -host *
         # filled during launch event (string, to be used in cmd list)
