@@ -1,0 +1,54 @@
+\section{BEE-OpenStack Design}
+\label{bee-openstack-section}
+OpenStack is a cloud operating system that is able to manage large pools of computing, storage, and network resources. It has been widely deployed in both research facilities and cloud computing environments. To bring the same unified execution environment and end-to-end automation to OpenStack, we build \texttt{BEE-OpenStack} as another \texttt{BEE backend}.
+
+Unlike AWS, the computing sources of OpenStack can be either bare-metal machines or VM. In either case, users are given full control inside the operating system. So, similar to \texttt{BEE-AWS} we enable Docker runtime inside each OpenStack instance. 
+
+\subsection{Network Design}
+On our OpenStack test environment (\texttt{Chameleon Cloud}), network interconnects are enabled by default between instances. So, we do not need to further configure it. For OpenStack infrastructures that need customized network, \texttt{BEE} will configure it automatically to ensure network interconnect capabilities between instances. The detail is omitted here. Similar to before, we use 'host network' mode for Docker containers.
+
+\subsection{Storage Design}
+Similar to \texttt{AWS}, by default, OpenStack instances do not share filesystems. On our OpenStack test environment (\texttt{Chameleon Cloud}), there is no OpenStack-managed storage system. So, we adopt NFS based file sharing between master instance (first instance) and worker instances. We use the volume mounting feature of Docker to enable file sharing between Docker containers similar to \texttt{BEE-VM} and \texttt{BEE-AWS}
+
+\textbf{Algorithm \ref{bee-openstack}} shows the launching logic of \texttt{BEE-OpenStack}. Here we first use OpenStack CLI client to launch a pre-built Stack template for BEE, and then use SSH to control each instance.
+
+\begin{algorithm}
+\caption{\texttt{BEE-OpenStack} launching logic}
+\label{bee-openstack}
+\begin{algorithmic}[1]
+\REQUIRE{Pre-built OpenStack Img. (only need to build once)}
+\REQUIRE{Dockerized application (Docker image/Dockerfile)}
+\REQUIRE{\texttt{BEE} configuration file (\texttt{beefile})}
+\REQUIRE{Run scripts}
+\STATE \texttt{initialize\_nova\_service\_connection()}
+\STATE \texttt{create\_new\_sshkey()}
+\STATE \texttt{launch\_bee\_stack(\texttt{beefile})}
+\STATE \texttt{wait\_for\_all\_instance\_to\_become\_ready()}
+
+\FOR{i in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_os\_i.set\_hostname()}
+\FOR{j in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_os\_j.setup\_hostfile(bee\_os\_i.ip)}
+\ENDFOR
+\ENDFOR
+\STATE \texttt{bee\_os\_0.create\_nfs\_mount\_point()}
+\FOR{i in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_os\_i.mount\_to\_nfs(bee\_os\_0.ip())}
+\ENDFOR
+\FOR{i in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_os\_i.pull/build\_docker(beefile)}
+\ENDFOR
+\FOR{i in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_os\_i.pull/build\_docker(beefile)}
+\STATE \texttt{bee\_os\_i.conf\_docker\_storage(nfs\_mnt)}
+\STATE \texttt{bee\_os\_i.conf\_docker\_network(host\_mode)}
+\STATE \texttt{bee\_os\_i.start\_docker('ssh daemon')}
+\ENDFOR
+\FOR{\textbf{each} \texttt{sequential run script} \textbf{in} \texttt{beefile} }
+\STATE \texttt{bee\_os\_0.docker\_exec(script)}
+\ENDFOR
+\FOR{\textbf{each} \texttt{parallel run script} \textbf{in} \texttt{beefile} }
+\STATE \texttt{bee\_os\_0.docker\_exec(mpi\_script)}
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
