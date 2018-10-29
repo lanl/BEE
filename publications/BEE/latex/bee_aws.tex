@@ -1,0 +1,68 @@
+\section{BEE-AWS Design}
+\label{bee-aws-section}
+AWS is one of the most widely used commercial cloud computing platforms. It offers great configuration flexibility towards computing software/hardware environment, network, storage, and security. Many researchers from both HPC and cloud community use AWS to run large scale applications. However, configuring the desired computing environment on AWS is tedious and can impede experiment workflow, especially for users with less knowledge or experience on AWS. Although many tools offer the ability to automate the computing environment setup process, they usually cannot create an environment suitable for HPC applications. Even though tools such as StarCluster \cite{starcluster}, do offer the capability of creating HPC-friendly environment on AWS, it suffers from two drawbacks. First, they do not offer the support of automatic Docker container deployment and execution. Users still need to manually deploy and run their applications. Second, they usually do not offer HPC/cloud cross-platform support. %Users need to seek for other tools for other platforms. 
+
+Here we design \texttt{BEE-AWS} as another \texttt{BEE backend}. \texttt{BEE-AWS} enables the same end-to-end automation on AWS as provided in \texttt{BEE-Charliecloud} and \texttt{BEE-VM} on HPC systems. Most importantly, \texttt{BEE-AWS} offers the same user interface and execution environment as \texttt{BEE-VM}, so the user only needs to make minimum modifications to the \texttt{BEE} configuration file (\texttt{beefile}) in order to switch to AWS. 
+
+The computing resources are based on Xen-based VMs and they also known as EC2 instances. Since EC2 instances are VM-based, users are given full control inside each VM. So, here we configure them (via customized AMI) to enable Docker runtime. Users of \texttt{BEE} can specify desired instance type via \texttt{BEE} configuration file (\texttt{beefile}). Same as on the HPC platform, data sharing via network and storage also need to be handled.
+
+\subsection{Network Design}
+EC2 instances by default have network interconnect capability via the network in their infrastructures. However, they still need to be customized for HPC applications. First, as mentioned in \texttt{BEE-VM} design, MPI commonly uses random port for communication, so we need to create an EC2 security group that has a range of ports opened based on the MPI implementation specification. Second, for fast network interconnection, EC2 instances need to be placed in the same placement group. This makes sure the physical hardware allocated for each EC2 instance are close to each other so that the network is optimized for low latency and high throughput. As for network interconnection between Docker containers, we follow a similar choice made using \texttt{BEE-VM}, that enables 'host network' mode at launch time.
+
+\subsection{Storage Design}
+By default EC2 instances do not share filesystems. To enable file sharing, we choose to create Elastic File System (EFS) and mount EFS to each EC2 instance. This design has better performance than the master-slave based Network File System (NFS) adopted in Starcluster. We use the volume mounting feature of Docker to enable file sharing between Docker containers similar to \texttt{BEE-VM}.
+
+\textbf{Algorithm \ref{bee-aws-launch}} shows that launching logic of \texttt{BEE-AWS}. We use Boto API to remotely launch EC2 instances on AWS (line 7 - 15). After that we use SSH connection to control each instance. 
+
+\begin{algorithm}
+\caption{\texttt{BEE-AWS} launching logic}
+\label{bee-aws-launch}
+\begin{algorithmic}[1]
+\REQUIRE{Pre-built AMI (only need to build once)}
+\REQUIRE{Dockerized application (Docker image/Dockerfile)}
+\REQUIRE{\texttt{BEE} configuration file (\texttt{beefile})}
+\REQUIRE{Run scripts}
+\IF {\textit{user given EFS name} not exist}
+\STATE \texttt{request\_creating\_efs(efs\_name)}
+\WHILE{ \texttt{efs\_status(efs\_name)} != \texttt{active}}
+\STATE \texttt{sleep()}
+\ENDWHILE
+\ENDIF
+
+\STATE \texttt{initialize\_ec2\_service\_connection()}
+\STATE \texttt{bee\_sg = create\_security\_group()}
+\STATE \texttt{bee\_sg.authroize\_ingress('tcp', '22')}
+\STATE \texttt{bee\_pg = create\_placement\_group()}
+\FOR{i in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_ec2\_i = create\_ec2(bee\_sg, bee\_pg)}
+\STATE \texttt{bee\_ec2\_i.start()}
+\ENDFOR
+\STATE \texttt{wait\_for\_all\_instance\_to\_become\_ready()}
+\FOR{i in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_ec2\_i.set\_hostname()}
+\FOR{j in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_ec2\_j.setup\_hostfile(bee\_ec2\_i.ip)}
+\ENDFOR
+\ENDFOR
+\FOR{i in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_ec2\_i.create\_efs\_mount\_point()}
+\STATE \texttt{bee\_ec2\_i.mount\_to\_efs(efs\_name)}
+\STATE \texttt{bee\_ec2\_i.pull/build\_docker(beefile)}
+\ENDFOR
+\FOR{i in 1 \textbf{to} \texttt{beefile}.num\_of\_nodes}
+\STATE \texttt{bee\_ec2\_i.pull/build\_docker(beefile)}
+\STATE \texttt{bee\_ec2\_i.conf\_docker\_storage(efs\_mnt)}
+\STATE \texttt{bee\_ec2\_i.conf\_docker\_network(host\_mode)}
+\STATE \texttt{bee\_ec2\_i.start\_docker('ssh daemon')}
+\ENDFOR
+\FOR{\textbf{each} \texttt{sequential run script} \textbf{in} \texttt{beefile} }
+\STATE \texttt{bee\_ec2\_0.docker\_exec(script)}
+\ENDFOR
+\FOR{\textbf{each} \texttt{parallel run script} \textbf{in} \texttt{beefile} }
+\STATE \texttt{bee\_ec2\_0.docker\_exec(mpi\_script)}
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+%\section{BEE-AWS Design}
+%AWS is a highly usable computing environment for cloud and HPC users. To provide a similar Docker-enabled environment on AWS, we designed another back-end \texttt{BEE}, the \texttt{BEE-AWS}. It enables the user to run their Dockerized application on AWS using \texttt{BEE-AWS} the same way as they run on the HPC system using \texttt{BEE-VM}. Since both the storage and network on AWS are highly optimized and their configurations are hidden from users, the design of \texttt{BEE-AWS} is relatively simpler than \texttt{BEE-VM}. In \texttt{BEE-AWS}, it first launches an AWS instance based cluster using BOTO API \cite{BOTOAPI} with optimized network configuration and a shared EFS storage. Then, it loads the user application's input data into EFS for storage sharing. Next, \texttt{BEE-AWS} controls each instance to obtain Docker images either from public/private docker registries or builds Docker images from Dockerfiles. Finally, it starts the user application in Docker containers.

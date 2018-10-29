@@ -1,4 +1,3 @@
-
 \documentclass[conference]{IEEEtran}
 \usepackage{xspace,shortcuts}
 %\usepackage{times}
@@ -10,13 +9,14 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{float}
-\usepackage{subfigure}
+%\usepackage{subfigure}
 \usepackage{multirow}
 \usepackage{courier}		% Used for coloring the table cells
 \usepackage{url}
 %\usepackage{bera}% optional: just to have a nice mono-spaced font
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{subcaption}
 %\usepackage{floatrow}
 
 
@@ -24,6 +24,8 @@
 \newcommand\qguan[1]{\textcolor{red}{(#1)}}
 \newcommand\jchen[1]{\textcolor{blue}{(#1)}}
 \newcommand\bluecomment[1]{\textcolor{blue}{// #1}}
+\newcommand\redcomment[1]{\textcolor{red}{// #1}}
+\newcommand\TOBEDONE[1]{\textcolor{red}{#1}}
 % Copyright
 %%\setcopyright{none}
 %\setcopyright{acmcopyright}
@@ -33,22 +35,53 @@
 %\setcopyright{usgovmixed}
 %\setcopyright{cagov}
 %\setcopyright{cagovmixed}
+\usepackage{color,soul}
+\usepackage{listings}
 
 
+\lstset
+{ %Formatting for code in appendix
+    %basicstyle=\footnotesize
+    numbers=left,
+    %stepnumber=1,
+    showstringspaces=false,
+    tabsize=1,
+    breaklines=true,
+    breakatwhitespace=false,
+    backgroundcolor=\color{backcolour}
+}
+
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
 
 
 
 \begin{document}
-\title{Docker-Enabled \textit{B}uild and \textit{E}xecution \textit{E}nvironment (BEE):
+\title{Build and Execution Environment (BEE):
 an Encapsulated Environment Enabling
 HPC Applications Running Everywhere}
 
-\maketitle
-\thispagestyle{plain}
-\pagestyle{plain}
 
-%\linespread{1.04}%
-%\selectfont
+
+%\begin{comment}
+\author{Jieyang Chen$^{*}$, Qiang Guan$^{\ddag}$, Xin Liang$^{*}$, Paul  Bryant$^{\ddag}$ Patricia Grubel$^{\dag}$, Allen McPherson$^{\dag}$,\\
+  Li-Ta Lo$^{\dag}$,   
+Timothy Randles$^{\dag}$, Zizhong Chen$^{*}$, and James Paul Ahrens$^{\dag}$ \\
+$^{*}$University of California, Riverside 
+$^{\ddagger}$ Kent State University 
+$^{\dag}$Los Alamos National Laboratory \\
+\{jchen098, xlian007, chen\}@cs.ucr.edu, 
+\{qguan, pbryant1\}@kent.edu, \\
+\{ pagrubel, mcpherson, ollie, trandles, ahrens\}@lanl.gov
+}
+
+%\end{comment}
+
+\maketitle
+%\thispagestyle{plain}
+%\pagestyle{plain}
+
+\linespread{0.97}%
+\selectfont
 
 \begin{abstract}
 \input{abstract}
@@ -64,17 +97,22 @@ HPC Applications Running Everywhere}
 \begin{IEEEkeywords}
 high performance computing; cloud computing; container.
 \end{IEEEkeywords}
+%\footnotetext[1]{The publication has been assigned the LANL identifier LA-UR-18-27912.}
 
 %\linespread{1}%
 %\selectfont
 \input{introduction}
-
-\input{design}
+\input{bee_framework}
+\input{bee_charliecloud}
+\input{bee_vm}
+\input{bee_aws}
+\input{bee_os}
 \input{eval}
 \input{case_study}
 \input{related}
 \input{discussions}
 \input{conclusion}
+\input{acknowledgement}
 
 %\let\oldbibliography\thebibliography
 %\renewcommand{\thebibliography}[1]{\oldbibliography{#1}
