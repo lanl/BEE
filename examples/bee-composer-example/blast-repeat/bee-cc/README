@@ -1,18 +1,30 @@
 This example repeats blast flow. The first output goes in blast_out directory 
-with the second into blast_out2 directory. I'm hoping to make this work 
-without removing containers. The repeated tasks depend on the first set of tasks
-then will reuse the containers without untarring them. Right now it uses two 
-separate containers. There is a bug with re-using a container, so this version
-just makes sure the example works.
+with the second into blast_out2 directory. The repeated tasks depend on the 
+first set of tasks then will reuse the containers without untarring them. 
+The container is re-used by the second container. 
 
-The only way I could get this example to run without an error from blast-output.sh
-was if I allocated the nodes with this command
-LANG=C salloc -p galton -N5
-then ran 
+To accomplish this:
+
+   All beefiles use the same container:
+   "container_path": "/scratch/beedev/blast/blast.tar.gz"
+   the image is untarred to /var/tmp/blast on all nodes (by default)   
+
+   The first set of beefiles:
+   (blast-split, blast-ouput, blast-ouput-err, and blast-worker001,2).beefile
+   "remove_after_exec" is set to false.
+
+   The second set of beefiles:
+   (blast-split2, blast-ouput2, blast-ouput-err2, and blast-worker003,4).beefile
+   "use_existing_image" is set to true.
+
+salloc -p galton -N5  (if the allocation is other than cn[30-34] modify the beefiles)
 bee_orc_ctl.py
 
-and used on the 2nd screen
-ssh <headnode (cn30)> 
+#on the 2nd screen
+ssh <to the headnode of the allocation (cn30)> 
+cd  <path to blast-repeat.beeflow, this directory>
+bee_composer.py -f blast-repeat
 
-The container needs to be fixed. Commenting out the line "SendEnv LANG LC_*" 
-may work.
+
+Outputs will be in ~/blast-
+

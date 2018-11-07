@@ -9,9 +9,9 @@
       ]
   }, 
   "container_conf":{
-      "container_path": "/scratch/beedev/blast2/blast2.tar.gz",
+      "container_path": "/scratch/beedev/blast/blast.tar.gz",
       "use_existing_image": true, 
-      "remove_after_exec": false
+      "remove_after_exec": true
   },
   "exec_env_conf": {
       "bee_charliecloud": {
