@@ -1,0 +1,18 @@
+This example repeats blast flow. The first output goes in blast_out directory 
+with the second into blast_out2 directory. I'm hoping to make this work 
+without removing containers. The repeated tasks depend on the first set of tasks
+then will reuse the containers without untarring them. Right now it uses two 
+separate containers. There is a bug with re-using a container, so this version
+just makes sure the example works.
+
+The only way I could get this example to run without an error from blast-output.sh
+was if I allocated the nodes with this command
+LANG=C salloc -p galton -N5
+then ran 
+bee_orc_ctl.py
+
+and used on the 2nd screen
+ssh <headnode (cn30)> 
+
+The container needs to be fixed. Commenting out the line "SendEnv LANG LC_*" 
+may work.

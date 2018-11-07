@@ -1,0 +1,20 @@
+{
+  "task_conf": {
+      "task_name": "blast-worker004",
+      "exec_target": "bee_charliecloud",
+      "srun_run": [
+	  {
+	      "script": "blast-worker004.sh"
+	  }
+      ]
+  }, 
+  "container_conf":{
+      "container_path": "/scratch/beedev/blast2/blast2.tar.gz",
+      "remove_after_exec": true
+  },
+  "exec_env_conf": {
+      "bee_charliecloud": {
+	  "node_list": ["cn32"]
+      }
+  }
+}
