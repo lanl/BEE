@@ -359,7 +359,64 @@ class BeeOSLauncher(BeeTask):
         cprint('[' + self.__task_name + '] Start scalability test.', self.__output_color)
         master = self.__bee_os_list[0]
 
-        for run_conf in self.__task_conf['mpi_run']:
+        scalability_run = self.__task_conf['scalability_run']
+        mode            = scalability_run['mode']
+        node_range      = scalability_run['node_range']
+        proc_range      = scalability_run['proc_range']
+        script          = scalability_run['script']
+        local_port_fwd  = scalability_run['local_port_fwd']
+        remote_port_fwd = scalability_run['remote_port_fwd']
+
+        run_conf_list = []
+
+        if(mode == "independent"):
+            if (len(node_range) != len(proc_range)):
+                cprint('[' + self.__task_name + '] Wrong configuration.', self.__output_color)
+            for i in range(len(node_range)):
+                run_conf = {}
+                run_conf["script"]          = script
+                run_conf["local_port_fwd"]  = local_port_fwd
+                run_conf["remote_port_fwd"] = remote_port_fwd
+                run_conf["num_of_nodes"]    = str(node_range[i])
+                run_conf["proc_per_node"]   = str(proc_range[i])
+                run_conf_list.append(run_conf)
+        else: # range mode
+            if (len(node_range) != 2 || len(proc_range) != 2):
+                cprint('[' + self.__task_name + '] Wrong configuration.', self.__output_color)
+            node_low  = node_range[0]
+            node_high = node_range[1]
+            proc_low  = proc_range[0]
+            proc_high = proc_range[1]
+            i = node_low
+            j = proc_low
+            while (i <= node_low):
+                while (j <= proc_low):
+                    run_conf = {}
+                    run_conf["script"]          = script
+                    run_conf["local_port_fwd"]  = local_port_fwd
+                    run_conf["remote_port_fwd"] = remote_port_fwd
+                    run_conf["num_of_nodes"]    = str(i)
+                    run_conf["proc_per_node"]   = str(j)
+                    run_conf_list.append(run_conf)
+
+                    if(mode == "log2"):
+                        i = i * 2
+                    elif(mode == "log10"):
+                        i = i * 10
+                    else: #liear
+                        i = i + 1
+
+                if(mode == "log2"):
+                    j = j * 2
+                elif(mode == "log10"):
+                    j = j * 10
+                else:
+                    j = j + 1
+            
+
+
+        for run_conf in run_conf_list:
+
             local_script_path = run_conf['script']
             node_script_path = '/exports/host_share/mpi_script.sh'
 
