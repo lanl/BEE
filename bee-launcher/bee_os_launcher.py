@@ -381,16 +381,16 @@ class BeeOSLauncher(BeeTask):
                 run_conf["proc_per_node"]   = str(proc_range[i])
                 run_conf_list.append(run_conf)
         else: # range mode
-            if (len(node_range) != 2 || len(proc_range) != 2):
+            if (len(node_range) != 2 or len(proc_range) != 2):
                 cprint('[' + self.__task_name + '] Wrong configuration.', self.__output_color)
             node_low  = node_range[0]
             node_high = node_range[1]
             proc_low  = proc_range[0]
             proc_high = proc_range[1]
             i = node_low
-            j = proc_low
-            while (i <= node_low):
-                while (j <= proc_low):
+            while (i <= node_high):
+                j = proc_low
+                while (j <= proc_high):
                     run_conf = {}
                     run_conf["script"]          = script
                     run_conf["local_port_fwd"]  = local_port_fwd
@@ -400,18 +400,18 @@ class BeeOSLauncher(BeeTask):
                     run_conf_list.append(run_conf)
 
                     if(mode == "log2"):
-                        i = i * 2
+                        j = j * 2
                     elif(mode == "log10"):
-                        i = i * 10
-                    else: #liear
-                        i = i + 1
+                        j = j * 10
+                    else: #linear
+                        j = j + 1
 
                 if(mode == "log2"):
-                    j = j * 2
+                    i = i * 2
                 elif(mode == "log10"):
-                    j = j * 10
+                    i = i * 10
                 else:
-                    j = j + 1
+                    i = i + 1
             
 
 
