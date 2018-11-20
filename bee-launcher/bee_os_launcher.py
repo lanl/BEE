@@ -98,6 +98,7 @@ class BeeOSLauncher(BeeTask):
         self.__current_status = 4 # Running
         if (self.__scalability_test):
             self.scalability_test_run()
+            self.terminate()
         else:
             self.general_run()
         self.__current_status = 5 # finished
