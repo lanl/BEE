@@ -13,10 +13,11 @@ from bee_charliecloud import BeeCharliecloud
 class BeeCharliecloudLauncher(BeeTask):
     def __init__(self, task_id, beefile, use_existing=False):
         BeeTask.__init__(self)
-
+        
         self.__current_status = 0  # initializing
 
         self.__platform = 'BEE-Charliecloud'
+        self.__use_existing = use_existing
 
         # User configuration
         self.__task_conf = beefile['task_conf']
@@ -40,6 +41,10 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # Container configuration
         self.__container_path = beefile['container_conf']['container_path']
+        
+        if 'use_existing_image' in beefile['container_conf']:
+            self.__use_existing = beefile['container_conf']['use_existing_image']
+
         self.__container_name = self.__verify_container_name()
         self.__ch_dir = self.__fetch_beefile_value("container_tar2dir",
                                                    beefile['container_conf'],
@@ -50,7 +55,6 @@ class BeeCharliecloudLauncher(BeeTask):
 
         # System configuration
         self.__user_name = getpass.getuser()
-        self.__use_existing = use_existing
 
         # bee-charliecloud
         self.__bee_cc_list = []
