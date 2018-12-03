@@ -400,16 +400,16 @@ class BeeOSLauncher(BeeTask):
                     run_conf["proc_per_node"]   = str(j)
                     run_conf_list.append(run_conf)
 
-                    if(mode == "log2"):
+                    if(mode == "exp2"):
                         j = j * 2
-                    elif(mode == "log10"):
+                    elif(mode == "exp10"):
                         j = j * 10
                     else: #linear
                         j = j + 1
 
-                if(mode == "log2"):
+                if(mode == "exp2"):
                     i = i * 2
-                elif(mode == "log10"):
+                elif(mode == "exp10"):
                     i = i * 10
                 else:
                     i = i + 1
