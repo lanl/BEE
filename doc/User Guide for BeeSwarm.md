@@ -2,19 +2,19 @@
 
 The following guide shows you how to use `BeeSwarm` to enable scalability test in Continuous Integration on Travis CI and GitLab CI with scalability test on Chameleon cloud. 
 
-### Step 1: Create directory in the repository dedicated for scalability test
+### Step 1: Create a directory in the repository dedicated for scalability test
 Let's assume we created a dedicated directory in repository: `<repo_name>/<bee_scalability_test_dir>`
 
 ### Step 2: Create `beefile`
 * Inside `<repo_name>/<bee_scalability_test_dir>`, create a beefile named as `<application_name>.beefile`. 
 * Follow the instruction for BEE-OpenStack Luancher to compose the beefile with two differences
-	*  In `exec_env_conf`->`bee_os`->`num_of_nodes` section, input the maximum number of nodes needed to complete the whole scalability test.
+    *  In `exec_env_conf`->`bee_os`->`num_of_nodes` section, input the maximum number of nodes needed to complete the whole scalability test.
 
-	*  A section `task_conf`->`scalability_run` is used to specify a group of execution configurations for the scalability test. In this section, we have following keys:
-		*  `mode` works together with `node_range` and `proc_range` indicates how `BeeSwarm` generate different execution configurations. `linear`/`exp2`/`exp10` mode will generate configurations with number nodes or processes that increase linearly by one, expoentially by 2, or expoentially by 10. In additional, there is an `independet` mode that allows users to specifiy each configurations manully without automatic generation.
-		*  `node_range` and `proc_range`: store two numbers that represent the ranges for the number of nodes and the number of processes. Both ranges are inclusive.
-		*  `script`: indicate the run script name for the scalability test. The run script need to be in the same directory as beefile.
-		*  `local_port_fwd` and `remote_port_fwd`: indicate the ports for creatings forward or backward SSH tunnels. Leave them blank would disable the creation of SSH tunnels.
+    *  A section `task_conf`->`scalability_run` is used to specify a group of execution configurations for the scalability test. In this section, we have the following keys:
+        *  `mode` works together with `node_range` and `proc_range` indicates how `BeeSwarm` generate different execution configurations. `linear`/`exp2`/`exp10` mode will generate configurations with number nodes or processes that increase linearly by one, exponentially by 2, or exponentially by 10. In addition, there is an `independent` mode that allows users to specify each configuration manually without automatic generation.
+        *  `node_range` and `proc_range`: store two numbers that represent the ranges for the number of nodes and the number of processes. Both ranges are inclusive.
+        *  `script`: indicate the run script name for the scalability test. The run script needs to be in the same directory as beefile.
+        *  `local_port_fwd` and `remote_port_fwd`: indicate the ports for creating forward or backward SSH tunnels. Leave them blank would disable the creation of SSH tunnels.
 
 ### Step 3: Add an executable result parser
 
@@ -41,30 +41,35 @@ If on GitLab CI:
 * Depending on the platform chosen some environment variables needs to be set in Travis CI or GitLab CI.
 
 * For example, when using Chameleon cloud, we need to set the following environment variables:
-	* `OS_AUTH_URL`
-	* `OS_TENANT_ID`
-	* `OS_TENANT_NAME`
-	* `OS_REGION_NAME`
-	* `OS_USERNAME`
-	* `OS_PASSWORD`
-	* `OS_ENDPOINT_TYPE`
-	* `OS_IDENTITY_API_VERSION`
-	* `OS_REGION_NAME`
-	* `OS_RESERVATION_ID`
-All variables except the last one can be found on Chameleon (`Project`->`Compute`->`API Access`->`Download OpenStack RC File v2.0`). The lest variable `OS_RESERVATION_ID` can be found once a reservation is created. It can be found under `Reservations`->`Leases`->`<lease name>`->`id`. Make sure the number of machines in the reservation is equal or greater than you need in the scalability test.
+    * `OS_AUTH_URL`
+    * `OS_TENANT_ID`
+    * `OS_TENANT_NAME`
+    * `OS_REGION_NAME`
+    * `OS_USERNAME`
+    * `OS_PASSWORD`
+    * `OS_ENDPOINT_TYPE`
+    * `OS_IDENTITY_API_VERSION`
+    * `OS_REGION_NAME`
+    * `OS_RESERVATION_ID`
+    
+All variables except the last one can be found on Chameleon cloud (`Project`->`Compute`->`API Access`->`Download OpenStack RC File v2.0`). The lest variable `OS_RESERVATION_ID` can be found once a reservation is created. It can be found under `Reservations`->`Leases`->`<lease name>`->`id`. Make sure the number of machines in the reservation is equal or greater than you need in the scalability test.
 
 * If using BEE_Private repo on GitHub, a GitHub personal token also need to be created and set as an environment variable: `GH_TOKEN`.
 
-* To allow `BeeSwarm` commit and push scalability test results back to the original repository, corresponding repo access token need to be set an environment variable:
-	* `GH_TOKEN` for GitHub
-	* `GL_TOKEN` for GitLab
-	
-* Those environment variables can be set either in CI script (i.e., `.travis.yml` for Travis CI and `.gitlab-ci.yml` for GitLab CI) or in environment variable setting provided by CI services (it can be found in `More options`->`Settings`->`Environment Variables` for Travis CI or `settings`->`CI/CD`->`Variables` for GitLab CI). It is recommand to set environment variables that contains password or tokens in the second way, since it can automically hide sensitive information in console output.
+* To allow `BeeSwarm` commit and push scalability test results back to the original repository, corresponding repo access token need to be set as an environment variable:
+    * `GH_TOKEN` for GitHub
+    * `GL_TOKEN` for GitLab
+    
+* Those environment variables can be set either in CI script (i.e., `.travis.yml` for Travis CI and `.gitlab-ci.yml` for GitLab CI) or in environment variable settings provided by CI services (it can be found in `More options`->`Settings`->`Environment Variables` for Travis CI or `settings`->`CI/CD`->`Variables` for GitLab CI). It is recommended to set environment variables that contain password or tokens using the second way since it can hide sensitive information in console output.
+
+
+### Step 5: Setting timeout for scalability test command
+By default, there is a timeout for each command that is being executed on CI services. If a command does not produce any new output or finish with a success exit code, it will be forcibly terminated. To make sure scalability test can finish without being interrupted by this timeout rule, it is recommended to set timeout manually to override default settings. For Tavis CI, the timeout for a command can be set using `tarvis_wait <time in minutes> <command>` as shown in the script in step 6. For GitLab CI, the timeout can be set in `Project settings` -> `CI/CD Pipelines` -> `Timeout`. The recommended timeout is 120 minutes.
 
 
 
-### Step 5: Configure the `.travis.yml` file for Travis CI or `.gitlab-ci.yml` for GitLab CI
-The final step is to modifiy the original `.travis.yml` or `.gitlab-ci.yml` to enable scalability test. Since BEE only supports containerized applications, all applications must be in container image format (e.g., Docker container) and upload to container registery (e.g., DockerHub) that can be accessed from scalability test environments. 
+### Step 6: Configure the `.travis.yml` file for Travis CI or `.gitlab-ci.yml` for GitLab CI
+The final step is to modify the original `.travis.yml` or `.gitlab-ci.yml` to enable scalability test. Since BEE only supports containerized applications, all applications must be in container image format (e.g., Docker container) and upload to container registry (e.g., DockerHub) that can be accessed from scalability test environments. 
 
 For Travis CI, place all scripts in the section `after_success` in order. Here we show an example of running scalability test on Flecsale with beefile and run script in `bee_scalability_test` folder in repo.
 
@@ -96,12 +101,11 @@ For Travis CI, place all scripts in the section `after_success` in order. Here w
 - git commit --message "[skip ci]"
 - git remote add remote_repo https://${GH_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git
 - git push remote_repo ${TRAVIS_BRANCH} 
-
 ```
 
 For GitLab CI, the similar script is as follows:
-```
 
+```
 # Setup Git 
 - git config --global user.email "example@beeswarm.org"
 - git config --global user.name "BeeSwarm"
