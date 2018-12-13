@@ -1,6 +1,6 @@
 ## Build and Execute Environment (BEE) User Guide for `BeeSwarm`
 
-The following guide shows you how to use `BeeSwarm` to enable scalability test in Continuous Integration on Travis CI and GitLab CI with scalability test on Chameleon cloud. 
+The following guide shows you how to use `BeeSwarm` to enable scalability test in Continuous Integration on Travis CI and GitLab CI with scalability test on Chameleon cloud. `BeeSwarm` currently only support using `BEE-OpenStack` as its scalability test backend.
 
 ### Step 1: Create a directory in the repository dedicated for scalability test
 Let's assume we created a dedicated directory in repository: `<repo_name>/<bee_scalability_test_dir>`
@@ -52,7 +52,7 @@ If on GitLab CI:
     * `OS_REGION_NAME`
     * `OS_RESERVATION_ID`
     
-All variables except the last one can be found on Chameleon cloud (`Project`->`Compute`->`API Access`->`Download OpenStack RC File v2.0`). The lest variable `OS_RESERVATION_ID` can be found once a reservation is created. It can be found under `Reservations`->`Leases`->`<lease name>`->`id`. Make sure the number of machines in the reservation is equal or greater than you need in the scalability test.
+All variables except the last one can be found on Chameleon cloud (`Project`->`Compute`->`API Access`->`Download OpenStack RC File v2.0`). The last variable `OS_RESERVATION_ID` can be found once a reservation is created. It can be found under `Reservations`->`Leases`->`<lease name>`->`id`. Make sure the number of machines in the reservation is equal or greater than you need in the scalability test.
 
 * If using BEE_Private repo on GitHub, a GitHub personal token also need to be created and set as an environment variable: `GH_TOKEN`.
 
@@ -63,7 +63,7 @@ All variables except the last one can be found on Chameleon cloud (`Project`->`C
 * Those environment variables can be set either in CI script (i.e., `.travis.yml` for Travis CI and `.gitlab-ci.yml` for GitLab CI) or in environment variable settings provided by CI services (it can be found in `More options`->`Settings`->`Environment Variables` for Travis CI or `settings`->`CI/CD`->`Variables` for GitLab CI). It is recommended to set environment variables that contain password or tokens using the second way since it can hide sensitive information in console output.
 
 
-### Step 5: Setting timeout for scalability test command
+### Step 5: Set timeout for scalability test command
 By default, there is a timeout for each command that is being executed on CI services. If a command does not produce any new output or finish with a success exit code, it will be forcibly terminated. To make sure scalability test can finish without being interrupted by this timeout rule, it is recommended to set timeout manually to override default settings. For Tavis CI, the timeout for a command can be set using `tarvis_wait <time in minutes> <command>` as shown in the script in step 6. For GitLab CI, the timeout can be set in `Project settings` -> `CI/CD Pipelines` -> `Timeout`. The recommended timeout is 120 minutes.
 
 
