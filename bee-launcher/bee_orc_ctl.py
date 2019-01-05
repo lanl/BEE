@@ -1,18 +1,14 @@
 #!/usr/bin/env python
-# system
-import boto3
-import os
-import json
 import Pyro4
 import Pyro4.naming
 from subprocess import Popen
-from time import sleep
-from pwd import getpwuid
-# project
-from bee_aws_launcher import BeeAWSLauncher
 from bee_vm_launcher import BeeVMLauncher
 from bee_os_launcher import BeeOSLauncher
 from bee_charliecloud_launcher import BeeCharliecloudLauncher
+import os
+import getpass
+import json
+import time
 
 
 @Pyro4.expose
@@ -30,10 +26,6 @@ class BeeLauncherDaemon(object):
         total_tasks = len(self.__beetasks)
         if exec_target == 'bee_vm':
             beetask = BeeVMLauncher(total_tasks + 1, beefile, restore)
-            self.__beetasks[beetask_name] = beetask
-            return beetask
-        elif exec_target == 'bee_aws':
-            beetask = BeeAWSLauncher(total_tasks + 1, beefile)
             self.__beetasks[beetask_name] = beetask
             return beetask
         elif exec_target == 'bee_os':
@@ -68,44 +60,6 @@ class BeeLauncherDaemon(object):
             tasks_and_status[beetask_name] = {"status": self.__beetasks[beetask_name].get_current_status(),
                                               "platform": self.__beetasks[beetask_name].get_platform()}
         return tasks_and_status
-
-    def create_bee_aws_storage(self, efs_name, perf_mode='generalPurpose'):
-        print("Bee orchestration controller: received bee-aws storage creating request")
-        if self.get_bee_efs_id(efs_name) != -1:
-            print("EFS named " + efs_name + " already exist!")
-            return '-1'
-        efs_client = boto3.client('efs')
-        efs_client.create_file_system(CreationToken=efs_name, PerformanceMode=perf_mode)
-        resp = efs_client.describe_file_systems(CreationToken=efs_name)
-        efs_id = resp['FileSystems'][0]['FileSystemId']
-        efs_client.create_tags(FileSystemId=efs_id,
-                               Tags=[{'Key': 'Name', 'Value': efs_name}])
-        self.wait_bee_efs(efs_name)
-        print('Created new BEE EFS:' + efs_id)
-        return efs_id
-
-    # Get the id of bee efs, if not exist, -1 is returned.                     
-    def get_bee_efs_id(self, efs_name):
-        all_efss = boto3.client('efs').describe_file_systems()
-        bee_efs_id = -1
-        for efs in all_efss['FileSystems']:
-            if efs['CreationToken'] == efs_name:
-                bee_efs_id = efs['FileSystemId']
-        return bee_efs_id
-
-    def wait_bee_efs(self, efs_name):
-        print("Wait for EFS to become available.")
-        efs_client = boto3.client('efs')
-        resp = efs_client.describe_file_systems(CreationToken=efs_name)
-        state = resp['FileSystems'][0]['LifeCycleState']
-        while state != 'available':
-            resp = efs_client.describe_file_systems(CreationToken=efs_name)
-            state = resp['FileSystems'][0]['LifeCycleState']
-
-    def launch_efs_daemon(self, efs_id):
-        efs_daemon_beefile = os.path.dirname(os.path.abspath(__file__)) + "efs-daemon.beefile"
-        f = open(efs_daemon_beefile, "r")
-        beefile = json.load(f)
 
     def launch_beeflow(self, beeflow, beefiles):
         # Initialize each task

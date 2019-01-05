@@ -2,7 +2,6 @@
 
 # Install necessary libraries
 pip install pyro4 --user
-pip install boto3 --user
 pip install termcolor --user
 pip install tabulate --user
 pip install pexpect --user
