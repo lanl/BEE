@@ -98,7 +98,7 @@ def main():
     hmac_key = pwd.getpwuid(os.getuid())[0]
     os.environ["PYRO_HMAC_KEY"] = hmac_key
     Popen(['python', '-m', 'Pyro4.naming', '-p', str(open_port)])
-    sleep(5)
+    time.sleep(5)
     bldaemon = BeeLauncherDaemon()
     daemon = Pyro4.Daemon()
     bldaemon_uri = daemon.register(bldaemon)
