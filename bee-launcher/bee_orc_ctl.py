@@ -9,7 +9,7 @@ import os
 import getpass
 import json
 import time
-
+import pwd
 
 @Pyro4.expose
 class BeeLauncherDaemon(object):
@@ -95,7 +95,7 @@ class BeeLauncherDaemon(object):
 def main():
     open_port = get_open_port()
     update_system_conf(open_port)
-    hmac_key = getpwuid(os.getuid())[0]
+    hmac_key = pwd.getpwuid(os.getuid())[0]
     os.environ["PYRO_HMAC_KEY"] = hmac_key
     Popen(['python', '-m', 'Pyro4.naming', '-p', str(open_port)])
     sleep(5)
