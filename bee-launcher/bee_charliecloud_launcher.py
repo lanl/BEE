@@ -140,7 +140,9 @@ class BeeCharliecloudLauncher(BeeTask):
             elif self.__hosts == ["localhost"]:  # single node or local instance
                 cprint("Launching local instance " + str(self.__task_name),
                        self.output_color)
-                self.__local_launch()
+                if not self.__use_existing:
+                    self.__local_launch()
+                self.wait_for_others()
                 self.run_scripts()
             else:
                 cprint("[" + self.__task_name + "] No nodes allocated!", self.error_color)
