@@ -2,6 +2,8 @@
 
 # Install necessary libraries
 pip install pyro4
+# AWS unsupported at this time
+# pip install boto3
 pip install termcolor
 pip install tabulate
 pip install pexpect
