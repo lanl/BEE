@@ -4,7 +4,7 @@
 # Argument #1   Blast output/share directory
 #               Must remain constant across flow
 
-BLAST_CH=/var/tmp/blast
+BLAST_CH=/var/tmp/beelanl.blast
 BLAST_LOC=/home/beeuser/makeflow-examples/blast
 
 if [ -z "$1" ]; then
