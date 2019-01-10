@@ -2,9 +2,6 @@
   "task_conf": {
       "task_name": "flecsale_srun",
       "exec_target": "bee_charliecloud",
-      "batch_mode": false,
-      "general_run": [],
-      "mpi_run": [],
       "srun_run": [
         {
             "script": "flecsale_srun_run.sh",
@@ -13,12 +10,11 @@
                 "--mpi=pmi2": null
             }
         }
-      ],
-      "terminate_after_exec": false,
-      "delete_after_exec": true 
+      ]
   }, 
   "container_conf":{
-    "container_path": "/scratch/beedev/flecsale_bee_cc/flecsale.tar.gz" 
+    "container_path": "/scratch/beedev/flecsale_bee_cc/flecsale.tar.gz",
+    "remove_after_exec": true
   },
   
   "exec_env_conf": {

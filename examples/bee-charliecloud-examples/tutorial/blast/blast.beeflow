@@ -1,0 +1,21 @@
+{
+    "blast-split": {
+	"dependency_list" : [] 
+    },
+    "blast-worker001": {
+	"dependency_list": ["blast-split"],
+	"dependency_mode": "off-line"
+    },
+    "blast-worker002": {
+        "dependency_list": ["blast-split"],
+	"dependency_mode": "off-line"
+    },
+    "blast-output": {
+        "dependency_list": ["blast-worker001", "blast-worker002"],
+        "dependency_mode": "off-line"
+    },
+    "blast-output-err" : {
+        "dependency_list": ["blast-worker001", "blast-worker002"],
+        "dependency_mode" : "off-line"
+    }
+}

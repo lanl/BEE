@@ -91,6 +91,9 @@ class BeeTask(Thread):
         except CalledProcessError as e:
             self.__handle_message(msg="Error during - " + str(command) + "\n" +
                                   str(e), nodes=nodes, color=self.error_color)
+            self.__handle_message(msg="Verify that all required programs and files"
+                                      " are available on your system.",
+                                  nodes=nodes, color=self.warning_color)
             if err_exit:
                 exit(1)
         except OSError as e:
@@ -114,7 +117,7 @@ class BeeTask(Thread):
         srun_cmd = ["srun"]
         if hosts is not None:
             srun_cmd += ["--nodelist=" + hosts]
-        if num_nodes is not None:
+        if num_nodes is not None and (num_nodes != 0 or num_nodes != '0'):
             srun_cmd += ["--nodes=" + str(num_nodes) + "-" + str(num_nodes)]
         if custom_flags is not None:
             srun_cmd += custom_flags
@@ -122,10 +125,25 @@ class BeeTask(Thread):
         return srun_cmd
 
     @staticmethod
-    def compose_mpirun(command, hosts):
-        srun_cmd = ["mpirun", "-host,", hosts, "--map-by", "ppr:1:node"]
-        srun_cmd += command
-        return srun_cmd
+    def compose_mpirun(command, hosts=None, map_by=None, custom_flags=None):
+        """
+        Compose MPIRUN command to be run via subprocess
+        e.g. mpirun -host wc013,wc014 -map_by ppr:1:node <command>
+        :param command: Command to be run [List]
+        :param hosts: Specific hosts (nodes) command is to be run on (str)
+        :param map_by: ppr:<num>:<type> as string
+        :param custom_flags: List of custom flags ["-n","8", ...]
+        :return: [List] to be run via subprocess
+        """
+        mpi_cmd = ['mpirun']
+        if hosts is not None:
+            mpi_cmd += ['-host', hosts]
+        if map_by is not None:
+            mpi_cmd += ['--map-by', map_by]
+        if custom_flags is not None:
+            mpi_cmd += custom_flags
+        mpi_cmd += command
+        return mpi_cmd
 
     # Task management support functions (private)
     @staticmethod

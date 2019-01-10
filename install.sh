@@ -35,3 +35,6 @@ echo "     UserKnownHostsFile=/dev/null" >> ~/.bee/ssh_key/config
 
 # Create bee_conf.json
 echo "{\"pyro4-ns-port\": 12345}" >> ~/.bee/bee_conf.json
+
+# Adding bee-launcher to path
+export PATH=$PATH:"$PWD"/bee-launcher

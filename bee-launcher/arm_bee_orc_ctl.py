@@ -74,11 +74,11 @@ class BeeLauncherDaemon(object):
                 for dependent_name in dependency_list:
                     dependent_beetask = beeflow_tasks[dependent_name]
                     if dependency_mode == "off-line":
-                        print("Creating off-line dependecy:" + task_name + " --> " + dependent_name + ".")
+                        print("Creating off-line dependency:" + task_name + " --> " + dependent_name + ".")
                         end_event = dependent_beetask.get_end_event()
                         beetask.add_wait_event(end_event)
                     elif dependency_mode == "in-situ":
-                        print("Creating in-situ dependecy:" + task_name + " --> " + dependent_name + ".")
+                        print("Creating in-situ dependency:" + task_name + " --> " + dependent_name + ".")
                         begin_event = dependent_beetask.get_begin_event()
                         beetask.add_wait_event(begin_event)
         

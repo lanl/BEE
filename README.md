@@ -21,9 +21,6 @@ between software components can be tracked.
 - Functional testing can be performed on smaller, dissimilar machines--there is
 no real need to test on the actual HPC platform (performance testing obviously
 requires target hardware).
-- Checkpoint and restore operations can happen at a higher level, e.g., node level. The entire
-computation, as it sits in memory, can be saved and restarted, obviating the need
-for application level checkpoints.
 
 The BEE project uses Docker to containerize applications. Docker has become the de
 facto standard container system and is used widely in cloud and web
@@ -31,14 +28,12 @@ environments. Continuous integration services have been built on Docker, allowin
 developers to describe compile and execution environments with Docker. When code is checked into 
 a repository, it can be automatically tested across a suite of different software environments.
 
+The BEE project supports launching applications using the [Charliecloud](https://github.com/hpc/charliecloud) HPC container runtime.  These applications can be executed on a traditional HPC cluster or an OpenStack cloud cluster.
 
-# Build Instructions
-
-To be added
 
 # Mail List and Contact
 
-For bugs and problems report, suggestions and other general questions regarding the BEE project, Please subscribe to [BEE-LANL](https://groups.google.com/forum/#!forum/BEE-User-Group) and post your quesitons. 
+For bugs and problems report, suggestions and other general questions regarding the BEE project, Please subscribe to [BEE-LANL](https://groups.google.com/forum/#!forum/BEE-User-Group) and post your questions. 
 
 
 # Release

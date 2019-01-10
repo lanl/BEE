@@ -2,18 +2,15 @@
   "task_conf": {
       "task_name": "blast-split",
       "exec_target": "bee_charliecloud",
-      "batch_mode": false,
-      "general_run": [],
       "srun_run": [
 	  {
 	      "script": "blast-split.sh"
 	  }
-      ],
-      "mpi_run": [],
-      "delete_after_exec": false
+      ]
   }, 
   "container_conf":{
-      "container_path": "/scratch/beedev/blast/blast.tar.gz"
+      "container_path": "/scratch/beedev/blast/blast.tar.gz",
+      "remove_after_exec": true
   },
   "exec_env_conf": {
       "bee_charliecloud": {

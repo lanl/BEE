@@ -1,0 +1,41 @@
+{
+    "blast-split": {
+	    "dependency_list" : [] 
+    },
+    "blast-worker001": {
+	    "dependency_list": ["blast-split"],
+	    "dependency_mode": "off-line"
+    },
+    "blast-worker002": {
+        "dependency_list": ["blast-split"],
+	    "dependency_mode": "off-line"
+    },
+    "blast-output": {
+        "dependency_list": ["blast-worker001", "blast-worker002"],
+        "dependency_mode": "off-line"
+    },
+    "blast-output-err" : {
+        "dependency_list": ["blast-worker001", "blast-worker002"],
+        "dependency_mode" : "off-line"
+    },
+    "blast-split2": {
+	    "dependency_list" : ["blast-output","blast-output-err"],
+	    "dependency_mode": "off-line"
+    },
+    "blast-worker003": {
+	    "dependency_list": ["blast-split2"],
+	    "dependency_mode": "off-line"
+    },
+    "blast-worker004": {
+        "dependency_list": ["blast-split2"],
+	    "dependency_mode": "off-line"
+    },
+    "blast-output2": {
+        "dependency_list": ["blast-worker003", "blast-worker004"],
+        "dependency_mode": "off-line"
+    },
+    "blast-output-err2" : {
+        "dependency_list": ["blast-worker003", "blast-worker004"],
+        "dependency_mode" : "off-line"
+    }
+}
