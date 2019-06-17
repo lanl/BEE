@@ -6,8 +6,8 @@ with open("README.md", "r") as fi:
 setuptools.setup(
     name="bee-flow",
     version="0.0.1",
-    author="Timothy Randles",
-    author_email="trandles@lanl.gov",
+    author="BEE-LANL Dev Team",
+    author_email="bee-dev@lanl.gov",
     description="BEE is a software package for containerizing HPC applications and managing job workflow",
     long_description=long_description,
     long_description_content_type="text/markdown",
