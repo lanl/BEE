@@ -4,7 +4,7 @@ with open("README.md", "r") as fi:
     long_description = fi.read()
 
 setuptools.setup(
-    name="bee-flow",
+    name="beeflow",
     version="0.0.1",
     author="BEE-LANL Dev Team",
     author_email="bee-dev@lanl.gov",
@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/lanl/BEE",
-    py_modules=["bee-flow"],
+    py_modules=["beeflow"],
     install_requires=[
         "pyro4",
         "termcolor",
