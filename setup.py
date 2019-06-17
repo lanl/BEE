@@ -25,7 +25,6 @@ setuptools.setup(
     classifiers=[
         "Environment :: Console",
         "Environment :: OpenStack",
-        "Environment :: Web Environment",
         "Environment :: Other Environment",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
