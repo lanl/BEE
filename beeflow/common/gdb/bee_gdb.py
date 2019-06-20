@@ -1,4 +1,4 @@
-"""Driver for the handling of workflow DAGs."""
+"""Interface for the handling of workflow DAGs."""
 
 from beeflow.common.gdb.bee_neo4j import Neo4jDriver
 
