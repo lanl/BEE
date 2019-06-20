@@ -6,9 +6,9 @@ from beeflow.common.dag.bee_neo4j import Neo4jDriver
 class GraphDatabase:
     """Driver interface for a generic graph database."""
 
-    def __init__(self, *args, driver=Neo4jDriver, **kwargs):
+    def __init__(self, driver=Neo4jDriver, **kwargs):
         """Create a new Graph Database driver."""
-        self._driver = driver(*args, **kwargs)
+        self._driver = driver(**kwargs)
 
     def load_workflow_dag(self, inputs, outputs):
         """Load the workflow as a DAG into the graph database."""
