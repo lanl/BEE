@@ -1,6 +1,6 @@
 """Driver for the handling of workflow DAGs."""
 
-from beeflow.common.dag.bee_neo4j import Neo4jDriver
+from beeflow.common.gdb.bee_neo4j import Neo4jDriver
 
 
 class GraphDatabase:
