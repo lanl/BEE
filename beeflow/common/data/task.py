@@ -25,4 +25,5 @@ class Task:
 
     def construct_command(self):
         """Construct a task's command representation."""
-        return self.base_command + " " + " ".join(self.arguments)
+        return (self.base_command if self.arguments is None
+                else self.base_command + " " + " ".join(self.arguments))
