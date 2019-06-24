@@ -1,6 +1,6 @@
 """High-level workflow management interface."""
 
-from beeflow.common.gdb.bee_gdb import GraphDatabase
+from beeflow.common.gdb.bee_neo4j import Neo4jDriver
 
 
 class WorkflowInterface:
@@ -9,13 +9,14 @@ class WorkflowInterface:
     Delegates its work to a GraphDatabase class.
     """
 
-    def __init__(self, inputs, outputs):
+        self._gdb = GraphDatabase()
+    def __init__(self, inputs, outputs, gdb_driver=Neo4jDriver, **kwargs):
         """Initialize the BEE workflow interface.
 
         :param inputs (TBD): workflow inputs
         :param outputs (TBD): workflow outputs
         """
-        self._gdb = GraphDatabase()
+        self._gdb_driver = gdb_driver(**kwargs)
         self.load_workflow(inputs, outputs)
 
     def load_workflow(self, inputs, outputs):
@@ -24,21 +25,19 @@ class WorkflowInterface:
         :param inputs (list): Workflow inputs
         :param outputs (list): Workflow outputs
         """
-        self._gdb.load_workflow_dag(inputs, outputs)
+        self._gdb_driver.load_workflow(inputs, outputs)
 
     def initialize_workflow(self):
         """Initialize the workflow."""
-        self._gdb.initialize_workflow_dag()
+        self._gdb_driver.initialize_workflow()
 
-    # Dependencies can be accessed directly through the
-    # Task object, so this might be redundant
-    # def get_dependents(self, task):
-    #     """Get the dependent tasks of a specified task.
+    def get_dependents(self, task):
+        """Get the dependent tasks of a specified task.
 
-    #     :param task (Task): The task whose dependents to get
-    #     """
-    #     self._gdb.get_dependents_dag(task)
+        :param task (Task): The task whose dependents to get
+        """
+        self._gdb_driver.get_dependents(task)
 
     def finalize_workflow(self):
         """Finish the workflow."""
-        self._gdb.finalize_workflow_dag()
+        self._gdb_driver.finalize_workflow()
