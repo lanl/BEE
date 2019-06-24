@@ -10,7 +10,11 @@ class WorkflowInterface:
     """
 
     def __init__(self, inputs, outputs):
-        """Initialize the BEE workflow interface."""
+        """Initialize the BEE workflow interface.
+
+        :param inputs (TBD): workflow inputs
+        :param outputs (TBD): workflow outputs
+        """
         self._gdb = GraphDatabase()
         self.load_workflow(inputs, outputs)
 
