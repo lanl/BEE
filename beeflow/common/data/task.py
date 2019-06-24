@@ -11,7 +11,8 @@ class Task:
         :param name (str): The name given to the task
         :param command (str): The base command for the task
         :param arguments (list): The arguments given to the task
-        :param requirements (list): The command requirements (dependencies)
+        :param dependencies (set): The task dependencies (on other Tasks)
+        :param requirements (TBD): The task requirements
         """
         self.id = task_id
         self.base_command = base_command

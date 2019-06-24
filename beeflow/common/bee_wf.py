@@ -26,12 +26,14 @@ class WorkflowInterface:
         """Initialize the workflow."""
         self._gdb.initialize_workflow_dag()
 
-    def get_dependents(self, task):
-        """Get the dependent tasks of a specified task.
+    # Dependencies can be accessed directly through the
+    # Task object, so this might be redundant
+    # def get_dependents(self, task):
+    #     """Get the dependent tasks of a specified task.
 
-        :param task (Task): The task whose dependents to get
-        """
-        self._gdb.get_dependents_dag(task)
+    #     :param task (Task): The task whose dependents to get
+    #     """
+    #     self._gdb.get_dependents_dag(task)
 
     def finalize_workflow(self):
         """Finish the workflow."""
