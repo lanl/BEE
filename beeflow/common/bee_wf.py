@@ -10,7 +10,6 @@ class WorkflowInterface:
     By default, this is the Neo4jDriver class.
     """
 
-        self._gdb = GraphDatabase()
     def __init__(self, inputs, outputs, gdb_driver=Neo4jDriver, **kwargs):
         """Initialize the BEE workflow interface.
 
