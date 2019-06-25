@@ -1,11 +1,11 @@
 Pipenv Quickstart Guide
------------------------
+=======================
 To conform to our coding standards, it is most convenient to use Pipenv
 to install a virtual environment with all of our utilized linting packages
 and our project's dependencies.
 
 Installation
-============
+------------
 MacOS: `brew install pipenv`
 
 Debian/Ubuntu: `sudo apt install pipenv`
@@ -15,7 +15,7 @@ Fedora 28: `sudo dnf install pipenv`
 FreeBSD: `pkg install py36-pipenv`
 
 Pipenv Commands
-===============
+---------------
 All of the following commands should be run in the root of our
 project directory.
 
