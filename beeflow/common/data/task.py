@@ -8,11 +8,16 @@ class Task:
                  dependencies=None, requirements=None):
         """Store a task description.
 
-        :param task_id (int): The name given to the task
-        :param base_command (str): The base command for the task
-        :param arguments (list): The arguments given to the task
-        :param dependencies (set): The task dependencies (on other Tasks)
-        :param requirements (TBD): The task requirements
+        :param task_id: the name given to the task
+        :type task_id: integer
+        :param base_command: the base command for the task
+        :type base_command: string
+        :param arguments: the arguments given to the task
+        :type arguments: list of strings or None
+        :param dependencies: the task dependencies (on other Tasks)
+        :type dependencies: set of Task objects or None
+        :param requirements: the task requirements
+        :type requirements: TBD or None
         """
         self.id = task_id
         self.base_command = base_command
