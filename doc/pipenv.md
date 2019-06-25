@@ -2,7 +2,9 @@ Pipenv Quickstart Guide
 =======================
 To conform to our coding standards, it is most convenient to use Pipenv
 to install a virtual environment with all of our utilized linting packages
-and our project's dependencies.
+and our project's dependencies. Pipenv uses the `Pipfile.lock` file to
+manage our packages/dependencies and make it easy to automatically install
+them to our virtual envrionment.
 
 Installation
 ------------
