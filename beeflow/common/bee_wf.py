@@ -15,6 +15,10 @@ class WorkflowInterface:
 
         :param inputs (TBD): workflow inputs
         :param outputs (TBD): workflow outputs
+        :param gdb_driver (GraphDatabaseDriver): A graph database
+        driver that implements each of the abstract methods of the
+        GraphDatabaseDriver abstract base class
+        :param kwargs: additional arguments for the driver
         """
         self._gdb_driver = gdb_driver(**kwargs)
         self.load_workflow(inputs, outputs)
