@@ -8,7 +8,13 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def load_workflow(self, inputs, outputs):
-        """Load the workflow as a DAG into the graph database."""
+        """Load the workflow as a DAG into the graph database.
+
+        :param inputs: the workflow inputs
+        :type inputs: TBD
+        :param outputs: the workflow outputs
+        :type outputs: TBD
+        """
 
     @abstractmethod
     def initialize_workflow(self):
@@ -16,7 +22,12 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_dependents(self, task):
-        """Get the dependent tasks of a specified workflow task."""
+        """Get the dependent tasks of a specified workflow task.
+
+        :param task: the task whose dependents to retrieve
+        :type task: Task object
+        :rtype: set of Task objects
+        """
 
     @abstractmethod
     def finalize_workflow(self):
