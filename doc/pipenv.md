@@ -21,18 +21,22 @@ project directory.
 
 ### Create a Python Virtual Environment
 To create a Python 3.x virtual environment:
-```pipenv --three```
+
+`pipenv --three`
 
 ### Install Project Packages/Dependencies
 To install our development packages and software project depenencies:
-```pipenv sync```
+
+`pipenv sync`
 
 ### Activate the Virtual Environment
 To activate the virtual environment ('exit' or EOF to deactivate):
-```pipenv shell```
+
+`pipenv shell`
 
 ### Run a Command in the Virtual Environment
 To run a command without activating the virtual environment:
-```pipenv run COMMAND [arguments]```
+
+`pipenv run COMMAND [arguments]`
 
 And that's it!
