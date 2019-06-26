@@ -31,7 +31,7 @@ To create a Python 3.x virtual environment:
 ### Install Project Packages/Dependencies
 To install our development packages and software project depenencies:
 
-`pipenv sync`
+`pipenv install`
 
 ---
 
