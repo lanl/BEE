@@ -2,7 +2,7 @@
 
 import neo4j
 
-from beeflow.common.gdb.bee_gdb import GraphDatabaseDriver
+from beeflow.common.gdb.bee_gdb_driver import GraphDatabaseDriver
 
 DEFAULT_URI = "bolt://localhost:7687"
 DEFAULT_USER = "neo4j"
