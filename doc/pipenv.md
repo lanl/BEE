@@ -26,6 +26,12 @@ To create a Python 3.x virtual environment:
 
 `pipenv --three`
 
+This will search your PATH for an instance of `python3`, using that version
+of Python for the virtual environment. If you have multiple versions of
+Python 3.x installed, you can specify a certain one using the command:
+
+`pipenv --python /path/to/python`
+
 ---
 
 ### Install Project Packages/Dependencies
