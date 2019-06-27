@@ -1,6 +1,6 @@
 """Mid-level graph database management interface."""
 
-from beeflow.common.gdb.bee_neo4j import Neo4jDriver
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 
 
 class GraphDatabaseInterface:

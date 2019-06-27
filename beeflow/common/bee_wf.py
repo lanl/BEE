@@ -1,6 +1,6 @@
 """High-level workflow management interface."""
 
-from beeflow.common.gdb.bee_gdb_int import GraphDatabaseInterface
+from beeflow.common.gdb.bee_gdb import GraphDatabaseInterface
 
 
 class WorkflowInterface:
