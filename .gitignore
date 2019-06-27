@@ -11,3 +11,5 @@ __pycache__
 ./bee-image-builder/bee-vm-and-aws-image-builder/ssh_key/id_rsa.pub
 .idea
 .idea/vcs.xml
+.vscode
+Pipfile.lock
