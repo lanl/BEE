@@ -25,7 +25,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._driver = neo4j.GraphDatabase.driver(uri, auth=(user, password))
 
-    def load_workflow(self, inputs, outputs):
+    def load_workflow_dag(self, inputs, outputs):
         """Load the workflow as a DAG into the Neo4j database.
 
         :param inputs: the workflow inputs
@@ -34,7 +34,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type outputs: TBD
         """
 
-    def initialize_workflow(self):
+    def initialize_workflow_dag(self):
         """Initialize the workflow loaded into the Neo4j database."""
 
     def get_dependents(self, task):
@@ -45,7 +45,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: set of Task objects
         """
 
-    def finalize_workflow(self):
+    def finalize_workflow_dag(self):
         """Finalize the workflow loaded into the Neo4j database."""
 
     def close(self):
