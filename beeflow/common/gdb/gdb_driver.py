@@ -7,22 +7,28 @@ class GraphDatabaseDriver(ABC):
     """Driver interface for a generic graph database."""
 
     @abstractmethod
-    def load_workflow_dag(self, inputs, outputs):
+    def load_workflow_dag(self, workflow):
         """Load the workflow as a DAG into the graph database.
 
-        :param inputs: the workflow inputs
-        :type inputs: TBD
-        :param outputs: the workflow outputs
-        :type outputs: TBD
+        :param workflow: the workflow to load
+        :type workflow: TBD
         """
 
     @abstractmethod
     def initialize_workflow_dag(self):
-        """Initialize the workflow loaded into the graph database."""
+        """Initialize the workflow DAG loaded into the graph database."""
 
     @abstractmethod
-    def get_dependents(self, task):
-        """Get the dependent tasks of a specified workflow task.
+    def start_ready_tasks(self):
+        """Start tasks in the loaded workflows that have no dependencies."""
+
+    @abstractmethod
+    def watch_tasks(self):
+        """Watch tasks for completion/failure and start new ready tasks."""
+
+    @abstractmethod
+    def get_dependent_tasks(self, task):
+        """Get the dependent tasks of a workflow task in the graph database.
 
         :param task: the task whose dependents to retrieve
         :type task: instance of Task
@@ -30,8 +36,17 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_task_status(self, task):
+        """Get the status of a task in the workflow DAG.
+
+        :param task: the task whose status to retrieve
+        :type task: instance of Task
+        :rtype: a string
+        """
+
+    @abstractmethod
     def finalize_workflow_dag(self):
-        """Finalize the workflow loaded into the graph database."""
+        """Finalize the workflow DAG loaded into the graph database."""
 
     @abstractmethod
     def close(self):

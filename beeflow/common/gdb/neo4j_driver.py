@@ -25,7 +25,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._driver = neo4j.GraphDatabase.driver(uri, auth=(user, password))
 
-    def load_workflow_dag(self, inputs, outputs):
+    def load_workflow_dag(self, workflow):
         """Load the workflow as a DAG into the Neo4j database.
 
         :param inputs: the workflow inputs
@@ -37,7 +37,13 @@ class Neo4jDriver(GraphDatabaseDriver):
     def initialize_workflow_dag(self):
         """Initialize the workflow loaded into the Neo4j database."""
 
-    def get_dependents(self, task):
+    def start_ready_tasks(self):
+        """Start tasks that have no unsatisfied dependencies."""
+
+    def watch_tasks(self):
+        """Watch tasks for completion/failure and start new ready tasks."""
+
+    def get_dependent_tasks(self, task):
         """Get the dependent tasks of a specified workflow task.
 
         :param task: the task whose dependents to retrieve
@@ -45,8 +51,16 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: set of Task objects
         """
 
+    def get_task_status(self, task):
+        """Get the status of a task in the Neo4j workflow DAG.
+
+        :param task: the task whose status to retrieve
+        :type task: instance of Task
+        :rtype: a string
+        """
+
     def finalize_workflow_dag(self):
-        """Finalize the workflow loaded into the Neo4j database."""
+        """Finalize the workflow DAG loaded into the Neo4j database."""
 
     def close(self):
         """Close the connection to the Neo4j database."""

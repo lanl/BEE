@@ -31,18 +31,18 @@ class WorkflowInterface:
         self._gdb_interface.load_workflow(inputs, outputs)
 
     def initialize_workflow(self):
-        """Initialize the workflow."""
+        """Initialize a BEE workflow."""
         self._gdb_interface.initialize_workflow()
 
-    def get_dependents(self, task):
-        """Get the dependent tasks of a specified task.
+    def get_dependent_tasks(self, task):
+        """Get the dependents of a task in the BEE workflow.
 
-        :param task: the task whose dependents to retrieve
+        :param task: the task whose dependents to obtain
         :type task: instance of Task
         :rtype: set of Task instances
         """
-        return self._gdb_interface.get_dependents(task)
+        return self._gdb_interface.get_dependent_tasks(task)
 
     def finalize_workflow(self):
-        """Finalize the workflow."""
+        """Finalize the BEE workflow."""
         self._gdb_interface.finalize_workflow()

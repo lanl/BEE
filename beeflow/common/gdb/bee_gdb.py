@@ -31,17 +31,17 @@ class GraphDatabaseInterface:
         self._gdb_driver.load_workflow_dag(inputs, outputs)
 
     def initialize_workflow(self):
-        """Initialize the BEE workflow loaded into the graph database."""
+        """Start the workflow loaded into the grahp database."""
         self._gdb_driver.initialize_workflow_dag()
 
-    def get_dependents(self, task):
-        """Get the dependents of a task in the graph database workflow.
+    def get_dependent_tasks(self, task):
+        """Get the dependents of a task in a graph database workflow.
 
         :param task: the task whose dependents to obtain
         :type task: instance of Task
         :rtype: set of Task instances
         """
-        return self._gdb_driver.get_dependents(task)
+        return self._gdb_driver.get_dependent_tasks(task)
 
     def finalize_workflow(self):
         """Finalize the BEE workflow loaded into the graph database."""
