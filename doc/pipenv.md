@@ -32,6 +32,8 @@ Python 3.x installed, you can specify a certain one using the command:
 
 `pipenv --python /path/to/python`
 
+Pipenv virtual enviornments are installed to `~/.local/share/virtualenvs`.
+
 ---
 
 ### Install Project Packages/Dependencies
