@@ -10,6 +10,8 @@ Installation
 ------------
 MacOS: `brew install pipenv`
 
+Anaconda: `pip install pipenv`
+
 Debian/Ubuntu: `sudo apt install pipenv`
 
 Fedora 28: `sudo dnf install pipenv`
