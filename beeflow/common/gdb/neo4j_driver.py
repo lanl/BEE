@@ -28,10 +28,8 @@ class Neo4jDriver(GraphDatabaseDriver):
     def load_workflow_dag(self, workflow):
         """Load the workflow as a DAG into the Neo4j database.
 
-        :param inputs: the workflow inputs
-        :type inputs: TBD
-        :param outputs: the workflow outputs
-        :type outputs: TBD
+        :param workflow: the workflow to load as a DAG
+        :type workflow: instance of Workflow
         """
 
     def initialize_workflow_dag(self):

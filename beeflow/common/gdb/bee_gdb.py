@@ -20,18 +20,16 @@ class GraphDatabaseInterface:
         """
         self._gdb_driver = gdb_driver(**kwargs)
 
-    def load_workflow(self, inputs, outputs):
+    def load_workflow(self, workflow):
         """Load a BEE workflow into the graph database.
 
-        :param inputs: The workflow inputs
-        :type inputs: TBD
-        :param outputs: The workflow outputs
-        :type outputs: TBD
+        :param workflow: the new workflow to load
+        :type workflow: instance of Workflow
         """
-        self._gdb_driver.load_workflow_dag(inputs, outputs)
+        self._gdb_driver.load_workflow_dag(workflow)
 
     def initialize_workflow(self):
-        """Start the workflow loaded into the grahp database."""
+        """Start the workflow loaded into the graph database."""
         self._gdb_driver.initialize_workflow_dag()
 
     def get_dependent_tasks(self, task):

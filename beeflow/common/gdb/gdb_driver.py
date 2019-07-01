@@ -11,7 +11,7 @@ class GraphDatabaseDriver(ABC):
         """Load the workflow as a DAG into the graph database.
 
         :param workflow: the workflow to load
-        :type workflow: TBD
+        :type workflow: instance of Workflow
         """
 
     @abstractmethod
