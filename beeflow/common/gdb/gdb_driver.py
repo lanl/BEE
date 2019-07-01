@@ -25,8 +25,8 @@ class GraphDatabaseDriver(ABC):
         """Get the dependent tasks of a specified workflow task.
 
         :param task: the task whose dependents to retrieve
-        :type task: Task object
-        :rtype: set of Task objects
+        :type task: instance of Task
+        :rtype: set of Task instances
         """
 
     @abstractmethod

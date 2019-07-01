@@ -14,8 +14,8 @@ class GraphDatabaseInterface:
     def __init__(self, gdb_driver=Neo4jDriver, **kwargs):
         """Initialize a graph database interface with a driver.
 
-        :param driver: the graph database driver (Neo4jDriver by default)
-        :type driver: subclass of GraphDatabaseDriver
+        :param gdb_driver: the graph database driver (Neo4jDriver by default)
+        :type gdb_driver: subclass of GraphDatabaseDriver
         :param kwargs: optional arguments for the graph database driver
         """
         self._gdb_driver = gdb_driver(**kwargs)
