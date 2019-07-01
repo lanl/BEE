@@ -45,6 +45,10 @@ To install all our development packages and software project depenencies:
 
 `pipenv install --dev`
 
+To install only the project dependencies:
+
+`pipenv install`
+
 ---
 
 ### Activate the Virtual Environment
