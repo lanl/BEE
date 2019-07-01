@@ -7,8 +7,10 @@ class Workflow:
     def __init__(self, tasks, outputs):
         """Initialize a new workflow data structure.
 
-        :param tasks (list): A list of Task instances
-        :param outputs (TBD): A data structure for outputs
+        :param tasks: the workflow tasks
+        :type tasks: set of Task instances
+        :param outputs: the workflow outputs
+        :type outputs: TBD
         """
         self._tasks = tasks
         self._outputs = outputs
