@@ -43,6 +43,14 @@ class WorkflowInterface:
         """
         return self._gdb_interface.get_dependent_tasks(task)
 
+    def get_subworkflow(self, tasks):
+        """Get sub-workflows with the specified head tasks.
+
+        :param tasks: the head tasks of the sub-workflows
+        :type tasks: set of Task instances
+        :rtype: instance of Workflow
+        """
+
     def finalize_workflow(self):
         """Finalize the BEE workflow."""
         self._gdb_interface.finalize_workflow()
