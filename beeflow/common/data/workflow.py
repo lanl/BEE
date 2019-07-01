@@ -8,7 +8,7 @@ class Workflow:
         """Initialize a new workflow data structure.
 
         :param tasks: the workflow tasks
-        :type tasks: list of Task objects
+        :type tasks: set of Task instances
         :param outputs: the workflow outputs
         :type outputs: TBD
         """

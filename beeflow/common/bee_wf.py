@@ -6,7 +6,7 @@ from beeflow.common.gdb.bee_gdb import GraphDatabaseInterface
 class WorkflowInterface:
     """Interface for managing BEE workflows.
 
-    Delegates its work to a GraphDatabaseInterface.
+    Delegates its work to a GraphDatabaseInterface instance.
     """
 
     def __init__(self, inputs, outputs):
