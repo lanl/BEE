@@ -13,3 +13,5 @@ __pycache__
 .idea/vcs.xml
 .vscode
 Pipfile.lock
+.env
+.venv
