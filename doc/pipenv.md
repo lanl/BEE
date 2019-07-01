@@ -10,13 +10,15 @@ Installation
 ------------
 MacOS: `brew install pipenv`
 
-Anaconda: `pip install pipenv`
-
 Debian/Ubuntu: `sudo apt install pipenv`
 
 Fedora 28: `sudo dnf install pipenv`
 
 FreeBSD: `pkg install py36-pipenv`
+
+Anaconda: `conda install pipenv`
+
+Pip: `pip install pipenv` (append `--user` if unprivileged)
 
 Pipenv Commands
 ---------------
@@ -39,9 +41,9 @@ Pipenv virtual enviornments are installed to `~/.local/share/virtualenvs`.
 ---
 
 ### Install Project Packages/Dependencies
-To install our development packages and software project depenencies:
+To install all our development packages and software project depenencies:
 
-`pipenv install`
+`pipenv install --dev`
 
 ---
 
