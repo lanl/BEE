@@ -12,5 +12,5 @@ class Workflow:
         :param outputs: the workflow outputs
         :type outputs: TBD
         """
-        self._tasks = tasks
-        self._outputs = outputs
+        self.tasks = tasks
+        self.outputs = outputs
