@@ -8,11 +8,13 @@ install them to our virtual environment.
 
 Installation
 ------------
-MacOS: `brew install pipenv`
+MacOS: `brew install pipenv` (requires Homebrew)
 
 Debian/Ubuntu: `sudo apt install pipenv`
 
 Fedora 28: `sudo dnf install pipenv`
+
+Arch: `sudo pacman -S python-pipenv`
 
 FreeBSD: `pkg install py36-pipenv`
 
