@@ -16,9 +16,7 @@ Fedora 28: `sudo dnf install pipenv`
 
 FreeBSD: `pkg install py36-pipenv`
 
-Anaconda: `conda install pipenv`
-
-Pip: `pip install pipenv` (append `--user` if unprivileged)
+Pip: `pip install pipenv` (append `--user` if unprivileged or not in a virtual environment)
 
 Pipenv Commands
 ---------------
