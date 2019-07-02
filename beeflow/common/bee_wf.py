@@ -3,7 +3,7 @@
 Delegates its work to a GraphDatabaseInterface."""
 
 from beeflow.common.gdb.bee_gdb import GraphDatabaseInterface
-from beeflow.common.data import Task, Workflow
+from beeflow.common.data.wf_data import Task, Workflow
 
 _gdb_interface = GraphDatabaseInterface()
 

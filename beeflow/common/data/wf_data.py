@@ -1,4 +1,4 @@
-"""Defines a data structure for holding task data."""
+"""Defines data structures for holding task and workflow data."""
 
 
 class Task:
@@ -33,3 +33,18 @@ class Task:
         """Construct a task's command representation."""
         return (self.base_command if self.arguments is None
                 else " ".join([self.base_command] + self.arguments))
+
+
+class Workflow:
+    """Data structure for holding workflow data and metadata."""
+
+    def __init__(self, tasks, outputs):
+        """Initialize a new workflow data structure.
+
+        :param tasks: the workflow tasks
+        :type tasks: set of Task instances
+        :param outputs: the workflow outputs
+        :type outputs: TBD
+        """
+        self.tasks = tasks
+        self.outputs = outputs
