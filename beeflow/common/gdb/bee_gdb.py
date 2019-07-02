@@ -44,3 +44,4 @@ class GraphDatabaseInterface:
     def finalize_workflow(self):
         """Finalize the BEE workflow loaded into the graph database."""
         self._gdb_driver.finalize_workflow_dag()
+        
