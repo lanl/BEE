@@ -8,22 +8,24 @@ from beeflow.common.data.wf_data import Task, Workflow
 _gdb_interface = GraphDatabaseInterface()
 
 
-def create_task(task_id, base_command, arguments=[], dependencies={},
+def create_task(task_id, name, base_command, arguments=[], dependencies=set(),
                 requirements=None):
     """Create a new BEE workflow task.
 
-    :param task_id: the task ID
+    :param task_id: the ID given to the task
     :type task_id: integer
+    :param name: the name given to the task
+    :type name: string
     :param base_command: the base command for the task
     :type base_command: string
-    :param arguments: the arguments given to the task
+    :param arguments: the arguments given to the task command
     :type arguments: list of strings
     :param dependencies: the task dependencies (on other Tasks)
     :type dependencies: set of Task instances
     :param requirements: the task requirements
     :type requirements: TBD or None
     """
-    return Task(task_id, base_command, arguments, dependencies,
+    return Task(task_id, name, base_command, arguments, dependencies,
                 requirements)
 
 

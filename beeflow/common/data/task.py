@@ -4,15 +4,22 @@
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, task_id, base_command, arguments=None,
-                 dependencies=None, requirements=None):
+    def __init__(self, task_id, name, base_command, arguments, dependencies,
+                 requirements):
         """Store a task description.
 
-        :param task_id (int): The name given to the task
-        :param base_command (str): The base command for the task
-        :param arguments (list): The arguments given to the task
-        :param dependencies (set): The task dependencies (on other Tasks)
-        :param requirements (TBD): The task requirements
+        :param task_id: the task ID
+        :type task_id: integer
+        :param name: the task name
+        :type name: string
+        :param base_command: the base command for the task
+        :type base_command: string
+        :param arguments: the arguments given to the task command
+        :type arguments: list of strings
+        :param dependencies: the task dependencies
+        :type dependencies: set of Task instances
+        :param requirements: the task requirements
+        :type requirements: TBD or None
         """
         self.id = task_id
         self.base_command = base_command
