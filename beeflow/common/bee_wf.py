@@ -13,7 +13,7 @@ def create_task(task_id, name, base_command, arguments=[], dependencies=set(),
     """Create a new BEE workflow task.
 
     :param task_id: the ID given to the task
-    :type task_id: integer
+    :type task_id: string
     :param name: the name given to the task
     :type name: string
     :param base_command: the base command for the task
@@ -21,7 +21,7 @@ def create_task(task_id, name, base_command, arguments=[], dependencies=set(),
     :param arguments: the arguments given to the task command
     :type arguments: list of strings
     :param dependencies: the task dependencies (on other Tasks)
-    :type dependencies: set of Task instances
+    :type dependencies: set of task IDs
     :param requirements: the task requirements
     :type requirements: TBD or None
     """

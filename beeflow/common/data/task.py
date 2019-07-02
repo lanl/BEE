@@ -9,7 +9,7 @@ class Task:
         """Store a task description.
 
         :param task_id: the task ID
-        :type task_id: integer
+        :type task_id: string
         :param name: the task name
         :type name: string
         :param base_command: the base command for the task
@@ -17,7 +17,7 @@ class Task:
         :param arguments: the arguments given to the task command
         :type arguments: list of strings
         :param dependencies: the task dependencies
-        :type dependencies: set of Task instances
+        :type dependencies: set of task IDs
         :param requirements: the task requirements
         :type requirements: TBD or None
         """
