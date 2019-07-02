@@ -4,12 +4,9 @@ __pycache__
 *.iso
 *.pyc
 .DS_Store
-.#bee_config.json
-./bee-image-builder/bee-vm-and-aws-image-builder/ssh_key/authorized_keys
-./bee-image-builder/bee-vm-and-aws-image-builder/ssh_key/config
-./bee-image-builder/bee-vm-and-aws-image-builder/ssh_key/id_rsa
-./bee-image-builder/bee-vm-and-aws-image-builder/ssh_key/id_rsa.pub
 .idea
 .idea/vcs.xml
 .vscode
 Pipfile.lock
+.env
+.venv

@@ -1,23 +1,47 @@
-"""Interface for the handling of workflow DAGs."""
+"""Mid-level graph database management interface."""
 
-from beeflow.common.gdb.bee_neo4j import Neo4jDriver
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 
 
-class GraphDatabase:
-    """Driver interface for a generic graph database."""
+class GraphDatabaseInterface:
+    """Interface for managing a graph database with workflows.
 
-    def __init__(self, driver=Neo4jDriver, **kwargs):
-        """Create a new Graph Database driver."""
-        self._driver = driver(**kwargs)
+    Delegates the actual work to an instance of a subclass of
+    the abstract base class `GraphDatabaseDriver`. By default,
+    this is the `Neo4jDriver` class.
+    """
 
-    def load_workflow_dag(self, inputs, outputs):
-        """Load the workflow as a DAG into the graph database."""
+    def __init__(self, gdb_driver=Neo4jDriver, **kwargs):
+        """Initialize a graph database interface with a driver.
 
-    def initialize_workflow_dag(self):
-        """Initialize the workflow loaded into the graph database."""
+        :param gdb_driver: the graph database driver (Neo4jDriver by default)
+        :type gdb_driver: subclass of GraphDatabaseDriver
+        :param kwargs: optional arguments for the graph database driver
+        """
+        self._gdb_driver = gdb_driver(**kwargs)
 
-    def get_dependents_dag(self, task):
-        """Get the dependent tasks of a specified task."""
+    def load_workflow(self, workflow):
+        """Load a BEE workflow into the graph database.
 
-    def finalize_workflow_dag(self):
-        """Finalize the workflow loaded into the graph database."""
+        :param workflow: the new workflow to load
+        :type workflow: instance of Workflow
+        """
+        self._gdb_driver.load_workflow_dag(workflow)
+
+    def initialize_workflow(self):
+        """Start the workflow loaded into the graph database."""
+        self._gdb_driver.initialize_workflow_dag()
+
+    def get_dependent_tasks(self, task):
+        """Get the dependents of a task in a graph database workflow.
+
+        :param task: the task whose dependents to obtain
+        :type task: instance of Task
+        :rtype: set of Task instances
+        """
+        return self._gdb_driver.get_dependent_tasks(task)
+
+    def finalize_workflow(self):
+        """Finalize the BEE workflow loaded into the graph database."""
+        self._gdb_driver.finalize_workflow_dag()
+        
