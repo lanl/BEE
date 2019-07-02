@@ -1,6 +1,9 @@
 """Neo4j interface module."""
 
-import neo4j
+from string import Template
+
+from neo4j import GraphDatabase as Neo4jDatabase
+from neobolt.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 
@@ -23,7 +26,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param password: the password for the database user account
         :type password: string
         """
-        self._driver = neo4j.GraphDatabase.driver(uri, auth=(user, password))
+        try:
+            self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
+        except ServiceUnavailable:
+            print("Database unavailable. Is it running?")
+            exit()
 
     def load_workflow_dag(self, workflow):
         """Load the workflow as a DAG into the Neo4j database.
@@ -31,6 +38,14 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param workflow: the workflow to load as a DAG
         :type workflow: instance of Workflow
         """
+        # Construct the Neo4j Cypher query
+        cypher_query = self._construct_create_statements(workflow.tasks) + "\n"
+        cypher_query += self._construct_merge_statements(workflow.tasks)
+
+        # Commit the query transaction in a Neo4j session
+        with self._driver.session() as session:
+            session.run(cypher_query)
+        self.close()
 
     def initialize_workflow_dag(self):
         """Initialize the workflow loaded into the Neo4j database."""
@@ -63,3 +78,21 @@ class Neo4jDriver(GraphDatabaseDriver):
     def close(self):
         """Close the connection to the Neo4j database."""
         self._driver.close()
+
+    # Cypher statement construction helpers
+    def _construct_create_statements(self, tasks):
+        """Construct a series of CREATE statements for the tasks."""
+        CREATE_TEMP = Template(
+                'CREATE ($task_id:Task {name:"$name", state:"WAITING"})')
+        create_stmts = [CREATE_TEMP.substitute(task_id=task.id, name=task.name)
+                        for task in tasks]
+        return "\n".join(create_stmts)
+
+    def _construct_merge_statements(self, tasks):
+        """Construct a series of MERGE statements for task dependencies."""
+        DEP_TEMP = Template("MERGE ($dependent)-[:DEPENDS]->($dependency)")
+        merge_stmts = [DEP_TEMP.substitute(dependent=task.id,
+                                           dependency=dependency)
+                       for task in tasks
+                       for dependency in task.dependencies]
+        return "\n".join(merge_stmts)
