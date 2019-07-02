@@ -22,6 +22,7 @@ class Task:
         :type requirements: TBD or None
         """
         self.id = task_id
+        self.name = name
         self.base_command = base_command
         self.arguments = arguments
         self.dependencies = dependencies
