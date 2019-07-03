@@ -39,6 +39,7 @@ def create_workflow(tasks, outputs=None):
     """
     new_workflow = Workflow(tasks, outputs)
     _gdb_interface.load_workflow(new_workflow)
+    return new_workflow
 
 
 def initialize_workflows():
