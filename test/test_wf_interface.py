@@ -3,7 +3,7 @@
 
 import unittest
 
-import beeflow.common.bee_wf as wf_interface
+import beeflow.common.wf_interface as wf_interface
 
 
 class WFInterfaceTest(unittest.TestCase):
@@ -48,7 +48,10 @@ class WFInterfaceTest(unittest.TestCase):
                 "viz", "Visualization", "ln",
                 dependencies={"crank0", "crank1", "crank2"}))
 
-        # wf_interface.create_workflow(tasks)
+        workflow = wf_interface.create_workflow(tasks)
+        self.assertListEqual(tasks, workflow.tasks)
+        self.assertIsNone(workflow.outputs)
+        self.assertSetEqual({tasks[0]}, workflow.head_tasks)
 
 
 if __name__ == "__main__":
