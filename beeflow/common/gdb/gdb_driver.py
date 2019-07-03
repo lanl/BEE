@@ -15,7 +15,7 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def initialize_workflow_dag(self):
+    def initialize_workflow_dags(self):
         """Initialize the workflow DAG loaded into the graph database."""
 
     @abstractmethod
@@ -45,8 +45,12 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def finalize_workflow_dag(self):
+    def finalize_workflow_dags(self):
         """Finalize the workflow DAG loaded into the graph database."""
+
+    @abstractmethod
+    def cleanup(self):
+        """Clean up all the data stored in the graph database."""
 
     @abstractmethod
     def close(self):

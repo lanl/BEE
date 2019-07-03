@@ -41,6 +41,6 @@ class GraphDatabaseInterface:
         """
         return self._gdb_driver.get_dependent_tasks(task)
 
-    def finalize_workflow(self):
+    def finalize_workflows(self):
         """Finalize the BEE workflow loaded into the graph database."""
-        self._gdb_driver.finalize_workflow_dag()
+        self._gdb_driver.finalize_workflow_dags()

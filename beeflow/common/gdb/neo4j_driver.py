@@ -46,7 +46,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.run(cypher_query)
         self.close()
 
-    def initialize_workflow_dag(self):
+    def initialize_workflow_dags(self):
         """Initialize the workflow loaded into the Neo4j database."""
 
     def start_ready_tasks(self):
@@ -71,8 +71,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: a string
         """
 
-    def finalize_workflow_dag(self):
+    def finalize_workflow_dags(self):
         """Finalize the workflow DAG loaded into the Neo4j database."""
+
+    def cleanup(self):
+        """Clean up all data in the Neo4j database."""
 
     def close(self):
         """Close the connection to the Neo4j database."""

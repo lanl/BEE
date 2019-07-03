@@ -65,6 +65,6 @@ def get_subworkflow(tasks):
     """
 
 
-def finalize_workflow():
+def finalize_workflows():
     """Finalize the BEE workflow."""
-    _gdb_interface.finalize_workflow()
+    _gdb_interface.finalize_workflows()
