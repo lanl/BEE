@@ -30,7 +30,7 @@ class Task:
 
     def __repr__(self):
         """Construct a task's command representation."""
-        return self.construct_command()
+        return self.id
 
     def construct_command(self):
         """Construct a task's command representation."""
@@ -51,3 +51,8 @@ class Workflow:
         """
         self.tasks = tasks
         self.outputs = outputs
+
+        dependencies = {dependency for task in self.tasks
+                        for dependency in task.dependencies}
+        self.head_tasks = {task for task in self.tasks
+                           if task not in dependencies}
