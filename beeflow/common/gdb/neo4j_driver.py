@@ -39,8 +39,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type workflow: instance of Workflow
         """
         # Construct the Neo4j Cypher query
-        cypher_query = self._construct_create_statements(workflow.tasks) + "\n"
-        cypher_query += self._construct_merge_statements(workflow.tasks)
+        cypher_query = (self._construct_create_statements(workflow.tasks)
+                        + self._construct_merge_statements(workflow.tasks))
 
         # Commit the query transaction in a Neo4j session
         with self._driver.session() as session:
@@ -86,7 +86,7 @@ class Neo4jDriver(GraphDatabaseDriver):
                 'CREATE ($task_id:Task {name:"$name", state:"WAITING"})')
         create_stmts = [CREATE_TEMP.substitute(task_id=task.id, name=task.name)
                         for task in tasks]
-        return "\n".join(create_stmts)
+        return "\n".join(create_stmts) + "\n"
 
     def _construct_merge_statements(self, tasks):
         """Construct a series of MERGE statements for task dependencies."""
@@ -95,4 +95,4 @@ class Neo4jDriver(GraphDatabaseDriver):
                                            dependency=dependency)
                        for task in tasks
                        for dependency in task.dependencies]
-        return "\n".join(merge_stmts)
+        return "\n".join(merge_stmts) + "\n"
