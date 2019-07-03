@@ -30,7 +30,6 @@ class Neo4jDriver(GraphDatabaseDriver):
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
         except ServiceUnavailable:
             print("Database unavailable. Is it running?")
-            exit()
 
     def load_workflow_dag(self, workflow):
         """Load the workflow as a DAG into the Neo4j database.
