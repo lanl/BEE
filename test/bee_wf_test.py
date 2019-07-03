@@ -8,7 +8,33 @@ import beeflow.common.bee_wf as wf_interface
 
 class WFInterfaceTest(unittest.TestCase):
     """Unit test case for the workflow interface."""
-    def test_neo4j_():
+
+    def test_create_task(self):
+        """Test task creation."""
+        TASK_ID = "test"
+        TASK_NAME = "Test Task"
+        BASE_COMMAND = "ls"
+        ARGUMENTS = ["-a", "-l", "-F"]
+        DEPENDENCIES = {"dependency1", "dependency2", "dependency3"}
+        REQUIREMENTS = {"foo.txt", "bar.hl"}
+
+        task = wf_interface.create_task(
+            task_id=TASK_ID,
+            name=TASK_NAME,
+            base_command=BASE_COMMAND,
+            arguments=ARGUMENTS,
+            dependencies=DEPENDENCIES,
+            requirements=REQUIREMENTS)
+
+        self.assertEqual(TASK_ID, task.id)
+        self.assertEqual(TASK_NAME, task.name)
+        self.assertEqual(BASE_COMMAND, task.base_command)
+        self.assertListEqual(ARGUMENTS, task.arguments)
+        self.assertSetEqual(DEPENDENCIES, task.dependencies)
+        self.assertEqual(REQUIREMENTS, task.requirements)
+
+    def test_create_workflow(self):
+        """Test workflow creation and insertion into the Neo4j database."""
         tasks = []
         tasks.append(wf_interface.create_task(
                 "prep", "Data Prep", "ls"))
@@ -22,7 +48,7 @@ class WFInterfaceTest(unittest.TestCase):
                 "viz", "Visualization", "ln",
                 dependencies={"crank0", "crank1", "crank2"}))
 
-        wf_interface.create_workflow(tasks)
+        # wf_interface.create_workflow(tasks)
 
 
 if __name__ == "__main__":
