@@ -28,9 +28,9 @@ class GraphDatabaseInterface:
         """
         self._gdb_driver.load_workflow_dag(workflow)
 
-    def initialize_workflow(self):
+    def initialize_workflows(self):
         """Start the workflow loaded into the graph database."""
-        self._gdb_driver.initialize_workflow_dag()
+        self._gdb_driver.initialize_workflow_dags()
 
     def get_dependent_tasks(self, task):
         """Get the dependents of a task in a graph database workflow.

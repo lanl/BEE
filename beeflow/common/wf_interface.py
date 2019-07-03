@@ -2,10 +2,10 @@
 
 Delegates its work to a GraphDatabaseInterface."""
 
-from beeflow.common.gdb.bee_gdb import GraphDatabaseInterface
+from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
 from beeflow.common.data.wf_data import Task, Workflow
 
-_gdb_interface = GraphDatabaseInterface()
+_gdb_interface = GraphDatabaseInterface(password="password")
 
 
 def create_task(task_id, name, base_command, arguments=[], dependencies=set(),
@@ -41,9 +41,9 @@ def create_workflow(tasks, outputs=None):
     _gdb_interface.load_workflow(new_workflow)
 
 
-def initialize_workflow():
+def initialize_workflows():
     """Initialize a BEE workflow."""
-    _gdb_interface.initialize_workflow()
+    _gdb_interface.initialize_workflows()
 
 
 def get_dependent_tasks(task):
