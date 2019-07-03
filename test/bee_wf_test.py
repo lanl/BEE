@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-"""Unit test for Neo4j driver."""
+"""Unit test module for the BEE workflow interface module."""
 
 import unittest
 
