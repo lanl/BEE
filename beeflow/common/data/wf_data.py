@@ -51,8 +51,4 @@ class Workflow:
         """
         self.tasks = tasks
         self.outputs = outputs
-
-        dependencies = {dependency for task in self.tasks
-                        for dependency in task.dependencies}
-        self.head_tasks = {task for task in self.tasks
-                           if task not in dependencies}
+        self.head_tasks = {task for task in tasks if not task.dependencies}
