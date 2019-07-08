@@ -77,7 +77,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param head_tasks: the head tasks of the sub-workflows
         :type head_tasks: list of Task instances
         :rtype: instance of Workflow
-        """"
+        """
 
     def get_task_status(self, task):
         """Get the status of a task in the Neo4j workflow DAG.
