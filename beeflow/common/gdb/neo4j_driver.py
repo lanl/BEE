@@ -94,7 +94,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def cleanup(self):
         """Clean up all data in the Neo4j database."""
-        cleanup_query = "MATCH (n) DETACH DELETE n"
+        cleanup_query = "MATCH(n) WITH n LIMIT 10000 DETACH DELETE n;"
         self._run_query(cleanup_query)
 
     def close(self):
