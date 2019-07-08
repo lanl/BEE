@@ -35,16 +35,14 @@ class WFInterfaceTest(unittest.TestCase):
 
     def test_create_workflow(self):
         """Test workflow creation and insertion into the Neo4j database."""
-        tasks = []
-        tasks.append(wf_interface.create_task("prep", "Data Prep", "ls"))
-        tasks.append(wf_interface.create_task(
-            "crank0", "Compute 0", "rm", dependencies={"prep"}))
-        tasks.append(wf_interface.create_task(
-            "crank1", "Compute 1", "find", dependencies={"prep"}))
-        tasks.append(wf_interface.create_task(
-            "crank2", "Compute 2", "yes", dependencies={"prep"}))
-        tasks.append(wf_interface.create_task(
-            "viz", "Visualization", "ln", dependencies={"crank0", "crank1", "crank2"}))
+        tasks = [
+            wf_interface.create_task("prep", "Data Prep", "ls"),
+            wf_interface.create_task("crank0", "Compute 0", "rm", dependencies={"prep"}),
+            wf_interface.create_task("crank1", "Compute 1", "find", dependencies={"prep"}),
+            wf_interface.create_task("crank2", "Compute 2", "yes", dependencies={"prep"}),
+            wf_interface.create_task("viz", "Visualization", "ln",
+                                     dependencies={"crank0", "crank1", "crank2"})
+        ]
 
         workflow = wf_interface.create_workflow(tasks)
         self.assertListEqual(tasks, workflow.tasks)
