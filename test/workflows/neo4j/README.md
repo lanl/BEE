@@ -265,19 +265,67 @@ neo4j> MATCH(n) WITH n LIMIT 10000 DETACH DELETE n;
 
 ### Exporting and Importing Databases
 
-From within the shell (in the `neo4j` Docker container), use the `neo4j-admin`
-command to export and import databases. Neo4j must be stopped to export/import:
+Let's build a sample database that represents a BEE workflow. In this case
+we'll mimic a simple BLAST job with the Cypher script `blast.cql`:
+
+```sh
+CREATE (split:Task {name:"Split Data", state:"READY"}),
+       (blast0:Task {name:"Blast 0", state:"WAITING"}),
+       (blast1:Task {name:"Blast 1", state:"WAITING"}),
+       (data:Task {name:"Collect Data", state:"WAITING"}),
+       (err:Task {name:"Collect Errors", state:"WAITING"}),
+       (split)<-[:DEPENDS]-(blast0),
+       (split)<-[:DEPENDS]-(blast1),
+       (blast0)<-[:DEPENDS]-(data),
+       (blast1)<-[:DEPENDS]-(data),
+       (blast0)<-[:DEPENDS]-(err),
+       (blast1)<-[:DEPENDS]-(err);
+
+MATCH (n) RETURN n;
+```
+
+We run the script, from within the shell (in the `neo4j` Docker container),
+using the `cypher-shell` command:
+
+```sh
+bash-4.4$ cat /scripts/blast.cql | cypher-shell -u neo4j -p whatever
+n
+(:Task {name: "Split Data", state: "READY"})
+(:Task {name: "Blast 0", state: "WAITING"})
+(:Task {name: "Blast 1", state: "WAITING"})
+(:Task {name: "Collect Data", state: "WAITING"})
+(:Task {name: "Collect Errors", state: "WAITING"})
+bash-4.4$
+```
+
+The script creates five nodes and six relationships. The resulting graph is
+shown in the screen capture from the Neo4j browser:
+
+![blast graph](blast.png?raw=true)
+
+Now, if we want to export the resulting database, we again use the shell and
+the `neo4j-admin` command. Neo4j must be stopped to export/import:
 
 ```sh
 bash-4.4$ neo4j stop
-bash-4.4$ neo4j-admin dump --to=/dumps/dump_name
+bash-4.4$ neo4j-admin dump --to=/dumps/blast.neo4j
+Done: 34 files, 222.4KiB processed.
 bash-4.4$ neo4j restart
 ```
 
 Remember, the `/dumps` directory was mapped to your local filesystem in the
 original `docker run` command.
 
+To load the save database into Neo4j, we use `neo4j-admin`. Again, the database
+must be stopped to import. The `--force` flag will force the import to
+overwrite an existing database.
 
+```sh
+bash-4.4$ neo4j stop
+bash-4.4$ neo4j-admin load --from=/dumps/blast.neo4j --force
+Done: 34 files, 222.4KiB processed.
+bash-4.4$ neo4j restart
+```
 
 ### Programmatic Interaction with Python
 ```sh
