@@ -64,10 +64,11 @@ def get_dependent_tasks(task):
 def get_subworkflow(head_tasks):
     """Get sub-workflows with the specified head tasks.
 
-    :param tasks: the head tasks of the sub-workflows
-    :type tasks: set of Task instances
+    :param head_tasks: the head tasks of the sub-workflows
+    :type head_tasks: list of Task instances
     :rtype: instance of Workflow
     """
+    return _GDB_INTERFACE.get_subworkflow(head_tasks)
 
 
 def finalize_workflows():

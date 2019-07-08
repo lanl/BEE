@@ -41,6 +41,14 @@ class GraphDatabaseInterface:
         """
         return self._gdb_driver.get_dependent_tasks(task)
 
+    def get_subworkflow(self, head_tasks):
+        """Get sub-workflows from the graph database with the specified head tasks.
+
+        :param head_tasks: the head tasks of the sub-workflows
+        :type head_tasks:
+        :rtype: instance of Workflow
+        """
+
     def finalize_workflows(self):
         """Finalize the BEE workflow loaded into the graph database."""
         self._gdb_driver.finalize_workflow_dags()

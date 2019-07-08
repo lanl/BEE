@@ -71,6 +71,14 @@ class Neo4jDriver(GraphDatabaseDriver):
         deps = self._run_query(dependents_query, name=task.name).values()
         return deps
 
+    def get_subworkflow(self, head_tasks):
+        """Get sub-workflows from the Neo4j database with the specified head tasks.
+
+        :param head_tasks: the head tasks of the sub-workflows
+        :type head_tasks: list of Task instances
+        :rtype: instance of Workflow
+        """"
+
     def get_task_status(self, task):
         """Get the status of a task in the Neo4j workflow DAG.
 
