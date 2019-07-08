@@ -4,8 +4,7 @@
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, task_id, name, base_command, arguments, dependencies,
-                 requirements):
+    def __init__(self, task_id, name, base_command, arguments, dependencies, requirements):
         """Store a task description.
 
         :param task_id: the task ID

@@ -11,42 +11,40 @@ class WFInterfaceTest(unittest.TestCase):
 
     def test_create_task(self):
         """Test task creation."""
-        TASK_ID = "test"
-        TASK_NAME = "Test Task"
-        BASE_COMMAND = "ls"
-        ARGUMENTS = ["-a", "-l", "-F"]
-        DEPENDENCIES = {"dependency1", "dependency2", "dependency3"}
-        REQUIREMENTS = {"foo.txt", "bar.hl"}
+        task_id = "test"
+        task_name = "Test Task"
+        base_command = "ls"
+        arguments = ["-a", "-l", "-F"]
+        dependencies = {"dependency1", "dependency2", "dependency3"}
+        requirements = {"foo.txt", "bar.hl"}
 
         task = wf_interface.create_task(
-            task_id=TASK_ID,
-            name=TASK_NAME,
-            base_command=BASE_COMMAND,
-            arguments=ARGUMENTS,
-            dependencies=DEPENDENCIES,
-            requirements=REQUIREMENTS)
+            task_id=task_id,
+            name=task_name,
+            base_command=base_command,
+            arguments=arguments,
+            dependencies=dependencies,
+            requirements=requirements)
 
-        self.assertEqual(TASK_ID, task.id)
-        self.assertEqual(TASK_NAME, task.name)
-        self.assertEqual(BASE_COMMAND, task.base_command)
-        self.assertListEqual(ARGUMENTS, task.arguments)
-        self.assertSetEqual(DEPENDENCIES, task.dependencies)
-        self.assertEqual(REQUIREMENTS, task.requirements)
+        self.assertEqual(task_id, task.id)
+        self.assertEqual(task_name, task.name)
+        self.assertEqual(base_command, task.base_command)
+        self.assertListEqual(arguments, task.arguments)
+        self.assertSetEqual(dependencies, task.dependencies)
+        self.assertEqual(requirements, task.requirements)
 
     def test_create_workflow(self):
         """Test workflow creation and insertion into the Neo4j database."""
         tasks = []
+        tasks.append(wf_interface.create_task("prep", "Data Prep", "ls"))
         tasks.append(wf_interface.create_task(
-                "prep", "Data Prep", "ls"))
+            "crank0", "Compute 0", "rm", dependencies={"prep"}))
         tasks.append(wf_interface.create_task(
-                "crank0", "Compute 0", "rm", dependencies={"prep"}))
+            "crank1", "Compute 1", "find", dependencies={"prep"}))
         tasks.append(wf_interface.create_task(
-                "crank1", "Compute 1", "find", dependencies={"prep"}))
+            "crank2", "Compute 2", "yes", dependencies={"prep"}))
         tasks.append(wf_interface.create_task(
-                "crank2", "Compute 2", "yes", dependencies={"prep"}))
-        tasks.append(wf_interface.create_task(
-                "viz", "Visualization", "ln",
-                dependencies={"crank0", "crank1", "crank2"}))
+            "viz", "Visualization", "ln", dependencies={"crank0", "crank1", "crank2"}))
 
         workflow = wf_interface.create_workflow(tasks)
         self.assertListEqual(tasks, workflow.tasks)
