@@ -29,6 +29,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         try:
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
             self._workflows = []
+            self._set_tasks_unique()
         except ServiceUnavailable:
             print("Neo4j database unavailable. Is it running?")
 
@@ -43,24 +44,18 @@ class Neo4jDriver(GraphDatabaseDriver):
                         + _construct_merge_statements(workflow.tasks))
 
         # Commit the query transaction in a Neo4j session
-        with self._driver.session() as session:
-            session.run(cypher_query)
-
+        self._run_query(cypher_query)
         self._workflows.append(workflow)
 
     def initialize_workflow_dags(self):
         """Initialize the workflow DAGs loaded into the Neo4j database."""
         ready_query = 'MATCH (t) WHERE NOT (t:Task)-[:DEPENDS]->() SET t.state = "READY"'
-
-        with self._driver.session() as session:
-            session.run(ready_query)
+        self._run_query(ready_query)
 
     def start_ready_tasks(self):
         """Start tasks that have no unsatisfied dependencies."""
         start_query = 'MATCH (t:Task {state: "READY"}) SET t.state = "RUNNING"'
-
-        with self._driver.session() as session:
-            session.run(start_query)
+        self._run_query(start_query)
 
     def watch_tasks(self):
         """Watch tasks for completion/failure and start new ready tasks."""
@@ -73,10 +68,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: set of Task objects
         """
         dependents_query = 'MATCH (:Task {name: "$name"})<-[:DEPENDS]-(t:Task) RETURN t'
-
-        with self._driver.session() as session:
-            deps = session.run(dependents_query, name=task.name).values()
-
+        deps = self._run_query(dependents_query, name=task.name).values()
         return deps
 
     def get_task_status(self, task):
@@ -87,25 +79,34 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: a string
         """
         status_query = 'MATCH (t:Task {name: "$name"}) RETURN t.state'
-
-        with self._driver.session() as session:
-            state = session.run(status_query, name=task.name).single().value()
-
-        return state
+        return self._run_query(status_query, name=task.name).single().value()
 
     def finalize_workflow_dags(self):
         """Finalize the workflow DAGs loaded into the Neo4j database."""
 
     def cleanup(self):
         """Clean up all data in the Neo4j database."""
-        cleanup_query = 'MATCH (n) DETACH DELETE n'
-
-        with self._driver.session() as session:
-            session.run(cleanup_query)
+        cleanup_query = "MATCH (n) DETACH DELETE n"
+        self._run_query(cleanup_query)
 
     def close(self):
         """Close the connection to the Neo4j database."""
         self._driver.close()
+
+    def _set_tasks_unique(self):
+        unique_query = "CREATE CONSTRAINT ON (t:Task) ASSERT t.name IS UNIQUE"
+        self._run_query(unique_query)
+
+    def _run_query(self, cypher_query, **kwargs):
+        """Run a Neo4j query using Cypher.
+
+        :param cypher_query: the query to run
+        :type cypher_query: string
+        :param kwargs: parameters for query variable substitution
+        """
+        with self._driver.session() as session:
+            result = session.run(cypher_query, **kwargs)
+        return result
 
 
 # Cypher statement construction helpers
