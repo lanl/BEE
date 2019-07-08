@@ -51,6 +51,21 @@ class WFInterfaceTest(unittest.TestCase):
         self.assertIsNone(workflow.outputs)
         self.assertSetEqual({tasks[0]}, workflow.head_tasks)
 
+    def test_initialize_workflows(self):
+        """Test workflow initialization.
+
+        All head tasks should have their status set from "WAITING" to "READY"
+        """
+
+    def test_get_dependent_tasks(self):
+        """Test obtaining of dependent tasks."""
+
+    def test_get_subworkflow(self):
+        """Test obtaining of a sub-workflow."""
+
+    def test_finalize_workflows(self):
+        """Test workflow finalization."""
+
 
 if __name__ == "__main__":
     unittest.main()
