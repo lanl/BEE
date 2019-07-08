@@ -56,5 +56,5 @@ class Workflow:
 
     def __repr__(self):
         """Construct a workflow's string representation."""
-        return ("Tasks: " + repr(tasks) "\n"
-                + "Outputs: " + repr(outputs))
+        return ("Tasks: " + repr(self.tasks) + "\n"
+                + "Outputs: " + repr(self.outputs))
