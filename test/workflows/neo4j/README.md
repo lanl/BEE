@@ -303,6 +303,44 @@ shown in the screen capture from the Neo4j browser:
 
 ![blast graph](blast.png?raw=true)
 
+Here is another example (`hpc.cql`) that may represent a parameter study:
+
+```sh
+CREATE (prep:Task {name:"Prepare Data", state:"READY"}),
+       (crank0:Task {name:"Compute 0", state:"WAITING"}),
+       (crank1:Task {name:"Compute 1", state:"WAITING"}),
+       (crank2:Task {name:"Compute 2", state:"WAITING"}),
+       (crank3:Task {name:"Compute 3", state:"WAITING"}),
+       (crank4:Task {name:"Compute 4", state:"WAITING"}),
+       (crank5:Task {name:"Compute 5", state:"WAITING"}),
+       (crank6:Task {name:"Compute 6", state:"WAITING"}),
+       (crank7:Task {name:"Compute 7", state:"WAITING"}),
+       (viz:Task {name:"Visualization", state:"WAITING"}),
+       (prep)<-[:DEPENDS]-(crank0),
+       (prep)<-[:DEPENDS]-(crank1),
+       (prep)<-[:DEPENDS]-(crank2),
+       (prep)<-[:DEPENDS]-(crank3),
+       (prep)<-[:DEPENDS]-(crank4),
+       (prep)<-[:DEPENDS]-(crank5),
+       (prep)<-[:DEPENDS]-(crank6),
+       (prep)<-[:DEPENDS]-(crank7),
+       (crank0)<-[:DEPENDS]-(viz),
+       (crank1)<-[:DEPENDS]-(viz),
+       (crank2)<-[:DEPENDS]-(viz),
+       (crank3)<-[:DEPENDS]-(viz),
+       (crank4)<-[:DEPENDS]-(viz),
+       (crank5)<-[:DEPENDS]-(viz),
+       (crank6)<-[:DEPENDS]-(viz),
+       (crank7)<-[:DEPENDS]-(viz);
+
+MATCH (n) RETURN n;
+```
+
+Executing this script produces this graph (which will be exported as
+`hpc.neo4j`):
+
+![hpc graph](hpc.png?raw=true)
+
 Now, if we want to export the resulting database, we again use the shell and
 the `neo4j-admin` command. Neo4j must be stopped to export/import:
 
