@@ -15,6 +15,15 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_subworkflow(self, head_tasks):
+        """Get sub-workflows from the graph database with the specified head tasks.
+
+        :param head_tasks: the head tasks of the sub-workflows
+        :type head_tasks: list of Task instances
+        :rtype: instance of Workflow
+        """
+
+    @abstractmethod
     def initialize_workflow_dags(self):
         """Initialize the workflow DAGs loaded into the graph database."""
 
@@ -36,17 +45,8 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_subworkflow(self, head_tasks):
-        """Get sub-workflows from the graph database with the specified head tasks.
-
-        :param head_tasks: the head tasks of the sub-workflows
-        :type head_tasks: list of Task instances
-        :rtype: instance of Workflow
-        """
-
-    @abstractmethod
-    def get_task_status(self, task):
-        """Get the status of a task in the workflow DAG.
+    def get_task_state(self, task):
+        """Get the state of a task in the workflow DAG.
 
         :param task: the task whose status to retrieve
         :type task: instance of Task
