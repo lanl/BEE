@@ -2,7 +2,7 @@
 
 This repository contains some basic notes on how to use Neo4j as it relates to
 the BEE project (our machines, our specific goals, etc.) for testing via sample
-databses (workflows). Every workflow in BEE willbe represented by a single
+databses (workflows). Every workflow in BEE will be represented by a single
 Neo4j database. These workflows (and databases) will eventually be created by
 parsing a CWL file and dynamically building the database from it. Until then,
 the project will require samples to test and develop with. That is the purpose
@@ -47,7 +47,7 @@ the command is the image name (which will be fetched from Docker Hub if not
 already downloaded).
 
 The `/scripts` directory will be used to store `cypher-shell` scripts and the
-`\dumps` directory will store exported databases. We'll discuss these
+`/dumps` directory will store exported databases. We'll discuss these
 activities later in this document.
 
 At this point, Neo4j is not yet running, but from within this shell (in the
