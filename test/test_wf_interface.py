@@ -40,7 +40,7 @@ class WFInterfaceTest(unittest.TestCase):
             wf_interface.create_task("crank0", "Compute 0", "rm", dependencies={"prep"}),
             wf_interface.create_task("crank1", "Compute 1", "find", dependencies={"prep"}),
             wf_interface.create_task("crank2", "Compute 2", "yes", dependencies={"prep"}),
-            wf_interface.create_task("viz", "Visualization", "ln",
+            wf_interface.create_task("viz", "Visualization", "ln", arguments=["-s"],
                                      dependencies={"crank0", "crank1", "crank2"})
         ]
 
