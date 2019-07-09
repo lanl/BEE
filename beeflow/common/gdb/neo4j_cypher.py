@@ -6,7 +6,7 @@ def constrain_tasks_unique(tx):
     unique_query = ("CREATE CONSTRAINT ON (t:Task) "
                     "ASSERT t.name IS UNIQUE")
 
-    tx.run(unique_query)
+    return tx.run(unique_query).single().value()
 
 
 def create_task(tx, task):
