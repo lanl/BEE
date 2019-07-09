@@ -1,7 +1,5 @@
 """Neo4j interface module."""
 
-from string import Template
-
 from neo4j import GraphDatabase as Neo4jDatabase
 from neobolt.exceptions import ServiceUnavailable
 
@@ -118,28 +116,3 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             result = session.write_transaction(tx_fun, **kwargs)
         return result
-
-    # Cypher statement construction helpers
-    @staticmethod
-    def _construct_create_statements(tasks):
-        """Construct a series of CREATE statements for the tasks.
-
-        :param tasks: the new tasks to add
-        :type tasks: list of Task instances
-        """
-        create_template = Template('CREATE ($task_id:Task {name:"$name", state:"WAITING"})')
-        create_stmts = [create_template.substitute(task_id=task.id, name=task.name)
-                        for task in tasks]
-        return "\n".join(create_stmts) + "\n"
-
-    @staticmethod
-    def _construct_merge_statements(tasks):
-        """Construct a series of MERGE statements for task dependencies.
-
-        :param tasks: the tasks whose dependencies to add as relationships
-        :type tasks: list of Task instances
-        """
-        dependency_template = Template("MERGE ($dependent)-[:DEPENDS]->($dependency)")
-        merge_stmts = [dependency_template.substitute(dependent=task.id, dependency=dependency)
-                       for task in tasks for dependency in task.dependencies]
-        return "\n".join(merge_stmts) + "\n"
