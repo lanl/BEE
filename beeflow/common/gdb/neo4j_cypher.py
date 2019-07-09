@@ -6,7 +6,7 @@ def constrain_tasks_unique(tx):
     unique_query = ("CREATE CONSTRAINT ON (t:Task) "
                     "ASSERT t.name IS UNIQUE")
 
-    return tx.run(unique_query).single().value()
+    tx.run(unique_query)
 
 
 def create_task(tx, task):
@@ -22,9 +22,8 @@ def create_task(tx, task):
                     "SET t.dependencies = $dependencies "
                     "SET t.requirements = $requirements")
 
-    return tx.run(create_query, name=task.name, base_command=task.base_command,
-                  arguments=task.arguments, dependencies=list(task.dependencies),
-                  requirements=task.requirements).single().value()
+    tx.run(create_query, name=task.name, base_command=task.base_command, arguments=task.arguments,
+           dependencies=list(task.dependencies), requirements=task.requirements)
 
 
 def add_dependencies(tx, task):
@@ -37,8 +36,7 @@ def add_dependencies(tx, task):
                         "WHERE s.name = '$dependent_name' AND t.name = '$dependency_name'")
 
     for dependency in task.dependencies:
-        return tx.run(dependency_query, dependent_name=task.name,
-                      dependency_name=dependency.name).single().value()
+        tx.run(dependency_query, dependent_name=task.name, dependency_name=dependency.name)
 
 
 def set_head_tasks_to_ready(tx):
@@ -46,7 +44,7 @@ def set_head_tasks_to_ready(tx):
     ready_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
                    "SET t.state = 'READY'")
 
-    return tx.run(ready_query).single().value()
+    tx.run(ready_query)
 
 
 def set_ready_tasks_to_running(tx):
@@ -54,7 +52,7 @@ def set_ready_tasks_to_running(tx):
     running_query = ("MATCH (t:Task {state: 'READY'}) "
                      "SET t.state = 'RUNNING'")
 
-    return tx.run(running_query).single().value()
+    tx.run(running_query)
 
 
 def set_task_to_complete(tx, task):
@@ -66,7 +64,7 @@ def set_task_to_complete(tx, task):
     complete_query = ("MATCH (t:Task {name: '$name'}) "
                       "SET t.state = 'COMPLETE'")
 
-    return tx.run(complete_query, name=task.name).single().value()
+    tx.run(complete_query, name=task.name)
 
 
 def set_task_to_failed(tx, task):
@@ -78,7 +76,7 @@ def set_task_to_failed(tx, task):
     failed_query = ("MATCH (t:Task {name: '$name'}) "
                     "SET t.state = 'FAILED'")
 
-    return tx.run(failed_query, name=task.name).single().value()
+    tx.run(failed_query, name=task.name)
 
 
 def get_dependent_tasks(tx, task):
