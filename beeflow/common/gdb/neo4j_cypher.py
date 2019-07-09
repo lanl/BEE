@@ -22,8 +22,9 @@ def create_task(tx, task):
                     "SET t.dependencies = $dependencies "
                     "SET t.requirements = $requirements")
 
-    tx.run(create_query, name=task.name, base_command=task.base_command, arguments=task.arguments,
-           dependencies=task.dependencies, requirements=task.requirements)
+    return tx.run(create_query, name=task.name, base_command=task.base_command,
+                  arguments=task.arguments, dependencies=list(task.dependencies),
+                  requirements=task.requirements).single().value()
 
 
 def add_dependencies(tx, task):
@@ -36,7 +37,8 @@ def add_dependencies(tx, task):
                         "WHERE s.name = '$dependent_name' AND t.name = '$dependency_name'")
 
     for dependency in task.dependencies:
-        tx.run(dependency_query, dependent_name=task.name, dependency_name=dependency.name)
+        return tx.run(dependency_query, dependent_name=task.name,
+                      dependency_name=dependency.name).single().value()
 
 
 def set_head_tasks_to_ready(tx):
@@ -44,7 +46,7 @@ def set_head_tasks_to_ready(tx):
     ready_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
                    "SET t.state = 'READY'")
 
-    tx.run(ready_query)
+    return tx.run(ready_query).single().value()
 
 
 def set_ready_tasks_to_running(tx):
@@ -52,7 +54,7 @@ def set_ready_tasks_to_running(tx):
     running_query = ("MATCH (t:Task {state: 'READY'}) "
                      "SET t.state = 'RUNNING'")
 
-    tx.run(running_query)
+    return tx.run(running_query).single().value()
 
 
 def set_task_to_complete(tx, task):
@@ -64,7 +66,7 @@ def set_task_to_complete(tx, task):
     complete_query = ("MATCH (t:Task {name: '$name'}) "
                       "SET t.state = 'COMPLETE'")
 
-    tx.run(complete_query, name=task.name)
+    return tx.run(complete_query, name=task.name).single().value()
 
 
 def set_task_to_failed(tx, task):
@@ -76,7 +78,7 @@ def set_task_to_failed(tx, task):
     failed_query = ("MATCH (t:Task {name: '$name'}) "
                     "SET t.state = 'FAILED'")
 
-    tx.run(failed_query, name=task.name)
+    return tx.run(failed_query, name=task.name).single().value()
 
 
 def get_dependent_tasks(tx, task):
@@ -89,7 +91,7 @@ def get_dependent_tasks(tx, task):
                         "WHERE s.name = '$name' "
                         "RETURN collect(t.name)")
 
-    tx.run(dependents_query, name=task.name)
+    return tx.run(dependents_query, name=task.name).values()
 
 
 def get_task_state(tx, task):
@@ -101,7 +103,7 @@ def get_task_state(tx, task):
     state_query = ("MATCH (t:Task {name: '$name'}) "
                    "RETURN t.state")
 
-    tx.run(state_query, name=task.name)
+    return tx.run(state_query, name=task.name).single().value()
 
 
 def cleanup(tx):
