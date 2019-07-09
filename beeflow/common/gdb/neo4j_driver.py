@@ -6,6 +6,7 @@ from neo4j import GraphDatabase as Neo4jDatabase
 from neobolt.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
+import beeflow.common.gdb.neo4j_cypher as tx
 
 DEFAULT_URI = "bolt://localhost:7687"
 DEFAULT_USER = "neo4j"
@@ -28,8 +29,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         try:
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
-            self._workflows = []
-            self._set_tasks_unique()
+            self._require_tasks_unique()
         except ServiceUnavailable:
             print("Neo4j database unavailable. Is it running?")
 
@@ -39,23 +39,27 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param workflow: the workflow to load as a DAG
         :type workflow: instance of Workflow
         """
-        # Construct the Neo4j Cypher query
-        cypher_query = (_construct_create_statements(workflow.tasks)
-                        + _construct_merge_statements(workflow.tasks))
+        for task in workflow.tasks:
+            self._write_transaction(tx.create_task, task=task)
 
-        # Commit the query transaction in a Neo4j session
-        self._run_query(cypher_query)
-        self._workflows.append(workflow)
+        for task in workflow.tasks:
+            self._write_transaction(tx.add_dependencies, task=task)
+
+    def get_subworkflow(self, head_tasks):
+        """Get sub-workflows from the Neo4j database with the specified head tasks.
+
+        :param head_tasks: the head tasks of the sub-workflows
+        :type head_tasks: list of Task instances
+        :rtype: instance of Workflow
+        """
 
     def initialize_workflow_dags(self):
         """Initialize the workflow DAGs loaded into the Neo4j database."""
-        ready_query = 'MATCH (t) WHERE NOT (t:Task)-[:DEPENDS]->() SET t.state = "READY"'
-        self._run_query(ready_query)
+        self._write_transaction(tx.set_head_tasks_to_ready)
 
     def start_ready_tasks(self):
         """Start tasks that have no unsatisfied dependencies."""
-        start_query = 'MATCH (t:Task {state: "READY"}) SET t.state = "RUNNING"'
-        self._run_query(start_query)
+        self._write_transaction(tx.set_ready_tasks_to_running)
 
     def watch_tasks(self):
         """Watch tasks for completion/failure and start new ready tasks."""
@@ -67,76 +71,75 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type task: Task object
         :rtype: set of Task objects
         """
-        dependents_query = 'MATCH (:Task {name: "$name"})<-[:DEPENDS]-(t:Task) RETURN t'
-        deps = self._run_query(dependents_query, name=task.name).values()
-        return deps
+        return self._read_transaction(tx.get_dependent_tasks, task=task).values()
 
-    def get_subworkflow(self, head_tasks):
-        """Get sub-workflows from the Neo4j database with the specified head tasks.
-
-        :param head_tasks: the head tasks of the sub-workflows
-        :type head_tasks: list of Task instances
-        :rtype: instance of Workflow
-        """
-
-    def get_task_status(self, task):
-        """Get the status of a task in the Neo4j workflow DAG.
+    def get_task_state(self, task):
+        """Get the state of a task in the Neo4j workflow DAG.
 
         :param task: the task whose status to retrieve
         :type task: instance of Task
         :rtype: a string
         """
-        status_query = 'MATCH (t:Task {name: "$name"}) RETURN t.state'
-        return self._run_query(status_query, name=task.name).single().value()
+        return self._read_transaction(tx.get_task_state, task=task).single().value()
 
     def finalize_workflow_dags(self):
         """Finalize the workflow DAGs loaded into the Neo4j database."""
 
     def cleanup(self):
         """Clean up all data in the Neo4j database."""
-        cleanup_query = "MATCH(n) WITH n LIMIT 10000 DETACH DELETE n;"
-        self._run_query(cleanup_query)
+        self._write_transaction(tx.cleanup)
 
     def close(self):
         """Close the connection to the Neo4j database."""
         self._driver.close()
 
-    def _set_tasks_unique(self):
-        unique_query = "CREATE CONSTRAINT ON (t:Task) ASSERT t.name IS UNIQUE"
-        self._run_query(unique_query)
+    def _require_tasks_unique(self):
+        """Require tasks to have unique names."""
+        self._write_transaction(tx.constrain_tasks_unique)
 
-    def _run_query(self, cypher_query, **kwargs):
-        """Run a Neo4j query using Cypher.
+    def _read_transaction(self, tx_fun, **kwargs):
+        """Run a Neo4j read transaction.
 
-        :param cypher_query: the query to run
-        :type cypher_query: string
-        :param kwargs: parameters for query variable substitution
+        :param tx: the transaction function to run
+        :type tx: function
+        :param kwargs: optional parameters for the transaction function
         """
         with self._driver.session() as session:
-            result = session.run(cypher_query, **kwargs)
+            result = session.read_transaction(tx_fun, **kwargs)
         return result
 
+    def _write_transaction(self, tx_fun, **kwargs):
+        """Run a Neo4j write transaction.
 
-# Cypher statement construction helpers
-def _construct_create_statements(tasks):
-    """Construct a series of CREATE statements for the tasks.
+        :param tx: the transaction function to run
+        :type tx: function
+        :param kwargs: optional parameters for the transaction function
+        """
+        with self._driver.session() as session:
+            result = session.write_transaction(tx_fun, **kwargs)
+        return result
 
-    :param tasks: the new tasks to add
-    :type tasks: list of Task instances
-    """
-    create_template = Template('CREATE ($task_id:Task {name:"$name", state:"WAITING"})')
-    create_stmts = [create_template.substitute(task_id=task.id, name=task.name)
-                    for task in tasks]
-    return "\n".join(create_stmts) + "\n"
+    # Cypher statement construction helpers
+    @staticmethod
+    def _construct_create_statements(tasks):
+        """Construct a series of CREATE statements for the tasks.
 
+        :param tasks: the new tasks to add
+        :type tasks: list of Task instances
+        """
+        create_template = Template('CREATE ($task_id:Task {name:"$name", state:"WAITING"})')
+        create_stmts = [create_template.substitute(task_id=task.id, name=task.name)
+                        for task in tasks]
+        return "\n".join(create_stmts) + "\n"
 
-def _construct_merge_statements(tasks):
-    """Construct a series of MERGE statements for task dependencies.
+    @staticmethod
+    def _construct_merge_statements(tasks):
+        """Construct a series of MERGE statements for task dependencies.
 
-    :param tasks: the tasks whose dependencies to add as relationships
-    :type tasks: list of Task instances
-    """
-    dependency_template = Template("MERGE ($dependent)-[:DEPENDS]->($dependency)")
-    merge_stmts = [dependency_template.substitute(dependent=task.id, dependency=dependency)
-                   for task in tasks for dependency in task.dependencies]
-    return "\n".join(merge_stmts) + "\n"
+        :param tasks: the tasks whose dependencies to add as relationships
+        :type tasks: list of Task instances
+        """
+        dependency_template = Template("MERGE ($dependent)-[:DEPENDS]->($dependency)")
+        merge_stmts = [dependency_template.substitute(dependent=task.id, dependency=dependency)
+                       for task in tasks for dependency in task.dependencies]
+        return "\n".join(merge_stmts) + "\n"
