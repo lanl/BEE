@@ -6,14 +6,12 @@ Delegates its work to a GraphDatabaseInterface.
 from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
 from beeflow.common.data.wf_data import Task, Workflow
 
-_GDB_INTERFACE = GraphDatabaseInterface(password="password")
+GraphDatabaseInterface.connect(password="password")
 
 
 def create_task(name, base_command, arguments=None, dependencies=None, requirements=None):
     """Create a new BEE workflow task.
 
-    :param task_id: the ID given to the task
-    :type task_id: string
     :param name: the name given to the task
     :type name: string
     :param base_command: the base command for the task
@@ -44,13 +42,13 @@ def create_workflow(tasks, outputs=None):
     :type outputs: TBD or None
     """
     new_workflow = Workflow(tasks, outputs)
-    _GDB_INTERFACE.load_workflow(new_workflow)
+    GraphDatabaseInterface.load_workflow(new_workflow)
     return new_workflow
 
 
 def initialize_workflows():
     """Initialize a BEE workflow."""
-    _GDB_INTERFACE.initialize_workflows()
+    GraphDatabaseInterface.initialize_workflows()
 
 
 def get_dependent_tasks(task):
@@ -60,7 +58,7 @@ def get_dependent_tasks(task):
     :type task: instance of Task
     :rtype: set of Task instances
     """
-    return _GDB_INTERFACE.get_dependent_tasks(task)
+    return GraphDatabaseInterface.get_dependent_tasks(task)
 
 
 def get_subworkflow(head_tasks):
@@ -70,9 +68,9 @@ def get_subworkflow(head_tasks):
     :type head_tasks: list of Task instances
     :rtype: instance of Workflow
     """
-    return _GDB_INTERFACE.get_subworkflow(head_tasks)
+    return GraphDatabaseInterface.get_subworkflow(head_tasks)
 
 
 def finalize_workflows():
     """Finalize the BEE workflow."""
-    _GDB_INTERFACE.finalize_workflows()
+    GraphDatabaseInterface.finalize_workflows()
