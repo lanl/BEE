@@ -7,8 +7,6 @@ class Task:
     def __init__(self, name, base_command, arguments, dependencies, requirements):
         """Store a task description.
 
-        :param task_id: the task ID
-        :type task_id: string
         :param name: the task name
         :type name: string
         :param base_command: the base command for the task
