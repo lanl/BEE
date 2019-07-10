@@ -31,9 +31,18 @@ class GraphDatabaseInterface:
         cls._gdb_driver.load_workflow(workflow)
 
     @classmethod
-    def initialize_workflows(cls):
+    def get_subworkflow(cls, head_tasks):
+        """Get sub-workflows from the graph database with the specified head tasks.
+
+        :param head_tasks: the head tasks of the sub-workflows
+        :type head_tasks:
+        :rtype: instance of Workflow
+        """
+
+    @classmethod
+    def initialize_workflow(cls):
         """Start the workflow loaded into the graph database."""
-        cls._gdb_driver.initialize_workflows()
+        cls._gdb_driver.initialize_workflow()
 
     @classmethod
     def get_dependent_tasks(cls, task):
@@ -46,15 +55,16 @@ class GraphDatabaseInterface:
         return cls._gdb_driver.get_dependent_tasks(task)
 
     @classmethod
-    def get_subworkflow(cls, head_tasks):
-        """Get sub-workflows from the graph database with the specified head tasks.
+    def get_task_state(cls, task):
+        """Get the state of a task in a graph database workflow.
 
-        :param head_tasks: the head tasks of the sub-workflows
-        :type head_tasks:
-        :rtype: instance of Workflow
+        :param task: the task whose state to obtain
+        :type task: instance of Task
+        :rtype: string
         """
+        return cls._gdb_driver.get_task_state(task)
 
     @classmethod
-    def finalize_workflows(cls):
+    def finalize_workflow(cls):
         """Finalize the BEE workflow loaded into the graph database."""
-        cls._gdb_driver.finalize_workflows()
+        cls._gdb_driver.finalize_workflow()

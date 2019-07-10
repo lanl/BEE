@@ -51,7 +51,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: instance of Workflow
         """
 
-    def initialize_workflows(self):
+    def initialize_workflow(self):
         """Initialize the workflow DAGs loaded into the Neo4j database."""
         self._write_transaction(tx.set_head_tasks_to_ready)
 
@@ -80,7 +80,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         return self._read_transaction(tx.get_task_state, task=task)
 
-    def finalize_workflows(self):
+    def finalize_workflow(self):
         """Finalize the workflow DAGs loaded into the Neo4j database."""
 
     def cleanup(self):
