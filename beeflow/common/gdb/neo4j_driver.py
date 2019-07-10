@@ -38,7 +38,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type workflow: instance of Workflow
         """
         for task in workflow.tasks:
-            self._write_transaction(tx.create_task, task=task)
+            # The create_task transaction function returns the new task's Neo4j ID
+            task.id = self._write_transaction(tx.create_task, task=task)
 
         for task in workflow.tasks:
             self._write_transaction(tx.add_dependencies, task=task)
@@ -69,7 +70,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type task: Task object
         :rtype: set of Task objects
         """
-        return self._read_transaction(tx.get_dependent_tasks, task=task).values()
+        return self._read_transaction(tx.get_dependent_tasks, task=task)
 
     def get_task_state(self, task):
         """Get the state of a task in the Neo4j workflow DAG.
@@ -78,7 +79,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type task: instance of Task
         :rtype: a string
         """
-        return self._read_transaction(tx.get_task_state, task=task).single().value()
+        return self._read_transaction(tx.get_task_state, task=task)
 
     def finalize_workflow_dags(self):
         """Finalize the workflow DAGs loaded into the Neo4j database."""
@@ -98,8 +99,8 @@ class Neo4jDriver(GraphDatabaseDriver):
     def _read_transaction(self, tx_fun, **kwargs):
         """Run a Neo4j read transaction.
 
-        :param tx: the transaction function to run
-        :type tx: function
+        :param tx_fun: the transaction function to run
+        :type tx_fun: function
         :param kwargs: optional parameters for the transaction function
         """
         with self._driver.session() as session:
@@ -109,8 +110,8 @@ class Neo4jDriver(GraphDatabaseDriver):
     def _write_transaction(self, tx_fun, **kwargs):
         """Run a Neo4j write transaction.
 
-        :param tx: the transaction function to run
-        :type tx: function
+        :param tx_fun: the transaction function to run
+        :type tx_fun: function
         :param kwargs: optional parameters for the transaction function
         """
         with self._driver.session() as session:
