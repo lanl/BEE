@@ -20,10 +20,12 @@ def create_task(tx, task):
                     "SET t.base_command = $base_command "
                     "SET t.arguments = $arguments "
                     "SET t.dependencies = $dependencies "
-                    "SET t.requirements = $requirements")
+                    "SET t.requirements = $requirements "
+                    "RETURN id(t)")
 
-    tx.run(create_query, name=task.name, base_command=task.base_command, arguments=task.arguments,
-           dependencies=list(task.dependencies), requirements=task.requirements)
+    return tx.run(create_query, name=task.name, base_command=task.base_command,
+                  arguments=task.arguments, dependencies=list(task.dependencies),
+                  requirements=task.requirements).single().value()
 
 
 def add_dependencies(tx, task):
@@ -32,11 +34,12 @@ def add_dependencies(tx, task):
     :param task: the task whose dependencies to add
     :type task: instance of Task
     """
-    dependency_query = ("MERGE (s:Task)-[:DEPENDS]->(t:Task) "
-                        "WHERE s.name = $dependent_name AND t.name = $dependency_name")
+    dependency_query = ("MATCH (s:Task), (t:Task) "
+                        "WHERE s.name = $dependent_name and t.name = $dependency_name "
+                        "CREATE (s)-[:DEPENDS]->(t)")
 
     for dependency in task.dependencies:
-        tx.run(dependency_query, dependent_name=task.name, dependency_name=dependency.name)
+        tx.run(dependency_query, dependent_name=task.name, dependency_name=dependency)
 
 
 def set_head_tasks_to_ready(tx):
@@ -90,6 +93,18 @@ def get_dependent_tasks(tx, task):
                         "RETURN collect(t.name)")
 
     return tx.run(dependents_query, name=task.name).values()
+
+
+def get_task_id(tx, task):
+    """Get the ID of a task.
+
+    :param task: the task whose ID to get
+    :type task: instance of Task
+    """
+    id_query = ("MATCH (t:Task {name: $name}) "
+                "RETURN id(t)")
+
+    return tx.run(id_query, name=task.name).single().value()
 
 
 def get_task_state(tx, task):
