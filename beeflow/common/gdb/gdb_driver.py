@@ -4,7 +4,11 @@ from abc import ABC, abstractmethod
 
 
 class GraphDatabaseDriver(ABC):
-    """Driver interface for a generic graph database."""
+    """Driver interface for a generic graph database.
+
+    The driver must implement a __init__ method that creates/connects to
+    the graph database.
+    """
 
     @abstractmethod
     def load_workflow(self, workflow):
