@@ -7,7 +7,7 @@ class GraphDatabaseDriver(ABC):
     """Driver interface for a generic graph database."""
 
     @abstractmethod
-    def load_workflow_dag(self, workflow):
+    def load_workflow(self, workflow):
         """Load the workflow as a DAG into the graph database.
 
         :param workflow: the workflow to load
@@ -24,7 +24,7 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def initialize_workflow_dags(self):
+    def initialize_workflows(self):
         """Initialize the workflow DAGs loaded into the graph database."""
 
     @abstractmethod
@@ -54,7 +54,7 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def finalize_workflow_dags(self):
+    def finalize_workflows(self):
         """Finalize the workflow DAGs loaded into the graph database."""
 
     @abstractmethod

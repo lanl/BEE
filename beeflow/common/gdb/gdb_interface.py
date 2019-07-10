@@ -26,11 +26,11 @@ class GraphDatabaseInterface:
         :param workflow: the new workflow to load
         :type workflow: instance of Workflow
         """
-        self._gdb_driver.load_workflow_dag(workflow)
+        self._gdb_driver.load_workflow(workflow)
 
     def initialize_workflows(self):
         """Start the workflow loaded into the graph database."""
-        self._gdb_driver.initialize_workflow_dags()
+        self._gdb_driver.initialize_workflows()
 
     def get_dependent_tasks(self, task):
         """Get the dependents of a task in a graph database workflow.
@@ -51,4 +51,4 @@ class GraphDatabaseInterface:
 
     def finalize_workflows(self):
         """Finalize the BEE workflow loaded into the graph database."""
-        self._gdb_driver.finalize_workflow_dags()
+        self._gdb_driver.finalize_workflows()

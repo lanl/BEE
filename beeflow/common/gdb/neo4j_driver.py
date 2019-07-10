@@ -31,7 +31,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         except ServiceUnavailable:
             print("Neo4j database unavailable. Is it running?")
 
-    def load_workflow_dag(self, workflow):
+    def load_workflow(self, workflow):
         """Load the workflow as a DAG into the Neo4j database.
 
         :param workflow: the workflow to load as a DAG
@@ -52,7 +52,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: instance of Workflow
         """
 
-    def initialize_workflow_dags(self):
+    def initialize_workflows(self):
         """Initialize the workflow DAGs loaded into the Neo4j database."""
         self._write_transaction(tx.set_head_tasks_to_ready)
 
@@ -81,7 +81,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         return self._read_transaction(tx.get_task_state, task=task)
 
-    def finalize_workflow_dags(self):
+    def finalize_workflows(self):
         """Finalize the workflow DAGs loaded into the Neo4j database."""
 
     def cleanup(self):
