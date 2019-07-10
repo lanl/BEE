@@ -20,12 +20,12 @@ def create_task(tx, task):
                     "SET t.base_command = $base_command "
                     "SET t.arguments = $arguments "
                     "SET t.dependencies = $dependencies "
-                    "SET t.requirements = $requirements "
+                    "SET t.subworkflow = $subworkflow "
                     "RETURN id(t)")
 
     return tx.run(create_query, name=task.name, base_command=task.base_command,
                   arguments=task.arguments, dependencies=list(task.dependencies),
-                  requirements=list(task.requirements)).single().value()
+                  subworkflow=task.subworkflow).single().value()
 
 
 def add_dependencies(tx, task):
@@ -45,15 +45,15 @@ def add_dependencies(tx, task):
 def set_head_tasks_to_ready(tx):
     """Initialize the workflow by setting the head tasks" state to READY."""
     ready_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
-                   "SET t.state = READY")
+                   "SET t.state = 'READY'")
 
     tx.run(ready_query)
 
 
 def set_ready_tasks_to_running(tx):
     """Set tasks with state READY to RUNNING."""
-    running_query = ("MATCH (t:Task {state: READY}) "
-                     "SET t.state = RUNNING")
+    running_query = ("MATCH (t:Task {state: 'READY'}) "
+                     "SET t.state = 'RUNNING'")
 
     tx.run(running_query)
 

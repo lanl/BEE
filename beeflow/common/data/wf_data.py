@@ -4,7 +4,7 @@
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, name, base_command, arguments, dependencies, requirements):
+    def __init__(self, name, base_command, arguments, dependencies, subworkflow):
         """Store a task description.
 
         :param name: the task name
@@ -15,21 +15,20 @@ class Task:
         :type arguments: list of strings
         :param dependencies: the task dependencies (on other tasks)
         :type dependencies: set of Task IDs
-        :param requirements: the task requirements
-        :type requirements: TBD or None
+        :param subworkflow: an identifier for the subworkflow to which the task belongs
+        :type subworkflow: string
         """
         self.id = None
         self.name = name
         self.base_command = base_command
         self.arguments = arguments
         self.dependencies = dependencies
-        self.requirements = requirements
+        self.subworkflow = subworkflow
 
     def __repr__(self):
         """Construct a task's string representation."""
         return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
-                f"arguments={self.arguments} dependencies={self.dependencies} "
-                f"requirements={self.requirements}")
+                f"arguments={self.arguments} dependencies={self.dependencies}")
 
     def construct_command(self):
         """Construct a task's command representation."""

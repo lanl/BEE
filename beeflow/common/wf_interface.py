@@ -9,7 +9,7 @@ from beeflow.common.data.wf_data import Task, Workflow
 GraphDatabaseInterface.connect(password="password")
 
 
-def create_task(name, base_command, arguments=None, dependencies=None, requirements=None):
+def create_task(name, base_command, arguments=None, dependencies=None, subworkflow=""):
     """Create a new BEE workflow task.
 
     :param name: the name given to the task
@@ -20,24 +20,22 @@ def create_task(name, base_command, arguments=None, dependencies=None, requireme
     :type arguments: list of strings, or None
     :param dependencies: the task dependencies (on other Tasks)
     :type dependencies: set of task IDs, or None
-    :param requirements: the task requirements
-    :type requirements: TBD, or None
+    :param subworkflow: an identifier for the subworkflow to which the task belongs
+    :type subworkflow: string
     """
     if arguments is None:
         arguments = []
     if dependencies is None:
         dependencies = set()
-    if requirements is None:
-        requirements = {}
 
-    return Task(name, base_command, arguments, dependencies, requirements)
+    return Task(name, base_command, arguments, dependencies, subworkflow)
 
 
 def create_workflow(tasks, outputs=None):
     """Create a new workflow.
 
     :param tasks: the workflow tasks
-    :type tasks: set of Task instances
+    :type tasks: iterable of Task instances
     :param outputs: the workflow outputs
     :type outputs: TBD or None
     """
@@ -46,9 +44,23 @@ def create_workflow(tasks, outputs=None):
     return new_workflow
 
 
-def initialize_workflows():
+def get_subworkflow(subworkflow_id):
+    """Get sub-workflows with the specified head tasks.
+
+    :param subworkflow_id: the unique identifier of the subworkflow
+    :type subworkflow_id: string
+    :rtype: instance of Workflow
+    """
+    return GraphDatabaseInterface.get_subworkflow(subworkflow_id)
+
+
+def initialize_workflow():
     """Initialize a BEE workflow."""
-    GraphDatabaseInterface.initialize_workflows()
+    GraphDatabaseInterface.initialize_workflow()
+
+
+def run_workflow():
+    """Run the created workflow."""
 
 
 def get_dependent_tasks(task):
@@ -61,16 +73,16 @@ def get_dependent_tasks(task):
     return GraphDatabaseInterface.get_dependent_tasks(task)
 
 
-def get_subworkflow(head_tasks):
-    """Get sub-workflows with the specified head tasks.
+def get_task_state(task):
+    """Get the state of the task in the BEE workflow.
 
-    :param head_tasks: the head tasks of the sub-workflows
-    :type head_tasks: list of Task instances
-    :rtype: instance of Workflow
+    :param task: the task whose state to obtain
+    :type task: instance of Task
+    :rtype: string
     """
-    return GraphDatabaseInterface.get_subworkflow(head_tasks)
+    return GraphDatabaseInterface.get_task_state(task)
 
 
-def finalize_workflows():
+def finalize_workflow():
     """Finalize the BEE workflow."""
-    GraphDatabaseInterface.finalize_workflows()
+    GraphDatabaseInterface.finalize_workflow()
