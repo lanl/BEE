@@ -9,7 +9,7 @@ from beeflow.common.data.wf_data import Task, Workflow
 _GDB_INTERFACE = GraphDatabaseInterface(password="password")
 
 
-def create_task(task_id, name, base_command, arguments=None, dependencies=None, requirements=None):
+def create_task(name, base_command, arguments=None, dependencies=None, requirements=None):
     """Create a new BEE workflow task.
 
     :param task_id: the ID given to the task
@@ -29,8 +29,10 @@ def create_task(task_id, name, base_command, arguments=None, dependencies=None, 
         arguments = []
     if dependencies is None:
         dependencies = set()
+    if requirements is None:
+        requirements = {}
 
-    return Task(task_id, name, base_command, arguments, dependencies, requirements)
+    return Task(name, base_command, arguments, dependencies, requirements)
 
 
 def create_workflow(tasks, outputs=None):
