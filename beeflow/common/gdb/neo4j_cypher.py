@@ -25,7 +25,7 @@ def create_task(tx, task):
 
     return tx.run(create_query, name=task.name, base_command=task.base_command,
                   arguments=task.arguments, dependencies=list(task.dependencies),
-                  requirements=task.requirements).single().value()
+                  requirements=list(task.requirements)).single().value()
 
 
 def add_dependencies(tx, task):
