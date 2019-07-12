@@ -20,7 +20,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_subworkflow(self, subworkflow):
-        """Get sub-workflows from the graph database with the specified head tasks.
+        """Get a subworkflow from the graph database.
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: string

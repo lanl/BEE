@@ -44,9 +44,9 @@ class Neo4jDriver(GraphDatabaseDriver):
             self._write_transaction(tx.add_dependencies, task=task)
 
     def get_subworkflow(self, subworkflow):
-        """Get sub-workflows from the Neo4j database with the specified head tasks.
+        """Get a subworkflow from the graph database.
 
-        :param subworkflow: the head tasks of the sub-workflows
+        :param subworkflow: the head tasks of the subworkflows
         :type subworkflow: list of Task instances
         :rtype: instance of Workflow
         """

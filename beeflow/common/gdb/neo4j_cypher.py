@@ -43,9 +43,9 @@ def add_dependencies(tx, task):
 
 
 def get_subworkflow(tx, subworkflow):
-    """Get sub-workflows from the Neo4j database with the specified head tasks.
+    """Get subworkflows from the Neo4j database with the specified head tasks.
 
-    :param subworkflow: the head tasks of the sub-workflows
+    :param subworkflow: the head tasks of the subworkflows
     :type subworkflow: list of Task instances
     :rtype: instance of Workflow
     """
@@ -63,12 +63,12 @@ def set_head_tasks_to_ready(tx):
     tx.run(ready_query)
 
 
-def set_task_to_running(tx, task):
-    """Set tasks with state READY to RUNNING."""
-    running_query = ("MATCH (t:Task {task_id: $task_id}) "
+def set_ready_tasks_to_running(tx):
+    """Set all tasks with state READY to RUNNING."""
+    running_query = ("MATCH (t:Task {state: 'READY'}) "
                      "SET t.state = 'RUNNING'")
 
-    tx.run(running_query, task_id=task.id)
+    tx.run(running_query)
 
 
 def set_task_to_complete(tx, task):
