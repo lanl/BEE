@@ -49,9 +49,29 @@ class Workflow:
         :param outputs: the workflow outputs
         :type outputs: TBD
         """
-        self.tasks = tasks
+        self._tasks = {task.id: task for task in tasks}
         self.outputs = outputs
-        self.head_tasks = {task for task in tasks if not task.dependencies}
+
+    @property
+    def tasks(self):
+        """Return the workflow tasks as a list."""
+        return list(self._tasks.values())
+
+    def __getitem__(self, task_id):
+        """Retrieve a Task instance by its ID, if it exists.
+
+        :param task_id: the ID of the task to retrieve
+        :type task: integer
+        """
+        return self._tasks.get(task_id, None)
+
+    def __contains__(self, task):
+        """Check if a task is in the workflow.
+
+        :param task: the task to check for
+        :type task: instance of Task
+        """
+        return bool(task.id in self._tasks and self._tasks[task.id] == task)
 
     def __repr__(self):
         """Construct a workflow's string representation."""
