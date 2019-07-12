@@ -4,9 +4,11 @@
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, name, base_command, arguments, dependencies, subworkflow):
+    def __init__(self, task_id, name, base_command, arguments, dependencies, subworkflow):
         """Store a task description.
 
+        :param task_id: the task's unique ID
+        :type task_id: integer
         :param name: the task name
         :type name: string
         :param base_command: the base command for the task
@@ -18,7 +20,7 @@ class Task:
         :param subworkflow: an identifier for the subworkflow to which the task belongs
         :type subworkflow: string
         """
-        self.id = None
+        self.id = task_id
         self.name = name
         self.base_command = base_command
         self.arguments = arguments

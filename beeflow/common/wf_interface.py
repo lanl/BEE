@@ -28,7 +28,12 @@ def create_task(name, base_command, arguments=None, dependencies=None, subworkfl
     if dependencies is None:
         dependencies = set()
 
-    return Task(name, base_command, arguments, dependencies, subworkflow)
+    if not hasattr(create_task, "task_id"):
+        create_task.task_id = 0
+    else:
+        create_task.task_id += 1
+
+    return Task(create_task.task_id, name, base_command, arguments, dependencies, subworkflow)
 
 
 def create_workflow(tasks, outputs=None):

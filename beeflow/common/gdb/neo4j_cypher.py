@@ -16,16 +16,16 @@ def create_task(tx, task):
     :type task: instance of Task
     """
     create_query = ("CREATE (t:Task) "
+                    "SET t.task_id = $task_id "
                     "SET t.name = $name "
                     "SET t.base_command = $base_command "
                     "SET t.arguments = $arguments "
                     "SET t.dependencies = $dependencies "
-                    "SET t.subworkflow = $subworkflow "
-                    "RETURN id(t)")
+                    "SET t.subworkflow = $subworkflow")
 
-    return tx.run(create_query, name=task.name, base_command=task.base_command,
-                  arguments=task.arguments, dependencies=list(task.dependencies),
-                  subworkflow=task.subworkflow).single().value()
+    tx.run(create_query, task_id=task.id, name=task.name, base_command=task.base_command,
+           arguments=task.arguments, dependencies=list(task.dependencies),
+           subworkflow=task.subworkflow)
 
 
 def add_dependencies(tx, task):

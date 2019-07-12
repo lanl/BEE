@@ -38,7 +38,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         for task in workflow.tasks:
             # The create_task transaction function returns the new task's Neo4j ID
-            task.id = self._write_transaction(tx.create_task, task=task)
+            self._write_transaction(tx.create_task, task=task)
 
         for task in workflow.tasks:
             self._write_transaction(tx.add_dependencies, task=task)
