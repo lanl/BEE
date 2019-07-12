@@ -21,7 +21,8 @@ def create_task(tx, task):
                     "SET t.base_command = $base_command "
                     "SET t.arguments = $arguments "
                     "SET t.dependencies = $dependencies "
-                    "SET t.subworkflow = $subworkflow")
+                    "SET t.subworkflow = $subworkflow "
+                    "SET t.state = 'WAITING'")
 
     tx.run(create_query, task_id=task.id, name=task.name, base_command=task.base_command,
            arguments=task.arguments, dependencies=list(task.dependencies),

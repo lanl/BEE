@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 """Unit test module for the BEE workflow interface module."""
 
+# Disable protected member access warning
+# pylama:ignore=W0212
+
 import unittest
 
 import beeflow.common.wf_interface as wf_interface
@@ -59,11 +62,11 @@ class TestWFInterface(unittest.TestCase):
         """Test workflow insertion into the graph database."""
         tasks = _create_test_tasks()
         workflow = wf_interface.create_workflow(tasks)
-
-        # Test workflow loading
         wf_interface.load_workflow(workflow)
 
-        # TODO: test that the workflow is actually loaded
+        # Test task states
+        for task in tasks:
+            self.assertEqual("WAITING", wf_interface.get_task_state(task))
 
     def test_get_subworkflow(self):
         """Test obtaining of a subworkflow."""
@@ -85,8 +88,8 @@ class TestWFInterface(unittest.TestCase):
         All head tasks should have their status set from "WAITING" to "READY"
         """
         tasks = _create_test_tasks()
-
-        wf_interface.create_workflow(tasks)
+        workflow = wf_interface.create_workflow(tasks)
+        wf_interface.load_workflow(workflow)
         wf_interface.initialize_workflow()
 
         self.assertEqual("READY", wf_interface.get_task_state(tasks[0]))
@@ -100,9 +103,20 @@ class TestWFInterface(unittest.TestCase):
 
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
+        tasks = _create_test_tasks()
+        workflow = wf_interface.create_workflow(tasks)
+        wf_interface.load_workflow(workflow)
+        dependent_tasks = wf_interface.get_dependent_tasks(tasks[0])
+
+        self.assertSetEqual(set(tasks[1:4]), dependent_tasks)
 
     def test_get_task_state(self):
         """Test obtaining of task status."""
+        task = wf_interface.create_task("Test Task", "ls")
+        workflow = wf_interface.create_workflow([task])
+        wf_interface.load_workflow(workflow)
+
+        self.assertEqual("WAITING", wf_interface.get_task_state(task))
 
     def test_finalize_workflow(self):
         """Test workflow finalization."""

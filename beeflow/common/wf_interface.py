@@ -24,6 +24,7 @@ def create_task(name, base_command, arguments=None, dependencies=None, subworkfl
     :type dependencies: set of task IDs, or None
     :param subworkflow: an identifier for the subworkflow to which the task belongs
     :type subworkflow: string
+    :rtype: instance of Task
     """
     if arguments is None:
         arguments = []
@@ -45,6 +46,7 @@ def create_workflow(tasks, requirements=None, outputs=None):
     :type tasks: iterable of Task instances
     :param outputs: the workflow outputs
     :type outputs: TBD or None
+    :rtype: instance of Workflow
     """
     return Workflow(tasks, requirements, outputs)
 
@@ -89,7 +91,8 @@ def get_dependent_tasks(task):
     :type task: instance of Task
     :rtype: set of Task instances
     """
-    return gdb_interface.get_dependent_tasks(task)
+    dependent_task_ids = gdb_interface.get_dependent_tasks(task)
+    return {_WORKFLOW[task_id] for task_id in dependent_task_ids}
 
 
 def get_task_state(task):
