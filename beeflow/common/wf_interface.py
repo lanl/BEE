@@ -1,12 +1,12 @@
 """High-level BEE workflow management interface.
 
-Delegates its work to a GraphDatabaseInterface.
+Delegates its work to gdb_interface.
 """
 
-from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
+import beeflow.common.gdb.gdb_interface as gdb_interface
 from beeflow.common.data.wf_data import Task, Workflow
 
-GraphDatabaseInterface.connect(password="password")
+gdb_interface.connect(password="password")
 
 
 def create_task(name, base_command, arguments=None, dependencies=None, subworkflow=""):
@@ -45,23 +45,23 @@ def create_workflow(tasks, outputs=None):
     :type outputs: TBD or None
     """
     new_workflow = Workflow(tasks, outputs)
-    GraphDatabaseInterface.load_workflow(new_workflow)
+    gdb_interface.load_workflow(new_workflow)
     return new_workflow
 
 
-def get_subworkflow(subworkflow_id):
+def get_subworkflow(subworkflow):
     """Get sub-workflows with the specified head tasks.
 
-    :param subworkflow_id: the unique identifier of the subworkflow
-    :type subworkflow_id: string
+    :param subworkflow: the unique identifier of the subworkflow
+    :type subworkflow: string
     :rtype: instance of Workflow
     """
-    return GraphDatabaseInterface.get_subworkflow(subworkflow_id)
+    return gdb_interface.get_subworkflow(subworkflow)
 
 
 def initialize_workflow():
     """Initialize a BEE workflow."""
-    GraphDatabaseInterface.initialize_workflow()
+    gdb_interface.initialize_workflow()
 
 
 def run_workflow():
@@ -75,7 +75,7 @@ def get_dependent_tasks(task):
     :type task: instance of Task
     :rtype: set of Task instances
     """
-    return GraphDatabaseInterface.get_dependent_tasks(task)
+    return gdb_interface.get_dependent_tasks(task)
 
 
 def get_task_state(task):
@@ -85,9 +85,9 @@ def get_task_state(task):
     :type task: instance of Task
     :rtype: string
     """
-    return GraphDatabaseInterface.get_task_state(task)
+    return gdb_interface.get_task_state(task)
 
 
 def finalize_workflow():
     """Finalize the BEE workflow."""
-    GraphDatabaseInterface.finalize_workflow()
+    gdb_interface.finalize_workflow()
