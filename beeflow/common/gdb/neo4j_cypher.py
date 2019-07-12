@@ -102,7 +102,7 @@ def get_task_id(tx, task):
     :type task: instance of Task
     """
     id_query = ("MATCH (t:Task {name: $name}) "
-                "RETURN id(t)")
+                "RETURN t.task_id")
 
     return tx.run(id_query, name=task.name).single().value()
 
