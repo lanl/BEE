@@ -5,7 +5,6 @@ import unittest
 
 import beeflow.common.wf_interface as wf_interface
 import beeflow.common.gdb.gdb_interface as gdb_interface
-from beeflow.common.data.wf_data import Workflow
 
 
 class TestWFInterface(unittest.TestCase):
