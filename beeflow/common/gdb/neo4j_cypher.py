@@ -65,7 +65,7 @@ def set_task_to_complete(tx, task):
     :type task: instance of Task
     """
     complete_query = ("MATCH (t:Task {name: $name}) "
-                      "SET t.state = COMPLETE")
+                      "SET t.state = 'COMPLETE'")
 
     tx.run(complete_query, name=task.name)
 
@@ -77,7 +77,7 @@ def set_task_to_failed(tx, task):
     :type task: instance of Task
     """
     failed_query = ("MATCH (t:Task {name: $name}) "
-                    "SET t.state = FAILED")
+                    "SET t.state = 'FAILED'")
 
     tx.run(failed_query, name=task.name)
 
