@@ -8,6 +8,8 @@ from beeflow.common.data.wf_data import Task, Workflow
 
 gdb_interface.connect(password="password")
 
+_WORKFLOW = None
+
 
 def create_task(name, base_command, arguments=None, dependencies=None, subworkflow=""):
     """Create a new BEE workflow task.
@@ -36,7 +38,7 @@ def create_task(name, base_command, arguments=None, dependencies=None, subworkfl
     return Task(create_task.task_id, name, base_command, arguments, dependencies, subworkflow)
 
 
-def create_workflow(tasks, outputs=None):
+def create_workflow(tasks, requirements=None, outputs=None):
     """Create a new workflow.
 
     :param tasks: the workflow tasks
@@ -44,9 +46,19 @@ def create_workflow(tasks, outputs=None):
     :param outputs: the workflow outputs
     :type outputs: TBD or None
     """
-    new_workflow = Workflow(tasks, outputs)
-    gdb_interface.load_workflow(new_workflow)
-    return new_workflow
+    return Workflow(tasks, requirements, outputs)
+
+
+def load_workflow(workflow):
+    """Load a workflow.
+
+    :param workflow: the workflow to load
+    :type workflow: instance of Workflow
+    """
+    global _WORKFLOW
+    _WORKFLOW = workflow
+
+    gdb_interface.load_workflow(workflow)
 
 
 def get_subworkflow(subworkflow):
@@ -56,7 +68,9 @@ def get_subworkflow(subworkflow):
     :type subworkflow: string
     :rtype: instance of Workflow
     """
-    return gdb_interface.get_subworkflow(subworkflow)
+    subworkflow_task_ids = gdb_interface.get_subworkflow(subworkflow)
+    return create_workflow([_WORKFLOW[task_id] for task_id in subworkflow_task_ids],
+                           _WORKFLOW.requirements, _WORKFLOW.outputs)
 
 
 def initialize_workflow():

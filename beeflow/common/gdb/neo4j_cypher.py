@@ -45,14 +45,14 @@ def add_dependencies(tx, task):
 def get_subworkflow(tx, subworkflow):
     """Get subworkflows from the Neo4j database with the specified head tasks.
 
-    :param subworkflow: the head tasks of the subworkflows
-    :type subworkflow: list of Task instances
+    :param subworkflow: the unique identifier of the subworkflow
+    :type subworkflow: string
     :rtype: instance of Workflow
     """
     subworkflow_query = ("MATCH (t:Task {subworkflow: $subworkflow}) "
                          "RETURN collect(t.task_id)")
 
-    return tx.run(subworkflow_query, subworkflow=subworkflow).values()
+    return tx.run(subworkflow_query, subworkflow=subworkflow).single().value()
 
 
 def set_head_tasks_to_ready(tx):
@@ -104,7 +104,7 @@ def get_dependent_tasks(tx, task):
     dependents_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task {task_id: $task_id}) "
                         "RETURN collect(t.task_id)")
 
-    return tx.run(dependents_query, task_id=task.id).values()
+    return tx.run(dependents_query, task_id=task.id).single().value()
 
 
 def get_task_id_by_name(tx, task):

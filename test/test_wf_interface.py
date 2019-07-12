@@ -34,6 +34,7 @@ class TestWFInterface(unittest.TestCase):
             dependencies=dependencies,
             subworkflow=subworkflow)
 
+        # Task assertions
         self.assertEqual(task_name, task.name)
         self.assertEqual(base_command, task.base_command)
         self.assertListEqual(arguments, task.arguments)
@@ -41,42 +42,49 @@ class TestWFInterface(unittest.TestCase):
         self.assertEqual(subworkflow, task.subworkflow)
 
     def test_create_workflow(self):
-        """Test workflow creation and insertion into the Neo4j database."""
-        tasks = [
-            wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"]),
-            wf_interface.create_task("Compute 0", "rm", dependencies={"Data Prep"}),
-            wf_interface.create_task("Compute 1", "find", dependencies={"Data Prep"}),
-            wf_interface.create_task("Compute 2", "yes", dependencies={"Data Prep"}),
-            wf_interface.create_task("Visualization", "ln", arguments=["-s"],
-                                     dependencies={"Compute 0", "Compute 1", "Compute 2"})
-        ]
+        """Test workflow creation."""
+        tasks = _create_test_tasks()
 
         # Workflow assertions
         workflow = wf_interface.create_workflow(tasks)
-        self.assertListEqual(tasks, workflow.tasks)
+        self.assertSetEqual(set(tasks), workflow.tasks)
+        self.assertIsNone(workflow.requirements)
         self.assertIsNone(workflow.outputs)
-        self.assertSetEqual({tasks[0]}, workflow.head_tasks)
 
         # Task assertions
         for task_id, task in enumerate(tasks):
             self.assertEqual(task_id, task.id)
 
-    def test_get_subworkflow(self):
-        """Test obtaining of a sub-workflow."""
+    def test_load_workflow(self):
+        """Test workflow insertion into the graph database."""
+        tasks = _create_test_tasks()
+        workflow = wf_interface.create_workflow(tasks)
 
-    def test_initialize_workflows(self):
+        # Test workflow loading
+        wf_interface.load_workflow(workflow)
+
+        # TODO: test that the workflow is actually loaded
+
+    def test_get_subworkflow(self):
+        """Test obtaining of a subworkflow."""
+        tasks = _create_test_tasks()
+        workflow = wf_interface.create_workflow(tasks)
+        wf_interface.load_workflow(workflow)
+
+        # Subworkflow assertions
+        self.assertEqual(wf_interface.create_workflow(tasks[0:1]),
+                         wf_interface.get_subworkflow("Prep"))
+        self.assertEqual(wf_interface.create_workflow(tasks[1:4]),
+                         wf_interface.get_subworkflow("Compute"))
+        self.assertEqual(wf_interface.create_workflow(tasks[4:5]),
+                         wf_interface.get_subworkflow("Visualization"))
+
+    def test_initialize_workflow(self):
         """Test workflow initialization.
 
         All head tasks should have their status set from "WAITING" to "READY"
         """
-        tasks = [
-            wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"]),
-            wf_interface.create_task("Compute 0", "rm", dependencies={"Data Prep"}),
-            wf_interface.create_task("Compute 1", "find", dependencies={"Data Prep"}),
-            wf_interface.create_task("Compute 2", "yes", dependencies={"Data Prep"}),
-            wf_interface.create_task("Visualization", "ln", arguments=["-s"],
-                                     dependencies={"Compute 0", "Compute 1", "Compute 2"})
-        ]
+        tasks = _create_test_tasks()
 
         wf_interface.create_workflow(tasks)
         wf_interface.initialize_workflow()
@@ -96,8 +104,27 @@ class TestWFInterface(unittest.TestCase):
     def test_get_task_state(self):
         """Test obtaining of task status."""
 
-    def test_finalize_workflows(self):
+    def test_finalize_workflow(self):
         """Test workflow finalization."""
+
+
+def _create_test_tasks():
+    """Create test tasks to reduce redundancy."""
+    tasks = [
+        wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"],
+                                 subworkflow="Prep"),
+        wf_interface.create_task("Compute 0", "rm", dependencies={"Data Prep"},
+                                 subworkflow="Compute"),
+        wf_interface.create_task("Compute 1", "find", dependencies={"Data Prep"},
+                                 subworkflow="Compute"),
+        wf_interface.create_task("Compute 2", "yes", dependencies={"Data Prep"},
+                                 subworkflow="Compute"),
+        wf_interface.create_task("Visualization", "ln", arguments=["-s"],
+                                 dependencies={"Compute 0", "Compute 1", "Compute 2"},
+                                 subworkflow="Visualization")
+    ]
+
+    return tasks
 
 
 if __name__ == "__main__":
