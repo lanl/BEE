@@ -43,13 +43,14 @@ class Neo4jDriver(GraphDatabaseDriver):
         for task in workflow.tasks:
             self._write_transaction(tx.add_dependencies, task=task)
 
-    def get_subworkflow(self, head_tasks):
+    def get_subworkflow(self, subworkflow):
         """Get sub-workflows from the Neo4j database with the specified head tasks.
 
-        :param head_tasks: the head tasks of the sub-workflows
-        :type head_tasks: list of Task instances
+        :param subworkflow: the head tasks of the sub-workflows
+        :type subworkflow: list of Task instances
         :rtype: instance of Workflow
         """
+        return self._read_transaction(tx.get_subworkflow, subworkflow=subworkflow)
 
     def initialize_workflow(self):
         """Initialize the workflow DAGs loaded into the Neo4j database."""

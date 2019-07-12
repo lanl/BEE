@@ -42,6 +42,19 @@ def add_dependencies(tx, task):
         tx.run(dependency_query, dependent_name=task.name, dependency_name=dependency)
 
 
+def get_subworkflow(tx, subworkflow):
+    """Get sub-workflows from the Neo4j database with the specified head tasks.
+
+    :param subworkflow: the head tasks of the sub-workflows
+    :type subworkflow: list of Task instances
+    :rtype: instance of Workflow
+    """
+    subworkflow_query = ("MATCH (t:Task {subworkflow: $subworkflow}) "
+                         "RETURN collect(t.task_id)")
+
+    return tx.run(subworkflow_query, subworkflow=subworkflow).values()
+
+
 def set_head_tasks_to_ready(tx):
     """Initialize the workflow by setting the head tasks" state to READY."""
     ready_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
@@ -50,12 +63,12 @@ def set_head_tasks_to_ready(tx):
     tx.run(ready_query)
 
 
-def set_ready_tasks_to_running(tx):
+def set_task_to_running(tx, task):
     """Set tasks with state READY to RUNNING."""
-    running_query = ("MATCH (t:Task {state: 'READY'}) "
+    running_query = ("MATCH (t:Task {task_id: $task_id}) "
                      "SET t.state = 'RUNNING'")
 
-    tx.run(running_query)
+    tx.run(running_query, task_id=task.id)
 
 
 def set_task_to_complete(tx, task):
@@ -64,10 +77,10 @@ def set_task_to_complete(tx, task):
     :param task: the task whose state to change to COMPLETE
     :type task: instance of Task
     """
-    complete_query = ("MATCH (t:Task {name: $name}) "
+    complete_query = ("MATCH (t:Task {task_id: $task_id}) "
                       "SET t.state = 'COMPLETE'")
 
-    tx.run(complete_query, name=task.name)
+    tx.run(complete_query, task_id=task.id)
 
 
 def set_task_to_failed(tx, task):
@@ -76,10 +89,10 @@ def set_task_to_failed(tx, task):
     :param task: the task whose state to change to FAILED
     :type task: instance of Task
     """
-    failed_query = ("MATCH (t:Task {name: $name}) "
+    failed_query = ("MATCH (t:Task {task_id: $task_id}) "
                     "SET t.state = 'FAILED'")
 
-    tx.run(failed_query, name=task.name)
+    tx.run(failed_query, task_id=task.id)
 
 
 def get_dependent_tasks(tx, task):
@@ -88,14 +101,13 @@ def get_dependent_tasks(tx, task):
     :param task: the task whose dependencies to obtain
     :type task: instance of Task
     """
-    dependents_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task) "
-                        "WHERE s.name = $name "
-                        "RETURN collect(t.name)")
+    dependents_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task {task_id: $task_id}) "
+                        "RETURN collect(t.task_id)")
 
-    return tx.run(dependents_query, name=task.name).values()
+    return tx.run(dependents_query, task_id=task.id).values()
 
 
-def get_task_id(tx, task):
+def get_task_id_by_name(tx, task):
     """Get the ID of a task.
 
     :param task: the task whose ID to get
@@ -113,10 +125,10 @@ def get_task_state(tx, task):
     :param task: the task whose state to get
     :type task: instance of Task
     """
-    state_query = ("MATCH (t:Task {name: $name}) "
+    state_query = ("MATCH (t:Task {task_id: $task_id}) "
                    "RETURN t.state")
 
-    return tx.run(state_query, name=task.name).single().value()
+    return tx.run(state_query, task_id=task.id).single().value()
 
 
 def cleanup(tx):

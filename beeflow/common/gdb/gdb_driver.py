@@ -19,11 +19,11 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_subworkflow(self, head_tasks):
+    def get_subworkflow(self, subworkflow):
         """Get sub-workflows from the graph database with the specified head tasks.
 
-        :param head_tasks: the head tasks of the sub-workflows
-        :type head_tasks: list of Task instances
+        :param subworkflow: the unique identifier of the subworkflow
+        :type subworkflow: string
         :rtype: instance of Workflow
         """
 
