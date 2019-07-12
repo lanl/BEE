@@ -58,7 +58,7 @@ class TestWFInterface(unittest.TestCase):
         self.assertSetEqual({tasks[0]}, workflow.head_tasks)
 
         # Task assertions
-        for task_id, task in enumerate(tasks, start=0):
+        for task_id, task in enumerate(tasks):
             self.assertEqual(task_id, task.id)
 
     def test_get_subworkflow(self):
