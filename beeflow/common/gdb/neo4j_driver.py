@@ -31,9 +31,9 @@ class Neo4jDriver(GraphDatabaseDriver):
             print("Neo4j database unavailable. Is it running?")
 
     def load_workflow(self, workflow):
-        """Load the workflow as a DAG into the Neo4j database.
+        """Load the workflow into the Neo4j database.
 
-        :param workflow: the workflow to load as a DAG
+        :param workflow: the workflow to load
         :type workflow: instance of Workflow
         """
         for task in workflow.tasks:
@@ -44,7 +44,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             self._write_transaction(tx.add_dependencies, task=task)
 
     def get_subworkflow(self, subworkflow):
-        """Get a subworkflow from the graph database.
+        """Return a subworkflow from the graph database.
 
         :param subworkflow: the head tasks of the subworkflows
         :type subworkflow: list of Task instances
@@ -53,7 +53,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         return self._read_transaction(tx.get_subworkflow, subworkflow=subworkflow)
 
     def initialize_workflow(self):
-        """Initialize the workflow DAGs loaded into the Neo4j database."""
+        """Initialize the workflow loaded into the Neo4j database."""
         self._write_transaction(tx.set_head_tasks_to_ready)
 
     def start_ready_tasks(self):
@@ -63,8 +63,14 @@ class Neo4jDriver(GraphDatabaseDriver):
     def watch_tasks(self):
         """Watch tasks for completion/failure and start new ready tasks."""
 
+    def get_start_tasks(self):
+        """Return all tasks with no dependents."""
+
+    def get_end_tasks(self):
+        """Return all tasks with no dependencies."""
+
     def get_dependent_tasks(self, task):
-        """Get the dependent tasks of a specified workflow task.
+        """Return the dependent tasks of a specified workflow task.
 
         :param task: the task whose dependents to retrieve
         :type task: Task object
@@ -73,7 +79,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         return self._read_transaction(tx.get_dependent_tasks, task=task)
 
     def get_task_state(self, task):
-        """Get the state of a task in the Neo4j workflow DAG.
+        """Return the state of a task in the Neo4j workflow.
 
         :param task: the task whose status to retrieve
         :type task: instance of Task
@@ -82,7 +88,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         return self._read_transaction(tx.get_task_state, task=task)
 
     def finalize_workflow(self):
-        """Finalize the workflow DAGs loaded into the Neo4j database."""
+        """Finalize the workflow loaded into the Neo4j database."""
 
     def cleanup(self):
         """Clean up all data in the Neo4j database."""

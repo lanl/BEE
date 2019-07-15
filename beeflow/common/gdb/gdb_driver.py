@@ -12,7 +12,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def load_workflow(self, workflow):
-        """Load the workflow as a DAG into the graph database.
+        """Load the workflow into the graph database.
 
         :param workflow: the workflow to load
         :type workflow: instance of Workflow
@@ -20,7 +20,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_subworkflow(self, subworkflow):
-        """Get a subworkflow from the graph database.
+        """Return a subworkflow from the graph database.
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: string
@@ -29,7 +29,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def initialize_workflow(self):
-        """Initialize the workflow DAGs loaded into the graph database."""
+        """Initialize the workflow loaded into the graph database."""
 
     @abstractmethod
     def start_ready_tasks(self):
@@ -40,8 +40,16 @@ class GraphDatabaseDriver(ABC):
         """Watch tasks for completion/failure and start new ready tasks."""
 
     @abstractmethod
+    def get_start_tasks(self):
+        """Return all tasks with no dependents."""
+
+    @abstractmethod
+    def get_end_tasks(self):
+        """Return all tasks with no dependencies."""
+
+    @abstractmethod
     def get_dependent_tasks(self, task):
-        """Get the dependent tasks of a workflow task in the graph database.
+        """Return the dependent tasks of a workflow task in the graph database.
 
         :param task: the task whose dependents to retrieve
         :type task: instance of Task
@@ -50,7 +58,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_task_state(self, task):
-        """Get the state of a task in the workflow DAG.
+        """Return the state of a task in the workflow.
 
         :param task: the task whose status to retrieve
         :type task: instance of Task
@@ -59,7 +67,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def finalize_workflow(self):
-        """Finalize the workflow DAGs loaded into the graph database."""
+        """Finalize the workflow loaded into the graph database."""
 
     @abstractmethod
     def cleanup(self):

@@ -85,9 +85,9 @@ def run_workflow():
 
 
 def get_dependent_tasks(task):
-    """Get the dependents of a task in the BEE workflow.
+    """Return the dependents of a task in the BEE workflow.
 
-    :param task: the task whose dependents to obtain
+    :param task: the task whose dependents to retrieve
     :type task: instance of Task
     :rtype: set of Task instances
     """
@@ -96,9 +96,9 @@ def get_dependent_tasks(task):
 
 
 def get_task_state(task):
-    """Get the state of the task in the BEE workflow.
+    """Return the state of the task in the BEE workflow.
 
-    :param task: the task whose state to obtain
+    :param task: the task whose state to retrieve
     :type task: instance of Task
     :rtype: string
     """

@@ -31,7 +31,7 @@ def load_workflow(workflow):
 
 
 def get_subworkflow(subworkflow):
-    """Get sub-workflows from the graph database with the specified head tasks.
+    """Return sub-workflows from the graph database with the specified head tasks.
 
     :param subworkflow: the unique identifier of the subworkflow
     :type subworkflow: string
@@ -46,9 +46,9 @@ def initialize_workflow():
 
 
 def get_dependent_tasks(task):
-    """Get the dependents of a task in a graph database workflow.
+    """Return the dependents of a task in a graph database workflow.
 
-    :param task: the task whose dependents to obtain
+    :param task: the task whose dependents to retrieve
     :type task: instance of Task
     :rtype: set of Task instances
     """
@@ -56,9 +56,9 @@ def get_dependent_tasks(task):
 
 
 def get_task_state(task):
-    """Get the state of a task in a graph database workflow.
+    """Return the state of a task in a graph database workflow.
 
-    :param task: the task whose state to obtain
+    :param task: the task whose state to retrieve
     :type task: instance of Task
     :rtype: string
     """
@@ -66,5 +66,5 @@ def get_task_state(task):
 
 
 def finalize_workflow():
-    """Finalize the BEE workflow loaded into the graph database."""
+    """Finalize the workflow loaded into the graph database."""
     _GDB_DRIVER.finalize_workflow()
