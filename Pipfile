@@ -16,4 +16,4 @@ pyyaml = "*"
 flask = "*"
 
 [requires]
-python_version = "3.6.8"
+full_python_version = "3.6.8"
