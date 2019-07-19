@@ -3,8 +3,6 @@ name = "beeflow"
 version = "0.1.0"
 description = "A software package for containerizing HPC applications and managing job workflow"
 
-license = "Other/Proprietary"
-
 authors = [
     "BEE-LANL Dev Team <bee-dev@lanl.gov>"
 ]
@@ -18,47 +16,42 @@ keywords = [
     "bee",
     "hpc",
     "workflow",
-    "workflows",
-    "charliecloud",
-    "openstack",
     "cluster",
-    "clustering",
-    "graph",
-    "database",
     "computing"
 ]
 
+classifiers = [
+    "Environment :: Console",
+    "Environment :: OpenStack",
+    "Environment :: Other Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: Other/Proprietary License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Clustering",
+    "Topic :: System :: Database",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: System :: Logging",
+    "Topic :: System :: Monitoring"
+]
+
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.6.8"
 toml = "^0.9"
 
-# Dependencies
+# Package dependencies
 Flask = { version = "^1.1.1" }
 neo4j = { version = "^1.7.4" }
 PyYAML = { version = "^5.1.1" }
 
 [tool.poetry.dev-dependencies]
 # Developer dependencies
-pycodestyle = { version = "^2.5.0" }
-pydocstyle = { version = "^4.0.0" }
-pyflakes = { version = "^2.1.1" }
-pylama = { version = "^7.7.1" }
-pylint = { version = "^2.3.1" }
-
-# Classifiers
-# "Environment :: Console",
-# "Environment :: OpenStack",
-# "Environment :: Other Environment",
-# "Intended Audience :: Developers",
-# "Intended Audience :: Science/Research",
-# "License :: Other/Proprietary License",
-# "Natural Language :: English",
-# "Operating System :: OS Independent",
-# "Programming Language :: Python :: 3",
-# "Programming Language :: Python :: Implementation :: CPython",
-# "Topic :: Scientific/Engineering",
-# "Topic :: System :: Clustering",
-# "Topic :: System :: Database",
-# "Topic :: System :: Distributed Computing",
-# "Topic :: System :: Logging",
-# "Topic :: System :: Monitoring"
+pycodestyle = { version = ">=2.5.0" }
+pydocstyle = { version = ">=4.0.0" }
+pyflakes = { version = ">=2.1.1" }
+pylama = { version = ">=7.7.1" }
+pylint = { version = ">=2.3.1" }
