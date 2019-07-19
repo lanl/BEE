@@ -1,5 +1,5 @@
-Poetry Quickstart Guide
-=======================
+Poetry Setup Guide
+==================
 To manage our development environment and configure our project packaging,
 it is most convenient to use Poetry. Poetry uses the `pyproject.toml` and `poetry.lock`
 files to manage our packages/dependencies and make it easy to automatically
@@ -23,6 +23,14 @@ Environment Setup
 All of the following commands should be run in the root of our
 project directory as that is where our `.python-version`, `pyproject.toml`, and
 `poetry.lock` files are located (for use with Pyenv).
+
+**If you use Pyenv**, change the line in your `~/.bashrc`, etc.:
+
+`eval "$(pyenv init -)"`
+
+to:
+
+`[ $POETRY_ACTIVE ] || eval "$(pyenv init -)"`
 
 ### Create a Virtual Environment and Install Dependencies
 On MacOS, Poetry virtual environments are installed to `~/Library/Caches/pypoetry/virtualenvs`.
