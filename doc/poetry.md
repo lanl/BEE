@@ -14,7 +14,7 @@ install it via a script using the following command:
 
 `curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python`
 
-This will install Poetry to `~/.poetry/bin`, which should automatically prepended to your PATH
+This will install Poetry to `~/.poetry/bin`, which should be automatically prepended to your PATH
 by modifying your `~/.profile`, `~/.bash_profile`, and/or `~/.bashrc`. If you are using a
 shell other than Bash, you will have to add it to your PATH manually.
 
