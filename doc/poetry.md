@@ -102,3 +102,9 @@ To build the package as a tarball and a wheel (by default):
 To update Poetry:
 
 `poetry self:update`
+
+Additional Documentation
+------------------------
+Additional documentation can be found at
+* https://poetry.eustace.io/docs/
+* https://github.com/sdispater/poetry
