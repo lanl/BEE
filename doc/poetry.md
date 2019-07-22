@@ -38,6 +38,8 @@ To instead install to a local `.venv` directory, first run the command:
 
 `poetry config settings.virtualenvs.in-project true`
 
+When creating a Python virtual environment, Poetry will automatically install the version of Python of whatever `python` executable appears first on your PATH.
+
 To create a Python 3.x virtual environment and install our project
 dependencies (including developer dependencies):
 
