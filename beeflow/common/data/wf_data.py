@@ -7,6 +7,14 @@ class Task:
     def __init__(self, task_id, name, base_command, arguments, dependencies, subworkflow):
         """Store a task description.
 
+        There are two special tasks: those with the name bee_init and bee_exit.
+
+        bee_init should have no dependencies and all head tasks of the user's
+        workflow should depend on it.
+
+        bee_exit should have no dependents and depend on all of the end tasks
+        in the user's workflow.
+
         :param task_id: the task's unique ID
         :type task_id: integer
         :param name: the task name
@@ -129,5 +137,5 @@ class Workflow:
 
     @property
     def tasks(self):
-        """Return the workflow tasks as a list."""
+        """Return the workflow tasks as a set."""
         return set(self._tasks.values())
