@@ -29,15 +29,27 @@ def load_workflow(workflow):
     """
     _GDB_DRIVER.load_workflow(workflow)
 
+    # Get head and tail tasks
+    head_task_names = _GDB_DRIVER.get_head_task_names()
+    tail_task_names = _GDB_DRIVER.get_tail_task_names()
 
-def get_subworkflow(subworkflow):
-    """Return sub-workflows from the graph database with the specified head tasks.
+    # Add a bee_init node if there is none
+    if _no_init_node(head_task_names):
+        _GDB_DRIVER.add_init_node()
+
+    # Add a bee_exit node if there is none
+    if _no_exit_node(tail_task_names):
+        _GDB_DRIVER.add_exit_node()
+
+
+def get_subworkflow_ids(subworkflow):
+    """Return a subworkflows' task IDs from the graph database.
 
     :param subworkflow: the unique identifier of the subworkflow
     :type subworkflow: string
-    :rtype: instance of Workflow
+    :rtype: list of integers
     """
-    return _GDB_DRIVER.get_subworkflow(subworkflow)
+    return _GDB_DRIVER.get_subworkflow_ids(subworkflow)
 
 
 def initialize_workflow():
@@ -68,3 +80,21 @@ def get_task_state(task):
 def finalize_workflow():
     """Finalize the workflow loaded into the graph database."""
     _GDB_DRIVER.finalize_workflow()
+
+
+def _no_init_node(head_tasks):
+    """Determine if there is no bee_init node.
+
+    :param head_tasks: the names of the head tasks
+    :type head_tasks: list of strings
+    """
+    return not bool(len(head_tasks) == 1 and head_tasks[0] == "bee_init")
+
+
+def _no_exit_node(tail_tasks):
+    """Determine if there is no bee_exit node.
+
+    :param tail_tasks: the names of the tail tasks
+    :type tail_tasks: list of strings
+    """
+    return not bool(len(tail_tasks) == 1 and tail_tasks[0] == "bee_exit")

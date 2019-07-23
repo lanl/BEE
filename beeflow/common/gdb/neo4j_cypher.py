@@ -43,7 +43,7 @@ def add_dependencies(tx, task):
         tx.run(dependency_query, dependent_name=task.name, dependency_name=dependency)
 
 
-def get_subworkflow(tx, subworkflow):
+def get_subworkflow_ids(tx, subworkflow):
     """Get subworkflows from the Neo4j database with the specified head tasks.
 
     :param subworkflow: the unique identifier of the subworkflow
@@ -56,8 +56,30 @@ def get_subworkflow(tx, subworkflow):
     return tx.run(subworkflow_query, subworkflow=subworkflow).single().value()
 
 
-def set_head_tasks_to_ready(tx):
-    """Initialize the workflow by setting the head tasks" state to READY."""
+def create_init_node(tx):
+    """Create a task node with the name 'bee_init' and state 'WAITING'."""
+    init_node_query = ("CREATE (s:Task {name: 'bee_init', task_id: 0, state: 'WAITING'}) "
+                       "WITH s "
+                       "MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() AND NOT t.name = 'bee_init' "
+                       "CREATE (s)<-[:DEPENDS]-(t)")
+
+    tx.run(init_node_query)
+
+
+def create_exit_node(tx):
+    """Create a task node with the name 'bee_exit' and state 'WAITING'."""
+    exit_node_query = ("MATCH (n:Task) "
+                       "WITH max(n.task_id) + 1 AS task_id "
+                       "CREATE (s:Task {name: 'bee_exit', task_id: task_id, state: 'WAITING'}) "
+                       "WITH s "
+                       "MATCH (t:Task) WHERE NOT (t)<-[:DEPENDS]-() AND NOT t.name = 'bee_exit' "
+                       "CREATE (s)-[:DEPENDS]->(t)")
+
+    tx.run(exit_node_query)
+
+
+def set_start_tasks_to_ready(tx):
+    """Initialize the workflow by setting the start tasks" state to READY."""
     ready_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
                    "SET t.state = 'READY'")
 
@@ -70,6 +92,22 @@ def set_ready_tasks_to_running(tx):
                      "SET t.state = 'RUNNING'")
 
     tx.run(running_query)
+
+
+def get_head_task_names(tx):
+    """Return all tasks with no dependencies."""
+    start_task_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
+                        "RETURN collect(t.name)")
+
+    return tx.run(start_task_query).single().value()
+
+
+def get_tail_task_names(tx):
+    """Return all tasks with no dependents."""
+    end_task_query = ("MATCH (t:Task) WHERE NOT (t)<-[:DEPENDS]-() "
+                      "RETURN collect(t.name)")
+
+    return tx.run(end_task_query).single().value()
 
 
 def set_task_to_complete(tx, task):

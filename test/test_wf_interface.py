@@ -45,7 +45,10 @@ class TestWFInterface(unittest.TestCase):
         self.assertEqual(subworkflow, task.subworkflow)
 
     def test_create_workflow(self):
-        """Test workflow creation."""
+        """Test workflow creation.
+
+        Creation of bee_init and bee_exit is manual.
+        """
         tasks = _create_test_tasks()
 
         # Workflow assertions
@@ -58,9 +61,26 @@ class TestWFInterface(unittest.TestCase):
         for task_id, task in enumerate(tasks):
             self.assertEqual(task_id, task.id)
 
-    def test_load_workflow(self):
-        """Test workflow insertion into the graph database."""
+    def test_load_workflow_automatic(self):
+        """Test workflow insertion into the graph database.
+
+        Creation of bee_init and bee_exit is automatic.
+        """
+        tasks = _create_test_tasks(bee_nodes=False)
+        workflow = wf_interface.create_workflow(tasks)
+        wf_interface.load_workflow(workflow)
+
+        # Test task states
+        for task in tasks:
+            self.assertEqual("WAITING", wf_interface.get_task_state(task))
+
+    def test_load_workflow_manual(self):
+        """Test workflow insertion into the graph database.
+
+        Creation of bee_init and bee_exit is manual.
+        """
         tasks = _create_test_tasks()
+
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
 
@@ -70,7 +90,7 @@ class TestWFInterface(unittest.TestCase):
 
     def test_get_subworkflow(self):
         """Test obtaining of a subworkflow."""
-        tasks = _create_test_tasks()
+        tasks = _create_test_tasks(bee_nodes=False)
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
 
@@ -85,7 +105,7 @@ class TestWFInterface(unittest.TestCase):
     def test_initialize_workflow(self):
         """Test workflow initialization.
 
-        All head tasks should have their status set from "WAITING" to "READY"
+        The bee_init node should have its state set from "WAITING" to "READY"
         """
         tasks = _create_test_tasks()
         workflow = wf_interface.create_workflow(tasks)
@@ -97,13 +117,14 @@ class TestWFInterface(unittest.TestCase):
         self.assertEqual("WAITING", wf_interface.get_task_state(tasks[2]))
         self.assertEqual("WAITING", wf_interface.get_task_state(tasks[3]))
         self.assertEqual("WAITING", wf_interface.get_task_state(tasks[4]))
+        self.assertEqual("WAITING", wf_interface.get_task_state(tasks[5]))
 
     def test_run_workflow(self):
         """Test workflow running."""
 
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
-        tasks = _create_test_tasks()
+        tasks = _create_test_tasks(bee_nodes=False)
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
         dependent_tasks = wf_interface.get_dependent_tasks(tasks[0])
@@ -122,21 +143,42 @@ class TestWFInterface(unittest.TestCase):
         """Test workflow finalization."""
 
 
-def _create_test_tasks():
-    """Create test tasks to reduce redundancy."""
-    tasks = [
-        wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"],
-                                 subworkflow="Prep"),
-        wf_interface.create_task("Compute 0", "rm", dependencies={"Data Prep"},
-                                 subworkflow="Compute"),
-        wf_interface.create_task("Compute 1", "find", dependencies={"Data Prep"},
-                                 subworkflow="Compute"),
-        wf_interface.create_task("Compute 2", "yes", dependencies={"Data Prep"},
-                                 subworkflow="Compute"),
-        wf_interface.create_task("Visualization", "ln", arguments=["-s"],
-                                 dependencies={"Compute 0", "Compute 1", "Compute 2"},
-                                 subworkflow="Visualization")
-    ]
+def _create_test_tasks(bee_nodes=True):
+    """Create test tasks to reduce redundancy.
+
+    :param bee_nodes: flag to add bee_init and bee_exit nodes
+    :type bee_nodes: boolean
+    """
+    if bee_nodes:
+        tasks = [
+            wf_interface.create_task("bee_init", "init"),
+            wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"],
+                                     dependencies={"bee_init"}, subworkflow="Prep"),
+            wf_interface.create_task("Compute 0", "rm", dependencies={"Data Prep"},
+                                     subworkflow="Compute"),
+            wf_interface.create_task("Compute 1", "find", dependencies={"Data Prep"},
+                                     subworkflow="Compute"),
+            wf_interface.create_task("Compute 2", "yes", dependencies={"Data Prep"},
+                                     subworkflow="Compute"),
+            wf_interface.create_task("Visualization", "ln", arguments=["-s"],
+                                     dependencies={"Compute 0", "Compute 1", "Compute 2"},
+                                     subworkflow="Visualization"),
+            wf_interface.create_task("bee_exit", "exit", dependencies={"Visualization"})
+        ]
+    else:
+        tasks = [
+            wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"],
+                                     subworkflow="Prep"),
+            wf_interface.create_task("Compute 0", "rm", dependencies={"Data Prep"},
+                                     subworkflow="Compute"),
+            wf_interface.create_task("Compute 1", "find", dependencies={"Data Prep"},
+                                     subworkflow="Compute"),
+            wf_interface.create_task("Compute 2", "yes", dependencies={"Data Prep"},
+                                     subworkflow="Compute"),
+            wf_interface.create_task("Visualization", "ln", arguments=["-s"],
+                                     dependencies={"Compute 0", "Compute 1", "Compute 2"},
+                                     subworkflow="Visualization")
+        ]
 
     return tasks
 

@@ -43,18 +43,26 @@ class Neo4jDriver(GraphDatabaseDriver):
         for task in workflow.tasks:
             self._write_transaction(tx.add_dependencies, task=task)
 
-    def get_subworkflow(self, subworkflow):
-        """Return a subworkflow from the graph database.
+    def add_init_node(self):
+        """Add a task node with the name 'bee_init' and state 'WAITING'."""
+        self._write_transaction(tx.create_init_node)
 
-        :param subworkflow: the head tasks of the subworkflows
-        :type subworkflow: list of Task instances
-        :rtype: instance of Workflow
+    def add_exit_node(self):
+        """Add a task node with the name 'bee_exit' and state 'WAITING'."""
+        self._write_transaction(tx.create_exit_node)
+
+    def get_subworkflow_ids(self, subworkflow):
+        """Return a subworkflow's task IDs from the Neo4j database.
+
+        :param subworkflow: the unique identifier of the subworkflow
+        :type subworkflow: string
+        :rtype: list of integers
         """
-        return self._read_transaction(tx.get_subworkflow, subworkflow=subworkflow)
+        return self._read_transaction(tx.get_subworkflow_ids, subworkflow=subworkflow)
 
     def initialize_workflow(self):
         """Initialize the workflow loaded into the Neo4j database."""
-        self._write_transaction(tx.set_head_tasks_to_ready)
+        self._write_transaction(tx.set_start_tasks_to_ready)
 
     def start_ready_tasks(self):
         """Start tasks that have no unsatisfied dependencies."""
@@ -63,11 +71,13 @@ class Neo4jDriver(GraphDatabaseDriver):
     def watch_tasks(self):
         """Watch tasks for completion/failure and start new ready tasks."""
 
-    def get_start_tasks(self):
-        """Return all tasks with no dependents."""
-
-    def get_end_tasks(self):
+    def get_head_task_names(self):
         """Return all tasks with no dependencies."""
+        return self._read_transaction(tx.get_head_task_names)
+
+    def get_tail_task_names(self):
+        """Return all tasks with no dependents."""
+        return self._read_transaction(tx.get_tail_task_names)
 
     def get_dependent_tasks(self, task):
         """Return the dependent tasks of a specified workflow task.

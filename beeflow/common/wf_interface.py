@@ -31,12 +31,17 @@ def create_task(name, base_command, arguments=None, dependencies=None, subworkfl
     if dependencies is None:
         dependencies = set()
 
-    if not hasattr(create_task, "task_id"):
-        create_task.task_id = 0
+    if name.lower() == "bee_init":
+        task_id = 0
     else:
-        create_task.task_id += 1
+        if not hasattr(create_task, "task_id"):
+            create_task.task_id = 1
+        else:
+            create_task.task_id += 1
 
-    return Task(create_task.task_id, name, base_command, arguments, dependencies, subworkflow)
+        task_id = create_task.task_id
+
+    return Task(task_id, name, base_command, arguments, dependencies, subworkflow)
 
 
 def create_workflow(tasks, requirements=None, outputs=None):
@@ -64,13 +69,13 @@ def load_workflow(workflow):
 
 
 def get_subworkflow(subworkflow):
-    """Get sub-workflows with the specified head tasks.
+    """Get a subworkflow by its identifier.
 
     :param subworkflow: the unique identifier of the subworkflow
     :type subworkflow: string
     :rtype: instance of Workflow
     """
-    subworkflow_task_ids = gdb_interface.get_subworkflow(subworkflow)
+    subworkflow_task_ids = gdb_interface.get_subworkflow_ids(subworkflow)
     return create_workflow([_WORKFLOW[task_id] for task_id in subworkflow_task_ids],
                            _WORKFLOW.requirements, _WORKFLOW.outputs)
 
