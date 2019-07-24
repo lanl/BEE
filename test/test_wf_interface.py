@@ -118,9 +118,7 @@ class TestWFInterface(unittest.TestCase):
         self.assertEqual("WAITING", wf_interface.get_task_state(tasks[3]))
         self.assertEqual("WAITING", wf_interface.get_task_state(tasks[4]))
         self.assertEqual("WAITING", wf_interface.get_task_state(tasks[5]))
-
-    def test_run_workflow(self):
-        """Test workflow running."""
+        self.assertEqual("WAITING", wf_interface.get_task_state(tasks[6]))
 
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
@@ -141,6 +139,18 @@ class TestWFInterface(unittest.TestCase):
 
     def test_finalize_workflow(self):
         """Test workflow finalization."""
+        tasks = _create_test_tasks()
+        workflow = wf_interface.create_workflow(tasks)
+        wf_interface.load_workflow(workflow)
+        wf_interface.finalize_workflow()
+
+        self.assertEqual("WAITING", wf_interface.get_task_state(tasks[0]))
+        self.assertEqual("WAITING", wf_interface.get_task_state(tasks[1]))
+        self.assertEqual("WAITING", wf_interface.get_task_state(tasks[2]))
+        self.assertEqual("WAITING", wf_interface.get_task_state(tasks[3]))
+        self.assertEqual("WAITING", wf_interface.get_task_state(tasks[4]))
+        self.assertEqual("WAITING", wf_interface.get_task_state(tasks[5]))
+        self.assertEqual("READY", wf_interface.get_task_state(tasks[6]))
 
 
 def _create_test_tasks(bee_nodes=True):
