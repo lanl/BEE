@@ -11,7 +11,8 @@ gdb_interface.connect(password="password")
 _WORKFLOW = None
 
 
-def create_task(name, base_command, arguments=None, dependencies=None, subworkflow=""):
+def create_task(name, base_command="", arguments=None, dependencies=None, requirements=None,
+                hints=None, subworkflow="", inputs=None, outputs=None):
     """Create a new BEE workflow task.
 
     :param name: the name given to the task
@@ -22,8 +23,16 @@ def create_task(name, base_command, arguments=None, dependencies=None, subworkfl
     :type arguments: list of strings, or None
     :param dependencies: the task dependencies (on other Tasks)
     :type dependencies: set of task IDs, or None
+    :param requirements: the task-specific requirements
+    :type requirements: TBD or None
+    :param hints: the task-specific hints (optional requirements)
+    :type hints: TBD or None
     :param subworkflow: an identifier for the subworkflow to which the task belongs
     :type subworkflow: string
+    :param inputs: the task inputs
+    :type inputs: TBD or None
+    :param outputs: the task outputs
+    :type outputs: TBD or None
     :rtype: instance of Task
     """
     if arguments is None:
@@ -42,19 +51,26 @@ def create_task(name, base_command, arguments=None, dependencies=None, subworkfl
 
         task_id = create_task.task_id
 
-    return Task(task_id, name, base_command, arguments, dependencies, subworkflow)
+    return Task(task_id, name, base_command, arguments, dependencies, requirements, hints,
+                subworkflow, inputs, outputs)
 
 
-def create_workflow(tasks, requirements=None, outputs=None):
+def create_workflow(tasks, requirements=None, hints=None, inputs=None, outputs=None):
     """Create a new workflow.
 
     :param tasks: the workflow tasks
     :type tasks: iterable of Task instances
+    :param requirements: the workflow requirements
+    :type requirements: TBD or None
+    :param hints: the workflow hints (optional requirements)
+    :type hints: TBD or None
+    :param inputs: the workflow inputs
+    :type inputs: TBD or None
     :param outputs: the workflow outputs
     :type outputs: TBD or None
     :rtype: instance of Workflow
     """
-    return Workflow(tasks, requirements, outputs)
+    return Workflow(tasks, requirements, hints, inputs, outputs)
 
 
 def load_workflow(workflow):

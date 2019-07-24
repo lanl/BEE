@@ -28,21 +28,33 @@ class TestWFInterface(unittest.TestCase):
         base_command = "ls"
         arguments = ["-a", "-l", "-F"]
         dependencies = {"Dependency 1", "Dependency 2", "Dependency 3"}
-        subworkflow = "Subworkflow 1"
+        requirements = {"ram": 1024, "cores": 4}
+        hints = {"cpus": 2}
+        subworkflow = "Test Subworkflow"
+        inputs = {"input1.txt", "input2.txt"}
+        outputs = {"test_task_done"}
 
         task = wf_interface.create_task(
             name=task_name,
             base_command=base_command,
             arguments=arguments,
             dependencies=dependencies,
-            subworkflow=subworkflow)
+            requirements=requirements,
+            hints=hints,
+            subworkflow=subworkflow,
+            inputs=inputs,
+            outputs=outputs)
 
         # Task assertions
         self.assertEqual(task_name, task.name)
         self.assertEqual(base_command, task.base_command)
         self.assertListEqual(arguments, task.arguments)
         self.assertSetEqual(dependencies, task.dependencies)
+        self.assertEqual(requirements, task.requirements)
+        self.assertEqual(hints, task.hints)
         self.assertEqual(subworkflow, task.subworkflow)
+        self.assertEqual(inputs, task.inputs)
+        self.assertEqual(outputs, task.outputs)
 
     def test_create_workflow(self):
         """Test workflow creation.
@@ -50,12 +62,24 @@ class TestWFInterface(unittest.TestCase):
         Creation of bee_init and bee_exit is manual.
         """
         tasks = _create_test_tasks()
+        requirements = {"ranks": 128}
+        hints = {"cluster": "badger"}
+        inputs = {"inputs.txt"}
+        outputs = {"outputs.txt"}
+
+        workflow = wf_interface.create_workflow(
+            tasks=tasks,
+            requirements=requirements,
+            hints=hints,
+            inputs=inputs,
+            outputs=outputs)
 
         # Workflow assertions
-        workflow = wf_interface.create_workflow(tasks)
         self.assertSetEqual(set(tasks), workflow.tasks)
-        self.assertIsNone(workflow.requirements)
-        self.assertIsNone(workflow.outputs)
+        self.assertEqual(requirements, workflow.requirements)
+        self.assertEqual(hints, workflow.hints)
+        self.assertEqual(inputs, workflow.inputs)
+        self.assertEqual(outputs, workflow.outputs)
 
         # Task assertions
         for task_id, task in enumerate(tasks):
@@ -161,7 +185,7 @@ def _create_test_tasks(bee_nodes=True):
     """
     if bee_nodes:
         tasks = [
-            wf_interface.create_task("bee_init", "init"),
+            wf_interface.create_task("bee_init"),
             wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"],
                                      dependencies={"bee_init"}, subworkflow="Prep"),
             wf_interface.create_task("Compute 0", "rm", dependencies={"Data Prep"},
@@ -173,7 +197,7 @@ def _create_test_tasks(bee_nodes=True):
             wf_interface.create_task("Visualization", "ln", arguments=["-s"],
                                      dependencies={"Compute 0", "Compute 1", "Compute 2"},
                                      subworkflow="Visualization"),
-            wf_interface.create_task("bee_exit", "exit", dependencies={"Visualization"})
+            wf_interface.create_task("bee_exit", dependencies={"Visualization"})
         ]
     else:
         tasks = [
