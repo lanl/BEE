@@ -80,7 +80,7 @@ def create_exit_node(tx):
 
 def set_init_task_to_ready(tx):
     """Set bee_init's state to READY."""
-    init_ready_query = ("MATCH (t:Task {task_id: 'bee_init'}) "
+    init_ready_query = ("MATCH (t:Task {name: 'bee_init'}) "
                         "SET t.state = 'READY'")
 
     tx.run(init_ready_query)
