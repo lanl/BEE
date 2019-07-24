@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "beeflow"
+version = "0.1.0"
+description = "A software package for containerizing HPC applications and managing job workflow"
+
+authors = [
+    "BEE-LANL Dev Team <bee-dev@lanl.gov>"
+]
+
+readme = "README.md"
+
+repository = "https://github.com/lanl/BEE"
+homepage = "https://bee.lanl.gov"
+
+keywords = [
+    "bee",
+    "hpc",
+    "workflow",
+    "cluster",
+    "computing"
+]
+
+classifiers = [
+    "Environment :: Console",
+    "Environment :: OpenStack",
+    "Environment :: Other Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: Other/Proprietary License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Clustering",
+    "Topic :: System :: Database",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: System :: Logging",
+    "Topic :: System :: Monitoring"
+]
+
+[tool.poetry.dependencies]
+# Python version (>=3.6.8, <4.0.0)
+python = "^3.6.8"
+
+# Package dependencies
+Flask = { version = "^1.1.1" }
+neo4j = { version = "^1.7.4" }
+PyYAML = { version = "^5.1.1" }
+
+[tool.poetry.dev-dependencies]
+# Developer dependencies
+pycodestyle = { version = ">=2.5.0" }
+pydocstyle = { version = ">=4.0.0" }
+pyflakes = { version = ">=2.1.1" }
+pylama = { version = ">=7.7.1" }
+pylint = { version = ">=2.3.1" }
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

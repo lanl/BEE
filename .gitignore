@@ -3,10 +3,10 @@ __pycache__
 *.qcow2
 *.iso
 *.pyc
+*.egg-info
 .DS_Store
 .idea
 .idea/vcs.xml
 .vscode
-Pipfile.lock
 .env
 .venv
