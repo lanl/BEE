@@ -67,9 +67,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_init_task_to_ready)
 
-    def watch_tasks(self):
-        """Watch tasks for completion/failure and start new ready tasks."""
-
     def get_head_task_names(self):
         """Return all tasks with no dependencies."""
         return self._read_transaction(tx.get_head_task_names)

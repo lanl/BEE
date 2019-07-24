@@ -43,10 +43,6 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def watch_tasks(self):
-        """Watch tasks for completion/failure and start new ready tasks."""
-
-    @abstractmethod
     def get_head_task_names(self):
         """Return all tasks with no dependents."""
 
