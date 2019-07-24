@@ -32,6 +32,7 @@ def create_task(name, base_command, arguments=None, dependencies=None, subworkfl
         dependencies = set()
 
     if name.lower() == "bee_init":
+        name = name.lower()
         task_id = 0
     else:
         if not hasattr(create_task, "task_id"):
