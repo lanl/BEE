@@ -37,11 +37,10 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def initialize_workflow(self):
-        """Initialize the workflow loaded into the graph database."""
+        """Initialize the workflow loaded into the graph database.
 
-    @abstractmethod
-    def start_ready_tasks(self):
-        """Start tasks in the loaded workflows that have no dependencies."""
+        Sets the bee_init node's state to ready.
+        """
 
     @abstractmethod
     def watch_tasks(self):
@@ -75,7 +74,10 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def finalize_workflow(self):
-        """Finalize the workflow loaded into the graph database."""
+        """Finalize the workflow loaded into the graph database.
+
+        Sets the bee_exit node's state to READY.
+        """
 
     @abstractmethod
     def cleanup(self):

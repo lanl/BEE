@@ -1,7 +1,7 @@
 """Neo4j/Cypher transaction functions used by the Neo4jDriver class."""
 
 
-def constrain_tasks_unique(tx):
+def constrain_task_names_unique(tx):
     """Constrain tasks to have unique names."""
     unique_query = ("CREATE CONSTRAINT ON (t:Task) "
                     "ASSERT t.name IS UNIQUE")
@@ -78,42 +78,50 @@ def create_exit_node(tx):
     tx.run(exit_node_query)
 
 
-def set_start_tasks_to_ready(tx):
-    """Initialize the workflow by setting the start tasks" state to READY."""
-    ready_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
+def set_init_task_to_ready(tx):
+    """Set bee_init's state to READY."""
+    init_ready_query = ("MATCH (t:Task {task_id: 0}) "
+                        "SET t.state = 'READY'")
+
+    tx.run(init_ready_query)
+
+
+def set_exit_task_to_ready(tx):
+    """Set bee_exit's state to READY."""
+    exit_ready_query = ("MATCH (t:Task {name: 'bee_exit'}) "
+                        "SET t.state = 'READY'")
+
+    tx.run(exit_ready_query)
+
+
+def set_task_to_ready(tx, task):
+    """Set a task's state to READY.
+
+    :param task: the task whose state to change
+    :type task: instance of Task
+    """
+    ready_query = ("MATCH (t:Task {task_id: $task_id}) "
                    "SET t.state = 'READY'")
 
-    tx.run(ready_query)
+    tx.run(ready_query, task_id=task.id)
 
 
-def set_ready_tasks_to_running(tx):
-    """Set all tasks with state READY to RUNNING."""
-    running_query = ("MATCH (t:Task {state: 'READY'}) "
+def set_task_to_running(tx, task):
+    """Set a task's state to RUNNING.
+
+    :param task: the task whose state to change
+    :type task: instance of Task
+    """
+    running_query = ("MATCH (t:Task {task_id: $task_id}) "
                      "SET t.state = 'RUNNING'")
 
-    tx.run(running_query)
-
-
-def get_head_task_names(tx):
-    """Return all tasks with no dependencies."""
-    start_task_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
-                        "RETURN collect(t.name)")
-
-    return tx.run(start_task_query).single().value()
-
-
-def get_tail_task_names(tx):
-    """Return all tasks with no dependents."""
-    end_task_query = ("MATCH (t:Task) WHERE NOT (t)<-[:DEPENDS]-() "
-                      "RETURN collect(t.name)")
-
-    return tx.run(end_task_query).single().value()
+    tx.run(running_query, task_id=task.id)
 
 
 def set_task_to_complete(tx, task):
-    """Set a task with state RUNNING to COMPLETE.
+    """Set a task's state to COMPLETE.
 
-    :param task: the task whose state to change to COMPLETE
+    :param task: the task whose state to change
     :type task: instance of Task
     """
     complete_query = ("MATCH (t:Task {task_id: $task_id}) "
@@ -168,6 +176,22 @@ def get_task_state(tx, task):
                    "RETURN t.state")
 
     return tx.run(state_query, task_id=task.id).single().value()
+
+
+def get_head_task_names(tx):
+    """Return all tasks with no dependencies."""
+    start_task_query = ("MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() "
+                        "RETURN collect(t.name)")
+
+    return tx.run(start_task_query).single().value()
+
+
+def get_tail_task_names(tx):
+    """Return all tasks with no dependents."""
+    end_task_query = ("MATCH (t:Task) WHERE NOT (t)<-[:DEPENDS]-() "
+                      "RETURN collect(t.name)")
+
+    return tx.run(end_task_query).single().value()
 
 
 def cleanup(tx):

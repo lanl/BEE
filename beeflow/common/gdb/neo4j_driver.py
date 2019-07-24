@@ -61,12 +61,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         return self._read_transaction(tx.get_subworkflow_ids, subworkflow=subworkflow)
 
     def initialize_workflow(self):
-        """Initialize the workflow loaded into the Neo4j database."""
-        self._write_transaction(tx.set_start_tasks_to_ready)
+        """Initialize the workflow loaded into the Neo4j database.
 
-    def start_ready_tasks(self):
-        """Start tasks that have no unsatisfied dependencies."""
-        self._write_transaction(tx.set_ready_tasks_to_running)
+        Sets the bee_init node's state to ready.
+        """
+        self._write_transaction(tx.set_init_task_to_ready)
 
     def watch_tasks(self):
         """Watch tasks for completion/failure and start new ready tasks."""
@@ -98,7 +97,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         return self._read_transaction(tx.get_task_state, task=task)
 
     def finalize_workflow(self):
-        """Finalize the workflow loaded into the Neo4j database."""
+        """Finalize the workflow loaded into the Neo4j database.
+
+        Sets the bee_exit node's state to READY.
+        """
+        self._write_transaction(tx.set_exit_task_to_ready)
 
     def cleanup(self):
         """Clean up all data in the Neo4j database."""
@@ -110,7 +113,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def _require_tasks_unique(self):
         """Require tasks to have unique names."""
-        self._write_transaction(tx.constrain_tasks_unique)
+        self._write_transaction(tx.constrain_task_names_unique)
 
     def _read_transaction(self, tx_fun, **kwargs):
         """Run a Neo4j read transaction.
