@@ -82,7 +82,8 @@ class TestWFInterface(unittest.TestCase):
         self.assertEqual(outputs, workflow.outputs)
 
         # Task assertions
-        for task_id, task in enumerate(tasks):
+        first_task_id = tasks[0].id
+        for task_id, task in enumerate(tasks, first_task_id):
             self.assertEqual(task_id, task.id)
 
     def test_load_workflow_automatic(self):

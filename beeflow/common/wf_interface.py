@@ -42,17 +42,16 @@ def create_task(name, base_command="", arguments=None, dependencies=None, requir
 
     if name.lower() == "bee_init":
         name = name.lower()
-        task_id = 0
+    elif name.lower() == "bee_exit":
+        name = name.lower()
+
+    if not hasattr(create_task, "task_id"):
+        create_task.task_id = 0
     else:
-        if not hasattr(create_task, "task_id"):
-            create_task.task_id = 1
-        else:
-            create_task.task_id += 1
+        create_task.task_id += 1
 
-        task_id = create_task.task_id
-
-    return Task(task_id, name, base_command, arguments, dependencies, requirements, hints,
-                subworkflow, inputs, outputs)
+    return Task(create_task.task_id, name, base_command, arguments, dependencies, requirements,
+                hints, subworkflow, inputs, outputs)
 
 
 def create_workflow(tasks, requirements=None, hints=None, inputs=None, outputs=None):
