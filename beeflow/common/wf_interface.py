@@ -6,8 +6,10 @@ Delegates its work to gdb_interface.
 import beeflow.common.gdb.gdb_interface as gdb_interface
 from beeflow.common.data.wf_data import Task, Workflow
 
+# Automatically connect to the graph database
 gdb_interface.connect(password="password")
 
+# Store the loaded workflow object state
 _WORKFLOW = None
 
 
@@ -40,11 +42,14 @@ def create_task(name, base_command="", arguments=None, dependencies=None, requir
     if dependencies is None:
         dependencies = set()
 
+    # Standard bee_init, bee_exit tasks
     if name.lower() == "bee_init":
         name = name.lower()
     elif name.lower() == "bee_exit":
         name = name.lower()
 
+    # Assign a task ID to each task
+    # The task ID incremements automatically after each method call
     if not hasattr(create_task, "task_id"):
         create_task.task_id = 0
     else:
@@ -78,9 +83,11 @@ def load_workflow(workflow):
     :param workflow: the workflow to load
     :type workflow: instance of Workflow
     """
+    # Store the workflow in the module
     global _WORKFLOW
     _WORKFLOW = workflow
 
+    # Store the workflow in the graph database
     gdb_interface.load_workflow(workflow)
 
 
@@ -91,7 +98,9 @@ def get_subworkflow(subworkflow):
     :type subworkflow: string
     :rtype: instance of Workflow
     """
+    # Obtain the IDs of the subworkflow tasks
     subworkflow_task_ids = gdb_interface.get_subworkflow_ids(subworkflow)
+    # Return a new Workflow object with the given tasks
     return create_workflow([_WORKFLOW[task_id] for task_id in subworkflow_task_ids],
                            _WORKFLOW.requirements, _WORKFLOW.outputs)
 
@@ -103,6 +112,7 @@ def initialize_workflow():
 
 def run_workflow():
     """Run the created workflow."""
+    # TODO: implement this with orchestrator/task launcher
 
 
 def get_dependent_tasks(task):
@@ -112,7 +122,9 @@ def get_dependent_tasks(task):
     :type task: instance of Task
     :rtype: set of Task instances
     """
+    # Get IDs of dependent tasks
     dependent_task_ids = gdb_interface.get_dependent_tasks(task)
+    # Return a set of the dependent Task objects
     return {_WORKFLOW[task_id] for task_id in dependent_task_ids}
 
 

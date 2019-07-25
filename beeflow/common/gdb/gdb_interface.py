@@ -7,6 +7,7 @@ this is the `Neo4jDriver` class.
 
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 
+# Store the GDB driver state
 _GDB_DRIVER = None
 
 
@@ -17,6 +18,7 @@ def connect(gdb_driver=Neo4jDriver, **kwargs):
     :type gdb_driver: subclass of GraphDatabaseDriver
     :param kwargs: optional arguments for the graph database driver
     """
+    # Initialize the graph database driver
     global _GDB_DRIVER
     _GDB_DRIVER = gdb_driver(**kwargs)
 
@@ -27,6 +29,7 @@ def load_workflow(workflow):
     :param workflow: the new workflow to load
     :type workflow: instance of Workflow
     """
+    # Load the workflow into the graph database
     _GDB_DRIVER.load_workflow(workflow)
 
     # Get head and tail tasks
@@ -88,6 +91,7 @@ def _no_init_node(head_tasks):
     :param head_tasks: the names of the head tasks
     :type head_tasks: list of strings
     """
+    # Return True if more than one head task or if head task is not bee_init
     return not bool(len(head_tasks) == 1 and head_tasks[0] == "bee_init")
 
 
@@ -97,4 +101,5 @@ def _no_exit_node(tail_tasks):
     :param tail_tasks: the names of the tail tasks
     :type tail_tasks: list of strings
     """
+    # Return True if more than one tail task or if tail task is not bee_exit
     return not bool(len(tail_tasks) == 1 and tail_tasks[0] == "bee_exit")

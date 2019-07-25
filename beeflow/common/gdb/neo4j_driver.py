@@ -6,6 +6,8 @@ from neobolt.exceptions import ServiceUnavailable
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 import beeflow.common.gdb.neo4j_cypher as tx
 
+# Default Neo4j authentication
+# We may want to instead get these from a config at some point
 DEFAULT_URI = "bolt://localhost:7687"
 DEFAULT_USER = "neo4j"
 DEFAULT_PASSWORD = "neo4j"
@@ -25,7 +27,9 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type password: string
         """
         try:
+            # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
+            # Require tasks to have unique names
             self._require_tasks_unique()
         except ServiceUnavailable:
             print("Neo4j database unavailable. Is it running?")
@@ -36,10 +40,12 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param workflow: the workflow to load
         :type workflow: instance of Workflow
         """
+        # Load tasks as nodes in the database
         for task in workflow.tasks:
             # The create_task transaction function returns the new task's Neo4j ID
             self._write_transaction(tx.create_task, task=task)
 
+        # Load the dependencies as relationships in the database
         for task in workflow.tasks:
             self._write_transaction(tx.add_dependencies, task=task)
 
@@ -119,6 +125,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type tx_fun: function
         :param kwargs: optional parameters for the transaction function
         """
+        # Wrapper for neo4j.Session.read_transaction
         with self._driver.session() as session:
             result = session.read_transaction(tx_fun, **kwargs)
         return result
@@ -130,6 +137,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type tx_fun: function
         :param kwargs: optional parameters for the transaction function
         """
+        # Wrapper for neo4j.Session.write_transaction
         with self._driver.session() as session:
             result = session.write_transaction(tx_fun, **kwargs)
         return result

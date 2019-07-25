@@ -81,7 +81,8 @@ class TestWFInterface(unittest.TestCase):
         self.assertEqual(inputs, workflow.inputs)
         self.assertEqual(outputs, workflow.outputs)
 
-        # Task assertions
+        # Task ID assertions
+        # Task IDs should be strictly incremental
         first_task_id = tasks[0].id
         for task_id, task in enumerate(tasks, first_task_id):
             self.assertEqual(task_id, task.id)
@@ -91,6 +92,7 @@ class TestWFInterface(unittest.TestCase):
 
         Creation of bee_init and bee_exit is automatic.
         """
+        # Create a workflow without bee_init and bee_exit
         tasks = _create_test_tasks(bee_nodes=False)
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
@@ -115,6 +117,7 @@ class TestWFInterface(unittest.TestCase):
 
     def test_get_subworkflow(self):
         """Test obtaining of a subworkflow."""
+        # Create a workflow without bee_init, bee_exit
         tasks = _create_test_tasks(bee_nodes=False)
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
@@ -147,11 +150,13 @@ class TestWFInterface(unittest.TestCase):
 
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
+        # Create a workflow without bee_init, bee_exit
         tasks = _create_test_tasks(bee_nodes=False)
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
         dependent_tasks = wf_interface.get_dependent_tasks(tasks[0])
 
+        # Should be Compute 0, Compute 1, Compute 2
         self.assertSetEqual(set(tasks[1:4]), dependent_tasks)
 
     def test_get_task_state(self):
@@ -160,6 +165,7 @@ class TestWFInterface(unittest.TestCase):
         workflow = wf_interface.create_workflow([task])
         wf_interface.load_workflow(workflow)
 
+        # Should be WAITING because workflow not initialized
         self.assertEqual("WAITING", wf_interface.get_task_state(task))
 
     def test_finalize_workflow(self):
@@ -181,10 +187,11 @@ class TestWFInterface(unittest.TestCase):
 def _create_test_tasks(bee_nodes=True):
     """Create test tasks to reduce redundancy.
 
-    :param bee_nodes: flag to add bee_init and bee_exit nodes
+    :param bee_nodes: flag to add bee_init and bee_exit tasks
     :type bee_nodes: boolean
     """
     if bee_nodes:
+        # Create workflow with bee_init and bee_exit tasks
         tasks = [
             wf_interface.create_task("bee_init"),
             wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"],
@@ -201,6 +208,7 @@ def _create_test_tasks(bee_nodes=True):
             wf_interface.create_task("bee_exit", dependencies={"Visualization"})
         ]
     else:
+        # Do not create bee_init and bee_exit
         tasks = [
             wf_interface.create_task("Data Prep", "ls", arguments=["-a", "-l", "-F"],
                                      subworkflow="Prep"),
