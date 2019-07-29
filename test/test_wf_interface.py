@@ -8,7 +8,6 @@ import unittest
 
 from beeflow.common import wf_interface
 from beeflow.common.gdb import gdb_interface
-from beeflow.common.data.wf_data import Workflow
 
 
 class TestWFInterface(unittest.TestCase):
