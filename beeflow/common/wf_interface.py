@@ -3,44 +3,49 @@
 Delegates its work to gdb_interface.
 """
 
-import beeflow.common.gdb.gdb_interface as gdb_interface
+from beeflow.common.gdb import gdb_interface
 from beeflow.common.data.wf_data import Task, Workflow
 
 # Automatically connect to the graph database
+# This password is hard-coded
+# In the future we may need to grab the details from a config file
 gdb_interface.connect(password="password")
 
 # Store the loaded workflow object state
 _WORKFLOW = None
 
 
-def create_task(name, base_command="", arguments=None, dependencies=None, requirements=None,
-                hints=None, subworkflow="", inputs=None, outputs=None):
+def create_task(name, commands=None, requirements=None, hints=None, subworkflow=None,
+                inputs=None, outputs=None):
     """Create a new BEE workflow task.
 
     :param name: the name given to the task
     :type name: string
-    :param base_command: the base command for the task
-    :type base_command: string
-    :param arguments: the arguments given to the task command
-    :type arguments: list of strings, or None
-    :param dependencies: the task dependencies (on other Tasks)
-    :type dependencies: set of task IDs, or None
+    :param commands: the command(s) for the task
+    :type commands: list of lists of strings
     :param requirements: the task-specific requirements
-    :type requirements: TBD or None
+    :type requirements: dictionary or None
     :param hints: the task-specific hints (optional requirements)
-    :type hints: TBD or None
+    :type hints: dictionary or None
     :param subworkflow: an identifier for the subworkflow to which the task belongs
-    :type subworkflow: string
+    :type subworkflow: string or None
     :param inputs: the task inputs
-    :type inputs: TBD or None
+    :type inputs: set or None
     :param outputs: the task outputs
-    :type outputs: TBD or None
+    :type outputs: set or None
     :rtype: instance of Task
     """
-    if arguments is None:
-        arguments = []
-    if dependencies is None:
-        dependencies = set()
+    # Immutable default arguments
+    if commands is None:
+        commands = []
+    if requirements is None:
+        requirements = {}
+    if hints is None:
+        hints = {}
+    if inputs is None:
+        inputs = set()
+    if outputs is None:
+        outputs = set()
 
     # Standard bee_init, bee_exit tasks
     if name.lower() == "bee_init":
@@ -55,26 +60,51 @@ def create_task(name, base_command="", arguments=None, dependencies=None, requir
     else:
         create_task.task_id += 1
 
-    return Task(create_task.task_id, name, base_command, arguments, dependencies, requirements,
-                hints, subworkflow, inputs, outputs)
+    return Task(create_task.task_id, name, commands, requirements, hints, subworkflow,
+                inputs, outputs)
 
 
-def create_workflow(tasks, requirements=None, hints=None, inputs=None, outputs=None):
+def create_workflow(tasks, requirements=None, hints=None):
     """Create a new workflow.
 
     :param tasks: the workflow tasks
     :type tasks: iterable of Task instances
     :param requirements: the workflow requirements
-    :type requirements: TBD or None
+    :type requirements: dictionary or None
     :param hints: the workflow hints (optional requirements)
-    :type hints: TBD or None
-    :param inputs: the workflow inputs
-    :type inputs: TBD or None
-    :param outputs: the workflow outputs
-    :type outputs: TBD or None
+    :type hints: dictionary or None
     :rtype: instance of Workflow
     """
-    return Workflow(tasks, requirements, hints, inputs, outputs)
+    # Immutable default arguments
+    if requirements is None:
+        requirements = {}
+    if hints is None:
+        hints = {}
+
+    # Create bee_init if it doesn't exist
+    if not any(task.name == "bee_init" for task in tasks):
+        # Get a list of head tasks
+        head_tasks = _resolve_head_tasks(tasks)
+        # Form the union of their inputs
+        inputs = set().union(*(head_task.inputs for head_task in head_tasks))
+        # Create bee_init with inputs and outputs
+        tasks.append(create_task("bee_init", inputs=inputs, outputs=inputs))
+
+    # Create bee_exit if it doesn't exist
+    if not any(task.name == "bee_exit" for task in tasks):
+        # Get a list of tail tasks
+        tail_tasks = _resolve_tail_tasks(tasks)
+        # Form the union of their outputs
+        outputs = set().union(*(tail_task.outputs for tail_task in tail_tasks))
+        # Create bee_exit with inputs and outputs
+        tasks.append(create_task("bee_exit", inputs=outputs, outputs=outputs))
+
+    # Add dependencies
+    for task in tasks:
+        task.dependencies = {other.id for other in tasks if other.id != task.id and not
+                             task.inputs.isdisjoint(other.outputs)}
+
+    return Workflow(tasks, requirements, hints)
 
 
 def load_workflow(workflow):
@@ -102,7 +132,7 @@ def get_subworkflow(subworkflow):
     subworkflow_task_ids = gdb_interface.get_subworkflow_ids(subworkflow)
     # Return a new Workflow object with the given tasks
     return create_workflow([_WORKFLOW[task_id] for task_id in subworkflow_task_ids],
-                           _WORKFLOW.requirements, _WORKFLOW.outputs)
+                           _WORKFLOW.requirements, _WORKFLOW.hints)
 
 
 def initialize_workflow():
@@ -110,9 +140,9 @@ def initialize_workflow():
     gdb_interface.initialize_workflow()
 
 
-def run_workflow():
-    """Run the created workflow."""
-    # TODO: implement this with orchestrator/task launcher
+def finalize_workflow():
+    """Finalize the BEE workflow."""
+    gdb_interface.finalize_workflow()
 
 
 def get_dependent_tasks(task):
@@ -138,6 +168,33 @@ def get_task_state(task):
     return gdb_interface.get_task_state(task)
 
 
-def finalize_workflow():
-    """Finalize the BEE workflow."""
-    gdb_interface.finalize_workflow()
+def workflow_loaded():
+    """Return true if a workflow is loaded, else false.
+
+    :rtype: boolean
+    """
+    return bool(not gdb_interface.empty())
+
+
+def _resolve_head_tasks(tasks):
+    """Return all head tasks in a list of tasks.
+
+    :param tasks: the tasks to parse
+    :type tasks: list of Task instances
+    :rtype: list
+    """
+    # Head tasks are those that do not depend on any other tasks' outputs
+    return [task for task in tasks if all(task.inputs.isdisjoint(other.outputs)
+                                          for other in tasks if other.id != task.id)]
+
+
+def _resolve_tail_tasks(tasks):
+    """Return all tail tasks in a list of tasks.
+
+    :param tasks: the tasks to parse
+    :type tasks: list of Task instances
+    :rtype: list
+    """
+    # Tail tasks are those for which no other tasks depend on their outputs
+    return [task for task in tasks if all(task.outputs.isdisjoint(other.inputs)
+                                          for other in tasks if other.id != task.id)]

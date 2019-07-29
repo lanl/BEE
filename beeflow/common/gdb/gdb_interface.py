@@ -32,18 +32,6 @@ def load_workflow(workflow):
     # Load the workflow into the graph database
     _GDB_DRIVER.load_workflow(workflow)
 
-    # Get head and tail tasks
-    head_task_names = _GDB_DRIVER.get_head_task_names()
-    tail_task_names = _GDB_DRIVER.get_tail_task_names()
-
-    # Add a bee_init node if there is none
-    if _no_init_node(head_task_names):
-        _GDB_DRIVER.add_init_node()
-
-    # Add a bee_exit node if there is none
-    if _no_exit_node(tail_task_names):
-        _GDB_DRIVER.add_exit_node()
-
 
 def get_subworkflow_ids(subworkflow):
     """Return a subworkflows' task IDs from the graph database.
@@ -58,6 +46,11 @@ def get_subworkflow_ids(subworkflow):
 def initialize_workflow():
     """Start the workflow loaded into the graph database."""
     _GDB_DRIVER.initialize_workflow()
+
+
+def finalize_workflow():
+    """Finalize the workflow loaded into the graph database."""
+    _GDB_DRIVER.finalize_workflow()
 
 
 def get_dependent_tasks(task):
@@ -80,9 +73,12 @@ def get_task_state(task):
     return _GDB_DRIVER.get_task_state(task)
 
 
-def finalize_workflow():
-    """Finalize the workflow loaded into the graph database."""
-    _GDB_DRIVER.finalize_workflow()
+def empty():
+    """Return true if the graph database is empty, else false.
+
+    :rtype: boolean
+    """
+    return _GDB_DRIVER.empty()
 
 
 def _no_init_node(head_tasks):

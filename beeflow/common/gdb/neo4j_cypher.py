@@ -18,15 +18,22 @@ def create_task(tx, task):
     create_query = ("CREATE (t:Task) "
                     "SET t.task_id = $task_id "
                     "SET t.name = $name "
-                    "SET t.base_command = $base_command "
-                    "SET t.arguments = $arguments "
+                    "SET t.commands = $commands "
+                    "SET t.requirements = $requirements "
+                    "SET t.hints = $hints "
                     "SET t.dependencies = $dependencies "
                     "SET t.subworkflow = $subworkflow "
+                    "SET t.inputs = $inputs "
+                    "SET t.outputs = $outputs "
                     "SET t.state = 'WAITING'")
 
-    tx.run(create_query, task_id=task.id, name=task.name, base_command=task.base_command,
-           arguments=task.arguments, dependencies=list(task.dependencies),
-           subworkflow=task.subworkflow)
+    # Unpack requirements, hints dictionaries into flat list
+    tx.run(create_query, task_id=task.id, name=task.name,
+           commands=[].extend(command + [";"] for command in task.commands),
+           requirements=[str(req) for pair in task.requirements.items() for req in pair],
+           hints=[str(hint) for pair in task.hints.items() for hint in pair],
+           dependencies=list(task.dependencies), subworkflow=task.subworkflow,
+           inputs=list(task.inputs), outputs=list(task.outputs))
 
 
 def add_dependencies(tx, task):
@@ -36,11 +43,11 @@ def add_dependencies(tx, task):
     :type task: instance of Task
     """
     dependency_query = ("MATCH (s:Task), (t:Task) "
-                        "WHERE s.name = $dependent_name and t.name = $dependency_name "
+                        "WHERE s.task_id = $dependent_id and t.task_id = $dependency_id "
                         "CREATE (s)-[:DEPENDS]->(t)")
 
-    for dependency in task.dependencies:
-        tx.run(dependency_query, dependent_name=task.name, dependency_name=dependency)
+    for dependency_id in task.dependencies:
+        tx.run(dependency_query, dependent_id=task.id, dependency_id=dependency_id)
 
 
 def get_subworkflow_ids(tx, subworkflow):
@@ -54,28 +61,6 @@ def get_subworkflow_ids(tx, subworkflow):
                          "RETURN collect(t.task_id)")
 
     return tx.run(subworkflow_query, subworkflow=subworkflow).single().value()
-
-
-def create_init_node(tx):
-    """Create a task node with the name 'bee_init' and state 'WAITING'."""
-    init_node_query = ("CREATE (s:Task {name: 'bee_init', task_id: 0, state: 'WAITING'}) "
-                       "WITH s "
-                       "MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() AND NOT t.name = 'bee_init' "
-                       "CREATE (s)<-[:DEPENDS]-(t)")
-
-    tx.run(init_node_query)
-
-
-def create_exit_node(tx):
-    """Create a task node with the name 'bee_exit' and state 'WAITING'."""
-    exit_node_query = ("MATCH (n:Task) "
-                       "WITH max(n.task_id) + 1 AS task_id "
-                       "CREATE (s:Task {name: 'bee_exit', task_id: task_id, state: 'WAITING'}) "
-                       "WITH s "
-                       "MATCH (t:Task) WHERE NOT (t)<-[:DEPENDS]-() AND NOT t.name = 'bee_exit' "
-                       "CREATE (s)-[:DEPENDS]->(t)")
-
-    tx.run(exit_node_query)
 
 
 def set_init_task_to_ready(tx):
@@ -194,9 +179,17 @@ def get_tail_task_names(tx):
     return tx.run(end_task_query).single().value()
 
 
+def is_empty(tx):
+    """Return true if the database is empty, else false."""
+    empty_query = ("MATCH (t:Task) "
+                   "RETURN t IS NULL LIMIT 1")
+
+    return tx.run(empty_query).single()
+
+
 def cleanup(tx):
     """Clean up all workflow data in the database."""
-    cleanup_query = ("MATCH (n) WITH n LIMIT 10000 "
+    cleanup_query = ("MATCH (n) "
                      "DETACH DELETE n")
 
     tx.run(cleanup_query)

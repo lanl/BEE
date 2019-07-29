@@ -4,7 +4,7 @@ from neo4j import GraphDatabase as Neo4jDatabase
 from neobolt.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
-import beeflow.common.gdb.neo4j_cypher as tx
+from beeflow.common.gdb import neo4j_cypher as tx
 
 # Default Neo4j authentication
 # We may want to instead get these from a config at some point
@@ -49,14 +49,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         for task in workflow.tasks:
             self._write_transaction(tx.add_dependencies, task=task)
 
-    def add_init_node(self):
-        """Add a task node with the name 'bee_init' and state 'WAITING'."""
-        self._write_transaction(tx.create_init_node)
-
-    def add_exit_node(self):
-        """Add a task node with the name 'bee_exit' and state 'WAITING'."""
-        self._write_transaction(tx.create_exit_node)
-
     def get_subworkflow_ids(self, subworkflow):
         """Return a subworkflow's task IDs from the Neo4j database.
 
@@ -73,13 +65,12 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_init_task_to_ready)
 
-    def get_head_task_names(self):
-        """Return all tasks with no dependencies."""
-        return self._read_transaction(tx.get_head_task_names)
+    def finalize_workflow(self):
+        """Finalize the workflow loaded into the Neo4j database.
 
-    def get_tail_task_names(self):
-        """Return all tasks with no dependents."""
-        return self._read_transaction(tx.get_tail_task_names)
+        Sets the bee_exit node's state to READY.
+        """
+        self._write_transaction(tx.set_exit_task_to_ready)
 
     def get_dependent_tasks(self, task):
         """Return the dependent tasks of a specified workflow task.
@@ -99,12 +90,12 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         return self._read_transaction(tx.get_task_state, task=task)
 
-    def finalize_workflow(self):
-        """Finalize the workflow loaded into the Neo4j database.
+    def empty(self):
+        """Determine if the database is empty.
 
-        Sets the bee_exit node's state to READY.
+        :rtype: boolean
         """
-        self._write_transaction(tx.set_exit_task_to_ready)
+        return bool(self._read_transaction(tx.is_empty) is None)
 
     def cleanup(self):
         """Clean up all data in the Neo4j database."""

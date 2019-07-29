@@ -4,8 +4,7 @@
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, task_id, name, base_command, arguments, dependencies, requirements,
-                 hints, subworkflow, inputs, outputs):
+    def __init__(self, task_id, name, commands, requirements, hints, subworkflow, inputs, outputs):
         """Store a task description.
 
         There are two special tasks: those with the name bee_init and bee_exit.
@@ -20,33 +19,29 @@ class Task:
         :type task_id: integer
         :param name: the task name
         :type name: string
-        :param base_command: the base command for the task
-        :type base_command: string
-        :param arguments: the arguments given to the task
-        :type arguments: list of strings
-        :param dependencies: the task dependencies (on other tasks)
-        :type dependencies: set of Task IDs
+        :param commands: the command(s) for the task
+        :type commands: list of lists of strings
         :param requirements: the task requirements
-        :type requirements: TBD
+        :type requirements: dictionary
         :param hints: the task hints (optional requirements)
-        :type hints: TBD
+        :type hints: dictionary
         :param subworkflow: an identifier for the subworkflow to which the task belongs
         :type subworkflow: string
         :param inputs: the task inputs
-        :type inputs: TBD
+        :type inputs: set
         :param outputs: the task outputs
-        :type outputs: TBD
+        :type outputs: set
         """
         self.id = task_id
         self.name = name
-        self.base_command = base_command
-        self.arguments = arguments
-        self.dependencies = dependencies
+        self.commands = commands
         self.requirements = requirements
         self.hints = hints
         self.subworkflow = subworkflow
         self.inputs = inputs
         self.outputs = outputs
+
+        self.dependencies = None
 
     def __eq__(self, other):
         """Test the equality of two tasks.
@@ -56,14 +51,13 @@ class Task:
         """
         return bool(self.id == other.id and
                     self.name == other.name and
-                    self.base_command == other.base_command and
-                    self.arguments == other.arguments and
-                    self.dependencies == other.dependencies and
+                    self.commands == other.commands and
                     self.requirements == other.requirements and
                     self.hints == other.hints and
                     self.subworkflow == other.subworkflow and
                     self.inputs == other.inputs and
-                    self.outputs == other.outputs)
+                    self.outputs == other.outputs and
+                    self.dependencies == other.dependencies)
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
@@ -75,41 +69,41 @@ class Task:
 
     def __hash__(self):
         """Return the hash value for a task."""
-        return hash((self.id, self.name, self.base_command, self.subworkflow))
+        return hash((self.id, self.name))
 
     def __repr__(self):
         """Construct a task's string representation."""
-        return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
-                f"arguments={self.arguments} dependencies={self.dependencies}")
+        return f"<Task id={self.id} name={self.name}>"
 
-    def construct_command(self):
+    def construct_commands(self):
         """Construct a task's command representation."""
-        return (self.base_command if not self.arguments
-                else " ".join([self.base_command] + self.arguments))
+        return [" ".join(command) for command in self.commands]
+
+    @property
+    def base_commands(self):
+        """Return a list of the task base commands.
+
+        :rtype: list of strings
+        """
+        return [command[0] for command in self.commands]
 
 
 class Workflow:
     """Data structure for holding workflow data and metadata."""
 
-    def __init__(self, tasks, requirements, hints, inputs, outputs):
+    def __init__(self, tasks, requirements, hints):
         """Initialize a new workflow data structure.
 
         :param tasks: the workflow tasks
         :type tasks: iterable of Task instances
         :param requirements: the workflow requirements
-        :type requirements: TBD
+        :type requirements: dictionary
         :param hints: the workflow hints (optional requirements)
-        :type hints: TBD
-        :param inputs: the workflow inputs
-        :type inputs: TBD
-        :param outputs: the workflow outputs
-        :type outputs: TBD
+        :type hints: dictionary
         """
         self._tasks = {task.id: task for task in tasks}
         self.requirements = requirements
         self.hints = hints
-        self.inputs = inputs
-        self.outputs = outputs
 
     def __eq__(self, other):
         """Test the equality of two workflows.
@@ -120,8 +114,7 @@ class Workflow:
         """
         return bool(self.tasks == other.tasks and
                     self.requirements == other.requirements and
-                    self.hints == other.hints and
-                    self.outputs == other.outputs)
+                    self.hints == other.hints)
 
     def __ne__(self, other):
         """Test the inequality of two workflows.
@@ -157,7 +150,7 @@ class Workflow:
         """
         return ("Tasks: " + repr(self.tasks) + "\n"
                 + "Requirements: " + repr(self.requirements) + "\n"
-                + "Outputs: " + repr(self.outputs))
+                + "Hints: " + repr(self.hints))
 
     @property
     def tasks(self):

@@ -19,14 +19,6 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def add_init_node(self):
-        """Add a task node with the name 'bee_init' and state 'WAITING'."""
-
-    @abstractmethod
-    def add_exit_node(self):
-        """Add a task node with the name 'bee_exit' and state 'WAITING'."""
-
-    @abstractmethod
     def get_subworkflow_ids(self, subworkflow):
         """Return a subworkflow's task IDs from the graph database.
 
@@ -43,12 +35,11 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_head_task_names(self):
-        """Return all tasks with no dependents."""
+    def finalize_workflow(self):
+        """Finalize the workflow loaded into the graph database.
 
-    @abstractmethod
-    def get_tail_task_names(self):
-        """Return all tasks with no dependencies."""
+        Sets the bee_exit node's state to READY.
+        """
 
     @abstractmethod
     def get_dependent_tasks(self, task):
@@ -69,10 +60,10 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def finalize_workflow(self):
-        """Finalize the workflow loaded into the graph database.
+    def empty(self):
+        """Determine if the database is empty.
 
-        Sets the bee_exit node's state to READY.
+        :rtype: boolean
         """
 
     @abstractmethod
