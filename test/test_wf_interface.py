@@ -202,10 +202,12 @@ class TestWFInterface(unittest.TestCase):
         tasks = _create_test_tasks()
         workflow = wf_interface.create_workflow(tasks)
 
+        # No workflow loaded
         self.assertFalse(wf_interface.workflow_loaded())
 
         wf_interface.load_workflow(workflow)
 
+        # Workflow now loaded
         self.assertTrue(wf_interface.workflow_loaded())
 
 
