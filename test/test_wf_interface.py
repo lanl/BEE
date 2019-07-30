@@ -12,11 +12,6 @@ from beeflow.common import wf_interface
 class TestWFInterface(unittest.TestCase):
     """Unit test case for the workflow interface."""
 
-    @classmethod
-    def tearDownClass(cls):
-        """Close the connection to the Neo4j database."""
-        wf_interface._GDB_INTERFACE._connection.close()
-
     def tearDown(self):
         """Clear all data in the Neo4j database."""
         wf_interface._GDB_INTERFACE._connection.cleanup()
