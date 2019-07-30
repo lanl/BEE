@@ -8,7 +8,7 @@ this is the `Neo4jDriver` class.
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 
 
-class GraphDatabaseInterface():
+class GraphDatabaseInterface:
     """Interface for managing a graph database with workflows.
 
     Requires an implemented subclass of GDBDriver to function.
