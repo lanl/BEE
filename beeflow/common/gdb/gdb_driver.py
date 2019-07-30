@@ -19,15 +19,6 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_subworkflow_ids(self, subworkflow):
-        """Return a subworkflow's task IDs from the graph database.
-
-        :param subworkflow: the unique identifier of the subworkflow
-        :type subworkflow: string
-        :rtype: list of integers
-        """
-
-    @abstractmethod
     def initialize_workflow(self):
         """Initialize the workflow loaded into the graph database.
 
@@ -39,6 +30,15 @@ class GraphDatabaseDriver(ABC):
         """Finalize the workflow loaded into the graph database.
 
         Sets the bee_exit node's state to READY.
+        """
+
+    @abstractmethod
+    def get_subworkflow_tasks(self, subworkflow):
+        """Return a list of reconstructed tasks from the graph database.
+
+        :param subworkflow: the unique identifier of the subworkflow
+        :type subworkflow: string
+        :rtype: list of Task instances
         """
 
     @abstractmethod
@@ -64,6 +64,14 @@ class GraphDatabaseDriver(ABC):
         """Determine if the database is empty.
 
         :rtype: boolean
+        """
+
+    @abstractmethod
+    def reconstruct_task(self, task_record):
+        """Reconstruct a Task object by its record retrieved from the database.
+
+        :param task_record: the database record of the task
+        :rtype: instance of Task
         """
 
     @abstractmethod

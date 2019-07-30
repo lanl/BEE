@@ -76,7 +76,6 @@ class TestWFInterface(unittest.TestCase):
             self.assertEqual(task_id, task.id)
 
         # Test automatic dependency assignment
-        print(workflow._tasks[tasks[4].id].dependencies)
         self.assertSetEqual({tasks[5].id}, workflow._tasks[tasks[0].id].dependencies)
         self.assertSetEqual({tasks[0].id}, workflow._tasks[tasks[1].id].dependencies)
         self.assertSetEqual({tasks[0].id}, workflow._tasks[tasks[2].id].dependencies)
@@ -138,9 +137,12 @@ class TestWFInterface(unittest.TestCase):
         wf_interface.load_workflow(workflow)
 
         # Subworkflow assertion
-        self.assertEqual(tasks[1], wf_interface.get_subworkflow("Compute")[tasks[1].id])
-        self.assertEqual(tasks[2], wf_interface.get_subworkflow("Compute")[tasks[2].id])
-        self.assertEqual(tasks[3], wf_interface.get_subworkflow("Compute")[tasks[3].id])
+        self.assertEqual(tasks[1], wf_interface.get_subworkflow(
+            "Compute", workflow.requirements, workflow.hints)[tasks[1].id])
+        self.assertEqual(tasks[2], wf_interface.get_subworkflow(
+            "Compute", workflow.requirements, workflow.hints)[tasks[2].id])
+        self.assertEqual(tasks[3], wf_interface.get_subworkflow(
+            "Compute", workflow.requirements, workflow.hints)[tasks[3].id])
 
     def test_finalize_workflow(self):
         """Test workflow finalization."""
@@ -181,9 +183,10 @@ class TestWFInterface(unittest.TestCase):
         tasks = _create_test_tasks(bee_nodes=False)
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
+        # Get dependent tasks of Data Prep
         dependent_tasks = wf_interface.get_dependent_tasks(tasks[0])
 
-        # Should be Compute 0, Compute 1, Compute 2
+        # Should equal Compute 0, Compute 1, and Compute 2
         self.assertSetEqual(set(tasks[1:4]), dependent_tasks)
 
     def test_get_task_state(self):
@@ -224,12 +227,14 @@ def _create_test_tasks(bee_nodes=True):
                                      requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
                                      subworkflow="Compute", inputs={"prep_input.txt"},
                                      outputs={"output1.txt"}),
-            wf_interface.create_task("Compute 1", commands=[["find"]], subworkflow="Compute",
+            wf_interface.create_task("Compute 1", commands=[["find"]],
                                      requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     inputs={"prep_input.txt"}, outputs={"output2.txt"}),
-            wf_interface.create_task("Compute 2", commands=[["yes"]], subworkflow="Compute",
+                                     subworkflow="Compute", inputs={"prep_input.txt"},
+                                     outputs={"output2.txt"}),
+            wf_interface.create_task("Compute 2", commands=[["yes"]],
                                      requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     inputs={"prep_input.txt"}, outputs={"output3.txt"}),
+                                     subworkflow="Compute", inputs={"prep_input.txt"},
+                                     outputs={"output3.txt"}),
             wf_interface.create_task("Visualization", commands=[["ln", "-s"]],
                                      requirements={"ram": 128, "cores": 8}, hints={"cpus": 2},
                                      inputs={"output1.txt", "output2.txt", "output3.txt"},
@@ -248,12 +253,14 @@ def _create_test_tasks(bee_nodes=True):
                                      requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
                                      subworkflow="Compute", inputs={"prep_input.txt"},
                                      outputs={"output1.txt"}),
-            wf_interface.create_task("Compute 1", commands=[["find"]], subworkflow="Compute",
+            wf_interface.create_task("Compute 1", commands=[["find"]],
                                      requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     inputs={"prep_input.txt"}, outputs={"output2.txt"}),
-            wf_interface.create_task("Compute 2", commands=[["yes"]], subworkflow="Compute",
+                                     subworkflow="Compute", inputs={"prep_input.txt"},
+                                     outputs={"output2.txt"}),
+            wf_interface.create_task("Compute 2", commands=[["yes"]],
                                      requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     inputs={"prep_input.txt"}, outputs={"output3.txt"}),
+                                     subworkflow="Compute", inputs={"prep_input.txt"},
+                                     outputs={"output3.txt"}),
             wf_interface.create_task("Visualization", commands=[["ln", "-s"]],
                                      requirements={"ram": 128, "cores": 8}, hints={"cpus": 2},
                                      inputs={"output1.txt", "output2.txt", "output3.txt"},

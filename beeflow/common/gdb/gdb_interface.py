@@ -33,16 +33,6 @@ def load_workflow(workflow):
     _GDB_DRIVER.load_workflow(workflow)
 
 
-def get_subworkflow_ids(subworkflow):
-    """Return a subworkflows' task IDs from the graph database.
-
-    :param subworkflow: the unique identifier of the subworkflow
-    :type subworkflow: string
-    :rtype: list of integers
-    """
-    return _GDB_DRIVER.get_subworkflow_ids(subworkflow)
-
-
 def initialize_workflow():
     """Start the workflow loaded into the graph database."""
     _GDB_DRIVER.initialize_workflow()
@@ -53,6 +43,17 @@ def finalize_workflow():
     _GDB_DRIVER.finalize_workflow()
 
 
+def get_subworkflow_tasks(subworkflow):
+    """Return a subworkflow's Task objects from the graph database.
+
+    :param subworkflow: the unique identifier of the subworkflow
+    :type subworkflow: string
+    :rtype: list of Task instances
+    """
+    task_records = _GDB_DRIVER.get_subworkflow_tasks(subworkflow)
+    return [_GDB_DRIVER.reconstruct_task(task_record) for task_record in task_records]
+
+
 def get_dependent_tasks(task):
     """Return the dependents of a task in a graph database workflow.
 
@@ -60,7 +61,8 @@ def get_dependent_tasks(task):
     :type task: instance of Task
     :rtype: set of Task instances
     """
-    return _GDB_DRIVER.get_dependent_tasks(task)
+    task_records = _GDB_DRIVER.get_dependent_tasks(task)
+    return {_GDB_DRIVER.reconstruct_task(task_record) for task_record in task_records}
 
 
 def get_task_state(task):

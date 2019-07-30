@@ -11,9 +11,6 @@ from beeflow.common.data.wf_data import Task, Workflow
 # In the future we may need to grab the details from a config file
 gdb_interface.connect(password="password")
 
-# Store the loaded workflow object state
-_WORKFLOW = None
-
 
 def create_task(name, commands=None, requirements=None, hints=None, subworkflow=None,
                 inputs=None, outputs=None):
@@ -113,26 +110,8 @@ def load_workflow(workflow):
     :param workflow: the workflow to load
     :type workflow: instance of Workflow
     """
-    # Store the workflow in the module
-    global _WORKFLOW
-    _WORKFLOW = workflow
-
     # Store the workflow in the graph database
     gdb_interface.load_workflow(workflow)
-
-
-def get_subworkflow(subworkflow):
-    """Get a subworkflow by its identifier.
-
-    :param subworkflow: the unique identifier of the subworkflow
-    :type subworkflow: string
-    :rtype: instance of Workflow
-    """
-    # Obtain the IDs of the subworkflow tasks
-    subworkflow_task_ids = gdb_interface.get_subworkflow_ids(subworkflow)
-    # Return a new Workflow object with the given tasks
-    return create_workflow([_WORKFLOW[task_id] for task_id in subworkflow_task_ids],
-                           _WORKFLOW.requirements, _WORKFLOW.hints)
 
 
 def initialize_workflow():
@@ -145,6 +124,19 @@ def finalize_workflow():
     gdb_interface.finalize_workflow()
 
 
+def get_subworkflow(subworkflow, requirements, hints):
+    """Get a subworkflow by its identifier.
+
+    :param subworkflow: the unique identifier of the subworkflow
+    :type subworkflow: string
+    :rtype: instance of Workflow
+    """
+    # Obtain a list of the subworkflow tasks
+    subworkflow_tasks = gdb_interface.get_subworkflow_tasks(subworkflow)
+    # Return a new Workflow object with the given tasks
+    return create_workflow(subworkflow_tasks, requirements, hints)
+
+
 def get_dependent_tasks(task):
     """Return the dependents of a task in the BEE workflow.
 
@@ -152,10 +144,8 @@ def get_dependent_tasks(task):
     :type task: instance of Task
     :rtype: set of Task instances
     """
-    # Get IDs of dependent tasks
-    dependent_task_ids = gdb_interface.get_dependent_tasks(task)
     # Return a set of the dependent Task objects
-    return {_WORKFLOW[task_id] for task_id in dependent_task_ids}
+    return gdb_interface.get_dependent_tasks(task)
 
 
 def get_task_state(task):
