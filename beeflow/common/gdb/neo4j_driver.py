@@ -17,7 +17,10 @@ DEFAULT_PASSWORD = "neo4j"
 
 
 class Neo4jDriver(GraphDatabaseDriver):
-    """The driver for a Neo4j Database."""
+    """The driver for a Neo4j Database.
+
+    Implements GraphDatabaseDriver.
+    """
 
     def __init__(self, uri=DEFAULT_URI, user=DEFAULT_USER, password=DEFAULT_PASSWORD):
         """Create a new Neo4j database driver.
