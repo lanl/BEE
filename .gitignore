@@ -4,6 +4,7 @@ __pycache__
 *.iso
 *.pyc
 *.egg-info
+.python-version
 .DS_Store
 .idea
 .idea/vcs.xml
