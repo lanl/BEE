@@ -1,15 +1,16 @@
 """High-level BEE workflow management interface.
 
-Delegates its work to gdb_interface.
+Delegates its work to a GDBInterface instance.
 """
 
-from beeflow.common.gdb import gdb_interface
+from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
 from beeflow.common.data.wf_data import Task, Workflow
 
 # Automatically connect to the graph database
 # This password is hard-coded
 # In the future we may need to grab the details from a config file
-gdb_interface.connect(password="password")
+_GDB_INTERFACE = GraphDatabaseInterface()
+_GDB_INTERFACE.connect(password="password")
 
 
 def create_task(name, commands=None, requirements=None, hints=None, subworkflow=None,
@@ -111,17 +112,17 @@ def load_workflow(workflow):
     :type workflow: instance of Workflow
     """
     # Store the workflow in the graph database
-    gdb_interface.load_workflow(workflow)
+    _GDB_INTERFACE.load_workflow(workflow)
 
 
 def initialize_workflow():
     """Initialize a BEE workflow."""
-    gdb_interface.initialize_workflow()
+    _GDB_INTERFACE.initialize_workflow()
 
 
 def finalize_workflow():
     """Finalize the BEE workflow."""
-    gdb_interface.finalize_workflow()
+    _GDB_INTERFACE.finalize_workflow()
 
 
 def get_subworkflow(subworkflow, requirements, hints):
@@ -132,7 +133,7 @@ def get_subworkflow(subworkflow, requirements, hints):
     :rtype: instance of Workflow
     """
     # Obtain a list of the subworkflow tasks
-    subworkflow_tasks = gdb_interface.get_subworkflow_tasks(subworkflow)
+    subworkflow_tasks = _GDB_INTERFACE.get_subworkflow_tasks(subworkflow)
     # Return a new Workflow object with the given tasks
     return create_workflow(subworkflow_tasks, requirements, hints)
 
@@ -145,7 +146,7 @@ def get_dependent_tasks(task):
     :rtype: set of Task instances
     """
     # Return a set of the dependent Task objects
-    return gdb_interface.get_dependent_tasks(task)
+    return _GDB_INTERFACE.get_dependent_tasks(task)
 
 
 def get_task_state(task):
@@ -155,7 +156,7 @@ def get_task_state(task):
     :type task: instance of Task
     :rtype: string
     """
-    return gdb_interface.get_task_state(task)
+    return _GDB_INTERFACE.get_task_state(task)
 
 
 def workflow_loaded():
@@ -163,7 +164,7 @@ def workflow_loaded():
 
     :rtype: boolean
     """
-    return bool(not gdb_interface.empty())
+    return bool(not _GDB_INTERFACE.empty())
 
 
 def _resolve_head_tasks(tasks):

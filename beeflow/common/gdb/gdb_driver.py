@@ -60,18 +60,18 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def empty(self):
-        """Determine if the database is empty.
-
-        :rtype: boolean
-        """
-
-    @abstractmethod
     def reconstruct_task(self, task_record):
         """Reconstruct a Task object by its record retrieved from the database.
 
         :param task_record: the database record of the task
         :rtype: instance of Task
+        """
+
+    @abstractmethod
+    def empty(self):
+        """Determine if the database is empty.
+
+        :rtype: boolean
         """
 
     @abstractmethod

@@ -7,7 +7,6 @@
 import unittest
 
 from beeflow.common import wf_interface
-from beeflow.common.gdb import gdb_interface
 
 
 class TestWFInterface(unittest.TestCase):
@@ -16,11 +15,11 @@ class TestWFInterface(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """Close the connection to the Neo4j database."""
-        gdb_interface._GDB_DRIVER.close()
+        wf_interface._GDB_INTERFACE._connection.close()
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
-        gdb_interface._GDB_DRIVER.cleanup()
+        wf_interface._GDB_INTERFACE._connection.cleanup()
 
     def test_create_task(self):
         """Test task creation."""

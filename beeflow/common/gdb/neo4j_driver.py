@@ -93,13 +93,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         return self._read_transaction(tx.get_task_state, task=task)
 
-    def empty(self):
-        """Determine if the database is empty.
-
-        :rtype: boolean
-        """
-        return bool(self._read_transaction(tx.is_empty) is None)
-
     def reconstruct_task(self, task_record):
         """Reconstruct a Task object by its record retrieved from Neo4j.
 
@@ -113,6 +106,13 @@ class Neo4jDriver(GraphDatabaseDriver):
                     hints=_reconstruct_dict(rec["hints"]),
                     subworkflow=rec["subworkflow"], inputs=set(rec["inputs"]),
                     outputs=set(rec["outputs"]))
+
+    def empty(self):
+        """Determine if the database is empty.
+
+        :rtype: boolean
+        """
+        return bool(self._read_transaction(tx.is_empty) is None)
 
     def cleanup(self):
         """Clean up all data in the Neo4j database."""
