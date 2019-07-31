@@ -69,12 +69,19 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_exit_task_to_ready)
 
+    def get_workflow_tasks(self):
+        """Return all workflow task records from the Neo4j database.
+
+        :rtype: BoltStatementResult
+        """
+        return self._read_transaction(tx.get_workflow_tasks)
+
     def get_subworkflow_tasks(self, subworkflow):
         """Return task records from the Neo4j database.
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: string
-        :rtype: list of Task instances
+        :rtype: BoltStatementResult
         """
         return self._read_transaction(tx.get_subworkflow_tasks, subworkflow=subworkflow)
 

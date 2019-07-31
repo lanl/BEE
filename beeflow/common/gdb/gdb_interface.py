@@ -56,6 +56,11 @@ class GraphDatabaseInterface:
         """Finalize the workflow loaded into the graph database."""
         self._connection.finalize_workflow()
 
+    def get_workflow_tasks(self):
+        """Return a workflow's Task objects from the graph database."""
+        task_records = self._connection.get_workflow_tasks()
+        return [self._connection.reconstruct_task(task_record) for task_record in task_records]
+
     def get_subworkflow_tasks(self, subworkflow):
         """Return a subworkflow's Task objects from the graph database.
 

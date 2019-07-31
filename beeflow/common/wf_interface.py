@@ -115,6 +115,12 @@ def load_workflow(workflow):
     _GDB_INTERFACE.load_workflow(workflow)
 
 
+def unload_workflow():
+    """Unload a workflow."""
+    # Clean up all data in the database
+    _GDB_INTERFACE.cleanup()
+
+
 def initialize_workflow():
     """Initialize a BEE workflow."""
     _GDB_INTERFACE.initialize_workflow()
@@ -123,6 +129,21 @@ def initialize_workflow():
 def finalize_workflow():
     """Finalize the BEE workflow."""
     _GDB_INTERFACE.finalize_workflow()
+
+
+def get_workflow(requirements, hints):
+    """Get the loaded workflow.
+
+    :param requirements: the workflow requirements
+    :type requirements: dictionary
+    :param hints: the workflow hints (optional requirements)
+    :type hints: dictionary
+    :rtype: instance of Workflow
+    """
+    # Obtain a list of workflow tasks
+    workflow_tasks = _GDB_INTERFACE.get_workflow_tasks()
+    # Return a new Workflow object with the given tasks
+    return create_workflow(workflow_tasks, requirements, hints)
 
 
 def get_subworkflow(subworkflow, requirements, hints):

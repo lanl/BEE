@@ -33,12 +33,19 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_workflow_tasks(self):
+        """Return a list of all workflow task records from the graph database.
+
+        :rtype: a query result object
+        """
+
+    @abstractmethod
     def get_subworkflow_tasks(self, subworkflow):
-        """Return a list of reconstructed tasks from the graph database.
+        """Return a list of subworkflow task records from the graph database.
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: string
-        :rtype: list of Task instances
+        :rtype: a query result object
         """
 
     @abstractmethod

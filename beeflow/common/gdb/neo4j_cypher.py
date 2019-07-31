@@ -49,12 +49,19 @@ def add_dependencies(tx, task):
         tx.run(dependency_query, dependent_id=task.id, dependency_id=dependency_id)
 
 
+def get_workflow_tasks(tx):
+    """Get workflow tasks from the Neo4j database."""
+    workflow_query = "MATCH (t:Task) RETURN t"
+
+    return tx.run(workflow_query)
+
+
 def get_subworkflow_tasks(tx, subworkflow):
-    """Get subworkflows from the Neo4j database with the specified head tasks.
+    """Get subworkflow tasks from the Neo4j database with the specified identifier.
 
     :param subworkflow: the unique identifier of the subworkflow
     :type subworkflow: string
-    :rtype: instance of Workflow
+    :rtype: BoltStatementResult
     """
     subworkflow_query = "MATCH (t:Task {subworkflow: $subworkflow}) RETURN t"
 

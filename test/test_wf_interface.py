@@ -119,9 +119,36 @@ class TestWFInterface(unittest.TestCase):
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
 
+        self.assertTrue(wf_interface.workflow_loaded())
+
         # Test task states
         for task in tasks:
             self.assertEqual("WAITING", wf_interface.get_task_state(task))
+
+        self.assertEqual(workflow, wf_interface.get_workflow(workflow.requirements,
+                                                             workflow.hints))
+
+    def test_unload_workflow(self):
+        """Test workflow deletion from the graph database."""
+        tasks = _create_test_tasks()
+
+        workflow = wf_interface.create_workflow(tasks)
+        wf_interface.load_workflow(workflow)
+
+        wf_interface.unload_workflow()
+
+        self.assertFalse(wf_interface.workflow_loaded())
+
+    def test_get_workflow(self):
+        """Test obtaining the workflow from the graph database."""
+        tasks = _create_test_tasks()
+
+        workflow = wf_interface.create_workflow(tasks)
+        wf_interface.load_workflow(workflow)
+
+        self.assertTrue(wf_interface.workflow_loaded())
+        self.assertEqual(workflow, wf_interface.get_workflow(workflow.requirements,
+                                                             workflow.hints))
 
     def test_get_subworkflow(self):
         """Test obtaining of a subworkflow."""
