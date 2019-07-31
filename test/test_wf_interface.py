@@ -14,7 +14,7 @@ class TestWFInterface(unittest.TestCase):
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
-        wf_interface._GDB_INTERFACE._connection.cleanup()
+        wf_interface._GDB_INTERFACE.cleanup()
 
     def test_create_task(self):
         """Test task creation."""
