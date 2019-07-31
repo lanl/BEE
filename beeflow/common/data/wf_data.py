@@ -4,7 +4,7 @@
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, task_id, name, commands, requirements, hints, subworkflow, inputs, outputs):
+    def __init__(self, task_id, name, command, requirements, hints, subworkflow, inputs, outputs):
         """Store a task description.
 
         There are two special tasks: those with the name bee_init and bee_exit.
@@ -19,8 +19,8 @@ class Task:
         :type task_id: integer
         :param name: the task name
         :type name: string
-        :param commands: the command(s) for the task
-        :type commands: list of lists of strings
+        :param command: the command to run for the task
+        :type command: list of strings
         :param requirements: the task requirements
         :type requirements: dictionary
         :param hints: the task hints (optional requirements)
@@ -34,7 +34,7 @@ class Task:
         """
         self.id = task_id
         self.name = name
-        self.commands = commands
+        self.command = command
         self.requirements = requirements
         self.hints = hints
         self.subworkflow = subworkflow
@@ -51,7 +51,7 @@ class Task:
         :type other: instance of Task
         """
         return bool(self.name == other.name and
-                    self.commands == other.commands and
+                    self.command == other.command and
                     self.requirements == other.requirements and
                     self.hints == other.hints and
                     self.subworkflow == other.subworkflow and
@@ -74,17 +74,17 @@ class Task:
         """Construct a task's string representation."""
         return f"<Task id={self.id} name={self.name}>"
 
-    def construct_commands(self):
+    def construct_command(self):
         """Construct a task's command representation."""
-        return [" ".join(command) for command in self.commands]
+        return " ".join(self.command)
 
     @property
-    def base_commands(self):
-        """Return a list of the task base commands.
+    def base_command(self):
+        """Return a list of the task base command.
 
         :rtype: list of strings
         """
-        return [command[0] for command in self.commands]
+        return command[0]
 
 
 class Workflow:

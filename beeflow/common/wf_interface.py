@@ -13,14 +13,14 @@ _GDB_INTERFACE = GraphDatabaseInterface()
 _GDB_INTERFACE.connect(password="password")
 
 
-def create_task(name, commands=None, requirements=None, hints=None, subworkflow=None,
+def create_task(name, command=None, requirements=None, hints=None, subworkflow=None,
                 inputs=None, outputs=None):
     """Create a new BEE workflow task.
 
     :param name: the name given to the task
     :type name: string
-    :param commands: the command(s) for the task
-    :type commands: list of lists of strings
+    :param command: the command for the task
+    :type command: list of strings
     :param requirements: the task-specific requirements
     :type requirements: dictionary or None
     :param hints: the task-specific hints (optional requirements)
@@ -34,8 +34,8 @@ def create_task(name, commands=None, requirements=None, hints=None, subworkflow=
     :rtype: instance of Task
     """
     # Immutable default arguments
-    if commands is None:
-        commands = []
+    if command is None:
+        command = []
     if requirements is None:
         requirements = {}
     if hints is None:
@@ -58,7 +58,7 @@ def create_task(name, commands=None, requirements=None, hints=None, subworkflow=
     else:
         create_task.task_id += 1
 
-    return Task(create_task.task_id, name, commands, requirements, hints, subworkflow,
+    return Task(create_task.task_id, name, command, requirements, hints, subworkflow,
                 inputs, outputs)
 
 

@@ -1,7 +1,5 @@
 """Neo4j interface module."""
 
-from itertools import groupby
-
 from neo4j import GraphDatabase as Neo4jDatabase
 from neobolt.exceptions import ServiceUnavailable
 
@@ -111,7 +109,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         rec = task_record["t"]
         return Task(task_id=rec["task_id"], name=rec["name"],
-                    commands=_reconstruct_commands(rec["commands"]),
+                    command=rec["command"],
                     requirements=_reconstruct_dict(rec["requirements"]),
                     hints=_reconstruct_dict(rec["hints"]),
                     subworkflow=rec["subworkflow"], inputs=set(rec["inputs"]),
@@ -177,15 +175,3 @@ def _reconstruct_dict(list_repr):
         else:
             dict_[key] = val
     return dict_
-
-
-def _reconstruct_commands(command_list):
-    """Reconstruct a nested list of commands from a flat command list.
-
-    The flat list must conform to the following pattern:
-    [command1, args1..., ";", command2, args2..., ...]
-    :param command_list: the flat list of commands
-    :type command_list: list of strings
-    :rtype: list of lists of strings
-    """
-    return [list(comm) for k, comm in groupby(command_list, key=lambda s: s != ";") if k]

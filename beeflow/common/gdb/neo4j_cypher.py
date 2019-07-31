@@ -18,7 +18,7 @@ def create_task(tx, task):
     create_query = ("CREATE (t:Task) "
                     "SET t.task_id = $task_id "
                     "SET t.name = $name "
-                    "SET t.commands = $commands "
+                    "SET t.command = $command "
                     "SET t.requirements = $requirements "
                     "SET t.hints = $hints "
                     "SET t.dependencies = $dependencies "
@@ -29,8 +29,7 @@ def create_task(tx, task):
 
     # Unpack requirements, hints dictionaries into flat list
     tx.run(create_query, task_id=task.id, name=task.name,
-           commands=_encode_commands_list(task.commands),
-           requirements=_encode_dict_as_list(task.requirements),
+           command=task.command, requirements=_encode_dict_as_list(task.requirements),
            hints=_encode_dict_as_list(task.hints), dependencies=list(task.dependencies),
            subworkflow=task.subworkflow, inputs=list(task.inputs), outputs=list(task.outputs))
 
@@ -159,22 +158,6 @@ def cleanup(tx):
     cleanup_query = "MATCH (n) DETACH DELETE n"
 
     tx.run(cleanup_query)
-
-
-def _encode_commands_list(commands):
-    """Encode the nested list of commands as a flat list.
-
-    :param commands: the list of commands
-    :type commands: list of lists of strings
-    """
-    if not commands:
-        return commands
-
-    encoded_list = []
-    for command in commands[:-1]:
-        encoded_list.extend(c for c in command + [";"])
-    encoded_list.extend(c for c in commands[-1])
-    return encoded_list
 
 
 def _encode_dict_as_list(dict_):
