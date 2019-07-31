@@ -29,7 +29,6 @@ class GraphDatabaseInterface:
 
         Automatically disconnect from the graph database.
         """
-        self.cleanup()
         self.close()
 
     def connect(self, **kwargs):
