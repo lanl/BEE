@@ -131,12 +131,9 @@ class TestWFInterface(unittest.TestCase):
         wf_interface.load_workflow(workflow)
 
         # Subworkflow assertion
-        self.assertEqual(tasks[1], wf_interface.get_subworkflow(
-            "Compute", workflow.requirements, workflow.hints)[tasks[1].id])
-        self.assertEqual(tasks[2], wf_interface.get_subworkflow(
-            "Compute", workflow.requirements, workflow.hints)[tasks[2].id])
-        self.assertEqual(tasks[3], wf_interface.get_subworkflow(
-            "Compute", workflow.requirements, workflow.hints)[tasks[3].id])
+        for i in range(1, 4):
+            self.assertEqual(tasks[i], wf_interface.get_subworkflow(
+                "Compute", workflow.requirements, workflow.hints)[tasks[i].id])
 
     def test_finalize_workflow(self):
         """Test workflow finalization."""
