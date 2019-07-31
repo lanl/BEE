@@ -84,7 +84,7 @@ class Task:
 
         :rtype: list of strings
         """
-        return command[0]
+        return self.command[0]
 
 
 class Workflow:
