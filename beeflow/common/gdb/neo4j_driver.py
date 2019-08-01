@@ -95,11 +95,19 @@ class Neo4jDriver(GraphDatabaseDriver):
     def get_task_state(self, task):
         """Return the state of a task in the Neo4j workflow.
 
-        :param task: the task whose status to retrieve
+        :param task: the task whose state to retrieve
         :type task: instance of Task
         :rtype: a string
         """
         return self._read_transaction(tx.get_task_state, task=task)
+
+    def set_task_state(self, task):
+        """Set the state of a task in the Neo4j workflow.
+
+        :param task: the task whose state to change
+        :type task: instance of Task
+        """
+        self._write_transaction(tx.set_task_state, task=task)
 
     def reconstruct_task(self, task_record):
         """Reconstruct a Task object by its record retrieved from Neo4j.

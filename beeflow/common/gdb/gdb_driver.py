@@ -7,7 +7,7 @@ class GraphDatabaseDriver(ABC):
     """Driver interface for a generic graph database.
 
     The driver must implement a __init__ method that creates/connects to
-    the graph database.
+    the graph database and returns some kind of 'connection' object.
     """
 
     @abstractmethod
@@ -59,11 +59,19 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_task_state(self, task):
-        """Return the state of a task in the workflow.
+        """Return the state of a task in the graph database workflow.
 
         :param task: the task whose status to retrieve
         :type task: instance of Task
         :rtype: a string
+        """
+
+    @abstractmethod
+    def set_task_state(self, task):
+        """Set the state of a task in the graph database workflow.
+
+        :param task: the task whose state to change
+        :type task: instance of Task
         """
 
     @abstractmethod

@@ -180,6 +180,15 @@ def get_task_state(task):
     return _GDB_INTERFACE.get_task_state(task)
 
 
+def set_task_state(task):
+    """Set the state of the task in the BEE workflow.
+
+    :param task: the task whose state to change
+    :type task: instance of Task
+    """
+    return _GDB_INTERFACE.set_task_state(task)
+
+
 def workflow_loaded():
     """Return true if a workflow is loaded, else false.
 
