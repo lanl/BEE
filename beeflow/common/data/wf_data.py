@@ -1,10 +1,11 @@
 """Defines data structures for holding task and workflow data."""
+from collections import namedtuple
 
 
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, task_id, name, command, requirements, hints, subworkflow, inputs, outputs):
+    def __init__(self, task_id, name, command, hints, subworkflow, inputs, outputs):
         """Store a task description.
 
         There are two special tasks: those with the name bee_init and bee_exit.
@@ -21,8 +22,6 @@ class Task:
         :type name: string
         :param command: the command to run for the task
         :type command: list of strings
-        :param requirements: the task requirements
-        :type requirements: dictionary
         :param hints: the task hints (optional requirements)
         :type hints: dictionary
         :param subworkflow: an identifier for the subworkflow to which the task belongs
@@ -35,7 +34,6 @@ class Task:
         self.id = task_id
         self.name = name
         self.command = command
-        self.requirements = requirements
         self.hints = hints
         self.subworkflow = subworkflow
         self.inputs = inputs
@@ -52,7 +50,6 @@ class Task:
         """
         return bool(self.name == other.name and
                     self.command == other.command and
-                    self.requirements == other.requirements and
                     self.hints == other.hints and
                     self.subworkflow == other.subworkflow and
                     self.inputs == other.inputs and
@@ -155,3 +152,32 @@ class Workflow:
     def tasks(self):
         """Return the workflow tasks as a set."""
         return set(self._tasks.values())
+
+
+# Requirement class for storing requirement class, key, and value
+Requirement = namedtuple("Requirement", ["cls", "key", "value"])
+
+# Requirement classes supported by CWL
+CWL_SUPPORTED_REQUIREMENTS = {
+    "DockerRequirement",
+    "SchemaDefRequirement",
+    "EnvVarRequirement",
+    "ScatterFeatureRequirement",
+    "SubworkflowFeatureRequirement",
+    "MultipleInputFeatureRequirement",
+    "InlineJavascriptRequirement",
+    "ShellCommandRequirement",
+    "StepInputExpressionRequirement",
+    "ResourceRequirement",
+    "InitialWorkDirRequirement",
+    "ToolTimeLimit",
+    "WorkReuse",
+    "NetworkAccess",
+    "InplaceUpdateRequirement",
+    "LoadListingRequirement",
+    "http://commonwl.org/cwltool#TimeLimit",
+    "http://commonwl.org/cwltool#WorkReuse",
+    "http://commonwl.org/cwltool#NetworkAccess",
+    "http://commonwl.org/cwltool#LoadListingRequirement",
+    "http://commonwl.org/cwltool#InplaceUpdateRequirement"
+}
