@@ -4,7 +4,7 @@ Delegates its work to a GDBInterface instance.
 """
 
 from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
-from beeflow.common.data.wf_data import Task, Workflow
+from beeflow.common.data.wf_data import Task, Workflow, Requirement, CWL_SUPPORTED_REQUIREMENTS
 
 # Automatically connect to the graph database
 # This password is hard-coded
@@ -13,33 +13,28 @@ _GDB_INTERFACE = GraphDatabaseInterface()
 _GDB_INTERFACE.connect(password="password")
 
 
-def create_task(name, command=None, requirements=None, hints=None, subworkflow=None,
-                inputs=None, outputs=None):
+def create_task(name, command=None, hints=None, subworkflow=None, inputs=None, outputs=None):
     """Create a new BEE workflow task.
 
     :param name: the name given to the task
     :type name: string
     :param command: the command for the task
     :type command: list of strings
-    :param requirements: the task-specific requirements
-    :type requirements: dictionary or None
     :param hints: the task-specific hints (optional requirements)
-    :type hints: dictionary or None
+    :type hints: set of Requirement instances, or None
     :param subworkflow: an identifier for the subworkflow to which the task belongs
     :type subworkflow: string or None
     :param inputs: the task inputs
-    :type inputs: set or None
+    :type inputs: set of strings, or None
     :param outputs: the task outputs
-    :type outputs: set or None
+    :type outputs: set of strings, or None
     :rtype: instance of Task
     """
     # Immutable default arguments
     if command is None:
         command = []
-    if requirements is None:
-        requirements = {}
     if hints is None:
-        hints = {}
+        hints = set()
     if inputs is None:
         inputs = set()
     if outputs is None:
@@ -51,33 +46,64 @@ def create_task(name, command=None, requirements=None, hints=None, subworkflow=N
     elif name.lower() == "bee_exit":
         name = name.lower()
 
-    # Assign a task ID to each task
-    # The task ID incremements automatically after each method call
-    if not hasattr(create_task, "task_id"):
-        create_task.task_id = 0
-    else:
-        create_task.task_id += 1
+    return Task(name, command, hints, subworkflow, inputs, outputs)
 
-    return Task(create_task.task_id, name, command, requirements, hints, subworkflow,
-                inputs, outputs)
+
+def create_requirement(req_class, key, value):
+    """Create a workflow requirement.
+
+    :param req_class: the requirement class
+    :type req_class: string
+    :param key: the requirement key
+    :type key: string
+    :param value: the requirement value
+    :type value: string, boolean, or integer
+    """
+    if req_class not in CWL_SUPPORTED_REQUIREMENTS:
+        raise ValueError(req_class + " is not a valid CWL requirement class")
+
+    return Requirement(req_class, key, value)
 
 
 def create_workflow(tasks, requirements=None, hints=None):
     """Create a new workflow.
 
     :param tasks: the workflow tasks
-    :type tasks: iterable of Task instances
+    :type tasks: list of Task instances
     :param requirements: the workflow requirements
-    :type requirements: dictionary or None
+    :type requirements: set of Requirement instances, or None
     :param hints: the workflow hints (optional requirements)
-    :type hints: dictionary or None
+    :type hints: set of Requirement instances, or None
     :rtype: instance of Workflow
     """
-    # Immutable default arguments
     if requirements is None:
-        requirements = {}
+        # Immutable default argument
+        requirements = set()
     if hints is None:
-        hints = {}
+        # Immutable default argument
+        hints = set()
+
+    def _resolve_head_tasks(tasks):
+        """Return all head tasks in a list of tasks.
+
+        :param tasks: the tasks to parse
+        :type tasks: list of Task instances
+        :rtype: list of Task instances
+        """
+        # Head tasks are those that do not depend on any other tasks' outputs
+        return [task for task in tasks if all(task.inputs.isdisjoint(other.outputs)
+                                              for other in tasks if other != task)]
+
+    def _resolve_tail_tasks(tasks):
+        """Return all tail tasks in a list of tasks.
+
+        :param tasks: the tasks to parse
+        :type tasks: list of Task instances
+        :rtype: list of Task instances
+        """
+        # Tail tasks are those for which no other tasks depend on their outputs
+        return [task for task in tasks if all(task.outputs.isdisjoint(other.inputs)
+                                              for other in tasks if other != task)]
 
     # Create bee_init if it doesn't exist
     if not any(task.name == "bee_init" for task in tasks):
@@ -97,7 +123,11 @@ def create_workflow(tasks, requirements=None, hints=None):
         # Create bee_exit with inputs and outputs
         tasks.append(create_task("bee_exit", inputs=outputs, outputs=outputs))
 
-    # Add dependencies
+    # Assign a task ID to each task
+    for task_id, task in enumerate(tasks):
+        task.id = task_id
+
+    # Add task dependencies
     for task in tasks:
         task.dependencies = {other.id for other in tasks if other.id != task.id and not
                              task.inputs.isdisjoint(other.outputs)}
@@ -131,7 +161,7 @@ def finalize_workflow():
     _GDB_INTERFACE.finalize_workflow()
 
 
-def get_workflow(requirements, hints):
+def get_workflow():
     """Get the loaded workflow.
 
     :param requirements: the workflow requirements
@@ -142,11 +172,13 @@ def get_workflow(requirements, hints):
     """
     # Obtain a list of workflow tasks
     workflow_tasks = _GDB_INTERFACE.get_workflow_tasks()
+    # Obtain the workflow requirements, hints
+    requirements, hints = _GDB_INTERFACE.get_workflow_requirements_and_hints()
     # Return a new Workflow object with the given tasks
     return create_workflow(workflow_tasks, requirements, hints)
 
 
-def get_subworkflow(subworkflow, requirements, hints):
+def get_subworkflow(subworkflow):
     """Get a subworkflow by its identifier.
 
     :param subworkflow: the unique identifier of the subworkflow
@@ -155,6 +187,9 @@ def get_subworkflow(subworkflow, requirements, hints):
     """
     # Obtain a list of the subworkflow tasks
     subworkflow_tasks = _GDB_INTERFACE.get_subworkflow_tasks(subworkflow)
+    # Obtain the subworkflow requirements, hints
+    requirements, hints = _GDB_INTERFACE.get_workflow_requirements_and_hints()
+
     # Return a new Workflow object with the given tasks
     return create_workflow(subworkflow_tasks, requirements, hints)
 
@@ -195,27 +230,3 @@ def workflow_loaded():
     :rtype: boolean
     """
     return bool(not _GDB_INTERFACE.empty())
-
-
-def _resolve_head_tasks(tasks):
-    """Return all head tasks in a list of tasks.
-
-    :param tasks: the tasks to parse
-    :type tasks: list of Task instances
-    :rtype: list
-    """
-    # Head tasks are those that do not depend on any other tasks' outputs
-    return [task for task in tasks if all(task.inputs.isdisjoint(other.outputs)
-                                          for other in tasks if other.id != task.id)]
-
-
-def _resolve_tail_tasks(tasks):
-    """Return all tail tasks in a list of tasks.
-
-    :param tasks: the tasks to parse
-    :type tasks: list of Task instances
-    :rtype: list
-    """
-    # Tail tasks are those for which no other tasks depend on their outputs
-    return [task for task in tasks if all(task.outputs.isdisjoint(other.inputs)
-                                          for other in tasks if other.id != task.id)]

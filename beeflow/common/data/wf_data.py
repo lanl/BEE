@@ -5,7 +5,7 @@ from collections import namedtuple
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, task_id, name, command, hints, subworkflow, inputs, outputs):
+    def __init__(self, name, command, hints, subworkflow, inputs, outputs):
         """Store a task description.
 
         There are two special tasks: those with the name bee_init and bee_exit.
@@ -31,7 +31,6 @@ class Task:
         :param outputs: the task outputs
         :type outputs: set
         """
-        self.id = task_id
         self.name = name
         self.command = command
         self.hints = hints
@@ -39,6 +38,8 @@ class Task:
         self.inputs = inputs
         self.outputs = outputs
 
+        # Task ID and dependencies assigned outside of class
+        self.id = None
         self.dependencies = None
 
     def __eq__(self, other):
@@ -65,11 +66,12 @@ class Task:
 
     def __hash__(self):
         """Return the hash value for a task."""
-        return hash((self.id, self.name, self.subworkflow))
+        return hash((self.name, self.subworkflow))
 
     def __repr__(self):
         """Construct a task's string representation."""
-        return f"<Task id={self.id} name={self.name}>"
+        return (f"<Task id={self.id} name='{self.name}' command={self.command} hints={self.hints} "
+                f"subworkflow='{self.subworkflow}' inputs={self.inputs} outputs={self.outputs}>")
 
     def construct_command(self):
         """Construct a task's command representation."""
@@ -155,7 +157,7 @@ class Workflow:
 
 
 # Requirement class for storing requirement class, key, and value
-Requirement = namedtuple("Requirement", ["cls", "key", "value"])
+Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
 
 # Requirement classes supported by CWL
 CWL_SUPPORTED_REQUIREMENTS = {

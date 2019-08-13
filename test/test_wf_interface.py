@@ -20,8 +20,8 @@ class TestWFInterface(unittest.TestCase):
         """Test task creation."""
         task_name = "Test Task"
         command = ["ls", "-a", "-l", "-F"]
-        requirements = {"ram": 1024, "cores": 4}
-        hints = {"cpus": 2}
+        hints = {wf_interface.create_requirement("ResourceRequirement", "ramMin", 1024),
+                 wf_interface.create_requirement("NetworkAccess", "networkAccess", True)}
         subworkflow = "Test Subworkflow"
         inputs = {"input1.txt", "input2.txt"}
         outputs = {"test_task_done"}
@@ -29,7 +29,6 @@ class TestWFInterface(unittest.TestCase):
         task = wf_interface.create_task(
             name=task_name,
             command=command,
-            requirements=requirements,
             hints=hints,
             subworkflow=subworkflow,
             inputs=inputs,
@@ -38,11 +37,29 @@ class TestWFInterface(unittest.TestCase):
         # Task assertions
         self.assertEqual(task_name, task.name)
         self.assertListEqual(command, task.command)
-        self.assertEqual(requirements, task.requirements)
         self.assertEqual(hints, task.hints)
         self.assertEqual(subworkflow, task.subworkflow)
         self.assertEqual(inputs, task.inputs)
         self.assertEqual(outputs, task.outputs)
+
+    def test_create_requirement(self):
+        """Test workflow requirement creation."""
+        req_class = "ResourceRequirement"
+        fake_req_class = "FakeRequirement"
+        req_key = "ramMin"
+        req_value = 1024
+
+        try:
+            req = wf_interface.create_requirement(req_class, req_key, req_value)
+        except ValueError:
+            self.fail("method raised ValueError unexpectedly.")
+
+        self.assertEqual(req_class, req.req_class)
+        self.assertEqual(req_key, req.key)
+        self.assertEqual(req_value, req.value)
+
+        self.assertRaises(ValueError, wf_interface.create_requirement,
+                          fake_req_class, req_key, req_value)
 
     def test_create_workflow_auto(self):
         """Test workflow creation.
@@ -50,8 +67,8 @@ class TestWFInterface(unittest.TestCase):
         Creation of bee_init and bee_exit is automatic.
         """
         tasks = _create_test_tasks(bee_nodes=False)
-        requirements = {"ranks": 128}
-        hints = {"cluster": "badger"}
+        requirements = {wf_interface.create_requirement("ResourceRequirement", "ramMin", 1024)}
+        hints = {wf_interface.create_requirement("NetworkAccess", "networkAccess", True)}
 
         workflow = wf_interface.create_workflow(
             tasks=tasks,
@@ -84,8 +101,8 @@ class TestWFInterface(unittest.TestCase):
         Creation of bee_init and bee_exit is manual.
         """
         tasks = _create_test_tasks()
-        requirements = {"ranks": 128}
-        hints = {"cluster": "badger"}
+        requirements = {wf_interface.create_requirement("ResourceRequirement", "ramMin", 1024)}
+        hints = {wf_interface.create_requirement("NetworkAccess", "networkAccess", True)}
 
         workflow = wf_interface.create_workflow(
             tasks=tasks,
@@ -114,9 +131,12 @@ class TestWFInterface(unittest.TestCase):
 
     def test_load_workflow(self):
         """Test workflow insertion into the graph database."""
-        tasks = _create_test_tasks()
+        tasks = _create_test_tasks(False)
 
-        workflow = wf_interface.create_workflow(tasks)
+        workflow = wf_interface.create_workflow(
+            tasks=tasks,
+            requirements={wf_interface.create_requirement("ResourceRequirement", "ramMin", 1024)},
+            hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)})
         wf_interface.load_workflow(workflow)
 
         self.assertTrue(wf_interface.workflow_loaded())
@@ -125,8 +145,7 @@ class TestWFInterface(unittest.TestCase):
         for task in tasks:
             self.assertEqual("WAITING", wf_interface.get_task_state(task))
 
-        self.assertEqual(workflow, wf_interface.get_workflow(workflow.requirements,
-                                                             workflow.hints))
+        self.assertEqual(workflow, wf_interface.get_workflow())
 
     def test_unload_workflow(self):
         """Test workflow deletion from the graph database."""
@@ -142,25 +161,28 @@ class TestWFInterface(unittest.TestCase):
     def test_get_workflow(self):
         """Test obtaining the workflow from the graph database."""
         tasks = _create_test_tasks()
+        requirements = {wf_interface.create_requirement("ResourceRequirement", "ramMin", 1024)}
+        hints = {wf_interface.create_requirement("NetworkAccess", "networkAccess", True)}
 
-        workflow = wf_interface.create_workflow(tasks)
+        workflow = wf_interface.create_workflow(tasks, requirements, hints)
         wf_interface.load_workflow(workflow)
 
         self.assertTrue(wf_interface.workflow_loaded())
-        self.assertEqual(workflow, wf_interface.get_workflow(workflow.requirements,
-                                                             workflow.hints))
+        self.assertEqual(workflow, wf_interface.get_workflow())
 
     def test_get_subworkflow(self):
         """Test obtaining of a subworkflow."""
         # Create a workflow without bee_init, bee_exit
-        tasks = _create_test_tasks(bee_nodes=False)
-        workflow = wf_interface.create_workflow(tasks)
+        tasks = _create_test_tasks()
+        requirements = {wf_interface.create_requirement("ResourceRequirement", "ramMin", 1024)}
+        hints = {wf_interface.create_requirement("NetworkAccess", "networkAccess", True)}
+
+        workflow = wf_interface.create_workflow(tasks, requirements, hints)
         wf_interface.load_workflow(workflow)
 
         # Subworkflow assertion
-        for i in range(1, 4):
-            self.assertEqual(tasks[i], wf_interface.get_subworkflow(
-                "Compute", workflow.requirements, workflow.hints)[tasks[i].id])
+        self.assertEqual(wf_interface.create_workflow(tasks[2:5], requirements, hints),
+                         wf_interface.get_subworkflow("Compute"))
 
     def test_finalize_workflow(self):
         """Test workflow finalization."""
@@ -198,14 +220,14 @@ class TestWFInterface(unittest.TestCase):
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
         # Create a workflow without bee_init, bee_exit
-        tasks = _create_test_tasks(bee_nodes=False)
+        tasks = _create_test_tasks()
         workflow = wf_interface.create_workflow(tasks)
         wf_interface.load_workflow(workflow)
         # Get dependent tasks of Data Prep
-        dependent_tasks = wf_interface.get_dependent_tasks(tasks[0])
+        dependent_tasks = wf_interface.get_dependent_tasks(tasks[1])
 
         # Should equal Compute 0, Compute 1, and Compute 2
-        self.assertSetEqual(set(tasks[1:4]), dependent_tasks)
+        self.assertSetEqual(set(tasks[2:5]), set(dependent_tasks))
 
     def test_get_task_state(self):
         """Test obtaining of task status."""
@@ -240,51 +262,59 @@ def _create_test_tasks(bee_nodes=True):
         # Create workflow with bee_init and bee_exit tasks
         tasks = [
             wf_interface.create_task("bee_init", inputs={"input.txt"}, outputs={"input.txt"}),
-            wf_interface.create_task("Data Prep", command=["ls", "-a", "-l", "-F"],
-                                     requirements={"ram": 64, "cores": 4}, hints={"cpus": 2},
-                                     inputs={"input.txt"}, outputs={"prep_input.txt"}),
-            wf_interface.create_task("Compute 0", command=["rm", "-r", "-f"],
-                                     requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     subworkflow="Compute", inputs={"prep_input.txt"},
-                                     outputs={"output1.txt"}),
-            wf_interface.create_task("Compute 1", command=["find"],
-                                     requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     subworkflow="Compute", inputs={"prep_input.txt"},
-                                     outputs={"output2.txt"}),
-            wf_interface.create_task("Compute 2", command=["yes"],
-                                     requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     subworkflow="Compute", inputs={"prep_input.txt"},
-                                     outputs={"output3.txt"}),
-            wf_interface.create_task("Visualization", command=["ln", "-s"],
-                                     requirements={"ram": 128, "cores": 8}, hints={"cpus": 2},
-                                     inputs={"output1.txt", "output2.txt", "output3.txt"},
-                                     outputs={"output.txt"}),
-            wf_interface.create_task("bee_exit",
-                                     inputs={"output.txt"},
-                                     outputs={"output.txt"})
+            wf_interface.create_task(
+                "Data Prep", command=["ls", "-a", "-l", "-F"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                inputs={"input.txt"}, outputs={"prep_input.txt"}),
+            wf_interface.create_task(
+                "Compute 0", command=["rm", "-r", "-f"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                subworkflow="Compute", inputs={"prep_input.txt"},
+                outputs={"output1.txt"}),
+            wf_interface.create_task(
+                "Compute 1", command=["find"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                subworkflow="Compute", inputs={"prep_input.txt"},
+                outputs={"output2.txt"}),
+            wf_interface.create_task(
+                "Compute 2", command=["yes"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                subworkflow="Compute", inputs={"prep_input.txt"},
+                outputs={"output3.txt"}),
+            wf_interface.create_task(
+                "Visualization", command=["ln", "-s"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 4096)},
+                inputs={"output1.txt", "output2.txt", "output3.txt"},
+                outputs={"output.txt"}),
+            wf_interface.create_task("bee_exit", inputs={"output.txt"}, outputs={"output.txt"})
         ]
     else:
         # Do not create bee_init and bee_exit
         tasks = [
-            wf_interface.create_task("Data Prep", command=["ls", "-a", "-l", "-F"],
-                                     requirements={"ram": 64, "cores": 4}, hints={"cpus": 2},
-                                     inputs={"input.txt"}, outputs={"prep_input.txt"}),
-            wf_interface.create_task("Compute 0", command=["rm", "-r", "-f"],
-                                     requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     subworkflow="Compute", inputs={"prep_input.txt"},
-                                     outputs={"output1.txt"}),
-            wf_interface.create_task("Compute 1", command=["find"],
-                                     requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     subworkflow="Compute", inputs={"prep_input.txt"},
-                                     outputs={"output2.txt"}),
-            wf_interface.create_task("Compute 2", command=["yes"],
-                                     requirements={"ram": 128, "cores": 4}, hints={"cpus": 2},
-                                     subworkflow="Compute", inputs={"prep_input.txt"},
-                                     outputs={"output3.txt"}),
-            wf_interface.create_task("Visualization", command=["ln", "-s"],
-                                     requirements={"ram": 128, "cores": 8}, hints={"cpus": 2},
-                                     inputs={"output1.txt", "output2.txt", "output3.txt"},
-                                     outputs={"output.txt"}),
+            wf_interface.create_task(
+                "Data Prep", command=["ls", "-a", "-l", "-F"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                inputs={"input.txt"}, outputs={"prep_input.txt"}),
+            wf_interface.create_task(
+                "Compute 0", command=["rm", "-r", "-f"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                subworkflow="Compute", inputs={"prep_input.txt"},
+                outputs={"output1.txt"}),
+            wf_interface.create_task(
+                "Compute 1", command=["find"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                subworkflow="Compute", inputs={"prep_input.txt"},
+                outputs={"output2.txt"}),
+            wf_interface.create_task(
+                "Compute 2", command=["yes"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                subworkflow="Compute", inputs={"prep_input.txt"},
+                outputs={"output3.txt"}),
+            wf_interface.create_task(
+                "Visualization", command=["ln", "-s"],
+                hints={wf_interface.create_requirement("ResourceRequirement", "ramMax", 4096)},
+                inputs={"output1.txt", "output2.txt", "output3.txt"},
+                outputs={"output.txt"}),
         ]
 
     return tasks

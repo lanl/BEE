@@ -1,11 +1,16 @@
-"""Neo4j interface module."""
+"""Neo4j interface module.
+
+Connection requires a valid URI, Username, and Password.
+The current defaults are defined below, but should later be
+either standardized or read from a config file.
+"""
 
 from neo4j import GraphDatabase as Neo4jDatabase
 from neobolt.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.gdb import neo4j_cypher as tx
-from beeflow.common.data.wf_data import Task
+from beeflow.common.data.wf_data import Task, Requirement
 
 # Default Neo4j authentication
 # We may want to instead get these from a config at some point
@@ -18,6 +23,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     """The driver for a Neo4j Database.
 
     Implements GraphDatabaseDriver.
+    Wraps the neo4j package proprietary driver.
     """
 
     def __init__(self, uri=DEFAULT_URI, user=DEFAULT_USER, password=DEFAULT_PASSWORD):
@@ -53,6 +59,9 @@ class Neo4jDriver(GraphDatabaseDriver):
         for task in workflow.tasks:
             self._write_transaction(tx.add_dependencies, task=task)
 
+        self._write_transaction(tx.create_metadata_node, requirements=workflow.requirements,
+                                hints=workflow.hints)
+
     def initialize_workflow(self):
         """Initialize the workflow loaded into the Neo4j database.
 
@@ -73,6 +82,14 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: BoltStatementResult
         """
         return self._read_transaction(tx.get_workflow_tasks)
+
+    def get_workflow_requirements(self):
+        """Return all workflow requirements from the Neo4j database."""
+        return _reconstruct_requirement(self._read_transaction(tx.get_workflow_requirements))
+
+    def get_workflow_hints(self):
+        """Return all workflow hints from the Neo4j database."""
+        return _reconstruct_requirement(self._read_transaction(tx.get_workflow_hints))
 
     def get_subworkflow_tasks(self, subworkflow):
         """Return task records from the Neo4j database.
@@ -116,10 +133,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: instance of Task
         """
         rec = task_record["t"]
-        return Task(task_id=rec["task_id"], name=rec["name"],
-                    command=rec["command"],
-                    requirements=_reconstruct_dict(rec["requirements"]),
-                    hints=_reconstruct_dict(rec["hints"]),
+        return Task(name=rec["name"], command=rec["command"],
+                    hints=_reconstruct_requirement(rec["hints"]),
                     subworkflow=rec["subworkflow"], inputs=set(rec["inputs"]),
                     outputs=set(rec["outputs"]))
 
@@ -137,6 +152,16 @@ class Neo4jDriver(GraphDatabaseDriver):
     def close(self):
         """Close the connection to the Neo4j database."""
         self._driver.close()
+
+    def _create_metadata_node(self, requirements, hints):
+        """Create a graph node to contain workflow metadata.
+
+        :param requirements: the workflow requirements
+        :type requirements: set of Requirement instances
+        :param hints: the workflow hints
+        :type hints: set of Requirement instances
+        """
+        self._write_transaction(tx.create_metadata_node, requirements=requirements, hints=hints)
 
     def _require_tasks_unique(self):
         """Require tasks to have unique names."""
@@ -167,19 +192,50 @@ class Neo4jDriver(GraphDatabaseDriver):
         return result
 
 
-def _reconstruct_dict(list_repr):
-    """Reconstruct a dictionary from its list encoding.
+def _reconstruct_requirement(list_repr):
+    """Reconstruct a task requirement from its list encoding.
 
     The list representation must conform to the following pattern:
-    [k1, v1, k2, v2, ...].
+    [class1, key1, value1, class2, key2, value2, ...].
     :param list_repr: the list representation of the dictionary
     :type list_repr: list of strings
-    :rtype: dictionary
+    :rtype: set of Requirement instances
     """
-    dict_ = {}
-    for key, val in zip(list_repr[:-1:2], list_repr[1::2]):
-        if val.isdigit():
-            dict_[key] = int(val)
+    def _str_is_integer(str_):
+        """Test if a string can be represented as an integer.
+
+        :param str_: the string to test
+        :type str_: string
+        """
+        return str.isdigit(str_)
+
+    def _str_is_float(str_):
+        """Test if a string can be represented as a float.
+
+        :param str_: the string to test
+        :type str_: string
+        """
+        try:
+            float(str_)
+        except ValueError:
+            return False
         else:
-            dict_[key] = val
-    return dict_
+            return True
+
+    # Convert string to original value if applicable
+    # Grab 3-tuples from list-of-string representation of requirements
+    # Return a set of requirements
+    reqs = set()
+    for (req_class, key, val) in zip(list_repr[:-2:3], list_repr[1:-1:3], list_repr[2::3]):
+        if _str_is_integer(val):
+            val = int(val)
+        elif _str_is_float(val):
+            val = float(val)
+        elif val == "True":
+            val = True
+        elif val == "False":
+            val = False
+
+        reqs.add(Requirement(req_class, key, val))
+
+    return reqs

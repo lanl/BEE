@@ -61,6 +61,16 @@ class GraphDatabaseInterface:
         task_records = self._connection.get_workflow_tasks()
         return [self._connection.reconstruct_task(task_record) for task_record in task_records]
 
+    def get_workflow_requirements_and_hints(self):
+        """Return a tuple containing a list of requirements and a list of hints.
+
+        The returned tuple format is (requirements, hints).
+        :rtype: (list of Requirement instances, list of Requirement instances)
+        """
+        requirements = self._connection.get_workflow_requirements()
+        hints = self._connection.get_workflow_hints()
+        return (requirements, hints)
+
     def get_subworkflow_tasks(self, subworkflow):
         """Return a subworkflow's Task objects from the graph database.
 
@@ -76,10 +86,10 @@ class GraphDatabaseInterface:
 
         :param task: the task whose dependents to retrieve
         :type task: instance of Task
-        :rtype: set of Task instances
+        :rtype: list of Task instances
         """
         task_records = self._connection.get_dependent_tasks(task)
-        return {self._connection.reconstruct_task(task_record) for task_record in task_records}
+        return [self._connection.reconstruct_task(task_record) for task_record in task_records]
 
     def get_task_state(self, task):
         """Return the state of a task in a graph database workflow.

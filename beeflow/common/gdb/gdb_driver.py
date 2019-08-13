@@ -40,6 +40,14 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_workflow_requirements(self):
+        """Return all workflow requirements from the graph database."""
+
+    @abstractmethod
+    def get_workflow_hints(self):
+        """Return all workflow hints from the graph database."""
+
+    @abstractmethod
     def get_subworkflow_tasks(self, subworkflow):
         """Return a list of subworkflow task records from the graph database.
 
