@@ -1,10 +1,11 @@
 """Defines data structures for holding task and workflow data."""
+from collections import namedtuple
 
 
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, task_id, name, base_command, arguments, dependencies, subworkflow):
+    def __init__(self, name, command, hints, subworkflow, inputs, outputs):
         """Store a task description.
 
         There are two special tasks: those with the name bee_init and bee_exit.
@@ -19,34 +20,41 @@ class Task:
         :type task_id: integer
         :param name: the task name
         :type name: string
-        :param base_command: the base command for the task
-        :type base_command: string
-        :param arguments: the arguments given to the task
-        :type arguments: list of strings
-        :param dependencies: the task dependencies (on other tasks)
-        :type dependencies: set of Task IDs
+        :param command: the command to run for the task
+        :type command: list of strings
+        :param hints: the task hints (optional requirements)
+        :type hints: dictionary
         :param subworkflow: an identifier for the subworkflow to which the task belongs
         :type subworkflow: string
+        :param inputs: the task inputs
+        :type inputs: set
+        :param outputs: the task outputs
+        :type outputs: set
         """
-        self.id = task_id
         self.name = name
-        self.base_command = base_command
-        self.arguments = arguments
-        self.dependencies = dependencies
+        self.command = command
+        self.hints = hints
         self.subworkflow = subworkflow
+        self.inputs = inputs
+        self.outputs = outputs
+
+        # Task ID and dependencies assigned outside of class
+        self.id = None
+        self.dependencies = None
 
     def __eq__(self, other):
         """Test the equality of two tasks.
 
+        Task ID and dependencies do not factor into equality testing.
         :param other: the task with which to test equality
         :type other: instance of Task
         """
-        return bool(self.id == other.id and
-                    self.name == other.name and
-                    self.base_command == other.base_command and
-                    self.arguments == other.arguments and
-                    self.dependencies == other.dependencies and
-                    self.subworkflow == other.subworkflow)
+        return bool(self.name == other.name and
+                    self.command == other.command and
+                    self.hints == other.hints and
+                    self.subworkflow == other.subworkflow and
+                    self.inputs == other.inputs and
+                    self.outputs == other.outputs)
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
@@ -54,39 +62,46 @@ class Task:
         :param other: the task with which to test inequality
         :type other: instance of Task
         """
-        return not self.__eq__(other)
+        return bool(not self.__eq__(other))
 
     def __hash__(self):
         """Return the hash value for a task."""
-        return hash((self.id, self.name, self.base_command, self.subworkflow))
+        return hash((self.name, self.subworkflow))
 
     def __repr__(self):
         """Construct a task's string representation."""
-        return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
-                f"arguments={self.arguments} dependencies={self.dependencies}")
+        return (f"<Task id={self.id} name='{self.name}' command={self.command} hints={self.hints} "
+                f"subworkflow='{self.subworkflow}' inputs={self.inputs} outputs={self.outputs}>")
 
     def construct_command(self):
         """Construct a task's command representation."""
-        return (self.base_command if not self.arguments
-                else " ".join([self.base_command] + self.arguments))
+        return " ".join(self.command)
+
+    @property
+    def base_command(self):
+        """Return a list of the task base command.
+
+        :rtype: list of strings
+        """
+        return self.command[0]
 
 
 class Workflow:
     """Data structure for holding workflow data and metadata."""
 
-    def __init__(self, tasks, requirements, outputs):
+    def __init__(self, tasks, requirements, hints):
         """Initialize a new workflow data structure.
 
         :param tasks: the workflow tasks
         :type tasks: iterable of Task instances
         :param requirements: the workflow requirements
-        :type requirements: TBD
-        :param outputs: the workflow outputs
-        :type outputs: TBD
+        :type requirements: dictionary
+        :param hints: the workflow hints (optional requirements)
+        :type hints: dictionary
         """
         self._tasks = {task.id: task for task in tasks}
         self.requirements = requirements
-        self.outputs = outputs
+        self.hints = hints
 
     def __eq__(self, other):
         """Test the equality of two workflows.
@@ -97,7 +112,7 @@ class Workflow:
         """
         return bool(self.tasks == other.tasks and
                     self.requirements == other.requirements and
-                    self.outputs == other.outputs)
+                    self.hints == other.hints)
 
     def __ne__(self, other):
         """Test the inequality of two workflows.
@@ -133,9 +148,38 @@ class Workflow:
         """
         return ("Tasks: " + repr(self.tasks) + "\n"
                 + "Requirements: " + repr(self.requirements) + "\n"
-                + "Outputs: " + repr(self.outputs))
+                + "Hints: " + repr(self.hints))
 
     @property
     def tasks(self):
         """Return the workflow tasks as a set."""
         return set(self._tasks.values())
+
+
+# Requirement class for storing requirement class, key, and value
+Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
+
+# Requirement classes supported by CWL
+CWL_SUPPORTED_REQUIREMENTS = {
+    "DockerRequirement",
+    "SchemaDefRequirement",
+    "EnvVarRequirement",
+    "ScatterFeatureRequirement",
+    "SubworkflowFeatureRequirement",
+    "MultipleInputFeatureRequirement",
+    "InlineJavascriptRequirement",
+    "ShellCommandRequirement",
+    "StepInputExpressionRequirement",
+    "ResourceRequirement",
+    "InitialWorkDirRequirement",
+    "ToolTimeLimit",
+    "WorkReuse",
+    "NetworkAccess",
+    "InplaceUpdateRequirement",
+    "LoadListingRequirement",
+    "http://commonwl.org/cwltool#TimeLimit",
+    "http://commonwl.org/cwltool#WorkReuse",
+    "http://commonwl.org/cwltool#NetworkAccess",
+    "http://commonwl.org/cwltool#LoadListingRequirement",
+    "http://commonwl.org/cwltool#InplaceUpdateRequirement"
+}

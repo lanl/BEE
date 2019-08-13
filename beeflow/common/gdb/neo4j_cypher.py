@@ -18,15 +18,35 @@ def create_task(tx, task):
     create_query = ("CREATE (t:Task) "
                     "SET t.task_id = $task_id "
                     "SET t.name = $name "
-                    "SET t.base_command = $base_command "
-                    "SET t.arguments = $arguments "
+                    "SET t.command = $command "
+                    "SET t.hints = $hints "
                     "SET t.dependencies = $dependencies "
                     "SET t.subworkflow = $subworkflow "
+                    "SET t.inputs = $inputs "
+                    "SET t.outputs = $outputs "
                     "SET t.state = 'WAITING'")
 
-    tx.run(create_query, task_id=task.id, name=task.name, base_command=task.base_command,
-           arguments=task.arguments, dependencies=list(task.dependencies),
-           subworkflow=task.subworkflow)
+    # Unpack requirements, hints dictionaries into flat list
+    tx.run(create_query, task_id=task.id, name=task.name,
+           command=task.command, hints=_encode_requirements(task.hints),
+           dependencies=list(task.dependencies), subworkflow=task.subworkflow,
+           inputs=list(task.inputs), outputs=list(task.outputs))
+
+
+def create_metadata_node(tx, requirements, hints):
+    """Create a metadata node in the Neo4j database.
+
+    The metadata node holds the workflow requirements and hints.
+    :param requirements: the workflow requirements
+    :type requirements: set of Requirement instances
+    :param hints: the workflow hints
+    :type hints: set of Requirement instances
+    """
+    metadata_query = "CREATE (n:Metadata {requirements: $requirements, hints: $hints})"
+
+    # Store the workflow requirements and hints in a metadata node
+    tx.run(metadata_query, requirements=_encode_requirements(requirements),
+           hints=_encode_requirements(hints))
 
 
 def add_dependencies(tx, task):
@@ -36,110 +56,44 @@ def add_dependencies(tx, task):
     :type task: instance of Task
     """
     dependency_query = ("MATCH (s:Task), (t:Task) "
-                        "WHERE s.name = $dependent_name and t.name = $dependency_name "
+                        "WHERE s.task_id = $dependent_id and t.task_id = $dependency_id "
                         "CREATE (s)-[:DEPENDS]->(t)")
 
-    for dependency in task.dependencies:
-        tx.run(dependency_query, dependent_name=task.name, dependency_name=dependency)
+    for dependency_id in task.dependencies:
+        tx.run(dependency_query, dependent_id=task.id, dependency_id=dependency_id)
 
 
-def get_subworkflow_ids(tx, subworkflow):
-    """Get subworkflows from the Neo4j database with the specified head tasks.
+def get_workflow_tasks(tx):
+    """Get workflow tasks from the Neo4j database."""
+    workflow_query = "MATCH (t:Task) RETURN t"
+
+    return tx.run(workflow_query)
+
+
+def get_workflow_requirements(tx):
+    """Get workflow requirements from the Neo4j database."""
+    requirements_query = "MATCH (n:Metadata) RETURN n.requirements"
+
+    return tx.run(requirements_query).single().value()
+
+
+def get_workflow_hints(tx):
+    """Get workflow hints from the Neo4j database."""
+    hints_query = "MATCH (n:Metadata) RETURN n.hints"
+
+    return tx.run(hints_query).single().value()
+
+
+def get_subworkflow_tasks(tx, subworkflow):
+    """Get subworkflow tasks from the Neo4j database with the specified identifier.
 
     :param subworkflow: the unique identifier of the subworkflow
     :type subworkflow: string
-    :rtype: instance of Workflow
+    :rtype: BoltStatementResult
     """
-    subworkflow_query = ("MATCH (t:Task {subworkflow: $subworkflow}) "
-                         "RETURN collect(t.task_id)")
+    subworkflow_query = "MATCH (t:Task {subworkflow: $subworkflow}) RETURN t"
 
-    return tx.run(subworkflow_query, subworkflow=subworkflow).single().value()
-
-
-def create_init_node(tx):
-    """Create a task node with the name 'bee_init' and state 'WAITING'."""
-    init_node_query = ("CREATE (s:Task {name: 'bee_init', task_id: 0, state: 'WAITING'}) "
-                       "WITH s "
-                       "MATCH (t:Task) WHERE NOT (t)-[:DEPENDS]->() AND NOT t.name = 'bee_init' "
-                       "CREATE (s)<-[:DEPENDS]-(t)")
-
-    tx.run(init_node_query)
-
-
-def create_exit_node(tx):
-    """Create a task node with the name 'bee_exit' and state 'WAITING'."""
-    exit_node_query = ("MATCH (n:Task) "
-                       "WITH max(n.task_id) + 1 AS task_id "
-                       "CREATE (s:Task {name: 'bee_exit', task_id: task_id, state: 'WAITING'}) "
-                       "WITH s "
-                       "MATCH (t:Task) WHERE NOT (t)<-[:DEPENDS]-() AND NOT t.name = 'bee_exit' "
-                       "CREATE (s)-[:DEPENDS]->(t)")
-
-    tx.run(exit_node_query)
-
-
-def set_init_task_to_ready(tx):
-    """Set bee_init's state to READY."""
-    init_ready_query = ("MATCH (t:Task {name: 'bee_init'}) "
-                        "SET t.state = 'READY'")
-
-    tx.run(init_ready_query)
-
-
-def set_exit_task_to_ready(tx):
-    """Set bee_exit's state to READY."""
-    exit_ready_query = ("MATCH (t:Task {name: 'bee_exit'}) "
-                        "SET t.state = 'READY'")
-
-    tx.run(exit_ready_query)
-
-
-def set_task_to_ready(tx, task):
-    """Set a task's state to READY.
-
-    :param task: the task whose state to change
-    :type task: instance of Task
-    """
-    ready_query = ("MATCH (t:Task {task_id: $task_id}) "
-                   "SET t.state = 'READY'")
-
-    tx.run(ready_query, task_id=task.id)
-
-
-def set_task_to_running(tx, task):
-    """Set a task's state to RUNNING.
-
-    :param task: the task whose state to change
-    :type task: instance of Task
-    """
-    running_query = ("MATCH (t:Task {task_id: $task_id}) "
-                     "SET t.state = 'RUNNING'")
-
-    tx.run(running_query, task_id=task.id)
-
-
-def set_task_to_complete(tx, task):
-    """Set a task's state to COMPLETE.
-
-    :param task: the task whose state to change
-    :type task: instance of Task
-    """
-    complete_query = ("MATCH (t:Task {task_id: $task_id}) "
-                      "SET t.state = 'COMPLETE'")
-
-    tx.run(complete_query, task_id=task.id)
-
-
-def set_task_to_failed(tx, task):
-    """Set a task with state RUNNING to FAILED.
-
-    :param task: the task whose state to change to FAILED
-    :type task: instance of Task
-    """
-    failed_query = ("MATCH (t:Task {task_id: $task_id}) "
-                    "SET t.state = 'FAILED'")
-
-    tx.run(failed_query, task_id=task.id)
+    return tx.run(subworkflow_query, subworkflow=subworkflow)
 
 
 def get_dependent_tasks(tx, task):
@@ -148,10 +102,9 @@ def get_dependent_tasks(tx, task):
     :param task: the task whose dependencies to obtain
     :type task: instance of Task
     """
-    dependents_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task {task_id: $task_id}) "
-                        "RETURN collect(t.task_id)")
+    dependents_query = "MATCH (t:Task)-[:DEPENDS]->(s:Task {task_id: $task_id})  RETURN t"
 
-    return tx.run(dependents_query, task_id=task.id).single().value()
+    return tx.run(dependents_query, task_id=task.id)
 
 
 def get_task_id_by_name(tx, task):
@@ -160,8 +113,7 @@ def get_task_id_by_name(tx, task):
     :param task: the task whose ID to get
     :type task: instance of Task
     """
-    id_query = ("MATCH (t:Task {name: $name}) "
-                "RETURN t.task_id")
+    id_query = "MATCH (t:Task {name: $name}) RETURN t.task_id"
 
     return tx.run(id_query, name=task.name).single().value()
 
@@ -172,8 +124,7 @@ def get_task_state(tx, task):
     :param task: the task whose state to get
     :type task: instance of Task
     """
-    state_query = ("MATCH (t:Task {task_id: $task_id}) "
-                   "RETURN t.state")
+    state_query = "MATCH (t:Task {task_id: $task_id}) RETURN t.state"
 
     return tx.run(state_query, task_id=task.id).single().value()
 
@@ -194,9 +145,54 @@ def get_tail_task_names(tx):
     return tx.run(end_task_query).single().value()
 
 
+def set_init_task_to_ready(tx):
+    """Set bee_init's state to READY."""
+    init_ready_query = ("MATCH (t:Task {name: 'bee_init'}) "
+                        "SET t.state = 'READY'")
+
+    tx.run(init_ready_query)
+
+
+def set_exit_task_to_ready(tx):
+    """Set bee_exit's state to READY."""
+    exit_ready_query = ("MATCH (t:Task {name: 'bee_exit'}) "
+                        "SET t.state = 'READY'")
+
+    tx.run(exit_ready_query)
+
+
+def set_task_state(tx, task, state):
+    """Set a task's state.
+
+    :param task: the task whose state to change
+    :type task: instance of Task
+    :param state: the new task state
+    :type state: string
+    """
+    state_query = ("MATCH (t:Task {task_id: $task_id}) "
+                   "SET t.state = $state")
+
+    tx.run(state_query, task_id=task.id, state=state)
+
+
+def is_empty(tx):
+    """Return true if the database is empty, else false."""
+    empty_query = "MATCH (t:Task) RETURN t IS NULL LIMIT 1"
+
+    return tx.run(empty_query).single()
+
+
 def cleanup(tx):
     """Clean up all workflow data in the database."""
-    cleanup_query = ("MATCH (n) WITH n LIMIT 10000 "
-                     "DETACH DELETE n")
+    cleanup_query = "MATCH (n) DETACH DELETE n"
 
     tx.run(cleanup_query)
+
+
+def _encode_requirements(reqs):
+    """Encode requirements as a flat list of ordered class-key-value triplets as strings.
+
+    :param reqs: the requirements to encode
+    :type reqs: iterable of Requirement instances
+    """
+    return [str(prop) for req in reqs for prop in req]

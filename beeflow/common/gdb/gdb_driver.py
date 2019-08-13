@@ -7,7 +7,7 @@ class GraphDatabaseDriver(ABC):
     """Driver interface for a generic graph database.
 
     The driver must implement a __init__ method that creates/connects to
-    the graph database.
+    the graph database and returns some kind of 'connection' object.
     """
 
     @abstractmethod
@@ -19,23 +19,6 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def add_init_node(self):
-        """Add a task node with the name 'bee_init' and state 'WAITING'."""
-
-    @abstractmethod
-    def add_exit_node(self):
-        """Add a task node with the name 'bee_exit' and state 'WAITING'."""
-
-    @abstractmethod
-    def get_subworkflow_ids(self, subworkflow):
-        """Return a subworkflow's task IDs from the graph database.
-
-        :param subworkflow: the unique identifier of the subworkflow
-        :type subworkflow: string
-        :rtype: list of integers
-        """
-
-    @abstractmethod
     def initialize_workflow(self):
         """Initialize the workflow loaded into the graph database.
 
@@ -43,12 +26,35 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_head_task_names(self):
-        """Return all tasks with no dependents."""
+    def finalize_workflow(self):
+        """Finalize the workflow loaded into the graph database.
+
+        Sets the bee_exit node's state to READY.
+        """
 
     @abstractmethod
-    def get_tail_task_names(self):
-        """Return all tasks with no dependencies."""
+    def get_workflow_tasks(self):
+        """Return a list of all workflow task records from the graph database.
+
+        :rtype: a query result object
+        """
+
+    @abstractmethod
+    def get_workflow_requirements(self):
+        """Return all workflow requirements from the graph database."""
+
+    @abstractmethod
+    def get_workflow_hints(self):
+        """Return all workflow hints from the graph database."""
+
+    @abstractmethod
+    def get_subworkflow_tasks(self, subworkflow):
+        """Return a list of subworkflow task records from the graph database.
+
+        :param subworkflow: the unique identifier of the subworkflow
+        :type subworkflow: string
+        :rtype: a query result object
+        """
 
     @abstractmethod
     def get_dependent_tasks(self, task):
@@ -61,7 +67,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_task_state(self, task):
-        """Return the state of a task in the workflow.
+        """Return the state of a task in the graph database workflow.
 
         :param task: the task whose status to retrieve
         :type task: instance of Task
@@ -69,10 +75,26 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def finalize_workflow(self):
-        """Finalize the workflow loaded into the graph database.
+    def set_task_state(self, task):
+        """Set the state of a task in the graph database workflow.
 
-        Sets the bee_exit node's state to READY.
+        :param task: the task whose state to change
+        :type task: instance of Task
+        """
+
+    @abstractmethod
+    def reconstruct_task(self, task_record):
+        """Reconstruct a Task object by its record retrieved from the database.
+
+        :param task_record: the database record of the task
+        :rtype: instance of Task
+        """
+
+    @abstractmethod
+    def empty(self):
+        """Determine if the database is empty.
+
+        :rtype: boolean
         """
 
     @abstractmethod
