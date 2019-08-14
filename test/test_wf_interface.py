@@ -47,7 +47,6 @@ class TestWFInterface(unittest.TestCase):
     def test_create_requirement(self):
         """Test workflow requirement creation."""
         req_class = "ResourceRequirement"
-        fake_req_class = "FakeRequirement"
         req_key = "ramMin"
         req_value = 1024
 
