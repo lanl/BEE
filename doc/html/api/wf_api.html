@@ -1,0 +1,1206 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Workflow API Documentation &mdash; BEE: Build and Execution Environment 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Welcome to the BEE documentation!" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> BEE: Build and Execution Environment
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Workflow API Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-beeflow.common.wf_interface">Workflow Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-beeflow.common.gdb.gdb_interface">Graph Database Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-beeflow.common.gdb.gdb_driver">Graph Database Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-beeflow.common.gdb.neo4j_driver">Neo4j Driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-beeflow.common.gdb.neo4j_cypher">Neo4j Cypher Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-beeflow.common.data.wf_data">Workflow Data Structures</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">BEE: Build and Execution Environment</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Workflow API Documentation</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api/wf_api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="workflow-api-documentation">
+<h1>Workflow API Documentation<a class="headerlink" href="#workflow-api-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-beeflow.common.wf_interface">
+<span id="workflow-interface"></span><h2>Workflow Interface<a class="headerlink" href="#module-beeflow.common.wf_interface" title="Permalink to this headline">¶</a></h2>
+<p>High-level BEE workflow management interface.</p>
+<p>Delegates its work to a GDBInterface instance.</p>
+<dl class="function">
+<dt id="beeflow.common.wf_interface.create_requirement">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">create_requirement</code><span class="sig-paren">(</span><em class="sig-param">req_class</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.create_requirement" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a workflow requirement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>req_class</strong> (<em>string</em>) – the requirement class</p></li>
+<li><p><strong>key</strong> (<em>string</em>) – the requirement key</p></li>
+<li><p><strong>value</strong> (<em>string</em><em>, </em><em>boolean</em><em>, or </em><em>integer</em>) – the requirement value</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.create_task">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">create_task</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">command=None</em>, <em class="sig-param">hints=None</em>, <em class="sig-param">subworkflow=None</em>, <em class="sig-param">inputs=None</em>, <em class="sig-param">outputs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.create_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new BEE workflow task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>string</em>) – the name given to the task</p></li>
+<li><p><strong>command</strong> (<em>list of strings</em>) – the command for the task</p></li>
+<li><p><strong>hints</strong> (<em>set of Requirement instances</em><em>, or </em><em>None</em>) – the task-specific hints (optional requirements)</p></li>
+<li><p><strong>subworkflow</strong> (<em>string</em><em> or </em><em>None</em>) – an identifier for the subworkflow to which the task belongs</p></li>
+<li><p><strong>inputs</strong> (<em>set of strings</em><em>, or </em><em>None</em>) – the task inputs</p></li>
+<li><p><strong>outputs</strong> (<em>set of strings</em><em>, or </em><em>None</em>) – the task outputs</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>instance of Task</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.create_workflow">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">create_workflow</code><span class="sig-paren">(</span><em class="sig-param">tasks</em>, <em class="sig-param">requirements=None</em>, <em class="sig-param">hints=None</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.create_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>list of Task instances</em>) – the workflow tasks</p></li>
+<li><p><strong>requirements</strong> (<em>set of Requirement instances</em><em>, or </em><em>None</em>) – the workflow requirements</p></li>
+<li><p><strong>hints</strong> (<em>set of Requirement instances</em><em>, or </em><em>None</em>) – the workflow hints (optional requirements)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>instance of Workflow</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.finalize_workflow">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">finalize_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.finalize_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finalize the BEE workflow.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.get_dependent_tasks">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">get_dependent_tasks</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.get_dependent_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dependents of a task in the BEE workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose dependents to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>set of Task instances</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.get_subworkflow">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">get_subworkflow</code><span class="sig-paren">(</span><em class="sig-param">subworkflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.get_subworkflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a subworkflow by its identifier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>subworkflow</strong> (<em>string</em>) – the unique identifier of the subworkflow</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>instance of Workflow</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.get_task_state">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">get_task_state</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.get_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the state of the task in the BEE workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.get_workflow">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">get_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.get_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the loaded workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>requirements</strong> (<em>dictionary</em>) – the workflow requirements</p></li>
+<li><p><strong>hints</strong> (<em>dictionary</em>) – the workflow hints (optional requirements)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>instance of Workflow</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.initialize_workflow">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">initialize_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.initialize_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a BEE workflow.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.load_workflow">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">load_workflow</code><span class="sig-paren">(</span><em class="sig-param">workflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.load_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workflow</strong> (<em>instance of Workflow</em>) – the workflow to load</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.set_task_state">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">set_task_state</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.set_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the state of the task in the BEE workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to change</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.unload_workflow">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">unload_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.unload_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unload a workflow.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.wf_interface.workflow_loaded">
+<code class="sig-prename descclassname">beeflow.common.wf_interface.</code><code class="sig-name descname">workflow_loaded</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.wf_interface.workflow_loaded" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return true if a workflow is loaded, else false.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-beeflow.common.gdb.gdb_interface">
+<span id="graph-database-interface"></span><h2>Graph Database Interface<a class="headerlink" href="#module-beeflow.common.gdb.gdb_interface" title="Permalink to this headline">¶</a></h2>
+<p>Mid-level interface for managing a graph database with workflows.</p>
+<p>Delegates the actual work to an instance of a subclass of
+the abstract base class <cite>GraphDatabaseDriver</cite>. By default,
+this is the <cite>Neo4jDriver</cite> class.</p>
+<dl class="class">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface">
+<em class="property">class </em><code class="sig-prename descclassname">beeflow.common.gdb.gdb_interface.</code><code class="sig-name descname">GraphDatabaseInterface</code><span class="sig-paren">(</span><em class="sig-param">gdb_driver=&lt;class 'beeflow.common.gdb.neo4j_driver.Neo4jDriver'&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interface for managing a graph database with workflows.</p>
+<p>Requires an implemented subclass of GDBDriver to function.</p>
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.cleanup">
+<code class="sig-name descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean up all data in the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the connection to the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.connect">
+<code class="sig-name descname">connect</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a graph database interface with a driver.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – arguments for initializing the graph database connection</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.empty">
+<code class="sig-name descname">empty</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return true if the graph database is empty, else false.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.finalize_workflow">
+<code class="sig-name descname">finalize_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.finalize_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finalize the workflow loaded into the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_dependent_tasks">
+<code class="sig-name descname">get_dependent_tasks</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_dependent_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dependents of a task in a graph database workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose dependents to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list of Task instances</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_subworkflow_tasks">
+<code class="sig-name descname">get_subworkflow_tasks</code><span class="sig-paren">(</span><em class="sig-param">subworkflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_subworkflow_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a subworkflow’s Task objects from the graph database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>subworkflow</strong> (<em>string</em>) – the unique identifier of the subworkflow</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list of Task instances</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_task_state">
+<code class="sig-name descname">get_task_state</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the state of a task in a graph database workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_workflow_requirements_and_hints">
+<code class="sig-name descname">get_workflow_requirements_and_hints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_workflow_requirements_and_hints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a tuple containing a list of requirements and a list of hints.</p>
+<p>The returned tuple format is (requirements, hints).
+:rtype: (list of Requirement instances, list of Requirement instances)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_workflow_tasks">
+<code class="sig-name descname">get_workflow_tasks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_workflow_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a workflow’s Task objects from the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.initialize_workflow">
+<code class="sig-name descname">initialize_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.initialize_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start the workflow loaded into the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.load_workflow">
+<code class="sig-name descname">load_workflow</code><span class="sig-paren">(</span><em class="sig-param">workflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.load_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a BEE workflow into the graph database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workflow</strong> (<em>instance of Workflow</em>) – the new workflow to load</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.set_task_state">
+<code class="sig-name descname">set_task_state</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.set_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the state of a task in the graph database workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to change</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-beeflow.common.gdb.gdb_driver">
+<span id="graph-database-driver"></span><h2>Graph Database Driver<a class="headerlink" href="#module-beeflow.common.gdb.gdb_driver" title="Permalink to this headline">¶</a></h2>
+<p>Abstract base class for the handling of workflow DAGs.</p>
+<dl class="class">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver">
+<em class="property">class </em><code class="sig-prename descclassname">beeflow.common.gdb.gdb_driver.</code><code class="sig-name descname">GraphDatabaseDriver</code><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Driver interface for a generic graph database.</p>
+<p>The driver must implement a __init__ method that creates/connects to
+the graph database and returns some kind of ‘connection’ object.</p>
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.cleanup">
+<em class="property">abstract </em><code class="sig-name descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean up all the data stored in the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.close">
+<em class="property">abstract </em><code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the connection to the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.empty">
+<em class="property">abstract </em><code class="sig-name descname">empty</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if the database is empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.finalize_workflow">
+<em class="property">abstract </em><code class="sig-name descname">finalize_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.finalize_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finalize the workflow loaded into the graph database.</p>
+<p>Sets the bee_exit node’s state to READY.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_dependent_tasks">
+<em class="property">abstract </em><code class="sig-name descname">get_dependent_tasks</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_dependent_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dependent tasks of a workflow task in the graph database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose dependents to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>set of Task instances</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_subworkflow_tasks">
+<em class="property">abstract </em><code class="sig-name descname">get_subworkflow_tasks</code><span class="sig-paren">(</span><em class="sig-param">subworkflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_subworkflow_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of subworkflow task records from the graph database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>subworkflow</strong> (<em>string</em>) – the unique identifier of the subworkflow</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>a query result object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_task_state">
+<em class="property">abstract </em><code class="sig-name descname">get_task_state</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the state of a task in the graph database workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose status to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>a string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_workflow_hints">
+<em class="property">abstract </em><code class="sig-name descname">get_workflow_hints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_workflow_hints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all workflow hints from the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_workflow_requirements">
+<em class="property">abstract </em><code class="sig-name descname">get_workflow_requirements</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_workflow_requirements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all workflow requirements from the graph database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_workflow_tasks">
+<em class="property">abstract </em><code class="sig-name descname">get_workflow_tasks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.get_workflow_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of all workflow task records from the graph database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>a query result object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.initialize_workflow">
+<em class="property">abstract </em><code class="sig-name descname">initialize_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.initialize_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the workflow loaded into the graph database.</p>
+<p>Sets the bee_init node’s state to ready.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.load_workflow">
+<em class="property">abstract </em><code class="sig-name descname">load_workflow</code><span class="sig-paren">(</span><em class="sig-param">workflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.load_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the workflow into the graph database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workflow</strong> (<em>instance of Workflow</em>) – the workflow to load</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.reconstruct_task">
+<em class="property">abstract </em><code class="sig-name descname">reconstruct_task</code><span class="sig-paren">(</span><em class="sig-param">task_record</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.reconstruct_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reconstruct a Task object by its record retrieved from the database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task_record</strong> – the database record of the task</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>instance of Task</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.set_task_state">
+<em class="property">abstract </em><code class="sig-name descname">set_task_state</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_driver.GraphDatabaseDriver.set_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the state of a task in the graph database workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to change</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-beeflow.common.gdb.neo4j_driver">
+<span id="neo4j-driver"></span><h2>Neo4j Driver<a class="headerlink" href="#module-beeflow.common.gdb.neo4j_driver" title="Permalink to this headline">¶</a></h2>
+<p>Neo4j interface module.</p>
+<p>Connection requires a valid URI, Username, and Password.
+The current defaults are defined below, but should later be
+either standardized or read from a config file.</p>
+<dl class="class">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver">
+<em class="property">class </em><code class="sig-prename descclassname">beeflow.common.gdb.neo4j_driver.</code><code class="sig-name descname">Neo4jDriver</code><span class="sig-paren">(</span><em class="sig-param">uri='bolt://localhost:7687'</em>, <em class="sig-param">user='neo4j'</em>, <em class="sig-param">password='neo4j'</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver" title="Permalink to this definition">¶</a></dt>
+<dd><p>The driver for a Neo4j Database.</p>
+<p>Implements GraphDatabaseDriver.
+Wraps the neo4j package proprietary driver.</p>
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.cleanup">
+<code class="sig-name descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean up all data in the Neo4j database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the connection to the Neo4j database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.empty">
+<code class="sig-name descname">empty</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if the database is empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.finalize_workflow">
+<code class="sig-name descname">finalize_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.finalize_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finalize the workflow loaded into the Neo4j database.</p>
+<p>Sets the bee_exit node’s state to READY.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_dependent_tasks">
+<code class="sig-name descname">get_dependent_tasks</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_dependent_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dependent tasks of a specified workflow task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>Task object</em>) – the task whose dependents to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>set of Task objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_subworkflow_tasks">
+<code class="sig-name descname">get_subworkflow_tasks</code><span class="sig-paren">(</span><em class="sig-param">subworkflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_subworkflow_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return task records from the Neo4j database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>subworkflow</strong> (<em>string</em>) – the unique identifier of the subworkflow</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>BoltStatementResult</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_task_state">
+<code class="sig-name descname">get_task_state</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the state of a task in the Neo4j workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>a string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_workflow_hints">
+<code class="sig-name descname">get_workflow_hints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_workflow_hints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all workflow hints from the Neo4j database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_workflow_requirements">
+<code class="sig-name descname">get_workflow_requirements</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_workflow_requirements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all workflow requirements from the Neo4j database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_workflow_tasks">
+<code class="sig-name descname">get_workflow_tasks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.get_workflow_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all workflow task records from the Neo4j database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>BoltStatementResult</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.initialize_workflow">
+<code class="sig-name descname">initialize_workflow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.initialize_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the workflow loaded into the Neo4j database.</p>
+<p>Sets the bee_init node’s state to ready.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.load_workflow">
+<code class="sig-name descname">load_workflow</code><span class="sig-paren">(</span><em class="sig-param">workflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.load_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the workflow into the Neo4j database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workflow</strong> (<em>instance of Workflow</em>) – the workflow to load</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.reconstruct_task">
+<code class="sig-name descname">reconstruct_task</code><span class="sig-paren">(</span><em class="sig-param">task_record</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.reconstruct_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reconstruct a Task object by its record retrieved from Neo4j.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task_record</strong> – the database record of the task</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>instance of Task</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.gdb.neo4j_driver.Neo4jDriver.set_task_state">
+<code class="sig-name descname">set_task_state</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_driver.Neo4jDriver.set_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the state of a task in the Neo4j workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to change</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-beeflow.common.gdb.neo4j_cypher">
+<span id="neo4j-cypher-module"></span><h2>Neo4j Cypher Module<a class="headerlink" href="#module-beeflow.common.gdb.neo4j_cypher" title="Permalink to this headline">¶</a></h2>
+<p>Neo4j/Cypher transaction functions used by the Neo4jDriver class.</p>
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.add_dependencies">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">add_dependencies</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.add_dependencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a dependency between two tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose dependencies to add</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.cleanup">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">cleanup</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clean up all workflow data in the database.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.constrain_task_names_unique">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">constrain_task_names_unique</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.constrain_task_names_unique" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constrain tasks to have unique names.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.create_metadata_node">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">create_metadata_node</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">requirements</em>, <em class="sig-param">hints</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.create_metadata_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a metadata node in the Neo4j database.</p>
+<p>The metadata node holds the workflow requirements and hints.
+:param requirements: the workflow requirements
+:type requirements: set of Requirement instances
+:param hints: the workflow hints
+:type hints: set of Requirement instances</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.create_task">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">create_task</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.create_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Task node in the Neo4j database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the new task to create</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_dependent_tasks">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_dependent_tasks</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_dependent_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the tasks that depend on a specified task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose dependencies to obtain</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_head_task_names">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_head_task_names</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_head_task_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all tasks with no dependencies.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_subworkflow_tasks">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_subworkflow_tasks</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">subworkflow</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_subworkflow_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get subworkflow tasks from the Neo4j database with the specified identifier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>subworkflow</strong> (<em>string</em>) – the unique identifier of the subworkflow</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>BoltStatementResult</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_tail_task_names">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_tail_task_names</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_tail_task_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all tasks with no dependents.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_task_id_by_name">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_task_id_by_name</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_task_id_by_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the ID of a task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose ID to get</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_task_state">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_task_state</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the state of a task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to get</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_workflow_hints">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_workflow_hints</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_workflow_hints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get workflow hints from the Neo4j database.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_workflow_requirements">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_workflow_requirements</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_workflow_requirements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get workflow requirements from the Neo4j database.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.get_workflow_tasks">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">get_workflow_tasks</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.get_workflow_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get workflow tasks from the Neo4j database.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.is_empty">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">is_empty</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.is_empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return true if the database is empty, else false.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.set_exit_task_to_ready">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">set_exit_task_to_ready</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.set_exit_task_to_ready" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set bee_exit’s state to READY.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.set_init_task_to_ready">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">set_init_task_to_ready</code><span class="sig-paren">(</span><em class="sig-param">tx</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.set_init_task_to_ready" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set bee_init’s state to READY.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="beeflow.common.gdb.neo4j_cypher.set_task_state">
+<code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">set_task_state</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">task</em>, <em class="sig-param">state</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.set_task_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a task’s state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task</strong> (<em>instance of Task</em>) – the task whose state to change</p></li>
+<li><p><strong>state</strong> (<em>string</em>) – the new task state</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-beeflow.common.data.wf_data">
+<span id="workflow-data-structures"></span><h2>Workflow Data Structures<a class="headerlink" href="#module-beeflow.common.data.wf_data" title="Permalink to this headline">¶</a></h2>
+<p>Defines data structures for holding task and workflow data.</p>
+<dl class="class">
+<dt id="beeflow.common.data.wf_data.Requirement">
+<em class="property">class </em><code class="sig-prename descclassname">beeflow.common.data.wf_data.</code><code class="sig-name descname">Requirement</code><span class="sig-paren">(</span><em class="sig-param">req_class</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Requirement" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="beeflow.common.data.wf_data.Requirement.__getnewargs__">
+<code class="sig-name descname">__getnewargs__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Requirement.__getnewargs__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return self as a plain tuple.  Used by copy and pickle.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Requirement.__new__">
+<em class="property">static </em><code class="sig-name descname">__new__</code><span class="sig-paren">(</span><em class="sig-param">_cls</em>, <em class="sig-param">req_class</em>, <em class="sig-param">key</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Requirement.__new__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create new instance of Requirement(req_class, key, value)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Requirement.__repr__">
+<code class="sig-name descname">__repr__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Requirement.__repr__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a nicely formatted representation string</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Requirement.key">
+<em class="property">property </em><code class="sig-name descname">key</code><a class="headerlink" href="#beeflow.common.data.wf_data.Requirement.key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Requirement.req_class">
+<em class="property">property </em><code class="sig-name descname">req_class</code><a class="headerlink" href="#beeflow.common.data.wf_data.Requirement.req_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Requirement.value">
+<em class="property">property </em><code class="sig-name descname">value</code><a class="headerlink" href="#beeflow.common.data.wf_data.Requirement.value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="beeflow.common.data.wf_data.Task">
+<em class="property">class </em><code class="sig-prename descclassname">beeflow.common.data.wf_data.</code><code class="sig-name descname">Task</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">command</em>, <em class="sig-param">hints</em>, <em class="sig-param">subworkflow</em>, <em class="sig-param">inputs</em>, <em class="sig-param">outputs</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data structure for holding data about a single task.</p>
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Task.__eq__">
+<code class="sig-name descname">__eq__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Task.__eq__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test the equality of two tasks.</p>
+<p>Task ID and dependencies do not factor into equality testing.
+:param other: the task with which to test equality
+:type other: instance of Task</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Task.__hash__">
+<code class="sig-name descname">__hash__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Task.__hash__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the hash value for a task.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Task.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">command</em>, <em class="sig-param">hints</em>, <em class="sig-param">subworkflow</em>, <em class="sig-param">inputs</em>, <em class="sig-param">outputs</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Task.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store a task description.</p>
+<p>There are two special tasks: those with the name bee_init and bee_exit.</p>
+<p>bee_init should have no dependencies and all head tasks of the user’s
+workflow should depend on it.</p>
+<p>bee_exit should have no dependents and depend on all of the end tasks
+in the user’s workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task_id</strong> (<em>integer</em>) – the task’s unique ID</p></li>
+<li><p><strong>name</strong> (<em>string</em>) – the task name</p></li>
+<li><p><strong>command</strong> (<em>list of strings</em>) – the command to run for the task</p></li>
+<li><p><strong>hints</strong> (<em>dictionary</em>) – the task hints (optional requirements)</p></li>
+<li><p><strong>subworkflow</strong> (<em>string</em>) – an identifier for the subworkflow to which the task belongs</p></li>
+<li><p><strong>inputs</strong> (<em>set</em>) – the task inputs</p></li>
+<li><p><strong>outputs</strong> (<em>set</em>) – the task outputs</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Task.__ne__">
+<code class="sig-name descname">__ne__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Task.__ne__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test the inequality of two tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>instance of Task</em>) – the task with which to test inequality</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Task.__repr__">
+<code class="sig-name descname">__repr__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Task.__repr__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a task’s string representation.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="beeflow.common.data.wf_data.Task.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#beeflow.common.data.wf_data.Task.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Task.base_command">
+<em class="property">property </em><code class="sig-name descname">base_command</code><a class="headerlink" href="#beeflow.common.data.wf_data.Task.base_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of the task base command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list of strings</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Task.construct_command">
+<code class="sig-name descname">construct_command</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Task.construct_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a task’s command representation.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="beeflow.common.data.wf_data.Workflow">
+<em class="property">class </em><code class="sig-prename descclassname">beeflow.common.data.wf_data.</code><code class="sig-name descname">Workflow</code><span class="sig-paren">(</span><em class="sig-param">tasks</em>, <em class="sig-param">requirements</em>, <em class="sig-param">hints</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data structure for holding workflow data and metadata.</p>
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Workflow.__contains__">
+<code class="sig-name descname">__contains__</code><span class="sig-paren">(</span><em class="sig-param">task</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow.__contains__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if a task is in the workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> (<em>instance of Task</em>) – the task to check for</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Workflow.__eq__">
+<code class="sig-name descname">__eq__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow.__eq__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test the equality of two workflows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>instance of Workflow</em>) – the workflow with which to test equality</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Workflow.__getitem__">
+<code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">task_id</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a Task instance by its ID, if it exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task_id</strong> – the ID of the task to retrieve</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>instance of Task</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Workflow.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">tasks</em>, <em class="sig-param">requirements</em>, <em class="sig-param">hints</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a new workflow data structure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> (<em>iterable of Task instances</em>) – the workflow tasks</p></li>
+<li><p><strong>requirements</strong> (<em>dictionary</em>) – the workflow requirements</p></li>
+<li><p><strong>hints</strong> (<em>dictionary</em>) – the workflow hints (optional requirements)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Workflow.__ne__">
+<code class="sig-name descname">__ne__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow.__ne__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test the inequality of two workflows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>instance of Workflow</em>) – the workflow with which to test inequality</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Workflow.__repr__">
+<code class="sig-name descname">__repr__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow.__repr__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a workflow’s string representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="beeflow.common.data.wf_data.Workflow.__weakref__">
+<code class="sig-name descname">__weakref__</code><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="beeflow.common.data.wf_data.Workflow.tasks">
+<em class="property">property </em><code class="sig-name descname">tasks</code><a class="headerlink" href="#beeflow.common.data.wf_data.Workflow.tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the workflow tasks as a set.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to the BEE documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, BEE Development Team
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
