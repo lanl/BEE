@@ -12,5 +12,4 @@ __pycache__
 .env
 .venv
 doc-src/_build
-doc-src/_static
-doc-src/_templates
+

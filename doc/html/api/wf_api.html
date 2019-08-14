@@ -422,8 +422,12 @@ this is the <cite>Neo4jDriver</cite> class.</p>
 <dt id="beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_workflow_requirements_and_hints">
 <code class="sig-name descname">get_workflow_requirements_and_hints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.gdb_interface.GraphDatabaseInterface.get_workflow_requirements_and_hints" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a tuple containing a list of requirements and a list of hints.</p>
-<p>The returned tuple format is (requirements, hints).
-:rtype: (list of Requirement instances, list of Requirement instances)</p>
+<p>The returned tuple format is (requirements, hints).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(list of Requirement instances, list of Requirement instances)</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -796,11 +800,15 @@ Wraps the neo4j package proprietary driver.</p>
 <dt id="beeflow.common.gdb.neo4j_cypher.create_metadata_node">
 <code class="sig-prename descclassname">beeflow.common.gdb.neo4j_cypher.</code><code class="sig-name descname">create_metadata_node</code><span class="sig-paren">(</span><em class="sig-param">tx</em>, <em class="sig-param">requirements</em>, <em class="sig-param">hints</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.gdb.neo4j_cypher.create_metadata_node" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a metadata node in the Neo4j database.</p>
-<p>The metadata node holds the workflow requirements and hints.
-:param requirements: the workflow requirements
-:type requirements: set of Requirement instances
-:param hints: the workflow hints
-:type hints: set of Requirement instances</p>
+<p>The metadata node holds the workflow requirements and hints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>requirements</strong> (<em>set of Requirement instances</em>) – the workflow requirements</p></li>
+<li><p><strong>hints</strong> (<em>set of Requirement instances</em>) – the workflow hints</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
@@ -976,9 +984,12 @@ Wraps the neo4j package proprietary driver.</p>
 <dt id="beeflow.common.data.wf_data.Task.__eq__">
 <code class="sig-name descname">__eq__</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#beeflow.common.data.wf_data.Task.__eq__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test the equality of two tasks.</p>
-<p>Task ID and dependencies do not factor into equality testing.
-:param other: the task with which to test equality
-:type other: instance of Task</p>
+<p>Task ID and dependencies do not factor into equality testing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>other</strong> (<em>instance of Task</em>) – the task with which to test equality</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
