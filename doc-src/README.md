@@ -23,7 +23,7 @@ The generated documentation is stored in the untracked `doc-src/_build/html` dir
 
 Sphinx is also capable of generating documentation in other formats, such as LaTeX (`latex`, or `latexpdf` for PDF),
 JSON (`json`), Pickle (`pickle`), plain text (`text`), and manual pages (`man`).
-For a full list of documentation types, run the command `make` in the project root directory.
+For a full list of documentation types, run the command `make` inside the `doc-src` directory.
 
 ## Adding Documentation
 
@@ -49,7 +49,7 @@ Python path before generating documentation. If it is not, then uncomment the fo
 ```py
 # import os
 # import sys
-# sys.path.insert(0, os.path.abspath('./beeflow'))
+# sys.path.insert(0, os.path.abspath('../beeflow'))
 ```
 
 **Warning**: currently, to generate documentation for a module that uses the `wf_interface` module, Neo4j must first be
