@@ -1,4 +1,4 @@
- BEE Documentation Generation with Sphinx
+# BEE Documentation Generation with Sphinx
 The `doc-src` directory contains the source for generating BEE documentation.
 
 BEE documentation is generated using [Sphinx](http://www.sphinx-doc.org/en/master/).
@@ -6,7 +6,7 @@ API documentation may be automatically generated using docstrings.
 
 ---
 
-### Install Sphinx
+## Install Sphinx
 
 Before generating documentation, make sure the `Sphinx` and `sphinx-rtd-theme` packages are installed.
 
@@ -16,7 +16,7 @@ Otherwise, run the command `pip install Sphinx sphinx-rtd-theme`.
 
 ---
 
-### Generate the Documentation
+## Generate the Documentation
 
 To generate HTML documentation, simply run the command `make html` inside the `doc-src` directory.
 The generated documentation is stored in the untracked `doc-src/_build/html` directory.
@@ -25,9 +25,7 @@ Sphinx is also capable of generating documentation in other formats, such as LaT
 JSON (`json`), Pickle (`pickle`), plain text (`text`), and manual pages (`man`).
 For a full list of documentation types, run the command `make` in the project root directory.
 
----
-
-### Adding Documentation
+## Adding Documentation
 
 To create a new index for the table of contents, create a reST file with an appropriate name in the `doc-src` directory.
 
@@ -43,9 +41,7 @@ then `index.rst` should appear as:
    foo
 ```
 
----
-
-### Autodoc Generation
+## Autodoc Generation
 
 Make sure that the up-to-date `beeflow` package has been built using `poetry build` or `poetry install` and is in your
 Python path before generating documentation. If it is not, then uncomment the following lines in `conf.py`:
@@ -56,8 +52,8 @@ Python path before generating documentation. If it is not, then uncomment the fo
 # sys.path.insert(0, os.path.abspath('./beeflow'))
 ```
 
-**Warning**: currently, o generate documentation for a module that uses the `wf_interface` module, Neo4j must first be
-running to avoid an exception from occurring while `sphinx-build` is running.
+**Warning**: currently, to generate documentation for a module that uses the `wf_interface` module, Neo4j must first be
+running to avoid an unhandled exception from being raised while `sphinx-build` is running.
 
 To automatically generate documentation for a Python module, create a section with the following format in a reST file:
 
@@ -83,9 +79,7 @@ Workflow Data Structures
 
 - To document special members (those that begin and end with `__`), add the `:special-members:` option below `:members:`.
 
----
-
-### More Sphinx Information
+## More Sphinx Information
 
 For more information about using Sphinx, check out the following resources:
 
