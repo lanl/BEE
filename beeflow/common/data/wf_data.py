@@ -159,28 +159,3 @@ class Workflow:
 
 # Requirement class for storing requirement class, key, and value
 Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
-
-# Requirement classes supported by CWL
-CWL_SUPPORTED_REQUIREMENTS = {
-    "DockerRequirement",
-    "SchemaDefRequirement",
-    "EnvVarRequirement",
-    "ScatterFeatureRequirement",
-    "SubworkflowFeatureRequirement",
-    "MultipleInputFeatureRequirement",
-    "InlineJavascriptRequirement",
-    "ShellCommandRequirement",
-    "StepInputExpressionRequirement",
-    "ResourceRequirement",
-    "InitialWorkDirRequirement",
-    "ToolTimeLimit",
-    "WorkReuse",
-    "NetworkAccess",
-    "InplaceUpdateRequirement",
-    "LoadListingRequirement",
-    "http://commonwl.org/cwltool#TimeLimit",
-    "http://commonwl.org/cwltool#WorkReuse",
-    "http://commonwl.org/cwltool#NetworkAccess",
-    "http://commonwl.org/cwltool#LoadListingRequirement",
-    "http://commonwl.org/cwltool#InplaceUpdateRequirement"
-}

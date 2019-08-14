@@ -16,7 +16,7 @@ from beeflow.common.data.wf_data import Task, Requirement
 # We may want to instead get these from a config at some point
 DEFAULT_URI = "bolt://localhost:7687"
 DEFAULT_USER = "neo4j"
-DEFAULT_PASSWORD = "neo4j"
+DEFAULT_PASSWORD = "password"
 
 
 class Neo4jDriver(GraphDatabaseDriver):
