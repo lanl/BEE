@@ -37,6 +37,7 @@ def create_metadata_node(tx, requirements, hints):
     """Create a metadata node in the Neo4j database.
 
     The metadata node holds the workflow requirements and hints.
+
     :param requirements: the workflow requirements
     :type requirements: set of Requirement instances
     :param hints: the workflow hints
