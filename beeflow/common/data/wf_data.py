@@ -46,6 +46,7 @@ class Task:
         """Test the equality of two tasks.
 
         Task ID and dependencies do not factor into equality testing.
+
         :param other: the task with which to test equality
         :type other: instance of Task
         """

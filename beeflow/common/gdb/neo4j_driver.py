@@ -197,6 +197,7 @@ def _reconstruct_requirement(list_repr):
 
     The list representation must conform to the following pattern:
     [class1, key1, value1, class2, key2, value2, ...].
+
     :param list_repr: the list representation of the dictionary
     :type list_repr: list of strings
     :rtype: set of Requirement instances
