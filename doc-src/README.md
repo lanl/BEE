@@ -56,6 +56,9 @@ Python path before generating documentation. If it is not, then uncomment the fo
 # sys.path.insert(0, os.path.abspath('./beeflow'))
 ```
 
+**Warning**: currently, o generate documentation for a module that uses the `wf_interface` module, Neo4j must first be
+running to avoid an exception from occurring while `sphinx-build` is running.
+
 To automatically generate documentation for a Python module, create a section with the following format in a reST file:
 
 ```rst

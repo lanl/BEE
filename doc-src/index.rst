@@ -10,7 +10,7 @@ Welcome to the BEE documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   wf_api
+   api/wf_api
 
 
 Indices and tables
