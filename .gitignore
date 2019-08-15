@@ -1,6 +1,6 @@
 *~
 __pycache__
-*.qcow2
+poetry.lock
 *.iso
 *.pyc
 *.egg-info
