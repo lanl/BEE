@@ -6,32 +6,32 @@ def get_cwl_inputs(dataframe):
     cwl_inputs = dataframe.loc[df['CWL_Key'] == 'inputs','CWL_Value'][0:]
     return cwl_inputs
 def get_cwl_outputs(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'outputs','CWL_Value'][0:]
-    return cwl_inputs
+    cwl_outputs = dataframe.loc[df['CWL_Key'] == 'outputs','CWL_Value'][0:]
+    return cwl_outputs
 def get_cwl_version(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'cwlVersion','CWL_Value'][0]
-    return cwl_inputs
+    cwlVersion = dataframe.loc[df['CWL_Key'] == 'cwlVersion','CWL_Value'][0]
+    return cwlVersion
 def get_cwl_requirements(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'requirements','CWL_Value'][0:]
-    return cwl_inputs
+    cwl_requirements = dataframe.loc[df['CWL_Key'] == 'requirements','CWL_Value'][0:]
+    return cwl_requirements
 def get_cwl_steps(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'steps','CWL_Value'][0:]
-    return cwl_inputs
+    cwl_steps = dataframe.loc[df['CWL_Key'] == 'steps','CWL_Value'][0:]
+    return cwl_steps
 def get_cwl_hints(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'hints','CWL_Value'][0:]
-    return cwl_inputs
+    cwl_hints = dataframe.loc[df['CWL_Key'] == 'hints','CWL_Value'][0:]
+    return cwl_hints
 def get_cwl_label(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'label','CWL_Value'][0:]
-    return cwl_inputs
+    cwl_label = dataframe.loc[df['CWL_Key'] == 'label','CWL_Value'][0:]
+    return cwl_label
 def get_cwl_doc(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'doc','CWL_Value'][0:]
-    return cwl_inputs
+    cwl_doc = dataframe.loc[df['CWL_Key'] == 'doc','CWL_Value'][0:]
+    return cwl_doc
 def get_cwl_class(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'class','CWL_Value'][0:]
-    return cwl_inputs
+    cwl_class = dataframe.loc[df['CWL_Key'] == 'class','CWL_Value'][0:]
+    return cwl_class
 def get_cwl_id(dataframe):
-    cwl_inputs = dataframe.loc[df['CWL_Key'] == 'id','CWL_Value'][0:]
-    return cwl_inputs
+    cwl_id = dataframe.loc[df['CWL_Key'] == 'id','CWL_Value'][0:]
+    return cwl_id
 
 
 with open("./echo2-wf.cwl", 'r') as cwl_file:
