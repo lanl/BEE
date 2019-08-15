@@ -1,6 +1,6 @@
 import yaml
 import pandas as pd
-from schema_salad import main
+from schema_salad import main as validator
 
 def get_cwl_inputs(dataframe):
     cwl_inputs = dataframe.loc[df['CWL_Key'] == 'inputs','CWL_Value'][0:]
@@ -42,9 +42,9 @@ with open("./echo2-wf.cwl", 'r') as cwl_file:
     df.rename(columns={0: 'CWL_Key',1: 'CWL_Value'},inplace=True)
     cwlVersion = df.loc[df['CWL_Key'] == 'cwlVersion','CWL_Value'][0]
     if cwlVersion == 'v1.0':
-        result = main.main(argsl=['./v1.0/CommonWorkflowLanguage.yml',file_path])
-        if result.bit_length() == 0:
-            df.to_csv(r'.\result.csv')
+        validation_result = validator.main(argsl=['./v1.0/CommonWorkflowLanguage.yml',file_path])
+        if validation_result.bit_length() == 0:
+            #df.to_csv(r'.\result.csv')
             #print(get_cwl_inputs(df))
             #print(get_cwl_label(df))
             print(get_cwl_requirements(df))
@@ -53,8 +53,8 @@ with open("./echo2-wf.cwl", 'r') as cwl_file:
             #print("================================")
             print(df)
     if cwlVersion == 'v1.1':
-        result = main.main(argsl=['./v1.1/CommonWorkflowLanguage.yml', file_path])
-        if result.bit_length() == 0:
+        validation_result = validator.main(argsl=['./v1.1/CommonWorkflowLanguage.yml', file_path])
+        if validation_result.bit_length() == 0:
             df.to_csv(r'.\result.csv')
             #print("Version 1.1")
             # print(cwl_dict)
@@ -63,8 +63,8 @@ with open("./echo2-wf.cwl", 'r') as cwl_file:
             print(df)
 
     if cwlVersion == 'v1.1.0-dev1':
-        result = main.main(argsl=['./v1.1.0-dev1/CommonWorkflowLanguage.yml', file_path])
-        if result.bit_length() == 0:
+        validation_result = validator.main(argsl=['./v1.1.0-dev1/CommonWorkflowLanguage.yml', file_path])
+        if validation_result.bit_length() == 0:
             df.to_csv(r'.\result.csv')
             # print(cwl_dict)
             # print(df.loc[df['CWL_Key'] == 'requirements'])
