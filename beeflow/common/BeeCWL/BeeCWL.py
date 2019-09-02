@@ -67,3 +67,109 @@ class BeeCWL:
                         return df
         except OSError as err:
             print("Error: {0} ".format(err))
+
+
+    def get_requirements(self,datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__']=='requirements'].index[0],'__value__')
+        except Exception as error:
+            print(error)
+
+    def get_inputs(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'inputs'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_outputs(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'outputs'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_name(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'class'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_baseCommand(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'baseCommand'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_id(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'id'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_id(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'id'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_hints(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'hints'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_cwlVersion(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'cwlVersion'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_doc(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'doc'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_arguments(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'arguments'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_stdin(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'stdin'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+
+    def get_stderr(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'stderr'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+
+    def get_stdout(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'stdout'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+
+    def get_successCodes(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'successCodes'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_temporaryFailCodes(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'temporaryFailCodes'].index[0], '__value__')
+        except Exception as error:
+            print(error)
+
+    def get_permanentFailCodes(self, datafram=None):
+        try:
+            return datafram._get_value(datafram.loc[datafram['__key__'] == 'permanentFailCodes'].index[0], '__value__')
+        except Exception as error:
+            print(error)
