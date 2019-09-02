@@ -8,7 +8,9 @@ p2 = BeeCWL("./blast-cc/blast-cc-flow.cwl")
 result2 = p2.parser
 print(result2)
 
+print(result._get_value(result.loc[result['__key__']=='steps'].index[0],'__value__'))
 
+print(BeeCWL.get_stdin(p2,datafram=result2))
 from beeflow.common.wf_interface import WorkflowInterface
 
 name = result._get_value(result.loc[result['__key__']=='class'].index[0],'__value__')
