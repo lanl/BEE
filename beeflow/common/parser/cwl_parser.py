@@ -31,7 +31,7 @@ class BeeCWL:
 
             """validate CWL workflow structure based on version"""
             # To Fix: path to version files should not be hard coded
-            version_path = '../BeeCWL/' + cwl_version + '/CommonWorkflowLanguage.yml'
+            version_path = 'cwl_versions/' + cwl_version + '/CommonWorkflowLanguage.yml'
             print('version_path = ', version_path)
             compare = schema_salad.main(argsl=[version_path, __cwl__.path])
             if compare.bit_length() == 0:
