@@ -1,0 +1,13 @@
+tarball: /scratch/beedev/blast/blast.tar.gz
+#tarball: /home/pagrubel/src/BEE_Private/examples/cwl/Charliecloud/alpine.tar.gz 
+dir: /var/tmp
+split_script: /mnt/1/blast-split.sh
+worker_script: /mnt/1/blast-worker.sh
+output_script: /mnt/1/blast-output.sh
+output_err_script: /mnt/1/blast-output-err.sh
+scripts_dir: /home/pagrubel/src/BEE_Private/examples/cwl/blast-cc/scripts
+output_dir: /home/pagrubel/blast_output
+cc_flags: "--no-home"
+worker0: "0"
+worker1: "1"
+workers: [ "0", "1"]
