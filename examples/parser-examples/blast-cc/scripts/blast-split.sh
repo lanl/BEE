@@ -1,7 +1,6 @@
 #!/bin/bash
 
-
-BLAST_LOC=/home/beeuser/makeflow-examples/blast
+BLAST_LOC=/$HOME/makeflow-examples/blast
 BLAST_OUT=/mnt/0
 
 touch $BLAST_OUT/input.fasta.0.err \

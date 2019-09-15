@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BLAST_LOC=/home/beeuser/makeflow-examples/blast
+BLAST_LOC=/$HOME/makeflow-examples/blast
 
 cat /mnt/0/input.fasta.0.err /mnt/0/input.fasta.1.err > /mnt/0/output.fasta.err
 

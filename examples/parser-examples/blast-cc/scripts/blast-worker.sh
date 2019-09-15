@@ -1,6 +1,6 @@
 #!/bin/bash
 # to run $1 is the worker number 0,1
-BLAST_LOC=/home/beeuser/makeflow-examples/blast
+BLAST_LOC=/$HOME/makeflow-examples/blast
 
 cat /mnt/0/split-done.txt
 echo "Running worker$1 "
