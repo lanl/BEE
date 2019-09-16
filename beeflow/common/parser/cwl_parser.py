@@ -35,6 +35,8 @@ class BeeCWL:
             compare = schema_salad.main(argsl=[versions_path, __cwl__.path])
             if compare.bit_length() == 0:
                 return cwl_dict
+            else: 
+                return None
 
         except OSError as err:
             print("Error: {0} ".format(err))
