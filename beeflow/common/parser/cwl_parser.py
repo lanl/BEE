@@ -28,6 +28,7 @@ class BeeCWL:
         try:
             with open(__cwl__.path, 'r') as cwl_file:
                 cwl_dict = yaml.safe_load(cwl_file)
+
             cwl_version = cwl_dict.get('cwlVersion')
             versions_path = (os.environ['CWL_VERSIONS']
                              + cwl_version
@@ -38,4 +39,5 @@ class BeeCWL:
             return cwl_dict
 
         except OSError as err:
+            cwl_dict = None
             print("Error: {0} ".format(err))

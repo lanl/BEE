@@ -18,25 +18,28 @@ def main():
     cwl_file = args.cwl_file
     pretty_print = pprint.PrettyPrinter(indent=4)
 
-    cwl_bee = BeeCWL(cwl_file)
-    cwl_dict = cwl_bee.parser
+    cwl_wf = BeeCWL(cwl_file)
+    cwl_dict = cwl_wf.parser
     if cwl_dict:
         if args.list:
             print('\n Parsing ', cwl_file, '\n')
             pretty_print.pprint(cwl_dict)
 
         if args.recursive:
+            if cwl_dict.get('steps'):
+                for (step, cwl_file) in (zip(
+                        list(cwl_dict.get('steps').keys()),
+                        [cwl_dict['steps'][n]['run'] for n in cwl_dict['steps']])):
+                    print('\n Step ', step, ': Parsing ', cwl_file)
+                    cwl = BeeCWL(cwl_file)
+                    cwl_dict = cwl.parser
+                    if not cwl_dict:
+                        error_files.append(cwl_file)
+                    elif args.list:
+                        pretty_print.pprint(cwl_dict)
+            else:
+                print('CWL file has no steps, -r flag not used.')
 
-            for (step, cwl_file) in (zip(
-                    list(cwl_dict.get('steps').keys()),
-                    [cwl_dict['steps'][n]['run'] for n in cwl_dict['steps']])):
-                print('\n Step ', step, ': Parsing ', cwl_file)
-                cwl_bee = BeeCWL(cwl_file)
-                cwl_dict = cwl_bee.parser
-                if not cwl_dict:
-                    error_files.append(cwl_file)
-                elif args.list:
-                    pretty_print.pprint(cwl_dict)
     elif args.recursive:
         print('The cwl file has errors, step files cannot be parsed!')
         error_files.append(cwl_file)
@@ -44,7 +47,7 @@ def main():
     if error_files:
         print('\n The following cwl files are invalid:')
         print('\t', *error_files, sep='\n\t')
-    else:
+    elif cwl_dict and args.recursive:
         print('All files are valid!')
 
 if __name__ == '__main__':
