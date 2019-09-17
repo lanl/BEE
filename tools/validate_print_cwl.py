@@ -42,7 +42,7 @@ def main():
         error_files.append(cwl_file)
 
     if error_files:
-        print('\n The following cwl files need to be fixed:')
+        print('\n The following cwl files are invalid:')
         print('\t', *error_files, sep='\n\t')
     else:
         print('All files are valid!')

@@ -30,13 +30,12 @@ class BeeCWL:
                 cwl_dict = yaml.safe_load(cwl_file)
             cwl_version = cwl_dict.get('cwlVersion')
             versions_path = (os.environ['CWL_VERSIONS']
-                            + cwl_version
-                            + '/CommonWorkflowLanguage.yml')
+                             + cwl_version
+                             + '/CommonWorkflowLanguage.yml')
             compare = schema_salad.main(argsl=[versions_path, __cwl__.path])
-            if compare.bit_length() == 0:
-                return cwl_dict
-            else: 
-                return None
+            if not compare.bit_length() == 0:
+                cwl_dict = None
+            return cwl_dict
 
         except OSError as err:
             print("Error: {0} ".format(err))
