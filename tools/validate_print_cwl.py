@@ -1,20 +1,25 @@
 """ Parses, Validates and Prints a cwl workflow and sub cwl files. """
 
+import sys
+import argparse
+import pprint
+from beeflow.common.parser.cwl_parser import BeeCWL
+
+def parse_args(args=sys.argv[1:]):
+    """Parse arguments."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--cwl_file', help='CWL file to parse.', required=True)
+    parser.add_argument('-r', '--recursive', help='Parse CWL steps files.', action='store_true')
+    parser.add_argument('-l', '--list', help='Full list of cwl files.', action='store_true')
+    return parser.parse_args(args)
+
 def main():
     '''Entry point if called as an executable'''
 
-    import argparse
-    import pprint
-    from beeflow.common.parser.cwl_parser import BeeCWL
-
-    cwl_parser = argparse.ArgumentParser()
-    cwl_parser.add_argument('-c', '--cwl_file', help='CWL file to parse.', required=True)
-    cwl_parser.add_argument('-r', '--recursive', help='Parse CWL steps files.', action='store_true')
-    cwl_parser.add_argument('-l', '--list', help='Full list of cwl files.', action='store_true')
-    args = cwl_parser.parse_args()
 
     error_files = []
     cwl_dict = []
+    args=parse_args()
     cwl_file = args.cwl_file
     pretty_print = pprint.PrettyPrinter(indent=4)
 
