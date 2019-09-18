@@ -1,0 +1,16 @@
+some methods to add:
+
+get a list of cwl files in steps
+get each cwl file to load in database
+    Will it work just to load and put the task cwl (as dictionary) 
+          in cwl_wf['step']['step_name']['run']?
+or just validate all the cwl files but don't load
+
+What happens when a step doesn't use a cwl file fix for this
+
+
+How can we get the schema versions of cwl without copying to this repo
+Look into cwl_utils parser v1_0
+
+
+
