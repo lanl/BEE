@@ -1,17 +1,17 @@
-""" Parses, Validates and Prints a cwl workflow and sub cwl files. """
+")"" Parses, Validates and Prints a cwl workflow and sub cwl files. """
 
 import sys
 import argparse
 import pprint
 from beeflow.common.parser.cwl_parser import BeeCWL
 
-def parse_args(args=sys.argv[1:]):
+def parse_args(args):
     """Parse arguments."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--cwl_file', help='CWL file to parse.', required=True)
-    parser.add_argument('-r', '--recursive', help='Parse CWL steps files.', action='store_true')
-    parser.add_argument('-l', '--list', help='Full list of cwl files.', action='store_true')
-    return parser.parse_args(args)
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('-c', '--cwl_file', help='CWL file to parse.', required=True)
+    arg_parser.add_argument('-r', '--recursive', help='Parse CWL steps files.', action='store_true')
+    arg_parser.add_argument('-l', '--list', help='Full list of cwl files.', action='store_true')
+    return arg_parser.parse_args(args)
 
 def main():
     '''Entry point if called as an executable'''
@@ -19,7 +19,7 @@ def main():
 
     error_files = []
     cwl_dict = []
-    args=parse_args()
+    args = parse_args(sys.argv[1:])
     cwl_file = args.cwl_file
     pretty_print = pprint.PrettyPrinter(indent=4)
 
@@ -54,6 +54,5 @@ def main():
         print('\t', *error_files, sep='\n\t')
     elif cwl_dict and args.recursive:
         print('All files are valid!')
-
 if __name__ == '__main__':
     main()
