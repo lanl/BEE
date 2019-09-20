@@ -24,20 +24,10 @@ def main():
 
     cwl_wf = BeeCWL(cwl_file)
     cwl_dict = cwl_wf.parser
-    if cwl_dict:
-        if cwl_dict.get('steps'):
-            for step in  list(cwl_dict.get('steps').keys()):
-                if isinstance(cwl_dict['steps'][step]['run'], (str)):
-                    step_file = cwl_dict['steps'][step]['run']
-                    step_cwl = BeeCWL(step_file)
-                    step_dict = step_cwl.parser
-                    if not step_dict:
-                        error_files.append(step_file)
-                    else:
-                        cwl_dict['steps'][step]['run'] = step_dict
-        if args.list:
-            print('\n Parsing ', cwl_file, '\n')
-            pretty_print.pprint(cwl_dict)
+
+    if cwl_dict and args.list:
+        print('\n Parsing ', cwl_file, '\n')
+        pretty_print.pprint(cwl_dict)
 
 
     if error_files:
