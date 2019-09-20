@@ -47,6 +47,7 @@ python = "^3.6.8"
 Flask = { version = "^1.1.1" }
 neo4j = { version = "^1.7.4" }
 PyYAML = { version = "^5.1.1" }
+schema_salad = "^4.5"
 
 [tool.poetry.dev-dependencies]
 # Developer dependencies
