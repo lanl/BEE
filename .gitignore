@@ -11,3 +11,5 @@ poetry.lock
 .vscode
 .env
 .venv
+doc-src/_build
+
