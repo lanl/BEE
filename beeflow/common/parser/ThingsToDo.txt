@@ -8,6 +8,8 @@ or just validate all the cwl files but don't load
 
 What happens when a step doesn't use a cwl file fix for this
 
+--------------
+Things to submit as issues:
 
 How can we get the schema versions of cwl without copying to this repo
 Look into cwl_utils parser v1_0

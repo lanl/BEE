@@ -28,7 +28,7 @@ inputs:
     inputBinding:
       position: 5
   command:
-    default: 'sh'
+    default: sh
     type: string
     inputBinding:
       position: 6

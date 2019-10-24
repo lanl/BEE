@@ -31,27 +31,7 @@ steps:
 
     out: 
       [image] 
-    run:
-      class: CommandLineTool
-      cwlVersion: v1.0
-      baseCommand:
-        - ch-tar2dir
-      inputs:
-        dir:
-          type: string
-          inputBinding:
-            position: 2
-        tarball:
-          type: string
-          inputBinding:
-            position: 1
-      
-      outputs:
-        image:
-          type: string
-          outputBinding:
-            outputEval: 
-              $((inputs.dir + '/' + ((inputs.tarball).split('/').slice(-1)[0]).slice(0,-7)))
+    run: step-cwls/exists_not.cwl
 
   blast_split:
     in:
@@ -65,7 +45,7 @@ steps:
         default: '--no-home'
     out:
       [split_done]
-    run: ./blast-split.cwl
+    run: step-cwls/blast-split.cwl
 
   blast_worker0:
     in:
@@ -81,7 +61,7 @@ steps:
       worker0: worker0
     out:
       [worker0_done]
-    run: ./blast-worker0.cwl
+    run: step-cwls/blast-worker0.cwl
 
   blast_worker1:
     in:
@@ -97,7 +77,7 @@ steps:
       worker1: worker1
     out:
       [worker1_done]
-    run: ./blast-worker1.cwl
+    run: step-cwls/blast-worker1.cwl
 
   blast_output:
     in:
@@ -113,7 +93,7 @@ steps:
       worker1_done: blast_worker1/worker1_done
     out: 
       [output_done]
-    run: ./blast-output.cwl
+    run: step-cwls/blast-output.cwl
 
   blast_output_err:
     in:
@@ -129,7 +109,7 @@ steps:
       worker1_done: blast_worker1/worker1_done
     out: 
       [output_err_done]
-    run: ./blast-output-err.cwl
+    run: step-cwls/blast-output-err.cwl
 
   ch_remove:
     in:
@@ -139,5 +119,5 @@ steps:
       output_done: blast_output/output_done
       output_err_done: blast_output_err/output_err_done
     out: []
-    run: ./ch-remove.cwl
+    run: step-cwls/ch-remove.cwl
 

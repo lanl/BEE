@@ -1,9 +1,11 @@
+import os
+
 """ Some examples of parsing various files"""
 
 from beeflow.common.parser.cwl_parser import BeeCWL
 from beeflow.common.wf_interface import WorkflowInterface
 
-cwl_file = 'echo2-wf.cwl'
+cwl_file = 'echo-2step-wf.cwl'
 cwl_bee = BeeCWL(cwl_file)
 cwl_dict = cwl_bee.parser
 print(list(cwl_dict.keys()))
@@ -17,12 +19,30 @@ Task = WorkflowInterface.create_task(
         outputs=cwl_dict.get('outputs'))
 print(Task)
 print(80*'-')
+os.chdir('blast-cc')
 
-cwl_file = 'blast-cc/blast-cc-flow.cwl'
+print("blast-cc-flow")
+cwl_file = 'blast-cc-flow.cwl'
 cwl_bee = BeeCWL(cwl_file)
 cwl_dict = cwl_bee.parser
 print("keys in 'steps'  = ", list(cwl_dict.get('steps').keys()))
 print(80*'-')
+
+print("blast-step-error-flow")
+cwl_file = 'blast-step-error-flow.cwl'
+cwl_bee = BeeCWL(cwl_file)
+cwl_dict = cwl_bee.parser
+print("keys in 'steps'  = ", list(cwl_dict.get('steps').keys()))
+print(80*'-')
+
+print("blast-step-missing-flow")
+cwl_file = 'blast-step-missing-flow.cwl'
+cwl_bee = BeeCWL(cwl_file)
+cwl_dict = cwl_bee.parser
+print("keys in 'steps'  = ", list(cwl_dict.get('steps').keys()))
+print(80*'-')
+
+os.chdir('..')
 
 cwl_file = "echo.cwl"
 cwl_bee = BeeCWL(cwl_file)
@@ -35,7 +55,4 @@ print(80*'-')
 cwl_file = "has_error.cwl"
 cwl_bee = BeeCWL(cwl_file)
 cwl_dict = cwl_bee.parser
-if not cwl_dict:
-    print('cwl_dict = ', cwl_dict)
-    print('Parsing ',cwl_file, 'resulted in an empty cwl dictionary, please fix it!')
 
