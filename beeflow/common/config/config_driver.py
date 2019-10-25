@@ -1,12 +1,12 @@
-"""BEE configuration driver module.
-"""
+"""BEE configuration driver module."""
 
 from configparser import ConfigParser
 import os
 import platform
 
+
 class BeeConfig:
-    """Class to manage and store all BEE configuration.
+    r"""Class to manage and store all BEE configuration.
 
     BeeConfig.sysconfig is a ConfigParser object of system configurations.
     BeeConfig.userconfig is a ConfigParser object of user configurations.
@@ -24,13 +24,13 @@ class BeeConfig:
     """
 
     def __init__(self):
-        """Initialize BeeConfig class. We check the platform and read in
-        system and user configuration files. 
-        """
+        """Initialize BeeConfig class.
 
+        We check the platform and read in system and user configuration files.
+        """
         self.sysconfig = ConfigParser()
         self.userconfig = ConfigParser()
-        system=platform.system()
+        system = platform.system()
         if system == "Linux":
             sysconfig_file = '/etc/beeflow/bee.conf'
             userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
