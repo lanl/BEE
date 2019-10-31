@@ -5,6 +5,14 @@ import os
 from beeflow.common.parser.cwl_parser import BeeCWL
 from beeflow.common.wf_interface import WorkflowInterface
 
+print("missing.cwl")
+cwl_file = "missing.cwl"
+cwl_bee = BeeCWL(cwl_file)
+cwl_dict = cwl_bee.parser
+print(80*'-')
+
+
+print('echo-2step-wf.cwl')
 cwl_file = 'echo-2step-wf.cwl'
 cwl_bee = BeeCWL(cwl_file)
 cwl_dict = cwl_bee.parser
@@ -39,11 +47,16 @@ print("blast-step-missing-flow")
 cwl_file = 'blast-step-missing-flow.cwl'
 cwl_bee = BeeCWL(cwl_file)
 cwl_dict = cwl_bee.parser
-print("keys in 'steps'  = ", list(cwl_dict.get('steps').keys()))
-print(80*'-')
+print(cwl_dict)
+try:
+    print("keys in 'steps'  = ", list(cwl_dict.get('steps').keys()))
+except:
+    print("Error occurred")
 
 os.chdir('..')
+print(80*'-')
 
+print("echo.cwl")
 cwl_file = "echo.cwl"
 cwl_bee = BeeCWL(cwl_file)
 cwl_dict = cwl_bee.parser
