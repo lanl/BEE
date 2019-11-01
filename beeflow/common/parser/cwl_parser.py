@@ -45,8 +45,7 @@ class BeeCWL:
             error_files = []
             self.load_steps(cwl_dict, error_files)
             if error_files:
-               print('error files: ', error_files)
-               print('CWL files with errors:')
+               print('Errors in the following CWL files:')
                [print('\t',i) for i in error_files]
         return cwl_dict
 

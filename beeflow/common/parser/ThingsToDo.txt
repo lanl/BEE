@@ -1,12 +1,14 @@
 some methods to add:
 
-get a list of cwl files in steps
 get each cwl file to load in database
     Will it work just to load and put the task cwl (as dictionary) 
-          in cwl_wf['step']['step_name']['run']?
+          in cwl_wf['step']['step_name']['run']? yes this worked
+    But do we want to load the values from the yml file? 
+
 or just validate all the cwl files but don't load
 
-What happens when a step doesn't use a cwl file fix for this
+What happens when a step doesn't use a cwl file?
+   see missing step example an error message prints out during validation
 
 --------------
 Things to submit as issues:
@@ -14,5 +16,11 @@ Things to submit as issues:
 How can we get the schema versions of cwl without copying to this repo
 Look into cwl_utils parser v1_0
 
+If this is adopted figure out how we deal with values in the yml file
 
+Fix examples with file types and no Java script
+
+Delete this file
+
+Decide if what we want in tools
 
