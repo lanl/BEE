@@ -21,7 +21,7 @@ def submit_workflow(id):
 
 def start_job(id):
     resp = requests.put(_resource(id), json={'id': id})
-    if resp.status_code != requests.codes.created:
+    if resp.status_code != requests.codes.okay:
         raise ApiError("PUT /jobs{}".format(resp.status_code, id))
 
 def query_job(id):
