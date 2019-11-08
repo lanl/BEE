@@ -2,13 +2,17 @@ import requests
 import os
 
 # Returns the url to the resource
+def _url():
+    return 'http://127.0.0.1:5000/bee_orc/v1/jobs/'
+
 def _resource(id=""): 
-    return 'http://localost/bee_orc/v1/jobs/' + id
+    return _url + id
 
 def submit_job(job_name):
-    resp = requests.post(_resource(id), json={'Job Name': job_name})
+    resp = requests.post(_url, json={'Job Name': job_name})
     if resp.status_code != requests.codes.created:
         raise ApiError("POST /jobs".format(resp.status_code))
+    print(resp)
     # TODO not sure if this works the way I want it too
     id = resp.json()['id']
     return id
@@ -56,7 +60,7 @@ if __name__ == '__main__':
 
     # Start the CLI loop 
     while True:
-        os.system('clear')
+        #os.system('clear')
         print("Welcome to BEE Client! 🐝")
         for item in menu_items:
             print(str(menu_items.index(item)) + ") " + list(item.keys())[0])
@@ -67,8 +71,7 @@ if __name__ == '__main__':
                 # TODO needs error handling
                 print("What will be the name of the job?")
                 name = input("$ ")
-                id = submit_job(name)
-                
+                submit_job(name)
             else:
                 list(menu_items[int(choice)].values())[0]()
         except (ValueError, IndexError):
