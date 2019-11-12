@@ -1,5 +1,6 @@
 #!flask/bin/python
 import sys
+import os
 
 #import beeflow.common.gdb.neo4j_driver as GDB
 
@@ -24,6 +25,7 @@ celery = make_celery(flask_app)
 api = Api(flask_app)
 
 UPLOAD_FOLDER = 'workflows'
+flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Initializes the graph database
 class GDB():
@@ -34,9 +36,6 @@ gdb = GDB()
 
 task_fields = {
     'title': fields.String
-    #'description': fields.String,
-    #'done': fields.Boolean,
-    #'uri': fields.Url('task')
 }
 
 
@@ -53,48 +52,43 @@ class JobsList(Resource):
     # Submit Workflow
     def post(self):
         data = self.reqparse.parse_args()
-        print(data) 
-        resp = {
-                'id': 42
-               }
-        return resp, 201
+        return {'id': 42}, 201
     
 # This class is where we act on existing jobs
 class JobActions(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('id', type=str, required=True,
-                                    help='Need an ID',
-                                    location='json')
         self.reqparse.add_argument('workflow', type=FileStorage, location='files')
 
     # Submit workflow 
     def post(self, id):
+        print(id)
         data = self.reqparse.parse_args()
-        if data['file'] == "":
+        if data['workflow'] == "":
             resp = {
                      'msg':'No file found',
                      'status':'error'
                    }
             return resp, 201
-        workflow = data['file']
+        workflow = data['workflow']
 
         if workflow:
-            workflow = data['file']
+            workflow = data['workflow']
             filename = 'workflow.cwl'
-            workflow.save(os.path.join(UPLOAD_FOLDER, filename))
+            workflow.save(os.path.join(flask_app.config['UPLOAD_FOLDER'], filename))
+
+            # Add workflow to the neo4j database
+            # TODO figure out how to get a file here
+            #GDB.load_workflow(workflow)
+            # ID is going to need to come from the graphDB
+
             resp = {
                      'msg':'Workflow uploaded',
-                     'status':'error'
+                     'status':'ok'
                    }
             return resp, 201
         else:
             return 200
-
-        # Add workflow to the neo4j database
-        # TODO figure out how to get a file here
-        #GDB.load_workflow(workflow)
-        # ID is going to need to come from the graphDB
 
          
 

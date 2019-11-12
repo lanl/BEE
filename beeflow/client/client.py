@@ -6,21 +6,24 @@ def _url():
     return 'http://127.0.0.1:5000/bee_orc/v1/jobs/'
 
 def _resource(id=""): 
-    return _url + id
+    return _url() + str(id)
 
-def submit_job(job_name):
-    resp = requests.post(_url, json={'Job Name': job_name})
+def submit_job(job_title):
+    resp = requests.post(_url(), json={'title': job_title})
     if resp.status_code != requests.codes.created:
         raise ApiError("POST /jobs".format(resp.status_code))
-    print(resp)
+    print(resp.text)
     # TODO not sure if this works the way I want it too
     id = resp.json()['id']
     return id
 
 # TODO Need to figure out how to add the CWL file to this
+#curl -i  -X POST -F 'workflow=@workflow.cwl'  http://127.0.0.1:5000/bee_orc/v1/jobs/42
 def submit_workflow(id):
-    resp = requests.post(_resource(id), json={'id': id})
-    if resp.status_code != requests.codes.okay:
+    files = {'workflow': open('workflow.cwl', 'rb')}
+    resp = requests.post(_resource(id), files=files)
+    print(resp.text)
+    if resp.status_code != requests.codes.created:
         raise ApiError("POST /jobs".format(resp.status_code))
 
 def start_job(id):
@@ -58,21 +61,24 @@ menu_items = [
 
 if __name__ == '__main__':
 
-    # Start the CLI loop 
-    while True:
-        #os.system('clear')
-        print("Welcome to BEE Client! 🐝")
-        for item in menu_items:
-            print(str(menu_items.index(item)) + ") " + list(item.keys())[0])
-        choice = input("$ ")
-        try:
-            if int(choice) < 0: raise ValueError
-            if int(choice) == 0:
-                # TODO needs error handling
-                print("What will be the name of the job?")
-                name = input("$ ")
-                submit_job(name)
-            else:
-                list(menu_items[int(choice)].values())[0]()
-        except (ValueError, IndexError):
-            pass
+    ## Start the CLI loop 
+    #while True:
+    #    #os.system('clear')
+    #    print("Welcome to BEE Client! 🐝")
+    #    for item in menu_items:
+    #        print(str(menu_items.index(item)) + ") " + list(item.keys())[0])
+    #    choice = input("$ ")
+    #    try:
+    #        if int(choice) < 0: raise ValueError
+    #        if int(choice) == 0:
+    #            # TODO needs error handling
+    #            print("What will be the name of the job?")
+    #            name = input("$ ")
+    #            submit_job(name)
+    #        else:
+    #            list(menu_items[int(choice)].values())[0]()
+    #    except (ValueError, IndexError):
+    #        pass
+    
+    id = submit_job("bam")
+    submit_workflow(id)
