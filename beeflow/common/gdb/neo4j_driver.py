@@ -135,10 +135,13 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: instance of Task
         """
         rec = task_record["t"]
-        return Task(name=rec["name"], command=rec["command"],
-                    hints=_reconstruct_requirement(rec["hints"]),
-                    subworkflow=rec["subworkflow"], inputs=set(rec["inputs"]),
-                    outputs=set(rec["outputs"]))
+        t = Task(name=rec["name"], command=rec["command"],
+                 hints=_reconstruct_requirement(rec["hints"]),
+                 subworkflow=rec["subworkflow"], inputs=set(rec["inputs"]),
+                 outputs=set(rec["outputs"]))
+        # This is a bit of a hack for now. No method on Task to set task id.
+        t.id = rec["task_id"]
+        return t
 
     def empty(self):
         """Determine if the database is empty.
