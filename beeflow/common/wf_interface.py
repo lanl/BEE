@@ -218,11 +218,13 @@ class WorkflowInterface:
         """
         return self._gdb_interface.get_task_state(task)
 
-    def set_task_state(self, task):
+    def set_task_state(self, task, state):
         """Set the state of the task in the BEE workflow.
 
         :param task: the task whose state to change
         :type task: instance of Task
+        :param state: the new state
+        :type state: string
         """
         return self._gdb_interface.set_task_state(task)
 

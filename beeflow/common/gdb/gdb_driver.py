@@ -75,11 +75,13 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def set_task_state(self, task):
+    def set_task_state(self, task, state):
         """Set the state of a task in the graph database workflow.
 
         :param task: the task whose state to change
         :type task: instance of Task
+        :param state: the new state
+        :type state: string
         """
 
     @abstractmethod
