@@ -75,7 +75,7 @@ class WorkflowInterface:
         return Requirement(req_class, key, value)
 
     @staticmethod
-    def create_workflow(tasks, requirements=None, hints=None):
+    def create_workflow(tasks, requirements=None, hints=None, assign_ids=True):
         """Create a new workflow.
 
         :param tasks: the workflow tasks
@@ -84,6 +84,8 @@ class WorkflowInterface:
         :type requirements: set of Requirement instances, or None
         :param hints: the workflow hints (optional requirements)
         :type hints: set of Requirement instances, or None
+        :param assign_ids: some reconstructions do not require IDs
+        :type assign_ids: boolean
         :rtype: instance of Workflow
         """
         if requirements is None:
@@ -135,9 +137,10 @@ class WorkflowInterface:
             tasks.append(WorkflowInterface.create_task("bee_exit", inputs=outputs,
                                                        outputs=outputs))
 
-        # Assign a task ID to each task
-        for task_id, task in enumerate(tasks):
-            task.id = task_id
+        # Assign a task ID to each task (unless we've just yanked the workflow out of the databse)
+        if assign_ids:
+            for task_id, task in enumerate(tasks):
+                task.id = task_id
 
         # Add task dependencies
         for task in tasks:
@@ -181,8 +184,8 @@ class WorkflowInterface:
         workflow_tasks = self._gdb_interface.get_workflow_tasks()
         # Obtain the workflow requirements, hints
         requirements, hints = self._gdb_interface.get_workflow_requirements_and_hints()
-        # Return a new Workflow object with the given tasks
-        return self.create_workflow(workflow_tasks, requirements, hints)
+        # Return a new Workflow object with the given tasks (don't reset IDs)
+        return self.create_workflow(workflow_tasks, requirements, hints, False)
 
     def get_subworkflow(self, subworkflow):
         """Get a subworkflow by its identifier.
