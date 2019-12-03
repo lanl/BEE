@@ -101,13 +101,15 @@ class GraphDatabaseInterface:
         """
         return self._connection.get_task_state(task)
 
-    def set_task_state(self, task):
+    def set_task_state(self, task, state):
         """Set the state of a task in the graph database workflow.
 
         :param task: the task whose state to change
         :type task: instance of Task
+        :param state: the new state
+        :type state: string
         """
-        return self._connection.set_task_state(task)
+        return self._connection.set_task_state(task, state)
 
     def empty(self):
         """Return true if the graph database is empty, else false.

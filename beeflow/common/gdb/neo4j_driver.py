@@ -118,13 +118,15 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         return self._read_transaction(tx.get_task_state, task=task)
 
-    def set_task_state(self, task):
+    def set_task_state(self, task, state):
         """Set the state of a task in the Neo4j workflow.
 
         :param task: the task whose state to change
         :type task: instance of Task
+        :param state: the new state
+        :type state: string
         """
-        self._write_transaction(tx.set_task_state, task=task)
+        self._write_transaction(tx.set_task_state, task=task, state=state)
 
     def reconstruct_task(self, task_record):
         """Reconstruct a Task object by its record retrieved from Neo4j.
@@ -133,10 +135,13 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: instance of Task
         """
         rec = task_record["t"]
-        return Task(name=rec["name"], command=rec["command"],
-                    hints=_reconstruct_requirement(rec["hints"]),
-                    subworkflow=rec["subworkflow"], inputs=set(rec["inputs"]),
-                    outputs=set(rec["outputs"]))
+        t = Task(name=rec["name"], command=rec["command"],
+                 hints=_reconstruct_requirement(rec["hints"]),
+                 subworkflow=rec["subworkflow"], inputs=set(rec["inputs"]),
+                 outputs=set(rec["outputs"]))
+        # This is a bit of a hack for now. No method on Task to set task id.
+        t.id = rec["task_id"]
+        return t
 
     def empty(self):
         """Determine if the database is empty.
