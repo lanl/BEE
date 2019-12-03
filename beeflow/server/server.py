@@ -1,19 +1,19 @@
 #!flask/bin/python
-import sys
 import os
 
 #import beeflow.common.gdb.neo4j_driver as GDB
 
 # Server and REST handling
 from flask import Flask
-from flask_restful import Resource, Api, reqparse, fields, marshal
+from flask_restful import Resource, Api, reqparse, fields
 
 # Asynchronous workers
 from celery_setup import make_celery
 
 # Interacting with the rm, tm, and scheduler
-import requests
 from werkzeug.datastructures import FileStorage
+
+from beeflow.common.wf_interface import WorkflowInterface
 
 flask_app = Flask(__name__)
 # Setup celery 
@@ -27,6 +27,16 @@ api = Api(flask_app)
 UPLOAD_FOLDER = 'workflows'
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+wf = WorkflowInterface()
+tasks = 
+workflow = wf.create_workflow(
+        tasks=tasks,
+        requirements={wf.create_requirement("ResourceRequirement", "ramMin", 1024)},
+        hints={wf.create_requirement("ResourceRequirement", "ramMax", 2048)}
+)
+
+load_workflow(workflow)
+
 # Initializes the graph database
 class GDB():
     def load_workflow(self, arg):
@@ -37,7 +47,6 @@ gdb = GDB()
 task_fields = {
     'title': fields.String
 }
-
 
 # Where we submit jobs
 class JobsList(Resource):
@@ -74,12 +83,15 @@ class JobActions(Resource):
 
         if workflow:
             workflow = data['workflow']
-            filename = 'workflow.cwl'
+            print(workflow)
+            # TODO get the filename
+            filename = "echo.cwl"
             workflow.save(os.path.join(flask_app.config['UPLOAD_FOLDER'], filename))
 
             # Add workflow to the neo4j database
             # TODO figure out how to get a file here
             #GDB.load_workflow(workflow)
+
             # ID is going to need to come from the graphDB
 
             resp = {
@@ -118,24 +130,24 @@ class JobActions(Resource):
         pass
 
 
-@celery.task()
-def start_wf(id):
-    # Send a request to the scheduler 
-    pass
+#@celery.task()
+#def start_wf(id):
+#    # Send a request to the scheduler 
+#    pass
 
-@celery.task()
-def query(id):
-    # Check with the scheduler on the progress of the workflow
-    pass
+#@celery.task()
+#def query(id):
+#    # Check with the scheduler on the progress of the workflow
+#    pass
 
-@celery.task()
-def cancel(id):
-    # Cancel the workflow with the scheduler
-    pass
+#@celery.task()
+#def cancel(id):
+#    # Cancel the workflow with the scheduler
+#    pass
 
-@celery.task()
-def pause(id):
-    pass
+#@celery.task()
+#def pause(id):
+#    pass
 
 api.add_resource(JobActions, '/bee_orc/v1/jobs/<int:id>', endpoint = 'jobs')
 api.add_resource(JobsList, '/bee_orc/v1/jobs/', endpoint = 'job')
