@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import requests
 import os
 
@@ -20,7 +22,7 @@ def submit_job(job_title):
 # TODO Need to figure out how to add the CWL file to this
 #curl -i  -X POST -F 'workflow=@workflow.cwl'  http://127.0.0.1:5000/bee_orc/v1/jobs/42
 def submit_workflow(id):
-    files = {'workflow': open('workflow.cwl', 'rb')}
+    files = {'workflow': open('echo.cwl', 'rb')}
     resp = requests.post(_resource(id), files=files)
     print(resp.text)
     if resp.status_code != requests.codes.created:
