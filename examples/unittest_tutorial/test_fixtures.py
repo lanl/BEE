@@ -7,6 +7,7 @@ import unittest
 class TestFixtures(unittest.TestCase):
     """Example of using fixtures in unit testing."""
 
+    # BEGIN test fixtures
     @classmethod
     def setUpClass(cls):
         """Set-up operation performed once at initilization for the entire test case."""
@@ -27,6 +28,7 @@ class TestFixtures(unittest.TestCase):
         """Perform a tear-down operation before each test method executes."""
         # Clear the example list of all elements
         self.example_lst.clear()
+    # END test fixtures
 
     def test_list1(self):
         """Test that the example list's contents are [1, 2, 3]."""
