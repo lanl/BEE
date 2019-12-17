@@ -91,7 +91,7 @@ class TestExample(unittest.TestCase):
         self.fail()
         
 
-def foo(a):
+def foo():
     raise ValueError
 ```
 
