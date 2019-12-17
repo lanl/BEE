@@ -42,30 +42,30 @@ class TestExample(unittest.TestCase):
 ```
 
 ## Unit tests
-Test methods can run unit tests using the following methods (non-exhaustive):
-* `TestCase.assertAlmostEqual`: test if floats equal within a specified threshold
-* `TestCase.assertDictEqual`: test if dict `a` equals dict `b`
-* `TestCase.assertEqual`: test if `a == b` (not type-specific)
-* `TestCase.assertFalse`: test if an expression evaluates to `False`
-* `TestCase.assertGreater`: test if `a > b`
-* `TestCase.assertGreaterEqual`: test if `a >= b`
-* `TestCase.assertIn`: test if `a in b`
-* `TestCase.assertIs`: test if `a is b`
-* `TestCase.assertIsInstance`: test if `a` is an instance of `b`
-* `TestCase.assertIsNone`: test if an object is `None`
-* `TestCase.assertIsNot`: test if `a is not b`
-* `TestCase.assertIsNotNone`: test if an object is not `None`
-* `TestCase.assertLess`: test if `a < b`
-* `TestCase.assertLessEqual`: test if `a <= b`
-* `TestCase.assertListEqual`: test if list `a` equals list `b` (fails if either is not a list)
-* `TestCase.assertNotEqual`: test if `a != b`
-* `TestCase.assertNotIn`: test if `a not in b`
-* `TestCase.assertNotIsInstance` test if `a` is not an instance of `b`
-* `TestCase.assertRaises`: test if a callable raises a given exception given `*args` and `**kwargs`
-* `TestCase.assertSetEqual`: test if set `a` is equal to set `b`
-* `TestCase.assertTrue`: test if an expression evaluates to `True`
-* `TestCase.assertTupleEqual`: test if a tuple `a` is equal to tuple `b`
-* `TestCase.fail`: causes the test method to fail
+Test methods can run unit tests using the following methods of `TestCase` (non-exhaustive):
+* `assertAlmostEqual`: test if float `a` almost equals `b` within a specified threshold
+* `assertDictEqual`: test if dict `a` equals dict `b`
+* `assertEqual`: test if `a == b` (not type-specific)
+* `assertFalse`: test if an expression evaluates to `False`
+* `assertGreater`: test if `a > b`
+* `assertGreaterEqual`: test if `a >= b`
+* `assertIn`: test if `a in b`
+* `assertIs`: test if `a is b`
+* `assertIsInstance`: test if `a` is an instance of `b`
+* `assertIsNone`: test if an object is `None`
+* `assertIsNot`: test if `a is not b`
+* `assertIsNotNone`: test if an object is not `None`
+* `assertLess`: test if `a < b`
+* `assertLessEqual`: test if `a <= b`
+* `assertListEqual`: test if list `a` equals list `b` (fails if either is not a list)
+* `assertNotEqual`: test if `a != b`
+* `assertNotIn`: test if `a not in b`
+* `assertNotIsInstance` test if `a` is not an instance of `b`
+* `assertRaises`: test if a callable raises a given exception given `*args` and `**kwargs`
+* `assertSetEqual`: test if set `a` is equal to set `b`
+* `assertTrue`: test if an expression evaluates to `True`
+* `assertTupleEqual`: test if a tuple `a` is equal to tuple `b`
+* `fail`: causes the test method to fail
 
 If any of these tests fail, the entire Test Method fails and is skipped. An error message will be produced explaining how a test method failed. The number of passing tests out of the total number of tests is listed at the end of the unit test run.
 ```py
@@ -75,6 +75,7 @@ class TestExample(unittest.TestCase):
     def test_method(self):
         # The following tests succeed
         self.assertEqual(1, 1)
+        self.assertAlmostEqual(1, 1.0001, places=3)
         self.assertIsNone(None)
         self.assertListEqual([1, 2, 3], [1, 2, 3])
         self.assertSetEqual({1, 2, 3}, {3, 2, 1})
@@ -84,6 +85,7 @@ class TestExample(unittest.TestCase):
            foo()
         
         # The following tests fail
+        self.assertAlmostEqual(1.0, 1.0001, places=4)
         self.assertGreater(1, 2)
         self.assertFalse(True)
         self.fail()
