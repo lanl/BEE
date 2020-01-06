@@ -2,21 +2,22 @@
 
 from abc import ABC, abstractmethod
 
-class Worker(ABC)
+
+class Worker(ABC):
     """ Worker interface for a generic workload manager. """
 
     @abstractmethod
     def submit_job(self, script):
-        """Workload managers to submit task script; returns job_id, job_state, or 0, error_message.
+        """Worker submits task script; returns id, state, or 0, error.
 
-        :param task_script: task script name 
+        :param task_script: task script name
         :type task_script: string
-        :rtype tuple (int, string) 
+        :rtype tuple (int, string)
         """
-        
+
     @abstractmethod
     def cancel_job(self, job_id):
-        """Cancel job with job_id; returns cancel_success, job_state or error message.
+        """Cancel job with job_id; returns success (bool) & job_state or error.
 
         :param job_id: job id on cluster, to be cancelled; returns job_state.
         :type job_id: integer
@@ -25,10 +26,9 @@ class Worker(ABC)
 
     @abstractmethod
     def query_job(self, job_id):
-        """Queries state of job with job_id; returns query_success, job_state or error message.
-        
+        """Query job state; returns success(bool), job_state or error message.
+
         :param job_id: job id to query for status.
         :type job_id: int
         :rtype tuple (bool, string)
         """
-

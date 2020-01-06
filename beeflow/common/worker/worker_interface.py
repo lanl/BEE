@@ -1,10 +1,12 @@
 """Mid-level interface for worker, a work load manager
 
-Delegate the actual work to an instance of a subclass of 
+Delegate the actual work to an instance of a subclass of
 the abstract base class 'Worker'. Default: 'SlurmWorker' class.
 Worker may be a configuration value in the future.
+"""
 
-from beeflow.common.worker.slurm_driver import SlurmWorker
+from beeflow.common.worker.slurm_worker import SlurmWorker
+
 
 class WorkerInterface:
     """Interface for monitoring and managing workloads and jobs.
@@ -26,7 +28,7 @@ class WorkerInterface:
         :type task_script: list of strings
         :rtype tuple of ints
         """
-        
+
     def cancel_job(self, job_id):
         """Cancel job with job_id.
 
@@ -37,7 +39,7 @@ class WorkerInterface:
 
     def query_job(self, job_id):
         """Queries state of job with job_id; returns job_state.
-        
+
         :param job_id: job id to query for status.
         :type job_id: int
         :rtype string

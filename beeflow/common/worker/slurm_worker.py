@@ -4,28 +4,29 @@ Using pyslurm for interface to slurm api where possible.
 For now build command for submitting batch job.
 """
 import subprocess
-import pyslurm 
+import pyslurm
 
 from beeflow.common.worker.worker import Worker
-from beeflow.common.data.wf_data import Task, Requirement
 
-class SlurmWorker(Worker)
+
+class SlurmWorker(Worker):
     """The Worker for systems where Slurm is the Work Load Manager.
 
-    Implements Worker using pyslurm for slurm api or where not feasible subprocess commands.
+    Implements Worker using pyslurm for slurm api except for submit_job.
     """
 
     def submit_job(self, script):
         try:
-            job_st = subprocess.check_output(['sbatch','--parsable', job_script],
+            job_st = subprocess.check_output(['sbatch', '--parsable', script],
                                              stderr=subprocess.STDOUT)
             job_id = int(job_st)
             job = pyslurm.job().find_id(job_id)[0]
             job_status = job_id, job['job_state']
-       
+            job_status = job_id
+
         except subprocess.CalledProcessError as error:
             job_status = error.returncode, error.output.decode('utf-8')
-    
+
         return job_status
 
     def query_job(self, job_id):
@@ -50,4 +51,3 @@ class SlurmWorker(Worker)
             job = pyslurm.job().find_id(job_id)[0]
             job_state = job['job_state']
         return cancel_success, job_state
-
