@@ -1,0 +1,6 @@
+#! /bin/bash
+#SBATCH -J pyslurm
+#SBATCH -o pyslurm.log
+#SBATCH -p bad-partion
+
+echo " Done"
