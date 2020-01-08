@@ -1,18 +1,18 @@
 #! /usr/bin/env python3
-"""Unit test module for BEE worker interface module."""
+"""Unit test module for BEE slurm worker interface."""
 
 import unittest
 
 from beeflow.common.worker.worker_interface import WorkerInterface
+from beeflow.common.worker.slurm_worker import SlurmWorker
 
-
-class TestWorkerInterface(unittest.TestCase):
+class TestSlurmWorker(unittest.TestCase):
     """Unit test case for worker interface."""
 
     @classmethod
     def setUpClass(cls):
         """Initialize the Worker interface."""
-        cls.worker = WorkerInterface()
+        cls.worker = WorkerInterface(SlurmWorker)
 
     def test_submit_bad_job(self):
         """Submit a job."""
