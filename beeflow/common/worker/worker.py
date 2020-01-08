@@ -1,10 +1,10 @@
-""" Abstract base class for worker, the workload manager. """
+"""Abstract base class for worker, the workload manager."""
 
 from abc import ABC, abstractmethod
 
 
 class Worker(ABC):
-    """ Worker interface for a generic workload manager. """
+    """Worker interface for a generic workload manager."""
 
     @abstractmethod
     def submit_job(self, script):

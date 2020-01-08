@@ -15,9 +15,7 @@ class WorkerInterface:
     """
 
     def __init__(self, worker=SlurmWorker):
-        """Initialize the workload interface with a workload driver, SlurmWorker by
-           default.
-
+        """Initialize the workload interface with a workload driver, SlurmWorker by default.
 
         :param worker: the work load driver (SlurmWorker by default)
         :type worker: subclass of Worker
@@ -43,11 +41,10 @@ class WorkerInterface:
         return self._worker.cancel_job(job_id)
 
     def query_job(self, job_id):
-        """Queries state of job with job_id; returns job_state.
+        """Query state of job with job_id; returns job_state.
 
         :param job_id: job id to query for status.
         :type job_id: int
         :rtype string
         """
         return self._worker.query_job(job_id)
-
