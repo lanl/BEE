@@ -44,33 +44,38 @@ class Neo4jDriver(GraphDatabaseDriver):
         except ServiceUnavailable:
             print("Neo4j database unavailable. Is it running?")
 
-    def load_workflow(self, workflow):
-        """Load the workflow into the Neo4j database.
+    def load_task(self, task):
+        """Load a task into the workflow stored in the Neo4j database.
 
-        :param workflow: the workflow to load
-        :type workflow: instance of Workflow
+        :param task: a workflow task
+        :type task: instance of Task
         """
-        # Load tasks as nodes in the database
-        for task in workflow.tasks:
-            # The create_task transaction function returns the new task's Neo4j ID
-            self._write_transaction(tx.create_task, task=task)
+        self._write_transaction(tx.create_task, task=task)
+        self._write_transaction(tx.add_dependencies, task=task)
 
-        # Load the dependencies as relationships in the database
-        for task in workflow.tasks:
-            self._write_transaction(tx.add_dependencies, task=task)
+    def initialize_workflow(self, inputs, outputs, requirements, hints):
+        """Begin construction of a workflow stored in Neo4j.
 
-        self._write_transaction(tx.create_metadata_node, requirements=workflow.requirements,
-                                hints=workflow.hints)
-
-    def initialize_workflow(self):
-        """Initialize the workflow loaded into the Neo4j database.
-
-        Sets the bee_init node's state to ready.
+        Creates the bee_init node with its inputs.
+        Creates the bee_exit node with its outputs.
+        Creates the metadata node with requirements and hints.
+        :param inputs: the inputs to the workflow
+        :type inputs: set of strings
+        :param outputs: the outputs of the workflow
+        :type outputs: set of strings
+        :param requirements: the workflow requirements
+        :type requirements: set of Requirement instances
+        :param hints: the workflow hints (optional requirements)
+        :type hints: set of Requirement instances
         """
+        self._write_transaction(tx.create_metadata_node, requirements=requirements, hints=hints)
+
+    def execute_workflow(self):
+        """Begin execution of the workflow stored in the Neo4j database."""
         self._write_transaction(tx.set_init_task_to_ready)
 
     def finalize_workflow(self):
-        """Finalize the workflow loaded into the Neo4j database.
+        """Finalize the workflow stored in the Neo4j database.
 
         Sets the bee_exit node's state to READY.
         """
