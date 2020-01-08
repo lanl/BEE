@@ -6,6 +6,7 @@ import unittest
 from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
 
+
 class TestSlurmWorker(unittest.TestCase):
     """Unit test case for worker interface."""
 
@@ -53,4 +54,3 @@ class TestSlurmWorker(unittest.TestCase):
         job_status = self.worker.cancel_job(888)
         self.assertEqual(job_status[0], False)
         self.assertEqual('Invalid job id specified', job_status[1])
-
