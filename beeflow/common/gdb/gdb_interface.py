@@ -11,7 +11,7 @@ from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 class GraphDatabaseInterface:
     """Interface for managing a graph database with workflows.
 
-    Requires an implemented subclass of GDBDriver to function.
+    Requires an implemented subclass of GraphDatabaseDriver (uses Neo4jDriver by default).
     """
 
     def __init__(self, gdb_driver=Neo4jDriver):
@@ -24,13 +24,6 @@ class GraphDatabaseInterface:
         self._gdb_driver = gdb_driver
         self._connection = None
 
-    def __del__(self):
-        """Deconstruct the GraphDatabaseInterface.
-
-        Automatically disconnect from the graph database.
-        """
-        self.close()
-
     def connect(self, **kwargs):
         """Initialize a graph database interface with a driver.
 
@@ -39,22 +32,33 @@ class GraphDatabaseInterface:
         # Initialize the graph database driver
         self._connection = self._gdb_driver(**kwargs)
 
-    def load_workflow(self, workflow):
-        """Load a BEE workflow into the graph database.
+    def initialize_workflow(self, inputs, outputs, requirements, hints):
+        """Begin construction of a workflow in the graph database.
 
-        :param workflow: the new workflow to load
-        :type workflow: instance of Workflow
+        Connects to the database and creates the bee_init, bee_exit, and metadata nodes.
+        Permits the addition of task nodes to the workflow.
+        :param inputs: the inputs to the workflow
+        :type inputs: set of strings
+        :param outputs: the outputs to the workflow
+        :type outputs: set of strings
+        :param requirements: the workflow requirements
+        :type requirements: set of Requirement instances
+        :param hints: the workflow hints (optional requirements)
+        :type hints: set of Requirement instances
         """
-        # Load the workflow into the graph database
-        self._connection.load_workflow(workflow)
+        self._connection.initialize_workflow(inputs, outputs, requirements, hints)
 
-    def initialize_workflow(self):
-        """Start the workflow loaded into the graph database."""
-        self._connection.initialize_workflow()
+    def execute_workflow(self):
+        """Begin execution of the loaded workflow."""
+        self._connection.execute_workflow()
 
-    def finalize_workflow(self):
-        """Finalize the workflow loaded into the graph database."""
-        self._connection.finalize_workflow()
+    def load_task(self, task):
+        """Load a task into the workflow in the graph database.
+
+        :param task: the workflow task
+        :type task: instance of Task
+        """
+        self._connection.load_task(task)
 
     def get_workflow_tasks(self):
         """Return a workflow's Task objects from the graph database."""
