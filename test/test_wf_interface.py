@@ -185,6 +185,7 @@ class TestWorkflowInterface(unittest.TestCase):
         :param bee_nodes: flag to add bee_init and bee_exit tasks
         :type bee_nodes: boolean
         """
+        # Remember that add_task uploads the task to the database
         tasks = [
             self.wfi.add_task(
                 "Data Prep", command=["ls", "-a", "-l", "-F"],
