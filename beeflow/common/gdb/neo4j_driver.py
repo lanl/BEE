@@ -50,8 +50,9 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param task: a workflow task
         :type task: instance of Task
         """
-        self._write_transaction(tx.create_task, task=task)
-        self._write_transaction(tx.add_dependencies, task=task)
+        with self._driver.session() as session:
+            session.write_transaction(tx.create_task, task=task)
+            session.write_transaction(tx.add_dependencies, task=task)
 
     def initialize_workflow(self, inputs, outputs, requirements, hints):
         """Begin construction of a workflow stored in Neo4j.
