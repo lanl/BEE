@@ -33,6 +33,30 @@ def create_task(tx, task):
            inputs=list(task.inputs), outputs=list(task.outputs))
 
 
+def create_bee_init_node(tx, inputs):
+    """Create the bee_init node in the Neo4j database.
+
+    :param inputs: the workflow inputs
+    :type inputs: list of strings
+    """
+    bee_init_query = ("CREATE (t:Task {name: 'bee_init', task_id: 0, inputs: $inputs, "
+                      "outputs: $inputs})")
+
+    tx.run(bee_init_query, inputs=inputs)
+
+
+def create_bee_exit_node(tx, outputs):
+    """Create the bee_exit node in the Neo4j database.
+
+    :param outputs: the workflow outputs
+    :type outputs: list of strings
+    """
+    bee_exit_query = ("CREATE (t:Task {name: 'bee_exit', task_id: 1, inputs: $outputs, "
+                      "outputs: $outputs})")
+
+    tx.run(bee_exit_query, outputs=outputs)
+
+
 def create_metadata_node(tx, requirements, hints):
     """Create a metadata node in the Neo4j database.
 
@@ -51,17 +75,17 @@ def create_metadata_node(tx, requirements, hints):
 
 
 def add_dependencies(tx, task):
-    """Create a dependency between two tasks.
+    """Create dependencies between tasks."""
+    dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task) "
+                        "WHERE ANY(input in s.inputs WHERE input in t.outputs) "
+                        "AND NOT (s)-[:DEPENDS]->(t) "
+                        "CREATE (s)-[:DEPENDS]->(t) "
+                        "WITH s, t "
+                        "WHERE ANY(input in t.inputs WHERE input in s.outputs) "
+                        "AND NOT (t)-[:DEPENDS]->(s) "
+                        "CREATE (t)-[:DEPENDS]->(s)")
 
-    :param task: the task whose dependencies to add
-    :type task: instance of Task
-    """
-    dependency_query = ("MATCH (s:Task), (t:Task) "
-                        "WHERE s.task_id = $dependent_id and t.task_id = $dependency_id "
-                        "CREATE (s)-[:DEPENDS]->(t)")
-
-    for dependency_id in task.dependencies:
-        tx.run(dependency_query, dependent_id=task.id, dependency_id=dependency_id)
+    tx.run(dependency_query, task_id=task.id)
 
 
 def get_workflow_tasks(tx):

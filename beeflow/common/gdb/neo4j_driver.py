@@ -68,7 +68,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param hints: the workflow hints (optional requirements)
         :type hints: set of Requirement instances
         """
-        self._write_transaction(tx.create_metadata_node, requirements=requirements, hints=hints)
+        with self._driver.session() as session:
+            session.write_transaction(tx.create_bee_init_node, inputs=list(inputs))
+            session.write_transaction(tx.create_bee_exit_node, outputs=list(outputs))
+            session.write_transaction(tx.create_metadata_node, requirements=requirements,
+                                      hints=hints)
 
     def execute_workflow(self):
         """Begin execution of the workflow stored in the Neo4j database."""
@@ -198,8 +202,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         # Wrapper for neo4j.Session.write_transaction
         with self._driver.session() as session:
-            result = session.write_transaction(tx_fun, **kwargs)
-        return result
+            session.write_transaction(tx_fun, **kwargs)
 
 
 def _reconstruct_requirement(list_repr):
