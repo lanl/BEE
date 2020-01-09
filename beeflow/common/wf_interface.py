@@ -20,7 +20,7 @@ class WorkflowInterface:
         """
         self._gdb_interface = GraphDatabaseInterface()
         # In the future we may need to grab the details from a config file
-        self._gdb_details = **kwargs
+        self._gdb_details = kwargs
 
     def initialize_workflow(self, inputs, outputs, requirements=None, hints=None):
         """Begin construction of a BEE workflow.
@@ -50,8 +50,6 @@ class WorkflowInterface:
     def finalize_workflow(self):
         """Deconstruct the BEE workflow."""
         self._gdb_interface.cleanup()
-        # Disconnect from the graph database
-        self._gdb_interface.close()
 
     @staticmethod
     def create_requirement(req_class, key, value):
@@ -97,12 +95,24 @@ class WorkflowInterface:
         if outputs is None:
             outputs = set()
 
-        self._gdb_interface.load_task(Task(name, command, hints, subworkflow, inputs, outputs))
+        task = Task(name, command, hints, subworkflow, inputs, outputs)
+        self._gdb_interface.load_task(task)
+        return task
+
+    def get_task_by_id(self, task_id):
+        """Get a task by its Task ID.
+
+        :param task_id: the task's ID
+        :type task_id: int
+        :rtype: instance of Task
+        """
+        return self._gdb_interface.get_task_by_id(task_id)
 
     def get_workflow(self):
         """Get the loaded workflow.
 
         Returns a tuple of (tasks, requirements, hints).
+
         :rtype: tuple of (set, set, set)
         """
         # Obtain a list of workflow tasks
@@ -116,6 +126,7 @@ class WorkflowInterface:
         """Get a subworkflow by its identifier.
 
         Returns a tuple of (tasks, requirements, hints).
+
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: string
         :rtype: a tuple of (set, set of Requirement, set of Requirement)

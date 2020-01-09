@@ -44,6 +44,15 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_task_by_id(self, task_id):
+        """Return a workflow task record from the graph database.
+
+        :param task_id: a task's ID
+        :type task_id: instance of Task
+        :rtype: a query result object
+        """
+
+    @abstractmethod
     def get_workflow_tasks(self):
         """Return a list of all workflow task records from the graph database.
 

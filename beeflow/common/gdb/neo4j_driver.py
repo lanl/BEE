@@ -59,6 +59,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         Creates the bee_init node with its inputs.
         Creates the bee_exit node with its outputs.
         Creates the metadata node with requirements and hints.
+
         :param inputs: the inputs to the workflow
         :type inputs: set of strings
         :param outputs: the outputs of the workflow
@@ -84,6 +85,15 @@ class Neo4jDriver(GraphDatabaseDriver):
         Sets the bee_exit node's state to READY.
         """
         self._write_transaction(tx.set_exit_task_to_ready)
+
+    def get_task_by_id(self, task_id):
+        """Return a workflow task record from the Neo4j database.
+
+        :param task_id: a task's ID
+        :type task_id: instance of Task
+        :rtype: a query result object
+        """
+        return self._read_transaction(tx.get_task_by_id, task_id=task_id)
 
     def get_workflow_tasks(self):
         """Return all workflow task records from the Neo4j database.
@@ -215,6 +225,9 @@ def _reconstruct_requirement(list_repr):
     :type list_repr: list of strings
     :rtype: set of Requirement instances
     """
+    if list_repr is None:
+        return set()
+
     def _str_is_integer(str_):
         """Test if a string can be represented as an integer.
 

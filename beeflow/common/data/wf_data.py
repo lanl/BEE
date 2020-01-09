@@ -42,9 +42,8 @@ class Task:
         self.inputs = inputs
         self.outputs = outputs
 
-        # Task ID and dependencies assigned outside of class
-        self.id = None
-        self.dependencies = None
+        # Task ID
+        self.id = abs(hash(self))
 
     def __eq__(self, other):
         """Test the equality of two tasks.
