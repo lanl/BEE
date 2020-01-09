@@ -118,7 +118,7 @@ class WorkflowInterface:
         Returns a tuple of (tasks, requirements, hints).
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: string
-        :rtype: a tuple of (set, set, set)
+        :rtype: a tuple of (set, set of Requirement, set of Requirement)
         """
         # Obtain a list of the subworkflow tasks
         subworkflow_tasks = self._gdb_interface.get_subworkflow_tasks(subworkflow)

@@ -70,7 +70,7 @@ class GraphDatabaseInterface:
 
         The returned tuple format is (requirements, hints).
 
-        :rtype: (list of Requirement instances, list of Requirement instances)
+        :rtype: (list of Requirement, list of Requirement)
         """
         requirements = self._connection.get_workflow_requirements()
         hints = self._connection.get_workflow_hints()
