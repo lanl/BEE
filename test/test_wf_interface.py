@@ -45,6 +45,15 @@ class TestWorkflowInterface(unittest.TestCase):
             else:
                 self.fail("BEE init and exit nodes missing")
 
+    def test_execute_workflow(self):
+        """Test workflow execution initialization (set bee_init's state to READY)."""
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        self._create_test_tasks()
+        self.wfi.execute_workflow()
+
+        bee_init_task = self.wfi.get_task_by_id(0)
+        self.assertEqual("READY", self.wfi.get_task_state(bee_init_task))
+
     def test_finalize_workflow(self):
         """Test workflow deletion from the graph database."""
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
