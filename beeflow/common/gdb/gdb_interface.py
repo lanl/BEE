@@ -88,11 +88,9 @@ class GraphDatabaseInterface:
 
         The returned tuple format is (requirements, hints).
 
-        :rtype: (list of Requirement, list of Requirement)
+        :rtype: (set of Requirement, set of Requirement)
         """
-        requirements = self._connection.get_workflow_requirements()
-        hints = self._connection.get_workflow_hints()
-        return (requirements, hints)
+        return self._connection.get_workflow_requirements_and_hints()
 
     def get_subworkflow_tasks(self, subworkflow):
         """Return a subworkflow's Task objects from the graph database.
@@ -112,7 +110,7 @@ class GraphDatabaseInterface:
         :rtype: list of Task instances
         """
         task_records = self._connection.get_dependent_tasks(task)
-        return [self._connection.reconstruct_task(task_record) for task_record in task_records]
+        return {self._connection.reconstruct_task(task_record) for task_record in task_records}
 
     def get_task_state(self, task):
         """Return the state of a task in a graph database workflow.
