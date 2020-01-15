@@ -20,7 +20,6 @@ def create_task(tx, task):
                     "SET t.name = $name "
                     "SET t.command = $command "
                     "SET t.hints = $hints "
-                    "SET t.dependencies = $dependencies "
                     "SET t.subworkflow = $subworkflow "
                     "SET t.inputs = $inputs "
                     "SET t.outputs = $outputs "
@@ -29,8 +28,39 @@ def create_task(tx, task):
     # Unpack requirements, hints dictionaries into flat list
     tx.run(create_query, task_id=task.id, name=task.name,
            command=task.command, hints=_encode_requirements(task.hints),
-           dependencies=list(task.dependencies), subworkflow=task.subworkflow,
-           inputs=list(task.inputs), outputs=list(task.outputs))
+           subworkflow=task.subworkflow, inputs=list(task.inputs), outputs=list(task.outputs))
+
+
+def create_bee_init_node(tx, inputs):
+    """Create the bee_init node in the Neo4j database.
+
+    :param inputs: the workflow inputs
+    :type inputs: list of strings
+    """
+    bee_init_query = ("CREATE (t:Task) "
+                      "SET t.task_id = 0 "
+                      "SET t.name = 'bee_init' "
+                      "SET t.inputs = $inputs "
+                      "SET t.outputs = $inputs "
+                      "SET t.state = 'WAITING'")
+
+    tx.run(bee_init_query, inputs=inputs)
+
+
+def create_bee_exit_node(tx, outputs):
+    """Create the bee_exit node in the Neo4j database.
+
+    :param outputs: the workflow outputs
+    :type outputs: list of strings
+    """
+    bee_exit_query = ("CREATE (t:Task) "
+                      "SET t.task_id = 1 "
+                      "SET t.name = 'bee_exit' "
+                      "SET t.inputs = $outputs "
+                      "SET t.outputs = $outputs "
+                      "SET t.state = 'WAITING'")
+
+    tx.run(bee_exit_query, outputs=outputs)
 
 
 def create_metadata_node(tx, requirements, hints):
@@ -51,17 +81,33 @@ def create_metadata_node(tx, requirements, hints):
 
 
 def add_dependencies(tx, task):
-    """Create a dependency between two tasks.
+    """Create dependencies between tasks.
 
-    :param task: the task whose dependencies to add
+    :param task: the workflow task
     :type task: instance of Task
     """
-    dependency_query = ("MATCH (s:Task), (t:Task) "
-                        "WHERE s.task_id = $dependent_id and t.task_id = $dependency_id "
-                        "CREATE (s)-[:DEPENDS]->(t)")
+    dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task) "
+                        "WHERE ANY(input in s.inputs WHERE input in t.outputs) "
+                        "AND NOT (s)-[:DEPENDS]->(t) "
+                        "CREATE (s)-[:DEPENDS]->(t) "
+                        "WITH s "
+                        "MATCH (t:Task) "
+                        "WHERE ANY(output in s.outputs WHERE output in t.inputs) "
+                        "AND NOT (t)-[:DEPENDS]->(s) "
+                        "CREATE (t)-[:DEPENDS]->(s)")
 
-    for dependency_id in task.dependencies:
-        tx.run(dependency_query, dependent_id=task.id, dependency_id=dependency_id)
+    tx.run(dependency_query, task_id=task.id)
+
+
+def get_task_by_id(tx, task_id):
+    """Get a workflow task from the Neo4j database by its ID.
+
+    :param task_id: the task's ID
+    :type task_id: int
+    """
+    task_query = "MATCH (t:Task {task_id: $task_id}) RETURN t"
+
+    return tx.run(task_query, task_id=task_id).single()
 
 
 def get_workflow_tasks(tx):
