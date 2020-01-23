@@ -1,5 +1,5 @@
 #! /bin/bash
-#SBATCH -J pyslurm
-#SBATCH -o pyslurm.log
+#SBATCH -J slurm-good
+#SBATCH -o slurm-good.log
 
-echo " Done"
+echo " good.slr ran"
