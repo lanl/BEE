@@ -23,28 +23,28 @@ class WorkerInterface:
         self._worker = worker()
 
     def submit_job(self, task_script):
-        """Workload manager to submit task script; returns job_id, job_state.
+        """Workload manager to submit task script; returns job_id(-1 if error), job_state.
 
         :param task_script: task_script
         :type task_script: list of strings
-        :rtype tuple of ints
+        :rtype tuple (int, string)
         """
         return self._worker.submit_job(task_script)
 
     def cancel_job(self, job_id):
         """Cancel job with job_id.
 
-        :param job_id: job id on cluster, to be cancelled; returns job_state.
+        :param job_id: job id on cluster, to be cancelled; returns success/fail (1/-1), job_state.
         :type job_id: integer
-        :rtype int
+        :rtype tuple (int, string)
         """
         return self._worker.cancel_job(job_id)
 
     def query_job(self, job_id):
-        """Query state of job with job_id; returns job_state.
+        """Query state of job with job_id; returns success/fail (1/-1), job_state.
 
         :param job_id: job id to query for status.
         :type job_id: int
-        :rtype string
+        :rtype tuple (int, string)
         """
         return self._worker.query_job(job_id)

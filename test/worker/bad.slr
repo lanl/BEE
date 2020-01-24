@@ -1,6 +1,6 @@
 #! /bin/bash
-#SBATCH -J pyslurm
-#SBATCH -o pyslurm.log
+#SBATCH -J bad-test
+#SBATCH -o bad-test.log
 #SBATCH -p bad-partion
 
-echo " Done"
+echo " bad.slr ran"

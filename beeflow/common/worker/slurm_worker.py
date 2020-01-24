@@ -16,40 +16,41 @@ class SlurmWorker(Worker):
     """
 
     def submit_job(self, script):
-        """Worker submits task script; returns (job_id, job_state), or (0, error_message)."""
+        """Worker submits task script; returns (job_id, job_state), or (-1, error_message)."""
+        job_id = -1
         try:
             job_st = subprocess.check_output(['sbatch', '--parsable', script],
                                              stderr=subprocess.STDOUT)
             job_id = int(job_st)
             job = pyslurm.job().find_id(job_id)[0]
-            job_status = job_id, job['job_state']
+            job_status = job['job_state']
 
         except subprocess.CalledProcessError as error:
-            job_status = error.returncode, error.output.decode('utf-8')
+            job_status = error.output.decode('utf-8')
 
-        return job_status
+        return job_id, job_status
 
     def query_job(self, job_id):
-        """Worker queries job; returns (success(bool), job_state or error message(string))."""
+        """Worker queries job; returns (success/fail (1/-1), job_state or error (string))."""
         try:
             job = pyslurm.job().find_id(job_id)[0]
         except ValueError as error:
-            query_success = False
+            query_success = -1
             job_state = error.args[0]
         else:
-            query_success = True
+            query_success = 1 
             job_state = job['job_state']
         return query_success, job_state
 
     def cancel_job(self, job_id):
-        """Worker cancels job; returns (success(bool), job_state or error message(string))."""
+        """Worker cancels job; returns (success/fail (1/-1), job_state or error (string))."""
         try:
             pyslurm.slurm_kill_job(job_id, 9, 0)
         except ValueError as error:
-            cancel_success = False
+            cancel_success = -1
             job_state = error.args[0]
         else:
-            cancel_success = True
+            cancel_success = 1
             job = pyslurm.job().find_id(job_id)[0]
             job_state = job['job_state']
         return cancel_success, job_state
