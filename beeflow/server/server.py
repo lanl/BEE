@@ -28,14 +28,14 @@ UPLOAD_FOLDER = 'workflows'
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 wf = WorkflowInterface()
-tasks = 
+tasks = []
 workflow = wf.create_workflow(
         tasks=tasks,
         requirements={wf.create_requirement("ResourceRequirement", "ramMin", 1024)},
         hints={wf.create_requirement("ResourceRequirement", "ramMax", 2048)}
 )
 
-load_workflow(workflow)
+#load_workflow(workflow)
 
 # Initializes the graph database
 class GDB():
@@ -48,6 +48,11 @@ task_fields = {
     'title': fields.String
 }
 
+workflows = []
+
+def get_wf_id():
+    return 32
+
 # Where we submit jobs
 class JobsList(Resource):
     def __init__(self):
@@ -57,11 +62,15 @@ class JobsList(Resource):
                                     location='json')
         super(JobsList, self).__init__()
 
-    # Response to Submit Job
-    # Submit Workflow
+    # Client requests to start a job
     def post(self):
         data = self.reqparse.parse_args()
-        return {'id': 42}, 201
+        name = data['title']
+        print("Job name is " + name)
+        # Get the id for the workflow
+        id = get_wf_id()
+        # Return the id and success
+        return {'id': id}, 201
     
 # This class is where we act on existing jobs
 class JobActions(Resource):
@@ -69,9 +78,8 @@ class JobActions(Resource):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('workflow', type=FileStorage, location='files')
 
-    # Submit workflow 
+    # Client Submits workflow 
     def post(self, id):
-        print(id)
         data = self.reqparse.parse_args()
         if data['workflow'] == "":
             resp = {
@@ -79,6 +87,7 @@ class JobActions(Resource):
                      'status':'error'
                    }
             return resp, 201
+        # Workflow file
         workflow = data['workflow']
 
         if workflow:
@@ -89,15 +98,8 @@ class JobActions(Resource):
             workflow.save(os.path.join(flask_app.config['UPLOAD_FOLDER'], filename))
 
             # Add workflow to the neo4j database
-            # TODO figure out how to get a file here
-            #GDB.load_workflow(workflow)
-
-            # ID is going to need to come from the graphDB
-
-            resp = {
-                     'msg':'Workflow uploaded',
-                     'status':'ok'
-                   }
+            wf.load_workflow()
+            resp = {'msg':'Workflow uploaded', 'status':'ok'}
             return resp, 201
         else:
             return 200
@@ -130,24 +132,24 @@ class JobActions(Resource):
         pass
 
 
-#@celery.task()
-#def start_wf(id):
-#    # Send a request to the scheduler 
-#    pass
+@celery.task()
+def start_wf(id):
+    # Send a request to the scheduler 
+    pass
 
-#@celery.task()
-#def query(id):
+@celery.task()
+def query(id):
 #    # Check with the scheduler on the progress of the workflow
-#    pass
+    pass
 
-#@celery.task()
-#def cancel(id):
+@celery.task()
+def cancel(id):
 #    # Cancel the workflow with the scheduler
-#    pass
+    pass
 
-#@celery.task()
-#def pause(id):
-#    pass
+@celery.task()
+def pause(id):
+    pass
 
 api.add_resource(JobActions, '/bee_orc/v1/jobs/<int:id>', endpoint = 'jobs')
 api.add_resource(JobsList, '/bee_orc/v1/jobs/', endpoint = 'job')
