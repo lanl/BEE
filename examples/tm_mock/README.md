@@ -11,7 +11,7 @@ database. To make it work copy the commented copy of wf_interface to beeflow/com
 cp wf_interface_commented.py ../../beeflow/common/wf_interface.py
 ```
 
-note: when done or if you want to try this with neo4j(not tested yet) checkout wf_interface.py
+note: when done checkout wf_interface.py
 
 ```
 git checkout ../../beeflow/common/wf_interface.py
