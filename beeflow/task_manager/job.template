@@ -1,0 +1,6 @@
+#! /bin/bash
+
+#SBATCH -p galton
+#SBATCH -J $name-$id
+#SBATCH -o $name-$id.log
+
