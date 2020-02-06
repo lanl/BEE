@@ -27,13 +27,13 @@ api = Api(flask_app)
 UPLOAD_FOLDER = 'workflows'
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-wf = WorkflowInterface()
-tasks = []
-workflow = wf.create_workflow(
-        tasks=tasks,
-        requirements={wf.create_requirement("ResourceRequirement", "ramMin", 1024)},
-        hints={wf.create_requirement("ResourceRequirement", "ramMax", 2048)}
-)
+#wf = WorkflowInterface()
+#tasks = []
+#workflow = wf.create_workflow(
+#        tasks=tasks,
+#        requirements={wf.create_requirement("ResourceRequirement", "ramMin", 1024)},
+#        hints={wf.create_requirement("ResourceRequirement", "ramMax", 2048)}
+#)
 
 #load_workflow(workflow)
 
@@ -115,8 +115,7 @@ class JobActions(Resource):
     # Query Job
     def get(self, id):
         # Ask the scheduler how the workflow is going
-        #query(id)
-        pass
+        scheduler_query(id)
 
     # Cancel Job
     def delete(self, id):
@@ -151,8 +150,8 @@ def cancel(id):
 def pause(id):
     pass
 
-api.add_resource(JobActions, '/bee_orc/v1/jobs/<int:id>', endpoint = 'jobs')
-api.add_resource(JobsList, '/bee_orc/v1/jobs/', endpoint = 'job')
+api.add_resource(JobActions, '/bee_wfm/v1/jobs/<int:id>', endpoint = 'jobs')
+api.add_resource(JobsList, '/bee_wfm/v1/jobs/', endpoint = 'job')
 
 if __name__ == '__main__':
     flask_app.run(debug=True)

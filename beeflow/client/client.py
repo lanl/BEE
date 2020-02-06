@@ -3,6 +3,7 @@
 import logging
 import requests
 from errors import ApiError
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
@@ -17,9 +18,12 @@ def _resource(id=""):
 # This creates a workflow on the wfm and returns an ID 
 def submit_job(job_title):
     resp = requests.post(_url(), json={'title': job_title})
+
     if resp.status_code != requests.codes.created:
         raise ApiError("POST /jobs".format(resp.status_code))
+
     logging.info("Submit job: " + resp.text)
+
     id = resp.json()['id']
     logging.info("id is " + str(id))
     return id
@@ -72,6 +76,17 @@ menu_items = [
     { "Exit": exit }
 ]
 
+def safe_input(type):
+    while True:
+        try:
+            answer = input("$ ")
+            # Cast it to the specified type
+            answer = type(answer)
+            break
+        except ValueError:
+            print(f"Error {answer} is not a valid option")
+    return answer
+
 if __name__ == '__main__':
     # Start the CLI loop 
     id = 1
@@ -79,16 +94,16 @@ if __name__ == '__main__':
     while True:
         for item in menu_items:
             print(str(menu_items.index(item)) + ") " + list(item.keys())[0])
-        choice = input("$ ")
+        choice = safe_input(int)
         try:
             if int(choice) < 0: raise ValueError
             if int(choice) == 0:
                 # TODO needs error handling
                 print("What will be the name of the job?")
-                name = input("$ ")
+                name = safe_input(str)
                 id = submit_job(name)
                 print("What's the workflow filename?")
-                workflow_path = input("$ ")
+                workflow_path = safe_input(Path)
                 submit_workflow(id, workflow_path) 
             else:
                 list(menu_items[int(choice)].values())[0](id)
