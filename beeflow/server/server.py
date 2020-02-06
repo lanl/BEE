@@ -27,7 +27,7 @@ api = Api(flask_app)
 UPLOAD_FOLDER = 'workflows'
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-#wf = WorkflowInterface()
+wf = WorkflowInterface()
 #tasks = []
 #workflow = wf.create_workflow(
 #        tasks=tasks,
@@ -98,7 +98,7 @@ class JobActions(Resource):
             workflow.save(os.path.join(flask_app.config['UPLOAD_FOLDER'], filename))
 
             # Add workflow to the neo4j database
-            wf.load_workflow()
+            #wf.load_workflow()
             resp = {'msg':'Workflow uploaded', 'status':'ok'}
             return resp, 201
         else:

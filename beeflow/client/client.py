@@ -7,9 +7,11 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
+workflow_manager = 'bee_wfm/v1/jobs/'
+
 # Returns the url to the resource
 def _url():
-    return 'http://127.0.0.1:5000/bee_orc/v1/jobs/'
+    return f'http://127.0.0.1:5000/{workflow_manager}'
 
 def _resource(id=""): 
     return _url() + str(id)
