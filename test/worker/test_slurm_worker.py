@@ -25,7 +25,7 @@ class TestSlurmWorker(unittest.TestCase):
         """Submit a job."""
         job_info = self.worker.submit_job('good.slr')
         self.assertNotEqual(job_info[0], 1)
-        self.assertEqual('PENDING', job_info[1])
+        self.assertTrue(job_info[1] == 'PENDING' or job_info[1] == 'RUNNING')
 
     def test_query_bad_job_id(self):
         """Query a non-existent job."""
@@ -39,7 +39,7 @@ class TestSlurmWorker(unittest.TestCase):
         job_id = job_info[0]
         job_info = self.worker.query_job(job_id)
         self.assertEqual(job_info[0], True)
-        self.assertEqual(job_info[1], 'PENDING')
+        self.assertTrue(job_info[1] == 'PENDING' or job_info[1] == 'RUNNING')
 
     def test_cancel_good_job(self):
         """Submit a job and cancel it."""
@@ -47,7 +47,7 @@ class TestSlurmWorker(unittest.TestCase):
         job_id = job_info[0]
         job_info = self.worker.cancel_job(job_id)
         self.assertEqual(job_info[0], True)
-        self.assertEqual(job_info[1], 'CANCELLED')
+        self.assertTrue(job_info[1] == 'CANCELLED' or job_info[1] == 'CANCELLING')
 
     def test_cancel_bad_job_id(self):
         """Cancel a non-existent job."""
