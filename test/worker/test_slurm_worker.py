@@ -14,76 +14,98 @@ class TestSlurmWorker(unittest.TestCase):
     """Unit test case for worker interface."""
 
     import shutil
-    #TODO remove next line if not needed
-    import subprocess
+    import os
     
     @classmethod
     def setUpClass(cls):
         """Initialize the Worker interface."""
         cls.worker = WorkerInterface(SlurmWorker)
-        # using fixed directory save original template
-        job_template_file = os.path.expanduser('~/.beeflow/worker/job.template')
-        template_dir = os.path.dirname(job_template_file)
-        os.makedirs(template_dir, exist_ok=True)
+
+        job_template_file = '~/.beeflow/worker/job.template'
+        #check for a template, if not make the scripts without it
+        job_template = ''
         try:
-            shutil.copyfile(job_template_file, job_template_file + '_utest')
-        except IOError as error:
-            errno, strerror = error.args
-            if (errno != 2):
-                print(job_template_file)
-                print('I/O error({0}): {1}'.format(errno,strerror))
-                
-        #TODO delete the followinglines
-        subprocess.call(['ls', '-l'])
-        print('job_template_file: ', job_template_file, ' contents: ')
-        subprocess.call(['cat', job_template_file])
-        print('job_template_file, '_utest (original template)', ' contents: ')
-        subprocess.call(['cat', job_template_file+'_utest'])
+            f = open(job_template_file, 'r')
+            job_template = f.read()
+            f.close()
+        except OSError as err:
+            print("OS error: {0}".format(err))
+            print('No job_template: creating a simple job template!')
+            job_template = '#! /bin/bash\n#SBATCH\n'
+
+        #substitute template & add the command (need to add requirements)
+        #template = string.Template(job_template)
+        #task_script_text = template.substitute(task.__dict__) + ' '.join(task.command)
+
+        good = '#! /bin/bash\n'
+        good += '#SBATCH -J slurm-good\n'
+        good += '#SBATCH -o slurm-good.log\n\n'
+        good += 'echo "Good Job ran with job id:"; echo $SLURM_JOB_ID\n'
+        try:
+            f = open('good.slr', 'w')
+            f.write(good)
+            f.close()
+        except IOError as error: 
+            print('Could not write good.slr!')
+            print('I/O error: {0}'.format(error))
+
+        bad = '#! /bin/bash\n'
+        bad += '#SBATCH -J slurm-bad\n'
+        bad += '#SBATCH -o slurm-bad.log\n\n'
+        bad += '#SBATCH BAD_DIRECTIVE\n\n'
+        bad += 'echo "Bad job should not run!"\n'
+        try:
+            f = open('bad.slr', 'w')
+            f.write(bad)
+            f.close()
+        except IOError as error: 
+            print('Could not write bad.slr!')
+            print('I/O error: {0}'.format(error))
+
+    @classmethod
+    def tearDownClass(cls):
+        """Deletes files created for tests."""
+
+        try:
+            os.remove('good.slr')
+        except IOError as error: 
+            print('Could not remove good.slr!')
+            print('I/O error: {0}'.format(error))
+
+        try:
+            os.remove('bad.slr')
+        except IOError as error: 
+            print('Could not remove bad.slr!')
+            print('I/O error: {0}'.format(error))
+   
+    def test_submit_bad_job(self):
+        """Submit a job."""
+        job_info = self.worker.submit_job('bad.slr')
+        self.assertEqual(job_info[0], -1)
+        self.assertIn('error', job_info[1])
+
+    def test_submit_good_job(self):
+        """Submit a job."""
+        job_info = self.worker.submit_job('good.slr')
+        self.assertNotEqual(job_info[0], 1)
+        self.assertEqual('PENDING', job_info[1])
 
     def test_submit_bad_task(self):
         """Build and submit a bad task using  a bad directive."""
 
-        #TODO delete next line if BAD_DIRECTIVE works
-        #task = Task('bad', command=['echo', '" bad task ran "'], hints=None,
         task = Task('bad', command=['#SBATCH', '"BAD_DIRECTIVE"'], hints=None,
             subworkflow=None, inputs=None, outputs=None)
-        print('bad task submitted: ', task)
         job_info = self.worker.submit_task(task)
-        # restore original template
-        if copy: 
-            shutil.move(job_template_file + '_utest', job_template_file)
-        else:
-            os.remove(job_template_file)
         self.assertEqual(job_info[0], -1)
         self.assertIn('error', job_info[1])
-
+   
     def test_submit_good_task(self):
-        """Build and submit a good task using good.template."""
-        # using fixed directory first save original template then copy good.template
-        job_template_file = os.path.expanduser('~/.beeflow/worker/job.template')
-        template_dir = os.path.dirname(job_template_file)
-        os.makedirs(template_dir, exist_ok=True)
-        try:
-            shutil.copyfile(job_template_file, job_template_file + '_utest')
-            copy = True
-        except IOError as error:
-            errno, strerror = error.args
-            if (errno == 2):
-                #original template did not exist so didn't copy
-                copy = False 
-            else:
-                print('I/O error({0}): {1}'.format(errno,strerror))
-        shutil.copyfile('good.template', job_template_file)
-        # The submit task 
-        task = Task('good', command=['echo', '" good task ran "'], hints=None,
-            subworkflow=None, inputs=None, outputs=None)
+        """Build and submit a good task, state should be 'PENDING' or 'RUNNING'."""
+        task = Task('good', 
+            command=['echo', '" Good task ran with job id:"', 
+            ';', 'echo', '$SLURM_JOB_ID'], 
+        hints=None, subworkflow=None, inputs=None, outputs=None)
         job_info = self.worker.submit_task(task)
-        print('good task submitted: ', task)
-        # restore original
-        if copy: 
-            shutil.move(job_template_file + '_utest', job_template_file)
-        else:
-            os.remove(job_template_file)
         self.assertNotEqual(job_info[0], 1)
         self.assertTrue(job_info[1] == 'PENDING' or job_info[1] == 'RUNNING')
 
@@ -94,7 +116,7 @@ class TestSlurmWorker(unittest.TestCase):
         self.assertEqual('Invalid job id specified', job_info[1])
 
     def test_query_good_job(self):
-        """Submit a good job and query the state, should be 'PENDING'."""
+        """Submit a job and query the state, should be 'PENDING' or 'RUNNING'."""
         job_info = self.worker.submit_job('good.slr')
         job_id = job_info[0]
         job_info = self.worker.query_job(job_id)

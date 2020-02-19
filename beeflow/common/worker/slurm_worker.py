@@ -36,6 +36,7 @@ class SlurmWorker(Worker):
         try:
             f = open(job_template_file, 'r')
             job_template = f.read()
+            f.close()
         except OSError as err:
             print("OS error: {0}".format(err))
             print('No job_template: creating a simple job template!')
