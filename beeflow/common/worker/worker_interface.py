@@ -5,6 +5,7 @@ the abstract base class 'Worker'. Default: 'SlurmWorker' class.
 Worker may be a configuration value in the future.
 """
 
+from beeflow.common.data.wf_data import Task
 from beeflow.common.worker.slurm_worker import SlurmWorker
 
 
@@ -31,10 +32,18 @@ class WorkerInterface:
         """
         return self._worker.submit_job(task_script)
 
+    def submit_task(self, task):
+        """Workload manager to submit task as job returns job_id(-1 if error), job_state.
+
+        :param task: instance of Task
+        :rtype tuple (int, string)
+        """
+        return self._worker.submit_task(task)
+
     def cancel_job(self, job_id):
         """Cancel job with job_id.
 
-        :param job_id: job id on cluster, to be cancelled; returns success/fail (1/-1), job_state.
+        :param job_id: job_id to be cancelled
         :type job_id: integer
         :rtype tuple (int, string)
         """

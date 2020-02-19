@@ -1,0 +1,3 @@
+#! /bin/bash
+#SBATCH -J slurm-good
+#SBATCH -o slurm-good.log

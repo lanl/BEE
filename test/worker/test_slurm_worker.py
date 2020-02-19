@@ -2,7 +2,10 @@
 """Unit test module for BEE slurm worker interface."""
 
 import unittest
+import os
+import shutil
 
+from beeflow.common.data.wf_data import Task 
 from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
 
@@ -14,16 +17,62 @@ class TestSlurmWorker(unittest.TestCase):
     def setUpClass(cls):
         """Initialize the Worker interface."""
         cls.worker = WorkerInterface(SlurmWorker)
+        # using fixed directory save original template
+        job_template_file = os.path.expanduser('~/.beeflow/worker/job.template')
+        template_dir = os.path.dirname(job_template_file)
+        os.makedirs(template_dir, exist_ok=True)
+        try:
+            shutil.copyfile(job_template_file, job_template_file + '_utest')
+        except IOError as error:
+            errno, strerror = error.args
+            if (errno != 2):
+                print(job_template_file)
+                print('I/O error({0}): {1}'.format(errno,strerror))
 
-    def test_submit_bad_job(self):
-        """Submit a job."""
-        job_info = self.worker.submit_job('bad.slr')
+    def test_submit_bad_task(self):
+        """Build and submit a bad task using bad.template."""
+
+        shutil.copyfile('bad.template', job_template_file)
+        #Then submit task
+        task = Task('bad', command=['echo', '" bad task ran "'], hints=None,
+            subworkflow=None, inputs=None, outputs=None)
+        print('bad task submitted: ', task)
+        job_info = self.worker.submit_task(task)
+        # restore original template
+        if copy: 
+            shutil.move(job_template_file + '_utest', job_template_file)
+        else:
+            os.remove(job_template_file)
         self.assertEqual(job_info[0], -1)
         self.assertIn('error', job_info[1])
 
-    def test_submit_good_job(self):
-        """Submit a job."""
-        job_info = self.worker.submit_job('good.slr')
+    def test_submit_good_task(self):
+        """Build and submit a good task using good.template."""
+        # using fixed directory first save original template then copy good.template
+        job_template_file = os.path.expanduser('~/.beeflow/worker/job.template')
+        template_dir = os.path.dirname(job_template_file)
+        os.makedirs(template_dir, exist_ok=True)
+        try:
+            shutil.copyfile(job_template_file, job_template_file + '_utest')
+            copy = True
+        except IOError as error:
+            errno, strerror = error.args
+            if (errno == 2):
+                #original template did not exist so didn't copy
+                copy = False 
+            else:
+                print('I/O error({0}): {1}'.format(errno,strerror))
+        shutil.copyfile('good.template', job_template_file)
+        # The submit task 
+        task = Task('good', command=['echo', '" good task ran "'], hints=None,
+            subworkflow=None, inputs=None, outputs=None)
+        job_info = self.worker.submit_task(task)
+        print('good task submitted: ', task)
+        # restore original
+        if copy: 
+            shutil.move(job_template_file + '_utest', job_template_file)
+        else:
+            os.remove(job_template_file)
         self.assertNotEqual(job_info[0], 1)
         self.assertTrue(job_info[1] == 'PENDING' or job_info[1] == 'RUNNING')
 
