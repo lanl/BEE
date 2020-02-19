@@ -13,6 +13,10 @@ from beeflow.common.worker.slurm_worker import SlurmWorker
 class TestSlurmWorker(unittest.TestCase):
     """Unit test case for worker interface."""
 
+    import shutil
+    #TODO remove next line if not needed
+    import subprocess
+    
     @classmethod
     def setUpClass(cls):
         """Initialize the Worker interface."""
@@ -28,13 +32,20 @@ class TestSlurmWorker(unittest.TestCase):
             if (errno != 2):
                 print(job_template_file)
                 print('I/O error({0}): {1}'.format(errno,strerror))
+                
+        #TODO delete the followinglines
+        subprocess.call(['ls', '-l'])
+        print('job_template_file: ', job_template_file, ' contents: ')
+        subprocess.call(['cat', job_template_file])
+        print('job_template_file, '_utest (original template)', ' contents: ')
+        subprocess.call(['cat', job_template_file+'_utest'])
 
     def test_submit_bad_task(self):
-        """Build and submit a bad task using bad.template."""
+        """Build and submit a bad task using  a bad directive."""
 
-        shutil.copyfile('bad.template', job_template_file)
-        #Then submit task
-        task = Task('bad', command=['echo', '" bad task ran "'], hints=None,
+        #TODO delete next line if BAD_DIRECTIVE works
+        #task = Task('bad', command=['echo', '" bad task ran "'], hints=None,
+        task = Task('bad', command=['#SBATCH', '"BAD_DIRECTIVE"'], hints=None,
             subworkflow=None, inputs=None, outputs=None)
         print('bad task submitted: ', task)
         job_info = self.worker.submit_task(task)

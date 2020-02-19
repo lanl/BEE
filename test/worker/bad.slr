@@ -1,6 +1,6 @@
 #! /bin/bash
 #SBATCH -J bad-test
 #SBATCH -o bad-test.log
-#SBATCH -p bad-partion
+#SBATCH BAD_DIRECTIVE
 
-echo " bad.slr ran"
+echo " bad.slr should not run!"
