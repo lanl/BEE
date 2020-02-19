@@ -5,7 +5,6 @@ the abstract base class 'Worker'. Default: 'SlurmWorker' class.
 Worker may be a configuration value in the future.
 """
 
-from beeflow.common.data.wf_data import Task
 from beeflow.common.worker.slurm_worker import SlurmWorker
 
 
