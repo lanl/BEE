@@ -19,7 +19,6 @@ class TestSlurmWorker(unittest.TestCase):
         cls.worker = WorkerInterface(SlurmWorker)
         # for temporary scripts use template if exists
         template_file = os.path.expanduser('~/.beeflow/worker/job.template')
-        template_dir = os.path.dirname(template_file)
         job_template = ''
         try:
             template_f = open(template_file, 'r')
@@ -30,7 +29,7 @@ class TestSlurmWorker(unittest.TestCase):
             print('No job_template: creating a simple job template!')
             job_template = '#! /bin/bash\n#SBATCH\n'
         template = string.Template(job_template)
-        
+
         # write good script
         sub = {'name': 'good', 'id': 'job' }
         command = 'echo "Good Job ran with job id:"; echo $SLURM_JOB_ID\n'
