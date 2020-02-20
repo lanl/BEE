@@ -8,6 +8,7 @@ import string
 from beeflow.common.data.wf_data import Task
 from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
+from beeflow.common.worker.slurm_worker import submit_job
 
 
 class TestSlurmWorker(unittest.TestCase):
@@ -31,7 +32,7 @@ class TestSlurmWorker(unittest.TestCase):
         template = string.Template(job_template)
 
         # write good script
-        sub = {'name': 'good', 'id': 'job' }
+        sub = {'name': 'good', 'id': 'job'}
         command = 'echo "Good Job ran with job id:"; echo $SLURM_JOB_ID\n'
         text = template.substitute(sub) + ''.join(command)
         try:
@@ -70,13 +71,13 @@ class TestSlurmWorker(unittest.TestCase):
 
     def test_submit_bad_job(self):
         """Submit a job."""
-        job_info = self.worker.submit_job('bad.slr')
+        job_info = submit_job('bad.slr')
         self.assertEqual(job_info[0], -1)
         self.assertIn('error', job_info[1])
 
     def test_submit_good_job(self):
         """Submit a job."""
-        job_info = self.worker.submit_job('good.slr')
+        job_info = submit_job('good.slr')
         self.assertNotEqual(job_info[0], 1)
         self.assertEqual('PENDING', job_info[1])
 
@@ -106,7 +107,7 @@ class TestSlurmWorker(unittest.TestCase):
 
     def test_query_good_job(self):
         """Submit a job and query the state, should be 'PENDING' or 'RUNNING'."""
-        job_info = self.worker.submit_job('good.slr')
+        job_info = submit_job('good.slr')
         job_id = job_info[0]
         job_info = self.worker.query_job(job_id)
         self.assertEqual(job_info[0], True)
@@ -114,7 +115,7 @@ class TestSlurmWorker(unittest.TestCase):
 
     def test_cancel_good_job(self):
         """Submit a job and cancel it."""
-        job_info = self.worker.submit_job('good.slr')
+        job_info = submit_job('good.slr')
         job_id = job_info[0]
         job_info = self.worker.cancel_job(job_id)
         self.assertEqual(job_info[0], True)
