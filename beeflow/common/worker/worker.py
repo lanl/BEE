@@ -7,15 +7,6 @@ class Worker(ABC):
     """Worker interface for a generic workload manager."""
 
     @abstractmethod
-    def submit_job(self, script):
-        """Worker submits task script; returns id, state (or -1, error_message).
-
-        :param task_script: task script name
-        :type task_script: string
-        :rtype tuple (int, string)
-        """
-
-    @abstractmethod
     def submit_task(self, task):
         """Worker submits task; returns id, state (or -1, error_message).
 

@@ -22,15 +22,6 @@ class WorkerInterface:
         """
         self._worker = worker()
 
-    def submit_job(self, task_script):
-        """Workload manager to submit task script; returns job_id(-1 if error), job_state.
-
-        :param task_script: task_script
-        :type task_script: list of strings
-        :rtype tuple (int, string)
-        """
-        return self._worker.submit_job(task_script)
-
     def submit_task(self, task):
         """Workload manager to submit task as job returns job_id(-1 if error), job_state.
 

@@ -49,32 +49,31 @@ def write_script(task):
     return success, task_script
 
 
+def submit_job(script):
+    """Worker submits job; returns (job_id, job_state), or (-1, error_message)."""
+    job_id = -1
+    try:
+        job_st = subprocess.check_output(['sbatch', '--parsable', script],
+                                         stderr=subprocess.STDOUT)
+        job_id = int(job_st)
+        job = pyslurm.job().find_id(job_id)[0]
+        job_status = job['job_state']
+    except subprocess.CalledProcessError as error:
+        job_status = error.output.decode('utf-8')
+    return job_id, job_status
+
+
 class SlurmWorker(Worker):
     """The Worker for systems where Slurm is the Work Load Manager.
 
-    Implements Worker using pyslurm for slurm api except for submit_job uses subprocess.
+    Implements Worker using pyslurm for slurm api except for submit_task uses subprocess.
     """
-
-    def submit_job(self, script):
-        """Worker submits job; returns (job_id, job_state), or (-1, error_message)."""
-        job_id = -1
-        try:
-            job_st = subprocess.check_output(['sbatch', '--parsable', script],
-                                             stderr=subprocess.STDOUT)
-            job_id = int(job_st)
-            job = pyslurm.job().find_id(job_id)[0]
-            job_status = job['job_state']
-
-        except subprocess.CalledProcessError as error:
-            job_status = error.output.decode('utf-8')
-
-        return job_id, job_status
 
     def submit_task(self, task):
         """Worker builds & submits task; returns (job_id, job_state), or (-1, error)."""
         build_success, task_script = write_script(task)
         if build_success:
-            job_id, job_state = self.submit_job(task_script)
+            job_id, job_state = submit_job(task_script)
         else:
             job_id = build_success
             job_state = task_script
