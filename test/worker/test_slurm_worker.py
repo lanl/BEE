@@ -3,6 +3,7 @@
 
 import unittest
 import os
+import string
 
 from beeflow.common.data.wf_data import Task
 from beeflow.common.worker.worker_interface import WorkerInterface
@@ -16,27 +17,39 @@ class TestSlurmWorker(unittest.TestCase):
     def setUpClass(cls):
         """Initialize the Worker interface."""
         cls.worker = WorkerInterface(SlurmWorker)
-
-        # write temporary scripts
-        good = '#! /bin/bash\n'
-        good += '#SBATCH -J slurm-good\n'
-        good += '#SBATCH -o slurm-good.log\n\n'
-        good += 'echo "Good Job ran with job id:"; echo $SLURM_JOB_ID\n'
+        # for temporary scripts use template if exists
+        template_file = os.path.expanduser('~/.beeflow/worker/job.template')
+        template_dir = os.path.dirname(template_file)
+        job_template = ''
+        try:
+            template_f = open(template_file, 'r')
+            job_template = template_f.read()
+            template_f.close()
+        except OSError as err:
+            print("OS error: {0}".format(err))
+            print('No job_template: creating a simple job template!')
+            job_template = '#! /bin/bash\n#SBATCH\n'
+        template = string.Template(job_template)
+        
+        # write good script
+        sub = {'name': 'good', 'id': 'job' }
+        command = 'echo "Good Job ran with job id:"; echo $SLURM_JOB_ID\n'
+        text = template.substitute(sub) + ''.join(command)
         try:
             script = open('good.slr', 'w')
-            script.write(good)
+            script.write(text)
             script.close()
         except IOError as error:
             print('Could not write good.slr!')
             print('I/O error: {0}'.format(error))
-        bad = '#! /bin/bash\n'
-        bad += '#SBATCH -J slurm-bad\n'
-        bad += '#SBATCH -o slurm-bad.log\n\n'
-        bad += '#SBATCH BAD_DIRECTIVE\n\n'
-        bad += 'echo "Bad job should not run!"\n'
+
+        # write bad script
+        sub['name'] = 'bad'
+        command = '#SBATCH BAD_DIRECTIVE\n\n echo "Bad job should not run!"\n'
+        text = template.substitute(sub) + ''.join(command)
         try:
             script = open('bad.slr', 'w')
-            script.write(bad)
+            script.write(text)
             script.close()
         except IOError as error:
             print('Could not write bad.slr!')

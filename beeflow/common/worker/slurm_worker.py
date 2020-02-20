@@ -13,7 +13,7 @@ from beeflow.common.worker.worker import Worker
 
 
 def build_text(task, template_file):
-    """Build text for task scriptuse template if it exists."""
+    """Build text for task script use template if it exists."""
     job_template = ''
     try:
         template_f = open(template_file, 'r')
@@ -23,8 +23,6 @@ def build_text(task, template_file):
         print("OS error: {0}".format(err))
         print('No job_template: creating a simple job template!')
         job_template = '#! /bin/bash\n#SBATCH\n'
-
-    # substitute template & add the command (need to add requirements)
     template = string.Template(job_template)
     return template.substitute(task.__dict__) + ' '.join(task.command)
 
