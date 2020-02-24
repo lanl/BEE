@@ -7,11 +7,10 @@ class Worker(ABC):
     """Worker interface for a generic workload manager."""
 
     @abstractmethod
-    def submit_job(self, script):
-        """Worker submits task script; returns id, state (or -1, error).
+    def submit_task(self, task):
+        """Worker submits task; returns id, state (or -1, error_message).
 
-        :param task_script: task script name
-        :type task_script: string
+        :param task: instance of Task
         :rtype tuple (int, string)
         """
 
@@ -19,7 +18,7 @@ class Worker(ABC):
     def cancel_job(self, job_id):
         """Cancel job with job_id; returns success/fail (1/-1) & job_state or error.
 
-        :param job_id: job id on cluster, to be cancelled; returns job_state.
+        :param job_id: to be cancelled
         :type job_id: integer
         :rtype tuple (int, string)
         """
