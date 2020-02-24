@@ -93,8 +93,10 @@ class SlurmWorker(Worker):
 
     def cancel_job(self, job_id):
         """Worker cancels job; returns (1, job_state), or (-1(fail), error_message)."""
+        signal = 9
+        batch_flag = 0
         try:
-            pyslurm.slurm_kill_job(job_id, 9, 0)
+            pyslurm.slurm_kill_job(job_id, signal, batch_flag)
         except ValueError as error:
             cancel_success = -1
             job_state = error.args[0]
