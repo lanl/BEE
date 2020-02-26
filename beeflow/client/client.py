@@ -7,18 +7,18 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 
-workflow_manager = 'bee_wfm/v1/jobs/'
+workflow_manager = 'bee_wfm/v1/jobs'
 
 # Returns the url to the resource
 def _url():
-    return f'http://127.0.0.1:5000/{workflow_manager}'
+    return f'http://127.0.0.1:5000/{workflow_manager}/'
 
-def _resource(id=""): 
-    return _url() + str(id)
+def _resource(tag=""): 
+    return _url() + str(tag)
 
 # Submit a job to the workflow manager
 # This creates a workflow on the wfm and returns an ID 
-def submit_job(job_title):
+def create_job(job_title):
     resp = requests.post(_url(), json={'title': job_title})
 
     if resp.status_code != requests.codes.created:
@@ -33,7 +33,7 @@ def submit_job(job_title):
 # Send workflow to wfm using id 
 def submit_workflow(id, workflow_path):
     files = {'workflow': open(workflow_path, 'rb')}
-    resp = requests.post(_resource(id), files=files)
+    resp = requests.put(_resource("submit/" + id), files=files)
     if resp.status_code != requests.codes.created:
         raise ApiError("POST /jobs".format(resp.status_code))
     logging.info('Submit workflow: ' + resp.text)
@@ -52,7 +52,6 @@ def query_job(id):
         raise ApiError("GET /jobs{}".format(resp.status_code, id))
     logging.info('Query job: ' + resp.text)
 
-
 # Sends a request to the server to delete the resource 
 def cancel_job(id):
     resp = requests.delete(_resource(id), json={'id': id})
@@ -70,7 +69,7 @@ def pause_job(id):
     logging.info('Pause job: ' + resp.text)
 
 menu_items = [
-    { "Submit Job": submit_job },
+    { "Submit Job": create_job },
     { "Start Job": start_job },
     { "Query Job": query_job },
     { "Pause Job": pause_job },
@@ -103,7 +102,7 @@ if __name__ == '__main__':
                 # TODO needs error handling
                 print("What will be the name of the job?")
                 name = safe_input(str)
-                id = submit_job(name)
+                id = create_job(name)
                 print("What's the workflow filename?")
                 workflow_path = safe_input(Path)
                 submit_workflow(id, workflow_path) 
@@ -112,5 +111,5 @@ if __name__ == '__main__':
         except (ValueError, IndexError):
             pass
     
-    id = submit_job("bam")
+    id = create_job("bam")
     submit_workflow(id)

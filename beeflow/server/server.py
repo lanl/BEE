@@ -1,11 +1,9 @@
 #!flask/bin/python
 import os
 
-#import beeflow.common.gdb.neo4j_driver as GDB
-
 # Server and REST handling
 from flask import Flask
-from flask_restful import Resource, Api, reqparse, fields
+from flask_restful import Resource, Api, reqparse
 
 # Asynchronous workers
 from celery_setup import make_celery
@@ -21,6 +19,7 @@ flask_app.config.update(
     CELERY_BROKER_URL='redis://localhost:6379',
     CELERY_RESULT_BACKEND='redis://localhost:6379'
 )
+
 celery = make_celery(flask_app)
 api = Api(flask_app)
 
@@ -28,30 +27,11 @@ UPLOAD_FOLDER = 'workflows'
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 wf = WorkflowInterface()
-#tasks = []
-#workflow = wf.create_workflow(
-#        tasks=tasks,
-#        requirements={wf.create_requirement("ResourceRequirement", "ramMin", 1024)},
-#        hints={wf.create_requirement("ResourceRequirement", "ramMax", 2048)}
-#)
 
-#load_workflow(workflow)
-
-# Initializes the graph database
-class GDB():
-    def load_workflow(self, arg):
-        pass
-
-gdb = GDB()
-
-task_fields = {
-    'title': fields.String
+no_file_resp = {
+    'msg':'No file found',
+    'status':'error'
 }
-
-workflows = []
-
-def get_wf_id():
-    return 32
 
 # Where we submit jobs
 class JobsList(Resource):
@@ -62,31 +42,30 @@ class JobsList(Resource):
                                     location='json')
         super(JobsList, self).__init__()
 
-    # Client requests to start a job
+    # Client sends workflow 
     def post(self):
         data = self.reqparse.parse_args()
         name = data['title']
         print("Job name is " + name)
         # Get the id for the workflow
-        id = get_wf_id()
         # Return the id and success
         return {'id': id}, 201
-    
-# This class is where we act on existing jobs
-class JobActions(Resource):
+
+# Add workflow to the database
+def add_workflow():
+    wf.add_task("ECHO", command=["echo", '"It\'s alive!"'],
+            inputs={""}, outputs={""})
+
+class JobSubmit(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('workflow', type=FileStorage, location='files')
 
     # Client Submits workflow 
-    def post(self, id):
+    def put(self, id):
         data = self.reqparse.parse_args()
         if data['workflow'] == "":
-            resp = {
-                     'msg':'No file found',
-                     'status':'error'
-                   }
-            return resp, 201
+            return no_file_resp, 201
         # Workflow file
         workflow = data['workflow']
 
@@ -97,14 +76,19 @@ class JobActions(Resource):
             filename = "echo.cwl"
             workflow.save(os.path.join(flask_app.config['UPLOAD_FOLDER'], filename))
 
-            # Add workflow to the neo4j database
-            #wf.load_workflow()
+            # Parse the workflow and add it to the database
+            add_workflow(filename)
             resp = {'msg':'Workflow uploaded', 'status':'ok'}
             return resp, 201
         else:
             return 200
 
-         
+
+# This class is where we act on existing jobs
+class JobActions(Resource):
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('workflow', type=FileStorage, location='files')
 
     # Start Job
     def put(self, id):
@@ -115,7 +99,8 @@ class JobActions(Resource):
     # Query Job
     def get(self, id):
         # Ask the scheduler how the workflow is going
-        scheduler_query(id)
+        #scheduler_query(id)
+        pass
 
     # Cancel Job
     def delete(self, id):
@@ -150,8 +135,9 @@ def cancel(id):
 def pause(id):
     pass
 
-api.add_resource(JobActions, '/bee_wfm/v1/jobs/<int:id>', endpoint = 'jobs')
-api.add_resource(JobsList, '/bee_wfm/v1/jobs/', endpoint = 'job')
+api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
+api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<int:id>')
+api.add_resource(JobActions, '/bee_wfm/v1/jobs/<int:id>')
 
 if __name__ == '__main__':
     flask_app.run(debug=True)

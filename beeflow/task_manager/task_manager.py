@@ -6,6 +6,9 @@ import os
 import string
 import time
 
+from flask import Flask 
+from flask_restful import Resource, Api, reqprse, fields
+
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
@@ -26,27 +29,66 @@ os.makedirs(script_dir, exist_ok=True)
 # check for a template, if not make the script without it
 job_template = ''
 
-try:
-    f = open(job_template_file, 'r')
-    job_template = f.read()
-except OSError as err:
-    print("OS error: {0}".format(err))
-    print('No job_template: creating a simple job template!')
-    job_template = '#! /bin/bash\n#SBATCH\n'
+no_file_resp = {
+    'msg':'No task file found',
+    'status':'error'
+}
+
+def load_template():
+    try:
+        f = open(job_template_file, 'r')
+        job_template = f.read()
+    except OSError as err:
+        print("OS error: {0}".format(err))
+        print('No job_template: creating a simple job template!')
+        job_template = '#! /bin/bash\n#SBATCH\n'
+
+
+class TaskSubmit(Resource):
+    def __init(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('task', type=FileStorage, location='tasks')
+        super(TaskSubmit, self).__init__()
+    
+    # WFM sends a job to the task manager
+    def post(self):
+        data = self.reqparse.parse_args()
+        task = data['task']
+
+        # If there's no file 
+        if task == "":
+            return no_file_resp
+        else:   
+            filename = "task"
+            task.save(os.path.join(flask_app.config['UPLOAD_FOLDER'], filename))
+
+
+class TaskActions(Resource):
+    def __init(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('workflow', type=FileStorage, location='tasks')
+
+        # Query 
+        def post(self):
+            pass
+
+        def 
+
+
 # no restful api now, so populate Task and Requirment by hand from Al's stuff
 tasks = []
-t_input = 'grep.in'
-t_output = 'grep.out'
+task_input = 'grep.in'
+task_output = 'grep.out'
 grep_string = 'database'
 tasks.append(wfi.add_task(
-    'GREP', command=['grep', '-i', grep_string , t_input, '>', t_output],
-    inputs={t_input}, outputs={t_output}))
+    'GREP', command=['grep', '-i', grep_string , task_input, '>', task_output],
+    inputs={task_input}, outputs={task_output}))
 
-t_input = 'grep.out'
-t_output = 'wc.out'
+task_input = 'grep.out'
+task_output = 'wc.out'
 tasks.append(wfi.add_task(
-    'WC', command=['wc', '-l', t_input, '>', t_output],
-    inputs={t_input}, outputs={t_output}))
+    'WC', command=['wc', '-l', task_input, '>', task_output],
+    inputs={task_input}, outputs={task_output}))
 
 # Will eventually be a server that uses RESTful API's
 # for now  loop until tasks defined above are deleted
