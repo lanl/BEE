@@ -2,6 +2,10 @@
 from collections import namedtuple
 
 
+# Requirement class for storing requirement class, key, and value
+Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
+
+
 class Task:
     """Data structure for holding data about a single task."""
 
@@ -38,9 +42,8 @@ class Task:
         self.inputs = inputs
         self.outputs = outputs
 
-        # Task ID and dependencies assigned outside of class
-        self.id = None
-        self.dependencies = None
+        # Task ID
+        self.id = abs(hash(self))
 
     def __eq__(self, other):
         """Test the equality of two tasks.
@@ -85,77 +88,3 @@ class Task:
         :rtype: list of strings
         """
         return self.command[0]
-
-
-class Workflow:
-    """Data structure for holding workflow data and metadata."""
-
-    def __init__(self, tasks, requirements, hints):
-        """Initialize a new workflow data structure.
-
-        :param tasks: the workflow tasks
-        :type tasks: iterable of Task instances
-        :param requirements: the workflow requirements
-        :type requirements: dictionary
-        :param hints: the workflow hints (optional requirements)
-        :type hints: dictionary
-        """
-        self._tasks = {task.id: task for task in tasks}
-        self.requirements = requirements
-        self.hints = hints
-
-    def __eq__(self, other):
-        """Test the equality of two workflows.
-
-        :param other: the workflow with which to test equality
-        :type other: instance of Workflow
-        :rtype: boolean
-        """
-        return bool(self.tasks == other.tasks and
-                    self.requirements == other.requirements and
-                    self.hints == other.hints)
-
-    def __ne__(self, other):
-        """Test the inequality of two workflows.
-
-        :param other: the workflow with which to test inequality
-        :type other: instance of Workflow
-        :rtype: boolean
-        """
-        return not self.__eq__(other)
-
-    def __getitem__(self, task_id):
-        """Retrieve a Task instance by its ID, if it exists.
-
-        :param task_id: the ID of the task to retrieve
-        :type task: integer
-        :rtype: instance of Task
-        """
-        return self._tasks.get(task_id, None)
-
-    def __contains__(self, task):
-        """Check if a task is in the workflow.
-
-        :param task: the task to check for
-        :type task: instance of Task
-        :rtype: boolean
-        """
-        return bool(task.id in self._tasks and self._tasks[task.id] == task)
-
-    def __repr__(self):
-        """Construct a workflow's string representation.
-
-        :rtype: string
-        """
-        return ("Tasks: " + repr(self.tasks) + "\n"
-                + "Requirements: " + repr(self.requirements) + "\n"
-                + "Hints: " + repr(self.hints))
-
-    @property
-    def tasks(self):
-        """Return the workflow tasks as a set."""
-        return set(self._tasks.values())
-
-
-# Requirement class for storing requirement class, key, and value
-Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
