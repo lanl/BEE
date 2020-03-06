@@ -38,7 +38,7 @@ def create_bee_init_node(tx, inputs):
     :type inputs: list of strings
     """
     bee_init_query = ("CREATE (t:Task) "
-                      "SET t.task_id = 0 "
+                      "SET t.task_id = '0' "
                       "SET t.name = 'bee_init' "
                       "SET t.inputs = $inputs "
                       "SET t.outputs = $inputs "
@@ -54,7 +54,7 @@ def create_bee_exit_node(tx, outputs):
     :type outputs: list of strings
     """
     bee_exit_query = ("CREATE (t:Task) "
-                      "SET t.task_id = 1 "
+                      "SET t.task_id = '1' "
                       "SET t.name = 'bee_exit' "
                       "SET t.inputs = $outputs "
                       "SET t.outputs = $outputs "

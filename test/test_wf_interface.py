@@ -37,11 +37,11 @@ class TestWorkflowInterface(unittest.TestCase):
         (tasks, requirements, hints) = self.wfi.get_workflow()
         for task in tasks:
             if task.name == "bee_init":
-                self.assertEqual(0, task.id)
+                self.assertEqual('0', task.id)
                 self.assertSetEqual({"input.txt"}, task.inputs)
                 self.assertSetEqual({"input.txt"}, task.outputs)
             elif task.name == "bee_exit":
-                self.assertEqual(1, task.id)
+                self.assertEqual('1', task.id)
                 self.assertSetEqual({"output.txt"}, task.inputs)
                 self.assertSetEqual({"output.txt"}, task.outputs)
             else:
@@ -53,7 +53,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self._create_test_tasks()
         self.wfi.execute_workflow()
 
-        bee_init_task = self.wfi.get_task_by_id(0)
+        bee_init_task = self.wfi.get_task_by_id('0')
         self.assertEqual("READY", self.wfi.get_task_state(bee_init_task))
 
     def test_finalize_workflow(self):
