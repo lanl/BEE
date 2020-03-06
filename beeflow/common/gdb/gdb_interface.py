@@ -71,7 +71,7 @@ class GraphDatabaseInterface:
         """Return a workflow Task given its ID.
 
         :param task_id: the task's ID
-        :type task_id: int
+        :type task_id: str
         :rtype: instance of Task
         """
         task_records = self._connection.get_task_by_id(task_id)

@@ -117,7 +117,7 @@ def get_task_by_id(tx, task_id):
     """Get a workflow task from the Neo4j database by its ID.
 
     :param task_id: the task's ID
-    :type task_id: int
+    :type task_id: str
     """
     task_query = "MATCH (t:Task {task_id: $task_id}) RETURN t"
 
