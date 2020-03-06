@@ -36,12 +36,14 @@ class GraphDatabaseInterface:
         # Initialize the graph database driver
         self._connection = self._gdb_driver(**kwargs)
 
-    def initialize_workflow(self, inputs, outputs, requirements, hints):
+    def initialize_workflow(self, name, inputs, outputs, requirements, hints):
         """Begin construction of a workflow in the graph database.
 
         Connects to the database and creates the bee_init, bee_exit, and metadata nodes.
         Permits the addition of task nodes to the workflow.
 
+        :param name: a name for the workflow
+        :type name: string
         :param inputs: the inputs to the workflow
         :type inputs: set of strings
         :param outputs: the outputs to the workflow
@@ -51,7 +53,7 @@ class GraphDatabaseInterface:
         :param hints: the workflow hints (optional requirements)
         :type hints: set of Requirement instances
         """
-        self._connection.initialize_workflow(inputs, outputs, requirements, hints)
+        self._connection.initialize_workflow(name, inputs, outputs, requirements, hints)
 
     def execute_workflow(self):
         """Begin execution of the loaded workflow."""
