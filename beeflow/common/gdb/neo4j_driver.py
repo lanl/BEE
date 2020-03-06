@@ -106,7 +106,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Return a workflow task record from the Neo4j database.
 
         :param task_id: a task's ID
-        :type task_id: instance of Task
+        :type task_id: str
         :rtype: a query result object
         """
         return self._read_transaction(tx.get_task_by_id, task_id=task_id)

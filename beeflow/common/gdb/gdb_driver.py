@@ -52,7 +52,7 @@ class GraphDatabaseDriver(ABC):
         """Return a workflow task record from the graph database.
 
         :param task_id: a task's ID
-        :type task_id: instance of Task
+        :type task_id: str
         :rtype: a query result object
         """
 

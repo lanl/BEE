@@ -89,7 +89,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(subworkflow, task.subworkflow)
         self.assertSetEqual(inputs, task.inputs)
         self.assertSetEqual(outputs, task.outputs)
-        self.assertIsInstance(task.id, int)
+        self.assertIsInstance(task.id, str)
 
         # Graph database assertions
         gdb_task = self.wfi.get_task_by_id(task.id)

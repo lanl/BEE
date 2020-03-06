@@ -1,5 +1,6 @@
 """Defines data structures for holding task and workflow data."""
 from collections import namedtuple
+import uuid
 
 
 # Requirement class for storing requirement class, key, and value
@@ -20,8 +21,8 @@ class Task:
         bee_exit should have no dependents and depend on all of the end tasks
         in the user's workflow.
 
-        :param task_id: the task's unique ID
-        :type task_id: integer
+        :param task_id: the task's unique ID (random UUID)
+        :type task_id: string
         :param name: the task name
         :type name: string
         :param command: the command to run for the task
@@ -41,9 +42,7 @@ class Task:
         self.subworkflow = subworkflow
         self.inputs = inputs
         self.outputs = outputs
-
-        # Task ID
-        self.id = abs(hash(self))
+        self.id = str(uuid.uuid4())
 
     def __eq__(self, other):
         """Test the equality of two tasks.
@@ -97,15 +96,13 @@ class Workflow:
     def __init__(self, name):
         """Store a workflow description.
 
-        :param task_id: the workflow's unique ID (NOT the database ID)
-        :type task_id: integer
+        :param task_id: the workflow's unique ID (random UUID)
+        :type task_id: string
         :param name: the workflow name
         :type name: string
         """
         self.name = name
-        #  1) this should probably be some form of UUID
-        #  2) this should be created when the workflow is created, not this object
-        self.id = abs(hash(self))
+        self.id = str(uuid.uuid4())
 
     def __eq__(self, other):
         """Test the equality of two workflows,

@@ -105,7 +105,7 @@ class WorkflowInterface:
         """Get a task by its Task ID.
 
         :param task_id: the task's ID
-        :type task_id: int
+        :type task_id: str
         :rtype: instance of Task
         """
         return self._gdb_interface.get_task_by_id(task_id)
