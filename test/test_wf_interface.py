@@ -21,8 +21,8 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
-        # if self.wfi.workflow_loaded():
-        #     self.wfi.finalize_workflow()
+        if self.wfi.workflow_loaded():
+            self.wfi.finalize_workflow()
 
     def test_initialize_workflow(self):
         """Test workflow initialization.
