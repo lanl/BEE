@@ -5,6 +5,7 @@
 # pylama:ignore=W0212
 
 import unittest
+import warnings
 
 from beeflow.common.wf_interface import WorkflowInterface
 
@@ -15,12 +16,13 @@ class TestWorkflowInterface(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Initialize the Workflow interface."""
+        warnings.simplefilter('ignore', category=ImportWarning)
         cls.wfi = WorkflowInterface()
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
-        if self.wfi.workflow_loaded():
-            self.wfi.finalize_workflow()
+        # if self.wfi.workflow_loaded():
+        #     self.wfi.finalize_workflow()
 
     def test_initialize_workflow(self):
         """Test workflow initialization.
@@ -30,7 +32,7 @@ class TestWorkflowInterface(unittest.TestCase):
         requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024)}
         hints = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024),
                  self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"output.txt"}, requirements, hints)
 
         (tasks, requirements, hints) = self.wfi.get_workflow()
         for task in tasks:
@@ -47,7 +49,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_execute_workflow(self):
         """Test workflow execution initialization (set bee_init's state to READY)."""
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"output.txt"})
         self._create_test_tasks()
         self.wfi.execute_workflow()
 
@@ -56,7 +58,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_finalize_workflow(self):
         """Test workflow deletion from the graph database."""
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"output.txt"})
         self.wfi.finalize_workflow()
 
         self.assertFalse(self.wfi.workflow_loaded())
@@ -71,7 +73,7 @@ class TestWorkflowInterface(unittest.TestCase):
         inputs = {"input.txt"}
         outputs = {"test_task_done"}
 
-        self.wfi.initialize_workflow({"input.txt"}, {"test_task_done"})
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"test_task_done"})
         task = self.wfi.add_task(
             name=task_name,
             command=command,
@@ -121,7 +123,7 @@ class TestWorkflowInterface(unittest.TestCase):
         inputs = {"input.txt"}
         outputs = {"test_task_done"}
 
-        self.wfi.initialize_workflow({"input.txt"}, {"test_task_done"})
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"test_task_done"})
         task = self.wfi.add_task(
             name=task_name,
             command=command,
@@ -136,7 +138,7 @@ class TestWorkflowInterface(unittest.TestCase):
         """Test obtaining the workflow from the graph database."""
         requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024)}
         hints = {self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"output.txt"}, requirements, hints)
         tasks = self._create_test_tasks()
 
         self.assertTrue(self.wfi.workflow_loaded())
@@ -151,7 +153,7 @@ class TestWorkflowInterface(unittest.TestCase):
         """Test obtaining of a subworkflow."""
         requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024)}
         hints = {self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"output.txt"}, requirements, hints)
         tasks = self._create_test_tasks()
 
         # Subworkflow assertion
@@ -162,7 +164,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"output.txt"})
         tasks = self._create_test_tasks()
         # Get dependent tasks of Data Prep
         dependent_tasks = self.wfi.get_dependent_tasks(tasks[0])
@@ -172,7 +174,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_task_state(self):
         """Test obtaining of task status."""
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"output.txt"})
         task = self.wfi.add_task("Test Task")
 
         # Should be WAITING because workflow not initialized
@@ -183,7 +185,7 @@ class TestWorkflowInterface(unittest.TestCase):
         # No workflow loaded
         self.assertFalse(self.wfi.workflow_loaded())
 
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        self.wfi.initialize_workflow("TEST", {"input.txt"}, {"output.txt"})
 
         # Workflow now loaded
         self.assertTrue(self.wfi.workflow_loaded())

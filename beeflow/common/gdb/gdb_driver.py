@@ -11,12 +11,14 @@ class GraphDatabaseDriver(ABC):
     """
 
     @abstractmethod
-    def initialize_workflow(self, inputs, outputs, requirements, hints):
+    def initialize_workflow(self, name, inputs, outputs, requirements, hints):
         """Begin construction of a workflow in the graph database.
 
         Create the bee_init (with inputs), bee_exit (with outputs) nodes, and metadata
         nodes and store the requirements and hints in the metadata node.
 
+        :param name: a name for the workflow
+        :type name: string
         :param inputs: the inputs to the workflow
         :type inputs: set of strings
         :param outputs: the outputs of the workflow

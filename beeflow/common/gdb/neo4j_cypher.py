@@ -80,6 +80,20 @@ def create_metadata_node(tx, requirements, hints):
            hints=_encode_requirements(hints))
 
 
+def create_workflow_node(tx, name):
+    """Create a metadata node in the Neo4j database.
+
+    The workflow node is the entry point to the workflow.
+
+    :param name: a name for the workflow
+    :type name: string
+    """
+    workflow_query = "CREATE (n:Workflow {name: $name})"
+
+    # Store the workflow name and id in a new workflow node
+    tx.run(workflow_query, name=name)
+
+
 def add_dependencies(tx, task):
     """Create dependencies between tasks.
 

@@ -66,13 +66,15 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task, task=task)
             session.write_transaction(tx.add_dependencies, task=task)
 
-    def initialize_workflow(self, inputs, outputs, requirements, hints):
+    def initialize_workflow(self, name, inputs, outputs, requirements, hints):
         """Begin construction of a workflow stored in Neo4j.
 
         Creates the bee_init node with its inputs.
         Creates the bee_exit node with its outputs.
         Creates the metadata node with requirements and hints.
 
+        :param name: a name for the workflow
+        :type name: string
         :param inputs: the inputs to the workflow
         :type inputs: set of strings
         :param outputs: the outputs of the workflow
@@ -83,6 +85,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type hints: set of Requirement instances
         """
         with self._driver.session() as session:
+            session.write_transaction(tx.create_workflow_node, name=name)
             session.write_transaction(tx.create_bee_init_node, inputs=list(inputs))
             session.write_transaction(tx.create_bee_exit_node, outputs=list(outputs))
             session.write_transaction(tx.create_metadata_node, requirements=requirements,
