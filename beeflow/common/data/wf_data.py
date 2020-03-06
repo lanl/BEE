@@ -88,3 +88,48 @@ class Task:
         :rtype: list of strings
         """
         return self.command[0]
+
+
+
+class Workflow:
+    """Data structure for holding data about a workflow."""
+
+    def __init__(self, name):
+        """Store a workflow description.
+
+        :param task_id: the workflow's unique ID (NOT the database ID)
+        :type task_id: integer
+        :param name: the workflow name
+        :type name: string
+        """
+        self.name = name
+        #  1) this should probably be some form of UUID
+        #  2) this should be created when the workflow is created, not this object
+        self.id = abs(hash(self))
+
+    def __eq__(self, other):
+        """Test the equality of two workflows,
+
+        Workflow ID and dependencies do not factor into equality testing.
+        Currently, the code is boilerplate. We do not support multiple workflows.
+
+        :param other: the workflow with which to test equality
+        :type other: instance of Workflow
+        """
+        return bool(self.name == other.name)
+
+    def __ne__(self, other):
+        """Test the inequality of two workflows.
+
+        :param other: the workflow with which to test inequality
+        :type other: instance of Worklfow
+        """
+        return bool(not self.__eq__(other))
+
+    def __hash__(self):
+        """Return the hash value for a workflow."""
+        return hash(self.name)
+
+    def __repr__(self):
+        """Construct a workflow's string representation."""
+        return (f"<Workflow id={self.id} name='{self.name}'>")
