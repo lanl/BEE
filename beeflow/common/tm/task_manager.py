@@ -1,7 +1,7 @@
 """Task Manager submits & manages tasks and communicates with Work Flow Manager.
 
-Submits and manages tasks & communicates status to the Work Flow Manager, through RESTful API.
-For now submit jobs serially.
+Submits and manages tasks.
+Communicates status to the Work Flow Manager, through RESTful API.
 """
 import time
 import os
@@ -13,67 +13,93 @@ from beeflow.common.worker.slurm_worker import SlurmWorker
 
 
 def main():
-    """Mock Task Manager populates a Task dictionary to use to submit tasks."""
+    """Task Manager build and submits tasks, from json file."""
     worker = WorkerInterface(SlurmWorker)
 
     def submit_task(task):
+        """Submit task - write script and sumbit job."""
         return worker.submit_task(task)
 
-    # no restful api now, so read Tasks from json file, note the file will be 
-    # deleted and new tasks can be read from writing a new file 
+    def read_task(json_file):
+        """Get task from json file, will come from WFM."""
+        with open(json_file) as json_f:
+            sent_task = json.load(json_f)
+            os.remove('sent_task.json')
+            task_cmd = sent_task['command'].split(',')
+            # fix TODO submit does not use hints and subworkflow
+            # fix TODO task_id should be part of task
+            task = Task(name=sent_task['name'],
+                        command=task_cmd,
+                        hints=None,
+                        subworkflow=None,
+                        inputs=sent_task['inputs'],
+                        outputs=sent_task['outputs'])
+            task_id = sent_task['task_id']
+            return task, task_id
 
-    # no restful api now, so populate Task manually using by_hand example from Al
-    ready_tasks = []
-    
-    # t_input = 'grep.in'
-    # t_output = 'grep.out'
-    # grep_string = 'database'
-    # tasks.append(
-    #     Task('GREP', command=['grep', '-i', grep_string, t_input, '>', t_output],
-    #          hints=None, subworkflow=None, inputs={t_input}, outputs={t_output}))
+    def update_job_queue(job_queue):
+        """Check and update states of jobs in queue, remove completed jobs."""
+        for job in job_queue:
+            task_id = list(job)[0]
+            current_task = job[task_id]
+            job_id = current_task['job_id']
+            state = worker.query_job(job_id)
+            # fix TODO what to do if query is not good for now it will just keep trying
+            if state[0] == 1:
+                job_state = state[1]
+            if job_state != current_task['job_state']:
+                current_task['job_state'] = job_state
+                # Send new state to WFM here
+                print('Task changed state:', task_id, current_task['name'], job_id, job_state)
+            # Remove completed job from queue
+            # fix TODO needs to be an abstract state
+            if job_state in ('COMPLETED', 'CANCELLED'):
+                # fix TODO Send job info to WFM
+                print('Job done:', task_id, current_task['name'], job_id, job_state)
+                job_queue.remove(job)
 
-    # t_input = 'grep.out'
-    # t_output = 'wc.out'
+    # fix TODO work with REST interface
+    # no restful api now, so read Tasks from json file
 
-    # Will eventually be a server that uses RESTful API's
-    # for now continuously loop 
-    # read the task file if any new tasks exist add them to the queue
-    # 
-    # This will be replaced by retrieving any messages for the RESTful interface
-    # Jobs will be submitted as soon as a task is recieved
-    # For now assuming only getting job submissions from the Work Flow Manager
+    submit_queue = []  # tasks ready to be submitted
+    job_queue = []  # jobs that are being monitored
 
+    # fix TODO Will eventually be a server that uses RESTful API's
+    # for now: a timed loop
+    timer = 120
+    start = time.time()
     while True:
-        # For now put json file in tasks.json, you may add a task one at a time 
+        # read tasks from file and add to queue to submit
         if os.path.exists('sent_task.json'):
-            f = open('sent_task.json')
-            with open('sent_task.json') as f:
-                sent_task = json.load(f)
-                os.remove('sent_task.json')
-                task_cmd = sent_task['command'].split(',')
-                print(sent_task['outputs'])
-                print(sent_task)
-                # submit job TODO actually use hints and subworkflow
-                task = Task(name=sent_task['name'], 
-                            command=task_cmd, 
-                            hints=None, 
-                            subworkflow=None, 
-                            inputs=sent_task['inputs'], 
-                            outputs=sent_task['outputs'])
-            ready_tasks.append(task)
-        if ready_tasks: 
-            task = ready_tasks.pop(0)
-            job_info = submit_task(task)
-            job_state = job_info[1]
-            job_id = job_info[0]
-            print('Task: ', task.name, '  Job: ', job_id, 'submitted, ', job_state)
+            task, task_id = read_task('sent_task.json')
+            submit_queue.append({task_id: task})
 
-            while job_state != 'COMPLETED':
-            # check for state change every 5 seconds FIX THIS
-                time.sleep(5)
-                job_info = worker.query_job(job_id)
-                if job_info[1] != job_state:
-                    job_state = job_info[1]
-                    print('   ', job_id, 'changed state: ', job_state)
+        # submit tasks received
+        while len(submit_queue) >= 1:
+            task_dict = submit_queue.pop(0)
+            task_id = list(task_dict)[0]
+            task = task_dict.get(task_id)
+            job_id, job_state = submit_task(task)
+            # fix TODO prints will become message sends to WFM
+            if job_id == -1:
+                # send task failed message to WFM
+                print('Task submission failed:', task_id, task.name, job_state)
+            else:
+                # place job in queue to monitor and send intial state to WFM
+                job_queue.append({task_id: {'name': task.name, 'job_id': job_id,
+                                            'job_state': job_state}})
+                print('Submitted: ', task_id, task.name, 'Job:', job_id, job_state)
+
+        # Check state of jobs in queue, update states and send updates to WFM
+        update_job_queue(job_queue)
+        time.sleep(5)
+        # The following is temporary just to insure task manager stops
+        if time.time() > start + timer:
+            if len(job_queue) == 0 & len(submit_queue) == 0:
+                print('Task Manager Shut Down')
+                break
+            print('Task Manager time is up but there are still queued tasks.')
+            time.sleep(10)
+
 
 main()
