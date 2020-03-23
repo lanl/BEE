@@ -27,7 +27,7 @@ def main():
             os.remove('sent_task.json')
             task_cmd = sent_task['command'].split(',')
             # fix TODO submit does not use hints and subworkflow
-            # fix TODO task_id should be part of task
+            # fix TODO task_id should be part of task will it be?
             task = Task(name=sent_task['name'],
                         command=task_cmd,
                         hints=None,
@@ -49,10 +49,10 @@ def main():
                 job_state = state[1]
             if job_state != current_task['job_state']:
                 current_task['job_state'] = job_state
-                # Send new state to WFM here
+                # fix TODO Send new state to WFM here
                 print('Task changed state:', task_id, current_task['name'], job_id, job_state)
             # Remove completed job from queue
-            # fix TODO needs to be an abstract state
+            # fix TODO needs to be an abstract state see wiki for our TM states
             if job_state in ('COMPLETED', 'CANCELLED'):
                 # fix TODO Send job info to WFM
                 print('Job done:', task_id, current_task['name'], job_id, job_state)
@@ -60,12 +60,13 @@ def main():
 
     # fix TODO work with REST interface
     # no restful api now, so read Tasks from json file
+    # fix TODO add __init__ for the following
 
     submit_queue = []  # tasks ready to be submitted
     job_queue = []  # jobs that are being monitored
 
     # fix TODO Will eventually be a server that uses RESTful API's
-    # for now: a timed loop
+    # for now: a timed loop this is just so I don't leave it running
     timer = 120
     start = time.time()
     while True:
@@ -80,12 +81,12 @@ def main():
             task_id = list(task_dict)[0]
             task = task_dict.get(task_id)
             job_id, job_state = submit_task(task)
-            # fix TODO prints will become message sends to WFM
+            # fix TODO prints will become message sends to WFM also add SUBMIT_JOB_FAIL state
             if job_id == -1:
                 # send task failed message to WFM
                 print('Task submission failed:', task_id, task.name, job_state)
             else:
-                # place job in queue to monitor and send intial state to WFM
+                # place job in queue to monitor and send intial state to file (TODO: to WFM)
                 job_queue.append({task_id: {'name': task.name, 'job_id': job_id,
                                             'job_state': job_state}})
                 print('Submitted: ', task_id, task.name, 'Job:', job_id, job_state)
@@ -93,7 +94,7 @@ def main():
         # Check state of jobs in queue, update states and send updates to WFM
         update_job_queue(job_queue)
         time.sleep(5)
-        # The following is temporary just to insure task manager stops
+        # The timer is temporary just to insure task manager stops TODO 
         if time.time() > start + timer:
             if len(job_queue) == 0 & len(submit_queue) == 0:
                 print('Task Manager Shut Down')
