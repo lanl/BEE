@@ -2,7 +2,7 @@
 import os
 
 # Server and REST handling
-from flask import Flask
+from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
 # Asynchronous workers
@@ -47,14 +47,25 @@ class JobsList(Resource):
         data = self.reqparse.parse_args()
         name = data['title']
         print("Job name is " + name)
-        # Get the id for the workflow
-        # Return the id and success
-        return {'id': id}, 201
+        # Get the wf_id for the workflow
+        # Return the wf_id and success
+        resp = make_response(jsonify(wf_id="42"), 201)
+        return resp
 
 # Add workflow to the database
 def add_workflow():
-    wf.add_task("ECHO", command=["echo", '"It\'s alive!"'],
-            inputs={""}, outputs={""})
+    task_input = 'grep.in'
+    task_output = 'grep.out'
+    grep_string = 'database'
+    tasks.append(wfi.add_task(
+            'GREP', command=['grep', '-i', grep_string , task_input, '>', task_output],
+                inputs={task_input}, outputs={task_output}))
+
+    task_input = 'grep.out'
+    task_output = 'wc.out'
+    tasks.append(wfi.add_task(
+            'WC', command=['wc', '-l', task_input, '>', task_output],
+                inputs={task_input}, outputs={task_output}))
 
 class JobSubmit(Resource):
     def __init__(self):
@@ -62,8 +73,9 @@ class JobSubmit(Resource):
         self.reqparse.add_argument('workflow', type=FileStorage, location='files')
 
     # Client Submits workflow 
-    def put(self, id):
+    def put(self, wf_id):
         data = self.reqparse.parse_args()
+        print("Getting workflow")
         if data['workflow'] == "":
             return no_file_resp, 201
         # Workflow file
@@ -78,8 +90,9 @@ class JobSubmit(Resource):
 
             # Parse the workflow and add it to the database
             add_workflow(filename)
-            resp = {'msg':'Workflow uploaded', 'status':'ok'}
-            return resp, 201
+            resp = make_response(jsonify(msg='Workflow uploaded', status='ok'), 201)
+            return resp
+            #return resp, 201
         else:
             return 200
 
@@ -91,53 +104,53 @@ class JobActions(Resource):
         self.reqparse.add_argument('workflow', type=FileStorage, location='files')
 
     # Start Job
-    def put(self, id):
+    def put(self, wf_id):
         # Send workflow to the scheduler and start running tasks
-        start_wf(id)
+        start_wf(wf_id)
         return "Job is starting"
 
     # Query Job
-    def get(self, id):
+    def get(self, wf_id):
         # Ask the scheduler how the workflow is going
-        #scheduler_query(id)
+        #scheduler_query(wf_id)
         pass
 
     # Cancel Job
-    def delete(self, id):
+    def delete(self, wf_id):
         # Send a request to the scheduler to cancel the workflow
         # Also need to send a request to the task manager to cancel any ongoing tasks 
         # Scheduler should return which of the tasks are still running
         pass
 
     # Pause Job
-    def patch(self, id):
+    def patch(self, wf_id):
         # Send a request to the scheduler to pause the workflow
         # Just like with cancel we need to work this out between the TM and sched
         pass
 
 
 @celery.task()
-def start_wf(id):
+def start_wf(wf_id):
     # Send a request to the scheduler 
     pass
 
 @celery.task()
-def query(id):
+def query(wf_id):
 #    # Check with the scheduler on the progress of the workflow
     pass
 
 @celery.task()
-def cancel(id):
+def cancel(wf_id):
 #    # Cancel the workflow with the scheduler
     pass
 
 @celery.task()
-def pause(id):
+def pause(wf_id):
     pass
 
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
-api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<int:id>')
-api.add_resource(JobActions, '/bee_wfm/v1/jobs/<int:id>')
+api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<int:wf_id>')
+api.add_resource(JobActions, '/bee_wfm/v1/jobs/<int:wf_id>')
 
 if __name__ == '__main__':
     flask_app.run(debug=True)
