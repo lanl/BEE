@@ -1,6 +1,8 @@
 """Neo4j/Cypher transaction functions used by the Neo4jDriver class."""
 
 
+# Is this called? Is it necessary? Tasks have unique IDs.
+# What happens if this is set and the assert fails? Where do we catch it?
 def constrain_task_names_unique(tx):
     """Constrain tasks to have unique names."""
     unique_query = ("CREATE CONSTRAINT ON (t:Task) "
@@ -9,6 +11,7 @@ def constrain_task_names_unique(tx):
     tx.run(unique_query)
 
 
+# How does this file know about the Task class? There is no import.
 def create_task(tx, task):
     """Create a Task node in the Neo4j database.
 
