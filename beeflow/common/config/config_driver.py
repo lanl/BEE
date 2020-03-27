@@ -44,12 +44,12 @@ class BeeConfig:
         try:
             self.sysconfig.read_file(open(self.sysconfig_file))
         except FileNotFoundError:
-            print("System configuration " + self.sysconfig_file + " not found")
+            pass
 
         try:
             self.userconfig.read_file(open(self.userconfig_file))
         except FileNotFoundError:
-            print("User configuration " + self.userconfig_file + " not found")
+            pass
 
     def add_section(self, conf, secdict):
         """Add a new section to the system or user config file.
