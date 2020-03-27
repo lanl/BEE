@@ -11,13 +11,14 @@
 
 rm *.out
 rm *.json
-echo " "
+echo "Clean up done, starting tests. "
 
 # run task manager
 python task_manager.py &
 echo " "
 
 # try to cancel a job that doesn't exist
+echo "Cancelling unknown job is correct to fail!"
 echo '{' > cancel.json
 echo '"task_id": 12345,' >> cancel.json
 echo '"name": "unknown",' >> cancel.json
@@ -52,4 +53,4 @@ echo '{
 #cancel a job is running
 
 sbatch job-to-cancel.sh
-
+echo "End of test-task-manager.sh, but task_manager and jobs should continue."
