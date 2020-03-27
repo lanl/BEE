@@ -115,7 +115,7 @@ def dump_input_parameter(obj):
     # print(f"streamable:       {obj.streamable}")
     # print(f"format:           {obj.format}")
     # print(f"inputBinding:     {obj.inputBinding}")
-    # print(f"default:          {obj.default}")
+    print(f"default:          {obj.default}")
     print(f"type:             {obj.type}")
     # print(f"extension_fields: {obj.extension_fields}")
 
@@ -163,7 +163,7 @@ def dump_workflow_step_input(obj):
     print(f"id:               #{obj.id.split('#')[1]}")
     print(f"source:           #{obj.source.split('#')[1]}")
     # print(f"linkMerge:        {obj.linkMerge}")
-    # print(f"default:          {obj.default}")
+    print(f"default:          {obj.default}")
     # print(f"valueFrom:        {obj.valueFrom}")
     # print(f"extension_fields: {obj.extension_fields}")
 
@@ -200,7 +200,7 @@ def dump_command_input_parameter(obj):
     # print(f"format:           {obj.format}")
     print(f"inputBinding:")
     cwl_dumper(obj.inputBinding)
-    # print(f"default:          {obj.default}")
+    print(f"default:          {obj.default}")
     print(f"type:             {obj.type}")
     # print(f"extension_fields: {obj.extension_fields}")
 
@@ -215,7 +215,7 @@ def dump_command_output_parameter(obj):
     # print(f"format:           {obj.format}")
     #print(f"outputBinding:")
     #cwl_dumper(obj.inputBinding)
-    # print(f"default:          {obj.default}")
+    #print(f"default:          {obj.default}")
     print(f"type:             {obj.type}")
 
 
