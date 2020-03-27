@@ -213,9 +213,7 @@ def dump_command_output_parameter(obj):
     # print(f"secondaryFiles:   {obj.secondaryFiles}")
     # print(f"streamable:       {obj.streamable}")
     # print(f"format:           {obj.format}")
-    #print(f"outputBinding:")
-    #cwl_dumper(obj.inputBinding)
-    #print(f"default:          {obj.default}")
+    # print(f"outputBinding:")
     print(f"type:             {obj.type}")
 
 

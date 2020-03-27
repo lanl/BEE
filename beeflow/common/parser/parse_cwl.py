@@ -10,12 +10,13 @@
 # Yes, this is ugly and undocumented. Will be cleaned up a documented
 # when I move it into the main project structure.
 
-"""Dump contents a CWL file.
+"""Parse contents a CWL file.
 
-This script will dump (display to terminal) the contents of a CWL file. The CWL
-file is parsed using parser_v1_0.py from the cwl-utils repository. That parser
-creates Python objects from the CWL file (as opposed to other parsing
-techniques that produce Python dictionaries.
+This script will parse (and build a workflow in the databse) the
+contents of a CWL file. The CWL file is parsed using parser_v1_0.py
+from the cwl-utils repository. That parser creates Python objects from
+the CWL file (as opposed to other parsing techniques that produce
+Python dictionaries.
 
 """
 
@@ -96,10 +97,37 @@ def create_workflow(obj, wfi):
     # for i in obj.requirements:
     #     cwl_dumper(i)
     wfi.initialize_workflow(ins, outs)
-#    get_wf_tasks(obj.steps)
     for i in obj.steps:
-        cwl_dumper(i)
+        create_task(i, wfi)
 
+
+def create_task(obj, wfi):
+    tname = obj.id.split('#')[1]
+    ins = set()
+    outs = set()
+
+    for i in obj.in_:
+        ins.add(i.source.split('#')[1])
+
+    for i in obj.out:
+        outs.add(i.split('#')[1])
+
+    base = obj.run.baseCommand
+    params = get_task_params(obj.run.inputs)
+    sorted_params = [value for (key, value) in sorted(params.items())]
+    sorted_params_str = ""
+    for p in sorted_params:
+        sorted_params_str = sorted_params_str + " " + p
+    redirect_out = obj.run.stdout
+    cmd = base + " " + sorted_params_str + " > " + redirect_out
+
+    print(f"task:  {tname}")
+    print(f"  ins:      {ins}")
+    print(f"  outs:     {outs}")
+    print(f"  command:  {cmd}")
+
+    wfi.add_task(name=tname, command=cmd, inputs=ins, outputs=outs)
+    
 
 def get_wf_inputs(objarray):
     wf_inputs = set()
@@ -114,6 +142,13 @@ def get_wf_outputs(objarray):
         #wf_outputs.add(i.id.split("#")[1])
         wf_outputs.add(i.outputSource.split('#')[1])
     return wf_outputs
+
+
+def get_task_params(objarray):
+    params = {}
+    for i in objarray:
+        params.update({i.inputBinding.position: i.default})
+    return params
 
 
 def dump_requirement(obj):
@@ -237,7 +272,7 @@ def main():
     # Cypher in the wen interface. This command will do the trick:
     #
     # MATCH(n) WITH n LIMIT 10000 DETACH DELETE n
-    wfi.finalize_workflow()
+    #wfi.finalize_workflow()
 
 
 if __name__ == "__main__":

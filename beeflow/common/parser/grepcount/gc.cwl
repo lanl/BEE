@@ -22,11 +22,11 @@ steps:
       inputs:
         pattern:
           type: string
-          default: "greppie"
+          default: "integer"
           inputBinding: {position: 0}
         infile:
           type: File
-          default: grepin.txt
+          default: lorem.txt
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
@@ -48,7 +48,7 @@ steps:
       outputs:
         outfile: stdout
       stdout: counts.txt
-      baseCommand: [wc, -l]
+      baseCommand: "wc -l"
     in:
       infile: grep/outfile
     out: [outfile]
