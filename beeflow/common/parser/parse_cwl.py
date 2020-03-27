@@ -251,8 +251,39 @@ def dump_command_line_binding(obj):
     # print(f"extension_fields: {obj.extension_fields}")
 
 
+def dump_tasks(tarray, wfi):
+    print("-- Tasks: name, IDs (truncated), state, command")
+    for t in tarray:
+        print(f"{t.name:<12}{str(t.id):<6.5}{wfi.get_task_state(t):<10.9}{t.command}")
+    print("\n-- Tasks: name, dependent tasks")
+    for t in tarray:
+        print(f"{t.name:<12}", end="")
+        for dt in wfi.get_dependent_tasks(t):
+            print(f"{dt.name:<12}", end="")
+        print("")
+
+
 def verify_workflow(wfi):
-    pass
+    print("\n\n==== Is the workflow loaded?")
+    print(wfi.workflow_loaded())
+    (tasks, requirements, hints) = wfi.get_workflow()
+    dump_tasks(tasks, wfi)
+    # Fake an orchestrator loop.  By convention, bee_init is ID 0,
+    # bee_exit is ID 1. This little hack only works for workflows
+    # where each task has at most one dependent task.
+    print("\n\n==== Is the workflow loaded?")
+    print(wfi.workflow_loaded())
+
+    tid = 0
+    print(f"{wfi.get_task_by_id(tid).name}", end="")
+    while tid != 1:
+        print(" --> ", end="")
+        # HACK: doesn't handle set sizes greater than one
+        dt = wfi.get_dependent_tasks(wfi.get_task_by_id(tid)).pop()
+        print(f"{dt.name}", end="")
+        tid = dt.id
+    print("")
+
 
 
 def parse_args(args=sys.argv[1:]):
@@ -280,7 +311,7 @@ def main():
     # Cypher in the wen interface. This command will do the trick:
     #
     # MATCH(n) WITH n LIMIT 10000 DETACH DELETE n
-    #wfi.finalize_workflow()
+    wfi.finalize_workflow()
 
 
 if __name__ == "__main__":
