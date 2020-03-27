@@ -13,18 +13,47 @@ from beeflow.common.worker.slurm_worker import SlurmWorker
 
 
 def main():
-    """Task Manager submits, cancels and monitors jobs."""
+    """Task Manager submits, and cancels tasks and monitors associated jobs."""
     # fix TODO work with REST interface
     # no restful api now, so read Tasks from json file
 
     worker = WorkerInterface(SlurmWorker)
 
-    def receive_task(json_file, submit_queue):
+    def receive_task(json_file):
         """Recieve task from WFM, place it in queue to submit."""
-        # for now read it from a file TODO this function called when REST sends task
+        # for now read it from a file TODO this function called REST event to submit task
         if os.path.exists(json_file):
             task, task_id = read_task(json_file)
             submit_queue.append({task_id: task})
+
+    def cancel_task(json_file):
+        """Received message from WFM to cancel job, add to queue to monitor state."""
+        # for now read it from a file TODO this function called for REST event to cancel task 
+        if os.path.exists(json_file):
+            with open(json_file) as json_f:
+                cancel_t= json.load(json_f)
+                os.remove(json_file)
+                success, job_state = worker.cancel_job(cancel_t["job_id"])
+            if success == 1:
+                job_queue.append({cancel_t['task_id']: {'name': cancel_t['name'], 
+                                                        'job_id': cancel_t['job_id'],
+                                                        'job_state': job_state}})
+            else:
+                # fix TODO prints should send event to REST for state change
+                print('Cancel failed:', cancel_t['task_id'], cancel_t['name'], job_state)
+            
+            # fix TODO really the job id was not found or could not be cancelled slurm
+               # if cancelled see if it was in job_queue 
+               # if it is state will automatically update, if not need to put it in queue
+            #   job_queue.append(
+            #       {cancel_this["task_id"]: {'job_id': cancel_this["task_id"],
+            #       'job_state': job_state}})
+
+        #self.assertEqual(job_info[0], True)
+        #self.assertTrue(job_info[1] == 'CANCELLED' or job_info[1] == 'CANCELLING')
+
+        #job_queue.append({task_id: task})
+
 
     def read_task(json_file):
         """Get task from json file, will come from WFM."""
@@ -58,7 +87,7 @@ def main():
             if job_state != current_task['job_state']:
                 current_task['job_state'] = job_state
                 # fix TODO Send new state to WFM here
-                print('Task changed state:', task_id, current_task['name'], job_id, job_state)
+                print('\nTask changed state:', task_id, current_task['name'], job_id, job_state)
             # Remove completed job from queue
             # fix TODO needs to be an abstract state see wiki for our TM states
             if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
@@ -74,13 +103,18 @@ def main():
     submit_queue = []  # tasks ready to be submitted
     job_queue = []  # jobs that are being monitored
     while True:
-        # receive task from WFM, file now TODO get from REST add to queue to submit
-        receive_task('sent_task.json', submit_queue)
+        # receive task from WFM, TODO replace with REST event, adds to queue to submit
+        receive_task('sent_task.json')
+
+        # cancel job from WFM TODO replace with REST event, needs at least task_id, task_name & job_id
+        cancel_task('cancel.json')
+
         while len(submit_queue) >= 1:
             task_dict = submit_queue.pop(0)
             task_id = list(task_dict)[0]
             task = task_dict.get(task_id)
             job_id, job_state = worker.submit_task(task)
+
             # fix TODO prints will become message sends to WFM
             if job_id == -1:
                 error = job_state
@@ -91,6 +125,7 @@ def main():
                 # place job in queue to monitor and send intial state to WFM)
                 job_queue.append({task_id: {'name': task.name, 'job_id': job_id,
                                             'job_state': job_state}})
+                print(job_queue)
                 print('Submitted: ', task_id, task.name, 'Job:', job_id, job_state)
 
         update_job_queue(job_queue)
