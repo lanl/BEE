@@ -41,20 +41,7 @@ def main():
             else:
                 # fix TODO prints should send event to REST for state change
                 print('Cancel failed:', cancel_t['task_id'], cancel_t['name'], job_state)
-            
-            # fix TODO really the job id was not found or could not be cancelled slurm
-               # if cancelled see if it was in job_queue 
-               # if it is state will automatically update, if not need to put it in queue
-            #   job_queue.append(
-            #       {cancel_this["task_id"]: {'job_id': cancel_this["task_id"],
-            #       'job_state': job_state}})
-
-        #self.assertEqual(job_info[0], True)
-        #self.assertTrue(job_info[1] == 'CANCELLED' or job_info[1] == 'CANCELLING')
-
-        #job_queue.append({task_id: task})
-
-
+           
     def read_task(json_file):
         """Get task from json file, will come from WFM."""
         with open(json_file) as json_f:
@@ -87,7 +74,7 @@ def main():
             if job_state != current_task['job_state']:
                 current_task['job_state'] = job_state
                 # fix TODO Send new state to WFM here
-                print('\nTask changed state:', task_id, current_task['name'], job_id, job_state)
+                print('Task changed state:', task_id, current_task['name'], job_id, job_state)
             # Remove completed job from queue
             # fix TODO needs to be an abstract state see wiki for our TM states
             if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
@@ -125,7 +112,6 @@ def main():
                 # place job in queue to monitor and send intial state to WFM)
                 job_queue.append({task_id: {'name': task.name, 'job_id': job_id,
                                             'job_state': job_state}})
-                print(job_queue)
                 print('Submitted: ', task_id, task.name, 'Job:', job_id, job_state)
 
         update_job_queue(job_queue)

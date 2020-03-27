@@ -20,8 +20,7 @@ def build_text(task, template_file):
         job_template = template_f.read()
         template_f.close()
     except OSError as err:
-        print("OS error: {0}".format(err))
-        print('No job_template: creating a simple job template!')
+        print('\nNo job_template: creating a simple job template!')
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
     return template.substitute(task.__dict__) + ' '.join(task.command)
