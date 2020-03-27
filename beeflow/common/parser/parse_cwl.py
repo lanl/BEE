@@ -92,6 +92,8 @@ def create_workflow(obj, wfi):
     print(f"==== {type(obj)} ====")
     ins = get_wf_inputs(obj.inputs)
     outs = get_wf_outputs(obj.outputs)
+    # Hack until we refactor databse to do dependencies correctly
+    outs.discard("grep/outfile")
     print(f"ins:  {ins}")
     print(f"outs: {outs}")
     # for i in obj.requirements:
@@ -108,6 +110,8 @@ def create_task(obj, wfi):
 
     for i in obj.in_:
         ins.add(i.source.split('#')[1])
+    # Hack until we refactor databse to do dependencies correctly
+    ins.discard("pattern")
 
     for i in obj.out:
         outs.add(i.split('#')[1])
@@ -132,15 +136,17 @@ def create_task(obj, wfi):
 def get_wf_inputs(objarray):
     wf_inputs = set()
     for i in objarray:
-        wf_inputs.add(i.id.split("#")[1])
+        if i.type == "File":
+            wf_inputs.add(i.id.split("#")[1])
     return wf_inputs
 
 
 def get_wf_outputs(objarray):
     wf_outputs = set()
     for i in objarray:
-        #wf_outputs.add(i.id.split("#")[1])
-        wf_outputs.add(i.outputSource.split('#')[1])
+        id = i.id.split("#")[1]
+        source = i.outputSource.split('#')[1]
+        wf_outputs.add(source.replace(id + "/", ""))
     return wf_outputs
 
 
@@ -245,7 +251,8 @@ def dump_command_line_binding(obj):
     # print(f"extension_fields: {obj.extension_fields}")
 
 
-
+def verify_workflow(wfi):
+    pass
 
 
 def parse_args(args=sys.argv[1:]):
@@ -266,6 +273,7 @@ def main():
     wfi = WorkflowInterface()
     top = cwl.load_document(args.cwl_file)
     create_workflow(top, wfi)
+    verify_workflow(wfi)
     # Clear the workflow that we just built from the database. Comment out if you
     # want to take a look at the workflow in the database. Note that if this code
     # dies with an error before it gets here you'll have to delete the databse via
