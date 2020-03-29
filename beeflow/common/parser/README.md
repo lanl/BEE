@@ -1,9 +1,14 @@
 # Sample CWL Workflow Files and Parsing Codes
 
-This repository contains some (simple) sample CWL workflow files. Additionally,
-there is some Python code, using the auto-generated CWL parser
-(`parser_v1_0.py`) to explore the CWL files and potentially populate a databse
-based on the results of parsing the workflow.
+This repository contains some (simple) sample CWL workflow
+files. Additionally, there is some Python code (`dump_cwl.py`), using
+the auto-generated CWL parser (`parser_v1_0.py`) to explore the CWL
+files and print the Python classes that brepresent the CWL file.
+
+Also included is a sample CWL parser that also uses
+`parser_v1_0.py`. The parser reads a CWL fle (**only** `grepcount.cwl`
+for now), parses it into python objects, and loads the Neo4j databse
+with a workflow using the BEE workflow interface.
 
 ## Install Dependency
 
@@ -12,6 +17,9 @@ based on the results of parsing the workflow.
 
 Please install the Python parsing code using Poetry (make sure you're in an
 active virtual environment for BEE).
+
+Another useful tool to install is `cwltool`. Using this you can
+validate a CWL file via `cwltool --validate file.cwl`.
 
 ```sh
 $ poetry add -D cwl-utils cwltool
@@ -49,13 +57,26 @@ CLASSES
 All the usual Python exploration tools are useful as well (e.g. `vars`, `dir`,
 etc.).
 
-## Run the Sample Parser
+## Using the CWL Parser
 
-To test the parser on a CWL file:
+
+`parse_cwl.py` demonstrates the use of the parser. Run it as follows
+(making sure you have an empty Neo4j databse running):
+
 
 ```sh
-$ ./dump_cwl.py ./grepcount/grep-and-count.cwl
-$ ./dump_cwl.py $ ./dump_cwl.py ./grepcount/grep-and-count.cwl
+$ ./parse_cwl.py ./grepcount/gc.cwl
+
+```
+
+This will load the `gc.cwl` file into the Neo4j databse as a
+workflow. Since the databse is now populated, subsequent reruns of the
+parser will fail--named objects already exist in the database. If you
+want to experment with multiple runs, make sure you empth the databse
+between runs using the followg command in the Neo4j browser.
+
+```sh
+MATCH(n) WITH n LIMIT 10000 DETACH DELETE n
 ```
 
 ## References
