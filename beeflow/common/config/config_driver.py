@@ -32,21 +32,38 @@ class BeeConfig:
         self.userconfig = ConfigParser()
         system = platform.system()
         if system == "Linux":
-            sysconfig_file = '/etc/beeflow/bee.conf'
-            userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
+            self.sysconfig_file = '/etc/beeflow/bee.conf'
+            self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
         elif system == "Darwin":
-            sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
-            userconfig_file = os.path.expanduser('~/Library/Application Support/beeflow/bee.conf')
+            self.sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
+            self.userconfig_file = os.path.expanduser('~/Library/Application Support/beeflow/bee.conf')
         elif system == "Windows":
-            sysconfig_file = ''
-            userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
+            self.sysconfig_file = ''
+            self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
 
         try:
-            self.sysconfig.read_file(open(sysconfig_file))
+            self.sysconfig.read_file(open(self.sysconfig_file))
         except FileNotFoundError:
-            print("System configuration " + sysconfig_file + " not found")
+            pass
 
         try:
-            self.userconfig.read_file(open(userconfig_file))
+            self.userconfig.read_file(open(self.userconfig_file))
         except FileNotFoundError:
-            print("User configuration " + userconfig_file + " not found")
+            pass
+
+    def add_section(self, conf, secdict):
+        """Add a new section to the system or user config file.
+
+        :param conf: which config file to edit
+        :type conf: string, 'user', 'system', or 'both'
+        :param secdict: key-value pairs of configuration variable
+        :type secdict: dictionary, first entry MUST BE 'name': <value> of the new section
+        """
+        section_name = secdict.pop('name')
+        newconfig = ConfigParser()
+        newconfig[str(section_name)] = secdict
+        if conf == 'user':
+            with open(self.userconfig_file, 'a')as configfile:
+                configfile.write('\n')
+                newconfig.write(configfile)
+                configfile.close()

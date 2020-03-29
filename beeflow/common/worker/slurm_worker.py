@@ -19,19 +19,18 @@ def build_text(task, template_file):
         template_f = open(template_file, 'r')
         job_template = template_f.read()
         template_f.close()
-    except OSError as err:
-        print("OS error: {0}".format(err))
-        print('No job_template: creating a simple job template!')
+    except OSError:
+        print('\nNo job_template: creating a simple job template!')
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
     return template.substitute(task.__dict__) + ' '.join(task.command)
 
 
 def write_script(task):
-    """Build and write task script; returns (1, filename) or (-1, error_message)."""
+    """Build and task script; returns (1, filename) or (-1, error_message)."""
     # for now using fixed directory for task manager scripts and write them out
     # we may keep them in memory and only write for a debug or logging option
-    # make directory if it does not exist (for now use date, should be workflow name?)
+    # make directory if doesn't exist (now uses date, should be workflow name?)
     template_file = os.path.expanduser('~/.beeflow/worker/job.template')
     template_dir = os.path.dirname(template_file)
     script_dir = template_dir + '/workflow-' + time.strftime("%Y%m%d-%H%M%S")
@@ -50,7 +49,7 @@ def write_script(task):
 
 
 def submit_job(script):
-    """Worker submits job; returns (job_id, job_state), or (-1, error_message)."""
+    """Worker submits job-returns (job_id, job_state), or (-1, error)."""
     job_id = -1
     try:
         job_st = subprocess.check_output(['sbatch', '--parsable', script],
@@ -66,11 +65,11 @@ def submit_job(script):
 class SlurmWorker(Worker):
     """The Worker for systems where Slurm is the Work Load Manager.
 
-    Implements Worker using pyslurm for slurm api except for submit_task uses subprocess.
+    Implements Worker using pyslurm, except submit_task uses subprocess.
     """
 
     def submit_task(self, task):
-        """Worker builds & submits task; returns (job_id, job_state), or (-1, error)."""
+        """Worker builds & submits script."""
         build_success, task_script = write_script(task)
         if build_success:
             job_id, job_state = submit_job(task_script)
@@ -80,7 +79,7 @@ class SlurmWorker(Worker):
         return job_id, job_state
 
     def query_job(self, job_id):
-        """Worker queries job; returns (1, job_state), or (-1(fail), error_message)."""
+        """Worker queries job; returns (1, job_state), or (-1, error_msg)."""
         try:
             job = pyslurm.job().find_id(job_id)[0]
         except ValueError as error:
@@ -92,7 +91,7 @@ class SlurmWorker(Worker):
         return query_success, job_state
 
     def cancel_job(self, job_id):
-        """Worker cancels job; returns (1, job_state), or (-1(fail), error_message)."""
+        """Worker cancels job; returns (1, job_state), or (-1, error_msg)."""
         signal = 9
         batch_flag = 0
         cancel_success = 1

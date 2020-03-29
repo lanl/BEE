@@ -50,6 +50,7 @@ PyYAML = { version = "^5.1.1" }
 flask_restful = "0.3.7"
 celery = {extras = ["redis"], version = "^4.4.0"}
 redis = "^3.3.11"
+cwl-utils = "^0.3"
 
 [tool.poetry.dev-dependencies]
 # Developer dependencies
@@ -60,6 +61,7 @@ pylama = { version = ">=7.7.1" }
 pylint = { version = ">=2.3.1" }
 sphinx = "^2.1"
 sphinx-rtd-theme = "^0.4.3"
+cwltool = "^3.0.20200324120055"
 
 [build-system]
 requires = ["poetry>=0.12"]
