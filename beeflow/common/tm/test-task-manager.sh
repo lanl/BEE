@@ -30,7 +30,7 @@ echo '{
 "task_id": 111, 
 "name": "GREP", 
 "command": "grep -i database grep.in  > grep.out",
-"hints": "", 
+"hints": {"DockerRequirement": {"DockerImageId": "/usr/projects/beedev/toss-tiny-3-5.tar"}},
 "subworkflow": "",
 "inputs": "{'grep.in'}",
 "outputs": "{'grep.out'}" 
@@ -44,7 +44,7 @@ echo '{
 "task_id": 131, 
 "name": "WC",
 "command": "wc -l grep.out > wc.out",
-"hints": "",
+"hints": {"DockerRequirement": {"DockerImageId": "/usr/projects/beedev/toss-tiny-3-5.tar"}},
 "subworkflow": "",
 "inputs": "{'grep.out'}",
 "outputs": "{'wc.out'}"

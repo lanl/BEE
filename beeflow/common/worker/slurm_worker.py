@@ -15,6 +15,15 @@ from beeflow.common.worker.worker import Worker
 def build_text(task, template_file):
     """Build text for task script use template if it exists."""
     job_template = ''
+    # Use Charliecloud fix TODO some assumptions for now should be configurable
+    # One of those assumptions is 'module load charliecloud'
+    cc_text = ''
+    if 'DockerRequirement' in task.hints.keys():
+        cc_tar = task.hints['DockerRequirement']['DockerImageId']
+        cc = os.path.basename(os.path.splitext(cc_tar)[0])
+        cc_text = 'module load charliecloud\n'
+        cc_text += 'mkdir -p /tmp/USER\n'
+        cc_text += 'ch-tar2dir ' + cc_tar + ' /tmp/USER\n'
     try:
         template_f = open(template_file, 'r')
         job_template = template_f.read()
@@ -23,11 +32,16 @@ def build_text(task, template_file):
         print('\nNo job_template: creating a simple job template!')
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
-    return template.substitute(task.__dict__) + ' '.join(task.command)
+    job_text = template.substitute(task.__dict__) + cc_text
+    job_text = job_text.replace('USER', '$USER')
+    job_text += 'ch-run /tmp/$USER/' + cc + ' -b $PWD -c /mnt/0 -- '
+    job_text += ' '.join(task.command) + '\n'
+    job_text += 'rm -rf /tmp/$USER/' + cc + '\n'
+    return job_text
 
 
 def write_script(task):
-    """Build and task script; returns (1, filename) or (-1, error_message)."""
+    """Build task script; returns (1, filename) or (-1, error_message)."""
     # for now using fixed directory for task manager scripts and write them out
     # we may keep them in memory and only write for a debug or logging option
     # make directory if doesn't exist (now uses date, should be workflow name?)
