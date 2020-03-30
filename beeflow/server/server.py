@@ -130,7 +130,6 @@ class JobActions(Resource):
     # Update the state of task from the task manager
     def put(self, wf_id):
         # Figure out how to find the task in the databse and change it's state 
-        print("Da frick")
         pass
 
     # Query Job
