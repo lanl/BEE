@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import logging
 import requests
 from errors import ApiError
@@ -18,8 +19,11 @@ def _resource(tag=""):
 
 # Submit a job to the workflow manager
 # This creates a workflow on the wfm and returns an ID 
-def create_job(job_title):
-    resp = requests.post(_url(), json={'title': job_title})
+def create_job(job_name, workflow_path):
+    resp = requests.post(_url(), 
+        json= {'title': job_name, 
+               'filename': os.path.basename(workflow_path)
+        })
 
     if resp.status_code != requests.codes.created:
         print(f"Returned {resp.status_code}")
@@ -42,7 +46,7 @@ def submit_workflow(wf_id, workflow_path):
 
 # Start workflow on server
 def start_job(wf_id):
-    resp = requests.put(_resource(wf_id), json={'wf_id': wf_id})
+    resp = requests.post(_resource(wf_id), json={'wf_id': wf_id})
     if resp.status_code != requests.codes.okay:
         raise ApiError("PUT /jobs{}".format(resp.status_code, wf_id))
     logging.info('Start job: ' + resp.text)
@@ -93,25 +97,21 @@ def safe_input(type):
 if __name__ == '__main__':
     # Start the CLI loop 
     wf_id = 1
-    print("Welcome to BEE! 🐝")
-    while True:
-        for item in menu_items:
-            print(str(menu_items.index(item)) + ") " + list(item.keys())[0])
-        choice = safe_input(int)
-        try:
-            if int(choice) < 0: raise ValueError
-            if int(choice) == 0:
-                # TODO needs error handling
-                print("What will be the name of the job?")
-                name = safe_input(str)
-                wf_id = create_job(name)
-                print("What's the workflow filename?")
-                workflow_path = safe_input(Path)
-                submit_workflow(wf_id, workflow_path) 
-            else:
-                list(menu_items[int(choice)].values())[0](wf_id)
-        except (ValueError, IndexError):
-            pass
-    
-    wf_id = create_job("bam")
-    submit_workflow(wf_id)
+    print("Welcome to BEE Client! 🐝")
+    for item in menu_items:
+        print(str(menu_items.index(item)) + ") " + list(item.keys())[0])
+    choice = safe_input(int)
+    try:
+        if int(choice) < 0: raise ValueError
+        if int(choice) == 0:
+            # TODO needs error handling
+            print("What will be the name of the job?")
+            job_name = safe_input(str)
+            print("What is the workflow path?")
+            workflow_path = safe_input(Path)
+            wf_id = create_job(job_name, workflow_path)
+            submit_workflow(wf_id, workflow_path) 
+        else:
+            list(menu_items[int(choice)].values())[0](wf_id)
+    except (ValueError, IndexError):
+        pass

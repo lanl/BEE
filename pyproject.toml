@@ -51,6 +51,8 @@ flask_restful = "0.3.7"
 celery = {extras = ["redis"], version = "^4.4.0"}
 redis = "^3.3.11"
 cwl-utils = "^0.3"
+pylint = { version = ">=2.3.1" }
+APScheduler = "^3.6.3"
 
 [tool.poetry.dev-dependencies]
 # Developer dependencies

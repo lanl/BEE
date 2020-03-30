@@ -4,6 +4,7 @@ Submits, cancels and monitors states of tasks.
 Communicates status to the Work Flow Manager, through RESTful API.
 """
 import time
+import atexit
 import os
 import json
 
@@ -13,6 +14,7 @@ from flask_restful import Resource, Api, reqparse, fields
 from beeflow.common.data.wf_data import Task
 from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
+from apscheduler.schedulers.background import BackgroundScheduler
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -20,15 +22,82 @@ api = Api(flask_app)
 submit_queue = []  # tasks ready to be submitted
 job_queue = []  # jobs that are being monitored
 
+workflow_manager = 'bee_wfm/v1/jobs'
+# Returns the url to the resource
+def _url():
+    return f'http://127.0.0.1:5050/{task_manager}'
+
+def _resource(tag=""): 
+    return _url() + str(tag)
+
+def check_queue():
+    while len(submit_queue) >= 1:
+        task_dict = submit_queue.pop(0)
+        task_id = list(task_dict)[0]
+        task = task_dict.get(task_id)
+        job_id, job_state = WORKER.submit_task(task)
+
+        # fix TODO prints will become message sends to WFM
+        if job_id == -1:
+            error = job_state
+            job_state = 'SUBMIT_FAIL'
+            # send task failed message to WFM
+            print('Task failed:', task_id, task.name, job_state, error)
+        else:
+            # place job in queue to monitor and send intial state to WFM)
+            job_queue.append({task_id: {'name': task.name,
+                                        'job_id': job_id,
+                                        'job_state': job_state}})
+            print('Submitted: ', task_id, task.name,
+                  'Job:', job_id, job_state)
+
+def update_job_queue():
+    """Check and update states of jobs in queue, remove completed jobs."""
+    for job in job_queue:
+        task_id = list(job)[0]
+        current_task = job[task_id]
+        job_id = current_task['job_id']
+        state = WORKER.query_job(job_id)
+        if state[0] == 1:
+            job_state = state[1]
+        else:
+            job_state = 'ZOMBIE'
+        if job_state != current_task['job_state']:
+            current_task['job_state'] = job_state
+            # fix TODO new state event to WFM here
+            print('Task changed state:', task_id, current_task['name'],
+                  job_id, job_state)
+        # fix TODO needs to be an abstract state see wiki for our TM states
+        if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
+            # fix TODO create event Send job info to WFM
+            print('Job done:', task_id, current_task['name'], job_id,
+                  job_state)
+            job_queue.remove(job)
+
+
+def check_tasks():
+    check_queue()
+    update_job_queue()
+
+# TODO Decide on the time interval for the scheduler currently just does 1
+# This code block runs
+scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
+scheduler.add_job(func=check_tasks, trigger="interval", minutes=1)
+scheduler.start()
+
+# This kills the scheduler so we don't accidentally leave a zombie process
+atexit.register(lambda: scheduler.shutdown())
+
 class TaskSubmit(Resource):
-    def __init(self):
+    def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('task', type=FileStorage, location='tasks')
-        super(TaskSubmit, self).__init__()
+        self.reqparse.add_argument('task', type=str, location='json')
     
     # WFM sends a job to the task manager
     def post(self):
+        print("Blueblood")
         data = self.reqparse.parse_args()
+        print(data)
         task = data['task']
 
 
@@ -37,10 +106,9 @@ class TaskActions(Resource):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('workflow', type=FileStorage, location='tasks')
 
-        # Query 
-        def post(self):
-            pass
-
+        # Cancel Task
+        def delete(self):
+            cancel_task()
 
 WORKER = WorkerInterface(SlurmWorker)
 
@@ -89,81 +157,8 @@ def cancel_task(json_file, job_queue):
                   cancel_t['task_id'], cancel_t['name'], job_state)
 
 
-def update_job_queue(job_queue):
-    """Check and update states of jobs in queue, remove completed jobs."""
-    for job in job_queue:
-        task_id = list(job)[0]
-        current_task = job[task_id]
-        job_id = current_task['job_id']
-        state = WORKER.query_job(job_id)
-        if state[0] == 1:
-            job_state = state[1]
-        else:
-            job_state = 'ZOMBIE'
-        if job_state != current_task['job_state']:
-            current_task['job_state'] = job_state
-            # fix TODO new state event to WFM here
-            print('Task changed state:', task_id, current_task['name'],
-                  job_id, job_state)
-        # fix TODO needs to be an abstract state see wiki for our TM states
-        if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
-            # fix TODO create event Send job info to WFM
-            print('Job done:', task_id, current_task['name'], job_id,
-                  job_state)
-            job_queue.remove(job)
-
-
-#def main():
-#    """Task Manager submits, and cancels tasks and monitors associated jobs."""
-#    # fix TODO work with REST interface
-#    # for now: a timed loop this is just so I don't leave it running
-#    timer = 120
-#    start = time.time()
-
-    
-    ## receive task from WFM, TODO replace REST event, adds to queue
-    #receive_task('sent_task.json', submit_queue)
-
-    ## cancel job from WFM
-    ## fix TODO replace with REST event, needs task_id, task_name & job_id
-    #cancel_task('cancel.json', job_queue)
-
-   # def check_queue():
-   #     while len(submit_queue) >= 1:
-   #         task_dict = submit_queue.pop(0)
-   #         task_id = list(task_dict)[0]
-   #         task = task_dict.get(task_id)
-   #         job_id, job_state = WORKER.submit_task(task)
-
-   #         # fix TODO prints will become message sends to WFM
-   #         if job_id == -1:
-   #             error = job_state
-   #             job_state = 'SUBMIT_FAIL'
-   #             # send task failed message to WFM
-   #             print('Task failed:', task_id, task.name, job_state, error)
-   #         else:
-   #             # place job in queue to monitor and send intial state to WFM)
-   #             job_queue.append({task_id: {'name': task.name,
-   #                                         'job_id': job_id,
-   #                                         'job_state': job_state}})
-   #             print('Submitted: ', task_id, task.name,
-   #                   'Job:', job_id, job_state)
-
-   #     update_job_queue(job_queue)
-   #     time.sleep(5)  # checking state of jobs every loop so pause
-   #     # Timer is temporary just to insure task manager stops TODO
-   #     if time.time() > start + timer:
-   #         if len(job_queue) == 0 & len(submit_queue) == 0:
-   #             print('Task Manager Shut Down')
-   #             break
-   #         print('Task Manager time up, but there are still active tasks.')
-   #         time.sleep(10)
-
-
-#main()
-
-api.add_resource(TaskSubmit, '/bee_wfm/v1/task/submit/<int:wf_id>')
-api.add_resource(TaskActions, '/bee_wfm/v1/task/<int:wf_id>')
+api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
+api.add_resource(TaskActions, '/bee_tm/v1/task/<int:wf_id>')
 
 if __name__ == '__main__':
         flask_app.run(debug=True, port='5050')

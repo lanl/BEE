@@ -2,6 +2,9 @@
 import os
 import jsonpickle
 import requests
+import random
+import cwl_utils.parser_v1_0 as cwl
+import beeflow.common.parser.parse_cwl as parser
 
 # Server and REST handling
 from flask import Flask, jsonify, make_response
@@ -28,11 +31,36 @@ api = Api(flask_app)
 UPLOAD_FOLDER = 'workflows'
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Returns the url to the resource
+task_manager = /bee_tm/v1/task/
+def _url():
+    return f'http://127.0.0.1:5050/{task_manager}'
+
+def _resource(tag=""): 
+    return _url() + str(tag)
 
 
 wfi = WorkflowInterface()
 
-# Where we submit jobs
+# Add workflow to the database
+def add_workflow(cwl_file):
+    top = cwl.load_document(cwl_file)
+    parser.create_workflow(top, wfi)
+    parser.verify_workflow(wfi)
+
+# Contains the data for the current workflow
+# Does not currently work
+#class Workflow():
+#    def __init__(self, title, filename):
+#        # Filename for the workflow
+#        self.title = title
+#        self.filename = filename
+#        self.id = str(random.randint(1, 100))
+
+# TODO make this behave better
+# I only want this to be initialized in the workflow submit step
+
+# User says they are going to submit a workflow and 
 class JobsList(Resource):
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
@@ -44,30 +72,10 @@ class JobsList(Resource):
     # Client sends workflow 
     def post(self):
         data = self.reqparse.parse_args()
-        name = data['title']
-        print("Job name is " + name)
-        # Get the wf_id for the workflow
+        title = data['title']
         # Return the wf_id and success
         resp = make_response(jsonify(wf_id="42"), 201)
         return resp
-
-# Add workflow to the database
-def add_workflow(filename):
-    tasks = []
-    task_input = 'grep.in'
-    task_output = 'grep.out'
-    grep_string = 'database'
-    tasks.append(wfi.add_task(
-            'GREP', command=['grep', '-i', grep_string , task_input, '>', task_output],
-                inputs={task_input}, outputs={task_output}))
-
-    task_input = 'grep.out'
-    task_output = 'wc.out'
-    tasks.append(wfi.add_task(
-            'WC', command=['wc', '-l', task_input, '>', task_output],
-                inputs={task_input}, outputs={task_output}))
-    wfi.load_workflow(wf)
-    wfi.initialize_workflow()
 
 class JobSubmit(Resource):
     def __init__(self):
@@ -80,18 +88,17 @@ class JobSubmit(Resource):
         print("Getting workflow")
         if data['workflow'] == "":
             return {'msg':'No file found','status':'error'}, 201
+
         # Workflow file
-        workflow = data['workflow']
-
-        if workflow:
-            workflow = data['workflow']
-            print(workflow)
+        print(data)
+        cwl_file = data['workflow']
+        print(cwl_file)
+        if cwl_file:
             # TODO get the filename
-            filename = "echo.cwl"
-            workflow.save(os.path.join(flask_app.config['UPLOAD_FOLDER'], filename))
-
+            cwl_file.save(os.path.join(flask_app.config['UPLOAD_FOLDER'], "work.cwl"))
             # Parse the workflow and add it to the database
-            add_workflow(filename)
+            # This is jut work.cwl until I can find a way to use the workflow class
+            add_workflow("./workflows/work.cwl")
             resp = make_response(jsonify(msg='Workflow uploaded', status='ok'), 201)
             return resp
             #return resp, 201
@@ -106,38 +113,47 @@ class JobActions(Resource):
         self.reqparse.add_argument('workflow', type=FileStorage, location='files')
 
     # Start Job
-    def put(self, wf_id):
+    def post(self, wf_id):
         # Send tasks to the task manager
-        # Get tasks from the neo4j database
-        task = get_dependent_task()
+        # Get first task and send it to the task manager
+        task = wfi.get_dependent_tasks(wfi.get_task_by_id(0))
         # Serialize task with json
-        task_msg = jsonpickle.encode(task)
+        task_json = jsonpickle.encode(task)
         # Send task_msg to task manager
-        resp = requests.put(_resource("http://127.0.0.1:5000/{task_manager}"))
+        resp = requests.post(_resource("submit/"), json={'task': task_json})
         if resp.status_code != requests.codes.okay:
             print("Something bad happened")
+        print(resp)
+        return "Started workflow!"
+
+    # Update the state of task from the task manager
+    def put(self, wf_id):
+        # Figure out how to find the task in the databse and change it's state 
+        print("Da frick")
+        pass
 
     # Query Job
-    def get(self, wf_id):
-        # Ask the scheduler how the workflow is going
-        resp = requests.get(_resource("http://127.0.0.1:5000/{task_manager}"))
-        if resp.status_code != requests.codes.okay:
-            print("Something bad happened")
+    def get(self, task_id):
+        # Check the database for the current status of all the tasks
+        (tasks, requirements, hints) = wfi.get_workflow()
+        resp = ""
+        for task in tasks:
+            resp += f"{t.name}--{wfi.get_task_state(t)}\n"
+        return resp
 
     # Cancel Job
     def delete(self, wf_id):
-        # Send a request to the scheduler to cancel the workflow
-        # Also need to send a request to the task manager to cancel any ongoing tasks 
-        # Scheduler should return which of the tasks are still running
-        pass
+        # Send a request to the task manager to cancel any ongoing tasks 
+        resp = requests.get(_resource("http://127.0.0.1:5000/{task_manager}"))
+        if resp.status_code != requests.codes.okay:
+            print("Something bad happened")
+        # Remove all tasks currently in the database
+        wfi.finalize_workflow()
         
-    ## Pause Job
-    # Not currently implemented
-    #def patch(self, wf_id):
-    #    # Send a request to the scheduler to pause the workflow
-    #    # Just like with cancel we need to work this out between the TM and sched
-    #    pass
-
+    # Pause Job
+    def patch(self, wf_id):
+        # Stop sending jobs to the task manager
+        pass 
 
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<int:wf_id>')
