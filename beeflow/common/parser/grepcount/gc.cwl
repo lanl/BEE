@@ -32,6 +32,9 @@ steps:
         outfile: stdout
       stdout: grepout.txt
       baseCommand: grep
+      requirements:
+        DockerRequirement:
+          dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
       pattern: pattern
       infile: infile
@@ -49,6 +52,9 @@ steps:
         outfile: stdout
       stdout: counts.txt
       baseCommand: "wc -l"
+      requirements:
+        DockerRequirement:
+          dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
       infile: grep/outfile
     out: [outfile]
