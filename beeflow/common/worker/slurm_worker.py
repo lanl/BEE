@@ -18,7 +18,7 @@ def build_text(task, template_file):
     # Use Charliecloud fix TODO some assumptions for now should be configurable
     # One of those assumptions is 'module load charliecloud'
     cc_text = ''
-    if 'DockerRequirement' in task.hints.keys():
+    if task.hints.keys() and 'DockerRequirement' in task.hints.keys():
         cc_tar = task.hints['DockerRequirement']['DockerImageId']
         cc = os.path.basename(os.path.splitext(cc_tar)[0])
         cc_text = 'module load charliecloud\n'
@@ -32,11 +32,15 @@ def build_text(task, template_file):
         print('\nNo job_template: creating a simple job template!')
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
-    job_text = template.substitute(task.__dict__) + cc_text
-    job_text = job_text.replace('USER', '$USER')
-    job_text += 'ch-run /tmp/$USER/' + cc + ' -b $PWD -c /mnt/0 -- '
-    job_text += ' '.join(task.command) + '\n'
-    job_text += 'rm -rf /tmp/$USER/' + cc + '\n'
+    job_text = template.substitute(task.__dict__)
+    if task.hints.keys() and 'DockerRequirement' in task.hints.keys():
+        job_text = job_text + cc_text
+        job_text = job_text.replace('USER', '$USER')
+        job_text += 'ch-run /tmp/$USER/' + cc + ' -b $PWD -c /mnt/0 -- '
+        job_text += ' '.join(task.command) + '\n'
+        job_text += 'rm -rf /tmp/$USER/' + cc + '\n'
+    else:
+        job_text += ' '.join(task.command) + '\n'
     return job_text
 
 
