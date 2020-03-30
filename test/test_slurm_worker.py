@@ -83,7 +83,7 @@ class TestSlurmWorker(unittest.TestCase):
 
     def test_submit_bad_task(self):
         """Build and submit a bad task using  a bad directive."""
-        task = Task('bad', command=['#SBATCH', '"BAD_DIRECTIVE"'], hints=None,
+        task = Task('bad', command=['#SBATCH', '"BAD_DIRECTIVE"'], hints={},
                     subworkflow=None, inputs=None, outputs=None)
         job_info = self.worker.submit_task(task)
         self.assertEqual(job_info[0], -1)
@@ -94,7 +94,7 @@ class TestSlurmWorker(unittest.TestCase):
         task = Task('good',
                     command=['echo', '" Good task ran with job id:"',
                              ';', 'echo', '$SLURM_JOB_ID'],
-                    hints=None, subworkflow=None, inputs=None, outputs=None)
+                    hints={}, subworkflow=None, inputs=None, outputs=None)
         job_info = self.worker.submit_task(task)
         self.assertNotEqual(job_info[0], 1)
         self.assertTrue(job_info[1] == 'PENDING' or job_info[1] == 'RUNNING')
