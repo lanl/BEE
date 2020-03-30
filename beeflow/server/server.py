@@ -32,7 +32,8 @@ UPLOAD_FOLDER = 'workflows'
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Returns the url to the resource
-task_manager = /bee_tm/v1/task/
+task_manager = "/bee_tm/v1/task/"
+
 def _url():
     return f'http://127.0.0.1:5050/{task_manager}'
 

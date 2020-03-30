@@ -19,7 +19,7 @@ def _resource(tag=""):
 
 # Submit a job to the workflow manager
 # This creates a workflow on the wfm and returns an ID 
-def create_job(job_name, workflow_path):
+def create_workflow(job_name, workflow_path):
     resp = requests.post(_url(), 
         json= {'title': job_name, 
                'filename': os.path.basename(workflow_path)
@@ -45,21 +45,21 @@ def submit_workflow(wf_id, workflow_path):
     logging.info('Submit workflow: ' + resp.text)
 
 # Start workflow on server
-def start_job(wf_id):
+def start_workflow(wf_id):
     resp = requests.post(_resource(wf_id), json={'wf_id': wf_id})
     if resp.status_code != requests.codes.okay:
         raise ApiError("PUT /jobs{}".format(resp.status_code, wf_id))
     logging.info('Start job: ' + resp.text)
 
 # Query the current status of a job
-def query_job(wf_id):
+def query_workflow(wf_id):
     resp = requests.get(_resource(wf_id), json={'wf_id': wf_id})
     if resp.status_code != requests.codes.okay:
         raise ApiError("GET /jobs{}".format(resp.status_code, wf_id))
     logging.info('Query job: ' + resp.text)
 
 # Sends a request to the server to delete the resource 
-def cancel_job(wf_id):
+def cancel_workflow(wf_id):
     resp = requests.delete(_resource(wf_id), json={'wf_id': wf_id})
     # Returns okay if the resource has been deleted
     # Non-blocking so it returns accepted 
@@ -68,18 +68,18 @@ def cancel_job(wf_id):
     logging.info('Cancel job: ' + resp.text)
 
 # Pause the execution of a job
-def pause_job(wf_id):
+def pause_workflow(wf_id):
     resp = requests.patch(_resource(wf_id), json={'wf_id': wf_id})
     if resp.status_code != requests.codes.okay:
         raise ApiError("PAUSE /jobs{}".format(resp.status_code, wf_id))
     logging.info('Pause job: ' + resp.text)
 
 menu_items = [
-    { "Submit Job": create_job },
-    { "Start Job": start_job },
-    { "Query Job": query_job },
-    { "Pause Job": pause_job },
-    { "Cancel Job": cancel_job },
+    { "Submit Workflow": create_workflow },
+    { "Start Workflow": start_workflow },
+    { "Query Workflow": query_workflow },
+    { "Pause Workflow": pause_workflow },
+    { "Cancel Workflow": cancel_workflow },
     { "Exit": exit }
 ]
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             job_name = safe_input(str)
             print("What is the workflow path?")
             workflow_path = safe_input(Path)
-            wf_id = create_job(job_name, workflow_path)
+            wf_id = create_workflow(job_name, workflow_path)
             submit_workflow(wf_id, workflow_path) 
         else:
             list(menu_items[int(choice)].values())[0](wf_id)
