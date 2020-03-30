@@ -24,7 +24,7 @@ def read_task(json_file):
         # fix TODO task_id should be part of task will it be?
         task = Task(name=sent_task['name'],
                     command=task_cmd,
-                    hints=None,
+                    hints=sent_task['hints'],
                     subworkflow=None,
                     inputs=sent_task['inputs'],
                     outputs=sent_task['outputs'])
