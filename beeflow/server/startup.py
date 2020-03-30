@@ -6,6 +6,9 @@ import sys
 import tempfile
 from beeflow.common.config.config_driver import BeeConfig
 
+if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
+    sys.exit("ch-tar2dir or ch-run not found. Charliecloud required for execution of startup script.")
+    
 user_confdir = os.path.expanduser('~/.config/beeflow')
 user_conffile = os.path.join(user_confdir, "bee.conf")
 if not os.path.exists(user_conffile):
