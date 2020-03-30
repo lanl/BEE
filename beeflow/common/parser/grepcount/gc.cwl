@@ -32,7 +32,7 @@ steps:
         outfile: stdout
       stdout: grepout.txt
       baseCommand: grep
-      requirements:
+      hints:
         DockerRequirement:
           dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
@@ -52,7 +52,7 @@ steps:
         outfile: stdout
       stdout: counts.txt
       baseCommand: "wc -l"
-      requirements:
+      hints:
         DockerRequirement:
           dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
