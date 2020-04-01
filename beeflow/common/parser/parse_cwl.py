@@ -99,14 +99,24 @@ def create_task(obj, wfi):
     redirect_out = obj.run.stdout
     cmd = base + " " + sorted_params_str + " > " + redirect_out
 
+    # Get any hints for the task. We only support DockerRequirement for now.
+    thints = set()
+    if obj.run.hints is not None:
+        for i in obj.run.hints:
+            if "DockerRequirement" in i.values():
+                del i["class"]
+                for key, value in i.items():
+                    thints.add(wfi.create_requirement("DockerRequirement", key, value))
+
     print(f"task:  {tname}")
     print(f"  ins:      {ins}")
     print(f"  outs:     {outs}")
     print(f"  command:  {cmd}")
+    print(f"  hints:    {thints}")
 
     # Using the BEE workflow interface (note the passed in reference
     # to a Neo4j databse) to load the task nto the database.
-    wfi.add_task(name=tname, command=cmd, inputs=ins, outputs=outs)
+    wfi.add_task(name=tname, command=cmd, inputs=ins, outputs=outs, hints=thints)
 
     
 
@@ -145,6 +155,11 @@ def dump_tasks(tarray, wfi):
     print("-- Tasks: name, IDs (truncated), state, command")
     for t in tarray:
         print(f"{t.name:<12}{str(t.id):<6.5}{wfi.get_task_state(t):<10.9}{t.command}")
+        if t.hints is not None:
+            print("      hints:")
+            for h in t.hints:
+                req_class, key, value = h
+                print(f"        req_class: {req_class}   key: {key}   value: {value}")
     print("\n-- Tasks: name, dependent tasks")
     for t in tarray:
         print(f"{t.name:<12}", end="")

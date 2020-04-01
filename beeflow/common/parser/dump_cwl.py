@@ -173,7 +173,7 @@ def dump_command_line_tool(obj):
     print(f"id:                 {obj.id}")
     # print(f"label:              {obj.label}")
     # print(f"doc:                {obj.doc}")
-    # print(f"hints:              {obj.hints}")
+    print(f"hints:              {obj.hints}")
     # print(f"requirements:       {obj.requirements}")
     print(f"baseCommand:        {obj.baseCommand}")
     print(f"stdin:              {obj.stdin}")

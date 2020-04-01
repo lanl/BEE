@@ -42,12 +42,16 @@ class BeeConfig:
             self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
 
         try:
-            self.sysconfig.read_file(open(self.sysconfig_file))
+            with open(self.sysconfig_file) as sysconf_file:
+                self.sysconfig.read_file(sysconf_file)
+                sysconf_file.close()
         except FileNotFoundError:
             pass
 
         try:
-            self.userconfig.read_file(open(self.userconfig_file))
+            with open(self.userconfig_file) as userconf_file:
+                self.userconfig.read_file(userconf_file)
+                userconf_file.close()
         except FileNotFoundError:
             pass
 
