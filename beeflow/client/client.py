@@ -6,7 +6,7 @@ import requests
 from errors import ApiError
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 
 workflow_manager = 'bee_wfm/v1/jobs'
 
@@ -55,7 +55,9 @@ def start_workflow(wf_id):
 def query_workflow(wf_id):
     resp = requests.get(_resource(wf_id), json={'wf_id': wf_id})
     if resp.status_code != requests.codes.okay:
-        raise ApiError("GET /jobs{}".format(resp.status_code, wf_id))
+        raise ApiError("GET /jobs {}".format(resp.status_code, wf_id))
+    task_status = resp.json()['msg']
+    print("STATUS\n" + task_status)
     logging.info('Query job: ' + resp.text)
 
 # Sends a request to the server to delete the resource 
@@ -69,16 +71,25 @@ def cancel_workflow(wf_id):
 
 # Pause the execution of a job
 def pause_workflow(wf_id):
-    resp = requests.patch(_resource(wf_id), json={'wf_id': wf_id})
+    resp = requests.patch(_resource(wf_id), json={'wf_id': wf_id, 'option' : 'pause' })
     if resp.status_code != requests.codes.okay:
         raise ApiError("PAUSE /jobs{}".format(resp.status_code, wf_id))
     logging.info('Pause job: ' + resp.text)
+
+# Resume the execution of a job
+def resume_workflow(wf_id):
+    resp = requests.patch(_resource(wf_id), json={'wf_id': wf_id, 'option' : 'resume' })
+    if resp.status_code != requests.codes.okay:
+        raise ApiError("RESUME /jobs{}".format(resp.status_code, wf_id))
+    logging.info('Resume job: ' + resp.text)
+
 
 menu_items = [
     { "Submit Workflow": create_workflow },
     { "Start Workflow": start_workflow },
     { "Query Workflow": query_workflow },
     { "Pause Workflow": pause_workflow },
+    { "Resume Workflow": resume_workflow },
     { "Cancel Workflow": cancel_workflow },
     { "Exit": exit }
 ]
@@ -91,12 +102,11 @@ def safe_input(type):
             answer = type(answer)
             break
         except ValueError:
-            print(f"Error {answer} is not a valwf_id option")
+            print(f"Error {answer} is not a valid option")
     return answer
 
 if __name__ == '__main__':
     # Start the CLI loop 
-    wf_id = 1
     print("Welcome to BEE Client! 🐝")
     for item in menu_items:
         print(str(menu_items.index(item)) + ") " + list(item.keys())[0])
@@ -111,7 +121,10 @@ if __name__ == '__main__':
             workflow_path = safe_input(Path)
             wf_id = create_workflow(job_name, workflow_path)
             submit_workflow(wf_id, workflow_path) 
+            print("Job submitted! Your workflow id is 42.")
         else:
+            print("What is the workflow id?")
+            wf_id = safe_input(str)
             list(menu_items[int(choice)].values())[0](wf_id)
     except (ValueError, IndexError):
         pass
