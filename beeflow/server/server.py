@@ -1,5 +1,6 @@
 #!flask/bin/python3
 import os
+import sys
 import jsonpickle
 import requests
 import random
@@ -14,6 +15,28 @@ from flask_restful import Resource, Api, reqparse
 from werkzeug.datastructures import FileStorage
 
 from beeflow.common.wf_interface import WorkflowInterface
+from beeflow.common.config.config_driver import BeeConfig
+
+bc = BeeConfig()
+if bc.userconfig.has_section('workflow_manager'):
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port','5000')
+else:
+    print("[workflow_manager] section not found in configuration file, default values will be added")
+
+    wfm_dict = {
+        'name': 'workflow_manager',
+        'listen_port': '5000',
+    }
+
+    bc.add_section('user', wfm_dict)
+
+    sys.exit("Please check " + str(bc.userconfig_file) + " and restart WorkflowManager")
+
+if bc.userconfig.has_section('task_manager'):
+    tm_listen_port = bc.userconfig['task_manager'].get('listen_port','5050')
+else:
+    print("[task_manager] section not found in configuration file, default values will be used")
+    tm_listen_port = '5050'
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -28,7 +51,7 @@ flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Returns the url to the TM
 def _url():
     task_manager = "/bee_tm/v1/task/"
-    return f'http://127.0.0.1:5050/{task_manager}'
+    return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
 
 # Used to access the TM
 def _resource(tag=""): 
@@ -225,4 +248,4 @@ api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
 if __name__ == '__main__':
-    flask_app.run(debug=True, port='5000')
+    flask_app.run(debug=True, port=str(wfm_listen_port))
