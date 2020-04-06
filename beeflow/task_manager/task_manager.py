@@ -6,6 +6,7 @@ Communicates status to the Work Flow Manager, through RESTful API.
 import time
 import atexit
 import os
+import sys
 import json
 import jsonpickle
 import requests
@@ -16,7 +17,29 @@ from flask_restful import Resource, Api, reqparse, fields
 from beeflow.common.data.wf_data import Task
 from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
+from beeflow.common.config.config_driver import BeeConfig
 from apscheduler.schedulers.background import BackgroundScheduler
+
+bc = BeeConfig()
+if bc.userconfig.has_section('task_manager'):
+    tm_listen_port = bc.userconfig['task_manager'].get('listen_port','5050')
+else:
+    print("[task_manager] section not found in configuration file, default values will be added")
+
+    tm_dict = {
+        'name': 'task_manager',
+        'listen_port': '5050',
+    }
+
+    bc.add_section('user', tm_dict)
+
+    sys.exit("Please check " + str(bc.userconfig_file) + " and restart TaskManager")
+
+if bc.userconfig.has_section('workflow_manager'):
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port','5000')
+else:
+    print("[workflow_manager] section not found in configuration file, default values will be used")
+    wfm_listen_port = '5000'
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -27,7 +50,7 @@ job_queue = []  # jobs that are being monitored
 # Returns the url to the WFM
 def _url():
     workflow_manager = 'bee_wfm/v1/jobs/'
-    return f'http://127.0.0.1:5000/{workflow_manager}'
+    return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
 
 # Used to access the WFM
 def _resource(tag=""): 
@@ -153,4 +176,4 @@ api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
-        flask_app.run(debug=True, port='5050')
+        flask_app.run(debug=True, port=str(tm_listen_port))
