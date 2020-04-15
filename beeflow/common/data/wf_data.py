@@ -79,7 +79,7 @@ class Task:
 
     def construct_command(self):
         """Construct a task's command representation."""
-        return " ".join(self.command)
+        return "".join(self.command)
 
     @property
     def base_command(self):
