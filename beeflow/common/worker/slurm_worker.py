@@ -12,20 +12,22 @@ import pyslurm
 from beeflow.common.worker.worker import Worker
 
 
-def build_text(task, task_dict, template_file, docker=True):
+def build_text(task, template_file):
     """Build text for task script use template if it exists."""
     job_template = ''
-    # Use Charliecloud fix TODO some assumptions for now should be configurable
-    # One of those assumptions is 'module load charliecloud'
+    # TODO make assumptions like module load charliecloud configurable
     cc_text = ''
-    #if task.hints.keys() and 'DockerRequirement' in task.hints.keys():
-    if docker:
-        #cc_tar = task.hints['DockerRequirement']['DockerImageId']
-        cc_tar = '/usr/projects/beedev/toss-tiny-3-5.tar' 
-        cc = os.path.basename(os.path.splitext(cc_tar)[0])
-        cc_text = 'module load charliecloud\n'
-        cc_text += 'mkdir -p /tmp/USER\n'
-        cc_text += 'ch-tar2dir ' + cc_tar + ' /tmp/USER\n'
+    docker = False
+    if task.hints is not None:
+        for hint in task.hints:
+            req_class, key, value = hint
+            if req_class == "DockerRequirement":
+                cc_tar = value
+                cc_name = os.path.basename(os.path.splitext(cc_tar)[0])
+                cc_text = 'module load charliecloud\n'
+                cc_text += 'mkdir -p /tmp/USER\n'
+                cc_text += 'ch-tar2dir ' + cc_tar + ' /tmp/USER\n'
+                docker = True
     try:
         template_f = open(template_file, 'r')
         job_template = template_f.read()
@@ -34,20 +36,19 @@ def build_text(task, task_dict, template_file, docker=True):
         print('\nNo job_template: creating a simple job template!')
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
-    job_text = template.substitute(task_dict)
+    job_text = template.substitute({'name': task.name, 'id': task.id})
     if docker:
         job_text = job_text + cc_text
         job_text = job_text.replace('USER', '$USER')
-        job_text += 'ch-run /tmp/$USER/' + cc + ' -b $PWD -c /mnt/0 -- '
+        job_text += 'ch-run /tmp/$USER/' + cc_name + ' -b $PWD -c /mnt/0 -- '
         job_text += ''.join(task.command) + '\n'
-        #print(f"Command is {job_text} cc is {cc}")
-        job_text += 'rm -rf /tmp/$USER/' + cc + '\n'
+        job_text += 'rm -rf /tmp/$USER/' + cc_name + '\n'
     else:
-        job_text += ' '.join(task.command) + '\n'
+        job_text += ''.join(task.command) + '\n'
     return job_text
 
 
-def write_script(task, task_dict):
+def write_script(task):
     """Build task script; returns (1, filename) or (-1, error_message)."""
     # for now using fixed directory for task manager scripts and write them out
     # we may keep them in memory and only write for a debug or logging option
@@ -56,7 +57,7 @@ def write_script(task, task_dict):
     template_dir = os.path.dirname(template_file)
     script_dir = template_dir + '/workflow-' + time.strftime("%Y%m%d-%H%M%S")
     os.makedirs(script_dir, exist_ok=True)
-    task_text = build_text(task, task_dict, template_file)
+    task_text = build_text(task, template_file)
     task_script = script_dir + '/' + task.name + '-' + str(task.id) + '.sh'
     success = -1
     try:
@@ -89,9 +90,9 @@ class SlurmWorker(Worker):
     Implements Worker using pyslurm, except submit_task uses subprocess.
     """
 
-    def submit_task(self, task, task_dict):
+    def submit_task(self, task):
         """Worker builds & submits script."""
-        build_success, task_script = write_script(task, task_dict)
+        build_success, task_script = write_script(task)
         if build_success:
             job_id, job_state = submit_job(task_script)
         else:

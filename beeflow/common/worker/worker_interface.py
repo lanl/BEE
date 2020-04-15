@@ -22,13 +22,13 @@ class WorkerInterface:
         """
         self._worker = worker()
 
-    def submit_task(self, task, task_dict):
+    def submit_task(self, task):
         """Workload manager to submit task as job returns job_id(-1 if error), job_state.
 
         :param task: instance of Task
         :rtype tuple (int, string)
         """
-        return self._worker.submit_task(task, task_dict)
+        return self._worker.submit_task(task)
 
     def cancel_job(self, job_id):
         """Cancel job with job_id.
