@@ -12,7 +12,7 @@ if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
 user_confdir = os.path.expanduser('~/.config/beeflow')
 user_conffile = os.path.join(user_confdir, "bee.conf")
 if not os.path.exists(user_conffile):
-    if not os.path.exists(user_confdir): os.makedirs(user_confdir)
+    os.makedirs(user_confdir, exist_ok=True)
     with open(user_conffile, 'w') as conf:
         conf.write("# BEE CONFIGURATION FILE #")
         conf.close()
