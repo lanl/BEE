@@ -127,7 +127,18 @@ def StartGDB(bc, debug=False):
 
 
 def StartServer(debug=False):
-    return
+
+    try:
+        cp = subprocess.run(["python","beeflow/server/server.py"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,check=True)
+    except subprocess.CalledProcessError as cp:
+        print("BEEWorkflowManager failed")
+        print(cp.stdout.decode())
+        return False
+    else:
+        if debug:
+            print(cp.stdout.decode())
+
+    return True
 
 
 def StartTaskManager(debug=False):
@@ -164,12 +175,16 @@ def main():
 
         bc = BeeConfig()
         #testconfig(bc)
-        if StartGDB(bc):
-            print("Started graph database")
+#        if StartGDB(bc):
+#            print("Started graph database")
+#        else:
+#            print("Error starting graph database")
+#            return False
+        if StartServer():
+            print("Started BEEWorkflowManager")
         else:
-            print("Error starting graph database")
+            print("Error starting BEEWorkflowManager")
             return False
-        #StartServer()
         #StartTaskManager()
     elif True:
         pass
