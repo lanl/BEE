@@ -27,6 +27,7 @@ class BeeConfig:
         """Initialize BeeConfig class.
 
         We check the platform and read in system and user configuration files.
+        If the user configuration file doesn't exist we create it with a [DEFAULT] section.
         """
         self.sysconfig = ConfigParser()
         self.userconfig = ConfigParser()
@@ -53,7 +54,16 @@ class BeeConfig:
                 self.userconfig.read_file(userconf_file)
                 userconf_file.close()
         except FileNotFoundError:
-            pass
+            os.makedirs(os.path.dirname(self.userconfig_file), exist_ok=True)
+            with open(self.userconfig_file, 'w') as conf:
+                conf.write("# BEE CONFIGURATION FILE #")
+                conf.close()
+            default_workdir = os.path.expanduser('~/.beeflow')
+            default_dict = {
+                'name': 'DEFAULT',
+                'bee_workdir': str(default_workdir),
+                }
+            self.add_section('user', default_dict)
 
     def add_section(self, conf, secdict):
         """Add a new section to the system or user config file.
