@@ -23,7 +23,7 @@ def build_text(task, template_file):
             req_class, key, value = hint
             if req_class == "DockerRequirement":
                 cc_tar = value
-                cc_name = os.path.basename(os.path.splitext(cc_tar)[0])
+                cc_name = os.path.split(os.path.basename(cc_tar))[1].split('.')[0]
                 cc_text = 'module load charliecloud\n'
                 cc_text += 'mkdir -p /tmp/USER\n'
                 cc_text += 'ch-tar2dir ' + cc_tar + ' /tmp/USER\n'
