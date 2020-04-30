@@ -7,7 +7,7 @@ class Worker(ABC):
     """Worker interface for a generic workload manager."""
 
     @abstractmethod
-    def submit_task(self, task, task_dict):
+    def submit_task(self, task):
         """Worker submits task; returns id, state (or -1, error_message).
 
         :param task: instance of Task
