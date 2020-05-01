@@ -11,6 +11,7 @@ will be started.
 
 import argparse
 import getpass
+import logging
 import os
 import shutil
 import subprocess
@@ -20,9 +21,9 @@ from beeflow.common.config.config_driver import BeeConfig
 
 
 def StartGDB(bc, debug=False):
-
+    log = logging.getLogger(__name__)
     if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
-        print("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
+        log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
         return False
 
     user_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
@@ -37,7 +38,7 @@ def StartGDB(bc, debug=False):
         gdb_img = graphsec.get('gdb_image','')
         gdb_img_mntdir = graphsec.get('gdb_image_mntdir','/tmp')
     else:
-        print("[graphdb] section not found in configuration file, default values will be added")
+        log.warning("[graphdb] section not found in configuration file, default values will be added")
 
         graphdb_dict = {
             'name': 'graphdb',
@@ -51,25 +52,25 @@ def StartGDB(bc, debug=False):
         }
         
         bc.add_section('user', graphdb_dict)
-        print("Please check " + str(bc.userconfig_file) + " and rerun startup")
+        log.warning("Please check " + str(bc.userconfig_file) + " and rerun startup")
         return False
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
     if debug:
-        print("GraphDB container mount directory " + container_dir + " created")
+        log.info("GraphDB container mount directory " + container_dir + " created")
 
     try:
         cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
     except subprocess.CalledProcessError as cp:
-        print("ch-tar2dir failed")
+        log.error("ch-tar2dir failed")
         shutil.rmtree(container_dir)
         if debug:
-            print(cp.stdout.decode())
-            print("GraphDB container mount directory " + container_dir + " removed")
+            log.error(cp.stdout.decode())
+            log.error("GraphDB container mount directory " + container_dir + " removed")
         return False
     else:
         if debug:
-            print(cp.stdout.decode())
+            log.info(cp.stdout.decode())
 
     newdir = os.path.split(container_dir)[1]
 
@@ -79,7 +80,7 @@ def StartGDB(bc, debug=False):
     os.makedirs(gdb_config_path, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
     if debug:
-        print(gdb_configfile)
+        log.info(gdb_configfile)
             
     cfile = open(gdb_configfile, "rt")
     data = cfile.read()
@@ -106,12 +107,12 @@ def StartGDB(bc, debug=False):
     try:
         cp = subprocess.run(["ch-run","--set-env=" + container_path + "/environment","-b",gdb_config_path + ":/var/lib/neo4j/conf","-b",gdb_data_path + ":/data","-b",gdb_log_path + ":/logs","-b",gdb_run_path + ":/var/lib/neo4j/run",container_path,"--","neo4j-admin","set-initial-password",str(db_password)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
     except subprocess.CalledProcessError as cp:
-        print("neo4j-admin set-initial-password failed")
-        print(cp.stdout.decode())
+        log.error("neo4j-admin set-initial-password failed")
+        log.error(cp.stdout.decode())
         return False
     else:
         if debug:
-            print(cp.stdout.decode())
+            log.error(cp.stdout.decode())
 
     try:
         if debug:
@@ -119,24 +120,24 @@ def StartGDB(bc, debug=False):
         else:
             cp = subprocess.run(["ch-run","--set-env=" + container_path + "/environment","-b",gdb_config_path + ":/var/lib/neo4j/conf","-b",gdb_data_path + ":/data","-b",gdb_log_path + ":/logs","-b",gdb_run_path + ":/var/lib/neo4j/run","-b",gdb_certs_path + ":/var/lib/neo4j/certificates",container_path,"--","neo4j","start"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT, check=True)
     except subprocess.CalledProcessError as cp:
-        print("neo4j failed to start")
-        print(cp.stdout.decode())
+        log.error("neo4j failed to start")
+        log.error(cp.stdout.decode())
         return False
 
     return True
 
 
-def StartServer(debug=False):
-
+def StartWorkflowManager(debug=False):
+    log = logging.getLogger(__name__)
     try:
         cp = subprocess.run(["python","beeflow/server/server.py"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,check=True)
     except subprocess.CalledProcessError as cp:
-        print("BEEWorkflowManager failed")
-        print(cp.stdout.decode())
+        log.error("BEEWorkflowManager failed")
+        log.error(cp.stdout.decode())
         return False
     else:
         if debug:
-            print(cp.stdout.decode())
+            log.info(cp.stdout.decode())
 
     return True
 
@@ -157,37 +158,51 @@ def parse_args(args=sys.argv[1:]):
 
     return parser.parse_args(args)
 
-def testconfig(bc):
-    print(bc.userconfig_file)
-    print(os.path.dirname(bc.userconfig_file))
-
 def main():
     args = parse_args()
+    start_all = not any([args.wfm, args.tm, args.gdb])
     if args.debug and not (sum([args.wfm,args.tm,args.gdb]) == 1):
-        print("DEBUG requested, exactly one service must be specified")
+        print("DEBUG requested, exactly one service must be specified",
+              file=sys.stderr)
+        return 1
+    bc = BeeConfig()
+    if args.debug:
+        # Output everything to the console
+        logging.basicConfig(level=logging.DEBUG)
     else:
-        bc = BeeConfig()
-        if args.gdb:
-            StartGDB(bc,args.debug)
-
-    if not any(value == 1 for value in vars(args).values()):
-        # If no flags given, start everything.
-
-        bc = BeeConfig()
-        #testconfig(bc)
-#        if StartGDB(bc):
-#            print("Started graph database")
-#        else:
-#            print("Error starting graph database")
-#            return False
-        if StartServer():
-            print("Started BEEWorkflowManager")
+        # TODO: Add defaults to the config
+        try:
+            bee_workdir = bc.userconfig['DEFAULT']['bee_workdir']
+            logdir = bc.userconfig['DEFAULT']['logdir']
+            logfile = bc.userconfig['DEFAULT']['logfile']
+        except KeyError as e:
+            print('Missing logdir or logfile section in user config',
+                  file=sys.stderr)
+            return 1
+        path = os.path.join(bee_workdir, logdir) if logdir else bee_workdir
+        path = os.path.join(path, logfile)
+        logging.basicConfig(filename=path)
+    log = logging.getLogger(__name__)
+    # TODO: Add error checking
+    if args.wfm or start_all:
+        if StartWorkflowManager(args.debug):
+            log.info('Started workflow manager')
         else:
-            print("Error starting BEEWorkflowManager")
-            return False
-        #StartTaskManager()
-    elif True:
-        pass
+            log.error('Error starting workflow manager')
+            return 1
+    if args.tm or start_all:
+        if StartTaskManager(args.debug):
+            log.info('Started task manager')
+        else:
+            log.error('Error starting task manager')
+            return 1
+    if args.gdb or args.wfm or start_all:
+        if StartGDB(bc, args.debug):
+            log.info('Started graph database')
+        else:
+            log.error('Error starting graph database')
+            return 1
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main())
