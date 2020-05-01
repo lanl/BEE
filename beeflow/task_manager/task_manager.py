@@ -139,7 +139,7 @@ class TaskSubmit(Resource):
         # Add the task to the submit queue
         submit_queue.append({task.id: task})
         print(f"Added {task.name} to the submit queue")
-        print(f"task.hints {task.hints} ")
+        #print(f"task.hints {task.hints} ")
         resp = make_response(jsonify(msg='Task Added!', status='ok'), 200)
         return resp
 
