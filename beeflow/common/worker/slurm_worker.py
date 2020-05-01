@@ -12,6 +12,15 @@ import pyslurm
 from beeflow.common.worker.worker import Worker
 
 
+def get_ccname(image_path):
+    """Strips path & only .tar, .tar.gz, tar.xz, or .tgz from image path"""
+    name = os.path.split(os.path.basename(image_path))[1].rsplit('.', 2 )
+    if name[-1] in ['gz', 'xz']: name.pop()
+    if name[-1] in ['tar', 'tgz']: name.pop()
+    name = '.'.join(name)
+    return name 
+
+
 def build_text(task, template_file):
     """Build text for task script use template if it exists."""
     job_template = ''
@@ -23,7 +32,7 @@ def build_text(task, template_file):
             req_class, key, value = hint
             if req_class == "DockerRequirement":
                 cc_tar = value
-                cc_name = os.path.split(os.path.basename(cc_tar))[1].split('.')[0]
+                cc_name = get_ccname(cc_tar)
                 cc_text = 'module load charliecloud\n'
                 cc_text += 'mkdir -p /tmp/USER\n'
                 cc_text += 'ch-tar2dir ' + cc_tar + ' /tmp/USER\n'
