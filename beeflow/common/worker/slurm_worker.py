@@ -13,7 +13,7 @@ from beeflow.common.worker.worker import Worker
 
 
 def get_ccname(image_path):
-    """Strips path & only .tar, .tar.gz, tar.xz, or .tgz from image path"""
+    """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
     name = os.path.split(os.path.basename(image_path))[1].rsplit('.', 2)
     if name[-1] in ['gz', 'xz']:
         name.pop()
@@ -26,13 +26,12 @@ def get_ccname(image_path):
 def build_text(task, template_file):
     """Build text for task script use template if it exists."""
     job_template = ''
-    # TODO make assumptions like module load charliecloud configurable
     cc_text = ''
     docker = False
     if task.hints is not None:
         for hint in task.hints:
             req_class, key, value = hint
-            if req_class == "DockerRequirement":
+            if req_class == "DockerRequirement" and key == "dockerImageId":
                 cc_tar = value
                 cc_name = get_ccname(cc_tar)
                 cc_text = 'module load charliecloud\n'
