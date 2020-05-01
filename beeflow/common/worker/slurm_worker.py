@@ -14,7 +14,7 @@ from beeflow.common.worker.worker import Worker
 
 def get_ccname(image_path):
     """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
-    name = os.path.split(os.path.basename(image_path))[1].rsplit('.', 2)
+    name = os.path.basename(image_path).rsplit('.', 2)
     if name[-1] in ['gz', 'xz']:
         name.pop()
     if name[-1] in ['tar', 'tgz']:
