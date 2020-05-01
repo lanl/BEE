@@ -105,7 +105,20 @@ def StartGDB(bc, debug=False):
     os.makedirs(gdb_certs_path, exist_ok=True)
 
     try:
-        cp = subprocess.run(["ch-run","--set-env=" + container_path + "/environment","-b",gdb_config_path + ":/var/lib/neo4j/conf","-b",gdb_data_path + ":/data","-b",gdb_log_path + ":/logs","-b",gdb_run_path + ":/var/lib/neo4j/run",container_path,"--","neo4j-admin","set-initial-password",str(db_password)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+        cp = subprocess.run([
+            "ch-run","--set-env=" + container_path + "/environment","-b",
+            gdb_config_path + ":/var/lib/neo4j/conf","-b",
+            gdb_data_path + ":/data",
+            "-b",
+            gdb_log_path + ":/logs",
+            "-b",
+            gdb_run_path + ":/var/lib/neo4j/run",
+            container_path,
+            "--",
+            "neo4j-admin",
+            "set-initial-password",
+            str(db_password)
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
     except subprocess.CalledProcessError as cp:
         log.error("neo4j-admin set-initial-password failed")
         log.error(cp.stdout.decode())
@@ -116,9 +129,43 @@ def StartGDB(bc, debug=False):
 
     try:
         if debug:
-            subprocess.run(["ch-run","--set-env=" + container_path + "/environment","-b",gdb_config_path + ":/var/lib/neo4j/conf","-b",gdb_data_path + ":/data","-b",gdb_log_path + ":/logs","-b",gdb_run_path + ":/var/lib/neo4j/run","-b",gdb_certs_path + ":/var/lib/neo4j/certificates",container_path,"--","neo4j","console"])
+            subprocess.run([
+                "ch-run",
+                "--set-env=" + container_path + "/environment",
+                "-b",
+                gdb_config_path + ":/var/lib/neo4j/conf",
+                "-b",
+                gdb_data_path + ":/data",
+                "-b",
+                gdb_log_path + ":/logs",
+                "-b",
+                gdb_run_path + ":/var/lib/neo4j/run",
+                "-b",
+                gdb_certs_path + ":/var/lib/neo4j/certificates",
+                container_path,
+                "--",
+                "neo4j",
+                "console"
+            ])
         else:
-            cp = subprocess.run(["ch-run","--set-env=" + container_path + "/environment","-b",gdb_config_path + ":/var/lib/neo4j/conf","-b",gdb_data_path + ":/data","-b",gdb_log_path + ":/logs","-b",gdb_run_path + ":/var/lib/neo4j/run","-b",gdb_certs_path + ":/var/lib/neo4j/certificates",container_path,"--","neo4j","start"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT, check=True)
+            cp = subprocess.run([
+                "ch-run",
+                "--set-env=" + container_path + "/environment",
+                "-b",
+                gdb_config_path + ":/var/lib/neo4j/conf",
+                "-b",
+                gdb_data_path + ":/data",
+                "-b",
+                gdb_log_path + ":/logs",
+                "-b",
+                gdb_run_path + ":/var/lib/neo4j/run",
+                "-b",
+                gdb_certs_path + ":/var/lib/neo4j/certificates",
+                container_path,
+                "--",
+                "neo4j",
+                "start"
+            ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
     except subprocess.CalledProcessError as cp:
         log.error("neo4j failed to start")
         log.error(cp.stdout.decode())
@@ -126,11 +173,11 @@ def StartGDB(bc, debug=False):
 
     return True
 
-
 def StartWorkflowManager(debug=False):
+    """Start BEEWorkflowManager. Return True if successful, False otherwise."""
     log = logging.getLogger(__name__)
     try:
-        cp = subprocess.run(["python","beeflow/server/server.py"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,check=True)
+        cp = subprocess.run(["python", "beeflow/server/server.py"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,check=True)
     except subprocess.CalledProcessError as cp:
         log.error("BEEWorkflowManager failed")
         log.error(cp.stdout.decode())
@@ -141,14 +188,25 @@ def StartWorkflowManager(debug=False):
 
     return True
 
-
 def StartTaskManager(debug=False):
-    return
+    """Start BEETaskManager. Return True if successful, False otherwise."""
+    log = logging.getLogger(__name__)
+    try:
+        cp = subprocess.run(["python", "beeflow/task_manager/task_manager.py"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,check=True)
+    except subprocess.CalledProcessError as cp:
+        log.error("BEETaskManager failed")
+        log.error(cp.stdout.decode())
+        return False
+    else:
+        if debug:
+            log.info(cp.stdout.decode())
 
+    return True
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
-    parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__,
+                                     formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument("-d", "--debug", action="store_true",
                         help="enable debugging output\nIf debug is specified all output will go to the console.\nOnly one BEE service may be launched by BEEStart if debug is requested.")
