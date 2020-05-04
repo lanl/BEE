@@ -26,6 +26,13 @@ def StartGDB(bc, debug=False):
         log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
         return False
 
+    # Setup subprocess output
+    stdout = subprocess.PIPE
+    stderr = subprocess.STDOUT
+    if debug:
+        stdout = sys.stdout
+        stderr = sys.stderr
+
     user_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 
     if bc.userconfig.has_section('graphdb'):
@@ -60,7 +67,7 @@ def StartGDB(bc, debug=False):
         log.info("GraphDB container mount directory " + container_dir + " created")
 
     try:
-        cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+        cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
         log.error("ch-tar2dir failed")
         shutil.rmtree(container_dir)
@@ -68,13 +75,16 @@ def StartGDB(bc, debug=False):
             log.error(cp.stdout.decode())
             log.error("GraphDB container mount directory " + container_dir + " removed")
         return False
-    else:
-        if debug:
-            log.info(cp.stdout.decode())
 
     newdir = os.path.split(container_dir)[1]
 
     container_path = container_dir + "/" + os.listdir(str(container_dir))[0]
+    # Make the certificates directory
+    container_certs_path = os.path.join(container_path, 'var/lib/neo4j/certificates')
+    os.makedirs(container_certs_path, exist_ok=True)
+    if debug:
+        log.info('Created certificates directory %s', container_certs_path)
+    # Setup working path data
     gdb_workdir = os.path.join(user_workdir, newdir)
     gdb_config_path = os.path.join(gdb_workdir, "conf")
     os.makedirs(gdb_config_path, exist_ok=True)
@@ -118,57 +128,35 @@ def StartGDB(bc, debug=False):
             "neo4j-admin",
             "set-initial-password",
             str(db_password)
-        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+        ], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
         log.error("neo4j-admin set-initial-password failed")
         log.error(cp.stdout.decode())
         return False
-    else:
-        if debug:
-            log.error(cp.stdout.decode())
 
     try:
-        if debug:
-            subprocess.run([
-                "ch-run",
-                "--set-env=" + container_path + "/environment",
-                "-b",
-                gdb_config_path + ":/var/lib/neo4j/conf",
-                "-b",
-                gdb_data_path + ":/data",
-                "-b",
-                gdb_log_path + ":/logs",
-                "-b",
-                gdb_run_path + ":/var/lib/neo4j/run",
-                "-b",
-                gdb_certs_path + ":/var/lib/neo4j/certificates",
-                container_path,
-                "--",
-                "neo4j",
-                "console"
-            ])
-        else:
-            cp = subprocess.run([
-                "ch-run",
-                "--set-env=" + container_path + "/environment",
-                "-b",
-                gdb_config_path + ":/var/lib/neo4j/conf",
-                "-b",
-                gdb_data_path + ":/data",
-                "-b",
-                gdb_log_path + ":/logs",
-                "-b",
-                gdb_run_path + ":/var/lib/neo4j/run",
-                "-b",
-                gdb_certs_path + ":/var/lib/neo4j/certificates",
-                container_path,
-                "--",
-                "neo4j",
-                "start"
-            ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+        cp = subprocess.run([
+            "ch-run",
+            "--set-env=" + container_path + "/environment",
+            "-b",
+            gdb_config_path + ":/var/lib/neo4j/conf",
+            "-b",
+            gdb_data_path + ":/data",
+            "-b",
+            gdb_log_path + ":/logs",
+            "-b",
+            gdb_run_path + ":/var/lib/neo4j/run",
+            "-b",
+            gdb_certs_path + ":/var/lib/neo4j/certificates",
+            container_path,
+            "--",
+            "neo4j",
+            "start"
+        ], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
+        if not debug:
+            log.error(cp.stdout.decode())
         log.error("neo4j failed to start")
-        log.error(cp.stdout.decode())
         return False
 
     return True
@@ -176,8 +164,14 @@ def StartGDB(bc, debug=False):
 def StartWorkflowManager(debug=False):
     """Start BEEWorkflowManager. Return True if successful, False otherwise."""
     log = logging.getLogger(__name__)
+    stdout = subprocess.PIPE
+    stderr = subprocess.STDOUT
+    if debug:
+        stdout = sys.stdout
+        stderr = sys.stdin
     try:
-        cp = subprocess.run(["python", "beeflow/server/server.py"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,check=True)
+        cp = subprocess.run(["python", "beeflow/server/server.py"],
+                            stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
         log.error("BEEWorkflowManager failed")
         log.error(cp.stdout.decode())
@@ -191,8 +185,14 @@ def StartWorkflowManager(debug=False):
 def StartTaskManager(debug=False):
     """Start BEETaskManager. Return True if successful, False otherwise."""
     log = logging.getLogger(__name__)
+    stdout = subprocess.PIPE
+    stderr = subprocess.STDOUT
+    if debug:
+        stdout = sys.stdout
+        stderr = sys.stdin
     try:
-        cp = subprocess.run(["python", "beeflow/task_manager/task_manager.py"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,check=True)
+        cp = subprocess.run(["python", "beeflow/task_manager/task_manager.py"],
+                            stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
         log.error("BEETaskManager failed")
         log.error(cp.stdout.decode())
@@ -216,6 +216,19 @@ def parse_args(args=sys.argv[1:]):
 
     return parser.parse_args(args)
 
+def start_process(init_fn, pid_file, **kwargs):
+    """Start a new process with func as the entry point"""
+    # TODO: Save pids in a pid file
+    pid = os.fork()
+    if pid == 0:
+        status = 0 if init_fn(**kwargs) else 1
+        sys.exit(status)
+    # Create the PID file
+    os.makedirs(os.path.expanduser('~/.beeflow'), exist_ok=True)
+    with open(os.path.expanduser(f'~/.beeflow/{pid_file}'), 'w') as fp:
+        fp.write(str(pid))
+    return pid
+
 def main():
     args = parse_args()
     start_all = not any([args.wfm, args.tm, args.gdb])
@@ -224,6 +237,7 @@ def main():
               file=sys.stderr)
         return 1
     bc = BeeConfig()
+    # Setup logging based on args.debug
     if args.debug:
         # Output everything to the console
         logging.basicConfig(level=logging.DEBUG)
@@ -241,25 +255,32 @@ def main():
         path = os.path.join(path, logfile)
         logging.basicConfig(filename=path)
     log = logging.getLogger(__name__)
-    # TODO: Add error checking
+
+    # Start each process
+    pids = []
     if args.wfm or start_all:
-        if StartWorkflowManager(args.debug):
-            log.info('Started workflow manager')
-        else:
-            log.error('Error starting workflow manager')
-            return 1
+        pids.append(('Workflow Manager',
+                     start_process(StartWorkflowManager, 'wfm.pid', debug=args.debug)))
     if args.tm or start_all:
-        if StartTaskManager(args.debug):
-            log.info('Started task manager')
-        else:
-            log.error('Error starting task manager')
-            return 1
+        pids.append(('Task Manager', start_process(StartTaskManager, 'tm.pid', debug=args.debug)))
     if args.gdb or args.wfm or start_all:
-        if StartGDB(bc, args.debug):
-            log.info('Started graph database')
-        else:
-            log.error('Error starting graph database')
-            return 1
+        pids.append(('Graph Database', start_process(StartGDB, 'gdb.pid', bc=bc, debug=args.debug)))
+
+    # Wait for everything to finish, if debug, otherwise just exit now
+    if args.debug:
+        try:
+            while len(pids) > 0:
+                pid, status = os.wait()
+                # Get the index of the stored PID and then grab the name
+                i = [p[1] for p in pids].index(pid)
+                name = pids[i][0]
+                if status == 0:
+                    log.info('Started %s', name)
+                else:
+                    log.error('Error starting %s', name)
+        except ChildProcessError as e:
+            log.error('No child process to wait for')
+    # TODO: Clean up the PID files
     return 0
 
 if __name__ == "__main__":
