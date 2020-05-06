@@ -21,10 +21,11 @@ from beeflow.common.config.config_driver import BeeConfig
 
 
 def StartGDB(bc, debug=False):
+    """Start the graph database. Returns a Popen process object."""
     log = logging.getLogger(__name__)
     if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
         log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
-        return False
+        return None
 
     # Setup subprocess output
     stdout = subprocess.PIPE
@@ -60,7 +61,7 @@ def StartGDB(bc, debug=False):
         
         bc.add_section('user', graphdb_dict)
         log.warning("Please check " + str(bc.userconfig_file) + " and rerun startup")
-        return False
+        return None
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
     if debug:
@@ -72,9 +73,8 @@ def StartGDB(bc, debug=False):
         log.error("ch-tar2dir failed")
         shutil.rmtree(container_dir)
         if debug:
-            log.error(cp.stdout.decode())
             log.error("GraphDB container mount directory " + container_dir + " removed")
-        return False
+        return None
 
     newdir = os.path.split(container_dir)[1]
 
@@ -131,11 +131,10 @@ def StartGDB(bc, debug=False):
         ], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
         log.error("neo4j-admin set-initial-password failed")
-        log.error(cp.stdout.decode())
-        return False
+        return None
 
     try:
-        cp = subprocess.run([
+        proc = subprocess.Popen([
             "ch-run",
             "--set-env=" + container_path + "/environment",
             "-b",
@@ -152,56 +151,41 @@ def StartGDB(bc, debug=False):
             "--",
             "neo4j",
             "start"
-        ], stdout=stdout, stderr=stderr, check=True)
-    except subprocess.CalledProcessError as cp:
-        if not debug:
-            log.error(cp.stdout.decode())
-        log.error("neo4j failed to start")
-        return False
+        ], stdout=stdout, stderr=stderr)
+    except FileNotFoundError as e:
+        # This is most likely caused by ch-run not existing
+        log.error("neo4j failed to start. Charliecloud must be installed.")
+        return None
 
-    return True
+    return proc
 
-def StartWorkflowManager(debug=False):
-    """Start BEEWorkflowManager. Return True if successful, False otherwise."""
-    log = logging.getLogger(__name__)
+def StartWorkflowManager(bc, debug=False):
+    """Start BEEWorkflowManager. Returns a Popen process object."""
     stdout = subprocess.PIPE
     stderr = subprocess.STDOUT
     if debug:
         stdout = sys.stdout
         stderr = sys.stdin
-    try:
-        cp = subprocess.run(["python", "beeflow/server/server.py"],
-                            stdout=stdout, stderr=stderr, check=True)
-    except subprocess.CalledProcessError as cp:
-        log.error("BEEWorkflowManager failed")
-        log.error(cp.stdout.decode())
-        return False
-    else:
-        if debug:
-            log.info(cp.stdout.decode())
 
-    return True
+    return subprocess.Popen(["python", "beeflow/server/server.py"],
+                          stdout=stdout, stderr=stderr)
 
-def StartTaskManager(debug=False):
-    """Start BEETaskManager. Return True if successful, False otherwise."""
-    log = logging.getLogger(__name__)
+def StartTaskManager(bc, debug=False):
+    """Start BEETaskManager. Returns a Popen process object."""
     stdout = subprocess.PIPE
     stderr = subprocess.STDOUT
     if debug:
         stdout = sys.stdout
         stderr = sys.stdin
-    try:
-        cp = subprocess.run(["python", "beeflow/task_manager/task_manager.py"],
-                            stdout=stdout, stderr=stderr, check=True)
-    except subprocess.CalledProcessError as cp:
-        log.error("BEETaskManager failed")
-        log.error(cp.stdout.decode())
-        return False
-    else:
-        if debug:
-            log.info(cp.stdout.decode())
 
-    return True
+    return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py"],
+                            stdout=stdout, stderr=stderr)
+
+def create_pid_file(proc, pid_file, bc):
+    """Create a new PID file."""
+    os.makedirs(os.path.expanduser('~/.beeflow'), exist_ok=True)
+    with open(os.path.expanduser(f'~/.beeflow/{pid_file}'), 'w') as fp:
+        fp.write(str(proc.pid))
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
@@ -215,19 +199,6 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
 
     return parser.parse_args(args)
-
-def start_process(init_fn, pid_file, **kwargs):
-    """Start a new process with func as the entry point"""
-    # TODO: Save pids in a pid file
-    pid = os.fork()
-    if pid == 0:
-        status = 0 if init_fn(**kwargs) else 1
-        sys.exit(status)
-    # Create the PID file
-    os.makedirs(os.path.expanduser('~/.beeflow'), exist_ok=True)
-    with open(os.path.expanduser(f'~/.beeflow/{pid_file}'), 'w') as fp:
-        fp.write(str(pid))
-    return pid
 
 def main():
     args = parse_args()
@@ -256,31 +227,41 @@ def main():
         logging.basicConfig(filename=path)
     log = logging.getLogger(__name__)
 
-    # Start each process
-    pids = []
+    # Start all processes
+    procs = []
     if args.wfm or start_all:
-        pids.append(('Workflow Manager',
-                     start_process(StartWorkflowManager, 'wfm.pid', debug=args.debug)))
+        proc = StartWorkflowManager(bc, args.debug)
+        if proc is None:
+            log.error('Workflow Manager failed to start. Exiting.')
+            return 1
+        create_pid_file(proc, 'wfm.pid', bc)
+        procs.append(('Workflow Manager', proc))
+        log.info('Started Workflow Manager')
     if args.tm or start_all:
-        pids.append(('Task Manager', start_process(StartTaskManager, 'tm.pid', debug=args.debug)))
+        proc = StartTaskManager(bc, args.debug)
+        if proc is None:
+            log.error('Task Manager failed to start. Exiting.')
+            return 1
+        create_pid_file(proc, 'tm.pid', bc)
+        procs.append(('Task Manager', proc))
+        log.info('Started Task Manager')
     if args.gdb or args.wfm or start_all:
-        pids.append(('Graph Database', start_process(StartGDB, 'gdb.pid', bc=bc, debug=args.debug)))
+        proc = StartGDB(bc, args.debug)
+        if proc is None:
+            log.error('Graph Database failed to start. Exiting.')
+            return 1
+        create_pid_file(proc, 'gdb.pid', bc)
+        procs.append(('Graph Database', proc))
+        log.info('Started Graph Database')
 
     # Wait for everything to finish, if debug, otherwise just exit now
     if args.debug:
-        try:
-            while len(pids) > 0:
-                pid, status = os.wait()
-                # Get the index of the stored PID and then grab the name
-                i = [p[1] for p in pids].index(pid)
-                name = pids[i][0]
-                if status == 0:
-                    log.info('Started %s', name)
-                else:
-                    log.error('Error starting %s', name)
-        except ChildProcessError as e:
-            log.error('No child process to wait for')
-    # TODO: Clean up the PID files
+        while len(procs) > 0:
+            name, proc = procs.pop()
+            exit_code = proc.wait()
+            if exit_code != 0:
+                log.error('Error running %s', name)
+
     return 0
 
 if __name__ == "__main__":
