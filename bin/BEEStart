@@ -134,6 +134,10 @@ def StartGDB(bc, debug=False):
         return None
 
     try:
+        # Determine whether to run neo4j in the foreground or in the background
+        subcmd = 'start'
+        if debug:
+            subcmd = 'console'
         proc = subprocess.Popen([
             "ch-run",
             "--set-env=" + container_path + "/environment",
@@ -150,7 +154,7 @@ def StartGDB(bc, debug=False):
             container_path,
             "--",
             "neo4j",
-            "start"
+            subcmd,
         ], stdout=stdout, stderr=stderr)
     except FileNotFoundError as e:
         # This is most likely caused by ch-run not existing
@@ -187,6 +191,26 @@ def create_pid_file(proc, pid_file, bc):
     with open(os.path.expanduser(f'~/.beeflow/{pid_file}'), 'w') as fp:
         fp.write(str(proc.pid))
 
+def setup_logging(bc, debug=False):
+    """
+    Setup logging. Add default values to the config if not found. Return None on
+    error and the log otherwise.
+    """
+    if debug:
+        # Output everything to the console
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        default = bc.userconfig['DEFAULT']
+        bee_workdir = default.get('bee_workdir', '')
+        logdir = default.get('logdir', os.path.join(bee_workdir, 'logs'))
+        # Make the logdir if it doesn't exist already
+        os.makedirs(logdir, exist_ok=True)
+        logfile = default.get('logfile', 'bee.log')
+        path = os.path.join(bee_workdir, logdir) if logdir else bee_workdir
+        path = os.path.join(path, logfile)
+        logging.basicConfig(filename=path)
+    return logging.getLogger(__name__)
+
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__,
@@ -209,23 +233,10 @@ def main():
         return 1
     bc = BeeConfig()
     # Setup logging based on args.debug
-    if args.debug:
-        # Output everything to the console
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        # TODO: Add defaults to the config
-        try:
-            bee_workdir = bc.userconfig['DEFAULT']['bee_workdir']
-            logdir = bc.userconfig['DEFAULT']['logdir']
-            logfile = bc.userconfig['DEFAULT']['logfile']
-        except KeyError as e:
-            print('Missing logdir or logfile section in user config',
-                  file=sys.stderr)
-            return 1
-        path = os.path.join(bee_workdir, logdir) if logdir else bee_workdir
-        path = os.path.join(path, logfile)
-        logging.basicConfig(filename=path)
-    log = logging.getLogger(__name__)
+    log = setup_logging(bc, args.debug)
+    if log is None:
+        # Something went wrong
+        return 1
 
     # Start all processes
     procs = []
