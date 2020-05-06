@@ -226,7 +226,7 @@ def parse_args(args=sys.argv[1:]):
 
 def main():
     args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.gdb])
+    start_all = not any([args.wfm, args.tm, args.gdb]) or all([args.wfm, args.tm, args.gdb])
     if args.debug and not (sum([args.wfm,args.tm,args.gdb]) == 1):
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
