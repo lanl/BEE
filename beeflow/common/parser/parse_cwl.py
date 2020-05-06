@@ -103,10 +103,8 @@ def create_task(obj, wfi):
     thints = set()
     if obj.run.hints is not None:
         for i in obj.run.hints:
-            if "DockerRequirement" in i.values():
-                del i["class"]
-                for key, value in i.items():
-                    thints.add(wfi.create_requirement("DockerRequirement", key, value))
+            for key, value in i.items():
+                thints.add(wfi.create_requirement(i["class"], key, value))
 
     print(f"task:  {tname}")
     print(f"  ins:      {ins}")
