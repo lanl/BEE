@@ -10,34 +10,13 @@ import time
 import pyslurm
 
 from beeflow.common.worker.worker import Worker
-
-
-def get_ccname(image_path):
-    """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
-    name = os.path.basename(image_path).rsplit('.', 2)
-    if name[-1] in ['gz', 'xz']:
-        name.pop()
-    if name[-1] in ['tar', 'tgz']:
-        name.pop()
-    name = '.'.join(name)
-    return name
+from beeflow.common.crt.crt_interface import ContainerRuntimeInterface
+from beeflow.common.crt.charliecloud_driver import CharliecloudDriver
 
 
 def build_text(task, template_file):
     """Build text for task script use template if it exists."""
     job_template = ''
-    cc_text = ''
-    docker = False
-    if task.hints is not None:
-        for hint in task.hints:
-            req_class, key, value = hint
-            if req_class == "DockerRequirement" and key == "dockerImageId":
-                cc_tar = value
-                cc_name = get_ccname(cc_tar)
-                cc_text = 'module load charliecloud\n'
-                cc_text += 'mkdir -p /tmp/USER\n'
-                cc_text += 'ch-tar2dir ' + cc_tar + ' /tmp/USER\n'
-                docker = True
     try:
         template_f = open(template_file, 'r')
         job_template = template_f.read()
@@ -47,14 +26,11 @@ def build_text(task, template_file):
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
     job_text = template.substitute({'name': task.name, 'id': task.id})
-    if docker:
-        job_text = job_text + cc_text
-        job_text = job_text.replace('USER', '$USER')
-        job_text += 'ch-run /tmp/$USER/' + cc_name + ' -b $PWD -c /mnt/0 -- '
-        job_text += ''.join(task.command) + '\n'
-        job_text += 'rm -rf /tmp/$USER/' + cc_name + '\n'
-    else:
-        job_text += ''.join(task.command) + '\n'
+    crt_text = CRT.container_text(task)
+    print('job_text = {job_text}, crt_text = {crt_text}')
+    job_text += crt_text 
+    #if not docker:
+    #    job_text += ''.join(task.command) + '\n'
     return job_text
 
 
@@ -140,3 +116,6 @@ class SlurmWorker(Worker):
             cancel_success = -1
             job_state = ('Cannot cancel job, invalid id ' + str(job_id) + '.')
         return cancel_success, job_state
+
+
+CRT = ContainerRuntimeInterface(CharliecloudDriver)
