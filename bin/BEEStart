@@ -135,10 +135,6 @@ def StartGDB(bc, debug=False):
         return None
 
     try:
-        # Determine whether to run neo4j in the foreground or in the background
-        subcmd = 'start'
-        if debug:
-            subcmd = 'console'
         proc = subprocess.Popen([
             "ch-run",
             "--set-env=" + container_path + "/environment",
@@ -155,11 +151,10 @@ def StartGDB(bc, debug=False):
             container_path,
             "--",
             "neo4j",
-            subcmd,
+            "start",
         ], stdout=stdout, stderr=stderr)
     except FileNotFoundError as e:
-        # This is most likely caused by ch-run not existing
-        log.error("neo4j failed to start. Charliecloud must be installed.")
+        log.error("neo4j failed to start.")
         return None
 
     return proc
@@ -240,14 +235,21 @@ def main():
         return 1
 
     # Start all processes
-    procs = []
+    wait_list = [] # List of processes to wait for
+    if args.gdb or args.wfm or start_all:
+        proc = StartGDB(bc, args.debug)
+        if proc is None:
+            log.error('Graph Database failed to start. Exiting.')
+            return 1
+        # Don't append the graph database to list of processes to wait for
+        log.info('Started Graph Database')
     if args.wfm or start_all:
         proc = StartWorkflowManager(bc, args.debug)
         if proc is None:
             log.error('Workflow Manager failed to start. Exiting.')
             return 1
         create_pid_file(proc, 'wfm.pid', bc)
-        procs.append(('Workflow Manager', proc))
+        wait_list.append(('Workflow Manager', proc))
         log.info('Started Workflow Manager')
     if args.tm or start_all:
         proc = StartTaskManager(bc, args.debug)
@@ -255,28 +257,20 @@ def main():
             log.error('Task Manager failed to start. Exiting.')
             return 1
         create_pid_file(proc, 'tm.pid', bc)
-        procs.append(('Task Manager', proc))
+        wait_list.append(('Task Manager', proc))
         log.info('Started Task Manager')
-    if args.gdb or args.wfm or start_all:
-        proc = StartGDB(bc, args.debug)
-        if proc is None:
-            log.error('Graph Database failed to start. Exiting.')
-            return 1
-        create_pid_file(proc, 'gdb.pid', bc)
-        procs.append(('Graph Database', proc))
-        log.info('Started Graph Database')
 
-    time.sleep(1)
+    time.sleep(3)
     # Check if any processes have finished early
-    for name, proc in procs:
+    for name, proc in wait_list:
         exit_code = proc.poll()
         if exit_code is not None:
             log.error(f'{name} failed to start. Exiting.')
 
     # Wait for everything to finish, if debug, otherwise just exit now
     if args.debug:
-        while len(procs) > 0:
-            name, proc = procs.pop()
+        while len(wait_list) > 0:
+            name, proc = wait_list.pop()
             exit_code = proc.wait()
             if exit_code != 0:
                 log.error('Error running %s', name)
