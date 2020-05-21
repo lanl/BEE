@@ -33,7 +33,9 @@ class BeeConfig:
         system = platform.system()
         if system == "Linux":
             self.sysconfig_file = '/etc/beeflow/bee.conf'
-            self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
+            # TODO: User config should be relateve to pantheon submodule for
+            #       for this example.
+            self.userconfig_file = os.path.expanduser('../../../../.config/beeflow/bee.conf')
         elif system == "Darwin":
             self.sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
             self.userconfig_file = os.path.expanduser('~/Library/Application Support/beeflow/bee.conf')
