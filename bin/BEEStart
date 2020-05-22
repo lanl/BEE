@@ -19,10 +19,11 @@ import sys
 import tempfile
 import time
 from beeflow.common.config.config_driver import BeeConfig
+from subprocess import PIPE
 
 BEESTART = os.path.splitext(__file__)[0]
 
-def StartGDB(bc, debug=False):
+def StartGDB(bc, debug=True):
     """Start the graph database. Returns a Popen process object."""
     log = logging.getLogger(BEESTART)
     if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
@@ -160,15 +161,16 @@ def StartGDB(bc, debug=False):
 
     return proc
 
+# Workflow manager and task manager need to be opened with PIPE for their stdout/stderr 
 def StartWorkflowManager(bc, debug=False):
     """Start BEEWorkflowManager. Returns a Popen process object."""
     return subprocess.Popen(["python", "beeflow/server/server.py"],
-                            stdout=sys.stdout, stderr=sys.stderr)
+                            stdout=PIPE, stderr=PIPE)
 
 def StartTaskManager(bc, debug=False):
     """Start BEETaskManager. Returns a Popen process object."""
     return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py"],
-                            stdout=sys.stdout, stderr=sys.stderr)
+                            stdout=PIPE, stderr=PIPE)
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
