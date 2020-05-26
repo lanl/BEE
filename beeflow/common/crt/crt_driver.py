@@ -4,10 +4,10 @@ from abc import ABC, abstractmethod
 
 
 class ContainerRuntimeDriver(ABC):
-    """ContainerRuntimeDriver interface for a generic container runtime system."""
+    """ContainerRuntimeDriver interface for generic container runtime."""
 
     @abstractmethod
-    def container_text(self, task):
+    def script_text(self, task):
         """Build text for job using the container runtime.
 
         :param task: instance of Task

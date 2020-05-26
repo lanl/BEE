@@ -26,11 +26,8 @@ def build_text(task, template_file):
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
     job_text = template.substitute({'name': task.name, 'id': task.id})
-    crt_text = CRT.container_text(task)
-    print('job_text = {job_text}, crt_text = {crt_text}')
-    job_text += crt_text 
-    #if not docker:
-    #    job_text += ''.join(task.command) + '\n'
+    crt_text = CRT.script_text(task)
+    job_text += crt_text
     return job_text
 
 
@@ -38,7 +35,7 @@ def write_script(task):
     """Build task script; returns (1, filename) or (-1, error_message)."""
     # for now using fixed directory for task manager scripts and write them out
     # we may keep them in memory and only write for a debug or logging option
-    # make directory if doesn't exist (now uses date, should be workflow name?)
+    # make directory (now uses date, should be workflow name or id?)
     template_file = os.path.expanduser('~/.beeflow/worker/job.template')
     template_dir = os.path.dirname(template_file)
     script_dir = template_dir + '/workflow-' + time.strftime("%Y%m%d-%H%M%S")
