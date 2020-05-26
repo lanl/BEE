@@ -84,7 +84,7 @@ class TestSlurmWorker(unittest.TestCase):
 
     def test_submit_bad_task(self):
         """Build and submit a bad task using  a bad directive."""
-        task = Task('bad', command=['#SBATCH', '"BAD_DIRECTIVE"'], hints={},
+        task = Task('bad', command=['#SBATCH BAD_DIRECTIVE'], hints={},
                     subworkflow=None, inputs=None, outputs=None)
         job_info = self.worker.submit_task(task)
         self.assertEqual(job_info[0], -1)
