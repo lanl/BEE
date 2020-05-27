@@ -5,7 +5,7 @@ of the abstract base class 'ContainerRuntimeDriver'.
 Default: 'CharliecloudDriver' class.
 """
 
-from beeflow.common.crt.charliecloud_driver import CharliecloudDriver
+from beeflow.common.crt.crt_drivers import CharliecloudDriver
 
 
 class ContainerRuntimeInterface:
