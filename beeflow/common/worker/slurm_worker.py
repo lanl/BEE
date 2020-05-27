@@ -11,7 +11,23 @@ import pyslurm
 
 from beeflow.common.worker.worker import Worker
 from beeflow.common.crt.crt_interface import ContainerRuntimeInterface
-from beeflow.common.crt.charliecloud_driver import CharliecloudDriver
+from beeflow.common.config.config_driver import BeeConfig
+
+# Check configuration file for container runtime, Charliecloud by default.
+bc = BeeConfig()
+supported_runtimes = ['Charliecloud', 'Chuck'] 
+if bc.userconfig.has_section('task_manager'):
+    tm_crt = bc.userconfig['task_manager'].get('container_runtime', 'Charliecloud')
+    if tm_crt not in supported_runtimes:
+        print(f'*** Container runtime {tm_crt} not supported! ***')
+else:
+    tm_crt = 'Charliecloud'
+
+print(f'The container runtime is {tm_crt}')
+if tm_crt == 'Charliecloud':
+   from beeflow.common.crt.crt_drivers import CharliecloudDriver as CrtDriver
+elif tm_crt == 'Chuck':
+   from beeflow.common.crt.crt_drivers import ChuckDriver as CrtDriver
 
 
 def build_text(task, template_file):
@@ -115,4 +131,4 @@ class SlurmWorker(Worker):
         return cancel_success, job_state
 
 
-CRT = ContainerRuntimeInterface(CharliecloudDriver)
+CRT = ContainerRuntimeInterface(CrtDriver)
