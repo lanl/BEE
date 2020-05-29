@@ -1,0 +1,105 @@
+openapi: 3.0.3
+servers:
+  - url: '{scheme}://{server}:{port}'
+    variables:
+      scheme:
+        default: ''
+        enum:
+          - https
+          - http
+        description: ''
+      server:
+        default: localhost
+      port:
+        default: '5000'
+info:
+  title: BEE Resource Manager API
+  description: BEE Resource Manager API implementing efficient resource management.
+  version: '0.1'
+paths:
+  /jobs:
+    summary: Information about jobs used by the scheduling algorithm
+    get:
+      summary: Get or create information about jobs
+      description: Get or create information about jobs
+      operationId: job_id
+      responses:
+        default:
+          description: Default error sample response
+  '/jobs/{job_id}':
+    summary: Get information about a specific job
+    description: Get information about a specific job
+    get:
+      summary: Get information about a specific job
+      description: ''
+      operationId: ''
+      responses:
+        default:
+          description: Default error sample response
+    put:
+      summary: Update information about a specific job
+      description: Update information about a specific job
+      responses:
+        default:
+          description: Default error sample response
+    parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  '/jobs/{job_id}/allocation':
+    summary: Get recommended allocation information for a specific job
+    get:
+      summary: Get allocation information for a specific job
+      description: Get allocation information for a specific job
+      operationId: ''
+      responses:
+        default:
+          description: Default error sample response
+    parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /nodes:
+    summary: Get or create information about the collection of nodes
+    description: Get or create information about the collection of nodes
+    get:
+      summary: Get a list of all current nodes
+      description: Get a list of all current nodes
+      operationId: ''
+      responses:
+        default:
+          description: Default error sample response
+    post:
+      summary: Create a new node
+      description: Create a new node with full details
+      operationId: ''
+      responses:
+        default:
+          description: Default error sample response
+  '/nodes/{node_id}':
+    summary: Get or update information about a specific node
+    description: Get or update information about a specific node
+    parameters:
+      - name: node_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get information about a specific node
+      description: Get information about a specific node
+      operationId: ''
+      responses:
+        default:
+          description: Default error sample response
+    put:
+      summary: Update information about a specific node
+      description: Update information about a specific node
+      operationId: ''
+      responses:
+        default:
+          description: Default error sample response
