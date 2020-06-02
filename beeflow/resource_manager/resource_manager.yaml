@@ -22,8 +22,17 @@ paths:
     get:
       summary: Get or create information about jobs
       description: Get or create information about jobs
-      operationId: job_id
+      operationId: get_jobs
       responses:
+        default:
+          description: Default error sample response
+    post:
+      summary: Create a new job
+      description: Create a new job with the given information
+      operationId: create_job
+      responses:
+        201:
+          description: Successfully created a new job
         default:
           description: Default error sample response
   '/jobs/{job_id}':
@@ -32,14 +41,27 @@ paths:
     get:
       summary: Get information about a specific job
       description: ''
-      operationId: ''
+      operationId: get_job
       responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
         default:
           description: Default error sample response
     put:
       summary: Update information about a specific job
       description: Update information about a specific job
+      operationId: update_job
       responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
         default:
           description: Default error sample response
     parameters:
@@ -53,8 +75,14 @@ paths:
     get:
       summary: Get allocation information for a specific job
       description: Get allocation information for a specific job
-      operationId: ''
+      operationId: get_allocation
       responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Allocation'
         default:
           description: Default error sample response
     parameters:
@@ -69,15 +97,25 @@ paths:
     get:
       summary: Get a list of all current nodes
       description: Get a list of all current nodes
-      operationId: ''
+      operationId: get_nodes
       responses:
+        200:
+          description: A list of node ids
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
         default:
           description: Default error sample response
     post:
       summary: Create a new node
       description: Create a new node with full details
-      operationId: ''
+      operationId: create_node
       responses:
+        201:
+          description: Successfully created a node
         default:
           description: Default error sample response
   '/nodes/{node_id}':
@@ -92,14 +130,75 @@ paths:
     get:
       summary: Get information about a specific node
       description: Get information about a specific node
-      operationId: ''
+      operationId: get_node
       responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
         default:
           description: Default error sample response
     put:
       summary: Update information about a specific node
       description: Update information about a specific node
-      operationId: ''
+      operationId: update_node
       responses:
         default:
           description: Default error sample response
+components:
+  schemas:
+    Node:
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        cores:
+          type: integer
+      required:
+        - name
+        - cores
+    Job:
+      properties:
+        id:
+          type: string
+        estimated_runtime:
+          type: integer
+        deps:
+          type: array
+          items:
+            type: integer
+      required:
+        - deps
+        - estimated_runtime
+      example:
+        
+    Allocation:
+      properties:
+        nodes:
+          type: array
+          items:
+            type: integer
+        start_time:
+          type: string
+      required:
+        - node_id
+        - start_time
+      example:
+        empty:
+          summary: Empty value
+          value:
+            nodes: []
+            start_time: ''
+        single:
+          summary: Single node allocation
+          value:
+            nodes: [1]
+            start_time: '6000'
+        double:
+          summary: Double node allocation
+          value:
+            nodes: [1, 2]
+            start_time: '8000'
