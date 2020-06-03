@@ -24,6 +24,14 @@ paths:
       description: Get or create information about jobs
       operationId: get_jobs
       responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
         default:
           description: Default error sample response
     post:
@@ -31,7 +39,7 @@ paths:
       description: Create a new job with the given information
       operationId: create_job
       responses:
-        201:
+        '201':
           description: Successfully created a new job
         default:
           description: Default error sample response
@@ -43,7 +51,7 @@ paths:
       description: ''
       operationId: get_job
       responses:
-        200:
+        '200':
           description: OK
           content:
             application/json:
@@ -56,7 +64,7 @@ paths:
       description: Update information about a specific job
       operationId: update_job
       responses:
-        200:
+        '200':
           description: OK
           content:
             application/json:
@@ -77,7 +85,7 @@ paths:
       description: Get allocation information for a specific job
       operationId: get_allocation
       responses:
-        200:
+        '200':
           description: OK
           content:
             application/json:
@@ -99,7 +107,7 @@ paths:
       description: Get a list of all current nodes
       operationId: get_nodes
       responses:
-        200:
+        '200':
           description: A list of node ids
           content:
             application/json:
@@ -114,7 +122,7 @@ paths:
       description: Create a new node with full details
       operationId: create_node
       responses:
-        201:
+        '201':
           description: Successfully created a node
         default:
           description: Default error sample response
@@ -132,7 +140,7 @@ paths:
       description: Get information about a specific node
       operationId: get_node
       responses:
-        200:
+        '200':
           description: OK
           content:
             application/json:
@@ -145,6 +153,117 @@ paths:
       description: Update information about a specific node
       operationId: update_node
       responses:
+        default:
+          description: Default error sample response
+  /partitions:
+    summary: Get or create information about partitions of the current cluster
+    get:
+      summary: Get information about all available partitions
+      description: Get information about all available partitions
+      operationId: get_partitions
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+        default:
+          description: Default error sample response
+    post:
+      summary: Create a new partition
+      description: Create a new partition
+      operationId: create_partition
+      responses:
+        default:
+          description: Default error sample response
+  '/partitions/{partition_id}':
+    summary: Get or update specific information about a partition
+    description: Get or update specific information about a partition
+    parameters:
+      - name: partition_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get details about a partition
+      description: Get details about a partition
+      operationId: get_partition
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Partition'
+        default:
+          description: Default error sample response
+    put:
+      summary: Update a partition
+      description: Update details about a partition
+      operationId: update_partition
+      responses:
+        '200':
+          description: OK
+        default:
+          description: Default error sample response
+  /workflows:
+    summary: Get or create workflows
+    get:
+      summary: Get a list of current workflows
+      description: Get a list of current workflows
+      operationId: get_workflows
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+        default:
+          description: Default error sample response
+    post:
+      summary: Create a new workflow
+      description: Create a new workflow
+      operationId: create_workflow
+      responses:
+        '201':
+          description: Successfully created a Workflow
+        default:
+          description: Default error sample response
+  '/workflows/{workflow_id}':
+    summary: Get or update workflow information
+    parameters:
+      - name: workflow_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get details about a specific workflow
+      description: Get details about a specific workflow
+      operationId: get_workflow
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        default:
+          description: Default error sample response
+    put:
+      summary: Update a workflow
+      description: Update information about a workflow
+      operationId: update_workflow
+      responses:
+        '200':
+          description: OK
         default:
           description: Default error sample response
 components:
@@ -160,21 +279,14 @@ components:
       required:
         - name
         - cores
+# Passes the ID that references the Job in the database
+# TODO: This may also require the ID of the workflow
     Job:
       properties:
         id:
-          type: string
-        estimated_runtime:
           type: integer
-        deps:
-          type: array
-          items:
-            type: integer
       required:
-        - deps
-        - estimated_runtime
-      example:
-        
+        - id
     Allocation:
       properties:
         nodes:
@@ -182,9 +294,9 @@ components:
           items:
             type: integer
         start_time:
-          type: string
+          type: integer
       required:
-        - node_id
+        - nodes
         - start_time
       example:
         empty:
@@ -195,10 +307,41 @@ components:
         single:
           summary: Single node allocation
           value:
-            nodes: [1]
-            start_time: '6000'
+            nodes:
+              - 1
+            start_time: 6000
         double:
           summary: Double node allocation
-          value:
-            nodes: [1, 2]
-            start_time: '8000'
+          value:  
+            nodes:
+              - 1
+              - 2
+            start_time: 8000
+    Partition:
+      properties:
+        id:
+          type: integer
+      required:
+        - id
+      example:
+        empty:
+          id: 1
+# How is this be connected to the Jobs/Tasks?
+    Workflow:
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        inputs:
+          type: array
+          items:
+            type: string
+        outputs:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+      example:
+        id: 1
