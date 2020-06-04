@@ -25,11 +25,11 @@ if bc.userconfig.has_section('graphdb'):
     graphsec = bc.userconfig['graphdb']
     db_hostname = graphsec.get('hostname','localhost')
     db_password = graphsec.get('dbpass','password')
-    bolt_port = graphsec.get('bolt_port','7687')
+    bolt_port = graphsec.get('bolt_port','7741')
     http_port = graphsec.get('http_port','7474')
     https_port = graphsec.get('https_port','7473')
     gdb_img = graphsec.get('gdb_image','')
-    gdb_img_mntdir = graphsec.get('gdb_image_mntdir','/tmp')
+    gdb_img_mntdir = graphsec.get('gdb_image_mntdir','../../../../.cache/gdb')
 else:
     print("[graphdb] section not found in configuration file, default values will be added")
 
@@ -37,11 +37,11 @@ else:
         'name': 'graphdb',
         'hostname': 'localhost',
         'dbpass': 'password',
-        'bolt_port': 7687,
+        'bolt_port': 7741,
         'http_port': 7474,
         'https_port': 7473,
-        'gdb_image': 'neo4j-ch.tar',
-        'gdb_image_mntdir': '/tmp',
+        'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
+        'gdb_image_mntdir': '../../../../.cache/gdb',
         }
 
     bc.add_section('user', graphdb_dict)
@@ -65,7 +65,7 @@ if os.path.exists(container_path + "/var/lib/neo4j/data/dbms/auth"):
 cfile = open(gdb_configfile, "rt")
 data = cfile.read()
 cfile.close()
-data = data.replace("#dbms.connector.bolt.listen_address=:7687", "dbms.connector.bolt.listen_address=:" + str(bolt_port))
+data = data.replace("#dbms.connector.bolt.listen_address=:7741", "dbms.connector.bolt.listen_address=:" + str(bolt_port))
 data = data.replace("#dbms.connector.http.listen_address=:7474", "dbms.connector.http.listen_address=:" + str(http_port))
 data = data.replace("#dbms.connector.https.listen_address=:7473", "dbms.connector.https.listen_address=:" + str(https_port))
 cfile = open(gdb_configfile, "wt")
