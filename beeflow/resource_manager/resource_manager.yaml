@@ -38,6 +38,11 @@ paths:
       summary: Create a new job
       description: Create a new job with the given information
       operationId: create_job
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Job'
       responses:
         '201':
           description: Successfully created a new job
@@ -63,6 +68,11 @@ paths:
       summary: Update information about a specific job
       description: Update information about a specific job
       operationId: update_job
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Job'
       responses:
         '200':
           description: OK
@@ -121,6 +131,11 @@ paths:
       summary: Create a new node
       description: Create a new node with full details
       operationId: create_node
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Node'
       responses:
         '201':
           description: Successfully created a node
@@ -152,6 +167,11 @@ paths:
       summary: Update information about a specific node
       description: Update information about a specific node
       operationId: update_node
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Node'
       responses:
         default:
           description: Default error sample response
@@ -176,7 +196,14 @@ paths:
       summary: Create a new partition
       description: Create a new partition
       operationId: create_partition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Partition'
       responses:
+        '201':
+          description: Successfully created a Partition
         default:
           description: Default error sample response
   '/partitions/{partition_id}':
@@ -205,6 +232,11 @@ paths:
       summary: Update a partition
       description: Update details about a partition
       operationId: update_partition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Partition'
       responses:
         '200':
           description: OK
@@ -231,6 +263,11 @@ paths:
       summary: Create a new workflow
       description: Create a new workflow
       operationId: create_workflow
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Workflow'
       responses:
         '201':
           description: Successfully created a Workflow
@@ -261,6 +298,11 @@ paths:
       summary: Update a workflow
       description: Update information about a workflow
       operationId: update_workflow
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Workflow'
       responses:
         '200':
           description: OK
