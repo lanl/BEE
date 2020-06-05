@@ -1,1 +1,1 @@
-MATCH(n) WITH n LIMIT 10000 DETACH DELETE n;
+match(n) with n limit 10000 detach delete n;
