@@ -23,7 +23,7 @@ class BeeConfig:
       userconfig_file = '%APPDATA%\beeflow\bee.conf'
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Initialize BeeConfig class.
 
         We check the platform and read in system and user configuration files.
@@ -34,13 +34,25 @@ class BeeConfig:
         system = platform.system()
         if system == "Linux":
             self.sysconfig_file = '/etc/beeflow/bee.conf'
-            self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
+            try:
+                # Accept user_config option
+                self.userconfig_file = kwargs['userconfig']
+            except KeyError: 
+                self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
         elif system == "Darwin":
             self.sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
-            self.userconfig_file = os.path.expanduser('~/Library/Application Support/beeflow/bee.conf')
+            try:
+                # Accept user_config option
+                self.userconfig_file = kwargs['userconfig']
+            except KeyError: 
+                self.userconfig_file = os.path.expanduser('~/Library/Application Support/beeflow/bee.conf')
         elif system == "Windows":
             self.sysconfig_file = ''
-            self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
+            try:
+                # Accept user_config option
+                self.userconfig_file = kwargs['userconfig']
+            except KeyError: 
+                self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
 
         try:
             with open(self.sysconfig_file) as sysconf_file:
@@ -53,12 +65,33 @@ class BeeConfig:
             with open(self.userconfig_file) as userconf_file:
                 self.userconfig.read_file(userconf_file)
                 userconf_file.close()
+            # Discard redundant paths, iff Windows, replace(\,/)
+            userconfig_file = os.path.normpath(self.userconfig_file)
+            # Get desired config file name
+            userconfig_filename = os.path.basename(userconfig_file)
+            # Resolve the true path (expand relative path refs)
+            tmp = os.getcwd()
+            os.chdir(os.path.dirname(userconfig_file))
+            userconfig_file = '/'.join([os.getcwd(),userconfig_filename])
+            os.chdir(tmp)
+            self.userconfig_file = userconfig_file
         except FileNotFoundError:
+            # Create directory based on relative path
             os.makedirs(os.path.dirname(self.userconfig_file), exist_ok=True)
+            # Discard redundant paths, iff Windows, replace(\,/)
+            userconfig_file = os.path.normpath(self.userconfig_file)
+            # Get desired config file name
+            userconfig_filename = os.path.basename(userconfig_file)
+            # Resolve the true path (expand relative path refs)
+            tmp = os.getcwd()
+            os.chdir(os.path.dirname(userconfig_file))
+            userconfig_file = '/'.join([os.getcwd(),userconfig_filename])
+            os.chdir(tmp)
+            self.userconfig_file = userconfig_file
             with open(self.userconfig_file, 'w') as conf:
                 conf.write("# BEE CONFIGURATION FILE #")
                 conf.close()
-            default_workdir = os.path.expanduser('~/.beeflow')
+            default_workdir = os.path.dirname(self.userconfig_file)
             default_dict = {
                 'name': 'DEFAULT',
                 'bee_workdir': str(default_workdir),
@@ -79,5 +112,5 @@ class BeeConfig:
         if conf == 'user':
             with open(self.userconfig_file, 'a')as configfile:
                 configfile.write('\n')
-                newconfig.write(configfile)
+                newconfig.write(configfile,space_around_delimiters=False)
                 configfile.close()

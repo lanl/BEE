@@ -218,7 +218,7 @@ def main():
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
-    bc = BeeConfig()
+    bc = BeeConfig(userconfig='../../../.config/beeflow/bee.conf')
     # Setup logging based on args.debug
     log = setup_logging(bc, args.debug)
     if log is None:
