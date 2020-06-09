@@ -17,12 +17,12 @@ info:
   description: BEE Resource Manager API implementing efficient resource management.
   version: '0.1'
 paths:
-  /bee_sched/v1/jobs:
-    summary: Information about jobs used by the scheduling algorithm
+  /bee_sched/v1/workflows:
+    summary: Get or create workflows
     get:
-      summary: Get or create information about jobs
-      description: Get or create information about jobs
-      operationId: get_jobs
+      summary: Get a list of current workflows
+      description: Get a list of current workflows
+      operationId: get_workflows
       responses:
         '200':
           description: OK
@@ -35,64 +35,68 @@ paths:
         default:
           description: Default error sample response
     post:
-      summary: Create a new job
-      description: Create a new job with the given information
-      operationId: create_job
+      summary: Create a new workflow
+      description: Create a new workflow
+      operationId: create_workflow
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Job'
+              $ref: '#/components/schemas/Workflow'
       responses:
         '201':
-          description: Successfully created a new job
+          description: Successfully created a Workflow
         default:
           description: Default error sample response
-  '/bee_sched/v1/jobs/{job_id}':
-    summary: Get information about a specific job
-    description: Get information about a specific job
-    get:
-      summary: Get information about a specific job
-      description: ''
-      operationId: get_job
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Job'
-        default:
-          description: Default error sample response
-    put:
-      summary: Update information about a specific job
-      description: Update information about a specific job
-      operationId: update_job
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Job'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Job'
-        default:
-          description: Default error sample response
+  '/bee_sched/v1/workflows/{workflow_id}':
+    summary: Get or update workflow information
     parameters:
-      - name: job_id
+      - name: workflow_id
         in: path
         required: true
         schema:
           type: integer
-  '/bee_sched/v1/jobs/{job_id}/allocation':
-    summary: Get recommended allocation information for a specific job
     get:
-      summary: Get allocation information for a specific job
-      description: Get allocation information for a specific job
+      summary: Get details about a specific workflow
+      description: Get details about a specific workflow
+      operationId: get_workflow
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        default:
+          description: Default error sample response
+    put:
+      summary: Update a workflow
+      description: Update information about a workflow
+      operationId: update_workflow
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Workflow'
+      responses:
+        '200':
+          description: OK
+        default:
+          description: Default error sample response
+  '/bee_sched/v1/workflows/{workflow_id}/allocation':
+    summary: Get recommended allocation information for a specific workflow
+    post:
+      summary: Start the scheduling algorithm for a particular workflow
+      description: Start the scheduling algorithm for a particular workflow
+      operationId: start_allocation
+      responses:
+        '202':
+          description: Accepted workflow for scheduling
+        default:
+          description: Default error sample response
+    get:
+      summary: Get allocation information/status for a specific workflow
+      description: Get allocation information for a specific workflow
       operationId: get_allocation
       responses:
         '200':
@@ -104,7 +108,7 @@ paths:
         default:
           description: Default error sample response
     parameters:
-      - name: job_id
+      - name: workflow_id
         in: path
         required: true
         schema:
@@ -242,104 +246,23 @@ paths:
           description: OK
         default:
           description: Default error sample response
-  /bee_sched/v1/workflows:
-    summary: Get or create workflows
-    get:
-      summary: Get a list of current workflows
-      description: Get a list of current workflows
-      operationId: get_workflows
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: integer
-        default:
-          description: Default error sample response
-    post:
-      summary: Create a new workflow
-      description: Create a new workflow
-      operationId: create_workflow
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Workflow'
-      responses:
-        '201':
-          description: Successfully created a Workflow
-        default:
-          description: Default error sample response
-  '/bee_sched/v1/workflows/{workflow_id}':
-    summary: Get or update workflow information
-    parameters:
-      - name: workflow_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    get:
-      summary: Get details about a specific workflow
-      description: Get details about a specific workflow
-      operationId: get_workflow
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Workflow'
-        default:
-          description: Default error sample response
-    put:
-      summary: Update a workflow
-      description: Update information about a workflow
-      operationId: update_workflow
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Workflow'
-      responses:
-        '200':
-          description: OK
-        default:
-          description: Default error sample response
 components:
   schemas:
-    Node:
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        cores:
-          type: integer
-      required:
-        - name
-        - cores
-# Passes the ID that references the Job in the database
-# TODO: This may also require the ID of the workflow
-    Job:
-      properties:
-        id:
-          type: integer
-      required:
-        - id
     Allocation:
       properties:
-        nodes:
+        status:
+          type: string
+          enum:
+            - RUNNING
+            - COMPLETE
+        partitions:
           type: array
           items:
             type: integer
         start_time:
           type: integer
       required:
-        - nodes
-        - start_time
+        - status
       example:
         empty:
           summary: Empty value
@@ -354,7 +277,7 @@ components:
             start_time: 6000
         double:
           summary: Double node allocation
-          value:  
+          value:
             nodes:
               - 1
               - 2
@@ -363,12 +286,27 @@ components:
       properties:
         id:
           type: integer
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Resource'
       required:
-        - id
+        - attributes
       example:
         empty:
           id: 1
-# How is this be connected to the Jobs/Tasks?
+          attributes: []
+    Resource:
+      properties:
+        type:
+          type: string
+          enum:
+            - GPU
+            - CPU
+        limits:
+          type: string
+      required:
+        - id
     Workflow:
       properties:
         id:
@@ -385,8 +323,70 @@ components:
             type: string
         state:
           type: string
-          enum: ['WAITING', 'RUNNING', 'CANCELLED', 'CRASHED', 'ZOMBIE', 'COMPLETE']
+# Added 'READY' state here to indicate that a workflow has been scheduled and is
+# ready to run
+          enum:
+            - WAITING
+            - READY
+            - RUNNING
+            - CANCELLED
+            - CRASHED
+            - ZOMBIE
+            - COMPLETE
+        tasks:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Task'
       required:
-        - id
+        - name
+        - inputs
+        - outputs
+        - state
+        - tasks
       example:
-        id: 1
+        workflow1:
+          name: test workflow
+          inputs:
+            - input.txt
+          outputs:
+            - output.txt
+          state: WAITING
+        workflow2:
+          name: test workflow
+          inputs:
+            - input.txt
+          outputs:
+            - output.txt
+          state: WAITING
+          tasks:
+            - - cmd:
+                  - grep
+                  - word
+              - cmd:
+                  - cat
+                  - input.txt
+            - - cmd:
+                  - sort
+            - - cmd:
+                  - test
+    Node:
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        cores:
+          type: integer
+      required:
+        - name
+        - cores
+    Task:
+      properties:
+        cmd:
+          type: array
+          items:
+            type: string
+      required:
+        - cmd
