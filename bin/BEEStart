@@ -34,8 +34,6 @@ def StartGDB(bc, debug=True):
     stdout = sys.stdout
     stderr = sys.stderr
 
-    user_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
-
     if bc.userconfig.has_section('graphdb'):
         graphsec = bc.userconfig['graphdb']
         db_hostname = graphsec.get('hostname','localhost')

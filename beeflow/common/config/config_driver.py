@@ -65,29 +65,13 @@ class BeeConfig:
             with open(self.userconfig_file) as userconf_file:
                 self.userconfig.read_file(userconf_file)
                 userconf_file.close()
-            # Discard redundant paths, iff Windows, replace(\,/)
-            userconfig_file = os.path.normpath(self.userconfig_file)
-            # Get desired config file name
-            userconfig_filename = os.path.basename(userconfig_file)
-            # Resolve the true path (expand relative path refs)
-            tmp = os.getcwd()
-            os.chdir(os.path.dirname(userconfig_file))
-            userconfig_file = '/'.join([os.getcwd(),userconfig_filename])
-            os.chdir(tmp)
-            self.userconfig_file = userconfig_file
+            # Get absolute path
+            self.userconfig_file = self.resolve_path(self.userconfig_file)
         except FileNotFoundError:
             # Create directory based on relative path
             os.makedirs(os.path.dirname(self.userconfig_file), exist_ok=True)
-            # Discard redundant paths, iff Windows, replace(\,/)
-            userconfig_file = os.path.normpath(self.userconfig_file)
-            # Get desired config file name
-            userconfig_filename = os.path.basename(userconfig_file)
-            # Resolve the true path (expand relative path refs)
-            tmp = os.getcwd()
-            os.chdir(os.path.dirname(userconfig_file))
-            userconfig_file = '/'.join([os.getcwd(),userconfig_filename])
-            os.chdir(tmp)
-            self.userconfig_file = userconfig_file
+            # Get absolute path
+            self.userconfig_file = self.resolve_path(self.userconfig_file)
             with open(self.userconfig_file, 'w') as conf:
                 conf.write("# BEE CONFIGURATION FILE #")
                 conf.close()
@@ -96,7 +80,30 @@ class BeeConfig:
                 'name': 'DEFAULT',
                 'bee_workdir': str(default_workdir),
                 }
+            try:
+                graphdb_dict = kwargs['graphdb_dict']
+            except KeyError:
+                if platform.system() == 'Windows':
+                    pass
+                else:
+                    offset = os.getuid()%10         
+                graphdb_dict = {
+                    'name': 'graphdb',
+                    'hostname': 'localhost',
+                    'dbpass': 'password',
+                    'bolt_port': 7687+offset,
+                    'http_port': 7474+offset,
+                    'https_port': 7473+offset,
+                    'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
+                    'gdb_image_mntdir': default_workdir,
+                }
+            
             self.add_section('user', default_dict)
+            self.add_section('user', graphdb_dict)
+            # Read in what we just wrote
+            with open(self.userconfig_file) as userconf_file:
+                self.userconfig.read_file(userconf_file)
+                userconf_file.close()
 
     def add_section(self, conf, secdict):
         """Add a new section to the system or user config file.
@@ -112,5 +119,23 @@ class BeeConfig:
         if conf == 'user':
             with open(self.userconfig_file, 'a')as configfile:
                 configfile.write('\n')
-                newconfig.write(configfile,space_around_delimiters=False)
+                newconfig.write(configfile)
                 configfile.close()
+
+    def resolve_path(self, relative_path):
+        """Resolve relative paths to absolute paths
+
+        :param relative_path: Input path. May include "../"
+        :type relative_path: string, path to file
+        """
+        # Discard redundant paths, iff Windows, replace(\,/)
+        relative_path = os.path.normpath(relative_path)
+        # Get desired config file name
+        filename = os.path.basename(relative_path)
+        # Resolve the true path (expand relative path refs)
+        tmp = os.getcwd()
+        os.chdir(os.path.dirname(relative_path))
+        absolute_path = '/'.join([os.getcwd(),filename])
+        os.chdir(tmp)
+        return(absolute_path)
+        
