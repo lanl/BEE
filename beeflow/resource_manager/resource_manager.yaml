@@ -17,7 +17,7 @@ info:
   description: BEE Resource Manager API implementing efficient resource management.
   version: '0.1'
 paths:
-  /jobs:
+  /bee_sched/v1/jobs:
     summary: Information about jobs used by the scheduling algorithm
     get:
       summary: Get or create information about jobs
@@ -48,7 +48,7 @@ paths:
           description: Successfully created a new job
         default:
           description: Default error sample response
-  '/jobs/{job_id}':
+  '/bee_sched/v1/jobs/{job_id}':
     summary: Get information about a specific job
     description: Get information about a specific job
     get:
@@ -88,7 +88,7 @@ paths:
         required: true
         schema:
           type: integer
-  '/jobs/{job_id}/allocation':
+  '/bee_sched/v1/jobs/{job_id}/allocation':
     summary: Get recommended allocation information for a specific job
     get:
       summary: Get allocation information for a specific job
@@ -109,7 +109,7 @@ paths:
         required: true
         schema:
           type: integer
-  /nodes:
+  /bee_sched/v1/nodes:
     summary: Get or create information about the collection of nodes
     description: Get or create information about the collection of nodes
     get:
@@ -141,7 +141,7 @@ paths:
           description: Successfully created a node
         default:
           description: Default error sample response
-  '/nodes/{node_id}':
+  '/bee_sched/v1/nodes/{node_id}':
     summary: Get or update information about a specific node
     description: Get or update information about a specific node
     parameters:
@@ -175,7 +175,7 @@ paths:
       responses:
         default:
           description: Default error sample response
-  /partitions:
+  /bee_sched/v1/partitions:
     summary: Get or create information about partitions of the current cluster
     get:
       summary: Get information about all available partitions
@@ -206,7 +206,7 @@ paths:
           description: Successfully created a Partition
         default:
           description: Default error sample response
-  '/partitions/{partition_id}':
+  '/bee_sched/v1/partitions/{partition_id}':
     summary: Get or update specific information about a partition
     description: Get or update specific information about a partition
     parameters:
@@ -242,7 +242,7 @@ paths:
           description: OK
         default:
           description: Default error sample response
-  /workflows:
+  /bee_sched/v1/workflows:
     summary: Get or create workflows
     get:
       summary: Get a list of current workflows
@@ -273,7 +273,7 @@ paths:
           description: Successfully created a Workflow
         default:
           description: Default error sample response
-  '/workflows/{workflow_id}':
+  '/bee_sched/v1/workflows/{workflow_id}':
     summary: Get or update workflow information
     parameters:
       - name: workflow_id
@@ -383,6 +383,9 @@ components:
           type: array
           items:
             type: string
+        state:
+          type: string
+          enum: ['WAITING', 'RUNNING', 'CANCELLED', 'CRASHED', 'ZOMBIE', 'COMPLETE']
       required:
         - id
       example:
