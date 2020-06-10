@@ -132,21 +132,6 @@ class BeeConfig:
                      conf_obj.read_file(conf_fh)
                      conf_fh.close()
 
-<<<<<<< HEAD
-        :param conf: which config file to edit
-        :type conf: string, 'user', 'system', or 'both'
-        :param secdict: key-value pairs of configuration variable
-        :type secdict: dictionary, first entry MUST BE 'name': <value> of the new section
-        """
-        section_name = secdict.pop('name')
-        newconfig = ConfigParser()
-        newconfig[str(section_name)] = secdict
-        if conf == 'user':
-            with open(self.userconfig_file, 'a')as configfile:
-                configfile.write('\n')
-                newconfig.write(configfile)
-                configfile.close()
-
 def add_value(self, conf, section, key, value):
         """Add a new section to the system or user config file.
         :param conf: which config file to edit
@@ -174,14 +159,27 @@ def add_value(self, conf, section, key, value):
                                        file options')
 
         for conf_file,conf_obj in zip(conf_files,conf_objs):
-            with open(conf_file, 'a')as conf_fh:
+            # Update conf_obj with current file as written
+            with open(conf_file, 'r')as conf_fh:
                 # Object reads filehandle
                 conf_obj.read_file(conf_fh)
-                # Insert new value
-          
+                conf_fh.close()
+
+            # Insert new value
+            try:
+                conf_obj[section]
+            except KeyError:
+                conf_obj[section] = {}
+            finally:
+                conf_obj[section][key] = value
+
+            # Write altered conf_obj back to file
+            with open(conf_file, 'w')as conf_fh:
+                conf_fh.write("# BEE CONFIGURATION FILE #\n")
                 # Object writes to filehandle
                 conf_obj.write(conf_fh)
                 conf_fh.close()
+          
 
     def resolve_path(self, relative_path):
         """Resolve relative paths to absolute paths
