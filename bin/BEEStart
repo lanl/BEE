@@ -47,7 +47,6 @@ def StartGDB(bc, debug=True):
         log.warning("[graphdb] section not found in configuration file, default values will be added")
 
         graphdb_dict = {
-            'name': 'graphdb',
             'hostname': 'localhost',
             'dbpass': 'password',
             'bolt_port': 7687,
@@ -57,7 +56,7 @@ def StartGDB(bc, debug=True):
             'gdb_image_mntdir': '/tmp',
         }
         
-        bc.add_section('user', graphdb_dict)
+        bc.add_value('user', 'graphdb', graphdb_dict)
         log.warning("Please check " + str(bc.userconfig_file) + " and rerun startup")
         return None
 
