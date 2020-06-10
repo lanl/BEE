@@ -70,11 +70,7 @@ class BeeConfig:
         except FileNotFoundError:
             # Create directory based on relative path
             os.makedirs(os.path.dirname(self.userconfig_file), exist_ok=True)
-            # Get absolute path
             self.userconfig_file = self.resolve_path(self.userconfig_file)
-            with open(self.userconfig_file, 'w') as conf:
-                conf.write("# BEE CONFIGURATION FILE #")
-                conf.close()
             default_workdir = os.path.dirname(self.userconfig_file)
             default_dict = {
                 'name': 'DEFAULT',
@@ -84,7 +80,8 @@ class BeeConfig:
                 graphdb_dict = kwargs['graphdb_dict']
             except KeyError:
                 if platform.system() == 'Windows':
-                    pass
+                    # Need something like a uid for windows.
+                    offset = 0
                 else:
                     offset = os.getuid()%10         
                 graphdb_dict = {
@@ -97,17 +94,45 @@ class BeeConfig:
                     'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
                     'gdb_image_mntdir': default_workdir,
                 }
-            
-            self.add_section('user', default_dict)
-            self.add_section('user', graphdb_dict)
-            # Read in what we just wrote
-            with open(self.userconfig_file) as userconf_file:
-                self.userconfig.read_file(userconf_file)
-                userconf_file.close()
+            with open(self.userconfig_file, 'w') as conf_fh:
+                conf_fh.write("# BEE CONFIGURATION FILE #")
+                conf_fh.close()
+            self.add_value('user','DEFAULT','bee_workdir',str(default_workdir))
+            self.add_value('user','graphdb',graphdb_dict)
 
-    def add_section(self, conf, secdict):
-        """Add a new section to the system or user config file.
+    def add_value(self, conf, section, key, value):
+             """Add a new section to the system or user config file.
+             :param conf: which config file to edit
+             :type conf: string, 'user', 'system', or 'both'
+             :param section: configuration file section
+             :type section: string
+             :param key: configuration variable
+             :type key: string
+             :param value: configuration value
+             :type value: string
+             """
+             if conf == 'user':
+                 conf_files = [self.userconfig_file]
+                 conf_objs  = [self.userconfig]
+             elif conf == 'system':
+                 conf_files = [self.sysconfig_file]
+                 conf_objs  = [self.sysconfig]
+             elif conf == 'both':
+                 conf_files = [self.userconfig_file,
+                               self.sysconfig_file]
+                 conf_objs  = [self.userconfig,
+                               self.sysconfig]
+             else:
+                 raise NotImplementedError('Only user, system, or both are config \
+                                            file options')
+    
+             for conf_file,conf_obj in zip(conf_files,conf_objs):
+                 with open(conf_file, 'r')as conf_fh:
+                     # Object reads/updates filehandle
+                     conf_obj.read_file(conf_fh)
+                     conf_fh.close()
 
+<<<<<<< HEAD
         :param conf: which config file to edit
         :type conf: string, 'user', 'system', or 'both'
         :param secdict: key-value pairs of configuration variable
@@ -175,3 +200,18 @@ def add_value(self, conf, section, key, value):
         os.chdir(tmp)
         return(absolute_path)
         
+=======
+                 # Insert new value
+                 try:
+                     conf_obj[section]
+                 except KeyError:
+                     conf_obj[section] = {}
+                 finally:
+                     conf_obj[section][key] = value
+
+                 with open(conf_file, 'w')as conf_fh:
+                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
+                     # Object writes to filehandle
+                     conf_obj.write(conf_fh)
+                     conf_fh.close()
+>>>>>>> task/issue159
