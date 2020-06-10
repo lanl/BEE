@@ -197,19 +197,3 @@ def add_value(self, conf, section, key, value):
         absolute_path = '/'.join([os.getcwd(),filename])
         os.chdir(tmp)
         return(absolute_path)
-        
-=======
-                 # Insert new value
-                 try:
-                     conf_obj[section]
-                 except KeyError:
-                     conf_obj[section] = {}
-                 finally:
-                     conf_obj[section][key] = value
-
-                 with open(conf_file, 'w')as conf_fh:
-                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
-                     # Object writes to filehandle
-                     conf_obj.write(conf_fh)
-                     conf_fh.close()
->>>>>>> task/issue159
