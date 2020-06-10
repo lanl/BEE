@@ -59,10 +59,6 @@ class BeeConfig:
                 conf_fh.write("# BEE CONFIGURATION FILE #")
                 conf_fh.close()
             default_workdir = os.path.expanduser('~/.beeflow')
-            default_dict = {
-                'name': 'DEFAULT',
-                'bee_workdir': str(default_workdir),
-                }
             self.add_value('user','DEFAULT','bee_workdir',str(default_workdir))
 
     def add_value(self, conf, section, key, value):
