@@ -82,43 +82,46 @@ class BeeConfig:
                 newconfig.write(configfile)
                 configfile.close()
 
-def add_value(self, conf, section, key, value):
-         """Add a new section to the system or user config file.
-         :param conf: which config file to edit
-         :type conf: string, 'user', 'system', or 'both'
-         :param section: configuration file section
-         :type section: string
-         :param key: configuration variable
-         :type key: string
-         :param value: configuration value
-         :type value: string
-         """
-         if conf == 'user'
-             conf_files = [self.userconfig_file]
-             conf_objs  = [self.userconfig]
-         elif conf == 'system'
-             conf_files = [self.sysconfig_file]
-             conf_objs  = [self.sysconfig]
-         elif conf == 'both'
-             conf_files = [self.userconfig_file,
-                           self.sysconfig_file]
-             conf_objs  = [self.userconfig,
-                           self.sysconfig]
-         else
-             raise NotImplementedError('Only user, system, or both are config \
-                                        file options')
-
-          for conf_file,conf_obj in zip(conf_files,conf_objs):
-             with open(conf_file, 'a')as conf_fh:
-                 # Object reads filehandle
-                 conf_obj.read_file(conf_fh)
-                 # Insert new value
-                 try:
-                     conf_obj[section]
-                 except KeyError:
-                     conf_obj[section] = {}
-                 finally:
-                     conf_obj[section][key] = value
-                 # Object writes to filehandle
-                 conf_obj.write(conf_fh)
-                 conf_fh.close()
+    def add_value(self, conf, section, key, value):
+             """Add a new section to the system or user config file.
+             :param conf: which config file to edit
+             :type conf: string, 'user', 'system', or 'both'
+             :param section: configuration file section
+             :type section: string
+             :param key: configuration variable
+             :type key: string
+             :param value: configuration value
+             :type value: string
+             """
+             if conf == 'user':
+                 conf_files = [self.userconfig_file]
+                 conf_objs  = [self.userconfig]
+             elif conf == 'system':
+                 conf_files = [self.sysconfig_file]
+                 conf_objs  = [self.sysconfig]
+             elif conf == 'both':
+                 conf_files = [self.userconfig_file,
+                               self.sysconfig_file]
+                 conf_objs  = [self.userconfig,
+                               self.sysconfig]
+             else:
+                 raise NotImplementedError('Only user, system, or both are config \
+                                            file options')
+    
+             for conf_file,conf_obj in zip(conf_files,conf_objs):
+                 with open(conf_file, 'a')as conf_fh:
+                     print('conf_file:',conf_file)
+                     print('type obj:',type(conf_obj))
+                     print('conf_obj.items():',list(conf_obj.items()))
+                     # Object reads filehandle
+                     conf_obj.read_file(conf_fh)
+                     # Insert new value
+                     try:
+                         conf_obj[section]
+                     except KeyError:
+                         conf_obj[section] = {}
+                     finally:
+                         conf_obj[section][key] = value
+                     # Object writes to filehandle
+                     conf_obj.write(conf_fh)
+                     conf_fh.close()
