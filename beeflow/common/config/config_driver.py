@@ -109,21 +109,20 @@ class BeeConfig:
                                             file options')
     
              for conf_file,conf_obj in zip(conf_files,conf_objs):
-                 with open(conf_file, 'w')as conf_fh:
-                     print('conf_file:',conf_file)
-                     print('type obj:',type(conf_obj))
-                     print('conf_obj.items():',list(conf_obj.items()))
-                     #print('conf_obj.get(DEFAULT,bee_workdir):',conf_obj.get('DEFAULT','bee_workdir'))
-                     #print('self.userconfig.get(DEFAULT,bee_workdir):',self.userconfig.get('DEFAULT','bee_workdir'))
+                 with open(conf_file, 'r')as conf_fh:
                      # Object reads/updates filehandle
                      conf_obj.read_file(conf_fh)
-                     # Insert new value
-                     try:
-                         conf_obj[section]
-                     except KeyError:
-                         conf_obj[section] = {}
-                     finally:
-                         conf_obj[section][key] = value
+                     conf_fh.close()
+
+                 # Insert new value
+                 try:
+                     conf_obj[section]
+                 except KeyError:
+                     conf_obj[section] = {}
+                 finally:
+                     conf_obj[section][key] = value
+
+                 with open(conf_file, 'w')as conf_fh:
                      conf_fh.write("# BEE CONFIGURATION FILE #\n")
                      # Object writes to filehandle
                      conf_obj.write(conf_fh)
