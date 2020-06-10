@@ -123,14 +123,12 @@ class BeeConfig:
             else:
                 raise NotImplementedError('Only user, system, or both are config \
                                            file options')
-    
             for conf_file,conf_obj in zip(conf_files,conf_objs):
                 # Update conf_obj with current file as written
                 with open(conf_file, 'r')as conf_fh:
                     # Object reads filehandle
                     conf_obj.read_file(conf_fh)
                     conf_fh.close()
-    
                 # Insert new value
                 try:
                     conf_obj[section]
@@ -138,14 +136,12 @@ class BeeConfig:
                     conf_obj[section] = {}
                 finally:
                     conf_obj[section] = keyvalue
-    
                 # Write altered conf_obj back to file
                 with open(conf_file, 'w')as conf_fh:
                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
                     # Object writes to filehandle
                     conf_obj.write(conf_fh)
                     conf_fh.close()
-          
 
     def resolve_path(self, relative_path):
         """Resolve relative paths to absolute paths
