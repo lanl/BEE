@@ -63,24 +63,7 @@ class BeeConfig:
                 'name': 'DEFAULT',
                 'bee_workdir': str(default_workdir),
                 }
-            self.add_section('user', default_dict)
-
-    def add_section(self, conf, secdict):
-        """Add a new section to the system or user config file.
-
-        :param conf: which config file to edit
-        :type con f: string, 'user', 'system', or 'both'
-        :param secdict: key-value pairs of configuration variable
-        :type secdict: dictionary, first entry MUST BE 'name': <value> of the new section
-        """
-        section_name = secdict.pop('name')
-        newconfig = ConfigParser()
-        newconfig[str(section_name)] = secdict
-        if conf == 'user':
-            with open(self.userconfig_file, 'a')as conf_fh:
-                conf_fh.write('\n')
-                newconfig.write(conf_fh)
-                conf_fh.close()
+            self.add_value('user','DEFAULT','bee_workdir',str(default_workdir))
 
     def add_value(self, conf, section, key, value):
              """Add a new section to the system or user config file.
