@@ -69,7 +69,7 @@ class BeeConfig:
         """Add a new section to the system or user config file.
 
         :param conf: which config file to edit
-        :type conf: string, 'user', 'system', or 'both'
+        :type con f: string, 'user', 'system', or 'both'
         :param secdict: key-value pairs of configuration variable
         :type secdict: dictionary, first entry MUST BE 'name': <value> of the new section
         """
@@ -113,7 +113,12 @@ def add_value(self, conf, section, key, value):
                  # Object reads filehandle
                  conf_obj.read_file(conf_fh)
                  # Insert new value
-
-                  # Object writes to filehandle
+                 try:
+                     conf_obj[section]
+                 except KeyError:
+                     conf_obj[section] = {}
+                 finally:
+                     conf_obj[section][key] = value
+                 # Object writes to filehandle
                  conf_obj.write(conf_fh)
                  conf_fh.close()
