@@ -55,9 +55,9 @@ class BeeConfig:
                 userconf_file.close()
         except FileNotFoundError:
             os.makedirs(os.path.dirname(self.userconfig_file), exist_ok=True)
-            with open(self.userconfig_file, 'w') as conf:
-                conf.write("# BEE CONFIGURATION FILE #")
-                conf.close()
+            with open(self.userconfig_file, 'w') as conf_fh:
+                conf_fh.write("# BEE CONFIGURATION FILE #")
+                conf_fh.close()
             default_workdir = os.path.expanduser('~/.beeflow')
             default_dict = {
                 'name': 'DEFAULT',
@@ -77,10 +77,10 @@ class BeeConfig:
         newconfig = ConfigParser()
         newconfig[str(section_name)] = secdict
         if conf == 'user':
-            with open(self.userconfig_file, 'a')as configfile:
-                configfile.write('\n')
-                newconfig.write(configfile)
-                configfile.close()
+            with open(self.userconfig_file, 'a')as conf_fh:
+                conf_fh.write('\n')
+                newconfig.write(conf_fh)
+                conf_fh.close()
 
     def add_value(self, conf, section, key, value):
              """Add a new section to the system or user config file.
@@ -109,11 +109,13 @@ class BeeConfig:
                                             file options')
     
              for conf_file,conf_obj in zip(conf_files,conf_objs):
-                 with open(conf_file, 'a')as conf_fh:
+                 with open(conf_file, 'w')as conf_fh:
                      print('conf_file:',conf_file)
                      print('type obj:',type(conf_obj))
                      print('conf_obj.items():',list(conf_obj.items()))
-                     # Object reads filehandle
+                     #print('conf_obj.get(DEFAULT,bee_workdir):',conf_obj.get('DEFAULT','bee_workdir'))
+                     #print('self.userconfig.get(DEFAULT,bee_workdir):',self.userconfig.get('DEFAULT','bee_workdir'))
+                     # Object reads/updates filehandle
                      conf_obj.read_file(conf_fh)
                      # Insert new value
                      try:
@@ -122,6 +124,7 @@ class BeeConfig:
                          conf_obj[section] = {}
                      finally:
                          conf_obj[section][key] = value
+                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
                      # Object writes to filehandle
                      conf_obj.write(conf_fh)
                      conf_fh.close()
