@@ -68,9 +68,9 @@ class BeeConfig:
             # Get absolute path
             self.userconfig_file = self.resolve_path(self.userconfig_file)
         except FileNotFoundError:
-            # Create directory based on relative path
-            os.makedirs(os.path.dirname(self.userconfig_file), exist_ok=True)
+            # If user specified relative paths, make them absolute
             self.userconfig_file = self.resolve_path(self.userconfig_file)
+            # Set workdir path as same as bee.conf
             default_workdir = os.path.dirname(self.userconfig_file)
             default_dict = {
                 'name': 'DEFAULT',
@@ -105,11 +105,16 @@ class BeeConfig:
                 raise NotImplementedError('Only user, system, or both are config \
                                            file options')
             for conf_file,conf_obj in zip(conf_files,conf_objs):
-                # Update conf_obj with current file as written
-                with open(conf_file, 'r')as conf_fh:
-                    # Object reads filehandle
-                    conf_obj.read_file(conf_fh)
-                    conf_fh.close()
+                # Update conf_obj with current file as written, if exists
+                try:
+                    with open(conf_file, 'r')as conf_fh:
+                        # Object reads filehandle
+                        conf_obj.read_file(conf_fh)
+                        conf_fh.close()
+                except FileNotFoundError:
+                    # If file doesn't exist, try to create one.
+                    pass
+                     
                 # Insert new value
                 try:
                     conf_obj[section]
@@ -122,6 +127,12 @@ class BeeConfig:
                     # Set if value not present
                     except TypeError:
                         conf_obj[section] = keyvalue
+                try:
+                    # Make sure conf_file path exists
+                    os.makedirs(os.path.dirname(conf_file), exist_ok=True)
+                except PermissionError as e:
+                    raise PermissionError('Do you have write access to {}?'.\
+                                           format(conf_file)) from e
                 # Write altered conf_obj back to file
                 with open(conf_file, 'w')as conf_fh:
                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
