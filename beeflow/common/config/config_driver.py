@@ -68,9 +68,9 @@ class BeeConfig:
             # Get absolute path
             self.userconfig_file = self.resolve_path(self.userconfig_file)
         except FileNotFoundError:
-            # Create directory based on relative path
-            os.makedirs(os.path.dirname(self.userconfig_file), exist_ok=True)
+            # If user specified relative paths, make them absolute
             self.userconfig_file = self.resolve_path(self.userconfig_file)
+            # Set workdir path as same as bee.conf
             default_workdir = os.path.dirname(self.userconfig_file)
             default_dict = {
                 'name': 'DEFAULT',
@@ -128,11 +128,11 @@ class BeeConfig:
                     except TypeError:
                         conf_obj[section] = keyvalue
                 try:
-                    # Make sure sysconfig path exists
-                    os.makedirs(os.path.dirname(self.sysconfig_file), exist_ok=True)
+                    # Make sure conf_file path exists
+                    os.makedirs(os.path.dirname(conf_file), exist_ok=True)
                 except PermissionError as e:
                     raise PermissionError('Do you have write access to {}?'.\
-                                           format(self.sysconfig_file)) from e
+                                           format(conf_file)) from e
                 # Write altered conf_obj back to file
                 with open(conf_file, 'w')as conf_fh:
                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
