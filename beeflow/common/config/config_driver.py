@@ -76,29 +76,10 @@ class BeeConfig:
                 'name': 'DEFAULT',
                 'bee_workdir': str(default_workdir),
                 }
-            try:
-                graphdb_dict = kwargs['graphdb_dict']
-            except KeyError:
-                if platform.system() == 'Windows':
-                    # Need something like a uid for windows.
-                    offset = 0
-                else:
-                    offset = os.getuid()%100         
-                graphdb_dict = {
-                    'name': 'graphdb',
-                    'hostname': 'localhost',
-                    'dbpass': 'password',
-                    'bolt_port': 7687+offset,
-                    'http_port': 7474+offset,
-                    'https_port': 7473+offset,
-                    'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
-                    'gdb_image_mntdir': default_workdir,
-                }
             with open(self.userconfig_file, 'w') as conf_fh:
                 conf_fh.write("# BEE CONFIGURATION FILE #")
                 conf_fh.close()
             self.add_section('user','DEFAULT',{'bee_workdir':str(default_workdir)})
-            self.add_section('user','graphdb',graphdb_dict)
 
     def add_section(self, conf, section, keyvalue):
             """Add a new section to the system or user config file.
@@ -124,11 +105,16 @@ class BeeConfig:
                 raise NotImplementedError('Only user, system, or both are config \
                                            file options')
             for conf_file,conf_obj in zip(conf_files,conf_objs):
-                # Update conf_obj with current file as written
-                with open(conf_file, 'r')as conf_fh:
-                    # Object reads filehandle
-                    conf_obj.read_file(conf_fh)
-                    conf_fh.close()
+                # Update conf_obj with current file as written, if exists
+                try:
+                    with open(conf_file, 'r')as conf_fh:
+                        # Object reads filehandle
+                        conf_obj.read_file(conf_fh)
+                        conf_fh.close()
+                except FileNotFoundError:
+                    # If file doesn't exist, try to create one.
+                    pass
+                     
                 # Insert new value
                 try:
                     conf_obj[section]
@@ -141,6 +127,12 @@ class BeeConfig:
                     # Set if value not present
                     except TypeError:
                         conf_obj[section] = keyvalue
+                try:
+                    # Make sure sysconfig path exists
+                    os.makedirs(os.path.dirname(self.sysconfig_file), exist_ok=True)
+                except PermissionError as e:
+                    raise PermissionError('Do you have write access to {}?'.\
+                                           format(self.sysconfig_file)) from e
                 # Write altered conf_obj back to file
                 with open(conf_file, 'w')as conf_fh:
                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
