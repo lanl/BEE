@@ -97,7 +97,6 @@ class BeeConfig:
             with open(self.userconfig_file, 'w') as conf_fh:
                 conf_fh.write("# BEE CONFIGURATION FILE #")
                 conf_fh.close()
-            default_workdir = os.path.expanduser('~/.beeflow')
             self.add_section('user','DEFAULT',{'bee_workdir':str(default_workdir)})
             self.add_section('user','graphdb',graphdb_dict)
 
