@@ -135,7 +135,12 @@ class BeeConfig:
                 except KeyError:
                     conf_obj[section] = {}
                 finally:
-                    conf_obj[section] = keyvalue
+                    # Update if values already present
+                    try:
+                        conf_obj[section].update(keyvalue)
+                    # Set if value not present
+                    except TypeError:
+                        conf_obj[section] = keyvalue
                 # Write altered conf_obj back to file
                 with open(conf_file, 'w')as conf_fh:
                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
