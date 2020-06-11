@@ -34,32 +34,32 @@ def StartGDB(bc, debug=True):
     stdout = sys.stdout
     stderr = sys.stderr
 
-    if bc.userconfig.has_section('graphdb'):
-        graphsec = bc.userconfig['graphdb']
-        db_hostname = graphsec.get('hostname','localhost')
-        db_password = graphsec.get('dbpass','password')
-        bolt_port = graphsec.get('bolt_port','7687')
-        http_port = graphsec.get('http_port','7474')
-        https_port = graphsec.get('https_port','7473')
-        gdb_img = graphsec.get('gdb_image','')
-        gdb_img_mntdir = graphsec.get('gdb_image_mntdir','/tmp')
-    else:
-        log.warning("[graphdb] section not found in configuration file, default values will be added")
-
+    try:
+        graphdb_dict = kwargs['graphdb_dict']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Need something like a uid for windows.
+            offset = 0
+        else:
+            offset = os.getuid()%100
         graphdb_dict = {
             'name': 'graphdb',
             'hostname': 'localhost',
             'dbpass': 'password',
-            'bolt_port': 7687,
-            'http_port': 7474,
-            'https_port': 7473,
-            'gdb_image': '/path/to/neo4j-ch.tar',
-            'gdb_image_mntdir': '/tmp',
+            'bolt_port': 7687+offset,
+            'http_port': 7474+offset,
+            'https_port': 7473+offset,
+            'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
+            'gdb_image_mntdir': default_workdir,
         }
-        
-        bc.add_section('user', graphdb_dict)
-        log.warning("Please check " + str(bc.userconfig_file) + " and rerun startup")
-        return None
+#    try:
+    db_hostname = bc.userconfig.get('graphdb','hostname')
+    db_password = bc.userconfig.get('graphdb','dbpass')
+    bolt_port   = bc.userconfig.get('graphdb','bolt_port')
+    http_port   = bc.userconfig.get('graphdb','http_port')
+    https_port  = bc.userconfig.get('graphdb','https_port')
+    gdb_img     = bc.userconfig.get('graphdb','gdb_image')
+    gdb_img_mntdir = bc.userconfig.get('graphdb','gdb_image_mntdir')
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
     if debug:
