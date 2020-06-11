@@ -1,20 +1,10 @@
 openapi: 3.0.3
 servers:
-  - url: '{scheme}://{server}:{port}'
-    variables:
-      scheme:
-        default: ''
-        enum:
-          - https
-          - http
-        description: ''
-      server:
-        default: localhost
-      port:
-        default: '5000'
+# Relative URL (to whichever server is serving the scheduler API)
+  - url: '/'
 info:
-  title: BEE Resource Manager API
-  description: BEE Resource Manager API implementing efficient resource management.
+  title: BEE Scheduler API
+  description: BEE Scheduler API implementing efficient scheduling.
   version: '0.1'
 paths:
   /bee_sched/v1/workflows:
@@ -113,6 +103,7 @@ paths:
         required: true
         schema:
           type: integer
+# TODO: nodes level endpoint may not be necessary
   /bee_sched/v1/nodes:
     summary: Get or create information about the collection of nodes
     description: Get or create information about the collection of nodes
@@ -193,7 +184,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: integer
+                  type: string
         default:
           description: Default error sample response
     post:
@@ -210,15 +201,15 @@ paths:
           description: Successfully created a Partition
         default:
           description: Default error sample response
-  '/bee_sched/v1/partitions/{partition_id}':
+  '/bee_sched/v1/partitions/{partition_name}':
     summary: Get or update specific information about a partition
     description: Get or update specific information about a partition
     parameters:
-      - name: partition_id
+      - name: partition_name
         in: path
         required: true
         schema:
-          type: integer
+          type: string
     get:
       summary: Get details about a partition
       description: Get details about a partition
@@ -255,10 +246,12 @@ components:
           enum:
             - RUNNING
             - COMPLETE
-        partitions:
+# TODO: Mapping from steps to partitions - could be designed as an object mapping
+# from step name to partition name for the given workflow
+        steps_to_partitions:
           type: array
           items:
-            type: integer
+            type: string
         start_time:
           type: integer
       required:
@@ -282,20 +275,42 @@ components:
               - 1
               - 2
             start_time: 8000
+# Based upon 'partitions' output from slurmrestd
+# TODO: May need to make this more generic
     Partition:
       properties:
-        id:
+        name:
+          type: string
+        default_time_limit:
           type: integer
-        resources:
-          type: array
-          items:
-            $ref: '#/components/schemas/Resource'
+        default_memory_per_cpu:
+          type: integer
+        nodes_online:
+          type: integer
+        total_cpus:
+          type: integer
+        total_nodes:
+          type: integer
+        tres:
+          type: string
       required:
-        - attributes
+        - name
+        - default_time_limit
+        - default_memory_per_cpu
+        - nodes_online
+        - total_cpus
+        - total_nodes
+        - tres
       example:
-        empty:
-          id: 1
-          attributes: []
+        example1:
+          id: debug
+          default_time_limit: null
+          default_memory_per_cpu: 0
+          nodes_online: 3
+          total_cpus: 1
+          total_nodes: 1
+          tres: 'cpu=1,mem=1M,node=1,billing=1'
+# TODO: Resource may not be necessary
     Resource:
       properties:
         type:
@@ -333,7 +348,7 @@ components:
             - CRASHED
             - ZOMBIE
             - COMPLETE
-        tasks:
+        steps:
           type: array
           items:
             type: array
@@ -361,15 +376,15 @@ components:
             - output.txt
           state: WAITING
           tasks:
-            - - cmd:
+            - - baseCommand:
                   - grep
                   - word
-              - cmd:
+              - baseCommand:
                   - cat
                   - input.txt
-            - - cmd:
+            - - baseCommand:
                   - sort
-            - - cmd:
+            - - baseCommand:
                   - test
     Node:
       properties:
@@ -384,9 +399,23 @@ components:
         - cores
     Task:
       properties:
-        cmd:
+        inputs:
           type: array
           items:
             type: string
+        outputs:
+          type: array
+          items:
+            type: string
+        stdout:
+          type: string
+        baseCommand:
+          type: array
+          items:
+            type: string
+# TODO: Add more hints here as necessary
+        hints:
+          type: object
+          properties: {}
       required:
         - cmd
