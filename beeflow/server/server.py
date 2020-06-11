@@ -27,7 +27,7 @@ else:
         'listen_port': '5000',
     }
 
-    bc.add_value('user', 'workflow_manager', wfm_dict)
+    bc.add_section('user', 'workflow_manager', wfm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart WorkflowManager")
 

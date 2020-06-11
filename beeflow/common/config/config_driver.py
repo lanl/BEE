@@ -59,9 +59,9 @@ class BeeConfig:
                 conf_fh.write("# BEE CONFIGURATION FILE #")
                 conf_fh.close()
             default_workdir = os.path.expanduser('~/.beeflow')
-            self.add_value('user','DEFAULT',{'bee_workdir':str(default_workdir)})
+            self.add_section('user','DEFAULT',{'bee_workdir':str(default_workdir)})
 
-    def add_value(self, conf, section, keyvalue):
+    def add_section(self, conf, section, keyvalue):
             """Add a new section to the system or user config file.
             :param conf: which config file to edit
             :type conf: string, 'user', 'system', or 'both'

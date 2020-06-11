@@ -26,7 +26,7 @@ else:
         'listen_port': '5050',
     }
 
-    bc.add_value('user','task_manager', tm_dict)
+    bc.add_section('user','task_manager', tm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart TaskManager")
 

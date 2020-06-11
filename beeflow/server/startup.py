@@ -41,7 +41,7 @@ else:
         'gdb_image_mntdir': '/tmp',
         }
 
-    bc.add_value('user','graphdb' ,graphdb_dict)
+    bc.add_section('user','graphdb' ,graphdb_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and rerun startup")
 
