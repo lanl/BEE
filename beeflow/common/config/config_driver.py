@@ -23,7 +23,7 @@ class BeeConfig:
       userconfig_file = '%APPDATA%\beeflow\bee.conf'
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Initialize BeeConfig class.
 
         We check the platform and read in system and user configuration files.
@@ -34,13 +34,25 @@ class BeeConfig:
         system = platform.system()
         if system == "Linux":
             self.sysconfig_file = '/etc/beeflow/bee.conf'
-            self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
+            try:
+                # Accept user_config option
+                self.userconfig_file = kwargs['userconfig']
+            except KeyError: 
+                self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
         elif system == "Darwin":
             self.sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
-            self.userconfig_file = os.path.expanduser('~/Library/Application Support/beeflow/bee.conf')
+            try:
+                # Accept user_config option
+                self.userconfig_file = kwargs['userconfig']
+            except KeyError: 
+                self.userconfig_file = os.path.expanduser('~/Library/Application Support/beeflow/bee.conf')
         elif system == "Windows":
             self.sysconfig_file = ''
-            self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
+            try:
+                # Accept user_config option
+                self.userconfig_file = kwargs['userconfig']
+            except KeyError: 
+                self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
 
         try:
             with open(self.sysconfig_file) as sysconf_file:
@@ -53,12 +65,20 @@ class BeeConfig:
             with open(self.userconfig_file) as userconf_file:
                 self.userconfig.read_file(userconf_file)
                 userconf_file.close()
+            # Get absolute path
+            self.userconfig_file = self.resolve_path(self.userconfig_file)
         except FileNotFoundError:
+            # Create directory based on relative path
             os.makedirs(os.path.dirname(self.userconfig_file), exist_ok=True)
+            self.userconfig_file = self.resolve_path(self.userconfig_file)
+            default_workdir = os.path.dirname(self.userconfig_file)
+            default_dict = {
+                'name': 'DEFAULT',
+                'bee_workdir': str(default_workdir),
+                }
             with open(self.userconfig_file, 'w') as conf_fh:
                 conf_fh.write("# BEE CONFIGURATION FILE #")
                 conf_fh.close()
-            default_workdir = os.path.expanduser('~/.beeflow')
             self.add_section('user','DEFAULT',{'bee_workdir':str(default_workdir)})
 
     def add_section(self, conf, section, keyvalue):
@@ -84,25 +104,44 @@ class BeeConfig:
             else:
                 raise NotImplementedError('Only user, system, or both are config \
                                            file options')
- 
             for conf_file,conf_obj in zip(conf_files,conf_objs):
                 # Update conf_obj with current file as written
                 with open(conf_file, 'r')as conf_fh:
                     # Object reads filehandle
                     conf_obj.read_file(conf_fh)
                     conf_fh.close()
- 
                 # Insert new value
                 try:
                     conf_obj[section]
                 except KeyError:
                     conf_obj[section] = {}
                 finally:
-                    conf_obj[section] = keyvalue
- 
+                    # Update if values already present
+                    try:
+                        conf_obj[section].update(keyvalue)
+                    # Set if value not present
+                    except TypeError:
+                        conf_obj[section] = keyvalue
                 # Write altered conf_obj back to file
                 with open(conf_file, 'w')as conf_fh:
                     conf_fh.write("# BEE CONFIGURATION FILE #\n")
                     # Object writes to filehandle
                     conf_obj.write(conf_fh)
                     conf_fh.close()
+
+    def resolve_path(self, relative_path):
+        """Resolve relative paths to absolute paths
+ 
+        :param relative_path: Input path. May include "../"
+        :type relative_path: string, path to file
+        """
+        # Discard redundant paths, iff Windows, replace(\,/)
+        relative_path = os.path.normpath(relative_path)
+        # Get desired config file name
+        filename = os.path.basename(relative_path)
+        # Resolve the true path (expand relative path refs)
+        tmp = os.getcwd()
+        os.chdir(os.path.dirname(relative_path))
+        absolute_path = '/'.join([os.getcwd(),filename])
+        os.chdir(tmp)
+        return(absolute_path)
