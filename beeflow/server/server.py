@@ -6,6 +6,7 @@ import requests
 import random
 import cwl_utils.parser_v1_0 as cwl
 import beeflow.common.parser.parse_cwl as parser
+import platform
 
 # Server and REST handling
 from flask import Flask, jsonify, make_response
@@ -17,25 +18,45 @@ from werkzeug.datastructures import FileStorage
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
 
-bc = BeeConfig()
+try:
+    bc = BeeConfig(userconfig=sys.argv[1])
+except IndexError:
+    bc = BeeConfig()
+
+# Set Workflow manager ports, attempt to prevent collisions
+wm_port=5000
+if platform.system() == 'Windows':
+    # Get parent's pid to offset ports. uid method better but not available in Windows
+    wm_port += os.getppid()%100
+else:
+    wm_port += os.getuid()%100
+
 if bc.userconfig.has_section('workflow_manager'):
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port','5000')
+    # Try getting listen port from config if exists, use wm_port if it doesnt exist
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port',wm_port)
 else:
     print("[workflow_manager] section not found in configuration file, default values will be added")
 
     wfm_dict = {
-        'listen_port': '5000',
+        'listen_port': wm_port,
     }
 
-    bc.add_value('user', 'workflow_manager', wfm_dict)
+    bc.add_section('user', 'workflow_manager', wfm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart WorkflowManager")
 
 if bc.userconfig.has_section('task_manager'):
+    # Try getting listen port from config if exists, use 5050 if it doesnt exist
     tm_listen_port = bc.userconfig['task_manager'].get('listen_port','5050')
 else:
     print("[task_manager] section not found in configuration file, default values will be used")
-    tm_listen_port = '5050'
+    # Set Workflow manager ports, attempt to prevent collisions
+    tm_listen_port=5050
+    if platform.system() == 'Windows':
+        # Get parent's pid to offset ports. uid method better but not available in Windows
+        tm_listen_port += os.getppid()%100
+    else:
+        tm_listen_port += os.getuid()%100
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
