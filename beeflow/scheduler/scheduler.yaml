@@ -21,7 +21,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: integer
+                  $ref: '#/components/schemas/Workflow'
         default:
           description: Default error sample response
     post:
@@ -184,7 +184,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
+                  $ref: '#/components/schemas/Partition'
         default:
           description: Default error sample response
     post:
@@ -249,9 +249,8 @@ components:
 # TODO: Mapping from steps to partitions - could be designed as an object mapping
 # from step name to partition name for the given workflow
         steps_to_partitions:
-          type: array
-          items:
-            type: string
+          type: object
+          description: Step names to partition names to run on
         start_time:
           type: integer
       required:
@@ -260,20 +259,20 @@ components:
         empty:
           summary: Empty value
           value:
-            nodes: []
+            steps_to_partitions: {}
             start_time: ''
         single:
           summary: Single node allocation
           value:
-            nodes:
-              - 1
+            steps_to_partitions:
+              wc: debug
             start_time: 6000
         double:
           summary: Double node allocation
           value:
-            nodes:
-              - 1
-              - 2
+            steps_to_partitions:
+              wc: debug1
+              grep: debug2
             start_time: 8000
 # Based upon 'partitions' output from slurmrestd
 # TODO: May need to make this more generic
@@ -390,10 +389,20 @@ components:
       properties:
         id:
           type: string
-        name:
+        architecture:
           type: string
         cores:
           type: integer
+        cpus:
+          type: integer
+# TODO: Find what other states Slurm or others may list it has
+        state:
+          type: string
+          enum: ['idle']
+        tres:
+          type: string
+        name:
+          type: string
       required:
         - name
         - cores
@@ -418,4 +427,6 @@ components:
           type: object
           properties: {}
       required:
-        - cmd
+        - inputs
+        - outputs
+        - baseCommand
