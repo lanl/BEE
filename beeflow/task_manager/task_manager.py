@@ -16,25 +16,49 @@ from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.config.config_driver import BeeConfig
 from apscheduler.schedulers.background import BackgroundScheduler
 
-bc = BeeConfig()
+
+try:
+    bc = BeeConfig(userconfig=sys.argv[1])
+except IndexError:
+    bc = BeeConfig()
+
+# Set Workflow manager ports, attempt to prevent collisions
+tm_port=5000
+if platform.system() == 'Windows':
+    # Get parent's pid to offset ports. uid method better but not available in Windows
+    tm_port += os.getppid()%100
+else:
+    tm_port += os.getuid()%100
+
 if bc.userconfig.has_section('task_manager'):
-    tm_listen_port = bc.userconfig['task_manager'].get('listen_port', '5050')
+    tm_listen_port = bc.userconfig['task_manager'].get('listen_port', tm_port)
 else:
     print("[task_manager] section not found in configuration file, default values added")
 
     tm_dict = {
-        'listen_port': '5050',
+        'listen_port': tm_port,
     }
 
     bc.add_section('user','task_manager', tm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart TaskManager")
 
+
+# Set Workflow manager ports, attempt to prevent collisions
+wm_port=5000
+if platform.system() == 'Windows':
+    # Get parent's pid to offset ports. uid method better but not available in Windows
+    wm_port += os.getppid()%100
+else:
+    wm_port += os.getuid()%100
+
+
+
 if bc.userconfig.has_section('workflow_manager'):
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', '5000')
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', wm_port)
 else:
     print("[workflow_manager] section not found in configuration, default values added")
-    wfm_listen_port = '5000'
+    wfm_listen_port = wm_port
 
 flask_app = Flask(__name__)
 api = Api(flask_app)

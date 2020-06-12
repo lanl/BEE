@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import platform
 from beeflow.common.config.config_driver import BeeConfig
 from subprocess import PIPE
 
@@ -34,12 +35,14 @@ def StartGDB(bc, debug=True):
     stdout = sys.stdout
     stderr = sys.stderr
 
+
+    # Load gdb config from config file if exists
     try:
-        graphdb_dict = kwargs['graphdb_dict']
+        bc.userconfig['graphdb']
     except KeyError:
         if platform.system() == 'Windows':
-            # Need something like a uid for windows.
-            offset = 0
+            # Would prefer something like a uid for windows.
+            offset = os.getpid()%100
         else:
             offset = os.getuid()%100
         graphdb_dict = {
@@ -50,9 +53,11 @@ def StartGDB(bc, debug=True):
             'http_port': 7474+offset,
             'https_port': 7473+offset,
             'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
-            'gdb_image_mntdir': default_workdir,
+            'gdb_image_mntdir': bc.userconfig.get('DEFAULT','bee_workdir'),
         }
-#    try:
+        # Add section (writes to config file)
+        bc.add_section('user','graphdb',graphdb_dict)
+    # Read the config file back in
     db_hostname = bc.userconfig.get('graphdb','hostname')
     db_password = bc.userconfig.get('graphdb','dbpass')
     bolt_port   = bc.userconfig.get('graphdb','bolt_port')
@@ -84,7 +89,8 @@ def StartGDB(bc, debug=True):
     if debug:
         log.info('Created certificates directory %s', container_certs_path)
     # Setup working path data
-    gdb_workdir = os.path.join(user_workdir, newdir)
+    gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'), 
+                               newdir)
     gdb_config_path = os.path.join(gdb_workdir, "conf")
     os.makedirs(gdb_config_path, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
@@ -162,18 +168,20 @@ def StartGDB(bc, debug=True):
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr 
 def StartWorkflowManager(bc, debug=False):
     """Start BEEWorkflowManager. Returns a Popen process object."""
-    return subprocess.Popen(["python", "beeflow/server/server.py"],
+    return subprocess.Popen(["python", 'beeflow/server/server.py',
+                            '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
 def StartTaskManager(bc, debug=False):
     """Start BEETaskManager. Returns a Popen process object."""
-    return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py"],
+    return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py",
+                            '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
-    os.makedirs(os.path.expanduser('~/.beeflow'), exist_ok=True)
-    with open(os.path.expanduser(f'~/.beeflow/{pid_file}'), 'w') as fp:
+    os.makedirs(bc.userconfig.get('DEFAULT','bee_workdir'), exist_ok=True)
+    with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 
 def setup_logging(bc, debug=False):
@@ -206,6 +214,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
     parser.add_argument("--gdb", action="store_true", help="start the configured graph database")
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
+    parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
 
     return parser.parse_args(args)
 
@@ -216,7 +225,11 @@ def main():
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
-    bc = BeeConfig(userconfig='../../../.config/beeflow/bee.conf')
+    if args.userconfig_file:
+        bc = BeeConfig(userconfig=args.userconfig_file)
+    else:
+        bc = BeeConfig()
+
     # Setup logging based on args.debug
     log = setup_logging(bc, args.debug)
     if log is None:
