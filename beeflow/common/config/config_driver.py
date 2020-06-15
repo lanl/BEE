@@ -81,7 +81,7 @@ class BeeConfig:
                 conf_fh.close()
             self.modify_section('user','DEFAULT',{'bee_workdir':str(default_workdir)})
 
-    def modify_section(self, conf, section, keyvalue):
+    def modify_section(self, conf, section, keyvalue,replace=False):
             """Add a new section to the system or user config file.
             :param conf: which config file to edit
             :type conf: string, 'user', 'system', or 'both'
@@ -123,6 +123,9 @@ class BeeConfig:
                 finally:
                     # Update if values already present
                     try:
+                        # If user wants to over-write, dont try to update
+                        if replace:
+                            raise TypeError
                         conf_obj[section].update(keyvalue)
                     # Set if value not present
                     except TypeError:
