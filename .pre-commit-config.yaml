@@ -1,0 +1,8 @@
+-   repo: local
+    hooks:
+    -   id: pylama-linting
+        name: run pylama
+        entry: pylama -o config.cfg
+        language: system
+        types: [python]
+        stages: [push]

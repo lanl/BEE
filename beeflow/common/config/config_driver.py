@@ -37,10 +37,11 @@ class BeeConfig:
             self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
         elif system == "Darwin":
             self.sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
-            self.userconfig_file = os.path.expanduser('~/Library/Application Support/beeflow/bee.conf')
+            self.userconfig_file = os.path.expanduser(
+                '~/Library/Application Support/beeflow/bee.conf')
         elif system == "Windows":
             self.sysconfig_file = ''
-            self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf') 
+            self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
 
         try:
             with open(self.sysconfig_file) as sysconf_file:
