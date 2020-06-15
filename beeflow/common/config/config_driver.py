@@ -41,12 +41,8 @@ class BeeConfig:
                 self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
         elif system == "Darwin":
             self.sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
-            try:
-                # Accept user_config option
-                self.userconfig_file = kwargs['userconfig']
-            except KeyError:
-                self.userconfig_file = os.path.\
-                  expanduser('~/Library/Application Support/beeflow/bee.conf')
+            self.userconfig_file = os.path.expanduser(
+                '~/Library/Application Support/beeflow/bee.conf')
         elif system == "Windows":
             self.sysconfig_file = ''
             try:
