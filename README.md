@@ -37,10 +37,12 @@ If using `git --version` >= 2.9
 ```
 git config core.hooksPath .githooks
 ```
-Otherwise
+Otherwise, if `BEE_Private` is the primary git repository (ie- not a submodule in another git project)
 ```
 cp .githooks/* .git/hooks/
 ```
+Otherwise, copy the contents of `.githooks/*` into the relevant `.git/<submodule path>/hooks` directory
+
 Using these git hooks will ensure your contributions adhere to style guidelines required for contribution. You will need to repeat these steps for every `BEE_Private` repo you clone.
 
 # Mail List and Contact
