@@ -6,7 +6,7 @@ import platform
 import jsonpickle
 import requests
 import cwl_utils.parser_v1_0 as cwl
-# Server and REST handling
+# Server and REST handlin
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 # Interacting with the rm, tm, and scheduler
@@ -73,6 +73,7 @@ def _url():
     task_manager = "/bee_tm/v1/task/"
     return f'http://127.0.0.1:{TM_LISTEN_PORT}/{task_manager}'
 
+
 # Used to access the TM
 def _resource(tag=""):
     return _url() + str(tag)
@@ -81,11 +82,14 @@ def _resource(tag=""):
 # Instantiate the workflow interface
 wfi = WorkflowInterface()
 
+
 # Client registers with the workflow manager.
 # Workflow manager returns a workflow ID used for subsequent communication
 class JobsList(Resource):
+    """Class def to interact with workflow job listing."""
 
     def __init__(self):
+        """Initialize job list class."""
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('title', type=str, required=True,
                                    help='Need a title',
@@ -95,21 +99,29 @@ class JobsList(Resource):
     # Give client a wf_id
     # wf_id not needed if we just support a single workflow
     def post(self):
+        """TEMPORARY: Hard-coded lister to get workflow 42."""
         data = self.reqparse.parse_args()
         title = data['title']
+        print("Retrieved a title \"{}\". What to do with it?".format(title))
         # Return the wf_id and created
         resp = make_response(jsonify(wf_id="42"), 201)
         return resp
 
-# User submits the actual workflow. 
-class JobSubmit(Resource):
-    def __init__(self):
-        self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('workflow', type=FileStorage, 
-             location='files', required=True)
 
-    # Client Submits workflow 
+# User submits the actual workflow.
+class JobSubmit(Resource):
+    """Class to submit jobs to workflow manager."""
+
+    def __init__(self):
+        """Initialize workflow manager from parsed arguments."""
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('workflow', type=FileStorage,
+                                   location='files', required=True)
+
+    # Client Submits workflow
     def put(self, wf_id):
+        """Get a workflow or give file not found error."""
+        print("JobSubmit passed wf_id={} but it's unused. What do?".format(wf_id))
         data = self.reqparse.parse_args()
         if data['workflow'] == "":
             resp = make_response(jsonify(msg='No file found', status='error'), 400)
@@ -126,57 +138,73 @@ class JobSubmit(Resource):
             parser.create_workflow(top, wfi)
             resp = make_response(jsonify(msg='Workflow uploaded', status='ok'), 201)
             return resp
-        else:
-            resp = make_response(jsonify(msg='File corrupted', status='error'), 400)
-            return resp
+        resp = make_response(jsonify(msg='File corrupted', status='error'), 400)
+        return resp
+
 
 # Submit a task to the TM
 def submit_task(task):
+    """Submit a task to the task manager."""
     # Serialize task with json
     task_json = jsonpickle.encode(task)
     # Send task_msg to task manager
     print(f"Submitted {task.name} to Task Manager")
     resp = requests.post(_resource("submit/"), json={'task': task_json})
-    if resp.status_code != requests.codes.okay:
+    if resp.status_code != 200:
         print("Something bad happened")
+
 
 # Used to tell if the workflow is currently paused
 # Will eventually be moved to a Workflow class
-workflow_paused = False
-saved_task = None
+WORKFLOW_PAUSED = False
+SAVED_TASK = None
+
 
 # Save a task when we pause
 def save_task(task):
-    global saved_task 
+    """Save a task."""
+    global SAVED_TASK
     print(f"Saving {task.name}")
-    saved_task = task
+    SAVED_TASK = task
+
 
 def resume():
-    global saved_task
-    if saved_task is not None:
-        submit_task(saved_task)
+    """Resume a saved task."""
+    global SAVED_TASK
+    if SAVED_TASK is not None:
+        submit_task(SAVED_TASK)
     # Clear out the saved task
-    saved_task = None
+    SAVED_TASK = None
+
 
 # This class is where we act on existing jobs
 class JobActions(Resource):
+    """Class to handle job actions."""
+
     def __init__(self):
+        """Initialize JobActions class with passed json object."""
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('option', type=str, location='json')
 
-    # Start Job
     def post(self, wf_id):
-        # Send tasks to the task manager
+        """Start job. Send tasks to the task manager."""
+        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
+        print("self is referenced but not used. Evaluate JobActions().post decorators", self)
         # Get first task and send it to the task manager
         task = list(wfi.get_dependent_tasks(wfi.get_task_by_id(0)))[0]
-        # Submit task to TM 
+        # Submit task to TM
         submit_task(task)
         return "Started workflow!"
 
-    # Query Job
     def get(self, wf_id):
-        # Check the database for the current status of all the tasks
+        """Check the database for the current status of all the tasks."""
+        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
+        print("self is referenced but not used. Evaluate JobActions().get decorators", self)
         (tasks, requirements, hints) = wfi.get_workflow()
+        print('requirements={} obtained but unused. Either use or change argument to _'.
+              format(requirements))
+        print('hints={} obtained but unused. Either use or change argument to _'.
+              format(hints))
         task_status = ""
         for task in tasks:
             if task.name != "bee_init" and task.name != "bee_exit":
@@ -185,53 +213,58 @@ class JobActions(Resource):
         resp = make_response(jsonify(msg=task_status, status='ok'), 200)
         return resp
 
-    # Cancel Job
     def delete(self, wf_id):
-        # Send a request to the task manager to cancel any ongoing tasks 
+        """Send a request to the task manager to cancel any ongoing tasks."""
+        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
+        print("self is referenced but not used. Evaluate JobActions().get decorators", self)
         resp = requests.delete(_resource())
-        if resp.status_code != requests.codes.okay:
+        if resp.status_code != 200:
             print("Something bad happened")
         # Remove all tasks currently in the database
         wfi.finalize_workflow()
-        #wfi.cleanup()
+        # wfi.cleanup()
         print("Workflow cancelled")
         resp = make_response(jsonify(status='cancelled'), 202)
         return resp
-        
-    # Pause / Resume Workflow
+
     def patch(self, wf_id):
-        global workflow_paused
+        """Pause or resume workflow."""
+        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
+        global WORKFLOW_PAUSED
         # Stop sending jobs to the task manager
         data = self.reqparse.parse_args()
         option = data['option']
         if option == 'pause':
-            workflow_paused = True
+            WORKFLOW_PAUSED = True
             print("Workflow Paused")
             resp = make_response(jsonify(status='Workflow Paused'), 200)
             return resp
-        elif option == 'resume':
-            if workflow_paused == True:
-                workflow_paused = False  
+        if option == 'resume':
+            if WORKFLOW_PAUSED:
+                WORKFLOW_PAUSED = False
                 resume()
             print("Workflow Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)
             return resp
-        else:
-            print("Invalid option")
-            resp = make_response(jsonify(status='Invalid option for pause/resume'), 400)
-            return resp
+        print("Invalid option")
+        resp = make_response(jsonify(status='Invalid option for pause/resume'), 400)
+        return resp
+
 
 class JobUpdate(Resource):
-    def __init__(self):
-        self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('task_id', type=int, location='json', 
-                required=True)
-        self.reqparse.add_argument('job_state', type=str, location='json', 
-                required=True)
+    """Class for to interact with an existing job."""
 
-    # Update the state of a task from the task manager
+    def __init__(self):
+        """Initialize JobUpdate with task_id and job_state requirements."""
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('task_id', type=int, location='json',
+                                   required=True)
+        self.reqparse.add_argument('job_state', type=str, location='json',
+                                   required=True)
+
     def put(self):
-        # Figure out how to find the task in the databse and change it's state 
+        """Update the state of a task from the task manager."""
+        # Figure out how to find the task in the databse and change it's state
         data = self.reqparse.parse_args()
         task_id = data['task_id']
         job_state = data['job_state']
@@ -246,13 +279,13 @@ class JobUpdate(Resource):
                 print("Workflow Completed")
                 wfi.finalize_workflow()
                 print("Cleanup")
-                #wfi.cleanup()
+                # wfi.cleanup()
 
-            task = remaining_tasks[0] 
+            task = remaining_tasks[0]
             if task.name != 'bee_exit':
-                # Take the first task and schedule it 
+                # Take the first task and schedule it
                 # TODO This won't work well for deeply nested workflows
-                if workflow_paused:
+                if WORKFLOW_PAUSED:
                     # If we've paused the workflow save the task until we resume
                     save_task(task)
                 else:
@@ -260,14 +293,18 @@ class JobUpdate(Resource):
             else:
                 print("Workflow Completed!")
                 wfi.finalize_workflow()
-                #wfi.cleanup()
+                # wfi.cleanup()
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
+
 
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<string:wf_id>')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
+
 if __name__ == '__main__':
     flask_app.run(debug=True, port=str(wfm_listen_port))
+
+# pylama:ignore=W0511
