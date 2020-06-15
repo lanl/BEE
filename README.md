@@ -30,6 +30,13 @@ a repository, it can be automatically tested across a suite of different softwar
 
 The BEE project supports launching applications using the [Charliecloud](https://github.com/hpc/charliecloud) HPC container runtime.  These applications can be executed on a traditional HPC cluster or an OpenStack cloud cluster.
 
+# Contributing
+
+The BEE project adheres to style guidelines specified in `./setup.cfg`. Before attempting to commit and push changes, please install our pre-commit githooks by running the following command in project root:
+```
+git config core.hooksPath .githooks
+```
+Using these git hooks will ensure your contributions adhere to style guidelines required for contribution.
 
 # Mail List and Contact
 
