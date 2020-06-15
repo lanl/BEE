@@ -46,7 +46,6 @@ def StartGDB(bc, debug=True):
         else:
             offset = os.getuid()%100
         graphdb_dict = {
-            'name': 'graphdb',
             'hostname': 'localhost',
             'dbpass': 'password',
             'bolt_port': 7687+offset,
