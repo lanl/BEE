@@ -39,7 +39,7 @@ else:
         'listen_port': tm_port,
     }
 
-    bc.add_section('user','task_manager', tm_dict)
+    bc.modify_section('user','task_manager', tm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart TaskManager")
 

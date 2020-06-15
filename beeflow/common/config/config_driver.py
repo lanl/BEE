@@ -79,9 +79,9 @@ class BeeConfig:
             with open(self.userconfig_file, 'w') as conf_fh:
                 conf_fh.write("# BEE CONFIGURATION FILE #")
                 conf_fh.close()
-            self.add_section('user','DEFAULT',{'bee_workdir':str(default_workdir)})
+            self.modify_section('user','DEFAULT',{'bee_workdir':str(default_workdir)})
 
-    def add_section(self, conf, section, keyvalue):
+    def modify_section(self, conf, section, keyvalue, replace=False):
             """Add a new section to the system or user config file.
             :param conf: which config file to edit
             :type conf: string, 'user', 'system', or 'both'
@@ -114,13 +114,15 @@ class BeeConfig:
                 except FileNotFoundError:
                     # If file doesn't exist, try to create one.
                     pass
-                     
                 # Insert new value
                 try:
                     conf_obj[section]
                 except KeyError:
                     conf_obj[section] = {}
                 finally:
+                    # If over-write (replace) requested, handle as exception
+                    if replace:
+                        raise TypeError
                     # Update if values already present
                     try:
                         conf_obj[section].update(keyvalue)

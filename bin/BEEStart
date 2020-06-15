@@ -56,7 +56,7 @@ def StartGDB(bc, debug=True):
             'gdb_image_mntdir': bc.userconfig.get('DEFAULT','bee_workdir'),
         }
         # Add section (writes to config file)
-        bc.add_section('user','graphdb',graphdb_dict)
+        bc.modify_section('user','graphdb',graphdb_dict)
     # Read the config file back in
     db_hostname = bc.userconfig.get('graphdb','hostname')
     db_password = bc.userconfig.get('graphdb','dbpass')
