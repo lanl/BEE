@@ -125,6 +125,9 @@ class BeeConfig:
                         raise TypeError
                     # Update if values already present
                     try:
+                        # If user wants to over-write, dont try to update
+                        if replace:
+                            raise TypeError
                         conf_obj[section].update(keyvalue)
                     # Set if value not present
                     except TypeError:
