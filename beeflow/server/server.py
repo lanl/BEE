@@ -1,20 +1,17 @@
-#!flask/bin/python3
+"""Server launch script."""
+
 import os
 import sys
+import platform
 import jsonpickle
 import requests
-import random
 import cwl_utils.parser_v1_0 as cwl
-import beeflow.common.parser.parse_cwl as parser
-import platform
-
 # Server and REST handling
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
-
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
-
+import beeflow.common.parser.parse_cwl as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
 
@@ -24,21 +21,23 @@ except IndexError:
     bc = BeeConfig()
 
 # Set Workflow manager ports, attempt to prevent collisions
-wm_port=5000
+WM_PORT = 5000
+
 if platform.system() == 'Windows':
     # Get parent's pid to offset ports. uid method better but not available in Windows
-    wm_port += os.getppid()%100
+    WM_PORT += os.getppid() % 100
 else:
-    wm_port += os.getuid()%100
+    WM_PORT += os.getuid() % 100
 
 if bc.userconfig.has_section('workflow_manager'):
-    # Try getting listen port from config if exists, use wm_port if it doesnt exist
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port',wm_port)
+    # Try getting listen port from config if exists, use WM_PORT if it doesnt exist
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', WM_PORT)
 else:
-    print("[workflow_manager] section not found in configuration file, default values will be added")
+    print("[workflow_manager] section not found in configuration file, default values\
+ will be added")
 
     wfm_dict = {
-        'listen_port': wm_port,
+        'listen_port': WM_PORT,
     }
 
     bc.modify_section('user', 'workflow_manager', wfm_dict)
@@ -47,16 +46,16 @@ else:
 
 if bc.userconfig.has_section('task_manager'):
     # Try getting listen port from config if exists, use 5050 if it doesnt exist
-    tm_listen_port = bc.userconfig['task_manager'].get('listen_port','5050')
+    TM_LISTEN_PORT = bc.userconfig['task_manager'].get('listen_port', '5050')
 else:
     print("[task_manager] section not found in configuration file, default values will be used")
     # Set Workflow manager ports, attempt to prevent collisions
-    tm_listen_port=5050
+    TM_LISTEN_PORT = 5050
     if platform.system() == 'Windows':
         # Get parent's pid to offset ports. uid method better but not available in Windows
-        tm_listen_port += os.getppid()%100
+        TM_LISTEN_PORT += os.getppid() % 100
     else:
-        tm_listen_port += os.getuid()%100
+        TM_LISTEN_PORT += os.getuid() % 100
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -68,14 +67,16 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+
 # Returns the url to the TM
 def _url():
     task_manager = "/bee_tm/v1/task/"
-    return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
+    return f'http://127.0.0.1:{TM_LISTEN_PORT}/{task_manager}'
 
 # Used to access the TM
-def _resource(tag=""): 
+def _resource(tag=""):
     return _url() + str(tag)
+
 
 # Instantiate the workflow interface
 wfi = WorkflowInterface()
@@ -83,11 +84,12 @@ wfi = WorkflowInterface()
 # Client registers with the workflow manager.
 # Workflow manager returns a workflow ID used for subsequent communication
 class JobsList(Resource):
+
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('title', type=str, required=True,
-                                    help='Need a title',
-                                    location='json')
+                                   help='Need a title',
+                                   location='json')
         super(JobsList, self).__init__()
 
     # Give client a wf_id
