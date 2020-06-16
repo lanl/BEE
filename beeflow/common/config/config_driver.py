@@ -60,7 +60,6 @@ class BeeConfig:
                 sysconf_file.close()
         except FileNotFoundError:
             pass
-
         try:
             with open(self.userconfig_file) as userconf_file:
                 self.userconfig.read_file(userconf_file)
@@ -68,6 +67,13 @@ class BeeConfig:
             # Get absolute path
             self.userconfig_file = self.resolve_path(self.userconfig_file)
         except FileNotFoundError:
+            try:
+                # Make sure conf_file path exists
+                os.makedirs(os.path.dirname(self.userconfig_file),
+                            exist_ok=True)
+            except PermissionError as e:
+                raise PermissionError('Do you have write access to {}?'.\
+                                       format(conf_file)) from e
             # If user specified relative paths, make them absolute
             self.userconfig_file = self.resolve_path(self.userconfig_file)
             # Set workdir path as same as bee.conf
