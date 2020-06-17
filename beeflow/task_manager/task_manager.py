@@ -23,11 +23,10 @@ else:
     print("[task_manager] section not found in configuration file, default values added")
 
     tm_dict = {
-        'name': 'task_manager',
         'listen_port': '5050',
     }
 
-    bc.add_section('user', tm_dict)
+    bc.modify_section('user','task_manager', tm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart TaskManager")
 
