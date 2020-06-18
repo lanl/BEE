@@ -15,7 +15,7 @@ from beeflow.common.worker.worker import Worker
 
 from beeflow.common.config.config_driver import BeeConfig
 
-bc = BeeConfig
+bc = BeeConfig()
 if bc.userconfig.has_section('slurmrestd'):
     slurm_sec = bc.userconfig['graphdb']
     socket = slurm_sec.get('socket')
@@ -100,7 +100,9 @@ def query_job(job_id):
         query_success = -1
         job_state = f"Unable to query job id {job_id}."
     else:
-        status = json.loads(resp)
+        print(resp)
+        print(resp.text)
+        status = json.loads(resp.text)
         job_state = status['job_state']
         query_success = 1
     return query_success, job_state
