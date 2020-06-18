@@ -18,7 +18,8 @@ class WorkflowInterface:
 
         :param kwargs: arguments to be passed to the graph database
         """
-        self._gdb_interface = GraphDatabaseInterface()
+        print("wfi passing kwargs")
+        self._gdb_interface = GraphDatabaseInterface(kwargs)
         # In the future we may need to grab the details from a config file
         self._gdb_details = kwargs
 

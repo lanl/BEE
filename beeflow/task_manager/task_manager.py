@@ -5,8 +5,11 @@ Communicates status to the Work Flow Manager, through RESTful API.
 """
 import atexit
 import sys
+import os
 import jsonpickle
 import requests
+import platform
+
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -23,7 +26,7 @@ except IndexError:
     bc = BeeConfig()
 
 # Set Workflow manager ports, attempt to prevent collisions
-tm_port=5000
+tm_port=5050
 if platform.system() == 'Windows':
     # Get parent's pid to offset ports. uid method better but not available in Windows
     tm_port += os.getppid()%100
@@ -45,7 +48,7 @@ else:
 
 
 # Set Workflow manager ports, attempt to prevent collisions
-wm_port=5000
+wm_port=5050
 if platform.system() == 'Windows':
     # Get parent's pid to offset ports. uid method better but not available in Windows
     wm_port += os.getppid()%100
@@ -196,4 +199,5 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 
 if __name__ == '__main__':
+    print('tm_listen_port:",tm_listen_port')
     flask_app.run(debug=True, port=str(tm_listen_port))

@@ -28,7 +28,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     Wraps the neo4j package proprietary driver.
     """
 
-    def __init__(self, uri=DEFAULT_URI, user=DEFAULT_USER, password=DEFAULT_PASSWORD):
+    def __init__(self, uri=DEFAULT_URI, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
         """Create a new Neo4j database driver.
 
         :param uri: the URI of the Neo4j database
@@ -38,7 +38,13 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param password: the password for the database user account
         :type password: string
         """
-        bc = BeeConfig()
+
+        try:
+            bc = BeeConfig(userconfig=kwargs['userconfig'])
+            print('neo4j_driver found userconfig')
+        except KeyError:
+            bc = BeeConfig()
+
         if bc.userconfig.has_section('graphdb'):
             graphsec = bc.userconfig['graphdb']
             bolt_port = graphsec.get('bolt_port')

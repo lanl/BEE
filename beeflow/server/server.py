@@ -80,7 +80,10 @@ def _resource(tag=""):
 
 
 # Instantiate the workflow interface
-wfi = WorkflowInterface()
+try:
+    wfi = WorkflowInterface(userconfig=sys.argv[1])
+except IndexError:
+    wfi = WorkflowInterface()
 
 
 # Client registers with the workflow manager.

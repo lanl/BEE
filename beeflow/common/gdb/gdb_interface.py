@@ -33,8 +33,9 @@ class GraphDatabaseInterface:
 
         :param kwargs: arguments for initializing the graph database connection
         """
+        print('gdbi passing kwargs')
         # Initialize the graph database driver
-        self._connection = self._gdb_driver(**kwargs)
+        self._connection = self._gdb_driver(kwargs)
 
     def initialize_workflow(self, inputs, outputs, requirements, hints):
         """Begin construction of a workflow in the graph database.
