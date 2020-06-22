@@ -3,7 +3,32 @@
 import math
 
 
-class TimeSlot:
+class ResourceBase:
+    """Resource base.
+
+    Base class with encode() and decode() methods for converting
+    objects to basic objects.
+    """
+
+    def encode(self):
+        """Encode an object and return the basic type.
+
+        Encodes the object and returns a basic type that can be
+        converted to JSON or YAML.
+        """
+        # TODO
+
+    @staticmethod
+    def decode(data):
+        """Decode a basic type and return the object it represents.
+
+        Decodes basic Python types and returns a newly constructed
+        object.
+        """
+        # TODO
+
+
+class TimeSlot(ResourceBase):
     """Time slot class.
 
     A class representing an allocated time slot.
@@ -38,15 +63,41 @@ class TimeSlot:
         return (self.open and (self.start_time + self.runtime) >= (min_start_time + task.runtime)
                 and task.runtime <= self.runtime)
 
+    def encode(self):
+        """Encode an object and return the basic type.
 
-class Cluster:
+        Encodes the object and returns a basic type that can be
+        converted to JSON or YAML.
+        """
+        val = dict(self.__dict__)
+        if self.task is not None:
+            val['task'] = self.task.encode()
+        if self.partition is not None:
+            val['partition'] = self.partition.encode()
+        return val
+
+    @staticmethod
+    def decode(data):
+        """Decode a basic type and return the object it represents.
+
+        Decodes basic Python types and returns a newly constructed
+        object.
+        """
+        val = dict(data)
+        if 'task' in val:
+            val['task'] = Task.decode(val['task'])
+        return TimeSlot(**val)
+        # return TimeSlot(data['start_time'], task=Task.from_json(data['task']), runtime=task['runtime'])
+
+
+class Cluster(ResourceBase):
     """Cluster class.
 
     Class representing an entire cluster, partitions, nodes and resources.
     """
 
     # TODO
-    def __init__(self, name):
+    def __init__(self, name, partitions=[]):
         """Allocation constructor.
 
         Initialize a new Allocation .
@@ -54,7 +105,7 @@ class Cluster:
         :type name: str
         """
         self.name = name
-        self.partitions = []
+        self.partitions = partitions
 
     def insert_partition(self, partition):
         """Insert a new partition.
@@ -65,14 +116,37 @@ class Cluster:
         """
         self.partitions.append(partition)
 
+    def encode(self):
+        """Encode an object and return the basic type.
 
-class Partition:
+        Encodes the object and returns a basic type that can be
+        converted to JSON or YAML.
+        """
+        val = dict(self.__dict__)
+        for i, p in enumerate(val['partitions']):
+            val['partitions'][i] = p.encode()
+        return val
+
+    @staticmethod
+    def decode(data):
+        """Decode a basic type and return the object it represents.
+
+        Decodes basic Python types and returns a newly constructed
+        object.
+        """
+        val = dict(data)
+        # or i, p in enumerate(val['partitions']):
+        val['partitions'] = [Partition.decode(p) for p in val['partitions']]
+        return Cluster(**val)
+
+
+class Partition(ResourceBase):
     """Partition class.
 
     Class representing a single partition within a larger cluster.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, slots=[]):
         """Partition constructor.
 
         Initialize a new partition .
@@ -143,22 +217,44 @@ class Partition:
         # Didn't find an empty slot
         return start_time if self.total_time < start_time else self.total_time
 
+    def encode(self):
+        """Encode an object and return the basic type.
 
-class Workflow:
+        Encodes the object and returns a basic type that can be
+        converted to JSON or YAML.
+        """
+        val = dict(self.__dict__)
+        val['slots'] = [slot.encode() for slot in val['slots']]
+        return val
+
+    @staticmethod
+    def decode(data):
+        """Decode a basic type and return the object it represents.
+
+        Decodes basic Python types and returns a newly constructed
+        object.
+        """
+        data = dict(data)
+        if 'slots' in data:
+            data['slots'] = [TimeSlot.decode(slot) for slot in data['slots']]
+        return Partition(**data)
+
+
+class Workflow(ResourceBase):
     """Workflow class.
 
     Representation of a workflow, tasks and dependencies between
     those tasks.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, levels=[]):
         """Workflow constructor.
 
         Initialize a new workflow.
         """
         # TODO
         self.name = name
-        self.levels = []
+        self.levels = levels
 
     def insert(self, task, level=0):
         """Insert the task into the workflow.
@@ -176,8 +272,38 @@ class Workflow:
             self.levels.append([])
         self.levels[level].append(task)
 
+    def encode(self):
+        """Encode an object and return the basic type.
 
-class Task:
+        Encodes the object and returns a basic type that can be
+        converted to JSON or YAML.
+        """
+        val = dict(self.__dict__)
+        for i, l in enumerate(val['levels']):
+            val['levels'][i] = list(l)
+            for j, t in enumerate(val['levels'][i]):
+                val['levels'][i][j] = t.encode()
+        return val
+
+    @staticmethod
+    def decode(data):
+        """Decode a basic type and return the object it represents.
+
+        Decodes basic Python types and returns a newly constructed
+        object.
+        """
+        val = dict(data)
+        levels = []
+        for l in data['levels']:
+            level = []
+            for t in l:
+                level.append(Task.decode(t))
+            levels.append(level)
+        val['levels'] = levels
+        return Workflow(**val)
+
+
+class Task(ResourceBase):
     """Task class.
 
     Representation of a single Task within a Workflow.
@@ -195,9 +321,26 @@ class Task:
         self.name = name
         self.runtime = runtime
 
+    def encode(self):
+        """Encode an object and return the basic type.
+
+        Encodes the object and returns a basic type that can be
+        converted to JSON or YAML.
+        """
+        return dict(self.__dict__)
+
+    @staticmethod
+    def decode(data):
+        """Decode a basic type and return the object it represents.
+
+        Decodes basic Python types and returns a newly constructed
+        object.
+        """
+        return Task(**data)
+
 
 # TODO: Determine if a factory is the right way to go about this
-class SchedulerFactory:
+class SchedulerFactory(ResourceBase):
     """SchedulerFactory class.
 
     Class used for creating new schedulers based on known circumstances.
@@ -215,6 +358,23 @@ class SchedulerFactory:
         """Create a new scheduler.
 
         Creates a new scheduler and returns it.
+        """
+        # TODO
+
+    def encode(self):
+        """Encode an object and return the basic type.
+
+        Encodes the object and returns a basic type that can be
+        converted to JSON or YAML.
+        """
+        # TODO
+
+    @staticmethod
+    def decode(data):
+        """Decode a basic type and return the object it represents.
+
+        Decodes basic Python types and returns a newly constructed
+        object.
         """
         # TODO
 
@@ -253,7 +413,7 @@ def fcfs(workflow, clusters, start_time):
     :type clusters: list of instances of Cluster
     :param start_time: desired start time of the workflow
     :type start_time: int
-    :rtype: instance of TimeSlot
+    :rtype: dict from task name to instance of TimeSlot
     """
     provision = {}
     time = start_time

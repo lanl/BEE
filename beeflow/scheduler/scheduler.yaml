@@ -1,244 +1,82 @@
 openapi: 3.0.3
 servers:
-# Relative URL (to whichever server is serving the scheduler API)
-  - url: '/'
+  - url: /
 info:
   title: BEE Scheduler API
   description: BEE Scheduler API implementing efficient scheduling.
   version: '0.1'
 paths:
-  /bee_sched/v1/workflows:
-    summary: Get or create workflows
-    get:
-      summary: Get a list of current workflows
-      description: Get a list of current workflows
-      operationId: get_workflows
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Workflow'
-        default:
-          description: Default error sample response
-    post:
-      summary: Create a new workflow
-      description: Create a new workflow
-      operationId: create_workflow
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Workflow'
-      responses:
-        '201':
-          description: Successfully created a Workflow
-        default:
-          description: Default error sample response
-  '/bee_sched/v1/workflows/{workflow_id}':
-    summary: Get or update workflow information
-    parameters:
-      - name: workflow_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    get:
-      summary: Get details about a specific workflow
-      description: Get details about a specific workflow
-      operationId: get_workflow
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Workflow'
-        default:
-          description: Default error sample response
+  /bee_sched/v1/schedule:
+    summary: Main scheduling endpoint
     put:
-      summary: Update a workflow
-      description: Update information about a workflow
-      operationId: update_workflow
+      summary: >-
+        Send workflow/partition information to the scheduler and get
+        scheduling information
+      description: ''
+      operationId: schedule
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Workflow'
-      responses:
-        '200':
-          description: OK
-        default:
-          description: Default error sample response
-  '/bee_sched/v1/workflows/{workflow_id}/allocation':
-    summary: Get recommended allocation information for a specific workflow
-    post:
-      summary: Start the scheduling algorithm for a particular workflow
-      description: Start the scheduling algorithm for a particular workflow
-      operationId: start_allocation
-      responses:
-        '202':
-          description: Accepted workflow for scheduling
-        default:
-          description: Default error sample response
-    get:
-      summary: Get allocation information/status for a specific workflow
-      description: Get allocation information for a specific workflow
-      operationId: get_allocation
+              $ref: '#/components/schemas/ScheduleInput'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Allocation'
-        default:
-          description: Default error sample response
-    parameters:
-      - name: workflow_id
-        in: path
-        required: true
-        schema:
-          type: integer
-# TODO: nodes level endpoint may not be necessary
-  /bee_sched/v1/nodes:
-    summary: Get or create information about the collection of nodes
-    description: Get or create information about the collection of nodes
-    get:
-      summary: Get a list of all current nodes
-      description: Get a list of all current nodes
-      operationId: get_nodes
-      responses:
-        '200':
-          description: A list of node ids
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: integer
-        default:
-          description: Default error sample response
-    post:
-      summary: Create a new node
-      description: Create a new node with full details
-      operationId: create_node
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Node'
-      responses:
-        '201':
-          description: Successfully created a node
-        default:
-          description: Default error sample response
-  '/bee_sched/v1/nodes/{node_id}':
-    summary: Get or update information about a specific node
-    description: Get or update information about a specific node
-    parameters:
-      - name: node_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    get:
-      summary: Get information about a specific node
-      description: Get information about a specific node
-      operationId: get_node
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Node'
-        default:
-          description: Default error sample response
-    put:
-      summary: Update information about a specific node
-      description: Update information about a specific node
-      operationId: update_node
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Node'
-      responses:
-        default:
-          description: Default error sample response
-  /bee_sched/v1/partitions:
-    summary: Get or create information about partitions of the current cluster
-    get:
-      summary: Get information about all available partitions
-      description: Get information about all available partitions
-      operationId: get_partitions
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Partition'
-        default:
-          description: Default error sample response
-    post:
-      summary: Create a new partition
-      description: Create a new partition
-      operationId: create_partition
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Partition'
-      responses:
-        '201':
-          description: Successfully created a Partition
-        default:
-          description: Default error sample response
-  '/bee_sched/v1/partitions/{partition_name}':
-    summary: Get or update specific information about a partition
-    description: Get or update specific information about a partition
-    parameters:
-      - name: partition_name
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      summary: Get details about a partition
-      description: Get details about a partition
-      operationId: get_partition
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Partition'
-        default:
-          description: Default error sample response
-    put:
-      summary: Update a partition
-      description: Update details about a partition
-      operationId: update_partition
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Partition'
-      responses:
-        '200':
-          description: OK
+                $ref: '#/components/schemas/ScheduleResult'
         default:
           description: Default error sample response
 components:
   schemas:
+    ScheduleInput:
+      properties:
+        workflow:
+          $ref: '#/components/schemas/Workflow'
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cluster'
+# TODO: This property may not be necessary
+        start_time:
+          type: integer
+      required:
+        - workflow
+        - clusters
+        - start_time
+    ScheduleResult:
+      properties:
+        name:
+          type: string
+        provision:
+          type: object
+          values:
+            $ref: '#/components/schemas/TimeSlot'
+      required:
+        - name
+    Cluster:
+      properties:
+        name:
+          type: string
+        partitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Partition'
+      required:
+        - name
+        - partitions
+    TimeSlot:
+      properties:
+        task:
+          $ref: '#/components/schemas/Task'
+        start_time:
+          type: integer
+        runtime:
+          type: integer
+        partition:
+          $ref: '#/components/schemas/Partition'
+      required:
     Allocation:
       properties:
         status:
@@ -246,8 +84,6 @@ components:
           enum:
             - RUNNING
             - COMPLETE
-# TODO: Mapping from steps to partitions - could be designed as an object mapping
-# from step name to partition name for the given workflow
         steps_to_partitions:
           type: object
           description: Step names to partition names to run on
@@ -274,80 +110,18 @@ components:
               wc: debug1
               grep: debug2
             start_time: 8000
-# Based upon 'partitions' output from slurmrestd
-# TODO: May need to make this more generic
     Partition:
       properties:
         name:
           type: string
-        default_time_limit:
-          type: integer
-        default_memory_per_cpu:
-          type: integer
-        nodes_online:
-          type: integer
-        total_cpus:
-          type: integer
-        total_nodes:
-          type: integer
-        tres:
-          type: string
       required:
         - name
-        - default_time_limit
-        - default_memory_per_cpu
-        - nodes_online
-        - total_cpus
-        - total_nodes
-        - tres
-      example:
-        example1:
-          id: debug
-          default_time_limit: null
-          default_memory_per_cpu: 0
-          nodes_online: 3
-          total_cpus: 1
-          total_nodes: 1
-          tres: 'cpu=1,mem=1M,node=1,billing=1'
-# TODO: Resource may not be necessary
-    Resource:
-      properties:
-        type:
-          type: string
-          enum:
-            - GPU
-            - CPU
-        limits:
-          type: string
-      required:
-        - id
+      example: {}
     Workflow:
       properties:
-        id:
-          type: integer
         name:
           type: string
-        inputs:
-          type: array
-          items:
-            type: string
-        outputs:
-          type: array
-          items:
-            type: string
-        state:
-          type: string
-# Added 'READY' state here to indicate that a workflow has been scheduled and is
-# ready to run
-          enum:
-            - WAITING
-            - READY
-            - RUNNING
-            - CANCELLED
-            - CRASHED
-            - ZOMBIE
-            - COMPLETE
-        steps:
+        levels:
           type: array
           items:
             type: array
@@ -355,78 +129,15 @@ components:
               $ref: '#/components/schemas/Task'
       required:
         - name
-        - inputs
-        - outputs
-        - state
-        - tasks
-      example:
-        workflow1:
-          name: test workflow
-          inputs:
-            - input.txt
-          outputs:
-            - output.txt
-          state: WAITING
-        workflow2:
-          name: test workflow
-          inputs:
-            - input.txt
-          outputs:
-            - output.txt
-          state: WAITING
-          tasks:
-            - - baseCommand:
-                  - grep
-                  - word
-              - baseCommand:
-                  - cat
-                  - input.txt
-            - - baseCommand:
-                  - sort
-            - - baseCommand:
-                  - test
-    Node:
-      properties:
-        id:
-          type: string
-        architecture:
-          type: string
-        cores:
-          type: integer
-        cpus:
-          type: integer
-# TODO: Find what other states Slurm or others may list it has
-        state:
-          type: string
-          enum: ['idle']
-        tres:
-          type: string
-        name:
-          type: string
-      required:
-        - name
-        - cores
+        - levels
+      example: {}
     Task:
       properties:
-        inputs:
-          type: array
-          items:
+        properties:
+          name:
             type: string
-        outputs:
-          type: array
-          items:
-            type: string
-        stdout:
-          type: string
-        baseCommand:
-          type: array
-          items:
-            type: string
-# TODO: Add more hints here as necessary
-        hints:
-          type: object
-          properties: {}
+          runtime:
+            type: integer
       required:
-        - inputs
-        - outputs
-        - baseCommand
+        - name
+        - runtime
