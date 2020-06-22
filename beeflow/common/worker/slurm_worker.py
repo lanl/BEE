@@ -3,6 +3,7 @@
 Using pyslurm for interface to slurm api where possible
 For now build command for submitting batch job.
 """
+
 import os
 import string
 import subprocess
@@ -17,14 +18,14 @@ from beeflow.common.config.config_driver import BeeConfig
 
 bc = BeeConfig()
 if bc.userconfig.has_section('slurmrestd'):
-    slurm_sec = bc.userconfig['graphdb']
-    socket = slurm_sec.get('socket')
+    slurm_socket = bc.userconfig['slurmrestd'].get('socket')
+else:
+    print("[slurmrestd] section not found in configuration file, default values will be used")
+    slurm_socket = f'/tmp/slurm_{os.getlogin()}.sock'
 
 session = requests_unixsocket.Session()
-slurm_sock_path = '/tmp/slurm.sock'
-encoded_path = urllib.parse.quote(slurm_sock_path, safe="")
+encoded_path = urllib.parse.quote(slurm_socket, safe="")
 slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
-
 
 def get_ccname(image_path):
     """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
