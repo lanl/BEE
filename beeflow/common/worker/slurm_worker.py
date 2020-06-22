@@ -101,8 +101,6 @@ def query_job(job_id):
         query_success = -1
         job_state = f"Unable to query job id {job_id}."
     else:
-        print(resp)
-        print(resp.text)
         status = json.loads(resp.text)
         job_state = status['job_state']
         query_success = 1
