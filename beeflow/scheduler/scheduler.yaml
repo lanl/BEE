@@ -51,7 +51,7 @@ components:
           type: string
         provision:
           type: object
-          values:
+          items:
             $ref: '#/components/schemas/TimeSlot'
       required:
         - name
@@ -77,39 +77,7 @@ components:
         partition:
           $ref: '#/components/schemas/Partition'
       required:
-    Allocation:
-      properties:
-        status:
-          type: string
-          enum:
-            - RUNNING
-            - COMPLETE
-        steps_to_partitions:
-          type: object
-          description: Step names to partition names to run on
-        start_time:
-          type: integer
-      required:
-        - status
-      example:
-        empty:
-          summary: Empty value
-          value:
-            steps_to_partitions: {}
-            start_time: ''
-        single:
-          summary: Single node allocation
-          value:
-            steps_to_partitions:
-              wc: debug
-            start_time: 6000
-        double:
-          summary: Double node allocation
-          value:
-            steps_to_partitions:
-              wc: debug1
-              grep: debug2
-            start_time: 8000
+        - start_time
     Partition:
       properties:
         name:
@@ -133,11 +101,10 @@ components:
       example: {}
     Task:
       properties:
-        properties:
-          name:
-            type: string
-          runtime:
-            type: integer
+        name:
+          type: string
+        runtime:
+          type: integer
       required:
         - name
         - runtime
