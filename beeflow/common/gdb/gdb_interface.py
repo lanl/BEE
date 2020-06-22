@@ -28,14 +28,14 @@ class GraphDatabaseInterface:
         """Disconnect from the graph database when interface deconstructs."""
         self.close()
 
-    def connect(self, **kwargs):
+    def connect(self,**kwargs):
         """Initialize a graph database interface with a driver.
 
         :param kwargs: arguments for initializing the graph database connection
         """
         print('gdbi passing kwargs')
         # Initialize the graph database driver
-        self._connection = self._gdb_driver(kwargs)
+        self._connection = self._gdb_driver(**kwargs)
 
     def initialize_workflow(self, inputs, outputs, requirements, hints):
         """Begin construction of a workflow in the graph database.

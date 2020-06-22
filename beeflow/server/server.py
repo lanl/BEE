@@ -81,8 +81,10 @@ def _resource(tag=""):
 
 # Instantiate the workflow interface
 try:
-    wfi = WorkflowInterface(userconfig=sys.argv[1])
-except IndexError:
+    wfi = WorkflowInterface(user='neo4j',bolt_port=bc.userconfig.get('graphdb','bolt_port'),
+                            db_hostname=bc.userconfig.get('graphdb','hostname'),
+                            password=bc.userconfig.get('graphdb','dbpass'))
+except KeyError:
     wfi = WorkflowInterface()
 
 
