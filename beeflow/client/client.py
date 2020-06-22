@@ -11,7 +11,7 @@ from beeflow.common.config.config_driver import BeeConfig
 
 try:
     bc = BeeConfig(userconfig=sys.argv[1])
-except KeyError:
+except IndexError:
     bc = BeeConfig()
 
 # Set Workflow manager ports, attempt to prevent collisions
