@@ -5,6 +5,7 @@ For now build command for submitting batch job.
 """
 
 import os
+import sys
 import string
 import subprocess
 import time
@@ -13,19 +14,6 @@ import urllib
 import requests_unixsocket
 
 from beeflow.common.worker.worker import Worker
-
-from beeflow.common.config.config_driver import BeeConfig
-
-bc = BeeConfig()
-if bc.userconfig.has_section('slurmrestd'):
-    slurm_socket = bc.userconfig['slurmrestd'].get('socket')
-else:
-    print("[slurmrestd] section not found in configuration file, default values will be used")
-    slurm_socket = f'/tmp/slurm_{os.getlogin()}.sock'
-
-session = requests_unixsocket.Session()
-encoded_path = urllib.parse.quote(slurm_socket, safe="")
-slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
 
 def get_ccname(image_path):
     """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
@@ -96,7 +84,7 @@ def write_script(task):
 
 def query_job(job_id):
     query_status = 1
-    resp = session.get(f'{slurm_url}/job/{job_id}')
+    resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
     if resp.status_code != 200:
         query_success = -1
         job_state = f"Unable to query job id {job_id}."
@@ -109,7 +97,7 @@ def query_job(job_id):
 
 def cancel_job(job_id):
     cancel_success = 1
-    resp = session.delete(f'{slurm_url}/job/{job_id}')
+    resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
     if resp.status_code != 200:
         cancel_success = -1
         job_state = f"Unable to cancel job id {job_id}."
@@ -135,6 +123,17 @@ class SlurmWorker(Worker):
 
     Implements Worker using pyslurm, except submit_task uses subprocess.
     """
+    def __init__(self, **kwargs):
+        """Create a new Slurm Worker object.
+
+        """
+
+        self.slurm_socket = kwargs.get('slurm_socket',f'/tmp/slurm_{os.getlogin()}.sock')
+        print("Starting up with slurm socket: {}".format(self.slurm_socket)) 
+        self.session = requests_unixsocket.Session()
+        encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
+        self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
+
     def submit_task(self, task):
         """Worker builds & submits script."""
         build_success, task_script = write_script(task)
@@ -153,7 +152,7 @@ class SlurmWorker(Worker):
     def cancel_task(self, job_id):
         """Worker cancels job; returns (1, job_state), or (-1, error_msg)."""
         cancel_success = 1
-        resp = session.delete(f'{slurm_url}/job/{job_id}')
+        resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
         if resp.status_code != 200:
             cancel_success = -1
             job_state = f"Unable to cancel job id {job_id}."

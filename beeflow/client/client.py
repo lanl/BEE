@@ -34,6 +34,7 @@ def _url():
     else:
         print("[workflow_manager] section not found in configuration file. Default port WM_PORT will be used.")
         wfm_listen_port = WM_PORT
+    print(f'LISTEN PORT: {wfm_listen_port}')
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
 
 def _resource(tag=""): 

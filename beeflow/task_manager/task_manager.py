@@ -192,6 +192,7 @@ class TaskActions(Resource):
         return resp
 
 
+#WORKER = WorkerInterface(SlurmWorker, slurm_socket=bc.userconfig.get('slurmrestd','socket') )
 WORKER = WorkerInterface(SlurmWorker)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
