@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """REST Interface for the BEE Scheduler."""
 
-import os
-import sys
-import math
+from flask import Flask, request
+from flask_restful import Resource, Api
+
 import allocation
 
-from flask import Flask, jsonify, make_response, request
-from flask_restful import Resource, Api, reqparse
-
+# TODO: Grab this info from the config
+SCHEDULER_PORT = 5100
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
+
 
 class ScheduleHandler(Resource):
     """Schedule handler.
@@ -40,4 +40,4 @@ class ScheduleHandler(Resource):
 api.add_resource(ScheduleHandler, '/bee_sched/v1/schedule')
 
 if __name__ == '__main__':
-    flask_app.run(debug=True, port=5100)
+    flask_app.run(debug=True, port=SCHEDULER_PORT)

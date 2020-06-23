@@ -162,7 +162,8 @@ def test_fcfs_one_task_one_partition():
     provision = allocation.fcfs(workflow, [cluster], 0)
 
     assert len(provision) == 1
-    assert provision['task-0'].partition.name == 'partition-0'
+    assert provision['task-0'].partition_name == 'partition-0'
+    assert provision['task-0'].cluster_name == 'cluster-0'
     assert provision['task-0'].start_time == 0
     assert provision['task-0'].task.name == 'task-0'
     assert provision['task-0'].task.runtime == 10
@@ -181,9 +182,11 @@ def test_fcfs_two_tasks_one_partition():
     provision = allocation.fcfs(workflow, [cluster], 0)
 
     assert len(provision) == 2
-    assert provision['task-0'].partition.name == 'partition-0'
+    assert provision['task-0'].partition_name == 'partition-0'
+    assert provision['task-0'].cluster_name == 'cluster-0'
     assert provision['task-0'].start_time == 0
     assert provision['task-0'].task.name == 'task-0'
-    assert provision['task-1'].partition.name == 'partition-0'
-    assert provision['task-1'].start_time == 10 
+    assert provision['task-1'].partition_name == 'partition-0'
+    assert provision['task-1'].cluster_name == 'cluster-0'
+    assert provision['task-1'].start_time == 10
     assert provision['task-1'].task.name == 'task-1'
