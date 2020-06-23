@@ -131,8 +131,8 @@ class SlurmWorker(Worker):
         self.slurm_socket = kwargs.get('slurm_socket',f'/tmp/slurm_{os.getlogin()}.sock')
         self.session = requests_unixsocket.Session()
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
+        # Note: Socket path is encoded, http request is not generally. 
         self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
-        print('Starting up with slurm_url:',self.slurm_url)
 
     def submit_task(self, task):
         """Worker builds & submits script."""
