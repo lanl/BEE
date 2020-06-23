@@ -44,7 +44,9 @@ class TimeSlot(ResourceBase):
         self.runtime = runtime
         if task is not None:
             self.runtime = task.runtime
-        self.partition = partition
+        if partition:
+            self.partition_name = partition.name
+        self.cluster_name = None
 
     @property
     def open(self):
@@ -60,8 +62,20 @@ class TimeSlot(ResourceBase):
         :type min_start_time: int
         :rtype: bool
         """
-        return (self.open and (self.start_time + self.runtime) >= (min_start_time + task.runtime)
+        return (self.open
+                and (self.start_time + self.runtime)
+                >= (min_start_time + task.runtime)
                 and task.runtime <= self.runtime)
+
+    def set_cluster(self, cluster):
+        """Set the cluster the TimeSlot is scheduled to.
+
+        Set information about the cluster this particular TimeSlot is
+        allocated to.
+        :param cluster: the cluster
+        :type cluster: instance of Cluster
+        """
+        self.cluster_name = cluster.name
 
     def encode(self):
         """Encode an object and return the basic type.
@@ -72,8 +86,6 @@ class TimeSlot(ResourceBase):
         val = dict(self.__dict__)
         if self.task is not None:
             val['task'] = self.task.encode()
-        if self.partition is not None:
-            val['partition'] = self.partition.encode()
         return val
 
     @staticmethod
@@ -87,7 +99,6 @@ class TimeSlot(ResourceBase):
         if 'task' in val:
             val['task'] = Task.decode(val['task'])
         return TimeSlot(**val)
-        # return TimeSlot(data['start_time'], task=Task.from_json(data['task']), runtime=task['runtime'])
 
 
 class Cluster(ResourceBase):
@@ -97,7 +108,7 @@ class Cluster(ResourceBase):
     """
 
     # TODO
-    def __init__(self, name, partitions=[]):
+    def __init__(self, name, partitions=None):
         """Allocation constructor.
 
         Initialize a new Allocation .
@@ -106,6 +117,8 @@ class Cluster(ResourceBase):
         """
         self.name = name
         self.partitions = partitions
+        if self.partitions is None:
+            self.partitions = []
 
     def insert_partition(self, partition):
         """Insert a new partition.
@@ -123,8 +136,8 @@ class Cluster(ResourceBase):
         converted to JSON or YAML.
         """
         val = dict(self.__dict__)
-        for i, p in enumerate(val['partitions']):
-            val['partitions'][i] = p.encode()
+        for i, partition in enumerate(val['partitions']):
+            val['partitions'][i] = partition.encode()
         return val
 
     @staticmethod
@@ -146,13 +159,15 @@ class Partition(ResourceBase):
     Class representing a single partition within a larger cluster.
     """
 
-    def __init__(self, name, slots=[]):
+    def __init__(self, name, slots=None):
         """Partition constructor.
 
         Initialize a new partition .
         """
         self.name = name
-        self.slots = []
+        self.slots = slots
+        if self.slots is None:
+            self.slots = []
 
     @property
     def total_time(self):
@@ -184,20 +199,25 @@ class Partition(ResourceBase):
             old_slot = self.slots[index]
             del self.slots[index]
             if old_slot.start_time < start_time:
-                self.slots.insert(index, TimeSlot(runtime=start_time-old_slot.start_time,
-                                                  start_time=old_slot.start_time, partition=self))
+                self.slots.insert(index,
+                                  TimeSlot(runtime=start_time-old_slot.start_time,
+                                           start_time=old_slot.start_time,
+                                           partition=self))
                 index += 1
             slot = TimeSlot(task=task, start_time=start_time, partition=self)
             self.slots.insert(index, slot)
             index += 1
-            runtime_left = (old_slot.start_time + old_slot.runtime) - (start_time + task.runtime)
+            runtime_left = ((old_slot.start_time + old_slot.runtime)
+                            - (start_time + task.runtime))
             if runtime_left > 0:
-                self.slots.insert(index, TimeSlot(start_time=start_time+task.runtime,
-                                                  runtime=runtime_left, partition=self))
+                self.slots.insert(index,
+                                  TimeSlot(start_time=start_time+task.runtime,
+                                           runtime=runtime_left, partition=self))
         else:
             total_time = self.total_time
             if start_time > total_time:
-                self.slots.append(TimeSlot(start_time=total_time, runtime=start_time - total_time,
+                self.slots.append(TimeSlot(start_time=total_time,
+                                           runtime=start_time - total_time,
                                            partition=self))
             slot = TimeSlot(task=task, start_time=start_time, partition=self)
             self.slots.append(slot)
@@ -212,8 +232,10 @@ class Partition(ResourceBase):
         """
         # TODO: This calculation may be off
         for slot in self.slots:
-            if slot.open and (slot.start_time + slot.runtime) >= (start_time + task.runtime):
-                return start_time if slot.start_time < start_time else slot.start_time
+            if (slot.open and (slot.start_time + slot.runtime)
+                    >= (start_time + task.runtime)):
+                return (start_time if slot.start_time < start_time
+                        else slot.start_time)
         # Didn't find an empty slot
         return start_time if self.total_time < start_time else self.total_time
 
@@ -247,7 +269,7 @@ class Workflow(ResourceBase):
     those tasks.
     """
 
-    def __init__(self, name, levels=[]):
+    def __init__(self, name, levels=None):
         """Workflow constructor.
 
         Initialize a new workflow.
@@ -255,6 +277,8 @@ class Workflow(ResourceBase):
         # TODO
         self.name = name
         self.levels = levels
+        if self.levels is None:
+            self.levels = []
 
     def insert(self, task, level=0):
         """Insert the task into the workflow.
@@ -279,10 +303,10 @@ class Workflow(ResourceBase):
         converted to JSON or YAML.
         """
         val = dict(self.__dict__)
-        for i, l in enumerate(val['levels']):
-            val['levels'][i] = list(l)
-            for j, t in enumerate(val['levels'][i]):
-                val['levels'][i][j] = t.encode()
+        for i, level in enumerate(val['levels']):
+            val['levels'][i] = list(level)
+            for j, task in enumerate(val['levels'][i]):
+                val['levels'][i][j] = task.encode()
         return val
 
     @staticmethod
@@ -294,11 +318,11 @@ class Workflow(ResourceBase):
         """
         val = dict(data)
         levels = []
-        for l in data['levels']:
-            level = []
-            for t in l:
-                level.append(Task.decode(t))
-            levels.append(level)
+        for level in data['levels']:
+            new_level = []
+            for task in level:
+                new_level.append(Task.decode(task))
+            levels.append(new_level)
         val['levels'] = levels
         return Workflow(**val)
 
@@ -341,14 +365,14 @@ class Task(ResourceBase):
 
 # TODO: Determine if a factory is the right way to go about this
 class SchedulerFactory(ResourceBase):
-    """SchedulerFactory class.
+    """Scheduler Factory class.
 
     Class used for creating new schedulers based on known circumstances.
     """
 
     # TODO
     def __init__(self):
-        """SchedulerFactory constructor.
+        """Scheduler Factory constructor.
 
         Initialize a new SchedulerFactory .
         """
@@ -394,14 +418,20 @@ def schedule_next_fcfs(task, clusters, min_start_time):
     # TODO: Make it easier to iterate over different types of resources
     best_time = math.inf
     best_partition = None
+    best_cluster = None
     for cluster in clusters:
         for partition in cluster.partitions:
             t = partition.fit(task, start_time=min_start_time)
             if t < best_time:
                 best_time = t
                 best_partition = partition
+                best_cluster = cluster
     # Insert the time
-    return best_partition.insert(task, start_time=best_time)
+    slot = best_partition.insert(task, start_time=best_time)
+    # Set the cluster
+    slot.set_cluster(best_cluster)
+    return slot
+
 
 def fcfs(workflow, clusters, start_time):
     """Run the FCFS scheduling algorithm.
