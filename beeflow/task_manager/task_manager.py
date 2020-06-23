@@ -192,13 +192,12 @@ class TaskActions(Resource):
         return resp
 
 
-#WORKER = WorkerInterface(SlurmWorker, slurm_socket=bc.userconfig.get('slurmrestd','socket') )
-WORKER = WorkerInterface(SlurmWorker)
+WORKER = WorkerInterface(SlurmWorker, slurm_socket=bc.userconfig.get('slurmrestd','slurm_socket') )
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 
 if __name__ == '__main__':
-    print('tm_listen_port:",tm_listen_port')
+    print('tm_listen_port:',tm_listen_port)
     flask_app.run(debug=True, port=str(tm_listen_port))

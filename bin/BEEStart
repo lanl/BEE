@@ -165,6 +165,31 @@ def StartGDB(bc, debug=True):
     return proc
 
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr 
+def StartSlurmRestD(bc, debug=False):
+    """Start BEESlurmRestD. Returns a Popen process object."""
+
+    # Load gdb config from config file if exists
+    try:
+        bc.userconfig['slurmrestd']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            offset = os.getppid()%100
+        else:
+            offset = os.getuid()%100
+        restd_dict = {
+            'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(os.getlogin(), 100 + offset),
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','slurmrestd',restd_dict)
+    slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
+    subprocess.Popen(['rm','-f',slurm_socket])
+    print("Attempting to open socket: {}".format(slurm_socket))
+    #return subprocess.Popen(["screen", "-dmS", "bee_slurmrestd_{}".format(os.getlogin()),
+    return subprocess.Popen([
+                            "slurmrestd", "unix:"+slurm_socket],
+                            stdout=PIPE, stderr=PIPE)
+
 def StartWorkflowManager(bc, debug=False):
     """Start BEEWorkflowManager. Returns a Popen process object."""
 
@@ -246,8 +271,9 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
     parser.add_argument("--gdb", action="store_true", help="start the configured graph database")
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
+    parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
-
+    print("args:",parser.parse_args(args)) 
     return parser.parse_args(args)
 
 def main():
@@ -270,6 +296,14 @@ def main():
 
     # Start all processes
     wait_list = [] # List of processes to wait for
+    if args.restd or start_all:
+        proc = StartSlurmRestD(bc, args.debug)
+        if proc is None:
+            log.error('slurmrestd failed to start. Exiting.')
+            print('slurmrestd failed to start. Exiting.', file=sys.stderr)
+            return 1
+        # Don't append the graph database to list of processes to wait for
+        log.info('Starting slurmrestd based on userconfig file.')
     if args.gdb or args.wfm or start_all:
         proc = StartGDB(bc, args.debug)
         if proc is None:
@@ -279,7 +313,6 @@ def main():
         # Don't append the graph database to list of processes to wait for
         log.info('Loading Graph Database')
     if args.wfm or start_all:
-        time.sleep(3)
         proc = StartWorkflowManager(bc, args.debug)
         if proc is None:
             log.error('Workflow Manager failed to start. Exiting.')

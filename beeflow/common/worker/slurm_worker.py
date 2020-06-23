@@ -129,10 +129,11 @@ class SlurmWorker(Worker):
         """
 
         self.slurm_socket = kwargs.get('slurm_socket',f'/tmp/slurm_{os.getlogin()}.sock')
-        print("Starting up with slurm socket: {}".format(self.slurm_socket)) 
         self.session = requests_unixsocket.Session()
-        encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
-        self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
+        self.slurm_url = f"http+unix://{self.slurm_socket}/slurm/v0.0.35"
+        #encoded_path = urllib.parse.quote(self.slurm_url, safe="")
+        #self.slurm_url = encoded_path
+        print('Starting up with slurm_url:',self.slurm_url)
 
     def submit_task(self, task):
         """Worker builds & submits script."""
