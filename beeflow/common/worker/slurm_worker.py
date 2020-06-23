@@ -82,9 +82,9 @@ def write_script(task):
         task_script = error.output.decode('utf-8')
     return success, task_script
 
-def query_job(job_id):
+def query_job(job_id, session, slurm_url):
     query_status = 1
-    resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
+    resp = session.get(f'{slurm_url}/job/{job_id}')
     if resp.status_code != 200:
         query_success = -1
         job_state = f"Unable to query job id {job_id}."
@@ -95,9 +95,9 @@ def query_job(job_id):
     return query_success, job_state
 
 
-def cancel_job(job_id):
+def cancel_job(job_id, session, slurm_url):
     cancel_success = 1
-    resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
+    resp = session.delete(f'{slurm_url}/job/{job_id}')
     if resp.status_code != 200:
         cancel_success = -1
         job_state = f"Unable to cancel job id {job_id}."
@@ -105,7 +105,7 @@ def cancel_job(job_id):
         job_state = "CANCELLED"
     return cancel_success, job_state
 
-def submit_job(script):
+def submit_job(script, session, slurm_url):
     """Worker submits job-returns (job_id, job_state), or (-1, error)."""
     job_id = -1
     try:
@@ -114,7 +114,7 @@ def submit_job(script):
         job_id = int(job_st)
     except subprocess.CalledProcessError as error:
         job_status = error.output.decode('utf-8')
-    _, job_state = query_job(job_id)
+    _, job_state = query_job(job_id, session, slurm_url)
     return job_id, job_state
 
 
@@ -138,7 +138,8 @@ class SlurmWorker(Worker):
         """Worker builds & submits script."""
         build_success, task_script = write_script(task)
         if build_success:
-            job_id, job_state = submit_job(task_script)
+            job_id, job_state = submit_job(task_script,
+                                           self.session, self.slurm_url)
         else:
             job_id = build_success
             job_state = task_script
@@ -146,7 +147,7 @@ class SlurmWorker(Worker):
 
     def query_task(self, job_id):
         """Worker queries job; returns (1, job_state), or (-1, error_msg)."""
-        query_success, job_state = query_job(job_id)
+        query_success, job_state = query_job(job_id, self.session, self.slurm_url)
         return query_success, job_state
 
     def cancel_task(self, job_id):
