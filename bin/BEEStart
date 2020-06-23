@@ -21,8 +21,18 @@ import time
 import platform
 from beeflow.common.config.config_driver import BeeConfig
 from subprocess import PIPE
+from concurrent.futures import ThreadPoolExecutor
 
 BEESTART = os.path.splitext(__file__)[0]
+
+def log_popen_pipe(p, stdfh, logdir):
+    """ Log both stdout and stderr to files in realtime."""
+    with open(logdir, 'w') as fh:
+        while p.poll() is None:
+            fh.write(stdfile.readline())
+            fh.flush()
+        fh.write(stdfh.read())
+            
 
 def StartGDB(bc, debug=True):
     """Start the graph database. Returns a Popen process object."""
@@ -185,13 +195,15 @@ def StartSlurmRestD(bc, debug=False):
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
     subprocess.Popen(['rm','-f',slurm_socket])
     print("Attempting to open socket: {}".format(slurm_socket))
-    #return subprocess.Popen(["screen", "-dmS", "bee_slurmrestd_{}".format(os.getlogin()),
-    return subprocess.Popen([
-                            "slurmrestd", "unix:"+slurm_socket],
-                            stdout=PIPE, stderr=PIPE)
+    if args.debug:
+        return subprocess.Popen(["slurmrestd", "unix:"+slurm_socket],
+                                stdout=PIPE, stderr=PIPE, capture_output=True)
+    return subprocess.Popen(["slurmrestd", "unix:"+slurm_socket],
+                            stdout=PIPE, stderr=PIPE, capture_output=False)
 
-def StartWorkflowManager(bc, debug=False):
-    """Start BEEWorkflowManager. Returns a Popen process object."""
+
+def StartWorkflowManager(bc, logdir, debug=False):
+    """`Start BEEWorkflowManager. Returns a Popen process object."""
 
     # Load gdb config from config file if exists
     try:
@@ -207,11 +219,22 @@ def StartWorkflowManager(bc, debug=False):
         }
         # Add section (writes to config file)
         bc.modify_section('user','workflow_manager',wfm_dict)
-    #return subprocess.Popen(["screen", "-dmS", "bee_server_{}".format(os.getlogin()),
-    return subprocess.Popen([
-                            "python", 'beeflow/server/server.py',
-                            '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
-                            stdout=PIPE, stderr=PIPE)
+    subprocess.Popen(['rm','-f',f'{logdir}/wfm.out',f'{logdir}/wfm.err'])
+    with subprocess.Popen(["python", 'beeflow/server/server.py',
+                          '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),
+                                   'bee.conf'])],
+                            stdout=PIPE, stderr=PIPE) as p:
+        with ThreadPoolExecutor(2) as pool:
+            rt1 = pool.submit(log_popen_pipe, p,
+                              p.stdout,
+                              logdir+'/wfm.out')
+            rt2 = pool.submit(log_popen_pipe, p,
+                              p.stderr,
+                              logdir+'/wfm.err')
+            rt1.result()
+            rt2.result()
+        proc = p
+    return proc
 
 def StartTaskManager(bc, debug=False):
     """Start BEETaskManager. Returns a Popen process object."""
@@ -246,6 +269,11 @@ def setup_logging(bc, debug=False):
     Setup logging. Add default values to the config if not found. Return None on
     error and the log otherwise.
     """
+    # Create logging directory relative to bee workdir
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    logdir = bee_workdir + "/logs"
+    os.makedirs(logdir, exist_ok=True)
+
     if debug:
         # Output everything to the console
         logging.basicConfig(level=logging.DEBUG)
@@ -259,7 +287,7 @@ def setup_logging(bc, debug=False):
         path = os.path.join(bee_workdir, logdir) if logdir else bee_workdir
         path = os.path.join(path, logfile)
         logging.basicConfig(filename=path)
-    return logging.getLogger(BEESTART)
+    return logging.getLogger(BEESTART), logdir
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
@@ -273,13 +301,12 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
-    print("args:",parser.parse_args(args)) 
     return parser.parse_args(args)
 
 def main():
     args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.gdb]) or all([args.wfm, args.tm, args.gdb])
-    if args.debug and not (sum([args.wfm,args.tm,args.gdb]) == 1):
+    start_all = not any([args.wfm, args.tm, args.gdb, args.restd]) or all([args.wfm, args.tm, args.gdb, args.restd])
+    if args.debug and not (sum([args.wfm,args.tm,args.gdb,args.restd]) == 1):
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
@@ -289,7 +316,7 @@ def main():
         bc = BeeConfig()
 
     # Setup logging based on args.debug
-    log = setup_logging(bc, args.debug)
+    log, logdir = setup_logging(bc, args.debug)
     if log is None:
         # Something went wrong
         return 1
@@ -304,7 +331,7 @@ def main():
             return 1
         # Don't append the graph database to list of processes to wait for
         log.info('Starting slurmrestd based on userconfig file.')
-    if args.gdb or args.wfm or start_all:
+    if args.gdb or start_all:
         proc = StartGDB(bc, args.debug)
         if proc is None:
             log.error('Graph Database failed to start. Exiting.')
@@ -321,6 +348,7 @@ def main():
         create_pid_file(proc, 'wfm.pid', bc)
         wait_list.append(('Workflow Manager', proc))
         log.info('Loading Workflow Manager')
+        
     if args.tm or start_all:
         proc = StartTaskManager(bc, args.debug)
         if proc is None:
