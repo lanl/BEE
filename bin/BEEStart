@@ -119,7 +119,7 @@ def StartGDB(bc, debug=True):
     os.makedirs(gdb_certs_path, exist_ok=True)
 
     try:
-        cp = subprocess.run([
+        cp = subprocess.run([ 
             "ch-run","--set-env=" + container_path + "/environment","-b",
             gdb_config_path + ":/var/lib/neo4j/conf","-b",
             gdb_data_path + ":/data",
@@ -139,7 +139,7 @@ def StartGDB(bc, debug=True):
         return None
 
     try:
-        proc = subprocess.Popen([
+        proc = subprocess.Popen([ 
             "ch-run",
             "--set-env=" + container_path + "/environment",
             "-b",
