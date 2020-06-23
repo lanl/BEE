@@ -42,7 +42,7 @@ def StartGDB(bc, debug=True):
     except KeyError:
         if platform.system() == 'Windows':
             # Would prefer something like a uid for windows.
-            offset = os.getpid()%100
+            offset = os.getppid()%100
         else:
             offset = os.getuid()%100
         graphdb_dict = {
@@ -167,13 +167,46 @@ def StartGDB(bc, debug=True):
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr 
 def StartWorkflowManager(bc, debug=False):
     """Start BEEWorkflowManager. Returns a Popen process object."""
-    return subprocess.Popen(["screen", "-dmS", "bee_server_{}".format(os.getlogin()), "python", 'beeflow/server/server.py',
+
+    # Load gdb config from config file if exists
+    try:
+        bc.userconfig['workflow_manager']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            offset = os.getppid()%100
+        else:
+            offset = os.getuid()%100
+        wfm_dict = {
+            'listen_port': 5000 + offset,
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','workflow_manager',wfm_dict)
+    #return subprocess.Popen(["screen", "-dmS", "bee_server_{}".format(os.getlogin()),
+    return subprocess.Popen([
+                            "python", 'beeflow/server/server.py',
                             '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
 def StartTaskManager(bc, debug=False):
     """Start BEETaskManager. Returns a Popen process object."""
-    return subprocess.Popen(["screen", "-dmS", "bee_tm_{}".format(os.getlogin()), "python", "beeflow/task_manager/task_manager.py",
+    # Load gdb config from config file if exists
+    try:
+        bc.userconfig['task_manager']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            offset = os.getppid()%100
+        else:
+            offset = os.getuid()%100
+        tm_dict = {
+            'listen_port': 5050 + offset,
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','task_manager',tm_dict)
+    #return subprocess.Popen(["screen", "-dmS", "bee_tm_{}".format(os.getlogin()), 
+    return subprocess.Popen([
+                            "python", "beeflow/task_manager/task_manager.py",
                             '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
@@ -239,27 +272,28 @@ def main():
     wait_list = [] # List of processes to wait for
     if args.gdb or args.wfm or start_all:
         proc = StartGDB(bc, args.debug)
-#        if proc is None:
-#            log.error('Graph Database failed to start. Exiting.')
-#            print('Graph Database failed to start. Exiting.', file=sys.stderr)
-#            return 1
+        if proc is None:
+            log.error('Graph Database failed to start. Exiting.')
+            print('Graph Database failed to start. Exiting.', file=sys.stderr)
+            return 1
         # Don't append the graph database to list of processes to wait for
         log.info('Loading Graph Database')
     if args.wfm or start_all:
+        time.sleep(3)
         proc = StartWorkflowManager(bc, args.debug)
-#        if proc is None:
-#            log.error('Workflow Manager failed to start. Exiting.')
-#            print('Workflow Manager failed to start. Exiting.', file=sys.stderr)
-#            return 1
+        if proc is None:
+            log.error('Workflow Manager failed to start. Exiting.')
+            print('Workflow Manager failed to start. Exiting.', file=sys.stderr)
+            return 1
         create_pid_file(proc, 'wfm.pid', bc)
         wait_list.append(('Workflow Manager', proc))
         log.info('Loading Workflow Manager')
     if args.tm or start_all:
         proc = StartTaskManager(bc, args.debug)
-#        if proc is None:
-#            log.error('Task Manager failed to start. Exiting.')
-#            print('Task Manager failed to start. Exiting.', file=sys.stderr)
-#            return 1
+        if proc is None:
+            log.error('Task Manager failed to start. Exiting.')
+            print('Task Manager failed to start. Exiting.', file=sys.stderr)
+            return 1
         create_pid_file(proc, 'tm.pid', bc)
         wait_list.append(('Task Manager', proc))
         log.info('Loading Task Manager')
