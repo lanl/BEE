@@ -168,6 +168,7 @@ def StartGDB(bc, debug=True):
 def StartSlurmRestD(bc, debug=False):
     """Start BEESlurmRestD. Returns a Popen process object."""
 
+    log = logging.getLogger(BEESTART)
     # Load gdb config from config file if exists
     try:
         bc.userconfig['slurmrestd']
@@ -184,10 +185,8 @@ def StartSlurmRestD(bc, debug=False):
         bc.modify_section('user','slurmrestd',restd_dict)
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
     subprocess.Popen(['rm','-f',slurm_socket])
-    print("Attempting to open socket: {}".format(slurm_socket))
-    #return subprocess.Popen(["screen", "-dmS", "bee_slurmrestd_{}".format(os.getlogin()),
-    return subprocess.Popen([
-                            "slurmrestd", "unix:"+slurm_socket],
+    log.info("Attempting to open socket: {}".format(slurm_socket))
+    return subprocess.Popen(["slurmrestd", "unix:"+slurm_socket],
                             stdout=PIPE, stderr=PIPE)
 
 def StartWorkflowManager(bc, debug=False):
@@ -208,8 +207,7 @@ def StartWorkflowManager(bc, debug=False):
         # Add section (writes to config file)
         bc.modify_section('user','workflow_manager',wfm_dict)
     #return subprocess.Popen(["screen", "-dmS", "bee_server_{}".format(os.getlogin()),
-    return subprocess.Popen([
-                            "python", 'beeflow/server/server.py',
+    return subprocess.Popen(["python", 'beeflow/server/server.py',
                             '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
@@ -230,8 +228,7 @@ def StartTaskManager(bc, debug=False):
         # Add section (writes to config file)
         bc.modify_section('user','task_manager',tm_dict)
     #return subprocess.Popen(["screen", "-dmS", "bee_tm_{}".format(os.getlogin()), 
-    return subprocess.Popen([
-                            "python", "beeflow/task_manager/task_manager.py",
+    return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py",
                             '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
@@ -273,13 +270,12 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
-    print("args:",parser.parse_args(args)) 
     return parser.parse_args(args)
 
 def main():
     args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.gdb]) or all([args.wfm, args.tm, args.gdb])
-    if args.debug and not (sum([args.wfm,args.tm,args.gdb]) == 1):
+    start_all = not any([args.wfm, args.tm, args.gdb, args.restd]) or all([args.wfm, args.tm, args.gdb, args.restd])
+    if args.debug and not (sum([args.wfm,args.tm,args.gdb, args.restd]) == 1):
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
@@ -304,7 +300,7 @@ def main():
             return 1
         # Don't append the graph database to list of processes to wait for
         log.info('Starting slurmrestd based on userconfig file.')
-    if args.gdb or args.wfm or start_all:
+    if args.gdb or start_all:
         proc = StartGDB(bc, args.debug)
         if proc is None:
             log.error('Graph Database failed to start. Exiting.')
