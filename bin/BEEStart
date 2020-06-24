@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import platform
 from beeflow.common.config.config_driver import BeeConfig
 from subprocess import PIPE
 
@@ -34,34 +35,35 @@ def StartGDB(bc, debug=True):
     stdout = sys.stdout
     stderr = sys.stderr
 
-    user_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 
-    if bc.userconfig.has_section('graphdb'):
-        graphsec = bc.userconfig['graphdb']
-        db_hostname = graphsec.get('hostname','localhost')
-        db_password = graphsec.get('dbpass','password')
-        bolt_port = graphsec.get('bolt_port','7687')
-        http_port = graphsec.get('http_port','7474')
-        https_port = graphsec.get('https_port','7473')
-        gdb_img = graphsec.get('gdb_image','')
-        gdb_img_mntdir = graphsec.get('gdb_image_mntdir','/tmp')
-    else:
-        log.warning("[graphdb] section not found in configuration file, default values will be added")
-
+    # Load gdb config from config file if exists
+    try:
+        bc.userconfig['graphdb']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            offset = os.getppid()%100
+        else:
+            offset = os.getuid()%100
         graphdb_dict = {
-            'name': 'graphdb',
             'hostname': 'localhost',
             'dbpass': 'password',
-            'bolt_port': 7687,
-            'http_port': 7474,
-            'https_port': 7473,
-            'gdb_image': '/path/to/neo4j-ch.tar',
-            'gdb_image_mntdir': '/tmp',
+            'bolt_port': 7687+offset,
+            'http_port': 7474+offset,
+            'https_port': 7473+offset,
+            'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
+            'gdb_image_mntdir': bc.userconfig.get('DEFAULT','bee_workdir'),
         }
-        
-        bc.add_section('user', graphdb_dict)
-        log.warning("Please check " + str(bc.userconfig_file) + " and rerun startup")
-        return None
+        # Add section (writes to config file)
+        bc.modify_section('user','graphdb',graphdb_dict)
+    # Read the config file back in
+    db_hostname = bc.userconfig.get('graphdb','hostname')
+    db_password = bc.userconfig.get('graphdb','dbpass')
+    bolt_port   = bc.userconfig.get('graphdb','bolt_port')
+    http_port   = bc.userconfig.get('graphdb','http_port')
+    https_port  = bc.userconfig.get('graphdb','https_port')
+    gdb_img     = bc.userconfig.get('graphdb','gdb_image')
+    gdb_img_mntdir = bc.userconfig.get('graphdb','gdb_image_mntdir')
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
     if debug:
@@ -86,7 +88,8 @@ def StartGDB(bc, debug=True):
     if debug:
         log.info('Created certificates directory %s', container_certs_path)
     # Setup working path data
-    gdb_workdir = os.path.join(user_workdir, newdir)
+    gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'), 
+                               newdir)
     gdb_config_path = os.path.join(gdb_workdir, "conf")
     os.makedirs(gdb_config_path, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
@@ -116,7 +119,7 @@ def StartGDB(bc, debug=True):
     os.makedirs(gdb_certs_path, exist_ok=True)
 
     try:
-        cp = subprocess.run([
+        cp = subprocess.run([ 
             "ch-run","--set-env=" + container_path + "/environment","-b",
             gdb_config_path + ":/var/lib/neo4j/conf","-b",
             gdb_data_path + ":/data",
@@ -136,7 +139,7 @@ def StartGDB(bc, debug=True):
         return None
 
     try:
-        proc = subprocess.Popen([
+        proc = subprocess.Popen([ 
             "ch-run",
             "--set-env=" + container_path + "/environment",
             "-b",
@@ -162,20 +165,77 @@ def StartGDB(bc, debug=True):
     return proc
 
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr 
+def StartSlurmRestD(bc, debug=False):
+    """Start BEESlurmRestD. Returns a Popen process object."""
+
+    log = logging.getLogger(BEESTART)
+    # Load gdb config from config file if exists
+    try:
+        bc.userconfig['slurmrestd']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            offset = os.getppid()%100
+        else:
+            offset = os.getuid()%100
+        restd_dict = {
+            'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(os.getlogin(), 100 + offset),
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','slurmrestd',restd_dict)
+    slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
+    subprocess.Popen(['rm','-f',slurm_socket])
+    log.info("Attempting to open socket: {}".format(slurm_socket))
+    return subprocess.Popen(["slurmrestd", "unix:"+slurm_socket],
+                            stdout=PIPE, stderr=PIPE)
+
 def StartWorkflowManager(bc, debug=False):
     """Start BEEWorkflowManager. Returns a Popen process object."""
-    return subprocess.Popen(["python", "beeflow/server/server.py"],
+
+    # Load gdb config from config file if exists
+    try:
+        bc.userconfig['workflow_manager']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            offset = os.getppid()%100
+        else:
+            offset = os.getuid()%100
+        wfm_dict = {
+            'listen_port': 5000 + offset,
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','workflow_manager',wfm_dict)
+    #return subprocess.Popen(["screen", "-dmS", "bee_server_{}".format(os.getlogin()),
+    return subprocess.Popen(["python", 'beeflow/server/server.py',
+                            '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
 def StartTaskManager(bc, debug=False):
     """Start BEETaskManager. Returns a Popen process object."""
-    return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py"],
+    # Load gdb config from config file if exists
+    try:
+        bc.userconfig['task_manager']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            offset = os.getppid()%100
+        else:
+            offset = os.getuid()%100
+        tm_dict = {
+            'listen_port': 5050 + offset,
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','task_manager',tm_dict)
+    #return subprocess.Popen(["screen", "-dmS", "bee_tm_{}".format(os.getlogin()), 
+    return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py",
+                            '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
-    os.makedirs(os.path.expanduser('~/.beeflow'), exist_ok=True)
-    with open(os.path.expanduser(f'~/.beeflow/{pid_file}'), 'w') as fp:
+    os.makedirs(bc.userconfig.get('DEFAULT','bee_workdir'), exist_ok=True)
+    with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 
 def setup_logging(bc, debug=False):
@@ -208,17 +268,22 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
     parser.add_argument("--gdb", action="store_true", help="start the configured graph database")
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
-
+    parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
+    parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
     return parser.parse_args(args)
 
 def main():
     args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.gdb]) or all([args.wfm, args.tm, args.gdb])
-    if args.debug and not (sum([args.wfm,args.tm,args.gdb]) == 1):
+    start_all = not any([args.wfm, args.tm, args.gdb, args.restd]) or all([args.wfm, args.tm, args.gdb, args.restd])
+    if args.debug and not (sum([args.wfm,args.tm,args.gdb, args.restd]) == 1):
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
-    bc = BeeConfig()
+    if args.userconfig_file:
+        bc = BeeConfig(userconfig=args.userconfig_file)
+    else:
+        bc = BeeConfig()
+
     # Setup logging based on args.debug
     log = setup_logging(bc, args.debug)
     if log is None:
@@ -227,7 +292,15 @@ def main():
 
     # Start all processes
     wait_list = [] # List of processes to wait for
-    if args.gdb or args.wfm or start_all:
+    if args.restd or start_all:
+        proc = StartSlurmRestD(bc, args.debug)
+        if proc is None:
+            log.error('slurmrestd failed to start. Exiting.')
+            print('slurmrestd failed to start. Exiting.', file=sys.stderr)
+            return 1
+        # Don't append the graph database to list of processes to wait for
+        log.info('Starting slurmrestd based on userconfig file.')
+    if args.gdb or start_all:
         proc = StartGDB(bc, args.debug)
         if proc is None:
             log.error('Graph Database failed to start. Exiting.')

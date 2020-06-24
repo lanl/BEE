@@ -14,13 +14,13 @@ class WorkerInterface:
     Requires an implemented subclass of Worker to function.
     """
 
-    def __init__(self, worker=SlurmWorker):
+    def __init__(self, worker=SlurmWorker, **kwargs):
         """Initialize the workload interface with a workload driver, SlurmWorker by default.
 
         :param worker: the work load driver (SlurmWorker by default)
         :type worker: subclass of Worker
         """
-        self._worker = worker()
+        self._worker = worker(**kwargs)
 
     def submit_task(self, task):
         """Workload manager to submit task as job returns job_id(-1 if error), job_state.
@@ -30,20 +30,20 @@ class WorkerInterface:
         """
         return self._worker.submit_task(task)
 
-    def cancel_job(self, job_id):
+    def cancel_task(self, job_id):
         """Cancel job with job_id.
 
         :param job_id: job_id to be cancelled
         :type job_id: integer
         :rtype tuple (int, string)
         """
-        return self._worker.cancel_job(job_id)
+        return self._worker.cancel_task(job_id)
 
-    def query_job(self, job_id):
+    def query_task(self, job_id):
         """Query state of job with job_id; returns success/fail (1/-1), job_state.
 
         :param job_id: job id to query for status.
         :type job_id: int
         :rtype tuple (int, string)
         """
-        return self._worker.query_job(job_id)
+        return self._worker.query_task(job_id)
