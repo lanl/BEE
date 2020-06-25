@@ -52,7 +52,7 @@ def StartGDB(bc, args):
             'http_port': 7474+offset,
             'https_port': 7473+offset,
             'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
-            'gdb_image_mntdir': bc.userconfig.get('DEFAULT','bee_workdir'),
+            'gdb_image_mntdir': f'/tmp',
         }
         # Add section (writes to config file)
         bc.modify_section('user','graphdb',graphdb_dict)
