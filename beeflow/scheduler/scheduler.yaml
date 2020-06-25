@@ -82,6 +82,10 @@ components:
       properties:
         name:
           type: string
+        total_cpus:
+          type: integer
+        total_nodes:
+          type: integer
       required:
         - name
       example: {}
@@ -104,6 +108,10 @@ components:
         name:
           type: string
         runtime:
+          type: integer
+        cpus:
+          type: integer
+        nodes:
           type: integer
       required:
         - name

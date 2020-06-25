@@ -159,7 +159,7 @@ class Partition(ResourceBase):
     Class representing a single partition within a larger cluster.
     """
 
-    def __init__(self, name, slots=None):
+    def __init__(self, name, slots=None, total_cpus=1):
         """Partition constructor.
 
         Initialize a new partition .
@@ -168,6 +168,7 @@ class Partition(ResourceBase):
         self.slots = slots
         if self.slots is None:
             self.slots = []
+        self.total_cpus = total_cpus
 
     @property
     def total_time(self):
@@ -333,7 +334,7 @@ class Task(ResourceBase):
     Representation of a single Task within a Workflow.
     """
 
-    def __init__(self, name, runtime):
+    def __init__(self, name, runtime, cpus=1):
         """Task constructor.
 
         Initialize a new Task .
@@ -341,9 +342,24 @@ class Task(ResourceBase):
         :type name: str
         :param runtime: estimated runtime seconds
         :type runtime: int
+        :param cpus: number of cpus required to run this task
+        :type cpus: int
         """
         self.name = name
         self.runtime = runtime
+        self.cpus = cpus
+
+    def fits_requirements(self, partition):
+        """Return true if this task can be run on this partition.
+
+        Compares the resource requirements of the task with those available
+        on the partition to see if they are compatible. Returns true if they
+        are and false otherwise.
+        :param partition: a partition on which a task could be scheduled
+        :type partition: instance of Partition
+        """
+        # TODO: Add support for other resources
+        return self.cpus <= partition.total_cpus
 
     def encode(self):
         """Encode an object and return the basic type.
@@ -421,11 +437,17 @@ def schedule_next_fcfs(task, clusters, min_start_time):
     best_cluster = None
     for cluster in clusters:
         for partition in cluster.partitions:
+            # Ensure that this partition fits the task requirements
+            if not task.fits_requirements(partition):
+                continue
             t = partition.fit(task, start_time=min_start_time)
             if t < best_time:
                 best_time = t
                 best_partition = partition
                 best_cluster = cluster
+    if best_partition is None or best_cluster is None:
+        # No allocation found
+        return None
     # Insert the time
     slot = best_partition.insert(task, start_time=best_time)
     # Set the cluster
@@ -453,6 +475,9 @@ def fcfs(workflow, clusters, start_time):
         for task in level:
             slot = schedule_next_fcfs(task, clusters, time)
             provision[task.name] = slot
+            if slot is None:
+                # TODO: Maybe return a status saying not enough resources?
+                return provision
             # Update the time to the latest estimated completion time of
             # the level
             t = slot.start_time + task.runtime
