@@ -31,7 +31,7 @@ steps:
       outputs:
         outfile: stdout
       stdout: grepout.txt
-      baseCommand: grep
+      baseCommand: "sleep 15; grep"
       hints:
         DockerRequirement:
           dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
@@ -51,7 +51,7 @@ steps:
       outputs:
         outfile: stdout
       stdout: counts.txt
-      baseCommand: "wc -l"
+      baseCommand: "sleep 10; wc -l"
       hints:
         DockerRequirement:
           dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
