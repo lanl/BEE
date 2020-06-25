@@ -24,7 +24,7 @@ from subprocess import PIPE
 
 BEESTART = os.path.splitext(__file__)[0]
 
-def StartGDB(bc, debug=True):
+def StartGDB(bc, args):
     """Start the graph database. Returns a Popen process object."""
     log = logging.getLogger(BEESTART)
     if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
@@ -56,6 +56,8 @@ def StartGDB(bc, debug=True):
         }
         # Add section (writes to config file)
         bc.modify_section('user','graphdb',graphdb_dict)
+    if args.config_only: 
+       return None
     # Read the config file back in
     db_hostname = bc.userconfig.get('graphdb','hostname')
     db_password = bc.userconfig.get('graphdb','dbpass')
@@ -66,7 +68,7 @@ def StartGDB(bc, debug=True):
     gdb_img_mntdir = bc.userconfig.get('graphdb','gdb_image_mntdir')
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
-    if debug:
+    if args.debug:
         log.info("GraphDB container mount directory " + container_dir + " created")
 
     try:
@@ -75,7 +77,7 @@ def StartGDB(bc, debug=True):
         log.error("ch-tar2dir failed")
         print("ch-tar2dir failed", file=sys.stderr)
         shutil.rmtree(container_dir)
-        if debug:
+        if args.debug:
             log.error("GraphDB container mount directory " + container_dir + " removed")
         return None
 
@@ -85,7 +87,7 @@ def StartGDB(bc, debug=True):
     # Make the certificates directory
     container_certs_path = os.path.join(container_path, 'var/lib/neo4j/certificates')
     os.makedirs(container_certs_path, exist_ok=True)
-    if debug:
+    if args.debug:
         log.info('Created certificates directory %s', container_certs_path)
     # Setup working path data
     gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'), 
@@ -93,7 +95,7 @@ def StartGDB(bc, debug=True):
     gdb_config_path = os.path.join(gdb_workdir, "conf")
     os.makedirs(gdb_config_path, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
-    if debug:
+    if args.debug:
         log.info(gdb_configfile)
             
     cfile = open(gdb_configfile, "rt")
@@ -165,7 +167,7 @@ def StartGDB(bc, debug=True):
     return proc
 
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr 
-def StartSlurmRestD(bc, debug=False):
+def StartSlurmRestD(bc, args):
     """Start BEESlurmRestD. Returns a Popen process object."""
 
     log = logging.getLogger(BEESTART)
@@ -183,13 +185,15 @@ def StartSlurmRestD(bc, debug=False):
         }
         # Add section (writes to config file)
         bc.modify_section('user','slurmrestd',restd_dict)
+    if args.config_only:
+        return None
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
     subprocess.Popen(['rm','-f',slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
     return subprocess.Popen(["slurmrestd", "unix:"+slurm_socket],
                             stdout=PIPE, stderr=PIPE)
 
-def StartWorkflowManager(bc, debug=False):
+def StartWorkflowManager(bc, args):
     """Start BEEWorkflowManager. Returns a Popen process object."""
 
     # Load gdb config from config file if exists
@@ -206,12 +210,13 @@ def StartWorkflowManager(bc, debug=False):
         }
         # Add section (writes to config file)
         bc.modify_section('user','workflow_manager',wfm_dict)
-    #return subprocess.Popen(["screen", "-dmS", "bee_server_{}".format(os.getlogin()),
+    if args.config_only:
+        return None
     return subprocess.Popen(["python", 'beeflow/server/server.py',
                             '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
 
-def StartTaskManager(bc, debug=False):
+def StartTaskManager(bc, args):
     """Start BEETaskManager. Returns a Popen process object."""
     # Load gdb config from config file if exists
     try:
@@ -227,7 +232,8 @@ def StartTaskManager(bc, debug=False):
         }
         # Add section (writes to config file)
         bc.modify_section('user','task_manager',tm_dict)
-    #return subprocess.Popen(["screen", "-dmS", "bee_tm_{}".format(os.getlogin()), 
+    if args.config_only:
+        return None
     return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py",
                             '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)
@@ -270,6 +276,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
+    parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
     return parser.parse_args(args)
 
 def main():
@@ -293,39 +300,46 @@ def main():
     # Start all processes
     wait_list = [] # List of processes to wait for
     if args.restd or start_all:
-        proc = StartSlurmRestD(bc, args.debug)
-        if proc is None:
-            log.error('slurmrestd failed to start. Exiting.')
-            print('slurmrestd failed to start. Exiting.', file=sys.stderr)
-            return 1
-        # Don't append the graph database to list of processes to wait for
-        log.info('Starting slurmrestd based on userconfig file.')
+        proc = StartSlurmRestD(bc, args)
+        if not args.config_only:
+            if proc is None:
+                log.error('slurmrestd failed to start. Exiting.')
+                print('slurmrestd failed to start. Exiting.', file=sys.stderr)
+                return 1
+            # Don't append the graph database to list of processes to wait for
+            log.info('Starting slurmrestd based on userconfig file.')
     if args.gdb or start_all:
-        proc = StartGDB(bc, args.debug)
-        if proc is None:
-            log.error('Graph Database failed to start. Exiting.')
-            print('Graph Database failed to start. Exiting.', file=sys.stderr)
-            return 1
-        # Don't append the graph database to list of processes to wait for
-        log.info('Loading Graph Database')
+        proc = StartGDB(bc, args)
+        if not args.config_only:
+            if proc is None:
+                log.error('Graph Database failed to start. Exiting.')
+                print('Graph Database failed to start. Exiting.', file=sys.stderr)
+                return 1
+            # Don't append the graph database to list of processes to wait for
+            log.info('Loading Graph Database')
     if args.wfm or start_all:
-        proc = StartWorkflowManager(bc, args.debug)
-        if proc is None:
-            log.error('Workflow Manager failed to start. Exiting.')
-            print('Workflow Manager failed to start. Exiting.', file=sys.stderr)
-            return 1
-        create_pid_file(proc, 'wfm.pid', bc)
-        wait_list.append(('Workflow Manager', proc))
-        log.info('Loading Workflow Manager')
+        proc = StartWorkflowManager(bc, args)
+        if not args.config_only:
+            if proc is None:
+                log.error('Workflow Manager failed to start. Exiting.')
+                print('Workflow Manager failed to start. Exiting.', file=sys.stderr)
+                return 1
+            create_pid_file(proc, 'wfm.pid', bc)
+            wait_list.append(('Workflow Manager', proc))
+            log.info('Loading Workflow Manager')
     if args.tm or start_all:
-        proc = StartTaskManager(bc, args.debug)
-        if proc is None:
-            log.error('Task Manager failed to start. Exiting.')
-            print('Task Manager failed to start. Exiting.', file=sys.stderr)
-            return 1
-        create_pid_file(proc, 'tm.pid', bc)
-        wait_list.append(('Task Manager', proc))
-        log.info('Loading Task Manager')
+        proc = StartTaskManager(bc, args)
+        if not args.config_only:
+            if proc is None:
+                log.error('Task Manager failed to start. Exiting.')
+                print('Task Manager failed to start. Exiting.', file=sys.stderr)
+                return 1
+            create_pid_file(proc, 'tm.pid', bc)
+            wait_list.append(('Task Manager', proc))
+            log.info('Loading Task Manager')
+
+    if args.config_only:
+        return 0
 
     time.sleep(3)
     # Check if any processes have finished early
