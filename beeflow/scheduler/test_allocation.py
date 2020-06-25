@@ -190,3 +190,57 @@ def test_fcfs_two_tasks_one_partition():
     assert provision['task-1'].cluster_name == 'cluster-0'
     assert provision['task-1'].start_time == 10
     assert provision['task-1'].task.name == 'task-1'
+
+def test_fcfs_one_task_resource_requirement_empty():
+    """Test the fcfs algorithm with a task that cannot be run."""
+    task1 = allocation.Task(name='task-0', runtime=12, cpus=4)
+    workflow = allocation.Workflow(name='workflow-0', levels=[[task1]])
+    cluster = allocation.Cluster(name='cluster-0')
+    partition = allocation.Partition(name='partition-0', total_cpus=1)
+    cluster.insert_partition(partition)
+
+    provision = allocation.fcfs(workflow, [cluster], 0)
+
+    assert len(provision) == 1
+    assert provision['task-0'] is None
+
+def test_fcfs_one_task_resource_requirement():
+    """Test the fcfs algorithm with a task with resource requirements."""
+    task1 = allocation.Task(name='task-0', runtime=10, cpus=4)
+    workflow = allocation.Workflow(name='workflow-0', levels=[[task1]])
+    cluster = allocation.Cluster(name='cluster-0')
+    partition0 = allocation.Partition(name='partition-0', total_cpus=1)
+    cluster.insert_partition(partition0)
+    partition1 = allocation.Partition(name='partition-1', total_cpus=8)
+    cluster.insert_partition(partition1)
+
+    provision = allocation.fcfs(workflow, [cluster], 0)
+
+    assert len(provision) == 1
+    assert provision['task-0'].partition_name == 'partition-1'
+    assert provision['task-0'].cluster_name == 'cluster-0'
+    assert provision['task-0'].start_time == 0
+    assert provision['task-0'].task.name == 'task-0'
+
+def test_fcfs_two_task_resource_requirement():
+    """Test the fcfs algorithm with a task with resource requirements."""
+    task1 = allocation.Task(name='task-0', runtime=10, cpus=4)
+    task2 = allocation.Task(name='task-1', runtime=10, cpus=32)
+    workflow = allocation.Workflow(name='workflow-0', levels=[[task1, task2]])
+    cluster = allocation.Cluster(name='cluster-0')
+    partition0 = allocation.Partition(name='partition-0', total_cpus=8)
+    cluster.insert_partition(partition0)
+    partition1 = allocation.Partition(name='partition-1', total_cpus=64)
+    cluster.insert_partition(partition1)
+
+    provision = allocation.fcfs(workflow, [cluster], 0)
+
+    assert len(provision) == 2 
+    assert provision['task-0'].partition_name == 'partition-0'
+    assert provision['task-0'].cluster_name == 'cluster-0'
+    assert provision['task-0'].start_time == 0
+    assert provision['task-0'].task.name == 'task-0'
+    assert provision['task-1'].partition_name == 'partition-1'
+    assert provision['task-1'].cluster_name == 'cluster-0'
+    assert provision['task-1'].start_time == 0
+    assert provision['task-1'].task.name == 'task-1'

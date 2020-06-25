@@ -34,7 +34,9 @@ class ScheduleHandler(Resource):
         provisions = allocation.fcfs(workflow=workflow, clusters=clusters,
                                      start_time=data['start_time'])
         # Encode allocation time slots
-        return {name: provisions[name].encode() for name in provisions}
+        return {name: provisions[name].encode()
+                if provisions[name] is not None else None
+                for name in provisions}
 
 
 api.add_resource(ScheduleHandler, '/bee_sched/v1/schedule')
