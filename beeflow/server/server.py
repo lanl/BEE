@@ -11,7 +11,8 @@ from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
-import beeflow.common.parser.parse_cwl as parser
+# Temporary clamr parser
+import beeflow.common.parser.parse_clamr as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
 
@@ -126,7 +127,7 @@ class JobSubmit(Resource):
     # Client Submits workflow
     def put(self, wf_id):
         """Get a workflow or give file not found error."""
-        print("JobSubmit passed wf_id={} but it's unused. What do?".format(wf_id))
+        #print("JobSubmit passed wf_id={} but it's unused. What do?".format(wf_id))
         data = self.reqparse.parse_args()
         if data['workflow'] == "":
             resp = make_response(jsonify(msg='No file found', status='error'), 400)
