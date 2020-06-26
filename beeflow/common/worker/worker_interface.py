@@ -14,13 +14,13 @@ class WorkerInterface:
     Requires an implemented subclass of Worker to function.
     """
 
-    def __init__(self, worker=SlurmWorker):
+    def __init__(self, worker=SlurmWorker, **kwargs):
         """Initialize the workload interface with a workload driver, SlurmWorker by default.
 
         :param worker: the work load driver (SlurmWorker by default)
         :type worker: subclass of Worker
         """
-        self._worker = worker()
+        self._worker = worker(**kwargs)
 
     def submit_task(self, task):
         """Workload manager to submit task as job returns job_id(-1 if error), job_state.

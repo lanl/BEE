@@ -5,6 +5,7 @@ For now build command for submitting batch job.
 """
 
 import os
+import sys
 import string
 import subprocess
 import time
@@ -13,19 +14,6 @@ import urllib
 import requests_unixsocket
 
 from beeflow.common.worker.worker import Worker
-
-from beeflow.common.config.config_driver import BeeConfig
-
-bc = BeeConfig()
-if bc.userconfig.has_section('slurmrestd'):
-    slurm_socket = bc.userconfig['slurmrestd'].get('socket')
-else:
-    print("[slurmrestd] section not found in configuration file, default values will be used")
-    slurm_socket = f'/tmp/slurm_{os.getlogin()}.sock'
-
-session = requests_unixsocket.Session()
-encoded_path = urllib.parse.quote(slurm_socket, safe="")
-slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
 
 def get_ccname(image_path):
     """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
@@ -94,7 +82,7 @@ def write_script(task):
         task_script = error.output.decode('utf-8')
     return success, task_script
 
-def query_job(job_id):
+def query_job(job_id, session, slurm_url):
     query_status = 1
     resp = session.get(f'{slurm_url}/job/{job_id}')
     if resp.status_code != 200:
@@ -107,7 +95,7 @@ def query_job(job_id):
     return query_success, job_state
 
 
-def cancel_job(job_id):
+def cancel_job(job_id, session, slurm_url):
     cancel_success = 1
     resp = session.delete(f'{slurm_url}/job/{job_id}')
     if resp.status_code != 200:
@@ -117,7 +105,7 @@ def cancel_job(job_id):
         job_state = "CANCELLED"
     return cancel_success, job_state
 
-def submit_job(script):
+def submit_job(script, session, slurm_url):
     """Worker submits job-returns (job_id, job_state), or (-1, error)."""
     job_id = -1
     try:
@@ -126,7 +114,7 @@ def submit_job(script):
         job_id = int(job_st)
     except subprocess.CalledProcessError as error:
         job_status = error.output.decode('utf-8')
-    _, job_state = query_job(job_id)
+    _, job_state = query_job(job_id, session, slurm_url)
     return job_id, job_state
 
 
@@ -135,11 +123,23 @@ class SlurmWorker(Worker):
 
     Implements Worker using pyslurm, except submit_task uses subprocess.
     """
+    def __init__(self, **kwargs):
+        """Create a new Slurm Worker object.
+
+        """
+
+        self.slurm_socket = kwargs.get('slurm_socket',f'/tmp/slurm_{os.getlogin()}.sock')
+        self.session = requests_unixsocket.Session()
+        encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
+        # Note: Socket path is encoded, http request is not generally. 
+        self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
+
     def submit_task(self, task):
         """Worker builds & submits script."""
         build_success, task_script = write_script(task)
         if build_success:
-            job_id, job_state = submit_job(task_script)
+            job_id, job_state = submit_job(task_script,
+                                           self.session, self.slurm_url)
         else:
             job_id = build_success
             job_state = task_script
@@ -147,13 +147,13 @@ class SlurmWorker(Worker):
 
     def query_task(self, job_id):
         """Worker queries job; returns (1, job_state), or (-1, error_msg)."""
-        query_success, job_state = query_job(job_id)
+        query_success, job_state = query_job(job_id, self.session, self.slurm_url)
         return query_success, job_state
 
     def cancel_task(self, job_id):
         """Worker cancels job; returns (1, job_state), or (-1, error_msg)."""
         cancel_success = 1
-        resp = session.delete(f'{slurm_url}/job/{job_id}')
+        resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
         if resp.status_code != 200:
             cancel_success = -1
             job_state = f"Unable to cancel job id {job_id}."
