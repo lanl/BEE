@@ -455,12 +455,12 @@ def schedule_next_fcfs(task, clusters, min_start_time):
     return slot
 
 
-def fcfs(workflow, clusters, start_time):
+def fcfs(tasks, clusters, start_time):
     """Run the FCFS scheduling algorithm.
 
-    Starts the FCFS algorithm with the given workflow and available clusters.
-    :param workflow: the workflow
-    :type workflow: instance of Workflow
+    Starts the FCFS algorithm with the given tasks and available clusters.
+    :param tasks: tasks to schedule
+    :type tasks: list of instances of Task
     :param clusters: a list of available clusters
     :type clusters: list of instances of Cluster
     :param start_time: desired start time of the workflow
@@ -470,18 +470,17 @@ def fcfs(workflow, clusters, start_time):
     provision = {}
     time = start_time
     # TODO: Something may be off with the time here
-    for level in workflow.levels:
-        max_time = time
-        for task in level:
-            slot = schedule_next_fcfs(task, clusters, time)
-            provision[task.name] = slot
-            if slot is None:
-                # TODO: Maybe return a status saying not enough resources?
-                return provision
-            # Update the time to the latest estimated completion time of
-            # the level
-            t = slot.start_time + task.runtime
-            if t > max_time:
-                max_time = t
-        time = max_time
+    max_time = time
+    for task in tasks:
+        slot = schedule_next_fcfs(task, clusters, time)
+        provision[task.name] = slot
+        if slot is None:
+            # TODO: Maybe return a status saying not enough resources?
+            return provision
+        # Update the time to the latest estimated completion time of
+        # the level
+        t = slot.start_time + task.runtime
+        if t > max_time:
+            max_time = t
+    time = max_time
     return provision

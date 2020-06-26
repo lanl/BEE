@@ -28,10 +28,12 @@ class ScheduleHandler(Resource):
         :type name: str
         """
         data = request.json
-        workflow = allocation.Workflow.decode(data['workflow'])
+        # workflow = allocation.Workflow.decode(data['workflow'])
+        # Get the list of tasks
+        tasks = [allocation.Task.decode(t) for t in data['tasks']]
         clusters = [allocation.Cluster.decode(cluster)
                     for cluster in data['clusters']]
-        provisions = allocation.fcfs(workflow=workflow, clusters=clusters,
+        provisions = allocation.fcfs(tasks=tasks, clusters=clusters,
                                      start_time=data['start_time'])
         # Encode allocation time slots
         return {name: provisions[name].encode()

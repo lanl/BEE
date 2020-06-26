@@ -153,13 +153,11 @@ def test_partition_fit_non_empty_1():
 def test_fcfs_one_task_one_partition():
     """Test the fcfs algorithm with a single task and a single partition."""
     task = allocation.Task(name='task-0', runtime=10)
-    workflow = allocation.Workflow(name='workflow-0')
-    workflow.insert(level=0, task=task)
     cluster = allocation.Cluster(name='cluster-0')
     partition = allocation.Partition(name='partition-0')
     cluster.insert_partition(partition)
 
-    provision = allocation.fcfs(workflow, [cluster], 0)
+    provision = allocation.fcfs([task], [cluster], 0)
 
     assert len(provision) == 1
     assert provision['task-0'].partition_name == 'partition-0'
@@ -172,14 +170,11 @@ def test_fcfs_two_tasks_one_partition():
     """Test the fcfs algorithm with two tasks and a single partition."""
     task1 = allocation.Task(name='task-0', runtime=10)
     task2 = allocation.Task(name='task-1', runtime=10)
-    workflow = allocation.Workflow(name='workflow-0')
-    workflow.insert(level=0, task=task1)
-    workflow.insert(level=1, task=task2)
     cluster = allocation.Cluster(name='cluster-0')
     partition = allocation.Partition(name='partition-0')
     cluster.insert_partition(partition)
 
-    provision = allocation.fcfs(workflow, [cluster], 0)
+    provision = allocation.fcfs([task1, task2], [cluster], 0)
 
     assert len(provision) == 2
     assert provision['task-0'].partition_name == 'partition-0'
@@ -194,12 +189,11 @@ def test_fcfs_two_tasks_one_partition():
 def test_fcfs_one_task_resource_requirement_empty():
     """Test the fcfs algorithm with a task that cannot be run."""
     task1 = allocation.Task(name='task-0', runtime=12, cpus=4)
-    workflow = allocation.Workflow(name='workflow-0', levels=[[task1]])
     cluster = allocation.Cluster(name='cluster-0')
     partition = allocation.Partition(name='partition-0', total_cpus=1)
     cluster.insert_partition(partition)
 
-    provision = allocation.fcfs(workflow, [cluster], 0)
+    provision = allocation.fcfs([task1], [cluster], 0)
 
     assert len(provision) == 1
     assert provision['task-0'] is None
@@ -207,14 +201,13 @@ def test_fcfs_one_task_resource_requirement_empty():
 def test_fcfs_one_task_resource_requirement():
     """Test the fcfs algorithm with a task with resource requirements."""
     task1 = allocation.Task(name='task-0', runtime=10, cpus=4)
-    workflow = allocation.Workflow(name='workflow-0', levels=[[task1]])
     cluster = allocation.Cluster(name='cluster-0')
     partition0 = allocation.Partition(name='partition-0', total_cpus=1)
     cluster.insert_partition(partition0)
     partition1 = allocation.Partition(name='partition-1', total_cpus=8)
     cluster.insert_partition(partition1)
 
-    provision = allocation.fcfs(workflow, [cluster], 0)
+    provision = allocation.fcfs([task1], [cluster], 0)
 
     assert len(provision) == 1
     assert provision['task-0'].partition_name == 'partition-1'
@@ -233,7 +226,7 @@ def test_fcfs_two_task_resource_requirement():
     partition1 = allocation.Partition(name='partition-1', total_cpus=64)
     cluster.insert_partition(partition1)
 
-    provision = allocation.fcfs(workflow, [cluster], 0)
+    provision = allocation.fcfs([task1, task2], [cluster], 0)
 
     assert len(provision) == 2 
     assert provision['task-0'].partition_name == 'partition-0'
