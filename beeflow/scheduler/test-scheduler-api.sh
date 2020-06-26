@@ -13,17 +13,12 @@ sleep 1
 
 # Test 1
 DATA='{
-    "workflow": {
-        "name": "workflow-0",
-        "levels": [
-            [
-                {
-                    "name": "task-0",
-                    "runtime": 10
-                }
-            ]
-        ]
-    },
+    "tasks": [
+        {
+            "name": "task-0",
+            "runtime": 10
+        }
+    ],
     "clusters": [
         {
             "name": "cluster-0",
@@ -43,27 +38,20 @@ curl -X PUT -H "Content-Type: application/json" --data-raw "$DATA" ${SERVER}${UR
 ###############################################################################
 # Test 2
 DATA='{
-    "workflow": {
-        "name": "workflow-0",
-        "levels": [
-            [
-                {
-                    "name": "task-0",
-                    "runtime": 10
-                },
-                {
-                    "name": "task-1",
-                    "runtime": 6
-                }
-            ],
-            [
-                {
-                    "name": "task-2",
-                    "runtime": 3
-                }
-            ]
-        ]
-    },
+    "tasks": [
+        {
+            "name": "task-0",
+            "runtime": 10
+        },
+        {
+            "name": "task-1",
+            "runtime": 6
+        },
+        {
+            "name": "task-2",
+            "runtime": 3
+        }
+    ],
     "clusters": [
         {
             "name": "cluster-0",
@@ -83,27 +71,20 @@ curl -X PUT -H "Content-Type: application/json" --data-raw "$DATA" ${SERVER}${UR
 ###############################################################################
 # Test 3
 DATA='{
-    "workflow": {
-        "name": "workflow-0",
-        "levels": [
-            [
-                {
-                    "name": "task-0",
-                    "runtime": 10
-                },
-                {
-                    "name": "task-1",
-                    "runtime": 6
-                }
-            ],
-            [
-                {
-                    "name": "task-2",
-                    "runtime": 3
-                }
-            ]
-        ]
-    },
+    "tasks": [
+        {
+            "name": "task-0",
+            "runtime": 10
+        },
+        {
+            "name": "task-1",
+            "runtime": 6
+        },
+        {
+            "name": "task-2",
+            "runtime": 3
+        }
+    ],
     "clusters": [
         {
             "name": "cluster-0",
@@ -126,47 +107,36 @@ curl -X PUT -H "Content-Type: application/json" --data-raw "$DATA" ${SERVER}${UR
 ###############################################################################
 # Test 4
 DATA='{
-    "workflow": {
-        "name": "workflow-0",
-        "levels": [
-            [
-                {
-                    "name": "task-0",
-                    "runtime": 10
-                }
-            ],
-            [
-                {
-                    "name": "task-1",
-                    "runtime": 10
-                }
-            ],
-            [
-                {
-                    "name": "task-2",
-                    "runtime": 10
-                }
-            ],
-            [
-                {
-                    "name": "task-3",
-                    "runtime": 3
-                },
-                {
-                    "name": "task-4",
-                    "runtime": 4
-                },
-                {
-                    "name": "task-5",
-                    "runtime": 5
-                },
-                {
-                    "name": "task-6",
-                    "runtime": 6
-                }
-            ]
-        ]
-    },
+    "tasks": [
+        {
+            "name": "task-0",
+            "runtime": 10
+        },
+        {
+            "name": "task-1",
+            "runtime": 10
+        },
+        {
+            "name": "task-2",
+            "runtime": 10
+        },
+        {
+            "name": "task-3",
+            "runtime": 3
+        },
+        {
+            "name": "task-4",
+            "runtime": 4
+        },
+        {
+            "name": "task-5",
+            "runtime": 5
+        },
+        {
+            "name": "task-6",
+            "runtime": 6
+        }
+    ],
     "clusters": [
         {
             "name": "cluster-0",
@@ -192,21 +162,16 @@ curl -X PUT -H "Content-Type: application/json" --data-raw "$DATA" ${SERVER}${UR
 ###############################################################################
 # Test 5
 DATA='{
-    "workflow": {
-        "name": "workflow-0",
-        "levels": [
-            [
-                {
-                    "name": "task-0",
-                    "runtime": 10
-                },
-                {
-                    "name": "task-1",
-                    "runtime": 10
-                }
-            ]
-        ]
-    },
+    "tasks": [
+        {
+            "name": "task-0",
+            "runtime": 10
+        },
+        {
+            "name": "task-1",
+            "runtime": 10
+        }
+    ],
     "clusters": [
         {
             "name": "cluster-0",
@@ -234,18 +199,13 @@ curl -X PUT -H "Content-Type: application/json" --data-raw "$DATA" ${SERVER}${UR
 ###############################################################################
 # Test 6 - Test some simple resource needs
 DATA='{
-    "workflow": {
-        "name": "workflow-0",
-        "levels": [
-            [
-                {
-                    "name": "task-0",
-                    "runtime": 10,
-                    "cpus": 2
-                }
-            ]
-        ]
-    },
+    "tasks": [
+        {
+            "name": "task-0",
+            "runtime": 10,
+            "cpus": 2
+        }
+    ],
     "clusters": [
         {
             "name": "cluster-0",
@@ -270,18 +230,13 @@ curl -X PUT -H "Content-Type: application/json" --data-raw "$DATA" ${SERVER}${UR
 ###############################################################################
 # Test 7 - Test simple resource need (not satisfied)
 DATA='{
-    "workflow": {
-        "name": "workflow-0",
-        "levels": [
-            [
-                {
-                    "name": "task-0",
-                    "runtime": 10,
-                    "cpus": 64
-                }
-            ]
-        ]
-    },
+    "tasks": [
+        {
+            "name": "task-0",
+            "runtime": 10,
+            "cpus": 64
+        }
+    ],
     "clusters": [
         {
             "name": "cluster-0",
