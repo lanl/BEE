@@ -27,15 +27,6 @@ BEESTART = os.path.splitext(__file__)[0]
 def StartGDB(bc, args):
     """Start the graph database. Returns a Popen process object."""
     log = logging.getLogger(BEESTART)
-    if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
-        log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
-        return None
-
-    # Setup subprocess output
-    stdout = sys.stdout
-    stderr = sys.stderr
-
-
     # Load gdb config from config file if exists
     try:
         bc.userconfig['graphdb']
@@ -58,6 +49,15 @@ def StartGDB(bc, args):
         bc.modify_section('user','graphdb',graphdb_dict)
     if args.config_only: 
        return None
+    if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
+        log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
+        return None
+
+    # Setup subprocess output
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+
     # Read the config file back in
     db_hostname = bc.userconfig.get('graphdb','hostname')
     db_password = bc.userconfig.get('graphdb','dbpass')
