@@ -43,11 +43,11 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                     name = get_ccname(value)
                     text = ''.join([
                         'module load charliecloud\n',
-                        'mkdir -p /tmp/$USER\n',
-                        'ch-tar2dir ', value, ' /tmp/$USER\n',
-                        'ch-run /tmp/$USER/', name,
+                        'mkdir -p /tmp\n',
+                        'ch-tar2dir ', value, ' /tmp\n',
+                        'ch-run /tmp/', name,
                         ' -b $PWD -c /mnt/0 -- ', command,
-                        'rm -rf /tmp/$USER/', name, '\n'
+                        'rm -rf /tmp/', name, '\n'
                         ])
                     docker = True
             if not docker:
@@ -74,11 +74,11 @@ class ChuckDriver(ContainerRuntimeDriver):
                     text = ''.join([
                         'echo Hello I am Chuck!\n'
                         'module load charliecloud\n',
-                        'mkdir -p /tmp/$USER\n',
-                        'ch-tar2dir ', value, ' /tmp/$USER\n',
-                        'ch-run /tmp/$USER/', name,
+                        'mkdir -p /tmp\n',
+                        'ch-tar2dir ', value, ' /tmp\n',
+                        'ch-run /tmp/', name,
                         ' -b $PWD -c /mnt/0 -- ', command,
-                        'rm -rf /tmp/$USER/', name, '\n'
+                        'rm -rf /tmp/', name, '\n'
                         ])
                     docker = True
             if not docker:
