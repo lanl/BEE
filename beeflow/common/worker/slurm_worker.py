@@ -14,6 +14,25 @@ import urllib
 import requests_unixsocket
 
 from beeflow.common.worker.worker import Worker
+from beeflow.common.crt.crt_interface import ContainerRuntimeInterface
+from beeflow.common.config.config_driver import BeeConfig
+
+# Check configuration file for container runtime, Charliecloud by default.
+bc = BeeConfig()
+supported_runtimes = ['Charliecloud', 'Chuck'] 
+if bc.userconfig.has_section('task_manager'):
+    tm_crt = bc.userconfig['task_manager'].get('container_runtime', 'Charliecloud')
+    if tm_crt not in supported_runtimes:
+        print(f'*** Container runtime {tm_crt} not supported! ***')
+else:
+    tm_crt = 'Charliecloud'
+
+print(f'The container runtime is {tm_crt}')
+if tm_crt == 'Charliecloud':
+   from beeflow.common.crt.crt_drivers import CharliecloudDriver as CrtDriver
+elif tm_crt == 'Chuck':
+   from beeflow.common.crt.crt_drivers import ChuckDriver as CrtDriver
+
 
 def get_ccname(image_path):
     """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
@@ -29,18 +48,6 @@ def get_ccname(image_path):
 def build_text(task, template_file):
     """Build text for task script use template if it exists."""
     job_template = ''
-    cc_text = ''
-    docker = False
-    if task.hints is not None:
-        for hint in task.hints:
-            req_class, key, value = hint
-            if req_class == "DockerRequirement" and key == "dockerImageId":
-                cc_tar = value
-                cc_name = get_ccname(cc_tar)
-                cc_text = 'module load charliecloud\n'
-                cc_text += 'mkdir -p /tmp/USER\n'
-                cc_text += 'ch-tar2dir ' + cc_tar + ' /tmp/USER\n'
-                docker = True
     try:
         template_f = open(template_file, 'r')
         job_template = template_f.read()
@@ -50,14 +57,8 @@ def build_text(task, template_file):
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
     job_text = template.substitute({'name': task.name, 'id': task.id})
-    if docker:
-        job_text = job_text + cc_text
-        job_text = job_text.replace('USER', '$USER')
-        job_text += 'ch-run /tmp/$USER/' + cc_name + ' -b $PWD -c /mnt/0 -- '
-        job_text += ''.join(task.command) + '\n'
-        job_text += 'rm -rf /tmp/$USER/' + cc_name + '\n'
-    else:
-        job_text += ''.join(task.command) + '\n'
+    crt_text = CRT.script_text(task)
+    job_text += crt_text
     return job_text
 
 
@@ -65,7 +66,7 @@ def write_script(task):
     """Build task script; returns (1, filename) or (-1, error_message)."""
     # for now using fixed directory for task manager scripts and write them out
     # we may keep them in memory and only write for a debug or logging option
-    # make directory if doesn't exist (now uses date, should be workflow name?)
+    # make directory (now uses date, should be workflow name or id?)
     template_file = os.path.expanduser('~/.beeflow/worker/job.template')
     template_dir = os.path.dirname(template_file)
     script_dir = template_dir + '/workflow-' + time.strftime("%Y%m%d-%H%M%S")
@@ -160,3 +161,6 @@ class SlurmWorker(Worker):
         else:
             job_state = "CANCELLED"
         return cancel_success, job_state
+
+
+CRT = ContainerRuntimeInterface(CrtDriver)

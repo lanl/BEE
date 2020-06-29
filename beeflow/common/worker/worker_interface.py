@@ -23,7 +23,7 @@ class WorkerInterface:
         self._worker = worker(**kwargs)
 
     def submit_task(self, task):
-        """Workload manager to submit task as job returns job_id(-1 if error), job_state.
+        """Workload manager submits task as job returns job_id(-1 = error), job_state.
 
         :param task: instance of Task
         :rtype tuple (int, string)
