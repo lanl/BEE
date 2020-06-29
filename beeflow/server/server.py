@@ -24,11 +24,10 @@ else:
     print("[workflow_manager] section not found in configuration file, default values will be added")
 
     wfm_dict = {
-        'name': 'workflow_manager',
         'listen_port': '5000',
     }
 
-    bc.add_section('user', wfm_dict)
+    bc.modify_section('user', 'workflow_manager', wfm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart WorkflowManager")
 

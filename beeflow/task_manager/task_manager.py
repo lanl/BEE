@@ -23,11 +23,10 @@ else:
     print("[task_manager] section not found in configuration file, default values added")
 
     tm_dict = {
-        'name': 'task_manager',
         'listen_port': '5050',
     }
 
-    bc.add_section('user', tm_dict)
+    bc.modify_section('user','task_manager', tm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart TaskManager")
 
@@ -93,7 +92,7 @@ def update_jobs():
         task_id = list(job)[0]
         current_task = job[task_id]
         job_id = current_task['job_id']
-        state = WORKER.query_job(job_id)
+        state = WORKER.query_task(job_id)
         if state[0] == 1:
             job_state = state[1]
         else:
@@ -159,7 +158,7 @@ class TaskActions(Resource):
 
             job_queue.remove(job)
             print(f"Cancelling {name} with job_id: {job_id}")
-            success, job_state = WORKER.cancel_job(job_id)
+            success, job_state = WORKER.cancel_task(job_id)
             cancel_msg += f"{name} {task_id} {success} {job_id}"
 
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)

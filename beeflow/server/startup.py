@@ -32,7 +32,6 @@ else:
     print("[graphdb] section not found in configuration file, default values will be added")
 
     graphdb_dict = {
-        'name': 'graphdb',
         'hostname': 'localhost',
         'dbpass': 'password',
         'bolt_port': 7687,
@@ -42,7 +41,7 @@ else:
         'gdb_image_mntdir': '/tmp',
         }
 
-    bc.add_section('user', graphdb_dict)
+    bc.add_section('user','graphdb' ,graphdb_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and rerun startup")
 
