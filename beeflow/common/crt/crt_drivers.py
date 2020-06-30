@@ -55,12 +55,10 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         return text
 
 
-class ChuckDriver(ContainerRuntimeDriver):
-    """The ContainerRuntimeDriver for Charliecloud as runtime but prints 
-       a message from Chuck. This is at temporary driver to show how the
-       abstract class works.
+class SingularityDriver(ContainerRuntimeDriver):
+    """The ContainerRuntimeDriver for Singularity as container runtime system.
 
-    Builds the text for the task for using Charliecloud to test abstract class.
+    Builds the text for the task for using Singularity to test abstract class.
     """
 
     def script_text(self, task):
@@ -72,13 +70,8 @@ class ChuckDriver(ContainerRuntimeDriver):
                 if req_class == "DockerRequirement" and key == "dockerImageId":
                     name = get_ccname(value)
                     text = ''.join([
-                        'echo Hello I am Chuck!\n'
-                        'module load charliecloud\n',
-                        'mkdir -p /tmp\n',
-                        'ch-tar2dir ', value, ' /tmp\n',
-                        'ch-run /tmp/', name,
-                        ' -b $PWD -c /mnt/0 -- ', command,
-                        'rm -rf /tmp/', name, '\n'
+                        'singularity exec ', value,
+                        ' ', command,
                         ])
                     docker = True
             if not docker:

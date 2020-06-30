@@ -19,7 +19,7 @@ from beeflow.common.config.config_driver import BeeConfig
 
 # Check configuration file for container runtime, Charliecloud by default.
 bc = BeeConfig()
-supported_runtimes = ['Charliecloud', 'Chuck'] 
+supported_runtimes = ['Charliecloud', 'Singularity'] 
 if bc.userconfig.has_section('task_manager'):
     tm_crt = bc.userconfig['task_manager'].get('container_runtime', 'Charliecloud')
     if tm_crt not in supported_runtimes:
@@ -30,8 +30,8 @@ else:
 print(f'The container runtime is {tm_crt}')
 if tm_crt == 'Charliecloud':
    from beeflow.common.crt.crt_drivers import CharliecloudDriver as CrtDriver
-elif tm_crt == 'Chuck':
-   from beeflow.common.crt.crt_drivers import ChuckDriver as CrtDriver
+elif tm_crt == 'Singularity':
+   from beeflow.common.crt.crt_drivers import SingularityDriver as CrtDriver
 
 
 def get_ccname(image_path):
