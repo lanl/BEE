@@ -212,8 +212,14 @@ def StartWorkflowManager(bc, args):
         bc.modify_section('user','workflow_manager',wfm_dict)
     if args.config_only:
         return None
+    # Either use the userconfig file argument specified to BEEStart,
+    # or assume the default path to ~/.config/beeflow/bee.conf.
+    if args.userconfig_file:
+        userconfig_file = args.userconfig_file
+    else:
+        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", 'beeflow/server/server.py',
-                            '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
+                            userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
 def StartTaskManager(bc, args):
@@ -234,8 +240,14 @@ def StartTaskManager(bc, args):
         bc.modify_section('user','task_manager',tm_dict)
     if args.config_only:
         return None
-    return subprocess.Popen(["python", "beeflow/task_manager/task_manager.py",
-                            '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
+    # Either use the userconfig file argument specified to BEEStart,
+    # or assume the default path to ~/.config/beeflow/bee.conf.
+    if args.userconfig_file:
+        userconfig_file = args.userconfig_file
+    else:
+        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
+    return subprocess.Popen(["python", 'beeflow/task_manager/task_manager.py',
+                            userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
 def create_pid_file(proc, pid_file, bc):
