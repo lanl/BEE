@@ -101,6 +101,7 @@ class JobSubmit(Resource):
             # Parse the workflow and add it to the database
             # This is just work.cwl until I can find a way to ensure persistent data
             top = cwl.load_document("./workflows/work.cwl")
+            wfi.finalize_workflow()
             parser.create_workflow(top, wfi)
             resp = make_response(jsonify(msg='Workflow uploaded', status='ok'), 201)
             return resp
@@ -170,8 +171,9 @@ class JobActions(Resource):
         if resp.status_code != requests.codes.okay:
             print("Something bad happened")
         # Remove all tasks currently in the database
-        wfi.finalize_workflow()
-        #wfi.cleanup()
+        if wfi.empty == False:
+            print("WUT")
+            wfi.finalize_workflow()
         print("Workflow cancelled")
         resp = make_response(jsonify(status='cancelled'), 202)
         return resp
@@ -222,9 +224,6 @@ class JobUpdate(Resource):
             remaining_tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(task_id)))
             if len(remaining_tasks) == 0:
                 print("Workflow Completed")
-                wfi.finalize_workflow()
-                print("Cleanup")
-                #wfi.cleanup()
 
             task = remaining_tasks[0] 
             if task.name != 'bee_exit':
@@ -237,7 +236,7 @@ class JobUpdate(Resource):
                     submit_task(task)
             else:
                 print("Workflow Completed!")
-                wfi.finalize_workflow()
+                #wfi.finalize_workflow()
                 #wfi.cleanup()
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
