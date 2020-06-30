@@ -288,6 +288,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
+    parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
     parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
     return parser.parse_args(args)
 
@@ -298,10 +299,13 @@ def main():
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
+    # Pass configuration file params to config_driver.py
+    config_params = {}
     if args.userconfig_file:
-        bc = BeeConfig(userconfig=args.userconfig_file)
-    else:
-        bc = BeeConfig()
+        config_params['userconfig'] = args.userconfig_file
+    if args.bee_workdir:
+        config_params['bee_workdir'] = args.bee_workdir
+    bc = BeeConfig(**config_params)
 
     # Setup logging based on args.debug
     log = setup_logging(bc, args.debug)
