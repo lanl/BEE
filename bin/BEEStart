@@ -205,11 +205,11 @@ def StartWorkflowManager(bc, args):
             offset = os.getppid()%100
         else:
             offset = os.getuid()%100
-        wfm_dict = {
+        server_dict = {
             'listen_port': 5000 + offset,
         }
         # Add section (writes to config file)
-        bc.modify_section('user','workflow_manager',wfm_dict)
+        bc.modify_section('user','workflow_manager',server_dict)
     if args.config_only:
         return None
     # Either use the userconfig file argument specified to BEEStart,
@@ -283,25 +283,29 @@ def parse_args(args=sys.argv[1:]):
 
     parser.add_argument("-d", "--debug", action="store_true",
                         help="enable debugging output\nIf debug is specified all output will go to the console.\nOnly one BEE service may be launched by BEEStart if debug is requested.")
-    parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
+    parser.add_argument("--server", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
     parser.add_argument("--gdb", action="store_true", help="start the configured graph database")
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
+    parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
     parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
     return parser.parse_args(args)
 
 def main():
     args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.gdb, args.restd]) or all([args.wfm, args.tm, args.gdb, args.restd])
-    if args.debug and not (sum([args.wfm,args.tm,args.gdb, args.restd]) == 1):
+    start_all = not any([args.server, args.tm, args.gdb, args.restd]) or all([args.server, args.tm, args.gdb, args.restd])
+    if args.debug and not (sum([args.server,args.tm,args.gdb, args.restd]) == 1):
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
+    # Pass configuration file params to config_driver.py
+    config_params = {}
     if args.userconfig_file:
-        bc = BeeConfig(userconfig=args.userconfig_file)
-    else:
-        bc = BeeConfig()
+        config_params['userconfig'] = args.userconfig_file
+    if args.bee_workdir:
+        config_params['bee_workdir'] = args.bee_workdir
+    bc = BeeConfig(**config_params)
 
     # Setup logging based on args.debug
     log = setup_logging(bc, args.debug)
@@ -329,14 +333,14 @@ def main():
                 return 1
             # Don't append the graph database to list of processes to wait for
             log.info('Loading Graph Database')
-    if args.wfm or start_all:
+    if args.server or start_all:
         proc = StartWorkflowManager(bc, args)
         if not args.config_only:
             if proc is None:
                 log.error('Workflow Manager failed to start. Exiting.')
                 print('Workflow Manager failed to start. Exiting.', file=sys.stderr)
                 return 1
-            create_pid_file(proc, 'wfm.pid', bc)
+            create_pid_file(proc, 'server.pid', bc)
             wait_list.append(('Workflow Manager', proc))
             log.info('Loading Workflow Manager')
     if args.tm or start_all:
