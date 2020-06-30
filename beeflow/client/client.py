@@ -66,7 +66,7 @@ def submit_workflow(wf_id, workflow_path):
         raise ApiError("POST /jobs".format(resp.status_code))
     logging.info('Submit workflow: ' + resp.text)
 
-# Start workflow on server
+# Start workflow
 def start_workflow(wf_id):
     resp = requests.post(_resource(wf_id), json={'wf_id': wf_id})
     if resp.status_code != requests.codes.okay:

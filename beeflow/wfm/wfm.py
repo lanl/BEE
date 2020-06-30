@@ -1,4 +1,4 @@
-"""Server launch script."""
+"""Workflow manager launch script."""
 
 import os
 import sys
@@ -6,7 +6,7 @@ import platform
 import jsonpickle
 import requests
 import cwl_utils.parser_v1_0 as cwl
-# Server and REST handlin
+# Workflow manager and REST handlin
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 # Interacting with the rm, tm, and scheduler
