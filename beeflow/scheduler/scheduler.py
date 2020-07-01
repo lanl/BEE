@@ -5,8 +5,8 @@ from flask import Flask, request
 from flask_restful import Resource, Api
 
 import algorithms
+import allocation
 import sched_types
-import internal
 
 
 # TODO: Grab this info from the config
@@ -15,93 +15,87 @@ SCHEDULER_PORT = 5100
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-# Each cluster holds allocation information
-clusters = {}
-# Each task holds information about the partition/node/cluster it
-# it is allocated to
-tasks = {}
+# List of all available resources
+resources = []
+allocation_store = allocation.AllocationStore()
+tasks = []
 
 
-class ClusterHandler(Resource):
-    """Cluster handler.
+class ResourcesHandler(Resource):
+    """Resources handler.
 
-    Handle creation of clusters.
+    Handle creation of resources.
     """
 
     def put(self):
-        """Create a list of clusters to use for allocation.
+        """Create a list of resources to use for allocation.
 
-        Create new clusters based on a list of clusters with
-        detailed information, such as resources and time limits.
+        Create new resources based on a list of resources.
         """
-        clusters.clear()
-        new_clusters = [sched_types.Cluster.decode(c) for c in request.json]
-        clusters.update({c.name: c for c in new_clusters})
-        return 'created %i cluster(s)' % len(clusters)
+        resources.clear()
+        resources.extend([sched_types.Resource.decode(r) for r in request.json])
+        return 'created %i resources(s)' % len(resources)
+
+    def get(self):
+        """Get a list of all resources.
+
+        Returna a list of all available resources known to the scheduler.
+        """
+        # TODO: Handle complex objects
+        return resources
 
 
-class JobScheduleHandler(Resource):
-    """Handle scheduling of jobs.
-
-    Schedule jobs with the available resources.
+class WorkflowJobHandler(Resource):
+    """
     """
 
-    def post(self):
-        """Create a new job/task and schedule it.
+    def put(self, workflow_name, task_name=None):
+        """"""
+        data = request.json
+        if task_name is None:
+            new_tasks = [sched_types.Task.decode(t) for t in data]
+            # TODO: Schedule the new_tasks
+            tasks.extend(new_tasks)
+            return [t.encode() for t in new_tasks]
+        else:
+            # Update a task
+            task_update = sched_types.Task.decode(data)
+            task_i = None
+            for i, task in enumerate(tasks):
+                if (task.workflow_name == task_update.workflow_name
+                        and task.task_name == task_update.task_name):
+                    task_i = i
+                    break
+            if task_i is not None:
+                tasks[task_i] = task_update
+            else:
+                # Add a new task
+                tasks.append(task_update)
+            return task_update.encode()
 
-        Create a new job/task and run an allocation on the JobHandler.
+    def get(self, workflow_name, task_name=None):
+        """Get a job or jobs of a workflow.
+
+        Find details about particular jobs of a workflow.
         """
-        task = sched_types.Task.decode(request.json)
-        # Schedule the task, update it with the allocation and add it
-        # to the list of tasks and the allocation information to the
-        # clusters
-        internal.schedule(algorithms.fcfs, task, tasks, clusters)
-        return task.encode()
+        if task_name is None:
+            return [t.encode() for t in tasks
+                    if t.workflow_name == workflow_name]
+        else:
+            pass
+            # TODO
+
+    def delete(self, workflow_name, task_name=None):
+        """"""
+        # TODO
 
 
-class JobUpdateHandler(Resource):
-    """Handle updating and deleting of jobs.
-
-    Update jobs, delete jobs, etc.
-    """
-
-    def put(self, name):
-        """Update a job/task.
-
-        Update a job/task (the status, time running, etc.)
-        :param name: name of the task
-        :type name: str
-        """
-        tasks[name] = sched_types.Task.decode(request.json)
-        # TODO: Clean up scheduling information in the cluster list
-        return 'updated'
-
-    def delete(self, name):
-        """Delete a job/task.
-
-        Delete a job/task which may have completed or was stopped.
-        :param name: name of the task
-        :type name: str
-        """
-        del tasks[name]
-        return 'deleted'
-
-
-class WorkflowHandler(Resource):
-    """Workflow handler to allow for optimization capabilities.
-
-    The workflow handler allows for the scheduling of entire workflows,
-    based on their individual tasks in order to allow for scheduling
-    optimizations.
-    """
-    # TODO
-
-
-api.add_resource(ClusterHandler, '/bee_sched/v1/clusters')
-api.add_resource(JobScheduleHandler, '/bee_sched/v1/jobs')
-api.add_resource(JobUpdateHandler, '/bee_sched/v1/jobs/<string:name>')
-api.add_resource(WorkflowHandler, '/bee_sched/v1/workflows')
-# api.add_resource(ScheduleHandler, '/bee_sched/v1/schedule')
+api.add_resource(ResourcesHandler, '/bee_sched/v1/resources')
+api.add_resource(WorkflowJobHandler,
+                 '/bee_sched/v1/workflows/<string:workflow_name>/jobs',
+                 ('/bee_sched/v1/workflows/<string:workflow_name>/jobs/'
+                  '<string:task_name>'))
 
 if __name__ == '__main__':
+    # TODO: Add -p port parsing
     flask_app.run(debug=True, port=SCHEDULER_PORT)

@@ -22,27 +22,49 @@ send_json()
 }
 
 # Test 1
-CLUSTER_DATA='[
+RESOURCES='[
     {
-	"name": "cluster-0",
-	"partitions": [
-	    {
-		"name": "partition-0"
-	    }
-	]
+	"name": "resouce-0",
+        "cores": 10
     }
 ]'
 TASK_DATA='{
-    "name": "task-0",
-    "runtime": 10
+    "task_name": "task-0",
+    "runtime": 10,
+    "max_cores": 2
 }'
 echo "#########"
 echo "Test 1..."
-echo "***Creating clusters"
-send_json PUT "${CLUSTER_DATA}" "${SERVER}${URL}/clusters" 
+echo "***Creating resources"
+send_json PUT "${CLUSTER_DATA}" "${SERVER}${URL}/resources"
 echo "***Scheduling jobs/tasks"
 send_json POST "${TASK_DATA}" "${SERVER}${URL}/jobs"
 echo "***"
 ###############################################################################
+
+# Test 2
+RESOURCES='[
+    {
+	"name": "resouce-0",
+        "cores": 10
+    }
+]'
+WORKFLOW='{
+    "workflow_name": "test-workflow",
+    "tasks": {
+        "grep": {
+            "task_name": "grep",
+            "runtime": 10,
+            "max_cores": 1
+        },
+        "wc": {
+            "task_name": "wc",
+            "runtime": 10,
+            "max_cores": 1,
+            "depends": ["grep"]
+        }
+    }
+}'
+
 
 kill ${SCHEDPID}
