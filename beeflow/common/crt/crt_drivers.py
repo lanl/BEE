@@ -54,6 +54,14 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 text = command
         return text
 
+    def image_exists(self, task):
+        if task.hints is not None:
+            for hint in task.hints:
+                req_class, key, value = hint
+                if req_class == "DockerRequirement" and key == "dockerImageId":
+                    return os.access(value, os.R_OK)
+        return false
+
 
 class SingularityDriver(ContainerRuntimeDriver):
     """The ContainerRuntimeDriver for Singularity as container runtime system.
@@ -77,3 +85,11 @@ class SingularityDriver(ContainerRuntimeDriver):
             if not docker:
                 text = command
         return text
+
+    def image_exists(self, task):
+        if task.hints is not None:
+            for hint in task.hints:
+                req_class, key, value = hint
+                if req_class == "DockerRequirement" and key == "dockerImageId":
+                    return os.access(value, os.R_OK)
+        return false
