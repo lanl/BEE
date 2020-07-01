@@ -160,11 +160,15 @@ class BeeConfig:
         """
         # Discard redundant paths, iff Windows, replace(\,/)
         relative_path = os.path.normpath(relative_path)
-        # Get desired config file name
-        filename = os.path.basename(relative_path)
         # Resolve the true path (expand relative path refs)
         tmp = os.getcwd()
-        os.chdir(os.path.dirname(relative_path))
-        absolute_path = '/'.join([os.getcwd(), filename])
+        if os.path.isdir(relative_path):
+            os.chdir(relative_path)
+            absolute_path = os.getcwd()
+        else:
+            # Get desired config file name
+            filename = os.path.basename(relative_path)
+            os.chdir(os.path.dirname(relative_path))
+            absolute_path = '/'.join([os.getcwd(), filename])
         os.chdir(tmp)
         return absolute_path
