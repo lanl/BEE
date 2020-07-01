@@ -1,11 +1,12 @@
 # Scheduler
 
-This directory contains the initial scheduler implementation with a REST
-API and tests.
+This directory contains the initial scheduler implementation which will
+connect to the other BEE components through a REST API.
 
-- `test-scheduler-api.sh` - test the scheduler REST API
-    - `python scheduler.py` must be run in a separate terminal
-- `test_allocation.py` - unit tests of the allocation part of the scheduler
+- `scheduler.py` - REST API code
+- `sched_types.py` - Task, workflow and resource representation code
+- `allocation.py` - Code for storing and updating allocations/assignments
+- `algorithms.py` - Code implementing the various scheduling algorithms
 
 ## Design notes
 
