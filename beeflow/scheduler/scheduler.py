@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """REST Interface for the BEE Scheduler."""
 
+import argparse
+
 from flask import Flask, request
 from flask_restful import Resource, Api
 
-import algorithms
-import allocation
-import sched_types
+import beeflow.scheduler.algorithms as algorithms
+import beeflow.scheduler.allocation as allocation
+import beeflow.scheduler.sched_types as sched_types
 
 
 # TODO: Grab this info from the config
@@ -17,8 +19,6 @@ api = Api(flask_app)
 
 # List of all available resources
 resources = []
-allocation_store = allocation.AllocationStore()
-tasks = []
 
 
 class ResourcesHandler(Resource):
@@ -34,68 +34,41 @@ class ResourcesHandler(Resource):
         """
         resources.clear()
         resources.extend([sched_types.Resource.decode(r) for r in request.json])
-        return 'created %i resources(s)' % len(resources)
+        return 'created %i resource(s)' % len(resources)
 
     def get(self):
         """Get a list of all resources.
 
         Returna a list of all available resources known to the scheduler.
         """
-        # TODO: Handle complex objects
-        return resources
+        return [r.encode() for r in resources]
 
 
 class WorkflowJobHandler(Resource):
+    """Handle scheduling of workflow jobs.
+
+    Schedule jobs for a specific workflow with the current resources.
     """
-    """
 
-    def put(self, workflow_name, task_name=None):
-        """"""
-        data = request.json
-        if task_name is None:
-            new_tasks = [sched_types.Task.decode(t) for t in data]
-            # TODO: Schedule the new_tasks
-            tasks.extend(new_tasks)
-            return [t.encode() for t in new_tasks]
-        else:
-            # Update a task
-            task_update = sched_types.Task.decode(data)
-            task_i = None
-            for i, task in enumerate(tasks):
-                if (task.workflow_name == task_update.workflow_name
-                        and task.task_name == task_update.task_name):
-                    task_i = i
-                    break
-            if task_i is not None:
-                tasks[task_i] = task_update
-            else:
-                # Add a new task
-                tasks.append(task_update)
-            return task_update.encode()
+    def put(self, workflow_name):
+        """Schedule a list of independent tasks.
 
-    def get(self, workflow_name, task_name=None):
-        """Get a job or jobs of a workflow.
-
-        Find details about particular jobs of a workflow.
+        Schedules a new list of independent tasks with available resources.
         """
-        if task_name is None:
-            return [t.encode() for t in tasks
-                    if t.workflow_name == workflow_name]
-        else:
-            pass
-            # TODO
-
-    def delete(self, workflow_name, task_name=None):
-        """"""
-        # TODO
+        data = request.json
+        tasks = [sched_types.Task.decode(t) for t in data]
+        allocation.schedule_all(algorithms.FCFS, tasks, resources)
+        return [t.encode() for t in tasks]
 
 
 api.add_resource(ResourcesHandler, '/bee_sched/v1/resources')
 api.add_resource(WorkflowJobHandler,
-                 '/bee_sched/v1/workflows/<string:workflow_name>/jobs',
-                 ('/bee_sched/v1/workflows/<string:workflow_name>/jobs/'
-                  '<string:task_name>'))
+                 '/bee_sched/v1/workflows/<string:workflow_name>/jobs')
 
 if __name__ == '__main__':
     # TODO: Add -p port parsing
-    flask_app.run(debug=True, port=SCHEDULER_PORT)
+    parser = argparse.ArgumentParser(description='start the BEE scheduler')
+    parser.add_argument('-p', dest='port', type=int, help='port to run on',
+                        default=SCHEDULER_PORT)
+    args = parser.parse_args()
+    flask_app.run(debug=True, port=args.port)

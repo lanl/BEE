@@ -16,54 +16,49 @@ class FCFS:
     """
 
     @staticmethod
-    def schedule(task, tasks, resources, allocations):
-        """Run a first-come first-serve algorithm.
-
-        Run FCFS and determine the best next allocation
-        for the given task or return None if there is no
-        allocation spots available.
-        :param task: task to schedule
-        :type task: instance of Task
-        :param resources: list of resources to utilize
-        :type resources: list of instance of Resource
-        :param allocations: list of already allocated resources and tasks
-        :type allocations: list of instance of Allocation
-        :rtype: instance of Allocation
+    def schedule(task, resources):
         """
-        # TODO: Handle collection of resources spread across different
-        # collections/groups
-        for resource in resources:
-            resource_subset, min_start_time = FCFS.fit(task, tasks, resource,
-                                                       allocations)
-            if resource_subset is not None:
-                task.start_time = min_start_time
-                return allocation.Allocation(workflow_name=task.workflow_name,
-                                             task_name=task.task_name,
-                                             resources=[resource_subset])
-        return None
+        """
+        # TODO
 
     @staticmethod
-    def fit(task, tasks, resource, allocations):
-        """Fit a resource to a task.
+    def schedule_all(tasks, resources):
+        """Schedule a list independent tasks.
 
-        Return a ResourceSubset if a task can "fit" or run on this resource
-        collection and return None otherwise.
-        :param task: task to fit
-        :type task: instance of Task
-        :param tasks: list of all tasks
+        Schedule an entire list of tasks using FCFS. Tasks that
+        cannot be allocated will be left with allocations properties.
+        :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
-        :param resource: resource to test against the task
-        :type resource: instance of ResourceCollection
-        :param allocations: current completed allocations list
-        :type allocations: list of instance of Allocation
-        :rtype: instance of ResourceSubset or None
+        :param resources: list of resources
+        :type resources: list of instance of Resource
         """
-        # TODO: Check other allocations
-        # TODO: Add in task requirements
-        if resource.cores >= task.requirements.max_cores:
-            resource_subset = sched_types.ResourceSubset(
-                id_=resource.id_, cores=task.requirements.max_cores),
-            # TODO: This time is not accurate
-            min_start_time = int(time.time())
-            return resource_subset, min_start_time
-        return None, None
+        allocations = []
+        # Continue while there are still tasks to schedule
+        for task in tasks:
+            for resource in resources:
+                if resource.runs(task):
+                    allocated = [a for a in allocations
+                                 if a.id_ == resource.id_]
+                    # allocation = resource.allocate(task, allocated)
+                    start_time = int(time.time())
+                    # Determine totals
+                    cores = (task.requirements['cores']
+                             if 'cores' in task.requirements else 1)
+                    # Determine the possible start_time
+                    if ((resource.cores - sum(a.cores for a in allocated))
+                            < cores):
+                        # Note: this leaves some "open" space since there
+                        # is a possibility that the task could fit into
+                        # a time slot before the longest already scheduled
+                        # task has filled in that area
+                        #
+                        # TODO: What is the default max_runtime? - Is this
+                        # set in bee.conf?
+                        start_time += max(a.max_runtime for a in allocated)
+                    alloc = sched_types.Allocation(id_=resource.id_,
+                        cores=cores, start_time=start_time,
+                        max_runtime=task.requirements['max_runtime'])
+                    allocations.append(alloc)
+                    # TODO: Handle multiple resource allocations for a task
+                    task.allocations = [alloc]
+                    break

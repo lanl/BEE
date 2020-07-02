@@ -3,6 +3,8 @@
 Tests of the BEE Scheduler module.
 """
 
+import time
+
 import beeflow.scheduler.algorithms as algorithms
 import beeflow.scheduler.allocation as allocation
 import beeflow.scheduler.sched_types as sched_types
@@ -19,127 +21,101 @@ class TestFCFS:
         """Test scheduling one task.
 
         """
-        task = sched_types.Task(workflow_name='workflow-1',
-                                task_name='task-1', max_runtime=3)
-        resource = sched_types.ResourceCollection(id_='test-resource-1',
-                                                  cores=4)
-        allocation_store = allocation.AllocationStore()
+        requirements = {'max_runtime': 3}
+        task = sched_types.Task(workflow_name='workflow-1', task_name='task-1',
+                                requirements=requirements)
+        resource = sched_types.Resource(id_='test-resource-1', cores=4)
 
-        allocation_store.schedule(algorithms.FCFS, task, [resource])
+        allocation.schedule_all(algorithms.FCFS, [task], [resource])
 
-        assert len(allocation_store.allocations) == 1
-        assert (allocation_store.allocations[0].workflow_name
-                == task.workflow_name)
-        assert allocation_store.allocations[0].task_name == task.task_name
-        assert len(allocation_store.allocations[0].resources) == 1
-        assert (allocation_store.allocations[0].resources[0].id_
-                == 'test-resource-1')
-        assert allocation_store.allocations[0].resources[0].cores == 1
+        assert task.allocations[0].id_ == 'test-resource-1'
+        assert task.allocations[0].start_time == int(time.time())
+        assert task.allocations[0].cores == 1
 
     @staticmethod
     def test_schedule_two_tasks():
         """Test scheduling two tasks.
 
         """
+        requirements = {'max_runtime': 3}
         task1 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-1', max_runtime=3)
+                                 task_name='task-1', requirements=requirements)
         task2 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-2', max_runtime=3)
-        resource = sched_types.ResourceCollection(id_='test-resource-1',
-                                                  cores=2)
-        allocation_store = allocation.AllocationStore()
+                                 task_name='task-2', requirements=requirements)
+        resource = sched_types.Resource(id_='test-resource-1', cores=2)
 
-        allocation_store.schedule(algorithms.FCFS, task1, [resource])
-        allocation_store.schedule(algorithms.FCFS, task2, [resource])
+        allocation.schedule_all(algorithms.FCFS, [task1, task2], [resource])
 
-        assert len(allocation_store.allocations) == 2
-        assert (allocation_store.allocations[0].workflow_name
-                == task1.workflow_name)
-        assert allocation_store.allocations[0].task_name == task1.task_name
-        assert len(allocation_store.allocations[0].resources) == 1
-        assert (allocation_store.allocations[0].resources[0].id_
-                == 'test-resource-1')
-        assert allocation_store.allocations[0].resources[0].cores == 1
-
-        assert (allocation_store.allocations[1].workflow_name
-                == task2.workflow_name)
-        assert allocation_store.allocations[1].task_name == task2.task_name
-        assert len(allocation_store.allocations[1].resources) == 1
-        assert (allocation_store.allocations[1].resources[0].id_
-                == 'test-resource-1')
-        assert allocation_store.allocations[1].resources[0].cores == 1
+        current_time = int(time.time())
+        assert task1.allocations[0].id_ == 'test-resource-1'
+        assert task1.allocations[0].cores == 1
+        assert task1.allocations[0].start_time == current_time
+        assert task2.allocations[0].id_ == 'test-resource-1'
+        assert task2.allocations[0].cores == 1
+        assert task2.allocations[0].start_time == current_time
 
     @staticmethod
     def test_schedule_task_fail():
         """Test scheduling a task with more resources required than available.
 
         """
+        requirements = {'max_runtime': 3, 'cores': 10}
         task1 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-1', max_runtime=3, cores=10)
-        resource = sched_types.ResourceCollection(id_='test-resource-1',
-                                                  cores=2)
-        allocation_store = allocation.AllocationStore()
+                                 task_name='task-1', requirements=requirements)
+        resource = sched_types.Resource(id_='test-resource-1', cores=2)
 
-        assert (allocation_store.schedule(algorithms.FCFS, task1, [resource])
+        assert (allocation.schedule_all(algorithms.FCFS, [task1], [resource])
                 is None)
-
-        assert allocation_store.allocations == []
+        # No allocations available
+        assert not task1.allocations
 
     @staticmethod
     def test_schedule_six_tasks():
         """Test scheduling two tasks.
 
         """
+        requirements1 = {'max_runtime': 3}
         task1 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-1', max_runtime=3)
+                                 task_name='task-1',
+                                 requirements=requirements1)
         task2 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-2', max_runtime=3)
+                                 task_name='task-2',
+                                 requirements=requirements1)
+        requirements2 = {'max_runtime': 4}
         task3 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-3', max_runtime=4)
+                                 task_name='task-3',
+                                 requirements=requirements2)
         task4 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-4', max_runtime=4)
+                                 task_name='task-4',
+                                 requirements=requirements2)
         task5 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-5', max_runtime=4)
+                                 task_name='task-5',
+                                 requirements=requirements2)
         task6 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-6', max_runtime=4)
-        resource = sched_types.ResourceCollection(id_='test-resource-1',
-                                                  cores=4)
-        allocation_store = allocation.AllocationStore()
+                                 task_name='task-6',
+                                 requirements=requirements2)
+        resource = sched_types.Resource(id_='test-resource-1', cores=4)
 
-        allocation_store.schedule(algorithms.FCFS, task1, [resource])
-        allocation_store.schedule(algorithms.FCFS, task2, [resource])
-        allocation_store.schedule(algorithms.FCFS, task3, [resource])
-        task1.status = sched_types.TaskStatus.COMPLETED
-        allocation_store.update_allocation(task1)
-        task2.status = sched_types.TaskStatus.COMPLETED
-        allocation_store.update_allocation(task2)
-        task3.status = sched_types.TaskStatus.COMPLETED
-        allocation_store.update_allocation(task3)
-        allocation_store.schedule(algorithms.FCFS, task4, [resource])
-        allocation_store.schedule(algorithms.FCFS, task5, [resource])
-        allocation_store.schedule(algorithms.FCFS, task6, [resource])
+        tasks = [task1, task2, task3, task4, task5, task6]
+        allocation.schedule_all(algorithms.FCFS, tasks, [resource])
 
-        assert len(allocation_store.allocations) == 3
-        assert (allocation_store.allocations[0].workflow_name
-                == task4.workflow_name)
-        assert allocation_store.allocations[0].task_name == task4.task_name
-        assert len(allocation_store.allocations[0].resources) == 1
-        assert (allocation_store.allocations[0].resources[0].id_
-                == 'test-resource-1')
-        assert allocation_store.allocations[0].resources[0].cores == 1
-
-        assert (allocation_store.allocations[1].workflow_name
-                == task5.workflow_name)
-        assert allocation_store.allocations[1].task_name == task5.task_name
-        assert len(allocation_store.allocations[1].resources) == 1
-        assert (allocation_store.allocations[1].resources[0].id_
-                == 'test-resource-1')
-        assert allocation_store.allocations[1].resources[0].cores == 1
-
-        assert (allocation_store.allocations[2].workflow_name
-                == task6.workflow_name)
-        assert allocation_store.allocations[2].task_name == task6.task_name
-        assert len(allocation_store.allocations[2].resources) == 1
-        assert (allocation_store.allocations[2].resources[0].id_
-                == 'test-resource-1')
-        assert allocation_store.allocations[2].resources[0].cores == 1
+        current_time = int(time.time())
+        assert task1.allocations[0].id_ == 'test-resource-1'
+        assert task1.allocations[0].start_time == current_time
+        assert task1.allocations[0].cores == 1
+        assert task2.allocations[0].id_ == 'test-resource-1'
+        assert task2.allocations[0].start_time == current_time
+        assert task2.allocations[0].cores == 1
+        assert task3.allocations[0].id_ == 'test-resource-1'
+        assert task3.allocations[0].start_time == current_time
+        assert task3.allocations[0].cores == 1
+        assert task4.allocations[0].id_ == 'test-resource-1'
+        assert task4.allocations[0].start_time == current_time
+        assert task4.allocations[0].cores == 1
+        assert task5.allocations[0].id_ == 'test-resource-1'
+        t = current_time + task3.requirements['max_runtime']
+        assert (task5.allocations[0].start_time == t)
+        assert task5.allocations[0].cores == 1
+        assert task6.allocations[0].id_ == 'test-resource-1'
+        assert (task6.allocations[0].start_time == t)
+        assert task6.allocations[0].cores == 1
