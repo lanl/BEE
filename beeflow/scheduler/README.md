@@ -5,32 +5,17 @@ connect to the other BEE components through a REST API.
 
 - `scheduler.py` - REST API code
 - `sched_types.py` - Task, workflow and resource representation code
-- `allocation.py` - Code for storing and updating allocations/assignments
+- `allocation.py` - Base scheduling code
 - `algorithms.py` - Code implementing the various scheduling algorithms
 
-## Design notes
+The scheduler is currently designed to allow for scheduling one set of
+independent tasks at a time. So if a first set of tasks must run before a
+second set of tasks, then that first set must be scheduled first. When the
+first set of tasks has been scheduled and the tasks have completed, then the
+second set of tasks may be scheduled to run.
 
-In order to represent dependencies between tasks when passing workflows to the
-scheduler, the steps of a workflow need to be broken down into a list of lists
-of tasks. In other words, at each index of the list there must be a list of
-indepedent tasks that can be run in parallel without causing problems.
+Each task can have a dict of requirements which specify the resources
+that they need to run on. Supported requirement values, right now, are:
 
-See the example below where there are four different tasks. `task0` must be run
-first, then `task1` and `task2` can run in parallel and finally `task3` can run
-after `task1` and `task2` have completed.
-
-```
-     |task0|
-       / \
-      /   \
-     /     \
- |task1| |task2|
-    \      /
-     \    /
-      \  /
-    |task3|
-
-[[task0],
- [task1, task2],
- [task3]]
-```
+- `max_runtime` - `int`
+- `cores` - `int`

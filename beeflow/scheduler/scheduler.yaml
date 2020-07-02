@@ -6,26 +6,35 @@ info:
   description: BEE Scheduler API implementing efficient scheduling.
   version: '0.1'
 paths:
-  /bee_sched/v1/schedule:
-    summary: Main scheduling endpoint
+  '/bee_sched/v1/workflows/{workflow_name}/jobs':
+    summary: Scheduling management of workflow jobs
+    parameters:
+      - name: workflow_name
+        in: path
+        required: true
+        schema:
+          type: string
     put:
-      summary: >-
-        Send workflow/partition information to the scheduler and get
-        scheduling information
+      summary: Schedule a list of jobs
       description: ''
-      operationId: schedule
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ScheduleInput'
+      operationId: schedule_workflow_jobs
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ScheduleResult'
+        default:
+          description: Default error sample response
+  /bee_sched/v1/resources:
+    summary: Manage resources used by the scheduler
+    put:
+      summary: Set the current resources of the scheduler.
+      description: ''
+      operationId: update_resources
+      responses:
+        default:
+          description: Default error sample response
+    get:
+      summary: Get the current resources available for scheduling
+      description: ''
+      operationId: get_resources
+      responses:
         default:
           description: Default error sample response
 components:
@@ -38,7 +47,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Cluster'
-# TODO: This property may not be necessary
         start_time:
           type: integer
       required:
