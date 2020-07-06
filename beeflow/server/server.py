@@ -33,6 +33,7 @@ else:
 if bc.userconfig.has_section('workflow_manager'):
     # Try getting listen port from config if exists, use WM_PORT if it doesnt exist
     wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', WM_PORT)
+    print(f"wfm_listen_port {wfm_listen_port}")
 else:
     print("[workflow_manager] section not found in configuration file, default values\
  will be added")
@@ -86,8 +87,10 @@ try:
                             db_hostname=bc.userconfig.get('graphdb','hostname'),
                             password=bc.userconfig.get('graphdb','dbpass'))
 except KeyError:
+    print("Wowolo")
     wfi = WorkflowInterface()
 
+print(f"UGHHH {wfi.get_workflow()}")
 
 # Client registers with the workflow manager.
 # Workflow manager returns a workflow ID used for subsequent communication
@@ -141,7 +144,8 @@ class JobSubmit(Resource):
             # Parse the workflow and add it to the database
             # This is just work.cwl until I can find a way to ensure persistent data
             top = cwl.load_document("./workflows/work.cwl")
-            wfi.finalize_workflow()
+            if wfi.workflow_loaded() == True:
+                wfi.finalize_workflow()
             parser.create_workflow(top, wfi)
             resp = make_response(jsonify(msg='Workflow uploaded', status='ok'), 201)
             return resp
@@ -228,7 +232,7 @@ class JobActions(Resource):
         if resp.status_code != 200:
             print("Something bad happened")
         # Remove all tasks currently in the database
-        if wfi.empty == False:
+        if wfi.workflow_loaded() == True:
             wfi.finalize_workflow()
         print("Workflow cancelled")
         resp = make_response(jsonify(status='cancelled'), 202)
