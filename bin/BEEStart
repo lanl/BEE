@@ -306,6 +306,9 @@ def main():
     if args.bee_workdir:
         config_params['bee_workdir'] = args.bee_workdir
     bc = BeeConfig(**config_params)
+    # If workdir argument exists, over-write
+    if args.bee_workdir:
+        bc.modify_section('user', 'DEFAULT', {'bee_workdir':bc.resolve_path(args.bee_workdir)} )
 
     # Setup logging based on args.debug
     log = setup_logging(bc, args.debug)
