@@ -16,12 +16,6 @@ class FCFS:
     """
 
     @staticmethod
-    def schedule(task, resources):
-        """
-        """
-        # TODO
-
-    @staticmethod
     def schedule_all(tasks, resources):
         """Schedule a list independent tasks.
 
