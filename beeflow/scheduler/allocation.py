@@ -8,19 +8,6 @@ specific resource details).
 import beeflow.scheduler.sched_types as sched_types
 
 
-def schedule(algorithm, task, resources):
-    """Schedule a single task with the given resources.
-
-    Schedule a task using the specified algorithm and resources.
-    :param algorithm: algorithm class to use
-    :type algorithm: algorithm class (not an instance)
-    :param task: task to schedule
-    :type task: instance of Task
-    :param resources: available resources
-    :type resources: list of instance of Resource
-    """
-    algorithm.schedule(task, resources)
-
 def schedule_all(algorithm, tasks, resources):
     """Schedule a list of independent tasks.
 
