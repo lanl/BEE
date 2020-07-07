@@ -46,14 +46,14 @@ class Task(Serializable):
         """Task constructor.
 
         Create a new Task with given parameters.
-        :param workflow_name:
-        :type workflow_name:
-        :param task_name:
-        :type task_name:
-        :param requirements:
-        :type requirements:
-        :param allocations:
-        :type allocations:
+        :param workflow_name: name of the workflow
+        :type workflow_name: str
+        :param task_name: name of the task
+        :type task_name: str
+        :param requirements: requirements dict
+        :type requirements: dict of requirements
+        :param allocations: list of current allocations
+        :type allocations: list of instance of Allocation
         """
         self.workflow_name = workflow_name
         self.task_name = task_name
@@ -109,6 +109,7 @@ class Resource(Serializable):
         on this resource and False otherwise.
         :param task: task to check
         :type task: instance of Task
+        :rtype bool:
         """
         # TODO: Check more requirements
         if ('cores' in task.requirements
@@ -116,6 +117,58 @@ class Resource(Serializable):
             # Too many cores required
             return False
         return True
+
+    def fit_remaining(self, allocations, task_allocated, task):
+        """Try to fit a task onto this resource.
+
+        Try to fit this task onto the resource, given the
+        list of allocations. If it can't fit then return None.
+        :param allocations: list of current allocations
+        :type allocations: list of instance of Allocation
+        :param task_allocated: list of current Allocations for this task
+        :type task_allocated: list of instance of Allocation
+        :param task: the task to fit
+        :type task: instance of Allocation or None
+        """
+        # TODO: Update this to include info about other resource types
+        cores_left = self.cores - sum(a.cores for a in allocations)
+        allocated_cores = sum(ta.cores for ta in task_allocated)
+        required_cores = task.requirements['cores'] if 'cores' else 1
+        cores_needed = required_cores - allocated_cores
+        cores = cores_needed if cores_left > cores_needed else cores_left
+        return Allocation(id_=self.id_, cores=cores)
+
+    # TODO: This property may not be necessary
+    @property
+    def empty(self):
+        """Determine if this resource has any resources.
+
+        Boolean property for determining if a resource actually
+        has any number of Resources that are available (this may
+        be used within the Allocation class to tell if another
+        Allocation can be made).
+        :rtype: bool
+        """
+        # TODO: Update this to include info about other resource types
+        return self.cores > 0
+
+    @staticmethod
+    def calculate_remaining(resources, allocations):
+        """Calculate the remaining resources.
+
+        Calculate a total of remaining resources available.
+        :param resources: current resources
+        :type resources: list of instance of Resource
+        :param allocations: current allocations
+        :type allocations: list of instance of Allocation
+        :rtype: instance of Allocation
+        """
+        # TODO: Update this to include info about other resource types
+        cores = (sum(r.cores for r in resources)
+                 - sum(a.cores for a in allocations))
+        # This Allocation returned should not have anything meaningful
+        # for id_, nor for start_time and max_runtime
+        return Allocation(id_=None, cores=cores)
 
     def encode(self):
         """Encode and return a simple Python data type.
