@@ -118,7 +118,8 @@ class Resource(Serializable):
             return False
         return True
 
-    def fit_remaining(self, allocations, task_allocated, task):
+    def fit_remaining(self, allocations, task_allocated, task, start_time,
+                      max_runtime):
         """Try to fit a task onto this resource.
 
         Try to fit this task onto the resource, given the
@@ -129,14 +130,23 @@ class Resource(Serializable):
         :type task_allocated: list of instance of Allocation
         :param task: the task to fit
         :type task: instance of Allocation or None
+        :param start_time: start time
+        :type start_time: int
+        :param max_runtime: maximum runtime
+        :type max_runtime: int
         """
         # TODO: Update this to include info about other resource types
-        cores_left = self.cores - sum(a.cores for a in allocations)
+        cores_left = self.cores - sum(a.cores for a in allocations
+                                      if start_time
+                                      < (a.start_time + a.max_runtime)
+                                      and (start_time + max_runtime)
+                                      > a.start_time)
         allocated_cores = sum(ta.cores for ta in task_allocated)
         required_cores = task.requirements['cores'] if 'cores' else 1
         cores_needed = required_cores - allocated_cores
         cores = cores_needed if cores_left > cores_needed else cores_left
-        return Allocation(id_=self.id_, cores=cores)
+        return Allocation(id_=self.id_, cores=cores, start_time=start_time,
+                          max_runtime=max_runtime)
 
     # TODO: This property may not be necessary
     @property
@@ -150,7 +160,7 @@ class Resource(Serializable):
         :rtype: bool
         """
         # TODO: Update this to include info about other resource types
-        return self.cores > 0
+        return self.cores == 0
 
     @staticmethod
     def calculate_remaining(resources, allocations):

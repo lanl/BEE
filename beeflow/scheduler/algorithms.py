@@ -48,6 +48,8 @@ class FCFS(Algorithm):
         :param resources: list of resources
         :type resources: list of instance of sched_types.Resource
         """
+        # TODO: Move code that deals directly with requirements other
+        # than 'max_runtime' into the Resource and Allocation classes.
         allocations = []
         # Continue while there are still tasks to schedule
         for task in tasks:
@@ -222,16 +224,20 @@ class Backfill(Algorithm):
         :type task:
         :rtype: int
         """
-        immediate_allocations = immediate_allocations[:]
-        later_allocations = later_allocations[:]
-        later_allocations.sort(key=lambda a: (a.start_time + a.max_runtime))
-        for allocation in later_allocations:
-            immediate_allocations.append(allocation)
-            total = sched_types.Resource.calculate_remaining(
-                resources, immediate_allocations)
-            # Return the time if it runs with this task added
+        max_runtime = task.requirements['max_runtime']
+        allocations = immediate_allocations[:]
+        allocations.extend(later_allocations)
+        times = [a.start_time + a.max_runtime for a in allocations]
+        times.sort()
+        for start_time in times:
+            # Calculate overlapping allocations
+            overlap = [a for a in allocations
+                       if start_time < (a.start_time + a.max_runtime)
+                       and (start_time + max_runtime) > a.start_time]
+            total = sched_types.Resource.calculate_remaining(resources,
+                                                             overlap)
             if total.runs(task):
-                return allocation.start_time + allocation.max_runtime
+                return start_time
         return -1
 
     @staticmethod
@@ -254,10 +260,9 @@ class Backfill(Algorithm):
         for resource in resources:
             # TODO
             allocs = [a for a in allocations if a.id_ == resource.id_]
-            fit = sched_types.Resource.fit_remaining(resource, allocs,
-                                                     task_allocated, task)
+            fit = sched_types.Resource.fit_remaining(
+                resource, allocs, task_allocated, task, start_time,
+                task.requirements['max_runtime'])
             if fit is not None:
-                fit.start_time = start_time
-                fit.max_runtime = task.requirements['max_runtime']
                 task_allocated.append(fit)
         return task_allocated
