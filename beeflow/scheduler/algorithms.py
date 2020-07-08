@@ -9,6 +9,7 @@ import time
 
 # import beeflow.scheduler.allocation as allocation
 import beeflow.scheduler.sched_types as sched_types
+import beeflow.scheduler.util as util
 
 
 class Algorithm(abc.ABC):
@@ -102,171 +103,69 @@ class Backfill(Algorithm):
         :param resources: list of resources
         :type resources: list of instance of sched_types.Resource
         """
-        # See https://www.cse.huji.ac.il/~perf/ex11.html
         # TODO: This time may be invalidated if the algorithm
         # takes too long
-        current_time = int(time.time())
-        immediate_allocations = []
-        later_allocations = []
         tasks = tasks[:]
-        # Jobs that must run later or be backfilled
-        later = []
-        # Allocate free resources for the first jobs in the list
-        # so that they can run immediately
-        while tasks:
-            task = tasks.pop(0)
-            total = sched_types.Resource.calculate_remaining(
-                resources, immediate_allocations)
-            # Check if it can run
-            if not total.empty and total.runs(task):
-                # Allocate the job if there are enough total resources
-                allocs = Backfill._allocate_aggregate(resources,
-                                                      immediate_allocations,
-                                                      task, current_time)
-                immediate_allocations.extend(allocs)
-                task.allocations = allocs
-            else:
-                # This must run later or be backfilled
-                later.append(task)
-        # Allocate jobs that need more than the required resources
-        # and must run later
-        backfill = []
-        while later:
-            task = later.pop(0)
-            # Check if this job needs more resources than available
-            total = sched_types.Resource.calculate_remaining(
-                resources, immediate_allocations)
-            if not total.runs(task):
-                allocations = []
-                allocations.extend(immediate_allocations)
-                allocations.extend(later_allocations)
-                # Determine when this job can start
-                start_time = Backfill._calculate_earliest_start_time(
-                    resources, immediate_allocations, later_allocations, task)
-                allocs = Backfill._allocate_aggregate(resources,
-                                                      allocations,
-                                                      task, start_time)
-                # Allocate a later time job
-                later_allocations.extend(allocs)
-                task.allocations = allocs
-            else:
-                # This task may be backfilled
-                backfill.append(task)
-        # Now start to backfill with all remaining tasks
-        while backfill:
-            task = backfill.pop(0)
-            # Check if the job doesn't use more than what is available
-            # and will stop before other scheduled jobs
-            total = sched_types.Resource.calculate_remaining(
-                resources, immediate_allocations)
-            if total.runs(task):
-                empty_time = Backfill._calculate_empty_time(
-                    resources, immediate_allocations, later_allocations, task)
-                if task.requirements['max_runtime'] <= empty_time:
-                    # Backfill it
-                    allocs = Backfill._allocate_aggregate(
-                        resources, immediate_allocations, task, current_time)
-                    immediate_allocations.extend(allocs)
-                    task.allocations = allocs
-                else:
-                    # This task must run later
-                    # TODO: Runtime
-                    start_time = Backfill._calculate_earliest_start_time(
-                        resources, immediate_allocations, later_allocations,
-                        task)
-                    allocs = Backfill._allocate_aggregate(
-                        resources, immediate_allocations, task, start_time)
-                    later_allocations.extend(allocs)
-                    task.allocations = allocs
-
-    @staticmethod
-    def _calculate_empty_time(resources, immediate_allocations,
-                              later_allocations, task):
-        """Calculate the "empty time".
-
-        This calculates the max amount of time a task could run
-        if allocated in a currently empty slot.
-        :param resources:
-        :type later_allocations:
-        :param immediate_allocations:
-        :type immediate_allocations:
-        :param later_allocations:
-        :type later_allocations:
-        :param task:
-        :type task:
-        :rtype: int
-        """
-        immediate_allocations = immediate_allocations[:]
-        later_allocations = later_allocations[:]
-        later_allocations.sort(key=lambda a: a.start_time)
         current_time = int(time.time())
-        for allocation in later_allocations:
-            immediate_allocations.append(allocation)
-            total = sched_types.Resource.calculate_remaining(
-                resources, immediate_allocations)
-            if total.runs(task):
-                return (allocation.start_time + allocation.max_runtime
-                        - current_time)
-        return 0
-
-    @staticmethod
-    def _calculate_earliest_start_time(resources, immediate_allocations,
-                                       later_allocations, task):
-        """Calulate the earliest start time for a task.
-
-        Calculate the earliest possible start time for a task.
-        :param resources:
-        :type resources:
-        :param immediate_allocations:
-        :type immediate_allocations:
-        :param later_allocations:
-        :type later_allocations:
-        :param task:
-        :type task:
-        :rtype: int
-        """
-        max_runtime = task.requirements['max_runtime']
-        allocations = immediate_allocations[:]
-        allocations.extend(later_allocations)
-        times = [a.start_time + a.max_runtime for a in allocations]
-        times.sort()
-        for start_time in times:
-            # Calculate overlapping allocations
-            overlap = [a for a in allocations
-                       if start_time < (a.start_time + a.max_runtime)
-                       and (start_time + max_runtime) > a.start_time]
-            total = sched_types.Resource.calculate_remaining(resources,
-                                                             overlap)
-            if total.runs(task):
-                return start_time
-        return -1
-
-    @staticmethod
-    def _allocate_aggregate(resources, allocations, task, start_time):
-        """Allocate a list of resources based on the task.
-
-        Allocate a list of resources that are needed by the task
-        for the given time.
-        :param resources: available resources
-        :type resources: list of instance of Resource
-        :param allocations: current allocations
-        :type allocations: list of instance of Allocation
-        :param task: task needing allocation
-        :type task: instance of Task
-        :param start_time: start time of task (seconds since epoch)
-        :type start_time: int
-        :rtype: list of instance of Allocation
-        """
-        task_allocated = []
-        for resource in resources:
-            # TODO
-            allocs = [a for a in allocations if a.id_ == resource.id_]
-            fit = sched_types.Resource.fit_remaining(
-                resource, allocs, task_allocated, task, start_time,
-                task.requirements['max_runtime'])
-            if fit is not None:
-                task_allocated.append(fit)
-        return task_allocated
+        allocations = []
+        while tasks:
+            # Get a task to schedule
+            task = tasks.pop(0)
+            total = util.calculate_remaining(resources, [])
+            if not total.runs(task):
+                continue
+            # Can this task run immediately?
+            start_time = current_time
+            max_runtime = task.requirements['max_runtime']
+            overlap = util.calculate_overlap(allocations, start_time,
+                                             max_runtime)
+            remaining = util.calculate_remaining(resources, overlap)
+            if remaining.runs(task):
+                allocs = util.allocate_aggregate(resources, overlap, task,
+                                                 start_time)
+                allocations.extend(allocs)
+                task.allocations = allocs
+                continue
+            # This job must run later, so find the shadow time (the earliest
+            # time at which the job can run)
+            shadow_time = current_time
+            times = [a.start_time + a.max_runtime for a in allocations]
+            times.sort()
+            for start_time in times:
+                overlap = util.calculate_overlap(allocations, start_time,
+                                                 max_runtime)
+                remaining = util.calculate_remaining(resources, overlap)
+                if remaining.runs(task):
+                    shadow_time = start_time
+                    allocs = util.allocate_aggregate(resources, allocations,
+                                                     task, start_time)
+                    allocations.extend(allocs)
+                    task.allocations = allocs
+            # Backfill tasks
+            tasks_left = []
+            for task in tasks:
+                times = [current_time]
+                times.extend(a.start_time + a.max_runtime for a in allocations)
+                max_runtime = task.requirements['max_runtime']
+                # Ensure that the task will finish before the shadow time
+                times = [t for t in times if (t + max_runtime) <= shadow_time]
+                times.sort()
+                # Determine when it can run (if it can be backfilled)
+                for start_time in times:
+                    overlap = util.calculate_overlap(allocations, start_time,
+                                                     max_runtime)
+                    remaining = util.calculate_remaining(resources, overlap)
+                    if remaining.runs(task):
+                        allocs = util.allocate_aggregate(resources, overlap,
+                                                         task, start_time)
+                        allocations.extend(allocs)
+                        task.allocations = allocs
+                        break
+                # Could not backfill this task
+                if not task.allocations:
+                    tasks_left.append(task)
+            # Reset the tasks to the remaining list
+            tasks = tasks_left
 
 
 def choose():

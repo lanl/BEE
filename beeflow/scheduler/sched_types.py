@@ -134,6 +134,7 @@ class Resource(Serializable):
         :type start_time: int
         :param max_runtime: maximum runtime
         :type max_runtime: int
+        :rtype: instance of Allocation or None
         """
         # TODO: Update this to include info about other resource types
         cores_left = self.cores - sum(a.cores for a in allocations
@@ -141,6 +142,9 @@ class Resource(Serializable):
                                       < (a.start_time + a.max_runtime)
                                       and (start_time + max_runtime)
                                       > a.start_time)
+        # Check if everything is used up
+        if cores_left <= 0:
+            return None
         allocated_cores = sum(ta.cores for ta in task_allocated)
         required_cores = (task.requirements['cores']
                           if 'cores' in task.requirements else 1)
@@ -162,24 +166,6 @@ class Resource(Serializable):
         """
         # TODO: Update this to include info about other resource types
         return self.cores == 0
-
-    @staticmethod
-    def calculate_remaining(resources, allocations):
-        """Calculate the remaining resources.
-
-        Calculate a total of remaining resources available.
-        :param resources: current resources
-        :type resources: list of instance of Resource
-        :param allocations: current allocations
-        :type allocations: list of instance of Allocation
-        :rtype: instance of Allocation
-        """
-        # TODO: Update this to include info about other resource types
-        cores = (sum(r.cores for r in resources)
-                 - sum(a.cores for a in allocations))
-        # This Allocation returned should not have anything meaningful
-        # for id_, nor for start_time and max_runtime
-        return Allocation(id_=None, cores=cores)
 
     def encode(self):
         """Encode and return a simple Python data type.
