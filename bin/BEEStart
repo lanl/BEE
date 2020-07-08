@@ -188,10 +188,11 @@ def StartSlurmRestD(bc, args):
     if args.config_only:
         return None
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
+    slurm_socket = bc.userconfig['slurmrestd'].get('log', 'slurm.log')
     subprocess.Popen(['rm','-f',slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
-    return subprocess.Popen(["slurmrestd", "unix:"+slurm_socket],
-                            stdout=PIPE, stderr=PIPE)
+    return subprocess.Popen(["slurmrestd unix:{slurm_socket} > {slurm_log} 2>&1"],
+                            stdout=PIPE, stderr=PIPE, shell=True)
 
 def StartWorkflowManager(bc, args):
     """Start BEEWorkflowManager. Returns a Popen process object."""
@@ -212,6 +213,7 @@ def StartWorkflowManager(bc, args):
         bc.modify_section('user','workflow_manager',wfm_dict)
     if args.config_only:
         return None
+
     return subprocess.Popen(["python", 'beeflow/server/server.py',
                             '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'bee.conf'])],
                             stdout=PIPE, stderr=PIPE)

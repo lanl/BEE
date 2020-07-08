@@ -199,5 +199,19 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 
 if __name__ == '__main__':
-    print('tm_listen_port:',tm_listen_port)
-    flask_app.run(debug=True, port=str(tm_listen_port))
+     # Get the paramater for logging
+    if bc.userconfig.has_section('task_manager'):
+        tm_log = bc.userconfig['task_manager'].get('log', 'tm.log')
+    print('tm_listen_port:', tm_listen_port)
+
+    handler = logging.FileHandler(wfm_log)
+    handler.setLevel(logging.DEBUG)
+
+    # Werkzeug logging 
+    werk_log = logging.getLogger('werkzeug')
+    werk_log.setLevel(logging.INFO)
+    werk_log.addHandler(handler)
+
+    # Flask logging
+    flask_app.logger.addHandler(handler)
+    flask_app.run(debug=True, port=str(wfm_listen_port))

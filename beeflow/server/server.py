@@ -5,6 +5,7 @@ import sys
 import platform
 import jsonpickle
 import requests
+import logging
 import cwl_utils.parser_v1_0 as cwl
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
@@ -311,6 +312,21 @@ api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
 
 if __name__ == '__main__':
+    # Get the paramater for logging 
+    if bc.userconfig.has_section('workflow_manager'):
+        wfm_log = bc.userconfig['workflow_manager'].get('log', 'wfm.log')
+    print('wfm_listen_port:', wfm_listen_port)
+
+    handler = logging.FileHandler(wfm_log)
+    handler.setLevel(logging.DEBUG)
+
+    # Werkzeug logging 
+    werk_log = logging.getLogger('werkzeug')
+    werk_log.setLevel(logging.INFO)
+    werk_log.addHandler(handler)
+
+    # Flask logging
+    flask_app.logger.addHandler(handler)
     flask_app.run(debug=True, port=str(wfm_listen_port))
 
 # pylama:ignore=W0511
