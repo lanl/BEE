@@ -208,7 +208,7 @@ class TestBackfill(AbstractScheduleTestCase):
         resource = sched_types.Resource(id_='resource-0',
                                         cores=4)
 
-        tasks = [task1, task2, task3]
+        tasks = [task1, task2, task3, task4, task5, task6]
         allocation.schedule_all(algorithms.Backfill, tasks, [resource])
 
         current_time = int(time.time())
