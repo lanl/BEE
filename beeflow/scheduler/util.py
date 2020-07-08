@@ -58,12 +58,13 @@ def calculate_overlap(allocations, start_time, max_runtime):
 
     Return a list of overlapping allocations for a certain time
     period.
-    :param allocations:
-    :type allocations:
-    :param start_time:
+    :param allocations: all allocations
+    :type allocations: list of instance of Allocation
+    :param start_time: start time
     :type start_time: int
-    :param max_runtime:
-    :type max_runtime:
+    :param max_runtime: maximum runtime
+    :type max_runtime: int
+    :rtype: list of instance of Allocation
     """
     # TODO
     return [a for a in allocations
