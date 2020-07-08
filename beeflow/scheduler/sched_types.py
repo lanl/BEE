@@ -142,7 +142,8 @@ class Resource(Serializable):
                                       and (start_time + max_runtime)
                                       > a.start_time)
         allocated_cores = sum(ta.cores for ta in task_allocated)
-        required_cores = task.requirements['cores'] if 'cores' else 1
+        required_cores = (task.requirements['cores']
+                          if 'cores' in task.requirements else 1)
         cores_needed = required_cores - allocated_cores
         cores = cores_needed if cores_left > cores_needed else cores_left
         return Allocation(id_=self.id_, cores=cores, start_time=start_time,

@@ -4,6 +4,7 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 """
 
 import abc
+import random
 import time
 
 # import beeflow.scheduler.allocation as allocation
@@ -266,3 +267,13 @@ class Backfill(Algorithm):
             if fit is not None:
                 task_allocated.append(fit)
         return task_allocated
+
+
+def choose():
+    """Choose which algorithm to run at this point.
+
+    Determine which algorithm class needs to run and return it.
+    :rtype: class derived from Algorithm (not an instance)
+    """
+    # TODO: This decision should not be made randomly
+    return FCFS if random.randint(0, 1) else Backfill

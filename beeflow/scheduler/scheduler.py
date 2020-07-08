@@ -57,7 +57,8 @@ class WorkflowJobHandler(Resource):
         """
         data = request.json
         tasks = [sched_types.Task.decode(t) for t in data]
-        allocation.schedule_all(algorithms.FCFS, tasks, resources)
+        algorithm = algorithms.choose()
+        allocation.schedule_all(algorithm, tasks, resources)
         return [t.encode() for t in tasks]
 
 
