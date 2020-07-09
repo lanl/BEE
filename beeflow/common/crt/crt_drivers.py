@@ -68,7 +68,6 @@ class SingularityDriver(ContainerRuntimeDriver):
             for hint in task.hints:
                 req_class, key, value = hint
                 if req_class == "DockerRequirement" and key == "dockerImageId":
-                    name = get_ccname(value)
                     text = ''.join([
                         'singularity exec ', value,
                         ' ', command,
