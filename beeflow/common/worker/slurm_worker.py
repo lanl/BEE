@@ -19,7 +19,7 @@ from beeflow.common.config.config_driver import BeeConfig
 
 # Check configuration file for container runtime, Charliecloud by default.
 bc = BeeConfig()
-supported_runtimes = ['Charliecloud', 'Chuck'] 
+supported_runtimes = ['Charliecloud', 'Singularity'] 
 if bc.userconfig.has_section('task_manager'):
     tm_crt = bc.userconfig['task_manager'].get('container_runtime', 'Charliecloud')
     if tm_crt not in supported_runtimes:
@@ -30,8 +30,8 @@ else:
 print(f'The container runtime is {tm_crt}')
 if tm_crt == 'Charliecloud':
    from beeflow.common.crt.crt_drivers import CharliecloudDriver as CrtDriver
-elif tm_crt == 'Chuck':
-   from beeflow.common.crt.crt_drivers import ChuckDriver as CrtDriver
+elif tm_crt == 'Singularity':
+   from beeflow.common.crt.crt_drivers import SingularityDriver as CrtDriver
 
 
 def get_ccname(image_path):
@@ -64,6 +64,9 @@ def build_text(task, template_file):
 
 def write_script(task):
     """Build task script; returns (1, filename) or (-1, error_message)."""
+    success = -1
+    if not CRT.image_exists(task):
+        return success, "dockerImageId is not a valid image"
     # for now using fixed directory for task manager scripts and write them out
     # we may keep them in memory and only write for a debug or logging option
     # make directory (now uses date, should be workflow name or id?)
@@ -73,7 +76,6 @@ def write_script(task):
     os.makedirs(script_dir, exist_ok=True)
     task_text = build_text(task, template_file)
     task_script = script_dir + '/' + task.name + '-' + str(task.id) + '.sh'
-    success = -1
     try:
         script_f = open(task_script, 'w')
         script_f.write(task_text)
