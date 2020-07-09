@@ -60,7 +60,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 req_class, key, value = hint
                 if req_class == "DockerRequirement" and key == "dockerImageId":
                     return os.access(value, os.R_OK)
-        return false
+        return True
 
 
 class SingularityDriver(ContainerRuntimeDriver):
@@ -91,4 +91,4 @@ class SingularityDriver(ContainerRuntimeDriver):
                 req_class, key, value = hint
                 if req_class == "DockerRequirement" and key == "dockerImageId":
                     return os.access(value, os.R_OK)
-        return false
+        return True
