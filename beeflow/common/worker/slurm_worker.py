@@ -64,6 +64,9 @@ def build_text(task, template_file):
 
 def write_script(task):
     """Build task script; returns (1, filename) or (-1, error_message)."""
+    success = -1
+    if not CRT.image_exists(task):
+        return success, "dockerImageId is not a valid image"
     # for now using fixed directory for task manager scripts and write them out
     # we may keep them in memory and only write for a debug or logging option
     # make directory (now uses date, should be workflow name or id?)
@@ -73,7 +76,6 @@ def write_script(task):
     os.makedirs(script_dir, exist_ok=True)
     task_text = build_text(task, template_file)
     task_script = script_dir + '/' + task.name + '-' + str(task.id) + '.sh'
-    success = -1
     try:
         script_f = open(task_script, 'w')
         script_f.write(task_text)
