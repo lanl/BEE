@@ -53,35 +53,29 @@ class FCFS(Algorithm):
         # TODO: Move code that deals directly with requirements other
         # than 'max_runtime' into the Resource and Allocation classes.
         allocations = []
+        start_time = int(time.time())
         # Continue while there are still tasks to schedule
         for task in tasks:
-            for resource in resources:
-                if resource.runs(task):
-                    allocated = [a for a in allocations
-                                 if a.id_ == resource.id_]
-                    # allocation = resource.allocate(task, allocated)
-                    start_time = int(time.time())
-                    # Determine totals
-                    cores = (task.requirements['cores']
-                             if 'cores' in task.requirements else 1)
-                    # Determine the possible start_time
-                    if ((resource.cores - sum(a.cores for a in allocated))
-                            < cores):
-                        # Note: this leaves some "open" space since there
-                        # is a possibility that the task could fit into
-                        # a time slot before the longest already scheduled
-                        # task has filled in that area
-                        #
-                        # TODO: What is the default max_runtime? - Is this
-                        # set in bee.conf?
-                        start_time += max(a.max_runtime for a in allocated)
-                    alloc = sched_types.Allocation(
-                        id_=resource.id_, cores=cores, start_time=start_time,
-                        max_runtime=task.requirements['max_runtime'])
-                    allocations.append(alloc)
-                    # TODO: Handle multiple resource allocations for a task
-                    task.allocations = [alloc]
+            # Check if the task can run at all
+            remaining = util.calculate_remaining(resources, [])
+            if not remaining.runs(task):
+                # Can't run this task at all
+                continue
+            max_runtime = task.requirements['max_runtime']
+            while True:
+                overlap = util.calculate_overlap(allocations, start_time,
+                                                 max_runtime)
+                remaining = util.calculate_remaining(resources, overlap)
+                if remaining.runs(task):
+                    allocs = util.allocate_aggregate(resources, overlap, task,
+                                                     start_time)
+                    allocations.extend(allocs)
+                    task.allocations = allocs
                     break
+                # Set the next time increment to check
+                start_time = min(a.start_time + a.max_runtime
+                                 for a in overlap)
+
 
 
 class Backfill(Algorithm):

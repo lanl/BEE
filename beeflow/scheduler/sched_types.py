@@ -112,8 +112,9 @@ class Resource(Serializable):
         :rtype bool:
         """
         # TODO: Check more requirements
-        if ('cores' in task.requirements
-                and task.requirements['cores'] > self.cores):
+        if (('cores' in task.requirements
+                and task.requirements['cores'] > self.cores)
+                or self.cores == 0):
             # Too many cores required
             return False
         return True

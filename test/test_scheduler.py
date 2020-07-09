@@ -126,7 +126,7 @@ class TestFCFS(AbstractScheduleTestCase):
         assert task4.allocations[0].start_time == current_time
         assert task4.allocations[0].cores == 1
         assert task5.allocations[0].id_ == 'test-resource-1'
-        t = current_time + task3.requirements['max_runtime']
+        t = current_time + task2.requirements['max_runtime']
         assert (task5.allocations[0].start_time == t)
         assert task5.allocations[0].cores == 1
         assert task6.allocations[0].id_ == 'test-resource-1'
