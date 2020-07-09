@@ -71,16 +71,20 @@ class BeeConfig:
             except PermissionError as e:
                 raise PermissionError('Do you have write access to {}?'.\
                                        format(conf_file)) from e
+            # Set default bee_workdir relative to HOME unless otherwise specified.
+            try:
+                self.bee_workdir = kwargs['bee_workdir']
+            except KeyError:
+                self.bee_workdir = os.path.expanduser('~/.beeflow')
+
             # If user specified relative paths, make them absolute
-            self.userconfig_file = self.resolve_path(self.userconfig_file)
-            # Set workdir path as same as bee.conf
-            default_workdir = os.path.dirname(self.userconfig_file)
+            self.bee_workdir = self.resolve_path(self.bee_workdir)
             with open(self.userconfig_file, 'w') as conf_fh:
                 conf_fh.write("# BEE CONFIGURATION FILE #")
                 conf_fh.close()
             self.modify_section('user',
                                 'DEFAULT',
-                                {'bee_workdir': str(default_workdir)})
+                                {'bee_workdir': str(self.bee_workdir)})
 
     def modify_section(self, conf, section, keyvalue, replace=False):
         """Add a new section to the system or user config file.
@@ -156,11 +160,15 @@ class BeeConfig:
         """
         # Discard redundant paths, iff Windows, replace(\,/)
         relative_path = os.path.normpath(relative_path)
-        # Get desired config file name
-        filename = os.path.basename(relative_path)
         # Resolve the true path (expand relative path refs)
         tmp = os.getcwd()
-        os.chdir(os.path.dirname(relative_path))
-        absolute_path = '/'.join([os.getcwd(), filename])
+        if os.path.isdir(relative_path):
+            os.chdir(relative_path)
+            absolute_path = os.getcwd()
+        else:
+            # Get desired config file name
+            filename = os.path.basename(relative_path)
+            os.chdir(os.path.dirname(relative_path))
+            absolute_path = '/'.join([os.getcwd(), filename])
         os.chdir(tmp)
         return absolute_path
