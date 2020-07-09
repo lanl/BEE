@@ -199,7 +199,7 @@ def StartSlurmRestD(bc, args):
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
     subprocess.Popen(['rm','-f',slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
-    return subprocess.Popen(["slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
+    return subprocess.Popen([f"slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
                             stdout=PIPE, stderr=PIPE, shell=True)
 
 def StartWorkflowManager(bc, args):
