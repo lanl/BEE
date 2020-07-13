@@ -57,7 +57,7 @@ def build_text(task, template_file):
         job_template = '#! /bin/bash\n#SBATCH\n'
     template = string.Template(job_template)
     job_text = template.substitute({'name': task.name, 'id': task.id})
-    crt_text = CRT.script_text(task)
+    crt_text = crt.script_text(task)
     job_text += crt_text
     return job_text
 
@@ -65,7 +65,7 @@ def build_text(task, template_file):
 def write_script(task):
     """Build task script; returns (1, filename) or (-1, error_message)."""
     success = -1
-    if not CRT.image_exists(task):
+    if not crt.image_exists(task):
         return success, "dockerImageId is not a valid image"
     # for now using fixed directory for task manager scripts and write them out
     # we may keep them in memory and only write for a debug or logging option
@@ -165,4 +165,4 @@ class SlurmWorker(Worker):
         return cancel_success, job_state
 
 
-CRT = ContainerRuntimeInterface(CrtDriver)
+crt = ContainerRuntimeInterface(CrtDriver)
