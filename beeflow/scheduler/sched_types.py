@@ -4,7 +4,6 @@ This file holds classes for respresenting workflows and tasks/jobs, as
 well as resources that will be used during scheduling.
 """
 import abc
-import enum
 import time
 
 
@@ -57,7 +56,9 @@ class Task(Serializable):
         """
         self.workflow_name = workflow_name
         self.task_name = task_name
-        self.requirements = requirements if requirements is not None else {}
+        self.requirements = (RequirementBase(**requirements)
+                             if requirements is not None else {})
+        self.requirements
         self.allocations = allocations if allocations is not None else []
 
     def encode(self):
@@ -69,6 +70,9 @@ class Task(Serializable):
         if 'allocations' in result and result['allocations']:
             result['allocations'] = [alloc.encode()
                                      for alloc in result['allocations']]
+        # TODO: Requirements could also add an encode() message
+        if 'requirements' in result and result['requirements']:
+            result['requirements'] = result['requirements'].__dict__
         return result
 
     @staticmethod
@@ -82,98 +86,76 @@ class Task(Serializable):
         return Task(**data)
 
 
-# TODO: Add a generic way to add resource types to a ResourceCollection
 class Resource(Serializable):
-    """Resource collection class.
+    """Resource base class.
 
-    Generic class for holding a collection of resources.
+    Resource base class.
     """
 
-    def __init__(self, id_, cores=1):
-        """Resource collection constructor.
+    def __init__(self, id_=None, cores=1, mem=8192):
+        """Resource base constructor.
 
-        Initialize a new ResourceCollection object with resource details.
-        :param id_: id of the resource
-        :type id_: str
-        :param cores: number of cores contained in the resource
-        :type cores: int
+        Resource base constructor.
         """
         self.id_ = id_
         self.cores = cores
+        self.mem = mem
 
-    def runs(self, task):
-        """Determine if the task can run on this resource.
+    def fits_requirements(self, requirements):
+        """Check the resource against a dict of requirements.
 
-        Compare the requirements of the task with the details
-        of this resource and returns True if this task can run
-        on this resource and False otherwise.
-        :param task: task to check
-        :type task: instance of Task
-        :rtype bool:
-        """
-        # TODO: Check more requirements
-        if (('cores' in task.requirements
-                and task.requirements['cores'] > self.cores)
-                or self.cores == 0):
-            # Too many cores required
-            return False
-        return True
-
-    def fit_remaining(self, allocations, task_allocated, task, start_time,
-                      max_runtime):
-        """Try to fit a task onto this resource.
-
-        Try to fit this task onto the resource, given the
-        list of allocations. If it can't fit then return None.
-        :param allocations: list of current allocations
-        :type allocations: list of instance of Allocation
-        :param task_allocated: list of current Allocations for this task
-        :type task_allocated: list of instance of Allocation
-        :param task: the task to fit
-        :type task: instance of Allocation or None
-        :param start_time: start time
-        :type start_time: int
-        :param max_runtime: maximum runtime
-        :type max_runtime: int
-        :rtype: instance of Allocation or None
-        """
-        # TODO: Update this to include info about other resource types
-        cores_left = self.cores - sum(a.cores for a in allocations
-                                      if start_time
-                                      < (a.start_time + a.max_runtime)
-                                      and (start_time + max_runtime)
-                                      > a.start_time)
-        # Check if everything is used up
-        if cores_left <= 0:
-            return None
-        allocated_cores = sum(ta.cores for ta in task_allocated)
-        required_cores = (task.requirements['cores']
-                          if 'cores' in task.requirements else 1)
-        cores_needed = required_cores - allocated_cores
-        cores = cores_needed if cores_left > cores_needed else cores_left
-        return Allocation(id_=self.id_, cores=cores, start_time=start_time,
-                          max_runtime=max_runtime)
-
-    # TODO: This property may not be necessary
-    @property
-    def empty(self):
-        """Determine if this resource has any resources.
-
-        Boolean property for determining if a resource actually
-        has any number of Resources that are available (this may
-        be used within the Allocation class to tell if another
-        Allocation can be made).
+        Check this resource against a dict of requirements.
+        :param requirements: requirements to match against
+        :type requirements: instance of RequirementBase
         :rtype: bool
         """
-        # TODO: Update this to include info about other resource types
-        return self.cores == 0
+        return (requirements.cores <= self.cores
+                and requirements.mem <= self.mem)
+
+    def allocate(self, remaining, task_allocated, requirements, start_time):
+        """Return the largest needed new allocation.
+
+        Create the largest possible new allocation, given current allocations
+        and the requirement.
+        :param remaining: remaining unused part of resource
+        :type remaining: instance of Resource
+        :param task_allocated: allocations for the task
+        :type task_allocated: list of instance of Allocation
+        :param requirements: requirements to allocate for
+        :type requirements: instance of RequirementBase
+        :param start_time: start time
+        :type start_time: int
+        :rtype:
+        """
+        total_task_allocated = rsum(*task_allocated)
+        cores = (remaining.cores
+                 if (remaining.cores <= (requirements.cores
+                                         - total_task_allocated.cores))
+                 else (requirements.cores - total_task_allocated.cores))
+        mem = (remaining.mem
+               if (remaining.mem
+                   <= (requirements.mem - total_task_allocated.mem))
+               else (requirements.mem - total_task_allocated.mem))
+        return Allocation(start_time=start_time,
+                          max_runtime=requirements.max_runtime, id_=self.id_,
+                          cores=cores, mem=mem)
+
+    @property
+    def empty(self):
+        """Determine if the resource class is empty.
+
+        Property which determines whether or not a resource is empty.
+        :rtype: bool
+        """
+        return self.cores == 0 or self.mem == 0
 
     def encode(self):
         """Encode and return a simple Python data type.
 
         Produce a simple Python data type for serialization.
         """
-        return self.__dict__
+        result = dict(self.__dict__)
+        return result
 
     @staticmethod
     def decode(data):
@@ -182,7 +164,76 @@ class Resource(Serializable):
         Decode a simple Python data type and return and instance of
         the object.
         """
+        data = dict(data)
         return Resource(**data)
+
+
+def diff(resource1, resource2):
+    """Calculate the difference between two resources.
+
+    Calculate the difference between two resources.
+    :param resource1: first resource
+    :type resource1: instance of Resource
+    :param resource2: second resource
+    :type resource2: instance of Resource
+    :rtype: new instance of Resource
+    """
+    return Resource(cores=resource1.cores-resource2.cores,
+                    mem=resource1.mem-resource2.mem)
+
+
+def rsum(*resources):
+    """Calculate a sum of resources in a list.
+
+    Calculate a sum of all the resources in a list.
+    :param resources:
+    :type resources:
+    :rtype: new instance of Resource
+    """
+    return Resource(cores=sum(r.cores for r in resources),
+                    mem=sum(r.mem for r in resources))
+
+
+class RequirementsError(Exception):
+    """Requirements Error class.
+
+    Class for storing requirements.
+    """
+
+    def __init__(self, msg):
+        """Initialize the requirements error.
+
+        Requirements error constructor.
+        :param msg: a message
+        :type msg: str
+        """
+        self.msg = msg
+
+
+class RequirementBase:
+    """Base requirements class.
+
+    Base requirements class.
+    """
+
+    def __init__(self, cores=1, mem=1024, max_runtime=1):
+        """Constructor for requirements.
+
+        Constructor for requirements.
+        :param cores: number of cores
+        :type cores: int
+        """
+        if cores < 0:
+            raise RequirementsError('Invalid "cores" requirement of %i'
+                                    % cores)
+        self.cores = cores
+        if mem < 0:
+            raise RequirementsError('Invalid "mem" requirement of %i' % mem)
+        self.mem = mem
+        if max_runtime < 0:
+            raise RequirementsError('Invalid "max_runtime" requirement of %i'
+                                    % max_runtime)
+        self.max_runtime = max_runtime
 
 
 class Allocation(Resource):

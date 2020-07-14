@@ -15,12 +15,9 @@ def calculate_remaining(resources, allocations):
     :type allocations: list of instance of Allocation
     :rtype: instance of Allocation
     """
-    # TODO: Update this to include info about other resource types
-    cores = (sum(r.cores for r in resources)
-             - sum(a.cores for a in allocations))
-    # This Allocation returned should not have anything meaningful
-    # for id_, nor for start_time and max_runtime
-    return sched_types.Allocation(id_=None, cores=cores)
+    resource_total = sched_types.rsum(*resources)
+    resource_allocated = sched_types.rsum(*allocations)
+    return sched_types.diff(resource_total, resource_allocated)
 
 
 def allocate_aggregate(resources, allocations, task, start_time):
@@ -41,14 +38,17 @@ def allocate_aggregate(resources, allocations, task, start_time):
     task_allocated = []
     for resource in resources:
         # TODO
-        allocs = [a for a in allocations if a.id_ == resource.id_]
-        fit = resource.fit_remaining(allocs, task_allocated, task, start_time,
-                                     task.requirements['max_runtime'])
-        if fit is not None:
-            task_allocated.append(fit)
-        # Check if it has enough
-        allocated = calculate_remaining(task_allocated, [])
-        if allocated.runs(task):
+        total_used = sched_types.rsum(*[a for a in allocations
+                                        if a.id_ == resource.id_])
+        remaining = sched_types.diff(resource, total_used)
+        if not remaining.empty:
+            # Allocate a new resource
+            alloc = resource.allocate(remaining, task_allocated,
+                                      task.requirements, start_time=start_time)
+            task_allocated.append(alloc)
+        total_allocated = sched_types.rsum(*task_allocated)
+        # Check if the allocation has been completed
+        if total_allocated.fits_requirements(task.requirements):
             break
     return task_allocated
 
@@ -56,7 +56,7 @@ def allocate_aggregate(resources, allocations, task, start_time):
 def calculate_overlap(allocations, start_time, max_runtime):
     """Calculate allocation overlap for a specifc time period.
 
-    Return a list of overlapping allocations for a certain time
+    Return a list of overlapping allocations for a given certain time
     period.
     :param allocations: all allocations
     :type allocations: list of instance of Allocation
@@ -66,7 +66,6 @@ def calculate_overlap(allocations, start_time, max_runtime):
     :type max_runtime: int
     :rtype: list of instance of Allocation
     """
-    # TODO
     return [a for a in allocations
             if start_time < (a.start_time + a.max_runtime)
             and (start_time + max_runtime) > a.start_time]

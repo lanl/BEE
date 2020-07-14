@@ -7,7 +7,6 @@ import abc
 import random
 import time
 
-# import beeflow.scheduler.allocation as allocation
 import beeflow.scheduler.sched_types as sched_types
 import beeflow.scheduler.util as util
 
@@ -50,23 +49,22 @@ class FCFS(Algorithm):
         :param resources: list of resources
         :type resources: list of instance of sched_types.Resource
         """
-        # TODO: Move code that deals directly with requirements other
-        # than 'max_runtime' into the Resource and Allocation classes.
         allocations = []
         start_time = int(time.time())
         # Continue while there are still tasks to schedule
         for task in tasks:
             # Check if the task can run at all
-            remaining = util.calculate_remaining(resources, [])
-            if not remaining.runs(task):
+            remaining = sched_types.rsum(*resources)
+            if not remaining.fits_requirements(task.requirements):
                 # Can't run this task at all
                 continue
-            max_runtime = task.requirements['max_runtime']
+            max_runtime = task.requirements.max_runtime
             while True:
                 overlap = util.calculate_overlap(allocations, start_time,
                                                  max_runtime)
-                remaining = util.calculate_remaining(resources, overlap)
-                if remaining.runs(task):
+                remaining = sched_types.diff(sched_types.rsum(*resources),
+                                             sched_types.rsum(*overlap))
+                if remaining.fits_requirements(task.requirements):
                     allocs = util.allocate_aggregate(resources, overlap, task,
                                                      start_time)
                     allocations.extend(allocs)
@@ -75,7 +73,6 @@ class FCFS(Algorithm):
                 # Set the next time increment to check
                 start_time = min(a.start_time + a.max_runtime
                                  for a in overlap)
-
 
 
 class Backfill(Algorithm):
@@ -105,16 +102,16 @@ class Backfill(Algorithm):
         while tasks:
             # Get a task to schedule
             task = tasks.pop(0)
-            total = util.calculate_remaining(resources, [])
-            if not total.runs(task):
+            total = sched_types.rsum(*resources)
+            if not total.fits_requirements(task.requirements):
                 continue
             # Can this task run immediately?
             start_time = current_time
-            max_runtime = task.requirements['max_runtime']
+            max_runtime = task.requirements.max_runtime
             overlap = util.calculate_overlap(allocations, start_time,
                                              max_runtime)
             remaining = util.calculate_remaining(resources, overlap)
-            if remaining.runs(task):
+            if remaining.fits_requirements(task.requirements):
                 allocs = util.allocate_aggregate(resources, overlap, task,
                                                  start_time)
                 allocations.extend(allocs)
@@ -129,18 +126,19 @@ class Backfill(Algorithm):
                 overlap = util.calculate_overlap(allocations, start_time,
                                                  max_runtime)
                 remaining = util.calculate_remaining(resources, overlap)
-                if remaining.runs(task):
+                if remaining.fits_requirements(task.requirements):
                     shadow_time = start_time
-                    allocs = util.allocate_aggregate(resources, allocations,
-                                                     task, start_time)
+                    allocs = util.allocate_aggregate(resources, overlap, task,
+                                                     start_time)
                     allocations.extend(allocs)
                     task.allocations = allocs
+                    break
             # Backfill tasks
             tasks_left = []
             for task in tasks:
                 times = [current_time]
                 times.extend(a.start_time + a.max_runtime for a in allocations)
-                max_runtime = task.requirements['max_runtime']
+                max_runtime = task.requirements.max_runtime
                 # Ensure that the task will finish before the shadow time
                 times = [t for t in times if (t + max_runtime) <= shadow_time]
                 times.sort()
@@ -149,7 +147,7 @@ class Backfill(Algorithm):
                     overlap = util.calculate_overlap(allocations, start_time,
                                                      max_runtime)
                     remaining = util.calculate_remaining(resources, overlap)
-                    if remaining.runs(task):
+                    if remaining.fits_requirements(task.requirements):
                         allocs = util.allocate_aggregate(resources, overlap,
                                                          task, start_time)
                         allocations.extend(allocs)

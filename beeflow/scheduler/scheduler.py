@@ -39,7 +39,7 @@ class ResourcesHandler(Resource):
     def get(self):
         """Get a list of all resources.
 
-        Returna a list of all available resources known to the scheduler.
+        Return a list of all available resources known to the scheduler.
         """
         return [r.encode() for r in resources]
 
@@ -67,7 +67,6 @@ api.add_resource(WorkflowJobHandler,
                  '/bee_sched/v1/workflows/<string:workflow_name>/jobs')
 
 if __name__ == '__main__':
-    # TODO: Add -p port parsing
     parser = argparse.ArgumentParser(description='start the BEE scheduler')
     parser.add_argument('-p', dest='port', type=int, help='port to run on',
                         default=SCHEDULER_PORT)
