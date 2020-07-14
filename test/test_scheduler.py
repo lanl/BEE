@@ -126,7 +126,7 @@ class TestFCFS(AbstractScheduleTestCase):
         assert task4.allocations[0].start_time == current_time
         assert task4.allocations[0].cores == 1
         assert task5.allocations[0].id_ == 'test-resource-1'
-        t = current_time + task2.requirements['max_runtime']
+        t = current_time + task2.requirements.max_runtime
         assert (task5.allocations[0].start_time == t)
         assert task5.allocations[0].cores == 1
         assert task6.allocations[0].id_ == 'test-resource-1'
@@ -173,7 +173,7 @@ class TestBackfill(AbstractScheduleTestCase):
         assert task2.allocations[0].id_ == 'resource-0'
         assert task2.allocations[0].cores == 2
         assert (task2.allocations[0].start_time
-                == (current_time + task1.requirements['max_runtime']))
+                == (current_time + task1.requirements.max_runtime))
         # Task 3 should have been backfillled, filling in an area before task
         # 2 can run
         assert task3.allocations[0].id_ == 'resource-0'
@@ -217,13 +217,13 @@ class TestBackfill(AbstractScheduleTestCase):
         assert len(task1.allocations) == 2
         assert all(a.start_time == current_time for a in task1.allocations)
         assert len(task2.allocations) == 4
-        start_time = current_time + task1.requirements['max_runtime']
+        start_time = current_time + task1.requirements.max_runtime
         assert all(a.start_time == start_time for a in task2.allocations)
         # task3 should not have been backfilled (would have taken too
         # much time)
         assert len(task3.allocations) == 1
-        start_time = (current_time + task1.requirements['max_runtime']
-                      + task2.requirements['max_runtime'])
+        start_time = (current_time + task1.requirements.max_runtime
+                      + task2.requirements.max_runtime)
         assert task3.allocations[0].start_time == start_time
         # task4 should have been backfilled
         assert len(task4.allocations) == 1
@@ -269,7 +269,7 @@ class TestBackfill(AbstractScheduleTestCase):
         assert task2.allocations[0].id_ == 'resource-0'
         assert task2.allocations[0].cores == 4
         assert (task2.allocations[0].start_time
-                == (current_time + task1.requirements['max_runtime']))
+                == (current_time + task1.requirements.max_runtime))
         # Task 3, 4 and 5 should have been backfillled, filling in an area
         # before task 2 can run
         assert task3.allocations[0].id_ == 'resource-0'
@@ -284,6 +284,6 @@ class TestBackfill(AbstractScheduleTestCase):
         # Task 6 should be scheduled to run last
         assert task6.allocations[0].id_ == 'resource-0'
         assert task6.allocations[0].cores == 1
-        t = (current_time + task1.requirements['max_runtime']
-             + task2.requirements['max_runtime'])
+        t = (current_time + task1.requirements.max_runtime
+             + task2.requirements.max_runtime)
         assert task6.allocations[0].start_time == t

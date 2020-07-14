@@ -50,20 +50,14 @@ def test_schedule_job_no_resources(scheduler):
     r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
     assert r.ok
-    print(r.json())
-    assert r.json() == [
-        {
-            'workflow_name': workflow_name,
-            'task_name': 'test-task',
-            'requirements': {
-                'max_runtime': 1,
-            },
-            'allocations': [],
-        },
-    ]
+    data = r.json()
+    assert len(data) == 1
+    assert data[0]['workflow_name'] == workflow_name
+    assert data[0]['task_name'] == 'test-task'
+    assert data[0]['requirements']['max_runtime'] == 1
+    assert data[0]['allocations'] == []
 
 
-# @run_scheduler
 def test_schedule_job_one_resource(scheduler):
     """Test scheduling a job with one resource.
 
@@ -94,23 +88,16 @@ def test_schedule_job_one_resource(scheduler):
     r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
     assert r.ok
-    assert r.json() == [
-        {
-            'workflow_name': 'test-workflow',
-            'task_name': 'test-task',
-            'requirements': {
-                'max_runtime': 1,
-            },
-            'allocations': [
-                {
-                    'id_': 'resource-1',
-                    'cores': 1,
-                    'start_time': int(time.time()),
-                    'max_runtime': 1,
-                },
-            ],
-        },
-    ]
+    data = r.json()
+    assert len(data) == 1
+    assert data[0]['workflow_name'] == 'test-workflow'
+    assert data[0]['task_name'] == 'test-task'
+    assert data[0]['requirements']['max_runtime'] == 1
+    assert len(data[0]['allocations']) == 1
+    assert data[0]['allocations'][0]['id_'] == 'resource-1'
+    assert data[0]['allocations'][0]['cores'] == 1
+    assert data[0]['allocations'][0]['start_time'] == int(time.time())
+    assert data[0]['allocations'][0]['max_runtime'] == 1
 
 
 def test_schedule_job_two_resources(scheduler):
@@ -151,7 +138,7 @@ def test_schedule_job_two_resources(scheduler):
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task'
-    assert data[0]['requirements'] == {'max_runtime': 1}
+    assert data[0]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) > 0
 
 
@@ -209,15 +196,16 @@ def test_schedule_multi_job_two_resources(scheduler):
     assert len(data) == 3
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task-0'
-    assert data[0]['requirements'] == {'max_runtime': 1}
+    assert data[0]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) > 0
     assert data[1]['workflow_name'] == 'test-workflow'
     assert data[1]['task_name'] == 'test-task-1'
-    assert data[1]['requirements'] == {'max_runtime': 1}
+    assert data[1]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) > 0
     assert data[2]['workflow_name'] == 'test-workflow'
     assert data[2]['task_name'] == 'test-task-2'
-    assert data[2]['requirements'] == {'max_runtime': 4, 'cores': 16}
+    assert data[2]['requirements']['max_runtime'] == 4
+    assert data[2]['requirements']['cores'] == 16
     assert len(data[2]['allocations']) > 0
 # TODO: More job tests
 # TODO: More resource tests
