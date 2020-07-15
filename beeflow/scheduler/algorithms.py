@@ -160,11 +160,36 @@ class Backfill(Algorithm):
             tasks = tasks_left
 
 
-def choose():
+class RL(Algorithm):
+    """Reinforcement Learning Scheduler.
+
+    Reinforcement Learning Scheduler.
+    """
+
+    @staticmethod
+    def schedule_all(tasks, resources):
+        """Schedule a list of tasks on the given resources.
+
+        Schedule a full list of tasks on the given resources
+        :param tasks: list of tasks to schedule
+        :type tasks: list of instance of Task
+        :param resources: list of resources
+        :type resources: list of instance of Resource
+        """
+        # TODO: Below is a placeholder until the RL scheduler is implemented
+        return Backfill.schedule_all(tasks, resources)
+
+
+# TODO: Perhaps this value should be a config value
+MEDIAN = 4
+
+def choose(tasks):
     """Choose which algorithm to run at this point.
 
     Determine which algorithm class needs to run and return it.
+    :param tasks: list of tasks:
+    :type tasks: list of instance of Task
     :rtype: class derived from Algorithm (not an instance)
     """
-    # TODO: This decision should not be made randomly
-    return FCFS if random.randint(0, 1) else Backfill
+    # TODO: Ensure this is correct
+    return Backfill if len(tasks) < MEDIAN else RL
