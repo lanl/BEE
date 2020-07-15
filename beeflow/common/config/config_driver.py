@@ -160,7 +160,7 @@ class BeeConfig:
         """
         # Discard redundant paths, iff Windows, replace(\,/)
         # Assume "~" means home dir
-        relative_path = os.path.expanduse(os.path.normpath(relative_path))
+        relative_path = os.path.expanduser(os.path.normpath(relative_path))
         # Resolve the true path (expand relative path refs)
         tmp = os.getcwd()
         if os.path.isdir(relative_path):
