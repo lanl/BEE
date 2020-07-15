@@ -208,7 +208,7 @@ if __name__ == '__main__':
                                            'logs', 'tm.log'])})
     finally:
         tm_log = bc.userconfig.get('task_manager','log')
-        tm_log = os.path.expanduser(tm_log)
+        tm_log = bc.resolve_path(tm_log)
     print('tm_listen_port:', tm_listen_port)
 
     handler = logging.FileHandler(tm_log)
