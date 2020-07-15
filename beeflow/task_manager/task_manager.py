@@ -25,30 +25,40 @@ try:
 except IndexError:
     bc = BeeConfig()
 
-# Set Workflow manager ports, attempt to prevent collisions
-tm_port=5050
+# Set Task Manager default port, attempt to prevent collisions
+tm_port = 5050
 if platform.system() == 'Windows':
     # Get parent's pid to offset ports. uid method better but not available in Windows
-    tm_port += os.getppid()%100
+    tm_port += os.getppid() % 100
 else:
-    tm_port += os.getuid()%100
+    tm_port += os.getuid() % 100
 
+tm_dict = {}
 if bc.userconfig.has_section('task_manager'):
-    tm_listen_port = bc.userconfig['task_manager'].get('listen_port', tm_port)
+    # Check/Set Task Manager section of configuration file
+    tm_listen_port = bc.userconfig['task_manager'].get('listen_port')
+    tm_crt = bc.userconfig['task_manager'].get('container_runtime')
+    if tm_listen_port is None:
+        tm_listen_port = tm_port
+        print("[listen_port] not found in task_manager section, default value added")
+        tm_dict = {'listen_port': tm_listen_port, 'container_runtime': tm_crt}
+    # Check/Set container_runtime
+    if tm_crt is None:
+        print("[container_runtime] not found in configuration file, default value added")
+        tm_dict['container_runtime'] = 'Charliecloud'
 else:
     print("[task_manager] section not found in configuration file, default values added")
-
-    tm_dict = {
-        'listen_port': tm_port,
-    }
-
-    bc.modify_section('user','task_manager', tm_dict)
+    tm_listen_port = tm_port
+    tm_dict = {'listen_port': tm_listen_port, 'container_runtime': 'Charliecloud'}
+if tm_dict:
+    print(f'tm_dict {tm_dict} to be added')
+    bc.modify_section('user', 'task_manager', tm_dict)
 
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart TaskManager")
 
 
 # Set Workflow manager ports, attempt to prevent collisions
-wm_port=5050
+wm_port = 5050
 if platform.system() == 'Windows':
     # Get parent's pid to offset ports. uid method better but not available in Windows
     wm_port += os.getppid()%100
@@ -128,7 +138,6 @@ def update_jobs():
             print(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
             current_task['job_state'] = job_state
             update_task_state(task_id, job_state)
-        # TODO Make an abstract state see wiki for our TM states
         if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
@@ -192,12 +201,13 @@ class TaskActions(Resource):
         return resp
 
 
-worker = WorkerInterface(SlurmWorker, slurm_socket=bc.userconfig.get('slurmrestd','slurm_socket') )
+worker = WorkerInterface(SlurmWorker, slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'))
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 
 if __name__ == '__main__':
-    print('tm_listen_port:',tm_listen_port)
+
+    print('tm_listen_port:', tm_listen_port)
     flask_app.run(debug=True, port=str(tm_listen_port))
