@@ -16,6 +16,7 @@ from werkzeug.datastructures import FileStorage
 import beeflow.common.parser.parse_clamr as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
+from configparser import NoOptionError
 
 try:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -313,8 +314,16 @@ api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
 if __name__ == '__main__':
     # Get the paramater for logging 
-    if bc.userconfig.has_section('workflow_manager'):
-        wfm_log = bc.userconfig['workflow_manager'].get('log', 'wfm.log')
+    try:
+        bc.userconfig.get('workflow_manager','log')
+    except NoOptionError:
+        bc.modify_section('user','workflow_manager',
+                          {'log': '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
+                                           'logs', 'wfm.log'])})
+    finally:
+        wfm_log = bc.userconfig.get('workflow_manager','log')
+        wfm_log = bc.resolve_path(wfm_log)
+    
     print('wfm_listen_port:', wfm_listen_port)
 
     handler = logging.FileHandler(wfm_log)
