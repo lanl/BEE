@@ -21,6 +21,7 @@ import time
 import platform
 from beeflow.common.config.config_driver import BeeConfig
 from subprocess import PIPE
+from configparser import NoOptionError
 
 BEESTART = os.path.splitext(__file__)[0]
 
@@ -187,11 +188,19 @@ def StartSlurmRestD(bc, args):
         bc.modify_section('user','slurmrestd',restd_dict)
     if args.config_only:
         return None
+    # Try accessing the log path from config file, create if not there
+    # Perhaps better to do this when adding default slurm socket path?
+    try:
+        bc.userconfig.get('slurmrestd','log')
+    except NoOptionError:
+        bc.modify_section('user','slurmrestd',{'log':'slurmrestd.log'})
+    finally:
+        slurmrestd_log = bc.userconfig.get('slurmrestd','log')
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
     subprocess.Popen(['rm','-f',slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
-    return subprocess.Popen(["slurmrestd", "unix:"+slurm_socket],
-                            stdout=PIPE, stderr=PIPE)
+    return subprocess.Popen([f"slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
+                            stdout=PIPE, stderr=PIPE, shell=True)
 
 def StartWorkflowManager(bc, args):
     """Start BEEWorkflowManager. Returns a Popen process object."""
@@ -212,6 +221,7 @@ def StartWorkflowManager(bc, args):
         bc.modify_section('user','workflow_manager',server_dict)
     if args.config_only:
         return None
+
     # Either use the userconfig file argument specified to BEEStart,
     # or assume the default path to ~/.config/beeflow/bee.conf.
     if args.userconfig_file:

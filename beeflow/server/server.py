@@ -5,6 +5,7 @@ import sys
 import platform
 import jsonpickle
 import requests
+import logging
 import cwl_utils.parser_v1_0 as cwl
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
@@ -15,6 +16,7 @@ from werkzeug.datastructures import FileStorage
 import beeflow.common.parser.parse_clamr as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
+from configparser import NoOptionError
 
 try:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -311,6 +313,29 @@ api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
 
 if __name__ == '__main__':
+    # Get the paramater for logging 
+    try:
+        bc.userconfig.get('workflow_manager','log')
+    except NoOptionError:
+        bc.modify_section('user','workflow_manager',
+                          {'log': '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
+                                           'logs', 'wfm.log'])})
+    finally:
+        wfm_log = bc.userconfig.get('workflow_manager','log')
+        wfm_log = bc.resolve_path(wfm_log)
+    
+    print('wfm_listen_port:', wfm_listen_port)
+
+    handler = logging.FileHandler(wfm_log)
+    handler.setLevel(logging.DEBUG)
+
+    # Werkzeug logging 
+    werk_log = logging.getLogger('werkzeug')
+    werk_log.setLevel(logging.INFO)
+    werk_log.addHandler(handler)
+
+    # Flask logging
+    flask_app.logger.addHandler(handler)
     flask_app.run(debug=True, port=str(wfm_listen_port))
 
 # pylama:ignore=W0511
