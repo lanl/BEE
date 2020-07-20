@@ -4,7 +4,7 @@ label: ml_workflow
 class: Workflow
 cwlVersion: v1.0
 class: CommandLineTool
-baseCommand: python3
+baseCommand: python
 
 inputs:
   id:train.csv
@@ -32,6 +32,10 @@ inputs:
       class: File
       location: /app.py
 
+arguments:
+    -coeff
+    position:1
+ 
 outputs:
   out:
     type:
