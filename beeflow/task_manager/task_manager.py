@@ -9,7 +9,7 @@ import os
 import jsonpickle
 import requests
 import platform
-
+import logging
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -18,7 +18,7 @@ from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.config.config_driver import BeeConfig
 from apscheduler.schedulers.background import BackgroundScheduler
-
+from configparser import NoOptionError
 
 try:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -208,6 +208,27 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 
 if __name__ == '__main__':
-
+     # Get the paramater for logging
+    try:
+        bc.userconfig.get('task_manager','log')
+    except NoOptionError:
+        bc.modify_section('user','task_manager',
+                          {'log':'/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
+                                           'logs', 'tm.log'])})
+    finally:
+        tm_log = bc.userconfig.get('task_manager','log')
+        tm_log = bc.resolve_path(tm_log)
     print('tm_listen_port:', tm_listen_port)
+
+    handler = logging.FileHandler(tm_log)
+    handler.setLevel(logging.DEBUG)
+
+    # Werkzeug logging 
+    werk_log = logging.getLogger('werkzeug')
+    werk_log.setLevel(logging.INFO)
+    werk_log.addHandler(handler)
+
+    # Flask logging
+    flask_app.logger.addHandler(handler)
+>>>>>>> develop
     flask_app.run(debug=True, port=str(tm_listen_port))

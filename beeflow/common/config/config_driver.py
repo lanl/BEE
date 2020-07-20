@@ -159,7 +159,8 @@ class BeeConfig:
         :type relative_path: string, path to file
         """
         # Discard redundant paths, iff Windows, replace(\,/)
-        relative_path = os.path.normpath(relative_path)
+        # Assume "~" means home dir
+        relative_path = os.path.expanduser(os.path.normpath(relative_path))
         # Resolve the true path (expand relative path refs)
         tmp = os.getcwd()
         if os.path.isdir(relative_path):
