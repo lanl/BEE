@@ -230,5 +230,4 @@ if __name__ == '__main__':
 
     # Flask logging
     flask_app.logger.addHandler(handler)
->>>>>>> develop
     flask_app.run(debug=True, port=str(tm_listen_port))
