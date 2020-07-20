@@ -322,6 +322,7 @@ if __name__ == '__main__':
                                            'logs', 'wfm.log'])})
     finally:
         wfm_log = bc.userconfig.get('workflow_manager','log')
+        wfm_log = bc.resolve_path(wfm_log)
     
     print('wfm_listen_port:', wfm_listen_port)
 
