@@ -1,7 +1,10 @@
 ## Prerequisites
 
 Download the following packages:
-Scikit Learn, Pandas (for Machine Leraning Model) and Flask (for API)
+Scikit Learn, Pandas (for Machine Leraning Model) and Flask (for API), cwl-runner
+
+## Install CWL Runner
+pip install cwlref-runner
 
 ## Repo Structure
 Four major parts :
@@ -16,12 +19,15 @@ Four major parts :
 
 Create the machine learning model by running below command -
 
-python model.py
+python app.py
 
 This creates a serialized version of the model into a file model.pkl
+Starts the FLASK API
 
-Run app.py using below command to start Flask API
-python app.py
+
 By default, flask runs on http://127.0.0.1:5000/.
 
 Navigate to URL http://127.0.0.1:5000/
+## Running the CWL file
+cwl-runner --validate workflow.cwl
+cwl-runner workflow.cwl job.YAML
