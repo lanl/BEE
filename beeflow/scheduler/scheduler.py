@@ -2,6 +2,7 @@
 """REST Interface for the BEE Scheduler."""
 
 import argparse
+import threading
 
 from flask import Flask, request
 from flask_restful import Resource, Api
