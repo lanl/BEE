@@ -3,27 +3,27 @@
 Submits, cancels and monitors states of tasks.
 Communicates status to the Work Flow Manager, through RESTful API.
 """
+from configparser import NoOptionError
 import atexit
 import sys
 import os
-import jsonpickle
-import requests
 import platform
 import logging
+import jsonpickle
+import requests
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
-from beeflow.common.worker.worker_interface import WorkerInterface
-from beeflow.common.worker.slurm_worker import SlurmWorker
-from beeflow.common.config.config_driver import BeeConfig
 from apscheduler.schedulers.background import BackgroundScheduler
-from configparser import NoOptionError
+from beeflow.common.config.config_driver import BeeConfig
 
 try:
     bc = BeeConfig(userconfig=sys.argv[1])
 except IndexError:
     bc = BeeConfig()
+
+supported_runtimes = ['Charliecloud', 'Singularity']
 
 # Set Task Manager default port, attempt to prevent collisions
 tm_port = 5050
@@ -33,45 +33,38 @@ if platform.system() == 'Windows':
 else:
     tm_port += os.getuid() % 100
 
-tm_dict = {}
 if bc.userconfig.has_section('task_manager'):
-    # Check/Set Task Manager section of configuration file
-    tm_listen_port = bc.userconfig['task_manager'].get('listen_port')
-    tm_crt = bc.userconfig['task_manager'].get('container_runtime')
-    if tm_listen_port is None:
-        tm_listen_port = tm_port
-        print("[listen_port] not found in task_manager section, default value added")
-        tm_dict = {'listen_port': tm_listen_port, 'container_runtime': tm_crt}
-    # Check/Set container_runtime
-    if tm_crt is None:
-        print("[container_runtime] not found in configuration file, default value added")
-        tm_dict['container_runtime'] = 'Charliecloud'
+    try:
+        bc.userconfig.get('task_manager', 'listen_port')
+    except NoOptionError:
+        bc.modify_section('user', 'task_manager', {'listen_port': tm_port})
+    try:
+        bc.userconfig.get('task_manager', 'container_runtime')
+    except NoOptionError:
+        bc.modify_section('user', 'task_manager', {'container_runtime': 'Charliecloud'})
+
+    if bc.userconfig.get('task_manager', 'container_runtime') not in supported_runtimes:
+        sys.exit("Container Runtime not supported! Please check " +
+                 str(bc.userconfig_file) + " and restart TaskManager")
 else:
     print("[task_manager] section not found in configuration file, default values added")
     tm_listen_port = tm_port
     tm_dict = {'listen_port': tm_listen_port, 'container_runtime': 'Charliecloud'}
-if tm_dict:
-    print(f'tm_dict {tm_dict} to be added')
     bc.modify_section('user', 'task_manager', tm_dict)
 
-    sys.exit("Please check " + str(bc.userconfig_file) + " and restart TaskManager")
 
+tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 
-# Set Workflow manager ports, attempt to prevent collisions
-wm_port = 5050
-if platform.system() == 'Windows':
-    # Get parent's pid to offset ports. uid method better but not available in Windows
-    wm_port += os.getppid()%100
-else:
-    wm_port += os.getuid()%100
-
-
-
+# Check Workflow manager port
 if bc.userconfig.has_section('workflow_manager'):
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', wm_port)
+    try:
+        bc.userconfig.get('workflow_manager', 'listen_port')
+    except NoOptionError:
+        sys.exit("[workflow_manager] missing listen_port in " + str(bc.userconfig_file))
 else:
-    print("[workflow_manager] section not found in configuration, default values added")
-    wfm_listen_port = wm_port
+    sys.exit("[workflow_manager] section missing in " + str(bc.userconfig_file))
+
+wfm_listen_port = bc.userconfig.get('workflow_manager', 'listen_port')
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -80,19 +73,19 @@ submit_queue = []  # tasks ready to be submitted
 job_queue = []  # jobs that are being monitored
 
 
-# Returns the url to the WFM
 def _url():
+    """ Returns the url to the WFM. """
     workflow_manager = 'bee_wfm/v1/jobs/'
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
 
 
-# Used to access the WFM
 def _resource(tag=""):
+    """ Used to access the WFM. """
     return _url() + str(tag)
 
 
-# Informs the task manager of the current state of a task
 def update_task_state(task_id, job_state):
+    """ Informs the task manager of the current state of a task. """
     resp = requests.put(_resource("update/"),
                         json={'task_id': task_id, 'job_state': job_state})
     if resp.status_code != requests.codes.okay:
@@ -101,8 +94,8 @@ def update_task_state(task_id, job_state):
         print('Updated task!')
 
 
-# Submits all jobs currently in submit queue to slurm
 def submit_jobs():
+    """ Submits all jobs currently in submit queue to slurm. """
     while len(submit_queue) >= 1:
         # Single value dictionary
         temp = submit_queue.pop(0)
@@ -123,8 +116,8 @@ def submit_jobs():
         update_task_state(task_id, job_state)
 
 
-# Check and update states of jobs in queue, remove completed jobs.
 def update_jobs():
+    """ Check and update states of jobs in queue, remove completed jobs. """
     for job in job_queue:
         task_id = list(job)[0]
         current_task = job[task_id]
@@ -143,8 +136,8 @@ def update_jobs():
             job_queue.remove(job)
 
 
-# Looks for newly submitted jobs and updates the status of scheduled jobs
 def check_tasks():
+    """ Looks for newly submitted jobs and updates status of scheduled jobs. """
     submit_jobs()
     update_jobs()
 
@@ -160,31 +153,27 @@ atexit.register(lambda: scheduler.shutdown())
 
 
 class TaskSubmit(Resource):
-
+    """ WFM sends task to the task manager. """
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('task', type=str, location='json')
 
-    # WFM sends a task to the task manager
     def post(self):
+        """ Receives task from WFM. """
         data = self.reqparse.parse_args()
-        # Gets a task object
-        # TODO Decide whether we want to pass around Task objects or just json
         task = jsonpickle.decode(data['task'])
-        # Add the task to the submit queue
         submit_queue.append({task.id: task})
         print(f"Added {task.name} to the submit queue")
-        #print(f"task.hints {task.hints} ")
         resp = make_response(jsonify(msg='Task Added!', status='ok'), 200)
         return resp
 
 
 class TaskActions(Resource):
+    """Actions to take for tasks. """
 
-    # Cancel Task
     def delete(self):
-        """Received from WFM to cancel job, add to queue to monitor state."""
-        # States which jobs cancelled successfully
+        """ Cancel received from WFM to cancel job, update queue to monitor state."""
+
         cancel_msg = ""
 
         for job in job_queue:
@@ -195,13 +184,16 @@ class TaskActions(Resource):
             job_queue.remove(job)
             print(f"Cancelling {name} with job_id: {job_id}")
             success, job_state = worker.cancel_task(job_id)
-            cancel_msg += f"{name} {task_id} {success} {job_id}"
+            cancel_msg += f"{name} {task_id} {success} {job_id} {job_state}"
 
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
 
-
-worker = WorkerInterface(SlurmWorker, slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'))
+# Slumrworker imported now to make sure configuration is correct. Don't move!
+from beeflow.common.worker.worker_interface import WorkerInterface
+from beeflow.common.worker.slurm_worker import SlurmWorker
+worker = WorkerInterface(SlurmWorker,
+                         slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'))
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
@@ -210,20 +202,22 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 if __name__ == '__main__':
      # Get the paramater for logging
     try:
-        bc.userconfig.get('task_manager','log')
+        bc.userconfig.get('task_manager', 'log')
     except NoOptionError:
-        bc.modify_section('user','task_manager',
+        bc.modify_section('user', 'task_manager',
                           {'log':'/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
                                            'logs', 'tm.log'])})
     finally:
-        tm_log = bc.userconfig.get('task_manager','log')
+        tm_log = bc.userconfig.get('task_manager', 'log')
         tm_log = bc.resolve_path(tm_log)
     print('tm_listen_port:', tm_listen_port)
+    print('container_runtime',
+          bc.userconfig.get('task_manager', 'container_runtime'))
 
     handler = logging.FileHandler(tm_log)
     handler.setLevel(logging.DEBUG)
 
-    # Werkzeug logging 
+    # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
     werk_log.setLevel(logging.INFO)
     werk_log.addHandler(handler)
