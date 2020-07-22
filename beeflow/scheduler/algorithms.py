@@ -160,11 +160,25 @@ class Backfill(Algorithm):
             tasks = tasks_left
 
 
-class RL(Algorithm):
-    """Reinforcement Learning Scheduler.
+class MARS(Algorithm):
+    """MARS Scheduler.
 
-    Reinforcement Learning Scheduler.
+    MARS Scheduler.
     """
+
+    def make_available_list(task, resources, allocations):
+        """Make a list of available allocations for a task.
+
+        Make a list of allocations for the given task that
+        are in the near future.
+        :param task: the task
+        :type task: instance of Task
+        :param resources: list of available resources
+        :type resources: list of instance of Resource
+        :param allocations: current allocations
+        :type allocations: list of instance of Allocation
+        """
+        # TODO
 
     @staticmethod
     def schedule_all(tasks, resources):
@@ -176,8 +190,17 @@ class RL(Algorithm):
         :param resources: list of resources
         :type resources: list of instance of Resource
         """
-        # TODO: Below is a placeholder until the RL scheduler is implemented
-        return Backfill.schedule_all(tasks, resources)
+        # TODO: Implement model loading function
+        model = load_model()
+        allocations = []
+        for task in tasks:
+            # Create a list of reasonable available time slots that can be
+            # used by the model
+            available = make_available_list(task, resources, allocations)
+            # Choose the best allocation based on the model
+            allocs = model.choose(task, available)
+            allocations.extend(allocs)
+            task.allocations = allocs
 
 
 # TODO: Perhaps this value should be a config value
@@ -191,5 +214,6 @@ def choose(tasks):
     :type tasks: list of instance of Task
     :rtype: class derived from Algorithm (not an instance)
     """
-    # TODO: Ensure this is correct
-    return Backfill if len(tasks) < MEDIAN else RL
+    # TODO: Correctly choose based on size of the workflow
+    return Backfill
+    # return Backfill if len(tasks) < MEDIAN else RL
