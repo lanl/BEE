@@ -193,7 +193,9 @@ def StartSlurmRestD(bc, args):
     try:
         bc.userconfig.get('slurmrestd','log')
     except NoOptionError:
-        bc.modify_section('user','slurmrestd',{'log':'slurmrestd.log'})
+        bc.modify_section('user','slurmrestd',
+                          {'log':'/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
+                                           'logs', 'slurmrestd.log'])})
     finally:
         slurmrestd_log = bc.userconfig.get('slurmrestd','log')
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
