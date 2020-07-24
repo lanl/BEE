@@ -5,7 +5,6 @@ For now build command for submitting batch job.
 """
 
 import os
-import sys
 import string
 import subprocess
 import time
@@ -19,7 +18,7 @@ from beeflow.common.config.config_driver import BeeConfig
 
 # Check configuration file for container runtime, Charliecloud by default.
 bc = BeeConfig()
-supported_runtimes = ['Charliecloud', 'Singularity'] 
+supported_runtimes = ['Charliecloud', 'Singularity']
 if bc.userconfig.has_section('task_manager'):
     tm_crt = bc.userconfig['task_manager'].get('container_runtime', 'Charliecloud')
     if tm_crt not in supported_runtimes:
@@ -32,17 +31,6 @@ if tm_crt == 'Charliecloud':
    from beeflow.common.crt.crt_drivers import CharliecloudDriver as CrtDriver
 elif tm_crt == 'Singularity':
    from beeflow.common.crt.crt_drivers import SingularityDriver as CrtDriver
-
-
-def get_ccname(image_path):
-    """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
-    name = os.path.basename(image_path).rsplit('.', 2)
-    if name[-1] in ['gz', 'xz']:
-        name.pop()
-    if name[-1] in ['tar', 'tgz']:
-        name.pop()
-    name = '.'.join(name)
-    return name
 
 
 def build_text(task, template_file):

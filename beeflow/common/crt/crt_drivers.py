@@ -33,6 +33,17 @@ class CharliecloudDriver(ContainerRuntimeDriver):
     Builds the text for the task for using Charliecloud.
     """
 
+    @staticmethod
+    def get_ccname(image_path):
+        """Strip directories & .tar, .tar.gz, tar.xz, or .tgz from image path."""
+        name = os.path.basename(image_path).rsplit('.', 2)
+        if name[-1] in ['gz', 'xz']:
+            name.pop()
+        if name[-1] in ['tar', 'tgz']:
+            name.pop()
+        name = '.'.join(name)
+        return name
+
     def script_text(self, task):
         if task.hints is not None:
             docker = False
@@ -40,7 +51,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             for hint in task.hints:
                 req_class, key, value = hint
                 if req_class == "DockerRequirement" and key == "dockerImageId":
-                    name = get_ccname(value)
+                    name = self.get_ccname(value)
                     text = ''.join([
                         'module load charliecloud\n',
                         'mkdir -p /tmp\n',
