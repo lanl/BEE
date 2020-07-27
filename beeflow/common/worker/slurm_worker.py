@@ -41,13 +41,15 @@ class SlurmWorker(Worker):
         try:
             self.tm_crt = kwargs['container_runtime']
         except KeyError:
-            print("Container Runtime not supported!")
+            print("No container runtime specified in config, proceeding with caution.")
+            self.tm_crt = None
+            crt_driver = None
         finally:
             if self.tm_crt == 'Charliecloud':
-                CrtDriver = CharliecloudDriver
+                crt_driver = CharliecloudDriver
             elif self.tm_crt == 'Singularity':
-                CrtDriver = SingularityDriver
-            self.crt = ContainerRuntimeInterface(CrtDriver)
+                crt_driver = SingularityDriver
+            self.crt = ContainerRuntimeInterface(crt_driver)
 
         # Get BEE workdir from config file
         self.workdir = kwargs['bee_workdir']
@@ -153,3 +155,6 @@ class SlurmWorker(Worker):
         else:
             job_state = "CANCELLED"
         return cancel_success, job_state
+
+# Ignore module imported but unused error. No way to know which crt will be needed
+# pylama:ignore=W0611
