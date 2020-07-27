@@ -17,8 +17,6 @@ from flask_restful import Resource, Api, reqparse
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config.config_driver import BeeConfig
-from beeflow.common.worker.worker_interface import WorkerInterface
-from beeflow.common.worker.slurm_worker import SlurmWorker
 
 try:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -206,6 +204,9 @@ class TaskActions(Resource):
         return resp
 
 
+# WorkerInterface needs to be placed here. Don't Move!
+from beeflow.common.worker.worker_interface import WorkerInterface
+from beeflow.common.worker.slurm_worker import SlurmWorker
 worker = WorkerInterface(SlurmWorker,
                          slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'))
 
