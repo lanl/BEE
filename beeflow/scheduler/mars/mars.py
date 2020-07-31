@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 # import gym
 import os
+import json
 import sys
 import time
 #from spinup.utils.mpi_tf import MpiAdamOptimizer, sync_all_params
@@ -21,19 +22,29 @@ def load_model(trained_model):
     :type trained_model: str
     :rtype: instance of tf.keras.Model
     """
-    return tf.keras.models.load_model(trained_model)
+    with open(trained_model) as fp:
+        data = json.load(fp)
+    return [tf.constant(l) for l in data]
 
-def save_model(model, fname):
+def save_model(layers, fname):
     """Save the model to a file.
 
     Save the model to a file.
-    :param model: model to save:
-    :type model:
+    :param layers: model to save:
+    :type layers:
     :param fname: file name
     :type fname: str
     """
     # TODO
-    tf.keras.models.save_model(model, fname)
+    def construct(elem):
+        try:
+            return [construct(e) for e in elem]
+        except TypeError:
+            return float(elem)
+    data = construct(layers)
+    with open(fname, 'w') as fp:
+        json.dump(data, fp=fp)
+    # tf.keras.models.save_model(model, fname)
 
 
 def policy_loader(model_path, itr='last'):
@@ -289,6 +300,7 @@ def mars(workload_file, model_path, ac_kwargs=dict(), seed=0,
         t = 0
         while True:
             lst = []
+            # Where features are being set
             for i in range(0, MAX_QUEUE_SIZE * TASK_FEATURES, TASK_FEATURES):
                 if all(o[i:i + TASK_FEATURES] == [0] + [1] * (TASK_FEATURES - 2) + [0]):
                     lst.append(0)
@@ -334,12 +346,16 @@ def categorical_policy(x, mlp_layers):
     # Do the update
     for i, (grad, layer) in enumerate(zip(grads, mlp_layers)):
         mlp_layers[i] = layer + loss * grad
-    return x
+    pi = x
+    logp_all = tf.nn.log_softmax(x)
+    # pi = tf.squeeze(tf.multinomial(x, 1), axis=1)
+    # logp_pi = tf.reduce_sum(pi * logp_all, axis=1)
+    return pi, logp_all
 
 def critic(pi, mlp_layers, in_dim):
     # Convert pi into the correct input format
     pi = [[float(val) for val in p][:in_dim] for p in pi]
-    print(pi)
+    pi = [(p + [0.0] * (in_dim - len(p))) if len(p) < in_dim else p for p in pi]
     x = tf.constant(pi)
     with tf.GradientTape() as g:
         # Compute the loss
@@ -354,34 +370,19 @@ def critic(pi, mlp_layers, in_dim):
         mlp_layers[i] = layer + loss * grad
     return x
 
+def build_model(in_dim, act_dim):
+    """Build the model.
+
+    Build the model.
+    """
+    mlp_layers = [
+        tf.random.uniform((in_dim, 64)),
+        tf.random.uniform((64, 64)),
+        tf.random.uniform((64, act_dim))
+    ]
+    return mlp_layers
+
 if __name__ == '__main__':
-    pre_trained = False
-
-    if pre_trained:
-        # TODO
-        model = load_model('model')
-        # TODO
-    else:
-        workloads, cluster, penalty_task_score \
-            = workloads.load_workloads('Dataset/synthetic_super_small.swf')
-        # Set the initial input vector
-        x = tf.constant([workloads.to_vector()])
-        # Temporary action dimension size
-        in_dim = x.shape[1]
-        act_dim = 512
-        mlp_layers = [
-            tf.random.uniform((in_dim, 64)),
-            tf.random.uniform((64, 64)),
-            tf.random.uniform((64, act_dim))
-        ]
-
-        pi = categorical_policy(x, mlp_layers)
-        v = critic(pi, mlp_layers, in_dim)
-        # save_model(layers, 'model')
-
-    sys.exit(1)
-
-
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -404,17 +405,22 @@ if __name__ == '__main__':
     parser.add_argument('--batch_job_slice', type=int, default=0)
     args = parser.parse_args()
 
-    current_dir = os.getcwd()
-    workload_file = os.path.join(current_dir, args.workload)
-    log_data_dir = os.path.join(current_dir, './output/')
     if args.pre_trained:
-        model_file = os.path.join(current_dir, args.trained_model)
-        mars(workload_file, args.model, gamma=args.gamma, seed=args.seed, traj_per_epoch=args.trajs, epochs=args.epochs,
-            logger_kwargs=logger_kwargs, pre_trained=1, trained_model=os.path.join(model_file, "simple_save"),
-            attn=args.attn,
-            shuffle=args.shuffle, backfil=args.backfil, skip=args.skip, score_type=args.score_type,
-            batch_job_slice=args.batch_job_slice)
+        # TODO
+        model = load_model('model')
+        # TODO
     else:
-        mars(workload_file, args.model, gamma=args.gamma, seed=args.seed, traj_per_epoch=args.trajs, epochs=args.epochs,
-            logger_kwargs=logger_kwargs, pre_trained=0, attn=args.attn, shuffle=args.shuffle, backfil=args.backfil,
-            skip=args.skip, score_type=args.score_type, batch_job_slice=args.batch_job_slice)
+        # TODO: Use hyper-parameters
+        workloads, cluster, penalty_task_score = workloads.load_workloads(args.workload)
+        # Set the initial input vector
+        x = tf.constant([workloads.to_vector()])
+        # Temporary action dimension size
+        in_dim = x.shape[1]
+        act_dim = 512
+        mlp_layers = build_model(in_dim, act_dim)
+        # TODO: Build vectors based on each task
+        for epoch in range(args.epochs):
+            pi, logp_all = categorical_policy(x, mlp_layers)
+            v = critic(pi, mlp_layers, in_dim)
+        # save_model(layers, 'model')
+    sys.exit(1)
