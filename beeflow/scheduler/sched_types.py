@@ -216,7 +216,7 @@ class RequirementBase:
     Base requirements class.
     """
 
-    def __init__(self, cores=1, mem=1024, max_runtime=1):
+    def __init__(self, cores=1, mem=1024, max_runtime=1, cost=1):
         """Constructor for requirements.
 
         Constructor for requirements.
@@ -234,6 +234,7 @@ class RequirementBase:
             raise RequirementsError('Invalid "max_runtime" requirement of %i'
                                     % max_runtime)
         self.max_runtime = max_runtime
+        self.cost = cost
 
 
 class Allocation(Resource):
