@@ -8,6 +8,7 @@ import random
 import time
 
 import beeflow.scheduler.sched_types as sched_types
+import beeflow.scheduler.mars as mars
 import beeflow.scheduler.util as util
 
 
@@ -94,9 +95,9 @@ class Backfill(Algorithm):
         :param resources: list of resources
         :type resources: list of instance of sched_types.Resource
         """
+        tasks = tasks[:]
         # TODO: This time may be invalidated if the algorithm
         # takes too long
-        tasks = tasks[:]
         current_time = int(time.time())
         allocations = []
         while tasks:
@@ -167,19 +168,56 @@ class MARS(Algorithm):
     """
 
     @staticmethod
-    def load_model():
-        # TODO
-        pass
+    def policy(model, task, tasks, possible_allocs):
+        """Evaluate the policy function to find scheduling of task.
+
+        Evaluate the policy function with the model task.
+        :param model:
+        :type model:
+        :param task:
+        :type task:
+        :param possible_allocs:
+        :type possible_allocs:
+        """
+        # Convert the task and possible_allocs into a vector
+        # for input into the policy function.
+        # TODO: Input should include specific task
+        vec = mars.workflow2vec(tasks)
+        return model.policy(vec, possible_allocs)
 
     @staticmethod
-    def policy():
-        # TODO
-        pass
+    def build_allocation_list(task, tasks, resources, curr_allocs):
+        """Build a list of allocations for a task.
 
-    @staticmethod
-    def build_allocation_list(task, tasks, resources):
-        # TODO
-        pass
+        Build a list of allocations for a task.
+        :param task:
+        :type task:
+        :param tasks:
+        :type tasks:
+        :param resources:
+        :type resources:
+        """
+        times = set(t.allocations[0].start_time + t.requirements.max_runtime
+                    for t in tasks if t.allocations)
+        times = list(times)
+        # Add initial start time
+        times.append(int(time.time()))
+        times.sort()
+        allocations = []
+        for start_time in times:
+            overlap = util.calculate_overlap(curr_allocs, start_time,
+                                             task.requirements.max_runtime)
+            remaining = sched_types.diff(sched_types.rsum(*resources),
+                                         sched_types.rsum(*overlap))
+            print(overlap, remaining)
+            if remaining.fits_requirements(task.requirements):
+                # TODO: Ensure that these allocations are not final (in other
+                # other words, if the algorithm decides to pick one and not the
+                # other, later on, we don't want there to be conflicts)
+                allocs = util.allocate_aggregate(resources, overlap, task,
+                                                 start_time)
+                allocations.append(allocs)
+        return allocations
 
     @staticmethod
     def schedule_all(tasks, resources):
@@ -192,14 +230,18 @@ class MARS(Algorithm):
         :type resources: list of instance of Resource
         """
         # TODO: Implement model loading function
-        model = MARS.load_model()
+        fname = 'model.txt'
+        model = mars.Model.load(fname)
         allocations = []
         for task in tasks:
-            possible_allocs = MARS.build_allocation_list(task, tasks, resources)
-            pi = MARS.policy(model, task, possible_allocs)
-            allocs = possible_allocs[pi]
-            allocations.extend(allocs)
-            task.allocations = allocs
+            possible_allocs = MARS.build_allocation_list(
+                task, tasks, resources, curr_allocs=allocations)
+            pi = MARS.policy(model, task, tasks, possible_allocs)
+            # -1 indicates no allocation found
+            if pi != -1:
+                allocs = possible_allocs[pi]
+                allocations.extend(allocs)
+                task.allocations = allocs
 
 
 class Logger:
@@ -236,7 +278,8 @@ class Logger:
 
 
 # TODO: Perhaps this value should be a config value
-MEDIAN = 4
+MEDIAN = 2
+
 
 def choose(tasks):
     """Choose which algorithm to run at this point.
@@ -247,5 +290,5 @@ def choose(tasks):
     :rtype: class derived from Algorithm (not an instance)
     """
     # TODO: Correctly choose based on size of the workflow
-    return Logger(Backfill)
-    # return Backfill if len(tasks) < MEDIAN else RL
+    # return Logger(Backfill)
+    return Logger(Backfill if len(tasks) < MEDIAN else MARS)
