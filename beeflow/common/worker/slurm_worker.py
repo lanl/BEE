@@ -77,7 +77,6 @@ class SlurmWorker(Worker):
             return success, "dockerImageId is not a valid image"
         # for now using fixed directory for task manager scripts and write them out
         # we may keep them in memory and only write for a debug or logging option
-        # make directory (now uses date, should be workflow name or id?)
         os.makedirs(f'{self.workdir}/worker', exist_ok=True)
         template_file = f'{self.workdir}/worker/job.template'
         task_text = self.build_text(task, template_file)
