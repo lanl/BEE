@@ -166,19 +166,20 @@ class MARS(Algorithm):
     MARS Scheduler.
     """
 
-    def make_available_list(task, resources, allocations):
-        """Make a list of available allocations for a task.
-
-        Make a list of allocations for the given task that
-        are in the near future.
-        :param task: the task
-        :type task: instance of Task
-        :param resources: list of available resources
-        :type resources: list of instance of Resource
-        :param allocations: current allocations
-        :type allocations: list of instance of Allocation
-        """
+    @staticmethod
+    def load_model():
         # TODO
+        pass
+
+    @staticmethod
+    def policy():
+        # TODO
+        pass
+
+    @staticmethod
+    def build_allocation_list(task, tasks, resources):
+        # TODO
+        pass
 
     @staticmethod
     def schedule_all(tasks, resources):
@@ -191,16 +192,47 @@ class MARS(Algorithm):
         :type resources: list of instance of Resource
         """
         # TODO: Implement model loading function
-        model = load_model()
+        model = MARS.load_model()
         allocations = []
         for task in tasks:
-            # Create a list of reasonable available time slots that can be
-            # used by the model
-            available = make_available_list(task, resources, allocations)
-            # Choose the best allocation based on the model
-            allocs = model.choose(task, available)
+            possible_allocs = MARS.build_allocation_list(task, tasks, resources)
+            pi = MARS.policy(model, task, possible_allocs)
+            allocs = possible_allocs[pi]
             allocations.extend(allocs)
             task.allocations = allocs
+
+
+class Logger:
+    """Logging class for creating a training log.
+
+    Logging class to be used as a wrap to log the task scheduling data
+    for future training.
+    """
+
+    def __init__(self, cls):
+        """Logging class constructor.
+
+        Logging class constructor.
+        :param cls: class to pass operations onto
+        :type cls: Python class
+        """
+        self.cls = cls
+
+    def schedule_all(self, tasks, resources):
+        """Schedule all tasks using the internal class and log results.
+
+        Schedule all of the tasks with teh internal class and write the
+        results out to a log file.
+        """
+        self.cls.schedule_all(tasks, resources)
+        # TODO: Logfile should be a config value
+        with open('schedule_log.txt', 'a') as fp:
+            for task in tasks:
+                alloc_cnt = len(task.allocations)
+                print(task.requirements.max_runtime,
+                      task.allocations[0].start_time if alloc_cnt else -1,
+                      alloc_cnt if alloc_cnt else -1,
+                      file=fp)
 
 
 # TODO: Perhaps this value should be a config value
@@ -215,5 +247,5 @@ def choose(tasks):
     :rtype: class derived from Algorithm (not an instance)
     """
     # TODO: Correctly choose based on size of the workflow
-    return Backfill
+    return Logger(Backfill)
     # return Backfill if len(tasks) < MEDIAN else RL
