@@ -37,18 +37,18 @@ def check_crt_config(container_runtime):
 
 
 # Set Task Manager default port, attempt to prevent collisions
-tm_port = 5050
+TM_PORT = 5050
 if platform.system() == 'Windows':
     # Get parent's pid to offset ports. uid method better but not available in Windows
-    tm_port += os.getppid() % 100
+    TM_PORT += os.getppid() % 100
 else:
-    tm_port += os.getuid() % 100
+    TM_PORT += os.getuid() % 100
 
 if bc.userconfig.has_section('task_manager'):
     try:
         bc.userconfig.get('task_manager', 'listen_port')
     except NoOptionError:
-        bc.modify_section('user', 'task_manager', {'listen_port': tm_port})
+        bc.modify_section('user', 'task_manager', {'listen_port': TM_PORT})
     try:
         bc.userconfig.get('task_manager', 'container_runtime')
     except NoOptionError:
@@ -59,7 +59,7 @@ if bc.userconfig.has_section('task_manager'):
     runtime = bc.userconfig.get('task_manager', 'container_runtime')
     check_crt_config(runtime)
 else:
-    tm_listen_port = tm_port
+    tm_listen_port = TM_PORT
     tm_dict = {'listen_port': tm_listen_port, 'container_runtime': 'Charliecloud'}
     bc.modify_section('user', 'task_manager', tm_dict)
     check_crt_config('Charliecloud')
@@ -101,7 +101,7 @@ def update_task_state(task_id, job_state):
     """Informs the task manager of the current state of a task."""
     resp = requests.put(_resource("update/"),
                         json={'task_id': task_id, 'job_state': job_state})
-    if resp.status_code != requests.codes.okay:
+    if resp.status_code != 200:
         print("WFM not responding")
     else:
         print('Updated task!')
@@ -162,7 +162,7 @@ scheduler.start()
 
 # This kills the scheduler when the process terminates
 # so we don't accidentally leave a zombie process
-atexit.register(lambda: scheduler.shutdown())
+atexit.register(lambda x: scheduler.shutdown())
 
 
 class TaskSubmit(Resource):
@@ -186,7 +186,8 @@ class TaskSubmit(Resource):
 class TaskActions(Resource):
     """Actions to take for tasks."""
 
-    def delete(self):
+    @staticmethod
+    def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
         cancel_msg = ""
 
@@ -208,7 +209,9 @@ class TaskActions(Resource):
 from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
 worker = WorkerInterface(SlurmWorker,
-                         slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'))
+                         slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'),
+                         bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
+                         container_runtime=bc.userconfig.get('task_manager', 'container_runtime'))
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
@@ -239,3 +242,7 @@ if __name__ == '__main__':
     # Flask logging
     flask_app.logger.addHandler(handler)
     flask_app.run(debug=True, port=str(tm_listen_port))
+# Ignore TODO comments
+# Ignoring "modules loaded below top of file" warning per Pat's comment
+# Ignoring flask.logger.AddHandler not found because logging is working...
+# pylama:ignore=W0511,E402,C0413,E1101
