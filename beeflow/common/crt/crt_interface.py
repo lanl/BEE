@@ -8,6 +8,7 @@ Default: 'CharliecloudDriver' class.
 from beeflow.common.crt.crt_drivers import CharliecloudDriver
 from beeflow.common.crt.crt_drivers import SingularityDriver
 
+
 class ContainerRuntimeInterface:
     """Interface for the container runtime.
 
@@ -15,8 +16,7 @@ class ContainerRuntimeInterface:
     """
 
     def __init__(self, crt_driver=CharliecloudDriver):
-        """Initialize the container runtime interface with a runtime,
-           CharliecloudDriver by default.
+        """Initialize the CRT interface with a runtime, CharliecloudDriver by default.
 
         :param crt_driver: container runtime driver (default: CharliecloudDriver)
         :type crt_driver: subclass of ContainerRuntimeDriver
@@ -24,7 +24,7 @@ class ContainerRuntimeInterface:
         self._crt_driver = crt_driver()
 
     def script_text(self, task):
-        """Build text required to run the task using the container_runtime.
+        """Create text required to run the task using the container_runtime.
 
         :param task: instance of Task
         :rtype string
@@ -38,3 +38,5 @@ class ContainerRuntimeInterface:
         :rtype string
         """
         return self._crt_driver.image_exists(task)
+# Ignore module imported but unused error. No way to know which crt will be needed
+# pylama:ignore=W0611
