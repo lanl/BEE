@@ -4,6 +4,7 @@ Builds text for job to run task in a Container
 """
 from abc import ABC, abstractmethod
 import os
+from configparser import NoOptionError
 from beeflow.common.config.config_driver import BeeConfig
 bc = BeeConfig()
 
@@ -42,11 +43,11 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         """Retrieve Charlicloud options from configuration file."""
         try:
             chrun_opts = bc.userconfig.get('charliecloud', 'chrun_opts')
-        except:
+        except NoOptionError:
             chrun_opts = ''
         try:
             cc_setup = bc.userconfig.get('charliecloud', 'setup')
-        except:
+        except NoOptionError:
             cc_setup = ''
         return(chrun_opts, cc_setup)
 
@@ -60,11 +61,12 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 if req_class == "DockerRequirement" and key == "dockerImageId":
                     name = self.get_ccname(value)
                     chrun_opts, cc_setup = self.get_cc_options()
+                    image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
                     text = (f'{cc_setup}\n'
-                            f'mkdir -p /tmp\n'
-                            f'ch-tar2dir {value} /tmp\n'
-                            f'ch-run /tmp/{name} {chrun_opts} -- {command}'
-                            f'rm -rf /tmp/{name}\n'
+                            f'mkdir -p {image_mntdir}\n'
+                            f'ch-tar2dir {value} {image_mntdir}\n'
+                            f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
+                            f'rm -rf {image_mntdir}/{name}\n'
                             )
                     docker = True
             if not docker:
