@@ -2,6 +2,9 @@
 
 Test internal MARS functions.
 """
+import os
+import tensorflow as tf
+
 import beeflow.scheduler.mars as mars
 import beeflow.scheduler.sched_types as sched_types
 
@@ -51,6 +54,22 @@ def test_workflow2vec_three_tasks():
     assert vec[5] == 55.0
     assert all(v == 0.0 for v in vec[6:])
     # assert vec == []
+
+def test_model_default():
+    """Test saving a default model.
+
+    Test saving a default model.
+    """
+    # TODO: Choose a truly temporary filename
+    fname = '/tmp/test-model'
+
+    model_old = mars.Model()
+    model_old.save(fname)
+    model_new = mars.Model.load(fname)
+
+    assert (tf.math.equal(layer_a, layer_b)
+            for layer_a, layer_b in zip(model_old.layers, model_new.layers))
+    os.remove(fname)
 
 
 # def test_build_availability_list():
