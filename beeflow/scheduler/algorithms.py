@@ -172,18 +172,19 @@ class MARS(Algorithm):
         """Evaluate the policy function to find scheduling of task.
 
         Evaluate the policy function with the model task.
-        :param model:
-        :type model:
-        :param task:
-        :type task:
-        :param possible_allocs:
-        :type possible_allocs:
+        :param model: model to use for scheduling
+        :type model: instance of mars.Model
+        :param task: task to get the scheduling policy for
+        :type task: instance of Task
+        :param possible_allocs: possible allocations for the task
+        :type possible_allocs: list of instance of Allocation
         """
         # Convert the task and possible_allocs into a vector
         # for input into the policy function.
         # TODO: Input should include specific task
         vec = mars.workflow2vec(tasks)
-        return model.policy(vec, possible_allocs)
+        a, _ = model.policy(vec, len(possible_allocs))
+        return a
 
     @staticmethod
     def build_allocation_list(task, tasks, resources, curr_allocs):
