@@ -32,7 +32,7 @@ def check_crt_config(container_runtime):
         if not bc.userconfig.has_section('charliecloud'):
             cc_opts = {'setup': 'module load charliecloud',
                        'image_mntdir': '/tmp',
-                       'chrun_opts': '--cd /home/$USER --write'
+                       'chrun_opts': '--cd /home/$USER'
 
                        }
             bc.modify_section('user', 'charliecloud', cc_opts)
