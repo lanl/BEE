@@ -182,43 +182,9 @@ class MARS(Algorithm):
         # Convert the task and possible_allocs into a vector
         # for input into the policy function.
         # TODO: Input should include specific task
-        vec = mars.workflow2vec(tasks)
+        vec = mars.workflow2vec(task, tasks)
         a, _ = model.policy(vec, len(possible_allocs))
         return a
-
-    @staticmethod
-    def build_allocation_list(task, tasks, resources, curr_allocs):
-        """Build a list of allocations for a task.
-
-        Build a list of allocations for a task.
-        :param task:
-        :type task:
-        :param tasks:
-        :type tasks:
-        :param resources:
-        :type resources:
-        """
-        times = set(t.allocations[0].start_time + t.requirements.max_runtime
-                    for t in tasks if t.allocations)
-        times = list(times)
-        # Add initial start time
-        times.append(int(time.time()))
-        times.sort()
-        allocations = []
-        for start_time in times:
-            overlap = util.calculate_overlap(curr_allocs, start_time,
-                                             task.requirements.max_runtime)
-            remaining = sched_types.diff(sched_types.rsum(*resources),
-                                         sched_types.rsum(*overlap))
-            print(overlap, remaining)
-            if remaining.fits_requirements(task.requirements):
-                # TODO: Ensure that these allocations are not final (in other
-                # other words, if the algorithm decides to pick one and not the
-                # other, later on, we don't want there to be conflicts)
-                allocs = util.allocate_aggregate(resources, overlap, task,
-                                                 start_time)
-                allocations.append(allocs)
-        return allocations
 
     @staticmethod
     def schedule_all(tasks, resources):
@@ -235,8 +201,8 @@ class MARS(Algorithm):
         model = mars.Model.load(fname)
         allocations = []
         for task in tasks:
-            possible_allocs = MARS.build_allocation_list(
-                task, tasks, resources, curr_allocs=allocations)
+            possible_allocs = build_allocation_list(task, tasks, resources,
+                                                    curr_allocs=allocations)
             pi = MARS.policy(model, task, tasks, possible_allocs)
             # -1 indicates no allocation found
             if pi != -1:
@@ -270,12 +236,60 @@ class Logger:
         self.cls.schedule_all(tasks, resources)
         # TODO: Logfile should be a config value
         with open('schedule_log.txt', 'a') as fp:
+            curr_allocs = []
             for task in tasks:
-                alloc_cnt = len(task.allocations)
-                print(task.requirements.max_runtime,
-                      task.allocations[0].start_time if alloc_cnt else -1,
-                      alloc_cnt if alloc_cnt else -1,
-                      file=fp)
+                possible_allocs = build_allocation_list(task, tasks, resources,
+                                                        curr_allocs)
+                # Find the value of a - the index of the allocation for this
+                # task
+                a = -1
+                # TODO: Calculation of a needs to change
+                if task.allocations:
+                    start_time = task.allocations[0].start_time
+                    # a should be the first alloc with the same start_time
+                    for i, alloc in enumerate(possible_allocs):
+                        if alloc[0].start_time == start_time:
+                            a = i
+                            break
+                vec = mars.workflow2vec(task, tasks)
+                vec.append(a)
+                # TODO: Add more information for calculating reward (i.e. CPU
+                # usage, memory usage, resources available, etc.)
+                print(*vec, file=fp)
+                curr_allocs.extend(task.allocations)
+
+
+def build_allocation_list(task, tasks, resources, curr_allocs):
+    """Build a list of allocations for a task.
+
+    Build a list of allocations for a task.
+    :param task:
+    :type task:
+    :param tasks:
+    :type tasks:
+    :param resources:
+    :type resources:
+    """
+    times = set(t.allocations[0].start_time + t.requirements.max_runtime
+                for t in tasks if t.allocations)
+    times = list(times)
+    # Add initial start time
+    times.append(int(time.time()))
+    times.sort()
+    allocations = []
+    for start_time in times:
+        overlap = util.calculate_overlap(curr_allocs, start_time,
+                                         task.requirements.max_runtime)
+        remaining = sched_types.diff(sched_types.rsum(*resources),
+                                     sched_types.rsum(*overlap))
+        if remaining.fits_requirements(task.requirements):
+            # TODO: Ensure that these allocations are not final (in other
+            # other words, if the algorithm decides to pick one and not the
+            # other, later on, we don't want there to be conflicts)
+            allocs = util.allocate_aggregate(resources, overlap, task,
+                                             start_time)
+            allocations.append(allocs)
+    return allocations
 
 
 # TODO: Perhaps this value should be a config value
