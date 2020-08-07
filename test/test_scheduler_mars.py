@@ -17,7 +17,7 @@ def test_workflow2vec_one_task():
     tasks = [sched_types.Task(workflow_name='workflow-1', task_name='task-1',
                               requirements={'cost': 3.0, 'max_runtime': 2})]
 
-    vec = mars.workflow2vec(tasks)
+    vec = mars.workflow2vec(tasks[0], tasks)
 
     # TODO: Assert correct size and contains task
     assert len(vec) == mars.VECTOR_SIZE
@@ -41,15 +41,15 @@ def test_workflow2vec_three_tasks():
                          requirements={'cost': -10.0, 'max_runtime': 55})
     ]
 
-    vec = mars.workflow2vec(tasks)
+    vec = mars.workflow2vec(tasks[1], tasks)
 
     # TODO: Assert correct size and contains task information of all three
     # tasks
     assert len(vec) == mars.VECTOR_SIZE
-    assert vec[0] == 3.0
-    assert vec[1] == 4.0
-    assert vec[2] == 44.0
-    assert vec[3] == 1.0
+    assert vec[0] == 44.0
+    assert vec[1] == 1.0
+    assert vec[2] == 3.0
+    assert vec[3] == 4.0
     assert vec[4] == -10.0
     assert vec[5] == 55.0
     assert all(v == 0.0 for v in vec[6:])

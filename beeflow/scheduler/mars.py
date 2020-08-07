@@ -1,7 +1,8 @@
 """MARS RL implementation.
 """
-import tensorflow as tf
 import json
+import numpy as np
+import tensorflow as tf
 
 import beeflow.scheduler.util as util
 
@@ -9,18 +10,26 @@ import beeflow.scheduler.util as util
 VECTOR_SIZE = 512
 
 
-def workflow2vec(tasks):
-    """Convert a workflow into a vector representation.
+def workflow2vec(task, tasks):
+    """Convert a workflow with a particular into a vector representation.
 
-    Represent a workflow as a vector and return it.
+    Represent a workflow with a particular task as a vector and return it.
+    :param task: task being scheduled
+    :type task: instance of Task
     :param tasks: list of indepdent workflow tasks
     :type tasks: list of instance of Task
     """
-    vec = []
+    # Note: task must be in the list of tasksjj
+    i = tasks.index(task)
+    new_tasks = tasks[:i]
+    new_tasks.extend(tasks[i+1:])
+    tasks = new_tasks
+    vec = _task2vec(task)
+    # vec = [float(t.requirements.cost), float(t.requirements.max_runtime)]
     for task in tasks:
-        # TODO: Add more than just two features later
-        vec.extend([float(task.requirements.cost),
-                    float(task.requirements.max_runtime)])
+        vec.extend(_task2vec(task))
+        # vec.extend([float(task.requirements.cost),
+        #            float(task.requirements.max_runtime)])
     # Resize the vector
     if len(vec) < VECTOR_SIZE:
         vec.extend([0.0] * (VECTOR_SIZE - len(vec)))
@@ -53,7 +62,7 @@ class Workload:
         with open(fname) as fp:
             records = []
             for line in fp:
-                records.append([int(i) for i in line.split()])
+                records.append([float(f) for f in line.split()])
             return Workload(records)
 
 
@@ -107,27 +116,22 @@ class Model:
         return a, params
         # return random.randint(0, length - 1) if length > 0 else -1
 
-    def apply_gradient(dloss, params, learn_rate=0.01):
+    def apply_gradient(self, dloss, params, learn_rate=0.01):
         """Apply the gradient update.
 
         Apply the gradient update.
         :param dloss: loss value
-        :type dloss:
-        :param params:
-        :type params:
-        :param learn_rate:
-        :type learn_rate:
+        :type dloss: float
+        :param params: list of parameters from the policy function
+        :type params: list of instance of tf.Variable
+        :param learn_rate: learning rate
+        :type learn_rate: float
         """
-        # TODO
-
-    def update(self, updates):
-        """Update the layers with the update matrix.
-
-        Update the layers with the update matrix.
-        :param updates: list of tensors to update layers with
-        :type updates: list of instance of tf.Tensor
-        """
-        # TODO
+        # TODO: This calculation is not quite right
+        indices = list(range(len(params)))
+        indices.reverse()
+        for i in indices:
+            self.layers[i] = self.layers[i] - learn_rate * self.layers[i]
 
     @staticmethod
     def load(fname):
@@ -163,3 +167,17 @@ class Model:
         layers = layers2list(self.layers)
         with open(fname, 'w') as fp:
             json.dump(layers, fp=fp)
+
+
+def _task2vec(task):
+    """Convert a single task into a vector.
+
+    Convert a single task into a vector and return it.
+    :param task: task to be converted into a vector
+    :type task: instance of Task
+    """
+    # TODO: Add more than just two features later
+    return [
+        float(task.requirements.cost),
+        float(task.requirements.max_runtime),
+    ]

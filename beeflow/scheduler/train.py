@@ -184,150 +184,6 @@ class MARSBuffer:
     def size(self):
         return self.ptr
 
-#def mars(workload_file, model_path, ac_kwargs=dict(), seed=0,
-#        traj_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
-#        vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, max_ep_len=1000,
-#        target_kl=0.01, logger_kwargs=dict(), save_freq=10, pre_trained=0, trained_model=None, attn=False,
-#        shuffle=False,
-#        backfil=False, skip=False, score_type=0, batch_job_slice=0):
-#    tf.random.set_seed(seed)
-#    np.random.seed(seed)
-#    env = HPC_Environment(shuffle=shuffle, backfil=backfil, skip=skip, job_score_type=score_type,
-#                 batch_job_slice=batch_job_slice, build_sjf=False)
-#    env.seed(seed)
-#    env.my_init(workload_file=workload_file, sched_file=model_path)
-#    obs_dim = env.observation_space.shape
-#    act_dim = env.action_space.shape
-#    ac_kwargs['action_space'] = env.action_space
-#    ac_kwargs['attn'] = attn
-#    buf = MARSBuffer(obs_dim, act_dim, traj_per_epoch * TASK_SEQUENCE_SIZE, gamma, lam)
-#
-#    if pre_trained:
-#        # sess = tf.Session()
-#        model = tf.keras.models.load_model(trained_model)
-#        # model = restore_tf_graph(sess, trained_model)
-#        var_counts = tuple(count_vars(scope) for scope in ['pi', 'v'])
-#        x_ph = model['x']
-#        a_ph = model['a']
-#        mask_ph = model['mask']
-#        adv_ph = model['adv']
-#        ret_ph = model['ret']
-#        logp_old_ph = model['logp_old_ph']
-#        pi = model['pi']
-#        v = model['v']
-#        out = model['out']
-#        logp = model['logp']
-#        logp_pi = model['logp_pi']
-#        pi_loss = model['pi_loss']
-#        v_loss = model['v_loss']
-#        approx_ent = model['approx_ent']
-#        approx_kl = model['approx_kl']
-#        clipfrac = model['clipfrac']
-#        clipped = model['clipped']
-#        train_pi = tf.get_collection("train_pi")[0]
-#        train_v = tf.get_collection("train_v")[0]
-#        all_phs = [x_ph, a_ph, mask_ph, adv_ph, ret_ph, logp_old_ph]
-#        get_action_ops = [pi, v, logp_pi, out]
-#
-#    else:
-#        if(buf.size < 512):
-#            x_ph, a_ph = placeholders_from_spaces(env.observation_space, env.action_space)
-#            mask_ph = placeholder(MAX_QUEUE_SIZE)
-#            adv_ph, ret_ph, logp_old_ph = placeholders(None, None, None)
-#            pi, logp, logp_pi, v, out = actor_critic(x_ph, a_ph, mask_ph, **ac_kwargs)
-#            all_phs = [x_ph, a_ph, mask_ph, adv_ph, ret_ph, logp_old_ph]
-#            get_action_ops = [pi, v, logp_pi, out]
-#            var_counts = tuple(count_vars(scope) for scope in ['pi', 'v'])
-#            ratio = tf.exp(logp - logp_old_ph)
-#            min_adv = tf.where(adv_ph > 0, (1 + clip_ratio) * adv_ph, (1 - clip_ratio) * adv_ph)
-#            pi_loss = -tf.reduce_mean(tf.minimum(ratio * adv_ph, min_adv))
-#            v_loss = tf.reduce_mean((ret_ph - v) ** 2)
-#            approx_kl = tf.reduce_mean(logp_old_ph - logp)
-#            approx_ent = tf.reduce_mean(-logp)
-#            clipped = tf.logical_or(ratio > (1 + clip_ratio), ratio < (1 - clip_ratio))
-#            clipfrac = tf.reduce_mean(tf.cast(clipped, tf.float32))
-#            train_pi = tf.train.AdamOptimizer(learning_rate=pi_lr).minimize(pi_loss)
-#            train_v = tf.train.AdamOptimizer(learning_rate=vf_lr).minimize(v_loss)
-#            sess = tf.Session()
-#            sess.run(tf.global_variables_initializer())
-#            tf.add_to_collection("train_pi", train_pi)
-#            tf.add_to_collection("train_v", train_v)
-#        else:
-#            x_ph, a_ph = placeholders_from_spaces(env.observation_space, env.action_space)
-#            mask_ph = placeholder(MAX_QUEUE_SIZE)
-#            adv_ph, ret_ph, logp_old_ph = placeholders(None, None, None)
-#            pi, logp, logp_pi, v, out = actor_critic(x_ph, a_ph, mask_ph, **ac_kwargs)
-#            all_phs = [x_ph, a_ph, mask_ph, adv_ph, ret_ph, logp_old_ph]
-#            get_action_ops = [pi, v, logp_pi, out]
-#            var_counts = tuple(count_vars(scope) for scope in ['pi', 'v'])
-#            ratio = tf.exp(logp - logp_old_ph)
-#            min_adv = tf.where(adv_ph > 0, (1 + clip_ratio) * adv_ph, (1 - clip_ratio) * adv_ph)
-#            pi_loss = -tf.reduce_mean(tf.minimum(ratio * adv_ph, min_adv))
-#            v_loss = tf.reduce_mean((ret_ph - v) ** 2)
-#            approx_kl = tf.reduce_mean(logp_old_ph - logp)
-#            approx_ent = tf.reduce_mean(-logp)
-#            clipped = tf.logical_or(ratio > (1 + clip_ratio), ratio < (1 - clip_ratio))
-#            clipfrac = tf.reduce_mean(tf.cast(clipped, tf.float32))
-#            train_pi = tf.train.AdamOptimizer(learning_rate=pi_lr).minimize(pi_loss)
-#            train_v = tf.train.AdamOptimizer(learning_rate=vf_lr).minimize(v_loss)
-#            sess = tf.Session()
-#            sess.run(tf.global_variables_initializer())
-#            tf.add_to_collection("train_pi", train_pi)
-#            tf.add_to_collection("train_v", train_v)
-#    def update():
-#        inputs = {k: v for k, v in zip(all_phs, buf.get())}
-#        pi_l_old, v_l_old, ent = sess.run([pi_loss, v_loss, approx_ent], feed_dict=inputs)
-#        for i in range(train_pi_iters):
-#            _, kl = sess.run([train_pi, approx_kl], feed_dict=inputs)
-#            kl = mpi_avg(kl)
-#            if kl > 1.5 * target_kl:
-#                print('Max reached at step %d ' % i)
-#                break
-#        for _ in range(train_v_iters):
-#            sess.run(train_v, feed_dict=inputs)
-#        pi_l_new, v_l_new, kl, cf = sess.run([pi_loss, v_loss, approx_kl, clipfrac], feed_dict=inputs)
-#
-#    start_time = time.time()
-#    [o, co], r, d, ep_ret, ep_len, show_ret, sjf, f1 = env.reset(), 0, False, 0, 0, 0, 0, 0
-#    start_time = time.time()
-#    num_total = 0
-#    for epoch in range(epochs):
-#        t = 0
-#        while True:
-#            lst = []
-#            # Where features are being set
-#            for i in range(0, MAX_QUEUE_SIZE * TASK_FEATURES, TASK_FEATURES):
-#                if all(o[i:i + TASK_FEATURES] == [0] + [1] * (TASK_FEATURES - 2) + [0]):
-#                    lst.append(0)
-#                elif all(o[i:i + TASK_FEATURES] == [1] * TASK_FEATURES):
-#                    lst.append(0)
-#                else:
-#                    lst.append(1)
-#
-#            a, v_t, logp_t, output = sess.run(get_action_ops,
-#                                              feed_dict={x_ph: o.reshape(1, -1), mask_ph: np.array(lst).reshape(1, -1)})
-#
-#            num_total += 1
-#            buf.store(o, None, a, np.array(lst), r, v_t, logp_t)
-#            o, r, d, r2, sjf_t, f1_t = env.step(a[0])
-#            ep_ret += r
-#            ep_len += 1
-#            show_ret += r2
-#            sjf += sjf_t
-#            f1 += f1_t
-#            if d:
-#                t += 1
-#                buf.finish_path(r)
-#                [o, co], r, d, ep_ret, ep_len, show_ret, sjf, f1 = env.reset(), 0, False, 0, 0, 0, 0, 0
-#                if t >= traj_per_epoch:
-#                    break
-#        update()
-#
-#
-#
-
-
-
 
 def categorical_policy(x, mlp_layers):
     with tf.GradientTape() as g:
@@ -441,7 +297,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--workload', type=str,
-                        default='./Dataset/synthetic_small.swf')
+                        default='./schedule_log.txt')
     parser.add_argument('--model', type=str, default='./model/model.txt')
     parser.add_argument('--gamma', type=float, default=1)
     parser.add_argument('--seed', '-s', type=int, default=0)
@@ -469,29 +325,62 @@ if __name__ == '__main__':
         # workloads, cluster, penalty_task_score = workloads \
         #    .load_workloads(args.workload)
         model = mars.Model()
-        workload = mars.Workload.load(args.workload)
-        for record in workload.records:
-            s = record[:-1]
-            # Expected action
-            a_exp = record[-1]
-            # TODO: output_dims should be an integer not a list
-            a, params = model.policy(record[:-1], record[-1])
-            # TODO: Reward function
-            dloss = 2 * (a - a_exp)
-            model.apply_gradient(dloss, params, learn_rate=0.01)
-            # TODO: Gradient
-        model.save(args.model)
-        sys.exit(1)
-        # TODO
-        # Set the initial input vector
-        x = tf.constant([workloads.to_vector()])
-        # Temporary action dimension size
-        in_dim = x.shape[1]
-        act_dim = 512
-        mlp_layers = build_model(in_dim, act_dim)
-        # TODO: Build vectors based on each task
-        for epoch in range(args.epochs):
-            pi, logp_all = categorical_policy(x, mlp_layers)
-            v = critic(pi, mlp_layers, in_dim)
-        save_model(mlp_layers, args.model)
+    
+    workload = mars.Workload.load(args.workload)
+    for record in workload.records:
+        s = record[:-1]
+        a_exp = record[-1]
+        a, params = model.policy(s, len(s))
+        dJ = 2 * (a - a_exp)
+        model.apply_gradient(dJ, params, learn_rate=0.01)
+    model.save(args.trained_model)
     sys.exit(1)
+
+    workload = mars.Workload.load(args.workload)
+    buf = []
+
+    def update(buf, model):
+        """Update the model with the buffer.
+
+        Update the model with the passed buffer values.
+        :param buf: buffer with train values
+        :type buf: list of instance of dict
+        :param model: model to update
+        :type model: instance of mars.Model
+        """
+        # TODO: How to reduce mean of buffer
+        dJ = tf.reduce_mean([b['dJ'] for b in buf])
+        # TODO: Average the params
+        factor = 1.0 / len(buf)
+        # Initialize the params
+        weighted_params = factor * buf[0]['params']
+        for params in [b['params'] for b in buf][1:]:
+            for i, param in enumerate(params):
+                weighted_params[i] += factor * param
+        params = weighted_params
+        # Apply the average
+        model.apply_gradient(dJ, params, learn_rate=0.01)
+
+    for record in workload.records:
+        s = record[:-1]
+        # Expected action
+        a_exp = record[-1]
+        a, params = model.policy(record[:-1], record[-1])
+        # TODO: Reward function - CPU, cost, memory use, etc.
+        dloss = 2 * (a - a_exp)
+        # TODO: Calculate dJ
+        dJ = dloss
+        # Apply the gradient with dJ
+        model.apply_gradient(dloss, params, learn_rate=0.01)
+        # TODO
+        buf.append({
+            'dJ': dJ,
+            'params': params,
+            'a': a,
+        })
+        if len(buf) == 512:
+            update(buf, model)
+    if buf:
+        # Apply the gradients left
+        update(buf, model)
+    sys.exit(0)
