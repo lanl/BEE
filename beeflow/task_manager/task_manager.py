@@ -31,9 +31,16 @@ def check_crt_config(container_runtime):
     if container_runtime == 'Charliecloud':
         if not bc.userconfig.has_section('charliecloud'):
             cc_opts = {'setup': 'module load charliecloud',
-                       'chrun_opts': '--cd /home/$USER --write'
+                       'image_mntdir': '/tmp',
+                       'chrun_opts': '--cd /home/$USER'
+
                        }
             bc.modify_section('user', 'charliecloud', cc_opts)
+        else:
+            try:
+                bc.userconfig.get('charliecloud', 'image_mntdir')
+            except NoOptionError:
+                bc.modify_section('user', 'charliecloud', {'image_mntdir': '/tmp'})
 
 
 # Set Task Manager default port, attempt to prevent collisions
@@ -73,8 +80,9 @@ if bc.userconfig.has_section('workflow_manager'):
     try:
         bc.userconfig.get('workflow_manager', 'listen_port')
     except NoOptionError:
-        sys.exit("[workflow_manager] missing listen_port in " + str(bc.userconfig_file))
+        sys.exit(f'[workflow_manager] missing listen_port in {bc.userconfig_file}')
 else:
+    sys.exit(f'[workflow_manager] section missing in {bc.userconfig_file}')
     sys.exit("[workflow_manager] section missing in " + str(bc.userconfig_file))
 
 wfm_listen_port = bc.userconfig.get('workflow_manager', 'listen_port')
