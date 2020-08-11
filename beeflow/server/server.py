@@ -86,11 +86,9 @@ try:
     wfi = WorkflowInterface(user='neo4j',bolt_port=bc.userconfig.get('graphdb','bolt_port'),
                             db_hostname=bc.userconfig.get('graphdb','hostname'),
                             password=bc.userconfig.get('graphdb','dbpass'))
-except KeyError:
-    print("Wowolo")
-    wfi = WorkflowInterface()
 
-print(f"UGHHH {wfi.get_workflow()}")
+except KeyError:
+    wfi = WorkflowInterface()
 
 # Client registers with the workflow manager.
 # Workflow manager returns a workflow ID used for subsequent communication
@@ -144,8 +142,11 @@ class JobSubmit(Resource):
             # Parse the workflow and add it to the database
             # This is just work.cwl until I can find a way to ensure persistent data
             top = cwl.load_document("./workflows/work.cwl")
-            if wfi.workflow_loaded() == True:
+            if wfi.workflow_initialized() and wfi.workflow_loaded() == True:
+                # Clear the workflow if we've already run one
+                # TODO Export the workflow here
                 wfi.finalize_workflow()
+
             parser.create_workflow(top, wfi)
             resp = make_response(jsonify(msg='Workflow uploaded', status='ok'), 201)
             return resp

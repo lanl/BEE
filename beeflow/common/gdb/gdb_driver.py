@@ -116,6 +116,14 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def initialized(self):
+        """Determine if the database has been inialized.
+
+        :rtype: boolean
+        """
+
+
+    @abstractmethod
     def empty(self):
         """Determine if the database is empty.
 
