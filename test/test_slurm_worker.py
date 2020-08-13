@@ -45,8 +45,9 @@ class TestSlurmWorker(unittest.TestCase):
 
         # write bad script
         sub['name'] = 'bad'
-        command = '#SBATCH BAD_DIRECTIVE\n\n echo "Bad job should not run!"\n'
+        command = 'echo "Bad job should not run!"\n'
         text = template.substitute(sub) + ''.join(command)
+        text = text.replace("#SBATCH", "#SBATCH BAD_DIRECTIVE", 1)
         try:
             script = open('bad.slr', 'w')
             script.write(text)
@@ -83,7 +84,7 @@ class TestSlurmWorker(unittest.TestCase):
 
     def test_submit_bad_task(self):
         """Build and submit a bad task using  a bad directive."""
-        task = Task('bad', command=['#SBATCH', '"BAD_DIRECTIVE"'], hints={},
+        task = Task('bad', command=['#SBATCH BAD_DIRECTIVE'], hints={},
                     subworkflow=None, inputs=None, outputs=None)
         job_info = self.worker.submit_task(task)
         self.assertEqual(job_info[0], -1)
@@ -92,8 +93,8 @@ class TestSlurmWorker(unittest.TestCase):
     def test_submit_good_task(self):
         """Build and submit a good task, state should be 'PENDING' or 'RUNNING'."""
         task = Task('good',
-                    command=['echo', '" Good task ran with job id:"',
-                             ';', 'echo', '$SLURM_JOB_ID'],
+                    command=['echo', ' "Good task ran with job id:"',
+                             ';', 'echo', ' $SLURM_JOB_ID'],
                     hints={}, subworkflow=None, inputs=None, outputs=None)
         job_info = self.worker.submit_task(task)
         self.assertNotEqual(job_info[0], 1)

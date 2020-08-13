@@ -41,7 +41,7 @@ def create_workflow(obj, wfi):
     # single file dependencies, this intermediate file must be
     # removed. This hack will be removed as we refactor the databse
     # interface to correctly support multiple dependencies.
-    outs.discard("grep/outfile")
+    outs.discard("clamr/outfile")
     
     print(f"ins:  {ins}")
     print(f"outs: {outs}")
@@ -78,7 +78,7 @@ def create_task(obj, wfi):
     # removed. This hack will be removed as we refactor the databse
     # interface to correctly support multiple dependencies (and
     # non-file dependencies).
-    ins.discard("pattern")
+    #ins.discard("pattern")
 
     # Stip the garbase off the front of all task otput names.
     for i in obj.out:
@@ -97,14 +97,20 @@ def create_task(obj, wfi):
     for p in sorted_params:
         sorted_params_str = sorted_params_str + " " + p
     redirect_out = obj.run.stdout
-    cmd = base + " " + sorted_params_str + " > " + redirect_out
+    # Hack for CLAMR demo. Base command is the full command. Don't append bogus
+    # parameters. If time allows, do this right with real paraeters for the
+    # commands.
+    # cmd = base + " " + sorted_params_str + " > " + redirect_out
+    cmd = base
 
     # Get any hints for the task. We only support DockerRequirement for now.
     thints = set()
     if obj.run.hints is not None:
         for i in obj.run.hints:
-            for key, value in i.items():
-                thints.add(wfi.create_requirement(i["class"], key, value))
+            if "DockerRequirement" in i.values():
+                del i["class"]
+                for key, value in i.items():
+                    thints.add(wfi.create_requirement("DockerRequirement", key, value))
 
     print(f"task:  {tname}")
     print(f"  ins:      {ins}")
@@ -128,7 +134,7 @@ def get_wf_inputs(objarray):
 
 
 
-# Get the workflow's inputs as parsed from the CWL file.
+# Get the workflow's outputs as parsed from the CWL file.
 def get_wf_outputs(objarray):
     wf_outputs = set()
     for i in objarray:
@@ -228,7 +234,7 @@ def main():
     # Cypher in the wen interface. This command will do the trick:
     #
     # MATCH(n) WITH n LIMIT 10000 DETACH DELETE n
-    wfi.finalize_workflow()
+    #wfi.finalize_workflow()
 
 
 

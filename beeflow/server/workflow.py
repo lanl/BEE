@@ -1,6 +1,10 @@
+import sys
 from beeflow.common.wf_interface import WorkflowInterface
 
-wf = WorkflowInterface()
+try:
+    wf = WorkflowInterface(userconfig=sys.argv[1])
+except KeyError:
+    wf = WorkflowInterface()
 
 tasks = [
     wf.create_task("Echo", command=["echo", "test"]),

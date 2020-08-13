@@ -1,131 +1,159 @@
 """Slurm worker for work load management.
 
-Using pyslurm for interface to slurm api where possible
-For now build command for submitting batch job.
+Builds command for submitting batch job.
 """
+
 import os
 import string
 import subprocess
-import time
-import pyslurm
+import json
+import urllib
+import requests_unixsocket
 
 from beeflow.common.worker.worker import Worker
+from beeflow.common.crt.crt_interface import ContainerRuntimeInterface
 
-
-def build_text(task, task_dict, template_file, docker=True):
-    """Build text for task script use template if it exists."""
-    job_template = ''
-    # Use Charliecloud fix TODO some assumptions for now should be configurable
-    # One of those assumptions is 'module load charliecloud'
-    cc_text = ''
-    #if task.hints.keys() and 'DockerRequirement' in task.hints.keys():
-    if docker:
-        #cc_tar = task.hints['DockerRequirement']['DockerImageId']
-        cc_tar = '/usr/projects/beedev/toss-tiny-3-5.tar' 
-        cc = os.path.basename(os.path.splitext(cc_tar)[0])
-        cc_text = 'module load charliecloud\n'
-        cc_text += 'mkdir -p /tmp/USER\n'
-        cc_text += 'ch-tar2dir ' + cc_tar + ' /tmp/USER\n'
-    try:
-        template_f = open(template_file, 'r')
-        job_template = template_f.read()
-        template_f.close()
-    except OSError:
-        print('\nNo job_template: creating a simple job template!')
-        job_template = '#! /bin/bash\n#SBATCH\n'
-    template = string.Template(job_template)
-    job_text = template.substitute(task_dict)
-    if docker:
-        job_text = job_text + cc_text
-        job_text = job_text.replace('USER', '$USER')
-        job_text += 'ch-run /tmp/$USER/' + cc + ' -b $PWD -c /mnt/0 -- '
-        job_text += ''.join(task.command) + '\n'
-        #print(f"Command is {job_text} cc is {cc}")
-        job_text += 'rm -rf /tmp/$USER/' + cc + '\n'
-    else:
-        job_text += ' '.join(task.command) + '\n'
-    return job_text
-
-
-def write_script(task, task_dict):
-    """Build task script; returns (1, filename) or (-1, error_message)."""
-    # for now using fixed directory for task manager scripts and write them out
-    # we may keep them in memory and only write for a debug or logging option
-    # make directory if doesn't exist (now uses date, should be workflow name?)
-    template_file = os.path.expanduser('~/.beeflow/worker/job.template')
-    template_dir = os.path.dirname(template_file)
-    script_dir = template_dir + '/workflow-' + time.strftime("%Y%m%d-%H%M%S")
-    os.makedirs(script_dir, exist_ok=True)
-    task_text = build_text(task, task_dict, template_file)
-    task_script = script_dir + '/' + task.name + '-' + str(task.id) + '.sh'
-    success = -1
-    try:
-        script_f = open(task_script, 'w')
-        script_f.write(task_text)
-        script_f.close()
-        success = 1
-    except subprocess.CalledProcessError as error:
-        task_script = error.output.decode('utf-8')
-    return success, task_script
-
-
-def submit_job(script):
-    """Worker submits job-returns (job_id, job_state), or (-1, error)."""
-    job_id = -1
-    try:
-        job_st = subprocess.check_output(['sbatch', '--parsable', script],
-                                         stderr=subprocess.STDOUT)
-        job_id = int(job_st)
-        job = pyslurm.job().find_id(job_id)[0]
-        job_status = job['job_state']
-    except subprocess.CalledProcessError as error:
-        job_status = error.output.decode('utf-8')
-    return job_id, job_status
+# Import all implemented container runtime drivers now
+# No error if they don't exist
+try:
+    from beeflow.common.crt.crt_drivers import CharliecloudDriver
+except ModuleNotFoundError:
+    pass
+try:
+    from beeflow.common.crt.crt_drivers import SingularityDriver
+except ModuleNotFoundError:
+    pass
 
 
 class SlurmWorker(Worker):
-    """The Worker for systems where Slurm is the Work Load Manager.
+    """The Worker for systems where Slurm is the Work Load Manager."""
 
-    Implements Worker using pyslurm, except submit_task uses subprocess.
-    """
+    def __init__(self, **kwargs):
+        """Create a new Slurm Worker object."""
+        # Pull slurm socket configs from kwargs
+        self.slurm_socket = kwargs.get('slurm_socket', f'/tmp/slurm_{os.getlogin()}.sock')
+        self.session = requests_unixsocket.Session()
+        encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
+        # Note: Socket path is encoded, http request is not generally.
+        self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
 
-    def submit_task(self, task, task_dict):
+        # Load appropriate container runtime driver, based on configs in kwargs
+        try:
+            self.tm_crt = kwargs['container_runtime']
+        except KeyError:
+            print("No container runtime specified in config, proceeding with caution.")
+            self.tm_crt = None
+            crt_driver = None
+        finally:
+            if self.tm_crt == 'Charliecloud':
+                crt_driver = CharliecloudDriver
+            elif self.tm_crt == 'Singularity':
+                crt_driver = SingularityDriver
+            self.crt = ContainerRuntimeInterface(crt_driver)
+
+        # Get BEE workdir from config file
+        self.workdir = kwargs['bee_workdir']
+
+    def build_text(self, task, template_file):
+        """Build text for task script use template if it exists."""
+        job_template = ''
+        try:
+            template_f = open(template_file, 'r')
+            job_template = template_f.read()
+            template_f.close()
+        except OSError:
+            print('\nNo job_template: creating a simple job template!')
+            job_template = '#! /bin/bash\n#SBATCH\n'
+        template = string.Template(job_template)
+        job_text = template.substitute({'name': task.name, 'id': task.id})
+        crt_text = self.crt.script_text(task)
+        job_text += crt_text
+        return job_text
+
+    def write_script(self, task):
+        """Build task script; returns (1, filename) or (-1, error_message)."""
+        success = -1
+        if not self.crt.image_exists(task):
+            return success, "dockerImageId is not a valid image"
+        # for now using fixed directory for task manager scripts and write them out
+        # we may keep them in memory and only write for a debug or logging option
+        os.makedirs(f'{self.workdir}/worker', exist_ok=True)
+        template_file = f'{self.workdir}/worker/job.template'
+        task_text = self.build_text(task, template_file)
+        task_script = f'{self.workdir}/worker/{task.name}.sh'
+        try:
+            script_f = open(task_script, 'w')
+            script_f.write(task_text)
+            script_f.close()
+            success = 1
+        except subprocess.CalledProcessError as error:
+            task_script = error.output.decode('utf-8')
+        return success, task_script
+
+    @staticmethod
+    def query_job(job_id, session, slurm_url):
+        """Query slurm for job status."""
+        resp = session.get(f'{slurm_url}/job/{job_id}')
+        if resp.status_code != 200:
+            query_success = -1
+            job_state = f'Unable to query job id {job_id}.'
+        else:
+            status = json.loads(resp.text)
+            job_state = status['job_state']
+            query_success = 1
+        return query_success, job_state
+
+    @staticmethod
+    def cancel_job(job_id, session, slurm_url):
+        """Cancel slurm job and reports status."""
+        cancel_success = 1
+        resp = session.delete(f'{slurm_url}/job/{job_id}')
+        if resp.status_code != 200:
+            cancel_success = -1
+            job_state = f"Unable to cancel job id {job_id}."
+        else:
+            job_state = "CANCELLED"
+        return cancel_success, job_state
+
+    def submit_job(self, script, session, slurm_url):
+        """Worker submits job-returns (job_id, job_state), or (-1, error)."""
+        job_id = -1
+        try:
+            job_st = subprocess.check_output(['sbatch', '--parsable', script],
+                                             stderr=subprocess.STDOUT)
+            job_id = int(job_st)
+        except subprocess.CalledProcessError as error:
+            job_status = error.output.decode('utf-8')
+            print(f'job_status is {job_status}')
+        _, job_state = self.query_job(job_id, session, slurm_url)
+        return job_id, job_state
+
+    def submit_task(self, task):
         """Worker builds & submits script."""
-        build_success, task_script = write_script(task, task_dict)
+        build_success, task_script = self.write_script(task)
         if build_success:
-            job_id, job_state = submit_job(task_script)
+            job_id, job_state = self.submit_job(task_script,
+                                                self.session, self.slurm_url)
         else:
             job_id = build_success
             job_state = task_script
         return job_id, job_state
 
-    def query_job(self, job_id):
+    def query_task(self, job_id):
         """Worker queries job; returns (1, job_state), or (-1, error_msg)."""
-        try:
-            job = pyslurm.job().find_id(job_id)[0]
-        except ValueError as error:
-            query_success = -1
-            job_state = error.args[0]
-        else:
-            query_success = 1
-            job_state = job['job_state']
+        query_success, job_state = self.query_job(job_id, self.session, self.slurm_url)
         return query_success, job_state
 
-    def cancel_job(self, job_id):
+    def cancel_task(self, job_id):
         """Worker cancels job; returns (1, job_state), or (-1, error_msg)."""
-        signal = 9
-        batch_flag = 0
         cancel_success = 1
-        if job_id > 0:
-            try:
-                pyslurm.slurm_kill_job(job_id, signal, batch_flag)
-            except ValueError as error:
-                cancel_success = -1
-                job_state = error.args[0]
-            else:
-                job = pyslurm.job().find_id(job_id)[0]
-                job_state = job['job_state']
-        else:
+        resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
+        if resp.status_code != 200:
             cancel_success = -1
-            job_state = ('Cannot cancel job, invalid id ' + str(job_id) + '.')
+            job_state = f"Unable to cancel job id {job_id}."
+        else:
+            job_state = "CANCELLED"
         return cancel_success, job_state
+
+# Ignore module imported but unused error. No way to know which crt will be needed
+# pylama:ignore=W0611

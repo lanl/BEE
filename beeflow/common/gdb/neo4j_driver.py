@@ -12,8 +12,6 @@ from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.gdb import neo4j_cypher as tx
 from beeflow.common.data.wf_data import Task, Requirement
 
-from beeflow.common.config.config_driver import BeeConfig
-
 # Default Neo4j authentication
 # We may want to instead get these from a config at some point
 DEFAULT_URI = "bolt://localhost:7687"
@@ -28,7 +26,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     Wraps the neo4j package proprietary driver.
     """
 
-    def __init__(self, uri=DEFAULT_URI, user=DEFAULT_USER, password=DEFAULT_PASSWORD):
+    def __init__(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
         """Create a new Neo4j database driver.
 
         :param uri: the URI of the Neo4j database
@@ -38,13 +36,12 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param password: the password for the database user account
         :type password: string
         """
-        bc = BeeConfig()
-        if bc.userconfig.has_section('graphdb'):
-            graphsec = bc.userconfig['graphdb']
-            bolt_port = graphsec.get('bolt_port')
-            db_hostname = graphsec.get('hostname')
-            uri="bolt://" + str(db_hostname) + ":" + str(bolt_port)
-            password=str(graphsec.get('dbpass'))
+
+        bolt_port = kwargs.get('bolt_port',7687)
+        db_hostname = kwargs.get('db_hostname','localhost')
+        password = kwargs.get('dbpass','password')
+        uri = 'bolt://'+db_hostname+':'+bolt_port
+
         try:
             # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))

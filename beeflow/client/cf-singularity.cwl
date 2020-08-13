@@ -4,57 +4,48 @@ class: Workflow
 cwlVersion: v1.0
 
 inputs:
-  pattern: string
   infile: File
 
 outputs:
-  grep_file:
+  clamr_dir:
     type: File
-    outputSource: grep/outfile
-  count_file:
+    outputSource: clamr/outfile
+  ffmpeg_movie:
     type: File
-    outputSource: wc/outfile
+    outputSource: ffmpeg/outfile
 
 steps:
-  grep:
+  clamr:
     run:
       class: CommandLineTool
       inputs:
-        pattern:
-          type: string
-          default: "integer"
-          inputBinding: {position: 0}
         infile:
           type: File
           default: lorem.txt
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
-      stdout: grepout.txt
-      baseCommand: "sleep 15; grep"
+      stdout: graphics_output
+      baseCommand: "/clamr/CLAMR-master/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png"
       hints:
         DockerRequirement:
-          dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
+          dockerImageId: "/usr/projects/beedev/clamr/clamr-toss.simg"
     in:
-      pattern: pattern
       infile: infile
     out: [outfile]
 
-  wc:
+  ffmpeg:
     run:
       class: CommandLineTool
       inputs:
         infile:
           type: File
-          default: grepout.txt
+          default: graphics_output
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
-      stdout: counts.txt
-      baseCommand: "sleep 10; wc -l"
-      hints:
-        DockerRequirement:
-          dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
+      stdout: CLAMR_movie.mp4
+      baseCommand: "ffmpeg -f image2 -i graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p CLAMR_movie.mp4"
     in:
-      infile: grep/outfile
+      infile: clamr/outfile
     out: [outfile]
