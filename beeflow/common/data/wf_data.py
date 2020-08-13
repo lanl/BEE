@@ -89,15 +89,12 @@ class Task:
         return self.command[0]
 
 
-
 class Workflow:
     """Data structure for holding data about a workflow."""
 
     def __init__(self, name):
         """Store a workflow description.
 
-        :param task_id: the workflow's unique ID (random UUID)
-        :type task_id: string
         :param name: the workflow name
         :type name: string
         """
@@ -105,7 +102,7 @@ class Workflow:
         self.id = str(uuid.uuid4())
 
     def __eq__(self, other):
-        """Test the equality of two workflows,
+        """Test the equality of two workflows.
 
         Workflow ID and dependencies do not factor into equality testing.
         Currently, the code is boilerplate. We do not support multiple workflows.
@@ -129,4 +126,4 @@ class Workflow:
 
     def __repr__(self):
         """Construct a workflow's string representation."""
-        return (f"<Workflow id={self.id} name='{self.name}'>")
+        return f"<Workflow id={self.id} name='{self.name}'>"
