@@ -133,6 +133,13 @@ class GraphDatabaseInterface:
         :type state: string
         """
         return self._connection.set_task_state(task, state)
+    
+    def initialized(self):
+        """Return true if the workflow_has been initialized, else false.
+
+        :rtype: boolean
+        """
+        return self._connection != None
 
     def empty(self):
         """Return true if the graph database is empty, else false.

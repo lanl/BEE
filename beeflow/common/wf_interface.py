@@ -170,6 +170,13 @@ class WorkflowInterface:
         """
         self._gdb_interface.set_task_state(task, state)
 
+    def workflow_initialized(self):
+        """Return true if a workflow has been initialized, else false.
+        
+        :rtype: boolean
+        """
+        return self._gdb_interface.initialized()
+
     def workflow_loaded(self):
         """Return true if a workflow is loaded, else false.
 
