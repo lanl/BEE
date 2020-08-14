@@ -3,9 +3,10 @@
 import os
 import sys
 import platform
+import logging
+from configparser import NoOptionError
 import jsonpickle
 import requests
-import logging
 import cwl_utils.parser_v1_0 as cwl
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
@@ -16,7 +17,6 @@ from werkzeug.datastructures import FileStorage
 import beeflow.common.parser.parse_clamr as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
-from configparser import NoOptionError
 
 try:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -85,12 +85,13 @@ def _resource(tag=""):
 
 # Instantiate the workflow interface
 try:
-    wfi = WorkflowInterface(user='neo4j',bolt_port=bc.userconfig.get('graphdb','bolt_port'),
-                            db_hostname=bc.userconfig.get('graphdb','hostname'),
-                            password=bc.userconfig.get('graphdb','dbpass'))
+    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
+                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
+                            password=bc.userconfig.get('graphdb', 'dbpass'))
 
 except KeyError:
     wfi = WorkflowInterface()
+
 
 # Client registers with the workflow manager.
 # Workflow manager returns a workflow ID used for subsequent communication
@@ -128,9 +129,10 @@ class JobSubmit(Resource):
                                    location='files', required=True)
 
     # Client Submits workflow
-    def put(self, wf_id):
+    def put(self, wf_id): #noqa
+        # wf_id requires support in the GDB which we do not currently have
+        # Ignore pylama error with noqa
         """Get a workflow or give file not found error."""
-        #print("JobSubmit passed wf_id={} but it's unused. What do?".format(wf_id))
         data = self.reqparse.parse_args()
         if data['workflow'] == "":
             resp = make_response(jsonify(msg='No file found', status='error'), 400)
@@ -144,7 +146,7 @@ class JobSubmit(Resource):
             # Parse the workflow and add it to the database
             # This is just work.cwl until I can find a way to ensure persistent data
             top = cwl.load_document("./workflows/work.cwl")
-            if wfi.workflow_initialized() and wfi.workflow_loaded() == True:
+            if wfi.workflow_initialized() and wfi.workflow_loaded():
                 # Clear the workflow if we've already run one
                 # TODO Export the workflow here
                 wfi.finalize_workflow()
@@ -235,7 +237,7 @@ class JobActions(Resource):
         if resp.status_code != 200:
             print("Something bad happened")
         # Remove all tasks currently in the database
-        if wfi.workflow_loaded() == True:
+        if wfi.workflow_loaded():
             wfi.finalize_workflow()
         print("Workflow cancelled")
         resp = make_response(jsonify(status='cancelled'), 202)
@@ -303,8 +305,6 @@ class JobUpdate(Resource):
                     submit_task(task)
             else:
                 print("Workflow Completed!")
-            #wfi.finalize_workflow()
-            #wfi.cleanup()
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
 
@@ -316,29 +316,30 @@ api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
 
 if __name__ == '__main__':
-    # Get the paramater for logging 
+    # Get the paramater for logging
     try:
-        bc.userconfig.get('workflow_manager','log')
+        bc.userconfig.get('workflow_manager', 'log')
     except NoOptionError:
-        bc.modify_section('user','workflow_manager',
+        bc.modify_section('user', 'workflow_manager',
                           {'log': '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                           'logs', 'wfm.log'])})
+                                            'logs', 'wfm.log'])})
     finally:
-        wfm_log = bc.userconfig.get('workflow_manager','log')
+        wfm_log = bc.userconfig.get('workflow_manager', 'log')
         wfm_log = bc.resolve_path(wfm_log)
-    
+
     print('wfm_listen_port:', wfm_listen_port)
 
     handler = logging.FileHandler(wfm_log)
     handler.setLevel(logging.DEBUG)
 
-    # Werkzeug logging 
+    # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
     werk_log.setLevel(logging.INFO)
     werk_log.addHandler(handler)
 
     # Flask logging
-    flask_app.logger.addHandler(handler)
+    # Putting this off for another issue so noqa to appease the lama
+    flask_app.logger.addHandler(handler) #noqa
     flask_app.run(debug=True, port=str(wfm_listen_port))
 
 # pylama:ignore=W0511
