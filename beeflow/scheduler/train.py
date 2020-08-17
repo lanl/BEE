@@ -9,39 +9,6 @@ import os.path as osp
 import beeflow.scheduler.mars as mars
 
 
-def load_model(trained_model):
-    """Load the trained model.
-
-    Load the trained model.
-    :param trained_model: model dir name 
-    :type trained_model: str
-    :rtype: instance of tf.keras.Model
-    """
-    with open(trained_model) as fp:
-        data = json.load(fp)
-    return [tf.constant(l) for l in data]
-
-def save_model(layers, fname):
-    """Save the model to a file.
-
-    Save the model to a file.
-    :param layers: model to save:
-    :type layers:
-    :param fname: file name
-    :type fname: str
-    """
-    # TODO
-    def construct(elem):
-        try:
-            return [construct(e) for e in elem]
-        except TypeError:
-            return float(elem)
-    data = construct(layers)
-    with open(fname, 'w') as fp:
-        json.dump(data, fp=fp)
-    # tf.keras.models.save_model(model, fname)
-
-
 def policy_loader(model_path, itr='last'):
     if itr == 'last':
         saves = [int(x[11:]) for x in os.listdir(model_path) if 'simple_save' in x and len(x) > 11]
@@ -58,6 +25,7 @@ def policy_loader(model_path, itr='last'):
     from spinup.utils.run_utils import setup_logger_kwargs
     return get_probs, get_v
 
+
 def mlp3(x, act_dim):
     x = tf.reshape(x, shape=[-1, MAX_QUEUE_SIZE, TASK_FEATURES])
     x = tf.layers.dense(x, units=32, activation=tf.nn.relu)
@@ -68,6 +36,7 @@ def mlp3(x, act_dim):
     x = tf.layers.dense(x, units=32, activation=tf.nn.relu)
     x = tf.layers.dense(x, units=8, activation=tf.nn.relu)
     return tf.layers.dense(x, units=act_dim)
+
 
 def attention(x, act_dim):
     x = tf.reshape(x, shape=[-1, MAX_QUEUE_SIZE, TASK_FEATURES])
@@ -101,10 +70,8 @@ def lenet(x_ph, act_dim):
         activation=None
     )
 
+
 def categorical_policy(x, a, mask, action_space, attn):
-
-
-
     act_dim = action_space.n
     if attn:
         output_layer = attention(x, act_dim)
@@ -118,11 +85,8 @@ def categorical_policy(x, a, mask, action_space, attn):
     logp_pi = tf.reduce_sum(tf.one_hot(pi, depth=act_dim) * logp_all, axis=1)
     return pi, logp, logp_pi, output_layer
 
+
 def actor_critic(x, a, mask, action_space=None, attn=False):
-
-
-
-
     with tf.variable_scope('pi'):
         pi, logp, logp_pi, out = categorical_policy(x, a, mask, action_space, attn)
     with tf.variable_scope('v'):
@@ -204,6 +168,7 @@ def categorical_policy(x, mlp_layers):
     # logp_pi = tf.reduce_sum(pi * logp_all, axis=1)
     return pi, logp_all
 
+
 def critic(pi, mlp_layers, in_dim):
     # Convert pi into the correct input format
     pi = [[float(val) for val in p][:in_dim] for p in pi]
@@ -223,63 +188,6 @@ def critic(pi, mlp_layers, in_dim):
     return x
 
 
-class Model:
-    """MARS model.
-
-    MARS model.
-    """
-
-    def __init__(self, in_dim, act_dim):
-        """Constructor for the MARS model.
-
-        Constructor for the MARS model.
-        :param in_dim:
-        :type in_dim:
-        :param act_dim:
-        :type act_dim:
-        """
-        # TODO
-        self.layers = [
-            tf.random.uniform((in_dim, 64)),
-            tf.random.uniform((64, 64)),
-            tf.random.uniform((64, act_dim))
-        ]
-        # Stored gradients
-        self.grads = []
-        self.pis = []
-        self.rs = []
-
-    def step_train(self, state):
-        """Train on one particular state.
-
-        Train on one particular state.
-        :param state: input state
-        :type state: vector representing the current state
-        """
-        # TODO
-
-    def actor_critic(self, state):
-        """Actor critic algorithm.
-
-        Actor critic algorithm.
-        """
-        # TODO
-        # Calculate the policy
-        pi = self.policy(state, g)
-        # Calculate the reward
-        r = self.reward(pi, g)
-        # Store the value
-        self.store(pi, r)
-        return pi, r
-
-    def store(self, pi, r):
-        """Store a result.
-
-        Store a result.
-        """
-        self.pis.append(pi)
-        self.rs.append(r)
-
 def build_model(in_dim, act_dim):
     """Build the model.
 
@@ -291,6 +199,7 @@ def build_model(in_dim, act_dim):
         tf.random.uniform((64, act_dim))
     ]
     return mlp_layers
+
 
 if __name__ == '__main__':
     import argparse
@@ -327,60 +236,24 @@ if __name__ == '__main__':
         model = mars.Model()
     
     workload = mars.Workload.load(args.workload)
+    # TODO: Complete minibatch work
+    minibatch = []
     for record in workload.records:
-        s = record[:-1]
-        a_exp = record[-1]
-        a, params = model.policy(s, len(s))
-        dJ = 2 * (a - a_exp)
-        model.apply_gradient(dJ, params, learn_rate=0.01)
+        # TODO
+        # minibatch.append(model.make_batch(expect, params, result))
+        # TODO: Update allocation count
+        a, params, result = model.policy(record, 1)
+        # TODO: Need to calculate the cost
+        cost = 1.0
+        minibatch.append(model.make_batch(cost, result, params))
+        if len(minibatch) == 512:
+            update = model.calculate_update(minibatch)
+            model.apply_update(update)
+        # TODO
+    if minibatch:
+        update = model.calculate_update(minibatch)
+        model.apply_update(update)
+        # TODO: Should be a calculation involving total wait time and resource
+        # usage (CPU, GPU, etc.)
     model.save(args.trained_model)
     sys.exit(1)
-
-    workload = mars.Workload.load(args.workload)
-    buf = []
-
-    def update(buf, model):
-        """Update the model with the buffer.
-
-        Update the model with the passed buffer values.
-        :param buf: buffer with train values
-        :type buf: list of instance of dict
-        :param model: model to update
-        :type model: instance of mars.Model
-        """
-        # TODO: How to reduce mean of buffer
-        dJ = tf.reduce_mean([b['dJ'] for b in buf])
-        # TODO: Average the params
-        factor = 1.0 / len(buf)
-        # Initialize the params
-        weighted_params = factor * buf[0]['params']
-        for params in [b['params'] for b in buf][1:]:
-            for i, param in enumerate(params):
-                weighted_params[i] += factor * param
-        params = weighted_params
-        # Apply the average
-        model.apply_gradient(dJ, params, learn_rate=0.01)
-
-    for record in workload.records:
-        s = record[:-1]
-        # Expected action
-        a_exp = record[-1]
-        a, params = model.policy(record[:-1], record[-1])
-        # TODO: Reward function - CPU, cost, memory use, etc.
-        dloss = 2 * (a - a_exp)
-        # TODO: Calculate dJ
-        dJ = dloss
-        # Apply the gradient with dJ
-        model.apply_gradient(dloss, params, learn_rate=0.01)
-        # TODO
-        buf.append({
-            'dJ': dJ,
-            'params': params,
-            'a': a,
-        })
-        if len(buf) == 512:
-            update(buf, model)
-    if buf:
-        # Apply the gradients left
-        update(buf, model)
-    sys.exit(0)
