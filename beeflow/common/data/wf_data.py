@@ -80,7 +80,7 @@ class Task:
 
     def __hash__(self):
         """Return the hash value for a task."""
-        return hash((self.name, self.subworkflow))
+        return hash((self.name, self.subworkflow, self.scatter, self.glob))
 
     def __repr__(self):
         """Construct a task's string representation."""
