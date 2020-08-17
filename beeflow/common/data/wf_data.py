@@ -55,7 +55,7 @@ class Task:
     def __eq__(self, other):
         """Test the equality of two tasks.
 
-        Task ID and dependencies do not factor into equality testing.
+        Task ID does not factor into equality testing.
 
         :param other: the task with which to test equality
         :type other: instance of Task
@@ -66,7 +66,9 @@ class Task:
                     self.requirements == other.requirements and
                     self.subworkflow == other.subworkflow and
                     self.inputs == other.inputs and
-                    self.outputs == other.outputs)
+                    self.outputs == other.outputs and
+                    self.scatter == other.scatter and
+                    self.glob == other.glob)
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
@@ -84,7 +86,8 @@ class Task:
         """Construct a task's string representation."""
         return (f"<Task id={self.id} name='{self.name}' command={self.command} hints={self.hints} "
                 f"requirements={self.requirements} subworkflow='{self.subworkflow}' "
-                f"inputs={self.inputs} outputs={self.outputs} scatter={self.scatter}>")
+                f"inputs={self.inputs} outputs={self.outputs} scatter={self.scatter} "
+                f"glob={self.glob}>")
 
     def construct_command(self):
         """Construct a task's command representation."""
