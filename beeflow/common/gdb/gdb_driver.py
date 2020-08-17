@@ -73,7 +73,16 @@ class GraphDatabaseDriver(ABC):
     def get_workflow_requirements_and_hints(self):
         """Return all workflow requirements and hints from the graph database.
 
-        Must return a tuple with the format (requirements, hints)
+        Must return a tuple with the format (requirements, hints).
+
+        :rtype: (set of Requirement, set of Requirement)
+        """
+
+    @abstractmethod
+    def get_task_requirements_and_hints(self, task):
+        """Return all requirements and hints for a task from the Neo4j database.
+
+        Must return a tuple with the format (requirements, hints).
 
         :rtype: (set of Requirement, set of Requirement)
         """
