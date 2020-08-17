@@ -11,22 +11,17 @@ class GraphDatabaseDriver(ABC):
     """
 
     @abstractmethod
-    def initialize_workflow(self, name, inputs, outputs, requirements, hints):
+    def initialize_workflow(self, workflow):
         """Begin construction of a workflow in the graph database.
 
-        Create the bee_init (with inputs), bee_exit (with outputs) nodes, and metadata
-        nodes and store the requirements and hints in the metadata node.
+        Must create the workflow node with a name, inputs, and outputs.
+        Must create the bee_init node with its inputs.
+        Must create the bee_exit node with its outputs.
+        Must create the workflow hint nodes.
+        Must create the workflow requirement nodes.
 
-        :param name: a name for the workflow
-        :type name: string
-        :param inputs: the inputs to the workflow
-        :type inputs: set of strings
-        :param outputs: the outputs of the workflow
-        :type outputs: set of strings
-        :param requirements: the workflow requirements
-        :type requirements: set of Requirement instances
-        :param hints: the workflow hints (optional requirements)
-        :type hints: set of Requirement instances
+        :param workflow: the workflow description
+        :type workflow: instance of Workflow
         """
 
     @abstractmethod
@@ -44,6 +39,17 @@ class GraphDatabaseDriver(ABC):
         upon loading each task by matching task inputs and outputs.
 
         :param task: a workflow task
+        :type task: instance of Task
+        """
+
+    @abstractmethod
+    def scatter_task(self, task):
+        """Expand a scatter task into unique tasks for each of its inputs.
+
+        The scatter task should be deleted and a new task should be created for each input,
+        with dependencies automatically deduced.
+
+        :param task: the task to expand (must have scatter set to true)
         :type task: instance of Task
         """
 
@@ -107,6 +113,30 @@ class GraphDatabaseDriver(ABC):
         :type task: instance of Task
         :param state: the new state
         :type state: string
+        """
+
+    @abstractmethod
+    def set_task_inputs(self, task, inputs):
+        """Set the inputs of a task in the graph database workflow.
+
+        Dependencies should automatically be updated.
+
+        :param task: the task to modify
+        :type task: instance of Task
+        :param inputs: the new inputs
+        :type inputs: set of strings
+        """
+
+    @abstractmethod
+    def set_task_outputs(self, task, outputs):
+        """Set the outputs of a task in the graph database workflow.
+
+        Dependencies should automatically be updated.
+
+        :param task: the task to modify
+        :type task: instance of Task
+        :param outputs: the new outputs
+        :type outputs: set of strings
         """
 
     @abstractmethod

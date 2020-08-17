@@ -12,7 +12,7 @@ def constrain_task_names_unique(tx):
 
 
 # How does this file know about the Task class? There is no import.
-def create_task(tx, task):
+def create_task_node(tx, task):
     """Create a Task node in the Neo4j database.
 
     :param task: the new task to create
@@ -22,16 +22,18 @@ def create_task(tx, task):
                     "SET t.task_id = $task_id "
                     "SET t.name = $name "
                     "SET t.command = $command "
-                    "SET t.hints = $hints "
                     "SET t.subworkflow = $subworkflow "
                     "SET t.inputs = $inputs "
                     "SET t.outputs = $outputs "
+                    "SET t.scatter = $scatter "
+                    "SET t.glob = $glob "
                     "SET t.state = 'WAITING'")
 
     # Unpack requirements, hints dictionaries into flat list
     tx.run(create_query, task_id=task.id, name=task.name,
-           command=task.command, hints=_encode_requirements(task.hints),
-           subworkflow=task.subworkflow, inputs=list(task.inputs), outputs=list(task.outputs))
+           command=task.command, subworkflow=task.subworkflow,
+           inputs=list(task.inputs), outputs=list(task.outputs),
+           scatter=task.scatter, glob=task.glob)
 
 
 def create_bee_init_node(tx, inputs):
@@ -66,35 +68,87 @@ def create_bee_exit_node(tx, outputs):
     tx.run(bee_exit_query, outputs=outputs)
 
 
-def create_metadata_node(tx, requirements, hints):
-    """Create a metadata node in the Neo4j database.
-
-    The metadata node holds the workflow requirements and hints.
-
-    :param requirements: the workflow requirements
-    :type requirements: set of Requirement instances
-    :param hints: the workflow hints
-    :type hints: set of Requirement instances
-    """
-    metadata_query = "CREATE (n:Metadata {requirements: $requirements, hints: $hints})"
-
-    # Store the workflow requirements and hints in a metadata node
-    tx.run(metadata_query, requirements=_encode_requirements(requirements),
-           hints=_encode_requirements(hints))
-
-
-def create_workflow_node(tx, name):
-    """Create a metadata node in the Neo4j database.
+def create_workflow_node(tx, workflow):
+    """Create a Workflow node in the Neo4j database.
 
     The workflow node is the entry point to the workflow.
 
-    :param name: a name for the workflow
-    :type name: string
+    :param workflow: the workflow description
+    :type workflow: instance of Workflow
     """
-    workflow_query = "CREATE (n:Workflow {name: $name})"
+    workflow_query = ("CREATE (w:Workflow) "
+                      "SET w.name = $name "
+                      "SET w.inputs = $inputs "
+                      "SET w.outputs = $outputs")
 
-    # Store the workflow name and id in a new workflow node
-    tx.run(workflow_query, name=name)
+    # Store the workflow name, inputs, and outputs, in a new workflow node
+    tx.run(workflow_query, name=workflow.name, inputs=workflow.inputs, outputs=workflow.outputs)
+
+
+def create_task_hint_nodes(tx, task):
+    """Create TaskHint nodes for a task.
+
+    :param task: the task whose hints to add to the workflow
+    :type task: instance of Task
+    """
+    hint_query = ("MATCH (t:Task {task_id: $task_id}) "
+                  "CREATE (t)-[:HAS_HINT]->(h:TaskHint :Hint) "
+                  "SET h.class = $req_class "
+                  "SET h.key = $key "
+                  "SET h.value = $value")
+
+    for hint in task.hints:
+        tx.run(hint_query, task_id=task.id, req_class=hint.req_class, key=hint.key,
+               value=hint.value)
+
+
+def create_task_requirement_nodes(tx, task):
+    """Create TaskRequirement nodes for a task.
+
+    :param task: the task whose requirements to add to the workflow
+    :type task: instance of Task
+    """
+    req_query = ("MATCH (t:Task {task_id: $task_id}) "
+                 "CREATE (t)-[:HAS_REQUIREMENT]->(r:TaskRequirement :Requirement) "
+                 "SET r.class = $req_class "
+                 "SET r.key = $key "
+                 "SET r.value = $value")
+
+    for hint in task.hints:
+        tx.run(req_query, task_id=task.id, req_class=hint.req_class, key=hint.key,
+               value=hint.value)
+
+
+def create_workflow_hint_nodes(tx, hints):
+    """Create WorkflowHint nodes for the workflow.
+
+    :param hints: the workflow hints
+    :type hints: list of Requirement instances
+    """
+    hint_query = ("MATCH (w:Workflow) "
+                  "CREATE (w)-[:HAS_HINT]->(h:WorkflowHint :Hint) "
+                  "SET h.class = $req_class "
+                  "SET h.key = $key "
+                  "SET h.value = $value")
+
+    for hint in hints:
+        tx.run(hint_query, req_class=hint.req_class, key=hint.key, value=hint.value)
+
+
+def create_workflow_requirement_nodes(tx, requirements):
+    """Create WorkflowHint and WorkflowRequirement nodes for the workflow.
+
+    :param requirements: the workflow requirements
+    :type requirements: list of Requirement instances
+    """
+    req_query = ("MATCH (w:Workflow) "
+                 "CREATE (w)-[:HAS_HINT]->(r:WorkflowRequirement :Requirement) "
+                 "SET r.class = $req_class "
+                 "SET r.key = $key "
+                 "SET r.value = $value")
+
+    for req in requirements:
+        tx.run(req_query, req_class=req.req_class, key=req.key, value=req.value)
 
 
 def add_dependencies(tx, task):
@@ -116,6 +170,39 @@ def add_dependencies(tx, task):
     tx.run(dependency_query, task_id=task.id)
 
 
+def delete_task_node(tx, task):
+    """Delete the specified task node in the Neo4j database.
+
+    :param task: the workflow task
+    :type task: instance of Task
+    """
+    delete_query = "MATCH (t:Task {task_id: $task_id}) DETACH DELETE t"
+
+    tx.run(delete_query, task_id=task.id)
+
+
+def delete_input_dependencies(tx, task):
+    """Delete the input dependency relationships of a task in the Neo4j database.
+
+    :param task: the workflow task
+    :type task: instance of Task
+    """
+    delete_query = "MATCH (:Task)<-[d:DEPENDS]-(:Task {task_id: $task_id}) DELETE d"
+
+    tx.run(delete_query, task_id=task.id)
+
+
+def delete_output_dependencies(tx, task):
+    """Delete the output dependency relationships of a task in the Neo4j database.
+
+    :param task: the workflow task
+    :type task: instance of Task
+    """
+    delete_query = "MATCH (:Task {task_id: $task_id})<-[d:DEPENDS]-(:Task) DELETE d"
+
+    tx.run(delete_query, task_id=task.id)
+
+
 def get_task_by_id(tx, task_id):
     """Get a workflow task from the Neo4j database by its ID.
 
@@ -134,18 +221,33 @@ def get_workflow_tasks(tx):
     return tx.run(workflow_query)
 
 
-def get_workflow_requirements(tx):
-    """Get workflow requirements from the Neo4j database."""
-    requirements_query = "MATCH (n:Metadata) RETURN n.requirements"
+def get_task_hints(tx, task):
+    """Get hints for a task from the Neo4j database."""
+    hints_query = "MATCH (:Task {task_id: $task_id})-[:HAS_HINT]->(r:TaskHint) RETURN r"
 
-    return tx.run(requirements_query).single().value()
+    return tx.run(hints_query, task_id=task.id)
+
+
+def get_task_requirements(tx, task):
+    """Get requirements for a task from the Neo4j database."""
+    req_query = ("MATCH (:Task {task_id: $task_id})-[:HAS_REQUIREMENT]->(r:TaskRequirement) "
+                 "RETURN r")
+
+    return tx.run(req_query, task_id=task.id)
 
 
 def get_workflow_hints(tx):
     """Get workflow hints from the Neo4j database."""
-    hints_query = "MATCH (n:Metadata) RETURN n.hints"
+    hints_query = "MATCH (:Workflow)-[:HAS_HINT]->(r:WorkflowHint) RETURN r"
 
-    return tx.run(hints_query).single().value()
+    return tx.run(hints_query)
+
+
+def get_workflow_requirements(tx):
+    """Get workflow requirements from the Neo4j database."""
+    req_query = "MATCH (:Workflow)-[:HAS_REQUIREMENT]->(r:WorkflowRequirement) RETURN r"
+
+    return tx.run(req_query)
 
 
 def get_subworkflow_tasks(tx, subworkflow):
@@ -239,6 +341,34 @@ def set_task_state(tx, task, state):
     tx.run(state_query, task_id=task.id, state=state)
 
 
+def set_task_inputs(tx, task, inputs):
+    """Set a task's inputs.
+
+    :param task: the task whose inputs to change
+    :type task: instance of Task
+    :param inputs: the new task inputs
+    :type inputs: list of strings
+    """
+    state_query = ("MATCH (t:Task {task_id: $task_id}) "
+                   "SET t.inputs = $inputs")
+
+    tx.run(state_query, task_id=task.id, inputs=inputs)
+
+
+def set_task_outputs(tx, task, outputs):
+    """Set a task's outputs.
+
+    :param task: the task whose outputs to change
+    :type task: instance of Task
+    :param outputs: the new task state
+    :type outputs: string
+    """
+    state_query = ("MATCH (t:Task {task_id: $task_id}) "
+                   "SET t.outputs = $outputs")
+
+    tx.run(state_query, task_id=task.id, outputs=outputs)
+
+
 def is_empty(tx):
     """Return true if the database is empty, else false."""
     empty_query = "MATCH (t:Task) RETURN t IS NULL LIMIT 1"
@@ -251,12 +381,3 @@ def cleanup(tx):
     cleanup_query = "MATCH (n) DETACH DELETE n"
 
     tx.run(cleanup_query)
-
-
-def _encode_requirements(reqs):
-    """Encode requirements as a flat list of ordered class-key-value triplets as strings.
-
-    :param reqs: the requirements to encode
-    :type reqs: iterable of Requirement instances
-    """
-    return [str(prop) for req in reqs for prop in req]

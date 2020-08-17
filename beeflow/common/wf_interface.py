@@ -4,7 +4,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 """
 
 from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
-from beeflow.common.data.wf_data import Task, Requirement
+from beeflow.common.data.wf_data import Workflow, Task, Requirement
 
 
 class WorkflowInterface:
@@ -43,7 +43,10 @@ class WorkflowInterface:
 
         # Connect to the graph database
         self._gdb_interface.connect(**self._gdb_details)
-        self._gdb_interface.initialize_workflow(name, inputs, outputs, requirements, hints)
+
+        # Create workflow object and initialize graph database
+        workflow = Workflow(name, hints, requirements, inputs, outputs)
+        self._gdb_interface.initialize_workflow(workflow)
 
     def execute_workflow(self):
         """Begin execution of the BEE workflow."""
@@ -66,8 +69,8 @@ class WorkflowInterface:
         """
         return Requirement(req_class, key, value)
 
-    def add_task(self, name, command=None, hints=None, subworkflow=None, inputs=None,
-                 outputs=None):
+    def add_task(self, name, command=None, hints=None, requirements=None, subworkflow=None,
+                 inputs=None, outputs=None, scatter=False, glob=None):
         """Create a new BEE workflow task.
 
         In its current form, this method allows the user to create bee_init and bee_exit
@@ -78,13 +81,19 @@ class WorkflowInterface:
         :param command: the command for the task
         :type command: list of strings
         :param hints: the task-specific hints (optional requirements)
-        :type hints: set of Requirement instances, or None
+        :type hints: set of Requirement instances
+        :param requirements: the task-specific requirements
+        :type requirements: set of Requirement instances
         :param subworkflow: an identifier for the subworkflow to which the task belongs
-        :type subworkflow: string or None
+        :type subworkflow: string
         :param inputs: the task inputs
-        :type inputs: set of strings, or None
+        :type inputs: set of strings
         :param outputs: the task outputs
-        :type outputs: set of strings, or None
+        :type outputs: set of strings
+        :param scatter: set to true if the task scatters over its input
+        :type scatter: bool
+        :param glob: the task output binding
+        :type glob: string
         :rtype: instance of Task
         """
         # Immutable default arguments
@@ -97,9 +106,22 @@ class WorkflowInterface:
         if outputs is None:
             outputs = set()
 
-        task = Task(name, command, hints, subworkflow, inputs, outputs)
+        task = Task(name, command, hints, requirements, subworkflow, inputs, outputs, scatter,
+                    glob)
         self._gdb_interface.load_task(task)
         return task
+
+    def scatter_task(self, task):
+        """Expand a scatter task into unique tasks for each of its input.
+
+        :param task: the task to expand (must have scatter set to true)
+        :type task: instance of Task
+        """
+        _task = self.get_task_by_id(task.id)
+        if _task.scatter:
+            self._gdb_interface.scatter_task(task)
+        else:
+            raise ValueError(f"Task {task.name} is not set to scatter")
 
     def get_task_by_id(self, task_id):
         """Get a task by its Task ID.
@@ -161,7 +183,7 @@ class WorkflowInterface:
         return self._gdb_interface.get_task_state(task)
 
     def set_task_state(self, task, state):
-        """Set the state of the task in the BEE workflow.
+        """Set the state of a task in the BEE workflow.
 
         :param task: the task whose state to change
         :type task: instance of Task
@@ -170,9 +192,33 @@ class WorkflowInterface:
         """
         self._gdb_interface.set_task_state(task, state)
 
+    def set_task_inputs(self, task, inputs):
+        """Set the inputs of a task in the BEE workflow.
+
+        Dependencies will automatically be updated.
+
+        :param task: the task to modify
+        :type task: instance of Task
+        :param inputs: the new inputs
+        :type inputs: set of strings
+        """
+        self._gdb_interface.set_task_inputs(task, inputs)
+
+    def set_task_outputs(self, task, outputs):
+        """Set the outputs of a task in the BEE workflow.
+
+        Dependencies will automatically be updated.
+
+        :param task: the task to modify
+        :type task: instance of Task
+        :param outputs: the new inputs
+        :type outputs: set of strings
+        """
+        self._gdb_interface.set_task_outputs(task, outputs)
+
     def workflow_initialized(self):
         """Return true if a workflow has been initialized, else false.
-        
+
         :rtype: boolean
         """
         return self._gdb_interface.initialized()

@@ -36,11 +36,10 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param password: the password for the database user account
         :type password: string
         """
-
-        bolt_port = kwargs.get('bolt_port',7687)
-        db_hostname = kwargs.get('db_hostname','localhost')
-        password = kwargs.get('dbpass','password')
-        uri = 'bolt://'+db_hostname+':'+bolt_port
+        bolt_port = kwargs.get('bolt_port', 7687)
+        db_hostname = kwargs.get('db_hostname', 'localhost')
+        password = kwargs.get('dbpass', 'password')
+        uri = 'bolt://' + db_hostname + ':' + bolt_port
 
         try:
             # Connect to the Neo4j database using the Neo4j proprietary driver
@@ -60,33 +59,51 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type task: instance of Task
         """
         with self._driver.session() as session:
-            session.write_transaction(tx.create_task, task=task)
+            session.write_transaction(tx.create_task_node, task=task)
+            session.write_transaction(tx.create_task_hint_nodes, task=task)
+            session.write_transaction(tx.create_task_requirement_nodes, task=task)
             session.write_transaction(tx.add_dependencies, task=task)
 
-    def initialize_workflow(self, name, inputs, outputs, requirements, hints):
+    def scatter_task(self, task):
+        """Expand a scatter task into unique tasks for each of its inputs.
+
+        The scatter task is deleted and a new task is created for each input,
+        with dependencies automatically deduced.
+
+        :param task: the task to expand (must have scatter set to true)
+        :type task: instance of Task
+        """
+        _task = self.get_task_by_id(task.id)
+
+        with self._driver.session() as session:
+            session.write_transaction(tx.delete_task_node, task=_task)
+            for input_ in task.inputs:
+                new_task = Task(name=_task.name, command=_task.command, hints=_task.hints,
+                                requirements=_task.requirements, subworkflow=_task.subworkflow,
+                                inputs={input_}, outputs=_task.outputs, scatter=False,
+                                glob=_task.glob)
+                session.write_transaction(tx.create_task_node, task=new_task)
+
+    def initialize_workflow(self, workflow):
         """Begin construction of a workflow stored in Neo4j.
 
+        Creates the workflow node with a name, inputs, and outputs.
         Creates the bee_init node with its inputs.
         Creates the bee_exit node with its outputs.
-        Creates the metadata node with requirements and hints.
+        Creates the workflow hint nodes.
+        Creates the workflow requirement nodes.
 
-        :param name: a name for the workflow
-        :type name: string
-        :param inputs: the inputs to the workflow
-        :type inputs: set of strings
-        :param outputs: the outputs of the workflow
-        :type outputs: set of strings
-        :param requirements: the workflow requirements
-        :type requirements: set of Requirement instances
-        :param hints: the workflow hints (optional requirements)
-        :type hints: set of Requirement instances
+        :param workflow: the workflow description
+        :type workflow: instance of Workflow
         """
         with self._driver.session() as session:
-            session.write_transaction(tx.create_workflow_node, name=name)
-            session.write_transaction(tx.create_bee_init_node, inputs=list(inputs))
-            session.write_transaction(tx.create_bee_exit_node, outputs=list(outputs))
-            session.write_transaction(tx.create_metadata_node, requirements=requirements,
-                                      hints=hints)
+            session.write_transaction(tx.create_workflow_node, name=workflow.name,
+                                      inputs=list(workflow.inputs), outputs=list(workflow.outputs))
+            session.write_transaction(tx.create_bee_init_node, inputs=list(workflow.inputs))
+            session.write_transaction(tx.create_bee_exit_node, outputs=list(workflow.outputs))
+            session.write_transaction(tx.create_workflow_hint_nodes, hints=workflow.hints)
+            session.write_transaction(tx.create_workflow_requirement_nodes,
+                                      requirements=workflow.requirements)
 
     def execute_workflow(self):
         """Begin execution of the workflow stored in the Neo4j database."""
@@ -118,7 +135,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     def get_workflow_requirements_and_hints(self):
         """Return all workflow requirements and hints from the Neo4j database.
 
-        Returns a tuple of (requirements, hints)
+        Returns a tuple of (requirements, hints).
 
         :rtype: (set of Requirement, set of Requirement)
         """
@@ -127,6 +144,20 @@ class Neo4jDriver(GraphDatabaseDriver):
                 session.read_transaction(tx.get_workflow_requirements))
             hints = _reconstruct_requirements(
                 session.read_transaction(tx.get_workflow_hints))
+        return (requirements, hints)
+
+    def get_task_requirements_and_hints(self, task):
+        """Return all requirements and hints for a task from the Neo4j database.
+
+        Returns a tuple of (requirements, hints).
+
+        :rtype: (set of Requirement, set of Requirement)
+        """
+        with self._driver.session() as session:
+            requirements = _reconstruct_requirements(
+                session.read_transaction(tx.get_task_requirements, task=task))
+            hints = _reconstruct_requirements(
+                session.read_transaction(tx.get_task_hints, task=task))
         return (requirements, hints)
 
     def get_subworkflow_tasks(self, subworkflow):
@@ -166,6 +197,36 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_task_state, task=task, state=state)
 
+    def set_task_inputs(self, task, inputs):
+        """Set the inputs of a task in the graph database workflow.
+
+        Dependencies are automatically updated.
+
+        :param task: the task to modify
+        :type task: instance of Task
+        :param inputs: the new inputs
+        :type inputs: set of strings
+        """
+        with self._driver.session() as session:
+            session.write_transaction(tx.set_task_inputs, task=task, inputs=inputs)
+            session.write_transaction(tx.delete_input_dependencies, task=task)
+            session.write_transaction(tx.add_dependencies, task=task)
+
+    def set_task_outputs(self, task, outputs):
+        """Set the outputs of a task in the graph database workflow.
+
+        Dependencies are automatically updated.
+
+        :param task: the task to modify
+        :type task: instance of Task
+        :param outputs: the new outputs
+        :type outputs: set of strings
+        """
+        with self._driver.session() as session:
+            session.write_transaction(tx.set_task_outputs, task=task, outputs=outputs)
+            session.write_transaction(tx.delete_output_dependencies, task=task)
+            session.write_transaction(tx.add_dependencies, task=task)
+
     def reconstruct_task(self, task_record):
         """Reconstruct a Task object by its record retrieved from Neo4j.
 
@@ -173,10 +234,10 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: instance of Task
         """
         rec = task_record["t"]
-        t = Task(name=rec["name"], command=rec["command"],
-                 hints=_reconstruct_requirements(rec["hints"]),
+        t = Task(name=rec["name"], command=rec["command"], hints=None, requirements=None,
                  subworkflow=rec["subworkflow"], inputs=set(rec["inputs"]),
-                 outputs=set(rec["outputs"]))
+                 outputs=set(rec["outputs"]), scatter=rec["scatter"], glob=rec["glob"])
+        t.requirement, t.hints = self.get_task_requirements_and_hints(t)
         # This is a bit of a hack for now. No method on Task to set task id.
         t.id = rec["task_id"]
         return t
@@ -195,16 +256,6 @@ class Neo4jDriver(GraphDatabaseDriver):
     def close(self):
         """Close the connection to the Neo4j database."""
         self._driver.close()
-
-    def _create_metadata_node(self, requirements, hints):
-        """Create a graph node to contain workflow metadata.
-
-        :param requirements: the workflow requirements
-        :type requirements: set of Requirement instances
-        :param hints: the workflow hints
-        :type hints: set of Requirement instances
-        """
-        self._write_transaction(tx.create_metadata_node, requirements=requirements, hints=hints)
 
     def _require_tasks_unique(self):
         """Require tasks to have unique names."""
@@ -234,54 +285,13 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx_fun, **kwargs)
 
 
-def _reconstruct_requirements(list_repr):
-    """Reconstruct a task requirement from its list encoding.
+def _reconstruct_requirements(requirements_record):
+    """Reconstruct a task requirement from its Neo4j record.
 
-    The list representation must conform to the following pattern:
-    [class1, key1, value1, class2, key2, value2, ...].
-
-    :param list_repr: the list representation of the dictionary
-    :type list_repr: list of strings
+    :param requirement_record: the list representation of the dictionary
+    :type requirement_record: list of strings
     :rtype: set of Requirement instances
     """
-    if list_repr is None:
-        return set()
-
-    def _str_is_integer(str_):
-        """Test if a string can be represented as an integer.
-
-        :param str_: the string to test
-        :type str_: string
-        """
-        return str.isdigit(str_)
-
-    def _str_is_float(str_):
-        """Test if a string can be represented as a float.
-
-        :param str_: the string to test
-        :type str_: string
-        """
-        try:
-            float(str_)
-        except ValueError:
-            return False
-        else:
-            return True
-
-    # Convert string to original value if applicable
-    # Grab 3-tuples from list-of-string representation of requirements
-    # Return a set of requirements
-    reqs = set()
-    for (req_class, key, val) in zip(list_repr[:-2:3], list_repr[1:-1:3], list_repr[2::3]):
-        if _str_is_integer(val):
-            val = int(val)
-        elif _str_is_float(val):
-            val = float(val)
-        elif val == "True":
-            val = True
-        elif val == "False":
-            val = False
-
-        reqs.add(Requirement(req_class, key, val))
-
-    return reqs
+    recs = requirements_record["r"]
+    return {Requirement(req_class=rec["class"], key=rec["key"], value=rec["value"])
+            for rec in recs}

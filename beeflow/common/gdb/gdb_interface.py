@@ -28,7 +28,7 @@ class GraphDatabaseInterface:
         """Disconnect from the graph database when interface deconstructs."""
         self.close()
 
-    def connect(self,**kwargs):
+    def connect(self, **kwargs):
         """Initialize a graph database interface with a driver.
 
         :param kwargs: arguments for initializing the graph database connection
@@ -37,24 +37,16 @@ class GraphDatabaseInterface:
         # Initialize the graph database driver
         self._connection = self._gdb_driver(**kwargs)
 
-    def initialize_workflow(self, name, inputs, outputs, requirements, hints):
+    def initialize_workflow(self, workflow):
         """Begin construction of a workflow in the graph database.
 
         Connects to the database and creates the bee_init, bee_exit, and metadata nodes.
         Permits the addition of task nodes to the workflow.
 
-        :param name: a name for the workflow
-        :type name: string
-        :param inputs: the inputs to the workflow
-        :type inputs: set of strings
-        :param outputs: the outputs to the workflow
-        :type outputs: set of strings
-        :param requirements: the workflow requirements
-        :type requirements: set of Requirement instances
-        :param hints: the workflow hints (optional requirements)
-        :type hints: set of Requirement instances
+        :param workflow: the workflow description
+        :type workflow: instance of Workflow
         """
-        self._connection.initialize_workflow(name, inputs, outputs, requirements, hints)
+        self._connection.initialize_workflow(workflow)
 
     def execute_workflow(self):
         """Begin execution of the loaded workflow."""
@@ -67,6 +59,14 @@ class GraphDatabaseInterface:
         :type task: instance of Task
         """
         self._connection.load_task(task)
+
+    def scatter_task(self, task):
+        """Expand a scatter task into unique tasks for each of its inputs.
+
+        :param task: the task to expand (must have scatter set to true)
+        :type task: instance of Task
+        """
+        self._connection.scatter_task(task)
 
     def get_task_by_id(self, task_id):
         """Return a workflow Task given its ID.
@@ -133,13 +133,37 @@ class GraphDatabaseInterface:
         :type state: string
         """
         return self._connection.set_task_state(task, state)
-    
+
+    def set_task_inputs(self, task, inputs):
+        """Set the inputs of a task in the graph database workflow.
+
+        Dependencies will automatically be updated.
+
+        :param task: the task to modify
+        :type task: instance of Task
+        :param inputs: the new inputs
+        :type inputs: set of strings
+        """
+        self._connection.set_task_inputs(task, inputs)
+
+    def set_task_outputs(self, task, outputs):
+        """Set the outputs of a task in the graph database workflow.
+
+        Dependencies will automatically be updated.
+
+        :param task: the task to modify
+        :type task: instance of Task
+        :param outputs: the new outputs
+        :type outputs: set of strings
+        """
+        self._connection.set_task_outputs(task, outputs)
+
     def initialized(self):
         """Return true if the workflow_has been initialized, else false.
 
         :rtype: boolean
         """
-        return self._connection != None
+        return bool(self._connection is not None)
 
     def empty(self):
         """Return true if the graph database is empty, else false.
