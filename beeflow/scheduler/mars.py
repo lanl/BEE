@@ -78,7 +78,7 @@ class Model:
 
         Constructor for MARS.
         """
-        # TODO
+        # TODO: Determine the best number of layers
         if layers is not None:
             self.layers = layers
         else:
@@ -88,7 +88,6 @@ class Model:
                 tf.random.uniform((64, 64)),
                 tf.random.uniform((64, 64)),
             ]
-        pass
 
     def policy(self, vec, total_avail):
         """Calculate the policy.
@@ -113,25 +112,63 @@ class Model:
         mean = tf.math.reduce_mean(x)
         total = tf.math.reduce_sum(x)
         a = int(mean / total) * (total_avail - 1)
-        return a, params
-        # return random.randint(0, length - 1) if length > 0 else -1
+        return a, params, x
 
-    def apply_gradient(self, dloss, params, learn_rate=0.01):
-        """Apply the gradient update.
+    def make_batch(self, cost, result, params):
+        """Make the batch for this expected value.
 
-        Apply the gradient update.
-        :param dloss: loss value
-        :type dloss: float
-        :param params: list of parameters from the policy function
-        :type params: list of instance of tf.Variable
-        :param learn_rate: learning rate
-        :type learn_rate: float
+        Based on the cost of the expected value calculate a list of
+        update tensors that can be used to update the layers and
+        return it.
         """
-        # TODO: This calculation is not quite right
-        indices = list(range(len(params)))
+        # Calculate the cost for the expected value then return a
+        # list of tensors 
+        # TODO: This just returns zero tensors
+        # return [tf.zeros(layer.shape) for layer in self.layers]
+        batch = []
+        indices = list(range(len(self.layers)))
         indices.reverse()
+        # tmp is being used during backpropagation
+        # TODO: Cost may not be used correctly
+        tmp = result * cost
         for i in indices:
-            self.layers[i] = self.layers[i] - learn_rate * self.layers[i]
+            # TODO: This isn't exactly right
+            update = tf.matmul(params[i].numpy().T, tmp)
+            assert update.shape == self.layers[i].shape
+            batch.append(update)
+            tmp = params[i]
+        # Reverse it for a later update
+        batch.reverse()
+        return batch
+
+    def calculate_update(self, minibatch):
+        """Calculate the update to do for the minibatch.
+
+        Calculate the update for the minibatch.
+        :param minibatch:
+        :type minibatch:
+        """
+        # Initialize the total_update list to zero tensors matching
+        # the size of the layers
+        total_update = [tf.zeros(layer.shape) for layer in self.layers]
+        count = float(len(minibatch))
+        # Total the values of the tensors in each update of the minibatch
+        for update in minibatch:
+            for i, total in enumerate(total_update):
+                print(total.shape, update[i].shape)
+                total_update[i] = total + update[i]
+        # Averate the total tensor
+        return [total / count for total in total_update]
+
+    def apply_update(self, update):
+        """Apply an update.
+
+        Apply an update to the layers of the model.
+        :param update: update list for each layer
+        :type update: list of instance of tf.Tensor
+        """
+        for i, layer in enumerate(self.layers):
+            self.layers[i] = layer - update[i]
 
     @staticmethod
     def load(fname):

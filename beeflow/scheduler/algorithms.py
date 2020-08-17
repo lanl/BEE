@@ -183,7 +183,7 @@ class MARS(Algorithm):
         # for input into the policy function.
         # TODO: Input should include specific task
         vec = mars.workflow2vec(task, tasks)
-        a, _ = model.policy(vec, len(possible_allocs))
+        a, _, _ = model.policy(vec, len(possible_allocs))
         return a
 
     @staticmethod
