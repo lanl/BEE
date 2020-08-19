@@ -83,7 +83,6 @@ if bc.userconfig.has_section('workflow_manager'):
         sys.exit(f'[workflow_manager] missing listen_port in {bc.userconfig_file}')
 else:
     sys.exit(f'[workflow_manager] section missing in {bc.userconfig_file}')
-    sys.exit("[workflow_manager] section missing in " + str(bc.userconfig_file))
 
 wfm_listen_port = bc.userconfig.get('workflow_manager', 'listen_port')
 
