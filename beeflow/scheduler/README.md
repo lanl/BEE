@@ -19,3 +19,15 @@ that they need to run on. Supported requirement values, right now, are:
 
 - `max_runtime` - `int`
 - `cores` - `int`
+
+## MARS
+
+The MARS part of the scheduler uses reinforcement learning to schedule tasks.
+Before using this algorithm you must have a trained model. The default trained
+model is located in `./model` but can be changed in the config file.
+
+To train a model you will need to run `beeflow/scheduler/train.py`. This will
+require a schedule log that is produced by running the scheduler on a number
+of workflows. If defaults are used, training can be as simple as running
+`python beeflow/scheduler/train.py` which will output the model in the
+default directory `./model`.

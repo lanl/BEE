@@ -6,6 +6,7 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 import abc
 import random
 import time
+import tensorflow as tf
 
 import beeflow.scheduler.sched_types as sched_types
 import beeflow.scheduler.mars as mars
@@ -20,7 +21,7 @@ class Algorithm(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def schedule_all(tasks, resources):
+    def schedule_all(tasks, resources, **kwargs):
         """Schedule all tasks with the implemented algorithm.
 
         Schedule all tasks with the implemented algorithm.
@@ -39,7 +40,7 @@ class FCFS(Algorithm):
     """
 
     @staticmethod
-    def schedule_all(tasks, resources):
+    def schedule_all(tasks, resources, **kwargs):
         """Schedule a list of independent tasks with FCFS.
 
         Schedule an entire list of tasks using FCFS. Tasks that
@@ -84,7 +85,7 @@ class Backfill(Algorithm):
     """
 
     @staticmethod
-    def schedule_all(tasks, resources):
+    def schedule_all(tasks, resources, **kwargs):
         """Schedule a list of independent tasks with Backfill.
 
         Schedule an entire list of tasks using Backfill. Tasks that
@@ -168,12 +169,14 @@ class MARS(Algorithm):
     """
 
     @staticmethod
-    def policy(model, task, tasks, possible_allocs):
+    def policy(actor, critic, task, tasks, possible_allocs):
         """Evaluate the policy function to find scheduling of task.
 
         Evaluate the policy function with the model task.
-        :param model: model to use for scheduling
-        :type model: instance of mars.Model
+        :param actor: actor used for scheduling
+        :type actor: instance of mars.ActorModel
+        :param critic: critic used during training
+        :type critic: instance of mars.CriticModel
         :param task: task to get the scheduling policy for
         :type task: instance of Task
         :param possible_allocs: possible allocations for the task
@@ -181,13 +184,17 @@ class MARS(Algorithm):
         """
         # Convert the task and possible_allocs into a vector
         # for input into the policy function.
-        # TODO: Input should include specific task
+        # TODO: Input should include the specific task
         vec = mars.workflow2vec(task, tasks)
-        a, _, _ = model.policy(vec, len(possible_allocs))
-        return a
+        vec = tf.constant([vec])
+        # Convert the result into an action index
+        pl = [float(n) for n in actor.call(vec)[0]]
+        a = pl.index(max(pl))
+        a = (float(a) / len(pl)) * (len(possible_allocs) - 1)
+        return int(a)
 
     @staticmethod
-    def schedule_all(tasks, resources):
+    def schedule_all(tasks, resources, mars_model='model', **kwargs):
         """Schedule a list of tasks on the given resources.
 
         Schedule a full list of tasks on the given resources
@@ -195,15 +202,16 @@ class MARS(Algorithm):
         :type tasks: list of instance of Task
         :param resources: list of resources
         :type resources: list of instance of Resource
+        :param mars_model: the mars model path
+        :type mars_model: str
         """
-        # TODO: Implement model loading function
-        fname = 'model.txt'
-        model = mars.Model.load(fname)
+        # TODO: Set the path somewhere else
+        actor, critic = mars.load_models(mars_model)
         allocations = []
         for task in tasks:
             possible_allocs = build_allocation_list(task, tasks, resources,
                                                     curr_allocs=allocations)
-            pi = MARS.policy(model, task, tasks, possible_allocs)
+            pi = MARS.policy(actor, critic, task, tasks, possible_allocs)
             # -1 indicates no allocation found
             if pi != -1:
                 allocs = possible_allocs[pi]
@@ -211,29 +219,32 @@ class MARS(Algorithm):
                 task.allocations = allocs
 
 
-class Logger:
-    """Logging class for creating a training log.
+class AlgorithmWrapper:
+    """Algorithm wrapper class.
 
-    Logging class to be used as a wrap to log the task scheduling data
-    for future training.
+    Algorithm wrapper class to be used as a wrap to log the task scheduling
+    data for future training and other extra information.
     """
 
-    def __init__(self, cls):
-        """Logging class constructor.
+    def __init__(self, cls, **kwargs):
+        """Algorithm wrapper class constructor.
 
-        Logging class constructor.
+        Algorithm wrapper class constructor.
         :param cls: class to pass operations onto
         :type cls: Python class
+        :param kwargs: key word arguments to pass to schedule_all()
+        :type kwargs: instance of dict
         """
         self.cls = cls
+        self.kwargs = kwargs
 
     def schedule_all(self, tasks, resources):
         """Schedule all tasks using the internal class and log results.
 
-        Schedule all of the tasks with teh internal class and write the
+        Schedule all of the tasks with the internal class and write the
         results out to a log file.
         """
-        self.cls.schedule_all(tasks, resources)
+        self.cls.schedule_all(tasks, resources, **self.kwargs)
         # TODO: Logfile should be a config value
         with open('schedule_log.txt', 'a') as fp:
             curr_allocs = []
@@ -252,7 +263,7 @@ class Logger:
                             a = i
                             break
                 vec = mars.workflow2vec(task, tasks)
-                vec.append(a)
+                # vec.append(a)
                 # TODO: Add more information for calculating reward (i.e. CPU
                 # usage, memory usage, resources available, etc.)
                 print(*vec, file=fp)
@@ -296,7 +307,7 @@ def build_allocation_list(task, tasks, resources, curr_allocs):
 MEDIAN = 2
 
 
-def choose(tasks):
+def choose(tasks, use_mars=False, **kwargs):
     """Choose which algorithm to run at this point.
 
     Determine which algorithm class needs to run and return it.
@@ -306,4 +317,8 @@ def choose(tasks):
     """
     # TODO: Correctly choose based on size of the workflow
     # return Logger(Backfill)
-    return Logger(Backfill if len(tasks) < MEDIAN else MARS)
+    if use_mars:
+        cls = Backfill if len(tasks) < MEDIAN else MARS
+    else:
+        cls = Backfill
+    return AlgorithmWrapper(cls, **kwargs)

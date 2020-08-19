@@ -19,8 +19,12 @@ def scheduler():
     Start a new scheduler as a subprocess for each test function.
     """
     # Setup
-    proc = subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
-                            '-p', SCHEDULER_TEST_PORT], shell=False)
+    proc = subprocess.Popen([
+        'python', 'beeflow/scheduler/scheduler.py',
+        '-p', SCHEDULER_TEST_PORT,
+        '--no-config',
+        '--use-mars',  # Required for testing MARS
+    ], shell=False)
     time.sleep(2)
     try:
         # Give control over to the test function

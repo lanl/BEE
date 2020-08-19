@@ -1,10 +1,11 @@
 """MARS RL implementation.
 """
 import json
-import numpy as np
+import os
 import tensorflow as tf
+import numpy as np
 
-import beeflow.scheduler.util as util
+# import beeflow.scheduler.util as util
 
 # TODO: Perhaps this should be set in the config
 VECTOR_SIZE = 512
@@ -65,6 +66,16 @@ class Workload:
                 records.append([float(f) for f in line.split()])
             return Workload(records)
 
+def _get_action(x):
+    """Get the action for x.
+
+    Get the action for x.
+    :param x: tensor to calculate the action from
+    :type x: tf.Tensor
+    """
+    xl = list(x[0].numpy())
+    return xl.index(max(xl)) / float(len(xl) - 1) * (total_avail - 1)
+
 
 class Model:
     """Model for MARS.
@@ -109,9 +120,10 @@ class Model:
             params.append(x)
             x = tf.matmul(x, layer)
         # Calculate the action
-        mean = tf.math.reduce_mean(x)
-        total = tf.math.reduce_sum(x)
-        a = int(mean / total) * (total_avail - 1)
+        # mean = tf.math.reduce_mean(x)
+        # total = tf.math.reduce_sum(x)
+        # a = int(mean / total) * (total_avail - 1)
+        a = _get_action(x)
         return a, params, x
 
     def make_batch(self, cost, result, params):
@@ -122,7 +134,7 @@ class Model:
         return it.
         """
         # Calculate the cost for the expected value then return a
-        # list of tensors 
+        # list of tensors
         # TODO: This just returns zero tensors
         # return [tf.zeros(layer.shape) for layer in self.layers]
         batch = []
@@ -191,19 +203,102 @@ class Model:
         :param fname: file name
         :type fname: str
         """
-        # TODO: Convert layers to a plain Python format
-        def layers2list(layers):
-            """Convert a layer into a list.
-
-            Convert a layer (or tf.Tensor) into a list.
-            """
-            try:
-                return [layers2list(layer) for layer in layers]
-            except TypeError: # Not iterable
-                return float(layers)
-        layers = layers2list(self.layers)
+        # Convert layers to a plain Python format
+        layers = [[[float(n) for n in tensor] for tensor in layer] for layer in self.layers]
+        print(layers)
         with open(fname, 'w') as fp:
             json.dump(layers, fp=fp)
+
+
+# Actor-Critic Example based on
+# https://towardsdatascience.com/actor-critic-with-tensorflow-2-x-part-1-of-2-d1e26a54ce97
+
+class ModelBase(tf.keras.Model):
+    """Model base class.
+
+    Model base class.
+    """
+
+    def __init__(self, layers=None):
+        """Model base constructor.
+
+        Model base constructor.
+        """
+        super().__init__()
+        self._layers = [] if layers is None else layers
+
+    @tf.function
+    def call(self, data):
+        """Call the critic for a value.
+
+        Call the critic for a value.
+        """
+        x = data
+        for layer in self._layers:
+            x = layer(x)
+        return x
+
+
+class CriticModel(ModelBase):
+    """The Critic class.
+
+    The Critic class.
+    """
+
+    def __init__(self):
+        """Critic constructor.
+
+        Critic constructor.
+        """
+        super().__init__(layers=[
+            tf.keras.layers.Dense(2048, activation='relu'),
+            tf.keras.layers.Dense(1560, activation='relu'),
+            tf.keras.layers.Dense(1, activation=None),
+        ])
+
+
+class ActorModel(ModelBase):
+    """Actor model class.
+
+    Actor model class.
+    """
+
+    def __init__(self):
+        """Actor model constructor.
+
+        Actor model constructor.
+        """
+        super().__init__(layers=[
+            tf.keras.layers.Dense(2048, activation='relu'),
+            tf.keras.layers.Dense(1560, activation='relu'),
+            tf.keras.layers.Dense(4, activation='softmax'),
+        ])
+
+
+def load_models(path):
+    """Load the models.
+
+    Load the models.
+    :rtype: instance of ActorModel, instance of CriticModel
+    """
+    actor_path = os.path.join(path, 'actor')
+    critic_path = os.path.join(path, 'critic')
+    actor = tf.keras.models.load_model(actor_path)
+    critic = tf.keras.models.load_model(critic_path)
+    return actor, critic
+
+
+def save_models(actor, critic, path):
+    """Save the models.
+
+    Save the models.
+    """
+    if not os.path.exists(path):
+        os.mkdir(path)
+    actor_path = os.path.join(path, 'actor')
+    critic_path = os.path.join(path, 'critic')
+    actor.save(actor_path)
+    critic.save(critic_path)
 
 
 def _task2vec(task):
