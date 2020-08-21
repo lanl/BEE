@@ -226,16 +226,19 @@ class AlgorithmWrapper:
     data for future training and other extra information.
     """
 
-    def __init__(self, cls, **kwargs):
+    def __init__(self, cls, logfile='schedule_log.txt', **kwargs):
         """Algorithm wrapper class constructor.
 
         Algorithm wrapper class constructor.
         :param cls: class to pass operations onto
         :type cls: Python class
+        :param logfile: name of logfile to write to
+        :type logfile: str
         :param kwargs: key word arguments to pass to schedule_all()
         :type kwargs: instance of dict
         """
         self.cls = cls
+        self.logfile = logfile
         self.kwargs = kwargs
 
     def schedule_all(self, tasks, resources):
@@ -245,8 +248,7 @@ class AlgorithmWrapper:
         results out to a log file.
         """
         self.cls.schedule_all(tasks, resources, **self.kwargs)
-        # TODO: Logfile should be a config value
-        with open('schedule_log.txt', 'a') as fp:
+        with open(self.logfile, 'a') as fp:
             curr_allocs = []
             for task in tasks:
                 possible_allocs = build_allocation_list(task, tasks, resources,

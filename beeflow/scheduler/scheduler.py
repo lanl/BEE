@@ -58,8 +58,9 @@ class WorkflowJobHandler(Resource):
         data = request.json
         tasks = [sched_types.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
-        algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
-                                      mars_model=Config.conf.mars_model)
+        algorithm = algorithms.choose(tasks, **vars(Config.conf))
+        #algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
+        #                              mars_model=Config.conf.mars_model)
         allocation.schedule_all(algorithm, tasks, resources)
         return [t.encode() for t in tasks]
 
@@ -71,7 +72,8 @@ api.add_resource(WorkflowJobHandler,
 # Default config values
 SCHEDULER_PORT = 5100
 # TODO: Use MODEL_FILE when interacting with MARS scheduling
-MODEL_FILE='model'
+MODEL_FILE = 'model'
+LOGFILE = 'schedule_log.txt'
 
 
 def load_config_values():
@@ -91,12 +93,15 @@ def load_config_values():
                         action='store_true')
     parser.add_argument('--mars-model', dest='mars_model',
                         help='mars model to load', default=MODEL_FILE)
+    parser.add_argument('--logfile', dest='logfile',
+                        help='logfile to write to', default=LOGFILE)
     args = parser.parse_args()
     # Set the default config values
     conf = {
         'listen_port': args.port,
         'use_mars': args.use_mars,
         'mars_model': args.mars_model,
+        'logfile': args.logfile,
     }
     if args.read_config:
         try:
@@ -109,6 +114,8 @@ def load_config_values():
                 'listen_port', SCHEDULER_PORT)
             conf['use_mars'] = bc.userconfig['scheduler'].get('use_mars',
                                                               False)
+            conf['logfile'] = bc.userconfig['scheduler'].get('logfile',
+                                                             args.logfile)
         else:
             print('[scheduler] section not found in configuration file, '
                   'default values will be added')
@@ -119,6 +126,7 @@ def load_config_values():
     print(f'\tlisten_port {conf["listen_port"]}')
     print(f'\tuse_mars {conf["use_mars"]}')
     print(f'\tmars_model {conf["mars_model"]}')
+    print(f'\tlogfile {conf["logfile"]}')
     print(']')
     return argparse.Namespace(**conf)
 
