@@ -4,7 +4,8 @@ This directory contains a sample CWL pipeline that makes use of adding two numbe
 
 ### Prerequisites
 
-1. Installing CWL tool 
+1. CWL tool implementation
+
 Installing the official package from PyPi (will install "cwltool" package as well)::
 ```
 pip install cwl-runner
