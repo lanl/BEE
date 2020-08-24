@@ -35,7 +35,7 @@ class ContainerRuntimeInterface:
         """Check to see if the required container image exists.
 
         :param task: instance of Task
-        :rtype string
+        :rtype boolean
         """
         return self._crt_driver.image_exists(task)
 # Ignore module imported but unused error. No way to know which crt will be needed
