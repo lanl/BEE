@@ -4,7 +4,10 @@ This directory contains a sample CWL pipeline that makes use of adding two numbe
 
 ### Prerequisites
 
-1. CWL-Runner
+1. Installing CWL tool 
+'''
+pip install cwltool==1.0.20160325210917
+'''
 
 
 
