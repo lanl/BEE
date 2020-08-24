@@ -6,9 +6,15 @@ This directory contains a sample CWL pipeline that makes use of adding two numbe
 
 1. CWL tool implementation
 
-Installing the official package from PyPi (will install "cwltool" package as well)::
+Installing the official package using pip:
 ```
 pip install cwl-runner
+```
+OR from Source package as follows:
+```
+git clone https://github.com/common-workflow-language/cwltool.git
+cd cwltool && python setup.py install
+cd cwl-runner && python setup.py install
 ```
 
 
