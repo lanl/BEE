@@ -106,7 +106,7 @@ def _resource(tag=""):
 
 
 def update_task_state(task_id, job_state):
-    """Informs the task manager of the current state of a task."""
+    """Informs the workflow manager of the current state of a task."""
     resp = requests.put(_resource("update/"),
                         json={'task_id': task_id, 'job_state': job_state})
     if resp.status_code != 200:
