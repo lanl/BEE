@@ -31,6 +31,49 @@ class Algorithm(abc.ABC):
         :type resources: list of instance of sched_types.Resource
         """
 
+class SJF(Algorithm):
+    """Shortest job first algorithm.
+
+    Class holding scheduling code for runing the shortest job first algorithm.
+    """
+
+    @staticmethod
+    def schedule_all(tasks, resources, **kwargs):
+        """Schedule a list of independent tasks with SJF.
+
+        Schedule a list of independent tasks with SFJ.
+        :param tasks: list of tasks to schedule
+        :type tasks: list of instance of Task
+        :param resources: list of resources
+        :type resources list of instance of sched_types.Resource
+        """
+        # Note this doesn't allocate aggregate resources but only singular
+        # resources unlike the other algorithms
+        # allocations = []
+        start_time = int(time.time())
+        tasks = tasks[:]
+        # Sort by max_runtime
+        tasks.sort(key=lambda t: t.requirements.max_runtime)
+        resources = resources[:]
+        while tasks:
+            task = tasks.pop()
+            # Check if it can run
+            # remaining = sched_types.rsum(*resources)
+            if not any(res.fits_requirements(task.requirements)
+                       for res in resources):
+                # Can't run on given resources
+                continue
+            # max_runtime = task.requirements.max_runtime
+            for res in resources:
+                if res.fits_requirements(task.requirements):
+                    alloc = res.allocate(res, [], task.requirements, start_time)
+                    task.allocations = [alloc]
+            start_time += task.requirements.max_runtime
+            # for time, runtime, resource in allocations:
+            #    # Calculate the overlaping allocations
+            #    overlap = [alloc for alloc in allocations if alloc[0] < time and alloc[0] + ]
+            # TODO
+
 
 class FCFS(Algorithm):
     """FCFS scheduling algorithm.
@@ -75,6 +118,7 @@ class FCFS(Algorithm):
                 # Set the next time increment to check
                 start_time = min(a.start_time + a.max_runtime
                                  for a in overlap)
+        # TODO: Update time based on runtime of algorithm
 
 
 class Backfill(Algorithm):
@@ -160,6 +204,7 @@ class Backfill(Algorithm):
                     tasks_left.append(task)
             # Reset the tasks to the remaining list
             tasks = tasks_left
+        # TODO: Update time based on runtime of algorithm
 
 
 class MARS(Algorithm):
@@ -181,7 +226,11 @@ class MARS(Algorithm):
         :type task: instance of Task
         :param possible_allocs: possible allocations for the task
         :type possible_allocs: list of instance of Allocation
+        :rtype: int, index of allocation to use
         """
+        # No possible allocations
+        if not possible_allocs:
+            return -1
         # Convert the task and possible_allocs into a vector
         # for input into the policy function.
         # TODO: Input should include the specific task
@@ -217,6 +266,7 @@ class MARS(Algorithm):
                 allocs = possible_allocs[pi]
                 allocations.extend(allocs)
                 task.allocations = allocs
+        # TODO: Update time based on runtime of algorithm
 
 
 class AlgorithmWrapper:
@@ -309,7 +359,7 @@ def build_allocation_list(task, tasks, resources, curr_allocs):
 MEDIAN = 2
 
 
-def choose(tasks, use_mars=False, **kwargs):
+def choose(tasks, use_mars=False, algorithm=None, **kwargs):
     """Choose which algorithm to run at this point.
 
     Determine which algorithm class needs to run and return it.
@@ -319,8 +369,15 @@ def choose(tasks, use_mars=False, **kwargs):
     """
     # TODO: Correctly choose based on size of the workflow
     # return Logger(Backfill)
-    if use_mars:
-        cls = Backfill if len(tasks) < MEDIAN else MARS
-    else:
+    if algorithm == 'fcfs':
+        cls = FCFS
+    elif algorithm == 'mars':
+        cls = MARS
+    elif algorithm == 'backfill':
         cls = Backfill
+    else:
+        if use_mars:
+            cls = Backfill if len(tasks) < MEDIAN else MARS
+        else:
+            cls = Backfill
     return AlgorithmWrapper(cls, **kwargs)

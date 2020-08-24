@@ -3,7 +3,6 @@
 Tests of the BEE Scheduler module.
 """
 
-import abc
 import time
 
 import beeflow.scheduler.algorithms as algorithms
@@ -12,28 +11,18 @@ import beeflow.scheduler.sched_types as sched_types
 # import beeflow.common.data.wf_data as wf_data
 
 
-class AbstractScheduleTestCase(abc.ABC):
-    """Abstract schedule test case.
+class TestFCFS:
+    """Test the FCFS algorithm.
 
-    Some simple base test cases.
+    Test the FCFS algorithm.
     """
-
     @staticmethod
     def test_schedule_one_task():
         """Test scheduling one task.
 
         Test scheduling one task.
         """
-        requirements = {'max_runtime': 3}
-        task = sched_types.Task(workflow_name='workflow-1', task_name='task-1',
-                                requirements=requirements)
-        resource = sched_types.Resource(id_='test-resource-1', cores=4)
-
-        allocation.schedule_all(algorithms.FCFS, [task], [resource])
-
-        assert task.allocations[0].id_ == 'test-resource-1'
-        assert task.allocations[0].start_time == int(time.time())
-        assert task.allocations[0].cores == 1
+        schedule_one_task(algorithms.FCFS)
 
     @staticmethod
     def test_schedule_two_tasks():
@@ -41,22 +30,7 @@ class AbstractScheduleTestCase(abc.ABC):
 
         Test scheduling two tasks.
         """
-        requirements = {'max_runtime': 3}
-        task1 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-1', requirements=requirements)
-        task2 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-2', requirements=requirements)
-        resource = sched_types.Resource(id_='test-resource-1', cores=2)
-
-        allocation.schedule_all(algorithms.FCFS, [task1, task2], [resource])
-
-        current_time = int(time.time())
-        assert task1.allocations[0].id_ == 'test-resource-1'
-        assert task1.allocations[0].cores == 1
-        assert task1.allocations[0].start_time == current_time
-        assert task2.allocations[0].id_ == 'test-resource-1'
-        assert task2.allocations[0].cores == 1
-        assert task2.allocations[0].start_time == current_time
+        schedule_two_tasks(algorithms.FCFS)
 
     @staticmethod
     def test_schedule_task_fail():
@@ -64,22 +38,7 @@ class AbstractScheduleTestCase(abc.ABC):
 
         Test scheduling a task with more resources required than available.
         """
-        requirements = {'max_runtime': 3, 'cores': 10}
-        task1 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-1', requirements=requirements)
-        resource = sched_types.Resource(id_='test-resource-1', cores=2)
-
-        assert (allocation.schedule_all(algorithms.FCFS, [task1], [resource])
-                is None)
-        # No allocations available
-        assert not task1.allocations
-
-
-class TestFCFS(AbstractScheduleTestCase):
-    """Test the FCFS algorithm.
-
-    Test the FCFS algorithm.
-    """
+        schedule_task_fail(algorithms.FCFS)
 
     @staticmethod
     def test_schedule_six_tasks():
@@ -134,13 +93,35 @@ class TestFCFS(AbstractScheduleTestCase):
         assert task6.allocations[0].cores == 1
 
 
-class TestBackfill(AbstractScheduleTestCase):
+class TestBackfill:
     """Test the Backfill algorithm.
 
     Test the Backfill algorithm.
     """
 
-    # TODO: Baseline test cases (see FCFS basic tests)
+    @staticmethod
+    def test_schedule_one_task():
+        """Test scheduling one task.
+
+        Test scheduling one task.
+        """
+        schedule_one_task(algorithms.Backfill)
+
+    @staticmethod
+    def test_schedule_two_tasks():
+        """Test scheduling two tasks.
+
+        Test scheduling two tasks.
+        """
+        schedule_two_tasks(algorithms.Backfill)
+
+    @staticmethod
+    def test_schedule_task_fail():
+        """Test scheduling a task with more resources required than available.
+
+        Test scheduling a task with more resources required than available.
+        """
+        schedule_task_fail(algorithms.Backfill)
 
     @staticmethod
     def test_schedule_three_tasks():
@@ -287,3 +268,110 @@ class TestBackfill(AbstractScheduleTestCase):
         t = (current_time + task1.requirements.max_runtime
              + task2.requirements.max_runtime)
         assert task6.allocations[0].start_time == t
+
+
+class TestSJF:
+    """Test SJF.
+
+    Test SJF.
+    """
+
+    @staticmethod
+    def test_schedule_one_task():
+        """Test scheduling one task.
+
+        Test scheduling one task.
+        """
+        schedule_one_task(algorithms.SJF)
+
+    @staticmethod
+    def test_schedule_two_tasks():
+        """Test scheduling two tasks.
+
+        Test scheduling two tasks.
+        """
+        # schedule_two_tasks(algorithms.SJF)
+        requirements = {'max_runtime': 3}
+        task1 = sched_types.Task(workflow_name='workflow-1',
+                                 task_name='task-1', requirements=requirements)
+        task2 = sched_types.Task(workflow_name='workflow-1',
+                                 task_name='task-2', requirements=requirements)
+        resource = sched_types.Resource(id_='test-resource-1', cores=2)
+
+        allocation.schedule_all(algorithms.SJF, [task1, task2], [resource])
+
+        current_time = int(time.time())
+        assert task1.allocations[0].id_ == 'test-resource-1'
+        assert task1.allocations[0].cores == 1
+        assert task2.allocations[0].id_ == 'test-resource-1'
+        assert task2.allocations[0].cores == 1
+        # TODO: This test may need to change if the SJF algorithm is updated
+        assert task1.allocations[0].start_time != task2.allocations[0].start_time
+
+    @staticmethod
+    def test_schedule_task_fail():
+        """Test scheduling a task with more resources required than available.
+
+        Test scheduling a task with more resources required than available.
+        """
+        schedule_task_fail(algorithms.SJF)
+
+
+#
+# Shared testing functions.
+#
+
+def schedule_one_task(algorithm):
+    """Test scheduling one task.
+
+    Test scheduling one task.
+    """
+    requirements = {'max_runtime': 3}
+    task = sched_types.Task(workflow_name='workflow-1', task_name='task-1',
+                            requirements=requirements)
+    resource = sched_types.Resource(id_='test-resource-1', cores=4)
+
+    allocation.schedule_all(algorithm, [task], [resource])
+
+    assert task.allocations[0].id_ == 'test-resource-1'
+    assert task.allocations[0].start_time == int(time.time())
+    assert task.allocations[0].cores == 1
+
+
+def schedule_two_tasks(algorithm):
+    """Test scheduling two tasks.
+
+    Test scheduling two tasks.
+    """
+    requirements = {'max_runtime': 3}
+    task1 = sched_types.Task(workflow_name='workflow-1',
+                             task_name='task-1', requirements=requirements)
+    task2 = sched_types.Task(workflow_name='workflow-1',
+                             task_name='task-2', requirements=requirements)
+    resource = sched_types.Resource(id_='test-resource-1', cores=2)
+
+    allocation.schedule_all(algorithm, [task1, task2], [resource])
+
+    current_time = int(time.time())
+    assert task1.allocations[0].id_ == 'test-resource-1'
+    assert task1.allocations[0].cores == 1
+    assert task1.allocations[0].start_time == current_time
+    assert task2.allocations[0].id_ == 'test-resource-1'
+    assert task2.allocations[0].cores == 1
+    assert task2.allocations[0].start_time == current_time
+
+
+def schedule_task_fail(algorithm):
+    """Test scheduling a task with more resources required than available.
+
+    Test scheduling a task with more resources required than available.
+    """
+    requirements = {'max_runtime': 3, 'cores': 10}
+    task1 = sched_types.Task(workflow_name='workflow-1',
+                             task_name='task-1', requirements=requirements)
+    resource = sched_types.Resource(id_='test-resource-1', cores=2)
+
+    assert (allocation.schedule_all(algorithm, [task1], [resource])
+            is None)
+    # No allocations available
+    assert not task1.allocations

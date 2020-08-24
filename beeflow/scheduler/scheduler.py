@@ -95,6 +95,8 @@ def load_config_values():
                         help='mars model to load', default=MODEL_FILE)
     parser.add_argument('--logfile', dest='logfile',
                         help='logfile to write to', default=LOGFILE)
+    parser.add_argument('--algorithm', dest='algorithm',
+                        help='specific algorithm to use')
     args = parser.parse_args()
     # Set the default config values
     conf = {
@@ -102,6 +104,7 @@ def load_config_values():
         'use_mars': args.use_mars,
         'mars_model': args.mars_model,
         'logfile': args.logfile,
+        'algorithm': args.algorithm,
     }
     if args.read_config:
         try:
@@ -116,6 +119,8 @@ def load_config_values():
                                                               False)
             conf['logfile'] = bc.userconfig['scheduler'].get('logfile',
                                                              args.logfile)
+            conf['algorithm'] = bc.userconfig['scheduler'].get('algorithm',
+                                                               args.algorithm)
         else:
             print('[scheduler] section not found in configuration file, '
                   'default values will be added')
@@ -127,6 +132,7 @@ def load_config_values():
     print(f'\tuse_mars {conf["use_mars"]}')
     print(f'\tmars_model {conf["mars_model"]}')
     print(f'\tlogfile {conf["logfile"]}')
+    print(f'\talgorithm {conf["algorithm"]}')
     print(']')
     return argparse.Namespace(**conf)
 

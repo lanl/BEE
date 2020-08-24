@@ -31,3 +31,10 @@ require a schedule log that is produced by running the scheduler on a number
 of workflows. If defaults are used, training can be as simple as running
 `python beeflow/scheduler/train.py` which will output the model in the
 default directory `./model`.
+
+### Evaluation
+
+To evaluate MARS you can run `python beeflow/scheduler/evaluate.py` on a
+specific workflow log file. This will output a number of graphs showing a
+performance comparison of the MARS scheduler with other algorithms (like FCFS
+and Backfill).
