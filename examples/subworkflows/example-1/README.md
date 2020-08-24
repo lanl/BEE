@@ -6,7 +6,7 @@ This directory contains a sample CWL pipeline that makes use of adding two numbe
 
 1. CWL tool implementation
 
-Installing the official package using pip:
+Installing the official package using pip (this will also install 'cwltool' package as well):
 ```
 pip install cwl-runner
 ```
