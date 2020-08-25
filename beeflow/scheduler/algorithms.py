@@ -212,6 +212,13 @@ class MARS(Algorithm):
 
     MARS Scheduler.
     """
+    @staticmethod
+    def load(mars_model='model', **kwargs):
+        """Load the model.
+
+        Load the model.
+        """
+        MARS.actor, MARS.critic = mars.load_models(mars_model)
 
     @staticmethod
     def policy(actor, critic, task, tasks, possible_allocs):
@@ -246,7 +253,8 @@ class MARS(Algorithm):
     def schedule_all(tasks, resources, mars_model='model', **kwargs):
         """Schedule a list of tasks on the given resources.
 
-        Schedule a full list of tasks on the given resources
+        Schedule a full list of tasks on the given resources. Note: MARS.load()
+        must have been called previously.
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
@@ -255,12 +263,13 @@ class MARS(Algorithm):
         :type mars_model: str
         """
         # TODO: Set the path somewhere else
-        actor, critic = mars.load_models(mars_model)
+        # actor, critic = mars.load_models(mars_model)
         allocations = []
         for task in tasks:
             possible_allocs = build_allocation_list(task, tasks, resources,
                                                     curr_allocs=allocations)
-            pi = MARS.policy(actor, critic, task, tasks, possible_allocs)
+            pi = MARS.policy(MARS.actor, MARS.critic, task, tasks,
+                             possible_allocs)
             # -1 indicates no allocation found
             if pi != -1:
                 allocs = possible_allocs[pi]
@@ -359,6 +368,14 @@ def build_allocation_list(task, tasks, resources, curr_allocs):
 MEDIAN = 2
 
 
+def load(**kwargs):
+    """Load data needed by the algorithms.
+
+    Load data needed by the algorithms.
+    """
+    MARS.load(**kwargs)
+
+
 def choose(tasks, use_mars=False, algorithm=None, **kwargs):
     """Choose which algorithm to run at this point.
 
@@ -370,11 +387,17 @@ def choose(tasks, use_mars=False, algorithm=None, **kwargs):
     # TODO: Correctly choose based on size of the workflow
     # return Logger(Backfill)
     if algorithm == 'fcfs':
+        print('Using FCFS')
         cls = FCFS
     elif algorithm == 'mars':
+        print('Using MARS')
         cls = MARS
     elif algorithm == 'backfill':
+        print('Using Backfill')
         cls = Backfill
+    elif algorithm == 'sjf':
+        print('Using SJF')
+        cls = SJF
     else:
         if use_mars:
             cls = Backfill if len(tasks) < MEDIAN else MARS

@@ -1,35 +1,22 @@
 """MARS evaluation program.
 
 Evaluate the performance of the MARS algorithm within BEE by
-comparing it with other commonly used algorithms like Backfill
-and FCFS
+comparing it with other commonly used algorithms like Backfill,
+FCFS and SJF.
 """
 
 import argparse
 import subprocess
 import time
 import requests
+import json
+
+# Used for plotting results
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 SCHED_PORT = '5100'
-
-
-def launch_scheduler():
-    """Launch the scheduler.
-    """
-    # TODO
-    proc = subprocess.Popen([
-        'python', 'beeflow/scheduler/scheduler.py',
-        '-p', SCHED_PORT,
-        '--no-config',
-        '--use-mars',
-    ])
-    time.sleep(2)
-    try:
-        yield 'http://localhost:%s/bee_sched/v1' % SCHED_PORT
-    finally:
-        # Teardown
-        proc.terminate()
 
 
 class Scheduler:
@@ -50,7 +37,7 @@ class Scheduler:
             # '--use-mars',
             '--algorithm', algorithm,  # Set the specific algorithm to use
         ])
-        time.sleep(2)
+        time.sleep(6)
 
     def __enter__(self):
         """Enter the runtime context.
@@ -84,8 +71,6 @@ def read_logfile(logfile):
             # Skip comments
             if split[0] == ';':
                 continue
-            print(line)
-            print(split)
             # submit_time = int(split[1])
             # wait_time = int(split[2])
             task_id = int(split[0])
@@ -113,51 +98,89 @@ def main():
     parser.add_argument('--logfile', dest='logfile',
                         help='name of logfile to use for evaluation',
                         required=True)
+    parser.add_argument('--resource-file', dest='resource_file',
+                        help='json resource file to use', required=True)
     args = parser.parse_args()
 
     # TODO: Set resources
-    resources = []
+    # resources = []
+    with open(args.resource_file) as fp:
+        resources = json.load(fp)
     tasks = read_logfile(args.logfile)
-    print(tasks)
 
     # Run FCFS or Backfill
+    # TODO: Record averaged result parameters
+    results = {}
     for algorithm in ['sjf', 'fcfs', 'backfill', 'mars']:
+        print('Testing', algorithm)
+        time.sleep(1)
+        data = []
         with Scheduler(algorithm=algorithm) as link:
             # TODO: Set the proper workflow name later
             workflow_name = 'test-workflow'
             res_link = f'{link}/resources'
             wfl_link = f'{link}/workflows/{workflow_name}/jobs'
-            print(res_link)
-            print(wfl_link)
             # Generate the resources
-            max_cores = max([task['requirements']['cores'] for task in tasks])
-            resources = [
-                {
-                    'id_': 'resource-0',
-                    'cores': max_cores,
-                }
-            ]
             requests.put(res_link, json=resources)
 
             # TODO: PUT Workflows for evaluation
             # Work with chunks of 512 tasks
-            CHUNK_SIZE = 512
+            CHUNK_SIZE = 10
             for i in range(0, len(tasks), CHUNK_SIZE):
                 j = len(tasks) - i
                 j = j if j < CHUNK_SIZE else CHUNK_SIZE
                 print('Sending tasks from', i, 'to', i + j)
                 tasks_send = tasks[i:i + j]
                 r = requests.put(wfl_link, json=tasks_send)
-                print(r.json())
-            # data = r.json()
-            # print(data)
+                data.append(r.json())
+                # print(r.json())
+        # Get scheduling results for comparison
+        total_time = 0
+        for group in data:
+            try:
+                start_time = min(task['allocations'][0]['start_time']
+                                 for task in group if task['allocations'])
+                end_time = max(task['allocations'][0]['start_time']
+                               + task['requirements']['max_runtime']
+                               for task in group if task['allocations'])
+                total_time += end_time - start_time
+            except ValueError:
+                total_time += 0
+        results[algorithm] = {
+            # Average time taken for a set of tasks to run (averaged)
+            'avg_time': float(total_time) / len(data)
+        }
+        # data = r.json()
+        # print(data)
         # TODO
-        break
+        # break
 
-    # Run MARS
-    # with Scheduler(algorithm='mars') as link:
-    #     # TODO
-    #     pass
+    # Setup and display the graph
+    fig, ax = plt.subplots()
+    labels = [algorithm for algorithm in results]
+    x = np.arange(len(labels))
+    y = [results[algorithm]['avg_time'] for algorithm in results]
+    rects = ax.bar(x, y, 0.6, label='Average Times', bottom=(min(y) - 20))
+    ax.set_title('Workflow Times for each algorithm ("%s", "%s")'
+                 % (args.logfile, args.resource_file))
+    ax.set_ylabel('Total workflow time (s)')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+
+    def autolabel(rects):
+        """Add labels to each rectangle.
+
+        Add labels to each rectangle.
+        """
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate('%i' % height,
+                        xy=(rect.get_x() + rect.get_width() / 2, height),
+                        xytext=(0, 3), textcoords='offset points', ha='center',
+                        va='bottom')
+
+    autolabel(rects)
+    plt.show()
 
 if __name__ == '__main__':
     main()

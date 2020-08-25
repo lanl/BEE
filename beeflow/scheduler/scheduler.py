@@ -145,4 +145,6 @@ if __name__ == '__main__':
     conf = load_config_values()
     # Conf access should be set differently
     Config.conf = conf
+    # Load algorithm data
+    algorithms.load(**vars(conf))
     flask_app.run(debug=True, port=conf.listen_port)
