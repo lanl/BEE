@@ -10,14 +10,14 @@ outputs:
     type: int
 steps:
   add:
-    run: /Users/raginigupta/PythonCodes/cwl/add.cwl
+    run: add.cwl
     in:
       x: num1
       y: num2
     out:
     - answer
   multiply:
-    run: /Users/raginigupta/PythonCodes/cwl/multiply.cwl
+    run: multiply.cwl
     in:
       x: add/answer
       y: num2
