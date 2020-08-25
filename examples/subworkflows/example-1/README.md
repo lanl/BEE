@@ -17,7 +17,11 @@ cd cwltool && python setup.py install
 cd cwl-runner && python setup.py install
 ```
 
+### Run CWL Pipeline on the Command line as follows
+```
+cwl-runner --validate add_multiply_example_workflow.cwl
+```
 
-
-
-
+```
+cwl-runner add_multiply_example_workflow.cwl --num1 20 --num2 50
+```
