@@ -83,7 +83,6 @@ if bc.userconfig.has_section('workflow_manager'):
         sys.exit(f'[workflow_manager] missing listen_port in {bc.userconfig_file}')
 else:
     sys.exit(f'[workflow_manager] section missing in {bc.userconfig_file}')
-    sys.exit("[workflow_manager] section missing in " + str(bc.userconfig_file))
 
 wfm_listen_port = bc.userconfig.get('workflow_manager', 'listen_port')
 
@@ -106,7 +105,7 @@ def _resource(tag=""):
 
 
 def update_task_state(task_id, job_state):
-    """Informs the task manager of the current state of a task."""
+    """Informs the workflow manager of the current state of a task."""
     resp = requests.put(_resource("update/"),
                         json={'task_id': task_id, 'job_state': job_state})
     if resp.status_code != 200:
