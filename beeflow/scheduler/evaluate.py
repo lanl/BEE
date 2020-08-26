@@ -63,7 +63,8 @@ def read_logfile(logfile):
     :type logfile: str
     :rtype: dict, set of tasks to pass to the scheduler REST api
     """
-    # TODO: Determine logfile type (swf), read it and convert it into a set of
+    # TODO: Determine logfile type (swf), read it and convert it into a list of
+    # tasks
     tasks = []
     with open(logfile) as fp:
         for line in fp:
@@ -78,8 +79,6 @@ def read_logfile(logfile):
             used_memory = int(split[6])
             procs = int(split[4])
             req_mem = int(split[9])
-            # print(runtime, used_memory, procs, req_mem)
-            # TODO
             tasks.append({
                 'workflow_name': logfile,
                 'task_name': task_id,
@@ -94,27 +93,27 @@ def read_logfile(logfile):
 
 def main():
     parser = argparse.ArgumentParser(description='MARS evaluation program')
-    # TODO: Parse proper arguments
     parser.add_argument('--logfile', dest='logfile',
-                        help='name of logfile to use for evaluation',
+                        help='name of swf logfile to use for evaluation',
                         required=True)
     parser.add_argument('--resource-file', dest='resource_file',
                         help='json resource file to use', required=True)
     args = parser.parse_args()
 
-    # TODO: Set resources
     # resources = []
     with open(args.resource_file) as fp:
         resources = json.load(fp)
+    resource_names = [res['id_'] for res in resources]
     tasks = read_logfile(args.logfile)
 
-    # Run FCFS or Backfill
-    # TODO: Record averaged result parameters
+    # Get results for various algorithms
     results = {}
     for algorithm in ['sjf', 'fcfs', 'backfill', 'mars']:
         print('Testing', algorithm)
         time.sleep(1)
         data = []
+        response_time = 0.0
+        allocs = [0 for res in resources]
         with Scheduler(algorithm=algorithm) as link:
             # TODO: Set the proper workflow name later
             workflow_name = 'test-workflow'
@@ -123,18 +122,30 @@ def main():
             # Generate the resources
             requests.put(res_link, json=resources)
 
-            # TODO: PUT Workflows for evaluation
             # Work with chunks of 512 tasks
             CHUNK_SIZE = 10
             for i in range(0, len(tasks), CHUNK_SIZE):
                 j = len(tasks) - i
                 j = j if j < CHUNK_SIZE else CHUNK_SIZE
+
                 print('Sending tasks from', i, 'to', i + j)
                 tasks_send = tasks[i:i + j]
+                arrival_time = time.time()
                 r = requests.put(wfl_link, json=tasks_send)
-                data.append(r.json())
-                # print(r.json())
+                first_response_time = time.time()
+                response_time = first_response_time - arrival_time
+                task_sched = r.json()
+                data.append(task_sched)
+
+                # Set resource distribution (see how tasks are distributed
+                # across resources)
+                for task in task_sched:
+                    for alloc in task['allocations']:
+                        i = resource_names.index(alloc['id_'])
+                        allocs[i] += 1
         # Get scheduling results for comparison
+        # Average the response time
+        response_time /= float(len(tasks))
         total_time = 0
         for group in data:
             try:
@@ -148,12 +159,10 @@ def main():
                 total_time += 0
         results[algorithm] = {
             # Average time taken for a set of tasks to run (averaged)
-            'avg_time': float(total_time) / len(data)
+            'avg_time': float(total_time) / len(data),
+            'response_time': response_time,
+            'resource_dist': [float(alloc) / len(tasks) for alloc in allocs],
         }
-        # data = r.json()
-        # print(data)
-        # TODO
-        # break
 
     # Setup and display the graph
     fig, ax = plt.subplots()
@@ -175,12 +184,43 @@ def main():
         for rect in rects:
             height = rect.get_height()
             ax.annotate('%i' % height,
-                        xy=(rect.get_x() + rect.get_width() / 2, height),
+                        xy=(rect.get_x() + rect.get_width() / 2, height + 20),
                         xytext=(0, 3), textcoords='offset points', ha='center',
                         va='bottom')
 
     autolabel(rects)
     plt.show()
+
+    # Display the response time graph
+    fig, ax = plt.subplots()
+    y = [results[algorithm]['response_time'] for algorithm in results]
+    rects = ax.bar(x, y, 0.6, label='Response time')
+    ax.set_title('Algorithm response times ("%s", "%s")'
+                 % (args.logfile, args.resource_file))
+    ax.set_ylabel('Response times')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    plt.show()
+
+    # Display the resource distribution graph
+    fig, ax = plt.subplots()
+    width = 0.1
+    # Transpose the results
+    allocs = [[alloc for alloc in results[algorithm]['resource_dist']]
+               for algorithm in results]
+    allocs = np.asarray(allocs).T
+    rects = []
+    for i, (alloc, res_name) in enumerate(zip(allocs, resource_names)):
+        pos = i * width - ((len(allocs) * width) / 2) + 1
+        rects.append(ax.bar(x + pos, alloc, width, label=res_name))
+    ax.set_ylabel('Average usage')
+    ax.set_title('Resource usage per algorithm ("%s", "%s")'
+                 % (args.logfile, args.resource_file))
+    ax.set_xticks(x + len(allocs) * width)
+    ax.set_xticklabels(labels)
+    ax.legend()
+    plt.show()
+
 
 if __name__ == '__main__':
     main()
