@@ -308,6 +308,7 @@ class AlgorithmWrapper:
         """
         self.cls.schedule_all(tasks, resources, **self.kwargs)
         with open(self.logfile, 'a') as fp:
+            print('; Log start at', time.time(), file=fp)
             curr_allocs = []
             for task in tasks:
                 possible_allocs = build_allocation_list(task, tasks, resources,
@@ -327,7 +328,16 @@ class AlgorithmWrapper:
                 # vec.append(a)
                 # TODO: Add more information for calculating reward (i.e. CPU
                 # usage, memory usage, resources available, etc.)
-                print(*vec, file=fp)
+
+                # Output in SWF format
+                # TODO: These variables may not be all in the right spot and
+                # some may be missing as well
+                print(-1, -1, -1, task.requirements.max_runtime,
+                      task.requirements.cores, task.requirements.max_runtime,
+                      task.requirements.mem, task.requirements.cores, -1,
+                      task.requirements.mem, task.requirements.mem, -1,
+                      -1, -1, -1, -1, -1, -1, -1, file=fp)
+                # print(*vec, file=fp)
                 curr_allocs.extend(task.allocations)
 
 

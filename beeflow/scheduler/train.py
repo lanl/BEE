@@ -10,7 +10,10 @@ import json
 import sys
 import time
 import os.path as osp
+
 import beeflow.scheduler.mars as mars
+import beeflow.scheduler.evaluate as evaluate
+import beeflow.scheduler.sched_types as sched_types
 
 
 if __name__ == '__main__':
@@ -19,6 +22,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--workload', type=str,
                         default='./schedule_log.txt')
+    parser.add_argument('--step-size', type=int, default=10, dest='step_size',
+                        help=('step size to use for training (number of tasks '
+                              'to pass at once)'))
+
     # parser.add_argument('--model', type=str, default='./model/model.txt')
     parser.add_argument('--gamma', type=float, default=1)
     parser.add_argument('--seed', '-s', type=int, default=0)
@@ -43,27 +50,55 @@ if __name__ == '__main__':
     else:
         actor = mars.ActorModel()
         critic = mars.CriticModel()
+
     # TODO: Use hyper-parameters
-    workload = mars.Workload.load(args.workload)
-    for record in workload.records:
-        # TODO
-        record = tf.constant([record])
+    # workload = mars.Workload.load(args.workload)
+    workload = evaluate.read_logfile(args.workload)
+    workload = [sched_types.Task.decode(task) for task in workload]
+    buf = []
+    # for record in workload.records:
+    for i in range(0, len(workload), args.step_size):
+        # record = tf.constant([record])
+        tasks = workload[i:i+args.step_size]
         # Learn
         with tf.GradientTape() as tape1, tf.GradientTape() as tape2:
-            p = actor.call(record)
-            # Calculate the action index
-            pl = [float(n) for n in p[0]]
-            a = pl.index(max(pl))
-            # TODO: Temporary loss calculation
-            actor_loss = -np.log(pl[a] / sum(pl))
-            # TODO: Should the critic use the result of the actor?
-            v = critic.call(record)
-            # TODO: Calculate next state critic value
-            # TODO: Add in gamma and reward here
-            # TODO: Calculate proper reward here
-            reward = 1.0
-            critic_loss = reward - v
+            ps = []
+            vs = []
+            actor_losses = []
+            critic_losses = []
+            for task in tasks:
+                vec = tf.constant([mars.workflow2vec(task, tasks)])
+                print(vec)
+                p = actor.call(vec)
+                ps.append(p)
+                # Calculate the action index
+                pl = [float(n) for n in p[0]]
+                a = pl.index(max(pl))
+                # TODO: Add gamma
+                reward = 1.0 if a not in buf else 0.2
+
+                # Empty the buffer if necessary
+                if len(buf) == 10:
+                    buf.clear()
+                buf.append(a)
+
+                # TODO: Temporary loss calculation
+                # TODO: Should the critic use the result of the actor?
+                # TODO: Calculate next state critic value
+                actor_losses.append(-np.log(pl[a] / sum(pl)))
+                v = critic.call(vec)
+                vs.append(v)
+                critic_losses.append(reward - v)
+
+            # TODO: Average losses
+            actor_loss = sum(actor_losses) / len(tasks)
+            critic_loss = sum(critic_losses) / len(tasks)
+            p = sum(ps) / len(tasks)
+            v = sum(vs) / len(tasks)
+
         # Do the update
+        # TODO: Should p and v be used here? Maybe losses, as calculated above,
+        # should be here instead
         actor_grads = tape1.gradient(p, actor.trainable_variables)
         critic_grads = tape2.gradient(v, critic.trainable_variables)
         actor_opt = tf.keras.optimizers.Adam(learning_rate=0.01)
@@ -73,7 +108,8 @@ if __name__ == '__main__':
 
     # For some reason predict() must be run on the actor and critic before they
     # can be saved. See https://github.com/tensorflow/tensorflow/issues/31057
-    record = tf.constant([workload.records[0]])
-    actor.predict(record)
-    critic.predict(record)
+    vec = tf.constant([mars.workflow2vec(workload[0], workload[:args.step_size])])
+    # record = tf.constant([workload.records[0]])
+    actor.predict(vec)
+    critic.predict(vec)
     mars.save_models(actor, critic, args.trained_model)

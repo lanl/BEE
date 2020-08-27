@@ -39,32 +39,32 @@ def workflow2vec(task, tasks):
     return vec
 
 
-class Workload:
-    """Workload class.
-
-    Class for loading a saved workload.
-    """
-
-    def __init__(self, records):
-        """Workload constructor.
-
-        Workload constructor.
-        """
-        self.records = records
-
-    @staticmethod
-    def load(fname):
-        """Load the workload from a file and return it.
-
-        Load the workload from a file and return it.
-        :param fname: file name
-        :type fname: str
-        """
-        with open(fname) as fp:
-            records = []
-            for line in fp:
-                records.append([float(f) for f in line.split()])
-            return Workload(records)
+# class Workload:
+#    """Workload class.
+#
+#    Class for loading a saved workload.
+#    """
+#
+#    def __init__(self, records):
+#        """Workload constructor.
+#
+#        Workload constructor.
+#        """
+#        self.records = records
+#
+#    @staticmethod
+#    def load(fname):
+#        """Load the workload from a file and return it.
+#
+#        Load the workload from a file and return it.
+#        :param fname: file name
+#        :type fname: str
+#        """
+#        with open(fname) as fp:
+#            records = []
+#            for line in fp:
+#                records.append([float(f) for f in line.split()])
+#            return Workload(records)
 
 def _get_action(x):
     """Get the action for x.
