@@ -56,6 +56,7 @@ APScheduler = "^3.6.3"
 jsonpickle = "^1.3"
 requests-unixsocket = "^0.2.0"
 tensorflow = "^2.3.0"
+matplotlib = "^3.3.1"
 
 [tool.poetry.dev-dependencies]
 # Developer dependencies

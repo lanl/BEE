@@ -58,8 +58,8 @@ class WorkflowJobHandler(Resource):
         data = request.json
         tasks = [sched_types.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
-        algorithm = algorithms.choose(tasks, **vars(Config.conf))
-        #algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
+        algorithm = algorithms.choose(tasks, **vars(flask_app.sched_conf))
+        # algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
         #                              mars_model=Config.conf.mars_model)
         allocation.schedule_all(algorithm, tasks, resources)
         return [t.encode() for t in tasks]
@@ -74,6 +74,7 @@ SCHEDULER_PORT = 5100
 # TODO: Use MODEL_FILE when interacting with MARS scheduling
 MODEL_FILE = 'model'
 LOGFILE = 'schedule_log.txt'
+MARS_CNT = 4
 
 
 def load_config_values():
@@ -85,6 +86,8 @@ def load_config_values():
     parser = argparse.ArgumentParser(description='start the BEE scheduler')
     parser.add_argument('-p', dest='port', type=int, help='port to run on',
                         default=SCHEDULER_PORT)
+    parser.add_argument('--config-file', dest='config_file',
+                        help='location of config file')
     parser.add_argument('--no-config', dest='read_config',
                         help='do not read from the config',
                         action='store_false')
@@ -93,6 +96,9 @@ def load_config_values():
                         action='store_true')
     parser.add_argument('--mars-model', dest='mars_model',
                         help='mars model to load', default=MODEL_FILE)
+    parser.add_argument('--mars-task-cnt', dest='mars_task_cnt',
+                        help='number of tasks needed for scheduling with MARS',
+                        default=MARS_CNT)
     parser.add_argument('--logfile', dest='logfile',
                         help='logfile to write to', default=LOGFILE)
     parser.add_argument('--algorithm', dest='algorithm',
@@ -103,13 +109,15 @@ def load_config_values():
         'listen_port': args.port,
         'use_mars': args.use_mars,
         'mars_model': args.mars_model,
+        'mars_task_cnt': args.mars_task_cnt,
         'logfile': args.logfile,
         'algorithm': args.algorithm,
     }
     if args.read_config:
-        try:
-            bc = config_driver.BeeConfig(userconfig=sys.argv[1])
-        except IndexError:
+        # Read config values from the config file
+        if args.config_file is not None:
+            bc = config_driver.BeeConfig(args.config_file)
+        else:
             bc = config_driver.BeeConfig()
 
         if bc.userconfig.has_section('scheduler'):
@@ -117,6 +125,10 @@ def load_config_values():
                 'listen_port', SCHEDULER_PORT)
             conf['use_mars'] = bc.userconfig['scheduler'].get('use_mars',
                                                               False)
+            conf['mars_model'] = bc.userconfig['scheduler'].get(
+                'mars_model', args.mars_model)
+            conf['mars_task_cnt'] = bc.userconfig['scheduler'].get(
+                'mars_task_cnt', args.mars_task_cnt)
             conf['logfile'] = bc.userconfig['scheduler'].get('logfile',
                                                              args.logfile)
             conf['algorithm'] = bc.userconfig['scheduler'].get('algorithm',
@@ -131,20 +143,16 @@ def load_config_values():
     print(f'\tlisten_port {conf["listen_port"]}')
     print(f'\tuse_mars {conf["use_mars"]}')
     print(f'\tmars_model {conf["mars_model"]}')
+    print(f'\tmars_task_cnt {conf["mars_task_cnt"]}')
     print(f'\tlogfile {conf["logfile"]}')
     print(f'\talgorithm {conf["algorithm"]}')
     print(']')
     return argparse.Namespace(**conf)
 
 
-class Config:
-    pass
-
-
 if __name__ == '__main__':
     conf = load_config_values()
-    # Conf access should be set differently
-    Config.conf = conf
+    flask_app.sched_conf = conf
     # Load algorithm data
     algorithms.load(**vars(conf))
     flask_app.run(debug=True, port=conf.listen_port)

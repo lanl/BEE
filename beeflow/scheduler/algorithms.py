@@ -386,7 +386,7 @@ def load(**kwargs):
     MARS.load(**kwargs)
 
 
-def choose(tasks, use_mars=False, algorithm=None, **kwargs):
+def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN, **kwargs):
     """Choose which algorithm to run at this point.
 
     Determine which algorithm class needs to run and return it.
@@ -410,7 +410,7 @@ def choose(tasks, use_mars=False, algorithm=None, **kwargs):
         cls = SJF
     else:
         if use_mars:
-            cls = Backfill if len(tasks) < MEDIAN else MARS
+            cls = Backfill if len(tasks) < int(mars_task_cnt) else MARS
         else:
             cls = Backfill
     return AlgorithmWrapper(cls, **kwargs)
