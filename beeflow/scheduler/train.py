@@ -25,6 +25,9 @@ if __name__ == '__main__':
     parser.add_argument('--step-size', type=int, default=10, dest='step_size',
                         help=('step size to use for training (number of tasks '
                               'to pass at once)'))
+    parser.add_argument('--trained_model', type=str,
+                        default='./model')
+    parser.add_argument('--resource_file', type=str, default=None)
 
     # parser.add_argument('--model', type=str, default='./model/model.txt')
     parser.add_argument('--gamma', type=float, default=1)
@@ -34,8 +37,6 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=4000)
     parser.add_argument('--exp_name', type=str, default='mars')
     parser.add_argument('--pre_trained', type=int, default=0)
-    parser.add_argument('--trained_model', type=str,
-                        default='./model')
     parser.add_argument('--attn', type=int, default=0)
     parser.add_argument('--shuffle', type=int, default=0)
     parser.add_argument('--backfil', type=int, default=0)
@@ -43,6 +44,14 @@ if __name__ == '__main__':
     parser.add_argument('--score_type', type=int, default=0)
     parser.add_argument('--batch_job_slice', type=int, default=0)
     args = parser.parse_args()
+
+    # Load the resource_file
+    resource_cnt = 5 # default resource_cnt
+    if args.resource_file is not None:
+        with open(args.resource_file) as fp:
+            # Only counts resouces right now
+            resource_cnt = len(json.load(fp))
+        
 
     if args.pre_trained:
         # TODO: pre_trained is not working yet
@@ -74,13 +83,16 @@ if __name__ == '__main__':
                 # Calculate the action index
                 pl = [float(n) for n in p[0]]
                 a = pl.index(max(pl))
+                # Calculate the resource to use
+                resource = (float(a) / len(pl)) * (resource_cnt - 1)
+                resource = int(resource)
                 # TODO: Add gamma
-                reward = 1.0 if a not in buf else 0.2
+                reward = 1.0 if resource not in buf else 0.2
 
                 # Empty the buffer if necessary
                 if len(buf) == 10:
                     buf.clear()
-                buf.append(a)
+                buf.append(resource)
 
                 # TODO: Temporary loss calculation
                 # TODO: Should the critic use the result of the actor?
@@ -93,8 +105,8 @@ if __name__ == '__main__':
             # TODO: Average losses
             actor_loss = sum(actor_losses) / len(tasks)
             critic_loss = sum(critic_losses) / len(tasks)
-            p = sum(ps) / len(tasks)
-            v = sum(vs) / len(tasks)
+            p = actor_loss * (sum(ps) / len(tasks))
+            v = critic_loss * (sum(vs) / len(tasks))
 
         # Do the update
         # TODO: Should p and v be used here? Maybe losses, as calculated above,

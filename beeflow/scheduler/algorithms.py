@@ -378,12 +378,13 @@ def build_allocation_list(task, tasks, resources, curr_allocs):
 MEDIAN = 2
 
 
-def load(**kwargs):
+def load(use_mars=False, algorithm=None, **kwargs):
     """Load data needed by the algorithms.
 
     Load data needed by the algorithms.
     """
-    MARS.load(**kwargs)
+    if use_mars or algorithm == 'mars':
+        MARS.load(**kwargs)
 
 
 def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN, **kwargs):

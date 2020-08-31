@@ -121,18 +121,8 @@ def load_config_values():
             bc = config_driver.BeeConfig()
 
         if bc.userconfig.has_section('scheduler'):
-            conf['listen_port'] = bc.userconfig['scheduler'].get(
-                'listen_port', SCHEDULER_PORT)
-            conf['use_mars'] = bc.userconfig['scheduler'].get('use_mars',
-                                                              False)
-            conf['mars_model'] = bc.userconfig['scheduler'].get(
-                'mars_model', args.mars_model)
-            conf['mars_task_cnt'] = bc.userconfig['scheduler'].get(
-                'mars_task_cnt', args.mars_task_cnt)
-            conf['logfile'] = bc.userconfig['scheduler'].get('logfile',
-                                                             args.logfile)
-            conf['algorithm'] = bc.userconfig['scheduler'].get('algorithm',
-                                                               args.algorithm)
+            for key in bc.userconfig['scheduler']:
+                conf[key] = bc.userconfig['scheduler'].get(key)
         else:
             print('[scheduler] section not found in configuration file, '
                   'default values will be added')
