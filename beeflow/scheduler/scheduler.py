@@ -75,6 +75,7 @@ SCHEDULER_PORT = 5100
 MODEL_FILE = 'model'
 LOGFILE = 'schedule_log.txt'
 MARS_CNT = 4
+DEFAULT_ALGORITHM = 'fcfs'
 
 
 def load_config_values():
@@ -101,6 +102,8 @@ def load_config_values():
                         default=MARS_CNT)
     parser.add_argument('--logfile', dest='logfile',
                         help='logfile to write to', default=LOGFILE)
+    parser.add_argument('--default-algorithm', dest='default_algorithm',
+                        help='default algorithm to use')
     parser.add_argument('--algorithm', dest='algorithm',
                         help='specific algorithm to use')
     args = parser.parse_args()
@@ -112,6 +115,7 @@ def load_config_values():
         'mars_task_cnt': args.mars_task_cnt,
         'logfile': args.logfile,
         'algorithm': args.algorithm,
+        'default_algorithm': args.default_algorithm,
     }
     if args.read_config:
         # Read config values from the config file
@@ -129,15 +133,18 @@ def load_config_values():
             bc.modify_section('user', 'scheduler', conf)
             sys.exit(f'Please check {bc.userconfig_file} and restart '
                      'Scheduler')
+
+    conf = argparse.Namespace(**conf)
     print('Config = [')
-    print(f'\tlisten_port {conf["listen_port"]}')
-    print(f'\tuse_mars {conf["use_mars"]}')
-    print(f'\tmars_model {conf["mars_model"]}')
-    print(f'\tmars_task_cnt {conf["mars_task_cnt"]}')
-    print(f'\tlogfile {conf["logfile"]}')
-    print(f'\talgorithm {conf["algorithm"]}')
+    print(f'\tlisten_port {conf.listen_port}')
+    print(f'\tuse_mars {conf.use_mars}')
+    print(f'\tmars_model {conf.mars_model}')
+    print(f'\tmars_task_cnt {conf.mars_task_cnt}')
+    print(f'\tlogfile {conf.logfile}')
+    print(f'\talgorithm {conf.algorithm}')
+    print(f'\tdefault_algorithm {conf.default_algorithm}')
     print(']')
-    return argparse.Namespace(**conf)
+    return conf
 
 
 if __name__ == '__main__':
