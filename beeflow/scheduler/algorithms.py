@@ -55,24 +55,24 @@ class SJF(Algorithm):
         # Sort by max_runtime
         tasks.sort(key=lambda t: t.requirements.max_runtime)
         resources = resources[:]
+        # Times for showing availability
+        times = [[res, start_time] for res in resources]
         while tasks:
             task = tasks.pop()
             # Check if it can run
-            # remaining = sched_types.rsum(*resources)
             if not any(res.fits_requirements(task.requirements)
                        for res in resources):
                 # Can't run on given resources
                 continue
-            # max_runtime = task.requirements.max_runtime
-            for res in resources:
+            # Sort the times
+            times.sort(key=lambda slot: slot[1])
+            for i, (res, start_time) in enumerate(times):
                 if res.fits_requirements(task.requirements):
+                    # alloc = res.allocate(res, [], task.requirements, start_time)
                     alloc = res.allocate(res, [], task.requirements, start_time)
                     task.allocations = [alloc]
-            start_time += task.requirements.max_runtime
-            # for time, runtime, resource in allocations:
-            #    # Calculate the overlaping allocations
-            #    overlap = [alloc for alloc in allocations if alloc[0] < time and alloc[0] + ]
-            # TODO
+                    times[i][1] += task.requirements.max_runtime
+                    break
 
 
 class FCFS(Algorithm):
