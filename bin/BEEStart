@@ -247,7 +247,8 @@ def StartTaskManager(bc, args):
             offset = os.getuid()%100
         tm_dict = {
             'listen_port': 5050 + offset,
-            'container_runtime': 'Charliecloud'
+            'container_runtime': 'Charliecloud',
+            'workload_scheduler': 'Slurm'
         }
         # Add section (writes to config file)
         bc.modify_section('user','task_manager',tm_dict)

@@ -23,11 +23,15 @@ try:
 except IndexError:
     bc = BeeConfig()
 
-supported_runtimes = ['Charliecloud', 'Singularity']
 
 
 def check_crt_config(container_runtime):
     """Check container runtime configurations."""
+    supported_runtimes = ['Charliecloud', 'Singularity']
+    if container_runtime not in supported_runtimes:
+        sys.exit(f'Container runtime, {runtime}, not supported.\n' +
+                 f'Please check {bc.userconfig_file} and restart TaskManager.')
+
     if container_runtime == 'Charliecloud':
         if not bc.userconfig.has_section('charliecloud'):
             cc_opts = {'setup': 'module load charliecloud',
@@ -51,27 +55,32 @@ if platform.system() == 'Windows':
 else:
     TM_PORT += os.getuid() % 100
 
+# Check task_manager and container_runtime sections of user configuration file 
+tm_dict = {}
+tm_log = f"{bc.userconfig['DEFAULT'].get('bee_workdir')}/logs/tm.log"
+tm_default = {'listen_port': TM_PORT,
+              'workload_scheduler': 'Slurm',
+              'log': tm_log,
+              'container_runtime': 'Charliecloud'}
 if bc.userconfig.has_section('task_manager'):
-    try:
-        bc.userconfig.get('task_manager', 'listen_port')
-    except NoOptionError:
-        bc.modify_section('user', 'task_manager', {'listen_port': TM_PORT})
-    try:
-        bc.userconfig.get('task_manager', 'container_runtime')
-    except NoOptionError:
-        bc.modify_section('user', 'task_manager', {'container_runtime': 'Charliecloud'})
-    if bc.userconfig.get('task_manager', 'container_runtime') not in supported_runtimes:
-        sys.exit('Container Runtime not supported!\n' +
-                 f'Please check {bc.userconfig_file} and restart TaskManager.')
-    runtime = bc.userconfig.get('task_manager', 'container_runtime')
-    check_crt_config(runtime)
+    # Insert defaults for any options not in task_manager section of userconfig file
+    update_config = False
+    for a, b in bc.userconfig.items('task_manager'):
+        tm_dict.setdefault(a, b)
+    for key in tm_default.keys():
+        if key not in tm_dict.keys():
+            tm_dict[key] = tm_default[key]
+            update_config = True
+    if update_config:
+        bc.modify_section('user', 'task_manager', tm_dict)
 else:
     tm_listen_port = TM_PORT
-    tm_dict = {'listen_port': tm_listen_port, 'container_runtime': 'Charliecloud'}
-    bc.modify_section('user', 'task_manager', tm_dict)
+    bc.modify_section('user', 'task_manager', tm_default)
     check_crt_config('Charliecloud')
-    sys.exit(f'[task_manager] section missing in {bc.userconfig_file}, ' +
-             'default values added.\n Please check and restart Task Manager.')
+    sys.exit(f'[task_manager] section missing in {bc.userconfig_file}\n' +
+             'Default values added. Please check and restart Task Manager.')
+runtime = bc.userconfig.get('task_manager', 'container_runtime')
+check_crt_config(runtime)
 
 tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 
