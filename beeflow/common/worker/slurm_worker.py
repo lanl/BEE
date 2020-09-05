@@ -54,17 +54,24 @@ class SlurmWorker(Worker):
         # Get BEE workdir from config file
         self.workdir = kwargs['bee_workdir']
 
-    def build_text(self, task, template_file):
+        # Get template for job, if option in configuration
+        self.job_template = kwargs['job_template']
+        if self.job_template:
+            try:
+                template_file = open(self.job_template, 'r')
+                self.template_text = template_file.read()
+                template_file.close()
+            except ValueError as error:
+                print(error)
+        else:
+            self.template_text = ''
+
+    def build_text(self, task):
         """Build text for task script use template if it exists."""
-        job_template = ''
-        try:
-            template_f = open(template_file, 'r')
-            job_template = template_f.read()
-            template_f.close()
-        except OSError:
-            print('\nNo job_template: creating a simple job template!')
-            job_template = '#! /bin/bash\n#SBATCH\n'
-        template = string.Template(job_template)
+        template_text = self.template_text
+        if template_text == '':
+            template_text = '#! /bin/bash\n#SBATCH\n'
+        template = string.Template(template_text)
         job_text = template.substitute({'name': task.name, 'id': task.id})
         crt_text = self.crt.script_text(task)
         job_text += crt_text
@@ -78,8 +85,7 @@ class SlurmWorker(Worker):
         # for now using fixed directory for task manager scripts and write them out
         # we may keep them in memory and only write for a debug or logging option
         os.makedirs(f'{self.workdir}/worker', exist_ok=True)
-        template_file = f'{self.workdir}/worker/job.template'
-        task_text = self.build_text(task, template_file)
+        task_text = self.build_text(task)
         task_script = f'{self.workdir}/worker/{task.name}.sh'
         try:
             script_f = open(task_script, 'w')

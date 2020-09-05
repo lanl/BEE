@@ -24,7 +24,6 @@ except IndexError:
     bc = BeeConfig()
 
 
-
 def check_crt_config(container_runtime):
     """Check container runtime configurations."""
     supported_runtimes = ['Charliecloud', 'Singularity']
@@ -55,7 +54,7 @@ if platform.system() == 'Windows':
 else:
     TM_PORT += os.getuid() % 100
 
-# Check task_manager and container_runtime sections of user configuration file 
+# Check task_manager and container_runtime sections of user configuration file
 tm_dict = {}
 tm_log = f"{bc.userconfig['DEFAULT'].get('bee_workdir')}/logs/tm.log"
 tm_default = {'listen_port': TM_PORT,
@@ -64,14 +63,15 @@ tm_default = {'listen_port': TM_PORT,
               'container_runtime': 'Charliecloud'}
 if bc.userconfig.has_section('task_manager'):
     # Insert defaults for any options not in task_manager section of userconfig file
-    update_config = False
-    for a, b in bc.userconfig.items('task_manager'):
-        tm_dict.setdefault(a, b)
-    for key in tm_default.keys():
+    UPDATE_CONFIG = False
+    items = bc.userconfig.items('task_manager')
+    for key, value in items:
+        tm_dict.setdefault(key, value)
+    for key in tm_default:
         if key not in tm_dict.keys():
             tm_dict[key] = tm_default[key]
-            update_config = True
-    if update_config:
+            UPDATE_CONFIG = True
+    if UPDATE_CONFIG:
         bc.modify_section('user', 'task_manager', tm_dict)
 else:
     tm_listen_port = TM_PORT
@@ -227,8 +227,12 @@ from beeflow.common.worker.slurm_worker import SlurmWorker
 worker = WorkerInterface(SlurmWorker,
                          slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'),
                          bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
-                         container_runtime=bc.userconfig.get('task_manager', 'container_runtime'))
-
+                         workload_scheduler=bc.userconfig.get('task_manager',
+                                                              'workload_scheduler'),
+                         container_runtime=bc.userconfig.get('task_manager',
+                                                             'container_runtime'),
+                         job_template=bc.userconfig.get('task_manager',
+                                                        'job_template', fallback=None))
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
@@ -238,9 +242,8 @@ if __name__ == '__main__':
     try:
         bc.userconfig.get('task_manager', 'log')
     except NoOptionError:
-        bc.modify_section('user', 'task_manager',
-                          {'log': '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                            'logs', 'tm.log'])})
+        tm_log = {'log': f'/{bc.userconfig["DEFAULT"].get("bee_workdir")}/logs/tm.log'}
+        bc.modify_section('user', 'task_manager', tm_log)
     finally:
         tm_log = bc.userconfig.get('task_manager', 'log')
         tm_log = bc.resolve_path(tm_log)
