@@ -7,7 +7,8 @@ class BuildDriver(ABC):
     """Driver interface between WFM and a generic build system.
 
     A driver object must implement an __init__ method that
-    requests a RTE, and a method to return the requested RTE.
+    requests a Runtime Environment (RTE), and a method to 
+    return the requested RTE.
     """
 
     @abstractmethod
