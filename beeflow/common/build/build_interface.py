@@ -1,9 +1,9 @@
 """Mid-level interface for managing a build system from WFM.
 
-The WFM may request a RTE that must be built. This RTE build should
-be considered a separate stage in the workflow. The build_interface
-will access components of the build_driver and components of the
-gdb_interface as required.
+The WFM may request a Runtime Environment (RTE) that must be built. 
+This RTE build should be considered a separate stage in the workflow.
+The build_interface will access components of the build_driver and 
+components of the gdb_interface as required.
 """
 
 # from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
