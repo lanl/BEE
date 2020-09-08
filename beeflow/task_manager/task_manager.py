@@ -124,7 +124,7 @@ def update_task_state(task_id, job_state):
 
 
 def submit_jobs():
-    """Submit all jobs currently in submit queue to slurm."""
+    """Submit all jobs currently in submit queue to the workload scheduler."""
     while len(submit_queue) >= 1:
         # Single value dictionary
         temp = submit_queue.pop(0)
@@ -224,17 +224,36 @@ class TaskActions(Resource):
 # WorkerInterface needs to be placed here. Don't Move!
 from beeflow.common.worker.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
-worker = WorkerInterface(SlurmWorker,
-                         slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'),
-                         bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
-                         workload_scheduler=bc.userconfig.get('task_manager',
-                                                              'workload_scheduler'),
-                         container_runtime=bc.userconfig.get('task_manager',
-                                                             'container_runtime'),
-                         job_template=bc.userconfig.get('task_manager',
-                                                        'job_template', fallback=None))
-api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
-api.add_resource(TaskActions, '/bee_tm/v1/task/')
+from beeflow.common.worker.lsf_worker import LSFWorker
+
+supported_workload_schedulers = {'Slurm', 'LSF'}
+try:
+    WLS = bc.userconfig.get('task_manager', 'workload_scheduler')
+except ValueError as error:
+    print(f'workload scheduler error {error}')
+    WLS = None
+if WLS not in supported_workload_schedulers:
+    sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
+             f'Please check {bc.userconfig_file} and restart TaskManager.')
+if WLS == 'Slurm':
+    worker = WorkerInterface(SlurmWorker,
+                             slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'),
+                             bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
+                             container_runtime=bc.userconfig.get('task_manager',
+                                                                 'container_runtime'),
+                             job_template=bc.userconfig.get('task_manager',
+                                                            'job_template', fallback=None))
+    api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
+    api.add_resource(TaskActions, '/bee_tm/v1/task/')
+
+elif WLS == 'LSF':
+    worker = WorkerInterface(LSFWorker,
+                             bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
+                             container_runtime=bc.userconfig.get('task_manager',
+                                                                 'container_runtime'),
+                             job_template=bc.userconfig.get('task_manager',
+                                                            'job_template', fallback=None))
+    api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 
 
 if __name__ == '__main__':
