@@ -317,6 +317,8 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
     parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
     parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
+    parser.add_argument("--sleep-time", default=4, type=int,
+                        help="amount of time to sleep before checking processes")
     return parser.parse_args(args)
 
 def main():
@@ -393,7 +395,7 @@ def main():
     if args.config_only:
         return 0
 
-    time.sleep(3)
+    time.sleep(args.sleep_time)
     # Check if any processes have finished early
     for name, proc in wait_list:
         exit_code = proc.poll()

@@ -3,6 +3,7 @@
 
 import argparse
 import sys
+import logging
 
 from flask import Flask, request
 from flask_restful import Resource, Api
@@ -87,6 +88,8 @@ def load_config_values():
     parser = argparse.ArgumentParser(description='start the BEE scheduler')
     parser.add_argument('-p', dest='port', type=int, help='port to run on',
                         default=SCHEDULER_PORT)
+    parser.add_argument('--log', dest='log',
+                        help='Scheduler log file location')
     parser.add_argument('--config-file', dest='config_file',
                         help='location of config file')
     parser.add_argument('--no-config', dest='read_config',
@@ -101,7 +104,7 @@ def load_config_values():
                         help='number of tasks needed for scheduling with MARS',
                         default=MARS_CNT)
     parser.add_argument('--logfile', dest='logfile',
-                        help='logfile to write to', default=LOGFILE)
+                        help='logfile/trace file to write to', default=LOGFILE)
     parser.add_argument('--default-algorithm', dest='default_algorithm',
                         help='default algorithm to use')
     parser.add_argument('--algorithm', dest='algorithm',
@@ -109,6 +112,7 @@ def load_config_values():
     args = parser.parse_args()
     # Set the default config values
     conf = {
+        'log': args.log,
         'listen_port': args.port,
         'use_mars': args.use_mars,
         'mars_model': args.mars_model,
@@ -134,6 +138,12 @@ def load_config_values():
             sys.exit(f'Please check {bc.userconfig_file} and restart '
                      'Scheduler')
 
+    # Set the default log
+    if conf['log'] is None or not conf['log']:
+        conf['log'] = ('/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
+                               'logs', 'sched.log'])
+                     if args.read_config else 'sched.log')
+
     conf = argparse.Namespace(**conf)
     print('Config = [')
     print(f'\tlisten_port {conf.listen_port}')
@@ -152,4 +162,15 @@ if __name__ == '__main__':
     flask_app.sched_conf = conf
     # Load algorithm data
     algorithms.load(**vars(conf))
+
+    handler = logging.FileHandler(conf.log)
+    handler.setLevel(logging.DEBUG)
+
+    # Werkzeug logging
+    werk_log = logging.getLogger('werkzeug')
+    werk_log.setLevel(logging.INFO)
+    werk_log.addHandler(handler)
+
+    # Flask logging
+    flask_app.logger.addHandler(handler)
     flask_app.run(debug=True, port=conf.listen_port)
