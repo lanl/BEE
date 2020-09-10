@@ -291,6 +291,8 @@ def setup_logging(bc, debug=False):
         logfile = default.get('logfile', 'bee.log')
         path = os.path.join(bee_workdir, logdir) if logdir else bee_workdir
         path = os.path.join(path, logfile)
+        # Turn on the default stream handler so we print to a file and stderr
+        logging.getLogger().addHandler(logging.StreamHandler())
         logging.basicConfig(filename=path)
     return logging.getLogger(BEESTART)
 
@@ -347,7 +349,6 @@ def main():
         if not args.config_only:
             if proc is None:
                 log.error('slurmrestd failed to start. Exiting.')
-                print('slurmrestd failed to start. Exiting.', file=sys.stderr)
                 return 1
             # Don't append the graph database to list of processes to wait for
             log.info('Starting slurmrestd based on userconfig file.')
@@ -356,7 +357,6 @@ def main():
         if not args.config_only:
             if proc is None:
                 log.error('Graph Database failed to start. Exiting.')
-                print('Graph Database failed to start. Exiting.', file=sys.stderr)
                 return 1
             # Don't append the graph database to list of processes to wait for
             log.info('Loading Graph Database')
@@ -365,7 +365,6 @@ def main():
         if not args.config_only:
             if proc is None:
                 log.error('Workflow Manager failed to start. Exiting.')
-                print('Workflow Manager failed to start. Exiting.', file=sys.stderr)
                 return 1
             create_pid_file(proc, 'server.pid', bc)
             wait_list.append(('Workflow Manager', proc))
@@ -375,7 +374,6 @@ def main():
         if not args.config_only:
             if proc is None:
                 log.error('Task Manager failed to start. Exiting.')
-                print('Task Manager failed to start. Exiting.', file=sys.stderr)
                 return 1
             create_pid_file(proc, 'tm.pid', bc)
             wait_list.append(('Task Manager', proc))
@@ -390,7 +388,6 @@ def main():
         exit_code = proc.poll()
         if exit_code is not None:
             log.error(f'{name} failed to start. Exiting.')
-            print(f'{name} failed to start. Exiting.', file=sys.stderr)
 
     # Wait for everything to finish, if debug, otherwise just exit now
     if args.debug:
@@ -399,7 +396,6 @@ def main():
             exit_code = proc.wait()
             if exit_code != 0:
                 log.error('Error running %s', name)
-                print('Error running', name, file=sys.stderr)
 
     return 0
 
