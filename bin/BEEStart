@@ -269,6 +269,21 @@ def StartScheduler(bc, args):
     Start BEEScheduler and return the process object.
     :rtype: instance of Popen
     """
+    # Load scheduler config if exists
+    try:
+        bc.userconfig['scheduler']
+    except KeyError:
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            offset = os.getppid()%100
+        else:
+            offset = os.getuid()%100
+        server_dict = {
+            'listen_port': 5100 + offset,
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','scheduler',server_dict)
+
     if args.config_only:
         return None
     return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py'],
