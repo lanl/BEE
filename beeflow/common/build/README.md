@@ -3,7 +3,7 @@
 The BEE system should launch containerized or baremetal jobs. The steps leading up to the execution environment will be referred to as "build" steps. All build functionality is defined here, but may depend on other components (such as container runtimes).
 
 **Initialization:** A BEE builder object will be intialized from a BEE builder class definition. The builder object will be instantiated with relevant beeconfig parameters and CWL parameters under the `DockerRequirement` specs. After a successfull initialization, a BEE builder getter will return a path to the configured container for a given workflow step.  
-**Usage:** A BEE builder object will get the path to a container that meets the pre-conditions of the CWL `DocekrRequirement` spec. A BEE builder object will also get the full list of parameters it was instantiated with.
+**Usage:** A BEE builder object will get the path to a container that meets the pre-conditions of the CWL `DockerRequirement` spec. A BEE builder object will also get the full list of parameters it was instantiated with.
 
 ## Container workloads
 Each step in a workflow may include a reference to `DockerRequirement` in the CWL hints or requirements. If the `DockerRequirement` CWL hint is defined, any failure in the container runtime will result in a warning, and the workflow will attempt to run in the default baremetal environment. If the `DockerRequirement` CWL requirement is defined, any failure in the container runtime will result in an error and the workflow will terminate unsuccessfully. The `DockerRequirement` entry includes several fields:
