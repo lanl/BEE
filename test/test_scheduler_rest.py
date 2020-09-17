@@ -74,7 +74,7 @@ def test_schedule_job_one_resource(scheduler):
     # Create a single resource
     resource1 = {
         'id_': 'resource-1',
-        'cores': 10,
+        'nodes': 10,
     }
     r = requests.put(f'{url}/resources', json=[resource1])
 
@@ -99,7 +99,7 @@ def test_schedule_job_one_resource(scheduler):
     assert data[0]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) == 1
     assert data[0]['allocations'][0]['id_'] == 'resource-1'
-    assert data[0]['allocations'][0]['cores'] == 1
+    assert data[0]['allocations'][0]['nodes'] == 1
     assert data[0]['allocations'][0]['start_time'] == int(time.time())
     assert data[0]['allocations'][0]['max_runtime'] == 1
 
@@ -116,11 +116,11 @@ def test_schedule_job_two_resources(scheduler):
     # Create a single resource
     resource1 = {
         'id_': 'resource-1',
-        'cores': 10,
+        'nodes': 10,
     }
     resource2 = {
         'id_': 'resource-2',
-        'cores': 64,
+        'nodes': 64,
     }
     r = requests.put(f'{url}/resources', json=[resource1, resource2])
 
@@ -158,11 +158,11 @@ def test_schedule_multi_job_two_resources(scheduler):
     # Create a single resource
     resource1 = {
         'id_': 'resource-0',
-        'cores': 10,
+        'nodes': 10,
     }
     resource2 = {
         'id_': 'resource-1',
-        'cores': 16,
+        'nodes': 16,
     }
     r = requests.put(f'{url}/resources', json=[resource1, resource2])
 
@@ -189,7 +189,7 @@ def test_schedule_multi_job_two_resources(scheduler):
         'task_name': 'test-task-2',
         'requirements': {
             'max_runtime': 4,
-            'cores': 16,
+            'nodes': 16,
         },
     }
     r = requests.put(f'{url}/workflows/{workflow_name}/jobs',
@@ -209,7 +209,7 @@ def test_schedule_multi_job_two_resources(scheduler):
     assert data[2]['workflow_name'] == 'test-workflow'
     assert data[2]['task_name'] == 'test-task-2'
     assert data[2]['requirements']['max_runtime'] == 4
-    assert data[2]['requirements']['cores'] == 16
+    assert data[2]['requirements']['nodes'] == 16
     assert len(data[2]['allocations']) > 0
 # TODO: More job tests
 # TODO: More resource tests

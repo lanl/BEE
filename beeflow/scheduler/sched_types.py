@@ -92,13 +92,13 @@ class Resource(Serializable):
     Resource base class.
     """
 
-    def __init__(self, id_=None, cores=1, mem=8192):
+    def __init__(self, id_=None, nodes=1, mem=8192):
         """Resource base constructor.
 
         Resource base constructor.
         """
         self.id_ = id_
-        self.cores = cores
+        self.nodes = nodes
         self.mem = mem
 
     def fits_requirements(self, requirements):
@@ -109,7 +109,7 @@ class Resource(Serializable):
         :type requirements: instance of RequirementBase
         :rtype: bool
         """
-        return (requirements.cores <= self.cores
+        return (requirements.nodes <= self.nodes
                 and requirements.mem <= self.mem)
 
     def allocate(self, remaining, task_allocated, requirements, start_time):
@@ -128,17 +128,17 @@ class Resource(Serializable):
         :rtype:
         """
         total_task_allocated = rsum(*task_allocated)
-        cores = (remaining.cores
-                 if (remaining.cores <= (requirements.cores
-                                         - total_task_allocated.cores))
-                 else (requirements.cores - total_task_allocated.cores))
+        nodes = (remaining.nodes
+                 if (remaining.nodes <= (requirements.nodes
+                                         - total_task_allocated.nodes))
+                 else (requirements.nodes - total_task_allocated.nodes))
         mem = (remaining.mem
                if (remaining.mem
                    <= (requirements.mem - total_task_allocated.mem))
                else (requirements.mem - total_task_allocated.mem))
         return Allocation(start_time=start_time,
                           max_runtime=requirements.max_runtime, id_=self.id_,
-                          cores=cores, mem=mem)
+                          nodes=nodes, mem=mem)
 
     @property
     def empty(self):
@@ -147,7 +147,7 @@ class Resource(Serializable):
         Property which determines whether or not a resource is empty.
         :rtype: bool
         """
-        return self.cores == 0 or self.mem == 0
+        return self.nodes == 0 or self.mem == 0
 
     def encode(self):
         """Encode and return a simple Python data type.
@@ -178,7 +178,7 @@ def diff(resource1, resource2):
     :type resource2: instance of Resource
     :rtype: new instance of Resource
     """
-    return Resource(cores=resource1.cores-resource2.cores,
+    return Resource(nodes=resource1.nodes-resource2.nodes,
                     mem=resource1.mem-resource2.mem)
 
 
@@ -190,7 +190,7 @@ def rsum(*resources):
     :type resources:
     :rtype: new instance of Resource
     """
-    return Resource(cores=sum(r.cores for r in resources),
+    return Resource(nodes=sum(r.nodes for r in resources),
                     mem=sum(r.mem for r in resources))
 
 
@@ -216,17 +216,17 @@ class RequirementBase:
     Base requirements class.
     """
 
-    def __init__(self, cores=1, mem=1024, max_runtime=1, cost=1):
+    def __init__(self, nodes=1, mem=1024, max_runtime=1, cost=1):
         """Constructor for requirements.
 
         Constructor for requirements.
-        :param cores: number of cores
-        :type cores: int
+        :param nodes: number of nodes
+        :type nodes: int
         """
-        if cores < 0:
-            raise RequirementsError('Invalid "cores" requirement of %i'
-                                    % cores)
-        self.cores = cores
+        if nodes < 0:
+            raise RequirementsError('Invalid "nodes" requirement of %i'
+                                    % nodes)
+        self.nodes = nodes
         if mem < 0:
             raise RequirementsError('Invalid "mem" requirement of %i' % mem)
         self.mem = mem

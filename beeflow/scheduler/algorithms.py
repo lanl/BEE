@@ -333,8 +333,8 @@ class AlgorithmWrapper:
                 # TODO: These variables may not be all in the right spot and
                 # some may be missing as well
                 print(-1, -1, -1, task.requirements.max_runtime,
-                      task.requirements.cores, task.requirements.max_runtime,
-                      task.requirements.mem, task.requirements.cores, -1,
+                      task.requirements.nodes, task.requirements.max_runtime,
+                      task.requirements.mem, task.requirements.nodes, -1,
                       task.requirements.mem, task.requirements.mem, -1,
                       -1, -1, -1, -1, -1, -1, -1, file=fp)
                 # print(*vec, file=fp)

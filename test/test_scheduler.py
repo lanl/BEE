@@ -66,7 +66,7 @@ class TestFCFS:
         task6 = sched_types.Task(workflow_name='workflow-1',
                                  task_name='task-6',
                                  requirements=requirements2)
-        resource = sched_types.Resource(id_='test-resource-1', cores=4)
+        resource = sched_types.Resource(id_='test-resource-1', nodes=4)
 
         tasks = [task1, task2, task3, task4, task5, task6]
         allocation.schedule_all(algorithms.FCFS, tasks, [resource])
@@ -74,23 +74,23 @@ class TestFCFS:
         current_time = int(time.time())
         assert task1.allocations[0].id_ == 'test-resource-1'
         assert task1.allocations[0].start_time == current_time
-        assert task1.allocations[0].cores == 1
+        assert task1.allocations[0].nodes == 1
         assert task2.allocations[0].id_ == 'test-resource-1'
         assert task2.allocations[0].start_time == current_time
-        assert task2.allocations[0].cores == 1
+        assert task2.allocations[0].nodes == 1
         assert task3.allocations[0].id_ == 'test-resource-1'
         assert task3.allocations[0].start_time == current_time
-        assert task3.allocations[0].cores == 1
+        assert task3.allocations[0].nodes == 1
         assert task4.allocations[0].id_ == 'test-resource-1'
         assert task4.allocations[0].start_time == current_time
-        assert task4.allocations[0].cores == 1
+        assert task4.allocations[0].nodes == 1
         assert task5.allocations[0].id_ == 'test-resource-1'
         t = current_time + task2.requirements.max_runtime
         assert (task5.allocations[0].start_time == t)
-        assert task5.allocations[0].cores == 1
+        assert task5.allocations[0].nodes == 1
         assert task6.allocations[0].id_ == 'test-resource-1'
         assert (task6.allocations[0].start_time == t)
-        assert task6.allocations[0].cores == 1
+        assert task6.allocations[0].nodes == 1
 
 
 class TestBackfill:
@@ -129,36 +129,36 @@ class TestBackfill:
 
         Test scheduling three tasks.
         """
-        requirements = {'max_runtime': 1, 'cores': 1}
+        requirements = {'max_runtime': 1, 'nodes': 1}
         task1 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-1',
                                  requirements=requirements)
-        requirements = {'max_runtime': 1, 'cores': 2}
+        requirements = {'max_runtime': 1, 'nodes': 2}
         task2 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-2',
                                  requirements=requirements)
-        requirements = {'max_runtime': 1, 'cores': 1}
+        requirements = {'max_runtime': 1, 'nodes': 1}
         task3 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-3',
                                  requirements=requirements)
         resource = sched_types.Resource(id_='resource-0',
-                                        cores=2)
+                                        nodes=2)
 
         tasks = [task1, task2, task3]
         allocation.schedule_all(algorithms.Backfill, tasks, [resource])
 
         current_time = int(time.time())
         assert task1.allocations[0].id_ == 'resource-0'
-        assert task1.allocations[0].cores == 1
+        assert task1.allocations[0].nodes == 1
         assert task1.allocations[0].start_time == current_time
         assert task2.allocations[0].id_ == 'resource-0'
-        assert task2.allocations[0].cores == 2
+        assert task2.allocations[0].nodes == 2
         assert (task2.allocations[0].start_time
                 == (current_time + task1.requirements.max_runtime))
         # Task 3 should have been backfillled, filling in an area before task
         # 2 can run
         assert task3.allocations[0].id_ == 'resource-0'
-        assert task3.allocations[0].cores == 1
+        assert task3.allocations[0].nodes == 1
         assert task3.allocations[0].start_time == current_time
 
     @staticmethod
@@ -167,28 +167,28 @@ class TestBackfill:
 
         Test scheduling four tasks.
         """
-        requirements = {'max_runtime': 2, 'cores': 4}
+        requirements = {'max_runtime': 2, 'nodes': 4}
         task1 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-0',
                                  requirements=requirements)
-        requirements = {'max_runtime': 2, 'cores': 8}
+        requirements = {'max_runtime': 2, 'nodes': 8}
         task2 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-1',
                                  requirements=requirements)
-        requirements = {'max_runtime': 3, 'cores': 2}
+        requirements = {'max_runtime': 3, 'nodes': 2}
         # This task should not be backfilled (too much time)
         task3 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-2',
                                  requirements=requirements)
-        requirements = {'max_runtime': 1, 'cores': 2}
+        requirements = {'max_runtime': 1, 'nodes': 2}
         # This task should be backfilled
         task4 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-3',
                                  requirements=requirements)
-        resource1 = sched_types.Resource(id_='resource-0', cores=2)
-        resource2 = sched_types.Resource(id_='resource-1', cores=2)
-        resource3 = sched_types.Resource(id_='resource-2', cores=2)
-        resource4 = sched_types.Resource(id_='resource-3', cores=2)
+        resource1 = sched_types.Resource(id_='resource-0', nodes=2)
+        resource2 = sched_types.Resource(id_='resource-1', nodes=2)
+        resource3 = sched_types.Resource(id_='resource-2', nodes=2)
+        resource4 = sched_types.Resource(id_='resource-3', nodes=2)
 
         tasks = [task1, task2, task3, task4]
         resources = [resource1, resource2, resource3, resource4]
@@ -216,15 +216,15 @@ class TestBackfill:
 
         Test scheduling six tasks.
         """
-        requirements = {'max_runtime': 1, 'cores': 1}
+        requirements = {'max_runtime': 1, 'nodes': 1}
         task1 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-1',
                                  requirements=requirements)
-        requirements = {'max_runtime': 1, 'cores': 4}
+        requirements = {'max_runtime': 1, 'nodes': 4}
         task2 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-2',
                                  requirements=requirements)
-        requirements = {'max_runtime': 1, 'cores': 1}
+        requirements = {'max_runtime': 1, 'nodes': 1}
         task3 = sched_types.Task(workflow_name='workflow-0',
                                  task_name='task-3',
                                  requirements=requirements)
@@ -238,33 +238,33 @@ class TestBackfill:
                                  task_name='task-6',
                                  requirements=requirements)
         resource = sched_types.Resource(id_='resource-0',
-                                        cores=4)
+                                        nodes=4)
 
         tasks = [task1, task2, task3, task4, task5, task6]
         allocation.schedule_all(algorithms.Backfill, tasks, [resource])
 
         current_time = int(time.time())
         assert task1.allocations[0].id_ == 'resource-0'
-        assert task1.allocations[0].cores == 1
+        assert task1.allocations[0].nodes == 1
         assert task1.allocations[0].start_time == current_time
         assert task2.allocations[0].id_ == 'resource-0'
-        assert task2.allocations[0].cores == 4
+        assert task2.allocations[0].nodes == 4
         assert (task2.allocations[0].start_time
                 == (current_time + task1.requirements.max_runtime))
         # Task 3, 4 and 5 should have been backfillled, filling in an area
         # before task 2 can run
         assert task3.allocations[0].id_ == 'resource-0'
-        assert task3.allocations[0].cores == 1
+        assert task3.allocations[0].nodes == 1
         assert task3.allocations[0].start_time == current_time
         assert task4.allocations[0].id_ == 'resource-0'
-        assert task4.allocations[0].cores == 1
+        assert task4.allocations[0].nodes == 1
         assert task4.allocations[0].start_time == current_time
         assert task5.allocations[0].id_ == 'resource-0'
-        assert task5.allocations[0].cores == 1
+        assert task5.allocations[0].nodes == 1
         assert task5.allocations[0].start_time == current_time
         # Task 6 should be scheduled to run last
         assert task6.allocations[0].id_ == 'resource-0'
-        assert task6.allocations[0].cores == 1
+        assert task6.allocations[0].nodes == 1
         t = (current_time + task1.requirements.max_runtime
              + task2.requirements.max_runtime)
         assert task6.allocations[0].start_time == t
@@ -296,15 +296,15 @@ class TestSJF:
                                  task_name='task-1', requirements=requirements)
         task2 = sched_types.Task(workflow_name='workflow-1',
                                  task_name='task-2', requirements=requirements)
-        resource = sched_types.Resource(id_='test-resource-1', cores=2)
+        resource = sched_types.Resource(id_='test-resource-1', nodes=2)
 
         allocation.schedule_all(algorithms.SJF, [task1, task2], [resource])
 
         current_time = int(time.time())
         assert task1.allocations[0].id_ == 'test-resource-1'
-        assert task1.allocations[0].cores == 1
+        assert task1.allocations[0].nodes == 1
         assert task2.allocations[0].id_ == 'test-resource-1'
-        assert task2.allocations[0].cores == 1
+        assert task2.allocations[0].nodes == 1
         # TODO: This test may need to change if the SJF algorithm is updated
         assert task1.allocations[0].start_time != task2.allocations[0].start_time
 
@@ -329,13 +329,13 @@ def schedule_one_task(algorithm):
     requirements = {'max_runtime': 3}
     task = sched_types.Task(workflow_name='workflow-1', task_name='task-1',
                             requirements=requirements)
-    resource = sched_types.Resource(id_='test-resource-1', cores=4)
+    resource = sched_types.Resource(id_='test-resource-1', nodes=4)
 
     allocation.schedule_all(algorithm, [task], [resource])
 
     assert task.allocations[0].id_ == 'test-resource-1'
     assert task.allocations[0].start_time == int(time.time())
-    assert task.allocations[0].cores == 1
+    assert task.allocations[0].nodes == 1
 
 
 def schedule_two_tasks(algorithm):
@@ -348,16 +348,16 @@ def schedule_two_tasks(algorithm):
                              task_name='task-1', requirements=requirements)
     task2 = sched_types.Task(workflow_name='workflow-1',
                              task_name='task-2', requirements=requirements)
-    resource = sched_types.Resource(id_='test-resource-1', cores=2)
+    resource = sched_types.Resource(id_='test-resource-1', nodes=2)
 
     allocation.schedule_all(algorithm, [task1, task2], [resource])
 
     current_time = int(time.time())
     assert task1.allocations[0].id_ == 'test-resource-1'
-    assert task1.allocations[0].cores == 1
+    assert task1.allocations[0].nodes == 1
     assert task1.allocations[0].start_time == current_time
     assert task2.allocations[0].id_ == 'test-resource-1'
-    assert task2.allocations[0].cores == 1
+    assert task2.allocations[0].nodes == 1
     assert task2.allocations[0].start_time == current_time
 
 
@@ -366,10 +366,10 @@ def schedule_task_fail(algorithm):
 
     Test scheduling a task with more resources required than available.
     """
-    requirements = {'max_runtime': 3, 'cores': 10}
+    requirements = {'max_runtime': 3, 'nodes': 10}
     task1 = sched_types.Task(workflow_name='workflow-1',
                              task_name='task-1', requirements=requirements)
-    resource = sched_types.Resource(id_='test-resource-1', cores=2)
+    resource = sched_types.Resource(id_='test-resource-1', nodes=2)
 
     assert (allocation.schedule_all(algorithm, [task1], [resource])
             is None)

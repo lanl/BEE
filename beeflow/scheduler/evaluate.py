@@ -84,7 +84,7 @@ def read_logfile(logfile):
                 'task_name': task_id,
                 'requirements': {
                     'max_runtime': runtime,
-                    'cores': procs,
+                    'nodes': procs,
                 }
             })
     # tasks
