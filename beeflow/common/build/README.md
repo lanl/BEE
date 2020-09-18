@@ -1,6 +1,6 @@
 # Build functionality for BEE
 
-The BEE system should launch containerized jobs, and resolve the container RTE using a combination of CWL hints/requirements and BeeConfig parameters. The steps leading up to the execution environment will be referred to as "build" steps. All build functionality is defined in this directory, but may depend on other components (such as container runtimes)
+The BEE system should launch containerized jobs, and resolve the container RTE using a combination of CWL hints/requirements and BeeConfig parameters. The steps leading up to the creation of an RTE will be referred to as "build" steps. All build functionality is defined in this directory, but may depend on other components (such as container runtimes)
 
 ## Extending build functionality
 BEE supports build extensions by offering interfaces and templates for those who wish to utilize build functionality not currently supported in BEE. The BEE build system consists of three major parts:  
