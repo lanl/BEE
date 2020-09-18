@@ -6,7 +6,7 @@ The BEE system should launch containerized jobs, and resolve the container RTE u
 BEE supports build extensions by offering interfaces and templates for those who wish to utilize build functionality not currently supported in BEE. The BEE build system consists of three major parts:  
 
 
-* ***build_interfaces.py:*** A collection of build interfaces which define interactions between build objects and the components they interact with (eg- task manager, workflow manager, ...)
+* ***build_interfaces.py:*** A collection of build interfaces which define interactions between build objects and the components they interact with (eg- task manager, worker, workflow manager, ...)
 * ***build_driver.py:*** An abstract class which defines functionality that any build driver must have.
 * ***\*_drivers.py:***  A collection of drivers which implement all build drivers of a type. eg- container_drivers.py
 
