@@ -8,7 +8,7 @@ BEE supports build extensions by offering interfaces and templates for those who
 
 * ***build_interfaces.py:*** A collection of build interfaces which define interactions between build objects and the components they interact with (eg- task manager, workflow manager, ...)
 * ***build_driver.py:*** An abstract class which defines functionality that any build driver must have.
-* *** \*_drivers.py: ***  A collection of drivers which implement all build drivers of a type. eg- container_drivers.py
+* ***\*_drivers.py:***  A collection of drivers which implement all build drivers of a type. eg- container_drivers.py
 
 
 ## The build interface
