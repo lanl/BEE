@@ -1,8 +1,8 @@
 """Mid-level interface for managing a build system from WFM.
 
-The WFM may request a Runtime Environment (RTE) that must be built. 
+The WFM may request a Runtime Environment (RTE) that must be built.
 This RTE build should be considered a separate stage in the workflow.
-The build_interface will access components of the build_driver and 
+The build_interface will access components of the build_driver and
 components of the gdb_interface as required.
 """
 
@@ -12,7 +12,7 @@ components of the gdb_interface as required.
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 
 
-class BuildInterface:
+class BuildInterfaceTM:
     """Interface for managing a build system with WFM.
 
     Requires an implemented subclass of BuildDriver (uses CharliecloudBuildDriver by default).
