@@ -15,7 +15,7 @@ BEE supports build extensions by offering interfaces and templates for those who
 
 All BEE components will access build drivers through an interface, and all build interfaces are defined in `build_interfaces.py`.
 
-**Static methods:** Static methods implement methods associated with build operations but which are not directly to the build interface object and the RTE it provides. Static methods do not require that a build interface object exists in order to run.  
+**Static methods:** Static methods implement methods associated with build operations but which are not directly to the build interface object and the specific RTE it provides. Static methods do not require that a build interface object exists in order to run.  
 
 ### BuildInterfaceTM
 The BuildInterfaceTM class is defined in `build_interface.py`. This class defines methods which are useful to interactions with the task manager.
