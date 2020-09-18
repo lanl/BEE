@@ -20,7 +20,7 @@ All BEE components will access build drivers through an interface, and all build
 ### BuildInterfaceTM
 The BuildInterfaceTM class is defined in `build_interface.py`. This class defines methods which are useful to interactions with the task manager.
 
-**Object initialization:** A BuildInterfaceTM object will be intialized from a BEE build interface class definition. The build interface object will be instantiated with a Task parameter, which may or may not include a `DockerRequirement` CWL hint or requirement. 
+**Object initialization:** A BuildInterfaceTM object will be intialized from a BEE build interface class definition. The build interface object will be instantiated with a Task parameter, which may or may not include a `DockerRequirement` CWL hint or requirement.  
 **Object usage:** A BuildInterfaceTM object will get the path to a RTE that it has prepared. A BEE build interface object will also get details about the task that created it, and any tasks that it generates related to build operations.  
 
 ## The build driver
