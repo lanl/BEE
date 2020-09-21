@@ -51,7 +51,7 @@ steps:
       outputs:
         outfile: stdout
       stdout: counts.txt
-      baseCommand: "sh -c 'ls-l;sleep 10; wc -l grepout.txt > counts.txt'"
+      baseCommand: "sh -c 'ls -l;sleep 10; wc -l grepout.txt > counts.txt'"
       hints:
         DockerRequirement:
           dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
