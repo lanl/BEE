@@ -111,25 +111,26 @@ def update_task_state(task_id, job_state):
     if resp.status_code != 200:
         print("WFM not responding")
     else:
-        print('Updated task!')
+        print('Updated task state!')
 
 
 def submit_jobs():
     """Submit all jobs currently in submit queue to slurm."""
     while len(submit_queue) >= 1:
         # Single value dictionary
-        temp = submit_queue.pop(0)
-        task_id = list(temp)[0]
-        task = temp[task_id]
-        job_id, job_state = worker.submit_task(task)
-
-        if job_id == -1:
-            # Set job state to failed message
-            job_state = 'SUBMIT_FAIL'
-        else:
-            # place job in queue to monitor and send initial state to WFM
-            print(f'Job Submitted: job_id: {job_id} job_state: {job_state}')
-            job_queue.append({task_id: {'name': task.name,
+        task_dict = submit_queue.pop(0)
+        for task_id, task in task_dict.items():
+            try:
+                job_id, job_state = worker.submit_task(task)
+            except Exception as error:
+                # Set job state to failed message
+                job_state = 'SUBMIT_FAIL'
+                print(f'Task Manager submit task {task.name} failed! \n {error}')
+                print(f'{task.name} state: {job_state}')
+            else:
+                # place job in queue to monitor and send initial state to WFM
+                print(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
+                job_queue.append({task_id: {'name': task.name,
                                         'job_id': job_id,
                                         'job_state': job_state}})
         # Send the initial state to WFM
@@ -142,10 +143,10 @@ def update_jobs():
         task_id = list(job)[0]
         current_task = job[task_id]
         job_id = current_task['job_id']
-        state = worker.query_task(job_id)
-        if state[0] == 1:
-            job_state = state[1]
-        else:
+        try:
+            job_state = worker.query_task(job_id)
+        except Exception as error:
+            print(f'Cannot query state of {job_id}\n {error}')
             job_state = 'ZOMBIE'
         if job_state != current_task['job_state']:
             print(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
@@ -156,15 +157,15 @@ def update_jobs():
             job_queue.remove(job)
 
 
-def check_tasks():
-    """Look for newly submitted jobs and updates status of scheduled jobs."""
+def process_queues():
+    """Look for newly submitted jobs and update status of scheduled jobs."""
     submit_jobs()
     update_jobs()
 
 
 # TODO Decide on the time interval for the scheduler
 scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
-scheduler.add_job(func=check_tasks, trigger="interval", seconds=5)
+scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
 scheduler.start()
 
 # This kills the scheduler when the process terminates
@@ -185,7 +186,7 @@ class TaskSubmit(Resource):
         data = self.reqparse.parse_args()
         task = jsonpickle.decode(data['task'])
         submit_queue.append({task.id: task})
-        print(f"Added {task.name} to the submit queue")
+        print(f"Added {task.name} task to the submit queue")
         resp = make_response(jsonify(msg='Task Added!', status='ok'), 200)
         return resp
 
@@ -205,9 +206,12 @@ class TaskActions(Resource):
 
             job_queue.remove(job)
             print(f"Cancelling {name} with job_id: {job_id}")
-            success, job_state = worker.cancel_task(job_id)
-            cancel_msg += f"{name} {task_id} {success} {job_id} {job_state}"
-
+            try:
+                job_state = worker.cancel_task(job_id)
+            except Exception as error:
+                print(error)
+                job_state = 'ZOMBIE'
+            cancel_msg += f"{name} {task_id} {job_id} {job_state}"
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
 
