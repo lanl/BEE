@@ -8,7 +8,7 @@ class Worker(ABC):
 
     @abstractmethod
     def submit_task(self, task):
-        """Worker submits task; returns id, state (or -1, error_message).
+        """Worker submits task; returns job_id, job_state.
 
         :param task: instance of Task
         :rtype tuple (int, string)
@@ -16,18 +16,18 @@ class Worker(ABC):
 
     @abstractmethod
     def cancel_task(self, job_id):
-        """Cancel task with job_id; returns success/fail (1/-1) & job_state or error.
+        """Cancel task with job_id; returns job_state.
 
         :param job_id: to be cancelled
         :type job_id: integer
-        :rtype tuple (int, string)
+        :rtype string
         """
 
     @abstractmethod
     def query_task(self, job_id):
-        """Query job state; returns success/fail (1/-1), job_state or error message.
+        """Query job state for the task.
 
         :param job_id: job id to query for status.
         :type job_id: int
-        :rtype tuple (int, string)
+        :rtype string
         """
