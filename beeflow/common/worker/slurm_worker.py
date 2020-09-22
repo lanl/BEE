@@ -64,13 +64,11 @@ class SlurmWorker(Worker):
             except ValueError as error:
                 print(error)
         else:
-            self.template_text = ''
+            self.template_text = '#! /bin/bash\n#SBATCH\n'
 
     def build_text(self, task):
         """Build text for task script use template if it exists."""
         template_text = self.template_text
-        if template_text == '':
-            template_text = '#! /bin/bash\n#SBATCH\n'
         template = string.Template(template_text)
         job_text = template.substitute({'name': task.name, 'id': task.id})
         crt_text = self.crt.script_text(task)
@@ -78,88 +76,55 @@ class SlurmWorker(Worker):
         return job_text
 
     def write_script(self, task):
-        """Build task script; returns (1, filename) or (-1, error_message)."""
-        success = -1
+        """Build task script; returns filename of script."""
         if not self.crt.image_exists(task):
-            return success, "dockerImageId is not a valid image"
-        # for now using fixed directory for task manager scripts and write them out
-        # we may keep them in memory and only write for a debug or logging option
+            raise Exception('dockerImageId not accessible.')
         os.makedirs(f'{self.workdir}/worker', exist_ok=True)
         task_text = self.build_text(task)
         task_script = f'{self.workdir}/worker/{task.name}.sh'
-        try:
-            script_f = open(task_script, 'w')
-            script_f.write(task_text)
-            script_f.close()
-            success = 1
-        except subprocess.CalledProcessError as error:
-            task_script = error.output.decode('utf-8')
-        return success, task_script
+        script_f = open(task_script, 'w')
+        script_f.write(task_text)
+        script_f.close()
+        return task_script
 
     @staticmethod
     def query_job(job_id, session, slurm_url):
         """Query slurm for job status."""
         resp = session.get(f'{slurm_url}/job/{job_id}')
         if resp.status_code != 200:
-            query_success = -1
-            job_state = f'Unable to query job id {job_id}.'
+            raise Exception (f'Unable to query job id {job_id}.')
         else:
             status = json.loads(resp.text)
             job_state = status['job_state']
-            query_success = 1
-        return query_success, job_state
-
-    @staticmethod
-    def cancel_job(job_id, session, slurm_url):
-        """Cancel slurm job and reports status."""
-        cancel_success = 1
-        resp = session.delete(f'{slurm_url}/job/{job_id}')
-        if resp.status_code != 200:
-            cancel_success = -1
-            job_state = f"Unable to cancel job id {job_id}."
-        else:
-            job_state = "CANCELLED"
-        return cancel_success, job_state
+        return job_state
 
     def submit_job(self, script, session, slurm_url):
-        """Worker submits job-returns (job_id, job_state), or (-1, error)."""
-        job_id = -1
-        try:
-            job_st = subprocess.check_output(['sbatch', '--parsable', script],
-                                             stderr=subprocess.STDOUT)
-            job_id = int(job_st)
-        except subprocess.CalledProcessError as error:
-            job_status = error.output.decode('utf-8')
-            print(f'job_status is {job_status}')
-        _, job_state = self.query_job(job_id, session, slurm_url)
+        """Worker submits job-returns (job_id, job_state)."""
+        job_st = subprocess.check_output(['sbatch', '--parsable', script],
+                                         stderr=subprocess.STDOUT)
+        job_id = int(job_st)
+        job_state = self.query_job(job_id, session, slurm_url)
         return job_id, job_state
 
     def submit_task(self, task):
         """Worker builds & submits script."""
-        build_success, task_script = self.write_script(task)
-        if build_success:
-            job_id, job_state = self.submit_job(task_script,
-                                                self.session, self.slurm_url)
-        else:
-            job_id = build_success
-            job_state = task_script
+        task_script = self.write_script(task)
+        job_id, job_state = self.submit_job(task_script, self.session, self.slurm_url)
         return job_id, job_state
 
     def query_task(self, job_id):
-        """Worker queries job; returns (1, job_state), or (-1, error_msg)."""
-        query_success, job_state = self.query_job(job_id, self.session, self.slurm_url)
-        return query_success, job_state
+        """Worker queries job; returns job_state."""
+        job_state = self.query_job(job_id, self.session, self.slurm_url)
+        return job_state
 
     def cancel_task(self, job_id):
-        """Worker cancels job; returns (1, job_state), or (-1, error_msg)."""
-        cancel_success = 1
+        """Worker cancels job returns job_state."""
         resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
         if resp.status_code != 200:
-            cancel_success = -1
-            job_state = f"Unable to cancel job id {job_id}."
+            raise Exception(f'Unable to cancel job id {job_id}!')
         else:
             job_state = "CANCELLED"
-        return cancel_success, job_state
+        return job_state
 
 # Ignore module imported but unused error. No way to know which crt will be needed
 # pylama:ignore=W0611

@@ -1,0 +1,42 @@
+# Dockerfile.neo4j-ppc64le
+# Developed on Summit at ORNL. Works with Charliecloud.
+# Tim Randles <trandles@lanl.gov>
+
+FROM ppc64le/debian:stable-slim
+
+# Makes apt happy
+RUN echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/no-sandbox
+RUN apt-config dump | fgrep 'APT::Sandbox'
+
+# Install prerequisites for neo4j
+RUN apt-get update && \
+    mkdir /usr/share/man/man1 && \
+    groupadd staff && \
+    apt-get install -y pseudo && \
+    fakeroot apt-get install -y --no-install-recommends openjdk-11-jdk wget gnupg
+
+# Add neo4j debian repository
+RUN wget -O - https://debian.neo4j.com/neotechnology.gpg.key | apt-key add -
+RUN echo 'deb https://debian.neo4j.com stable 3.5' | tee /etc/apt/sources.list.d/neo4j.list
+
+# Install neo4j
+RUN apt-get update && \
+    groupadd adm && \
+    fakeroot apt-get install -y neo4j=1:3.5.17
+
+# Fix-up where various things are located. This is required because the
+# containers created by neo4j for docker do not install neo4j using apt.
+# The debian apt neo4j package puts stuff in different places, which breaks
+# the way BEEStart bind-mounts in writable-directories at runtime.
+RUN mkdir /var/lib/neo4j/conf && \
+    mv /etc/neo4j/neo4j.conf /var/lib/neo4j/conf/ && \
+    ln -s /var/lib/neo4j/conf/neo4j.conf /etc/neo4j/neo4j.conf && \
+    mkdir /data /logs && \
+    rm -rf /var/lib/neo4j/data && \
+    ln -s /data /var/lib/neo4j/data && \
+    ln -s /logs /var/lib/neo4j/logs && \
+    rm -rf /var/log/neo4j && \
+    ln -s /var/lib/neo4j/logs /var/log/neo4j && \
+    rmdir /var/run/neo4j && \
+    mkdir /var/lib/neo4j/run && \
+    ln -s /var/lib/neo4j/run /run/neo4j

@@ -24,7 +24,7 @@ class WorkerInterface:
         self._worker = worker(**kwargs)
 
     def submit_task(self, task):
-        """Workload manager submits task as job returns job_id(-1 = error), job_state.
+        """Worker builds script and submits task as job returns job_id, job_state.
 
         :param task: instance of Task
         :rtype tuple (int, string)
@@ -32,16 +32,16 @@ class WorkerInterface:
         return self._worker.submit_task(task)
 
     def cancel_task(self, job_id):
-        """Cancel job with job_id.
+        """Cancel job for task with job_id.
 
         :param job_id: job_id to be cancelled
         :type job_id: integer
-        :rtype tuple (int, string)
+        :rtype string
         """
         return self._worker.cancel_task(job_id)
 
     def query_task(self, job_id):
-        """Query state of job with job_id; returns success/fail (1/-1), job_state.
+        """Query state of job with job_id; returns job_state.
 
         :param job_id: job id to query for status.
         :type job_id: int
