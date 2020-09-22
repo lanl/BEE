@@ -49,8 +49,7 @@ class SJF(Algorithm):
         """
         # Note this doesn't allocate aggregate resources but only singular
         # resources unlike the other algorithms
-        # allocations = []
-        start_time = int(time.time())
+        start_time = 0
         tasks = tasks[:]
         # Sort by max_runtime
         tasks.sort(key=lambda t: t.requirements.max_runtime)
@@ -95,7 +94,7 @@ class FCFS(Algorithm):
         :type resources: list of instance of sched_types.Resource
         """
         allocations = []
-        start_time = int(time.time())
+        start_time = 0
         # Continue while there are still tasks to schedule
         for task in tasks:
             # Check if the task can run at all
@@ -143,7 +142,7 @@ class Backfill(Algorithm):
         tasks = tasks[:]
         # TODO: This time may be invalidated if the algorithm
         # takes too long
-        current_time = int(time.time())
+        current_time = 0
         allocations = []
         while tasks:
             # Get a task to schedule

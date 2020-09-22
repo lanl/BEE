@@ -100,7 +100,7 @@ def test_schedule_job_one_resource(scheduler):
     assert len(data[0]['allocations']) == 1
     assert data[0]['allocations'][0]['id_'] == 'resource-1'
     assert data[0]['allocations'][0]['nodes'] == 1
-    assert data[0]['allocations'][0]['start_time'] == int(time.time())
+    assert data[0]['allocations'][0]['start_time'] == 0
     assert data[0]['allocations'][0]['max_runtime'] == 1
 
 

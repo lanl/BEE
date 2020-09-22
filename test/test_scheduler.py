@@ -71,25 +71,24 @@ class TestFCFS:
         tasks = [task1, task2, task3, task4, task5, task6]
         allocation.schedule_all(algorithms.FCFS, tasks, [resource])
 
-        current_time = int(time.time())
         assert task1.allocations[0].id_ == 'test-resource-1'
-        assert task1.allocations[0].start_time == current_time
+        assert task1.allocations[0].start_time == 0
         assert task1.allocations[0].nodes == 1
         assert task2.allocations[0].id_ == 'test-resource-1'
-        assert task2.allocations[0].start_time == current_time
+        assert task2.allocations[0].start_time == 0
         assert task2.allocations[0].nodes == 1
         assert task3.allocations[0].id_ == 'test-resource-1'
-        assert task3.allocations[0].start_time == current_time
+        assert task3.allocations[0].start_time == 0
         assert task3.allocations[0].nodes == 1
         assert task4.allocations[0].id_ == 'test-resource-1'
-        assert task4.allocations[0].start_time == current_time
+        assert task4.allocations[0].start_time == 0
         assert task4.allocations[0].nodes == 1
         assert task5.allocations[0].id_ == 'test-resource-1'
-        t = current_time + task2.requirements.max_runtime
-        assert (task5.allocations[0].start_time == t)
+        t = task2.requirements.max_runtime
+        assert task5.allocations[0].start_time == t
         assert task5.allocations[0].nodes == 1
         assert task6.allocations[0].id_ == 'test-resource-1'
-        assert (task6.allocations[0].start_time == t)
+        assert task6.allocations[0].start_time == t
         assert task6.allocations[0].nodes == 1
 
 
@@ -147,19 +146,18 @@ class TestBackfill:
         tasks = [task1, task2, task3]
         allocation.schedule_all(algorithms.Backfill, tasks, [resource])
 
-        current_time = int(time.time())
         assert task1.allocations[0].id_ == 'resource-0'
         assert task1.allocations[0].nodes == 1
-        assert task1.allocations[0].start_time == current_time
+        assert task1.allocations[0].start_time == 0
         assert task2.allocations[0].id_ == 'resource-0'
         assert task2.allocations[0].nodes == 2
         assert (task2.allocations[0].start_time
-                == (current_time + task1.requirements.max_runtime))
+                == task1.requirements.max_runtime)
         # Task 3 should have been backfillled, filling in an area before task
         # 2 can run
         assert task3.allocations[0].id_ == 'resource-0'
         assert task3.allocations[0].nodes == 1
-        assert task3.allocations[0].start_time == current_time
+        assert task3.allocations[0].start_time == 0
 
     @staticmethod
     def test_schedule_four_tasks():
@@ -194,21 +192,20 @@ class TestBackfill:
         resources = [resource1, resource2, resource3, resource4]
         allocation.schedule_all(algorithms.Backfill, tasks, resources)
 
-        current_time = int(time.time())
         assert len(task1.allocations) == 2
-        assert all(a.start_time == current_time for a in task1.allocations)
+        assert all(a.start_time == 0 for a in task1.allocations)
         assert len(task2.allocations) == 4
-        start_time = current_time + task1.requirements.max_runtime
+        start_time = task1.requirements.max_runtime
         assert all(a.start_time == start_time for a in task2.allocations)
         # task3 should not have been backfilled (would have taken too
         # much time)
         assert len(task3.allocations) == 1
-        start_time = (current_time + task1.requirements.max_runtime
+        start_time = (task1.requirements.max_runtime
                       + task2.requirements.max_runtime)
         assert task3.allocations[0].start_time == start_time
         # task4 should have been backfilled
         assert len(task4.allocations) == 1
-        assert task4.allocations[0].start_time == current_time
+        assert task4.allocations[0].start_time == 0
 
     @staticmethod
     def test_schedule_six_tasks():
@@ -243,30 +240,28 @@ class TestBackfill:
         tasks = [task1, task2, task3, task4, task5, task6]
         allocation.schedule_all(algorithms.Backfill, tasks, [resource])
 
-        current_time = int(time.time())
         assert task1.allocations[0].id_ == 'resource-0'
         assert task1.allocations[0].nodes == 1
-        assert task1.allocations[0].start_time == current_time
+        assert task1.allocations[0].start_time == 0
         assert task2.allocations[0].id_ == 'resource-0'
         assert task2.allocations[0].nodes == 4
         assert (task2.allocations[0].start_time
-                == (current_time + task1.requirements.max_runtime))
+                == task1.requirements.max_runtime)
         # Task 3, 4 and 5 should have been backfillled, filling in an area
         # before task 2 can run
         assert task3.allocations[0].id_ == 'resource-0'
         assert task3.allocations[0].nodes == 1
-        assert task3.allocations[0].start_time == current_time
+        assert task3.allocations[0].start_time == 0
         assert task4.allocations[0].id_ == 'resource-0'
         assert task4.allocations[0].nodes == 1
-        assert task4.allocations[0].start_time == current_time
+        assert task4.allocations[0].start_time == 0
         assert task5.allocations[0].id_ == 'resource-0'
         assert task5.allocations[0].nodes == 1
-        assert task5.allocations[0].start_time == current_time
+        assert task5.allocations[0].start_time == 0
         # Task 6 should be scheduled to run last
         assert task6.allocations[0].id_ == 'resource-0'
         assert task6.allocations[0].nodes == 1
-        t = (current_time + task1.requirements.max_runtime
-             + task2.requirements.max_runtime)
+        t = task1.requirements.max_runtime + task2.requirements.max_runtime
         assert task6.allocations[0].start_time == t
 
 
@@ -300,7 +295,6 @@ class TestSJF:
 
         allocation.schedule_all(algorithms.SJF, [task1, task2], [resource])
 
-        current_time = int(time.time())
         assert task1.allocations[0].id_ == 'test-resource-1'
         assert task1.allocations[0].nodes == 1
         assert task2.allocations[0].id_ == 'test-resource-1'
@@ -334,7 +328,7 @@ def schedule_one_task(algorithm):
     allocation.schedule_all(algorithm, [task], [resource])
 
     assert task.allocations[0].id_ == 'test-resource-1'
-    assert task.allocations[0].start_time == int(time.time())
+    assert task.allocations[0].start_time == 0
     assert task.allocations[0].nodes == 1
 
 
@@ -352,13 +346,12 @@ def schedule_two_tasks(algorithm):
 
     allocation.schedule_all(algorithm, [task1, task2], [resource])
 
-    current_time = int(time.time())
     assert task1.allocations[0].id_ == 'test-resource-1'
     assert task1.allocations[0].nodes == 1
-    assert task1.allocations[0].start_time == current_time
+    assert task1.allocations[0].start_time == 0
     assert task2.allocations[0].id_ == 'test-resource-1'
     assert task2.allocations[0].nodes == 1
-    assert task2.allocations[0].start_time == current_time
+    assert task2.allocations[0].start_time == 0
 
 
 def schedule_task_fail(algorithm):
