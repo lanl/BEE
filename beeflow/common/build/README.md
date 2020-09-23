@@ -6,7 +6,7 @@ The BEE system should launch containerized jobs, and resolve the container RTE u
 BEE supports build extensions by offering interfaces and templates for those who wish to utilize build functionality not currently supported in BEE. The BEE build system consists of three major parts:  
 
 
-* ***build_interfaces.py:*** A collection of build interfaces which define interactions between build objects and the components they interact with (eg- task manager, workflow manager, ...)
+* ***build_interfaces.py:*** A collection of build interfaces which define interactions between build objects and the components they interact with (eg- task manager, worker, workflow manager, ...)
 * ***build_driver.py:*** An abstract class which defines functionality that any build driver must have.
 * ***\*_drivers.py:***  A collection of drivers which implement all build drivers of a type. eg- container_drivers.py
 
@@ -15,12 +15,12 @@ BEE supports build extensions by offering interfaces and templates for those who
 
 All BEE components will access build drivers through an interface, and all build interfaces are defined in `build_interfaces.py`.
 
-**Static methods:** Static methods implement methods associated with build operations but which are not directly to the build interface object and the RTE it provides. Static methods do not require that a build interface object exists in order to run.  
+**Static methods:** Static methods implement methods associated with build operations but which are not directly to the build interface object and the specific RTE it provides. Static methods do not require that a build interface object exists in order to run.  
 
 ### BuildInterfaceTM
 The BuildInterfaceTM class is defined in `build_interface.py`. This class defines methods which are useful to interactions with the task manager.
 
-**Object initialization:** A BuildInterfaceTM object will be intialized from a BEE build interface class definition. The build interface object will be instantiated with a Task parameter, which may or may not include a `DockerRequirement` CWL hint or requirement. 
+**Object initialization:** A BuildInterfaceTM object will be intialized from a BEE build interface class definition. The build interface object will be instantiated with a Task parameter, which may or may not include a `DockerRequirement` CWL hint or requirement.  
 **Object usage:** A BuildInterfaceTM object will get the path to a RTE that it has prepared. A BEE build interface object will also get details about the task that created it, and any tasks that it generates related to build operations.  
 
 ## The build driver
