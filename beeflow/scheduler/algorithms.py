@@ -4,7 +4,6 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 """
 
 import abc
-import random
 import time
 import tensorflow as tf
 
@@ -30,6 +29,7 @@ class Algorithm(abc.ABC):
         :param resources: list of resources
         :type resources: list of instance of sched_types.Resource
         """
+
 
 class SJF(Algorithm):
     """Shortest job first algorithm.
@@ -67,8 +67,10 @@ class SJF(Algorithm):
             times.sort(key=lambda slot: slot[1])
             for i, (res, start_time) in enumerate(times):
                 if res.fits_requirements(task.requirements):
-                    # alloc = res.allocate(res, [], task.requirements, start_time)
-                    alloc = res.allocate(res, [], task.requirements, start_time)
+                    # alloc = res.allocate(res, [], task.requirements,
+                    #                      start_time)
+                    alloc = res.allocate(res, [], task.requirements,
+                                         start_time)
                     task.allocations = [alloc]
                     times[i][1] += task.requirements.max_runtime
                     break

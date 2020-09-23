@@ -207,7 +207,7 @@ def main():
     width = 0.1
     # Transpose the results
     allocs = [[alloc for alloc in results[algorithm]['resource_dist']]
-               for algorithm in results]
+              for algorithm in results]
     allocs = np.asarray(allocs).T
     rects = []
     for i, (alloc, res_name) in enumerate(zip(allocs, resource_names)):

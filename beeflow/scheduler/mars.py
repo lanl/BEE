@@ -3,9 +3,7 @@
 import json
 import os
 import tensorflow as tf
-import numpy as np
 
-# import beeflow.scheduler.util as util
 
 # TODO: Perhaps this should be set in the config
 VECTOR_SIZE = 512
@@ -38,33 +36,6 @@ def workflow2vec(task, tasks):
         vec = vec[:VECTOR_SIZE]
     return vec
 
-
-# class Workload:
-#    """Workload class.
-#
-#    Class for loading a saved workload.
-#    """
-#
-#    def __init__(self, records):
-#        """Workload constructor.
-#
-#        Workload constructor.
-#        """
-#        self.records = records
-#
-#    @staticmethod
-#    def load(fname):
-#        """Load the workload from a file and return it.
-#
-#        Load the workload from a file and return it.
-#        :param fname: file name
-#        :type fname: str
-#        """
-#        with open(fname) as fp:
-#            records = []
-#            for line in fp:
-#                records.append([float(f) for f in line.split()])
-#            return Workload(records)
 
 def _get_action(x):
     """Get the action for x.
@@ -204,7 +175,8 @@ class Model:
         :type fname: str
         """
         # Convert layers to a plain Python format
-        layers = [[[float(n) for n in tensor] for tensor in layer] for layer in self.layers]
+        layers = [[[float(n) for n in tensor] for tensor in layer]
+                  for layer in self.layers]
         print(layers)
         with open(fname, 'w') as fp:
             json.dump(layers, fp=fp)

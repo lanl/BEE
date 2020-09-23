@@ -25,7 +25,7 @@ def scheduler():
         '--no-config',
         '--use-mars',  # Required for testing MARS
     ], shell=False)
-    time.sleep(2)
+    time.sleep(6)
     try:
         # Give control over to the test function
         yield 'http://localhost:%s/bee_sched/v1' % SCHEDULER_TEST_PORT

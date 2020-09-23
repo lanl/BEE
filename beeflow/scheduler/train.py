@@ -5,11 +5,7 @@ Implementation of the MARS training algorithm for BEE.
 """
 import numpy as np
 import tensorflow as tf
-import os
 import json
-import sys
-import time
-import os.path as osp
 
 import beeflow.scheduler.mars as mars
 import beeflow.scheduler.evaluate as evaluate
@@ -46,12 +42,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Load the resource_file
-    resource_cnt = 5 # default resource_cnt
+    resource_cnt = 5  # default resource_cnt
     if args.resource_file is not None:
         with open(args.resource_file) as fp:
             # Only counts resouces right now
             resource_cnt = len(json.load(fp))
-        
 
     if args.pre_trained:
         # TODO: pre_trained is not working yet
@@ -116,11 +111,13 @@ if __name__ == '__main__':
         actor_opt = tf.keras.optimizers.Adam(learning_rate=0.01)
         critic_opt = tf.keras.optimizers.Adam(learning_rate=0.01)
         actor_opt.apply_gradients(zip(actor_grads, actor.trainable_variables))
-        critic_opt.apply_gradients(zip(critic_grads, critic.trainable_variables))
+        critic_opt.apply_gradients(zip(critic_grads,
+                                       critic.trainable_variables))
 
     # For some reason predict() must be run on the actor and critic before they
     # can be saved. See https://github.com/tensorflow/tensorflow/issues/31057
-    vec = tf.constant([mars.workflow2vec(workload[0], workload[:args.step_size])])
+    vec = tf.constant([mars.workflow2vec(workload[0],
+                                         workload[:args.step_size])])
     # record = tf.constant([workload.records[0]])
     actor.predict(vec)
     critic.predict(vec)
