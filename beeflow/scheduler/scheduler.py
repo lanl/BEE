@@ -54,7 +54,7 @@ class WorkflowJobHandler(Resource):
     """
 
     @staticmethod
-    def put(workflow_name):
+    def put(workflow_name): #noqa
         """Schedule a list of independent tasks.
 
         Schedules a new list of independent tasks with available resources.
@@ -123,10 +123,12 @@ def load_config_values():
         'logfile': args.logfile,
         'algorithm': args.algorithm,
         'default_algorithm': args.default_algorithm,
+        'read_config': args.read_config,
     }
     if args.read_config:
         # Read config values from the config file
         if args.config_file is not None:
+            print('Starting up with config:', args.config_file)
             bc = BeeConfig(userconfig=args.config_file) # noqa
         else:
             bc = BeeConfig() # noqa
@@ -161,7 +163,6 @@ def load_config_values():
 
 
 if __name__ == '__main__':
-    print('Scheduler first line')
     CONF = load_config_values()
     flask_app.sched_conf = CONF
     # Load algorithm data
@@ -178,7 +179,6 @@ if __name__ == '__main__':
     # Flask logging
     flask_app.logger.addHandler(handler) # noqa
     flask_app.run(debug=True, port=CONF.listen_port)
-    print('Scheduler last line')
 
 # Ignore todo's or pylama fails
 # pylama:ignore=W0511
