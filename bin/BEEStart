@@ -286,8 +286,16 @@ def StartScheduler(bc, args):
 
     if args.config_only:
         return None
-    return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py'],
-                             stdout=PIPE, stderr=PIPE)
+    # Either use the userconfig file argument specified to BEEStart,
+    # or assume the default path to ~/.config/beeflow/bee.conf.
+    if args.userconfig_file:
+        userconfig_file = args.userconfig_file
+    else:
+        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
+    print("I'm trying")
+    return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
+                            '--config-file',userconfig_file],
+                            stdout=PIPE, stderr=PIPE)
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""

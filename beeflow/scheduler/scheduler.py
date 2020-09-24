@@ -11,7 +11,7 @@ from flask_restful import Resource, Api
 import beeflow.scheduler.algorithms as algorithms
 import beeflow.scheduler.allocation as allocation
 import beeflow.scheduler.sched_types as sched_types
-import beeflow.common.config.config_driver as config_driver
+from beeflow.common.config.config_driver import BeeConfig
 
 
 flask_app = Flask(__name__)
@@ -27,7 +27,8 @@ class ResourcesHandler(Resource):
     Handle creation of resources.
     """
 
-    def put(self):
+    @staticmethod
+    def put():
         """Create a list of resources to use for allocation.
 
         Create new resources based on a list of resources.
@@ -37,7 +38,8 @@ class ResourcesHandler(Resource):
                           for r in request.json])
         return 'created %i resource(s)' % len(resources)
 
-    def get(self):
+    @staticmethod
+    def get():
         """Get a list of all resources.
 
         Return a list of all available resources known to the scheduler.
@@ -51,7 +53,8 @@ class WorkflowJobHandler(Resource):
     Schedule jobs for a specific workflow with the current resources.
     """
 
-    def put(self, workflow_name):
+    @staticmethod
+    def put():
         """Schedule a list of independent tasks.
 
         Schedules a new list of independent tasks with available resources.
@@ -124,9 +127,9 @@ def load_config_values():
     if args.read_config:
         # Read config values from the config file
         if args.config_file is not None:
-            bc = config_driver.BeeConfig(args.config_file)
+            bc = BeeConfig(userconfig=args.config_file) # noqa
         else:
-            bc = config_driver.BeeConfig()
+            bc = BeeConfig() # noqa
 
         if bc.userconfig.has_section('scheduler'):
             for key in bc.userconfig['scheduler']:
@@ -141,8 +144,8 @@ def load_config_values():
     # Set the default log
     if conf['log'] is None or not conf['log']:
         conf['log'] = ('/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                               'logs', 'sched.log'])
-                     if args.read_config else 'sched.log')
+                                'logs', 'sched.log'])
+                       if args.read_config else 'sched.log')
 
     conf = argparse.Namespace(**conf)
     print('Config = [')
@@ -158,12 +161,13 @@ def load_config_values():
 
 
 if __name__ == '__main__':
-    conf = load_config_values()
-    flask_app.sched_conf = conf
+    print('Scheduler first line')
+    CONF = load_config_values()
+    flask_app.sched_conf = CONF
     # Load algorithm data
-    algorithms.load(**vars(conf))
+    algorithms.load(**vars(CONF))
 
-    handler = logging.FileHandler(conf.log)
+    handler = logging.FileHandler(CONF.log)
     handler.setLevel(logging.DEBUG)
 
     # Werkzeug logging
@@ -172,5 +176,9 @@ if __name__ == '__main__':
     werk_log.addHandler(handler)
 
     # Flask logging
-    flask_app.logger.addHandler(handler)
-    flask_app.run(debug=True, port=conf.listen_port)
+    flask_app.logger.addHandler(handler) # noqa
+    flask_app.run(debug=True, port=CONF.listen_port)
+    print('Scheduler last line')
+
+# Ignore todo's or pylama fails
+# pylama:ignore=W0511
