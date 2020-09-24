@@ -357,7 +357,7 @@ def build_allocation_list(task, tasks, resources, curr_allocs):
                 for t in tasks if t.allocations)
     times = list(times)
     # Add initial start time
-    times.append(int(time.time()))
+    times.append(0)
     times.sort()
     allocations = []
     for start_time in times:

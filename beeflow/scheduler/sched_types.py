@@ -257,8 +257,7 @@ class Allocation(Resource):
         :type resources: list of instance of ResourceSubset
         """
         super().__init__(**kwargs)
-        self.start_time = (start_time if start_time is not None
-                           else int(time.time()))
+        self.start_time = start_time if start_time is not None else 0
         self.max_runtime = max_runtime
 
     def encode(self):
