@@ -36,7 +36,7 @@ class BeeConfig:
             self.sysconfig_file = '/etc/beeflow/bee.conf'
             try:
                 # Accept user_config option
-                self.userconfig_file = kwargs['userconfig']
+                self.userconfig_file = self.resolve_path(kwargs['userconfig'])
             except KeyError:
                 self.userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
         elif system == "Darwin":
@@ -47,7 +47,7 @@ class BeeConfig:
             self.sysconfig_file = ''
             try:
                 # Accept user_config option
-                self.userconfig_file = kwargs['userconfig']
+                self.userconfig_file = self.resolve_path(kwargs['userconfig'])
             except KeyError:
                 self.userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
 
@@ -68,9 +68,9 @@ class BeeConfig:
                 # Make sure conf_file path exists
                 os.makedirs(os.path.dirname(self.userconfig_file),
                             exist_ok=True)
-            except PermissionError as e:
-                raise PermissionError('Do you have write access to {}?'.\
-                                       format(conf_file)) from e
+            except PermissionError as error:
+                raise PermissionError('Do you have write access to {}?'.
+                                      format(self.userconfig_file)) from error
             # Set default bee_workdir relative to HOME unless otherwise specified.
             try:
                 self.bee_workdir = kwargs['bee_workdir']
