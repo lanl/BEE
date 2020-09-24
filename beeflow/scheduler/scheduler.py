@@ -54,7 +54,7 @@ class WorkflowJobHandler(Resource):
     """
 
     @staticmethod
-    def put():
+    def put(workflow_name):
         """Schedule a list of independent tasks.
 
         Schedules a new list of independent tasks with available resources.
