@@ -167,7 +167,7 @@ def submit_task(task):
     print(f"Submitted {task.name} to Task Manager")
     resp = requests.post(_resource("submit/"), json={'task': task_json})
     if resp.status_code != 200:
-        print("Received wrong response {resp.status_code} {resp.text}")
+        print(f"Received wrong response {resp.status_code} {resp.text}")
 
 
 # Used to tell if the workflow is currently paused
