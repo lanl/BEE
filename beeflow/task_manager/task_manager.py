@@ -244,8 +244,6 @@ if WLS == 'Slurm':
                                                                  'container_runtime'),
                              job_template=bc.userconfig.get('task_manager',
                                                             'job_template', fallback=None))
-    api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
-    api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 elif WLS == 'LSF':
     worker = WorkerInterface(LSFWorker,
@@ -255,7 +253,7 @@ elif WLS == 'LSF':
                              job_template=bc.userconfig.get('task_manager',
                                                             'job_template', fallback=None))
     api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
-
+    api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
     # Get the parameter for logging
