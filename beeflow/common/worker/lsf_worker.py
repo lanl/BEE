@@ -54,86 +54,69 @@ class LSFWorker(Worker):
             except ValueError as error:
                 print(error)
         else:
-            self.template_text = ''
+            self.template_text = '#! /bin/bash\n#BSUB\n'
+
+        # Table of LSF states for translation to BEE states
+        self.BEE_STATE = {'PEND': 'PENDING',
+                          'RUN': 'RUNNING',
+                          'DONE': 'COMPLETED',
+                          'EXIT': 'FAILED',
+                          'QUIT': 'FAILED',
+                          'PSUSP': 'PAUSED',
+                          'USUSP': 'PAUSED',
+                          'SSUSP': 'PAUSED'}
 
     def build_text(self, task):
-        """Build text for task script use template if it exists."""
+        """Build text for task script; use template if it exists."""
         template_text = self.template_text
-        if template_text == '':
-            template_text = '#! /bin/bash\n#BSUB\n'
         template = string.Template(template_text)
         job_text = template.substitute({'name': task.name, 'id': task.id})
         crt_text = self.crt.script_text(task)
         job_text += crt_text
-        print(f'in build_text job_text returned {job_text}')
         return job_text
 
     def write_script(self, task):
-        """Build task script; returns (1, filename) or (-1, error_message)."""
-        success = -1
+        """Build task script; returns filename of script."""
         if not self.crt.image_exists(task):
-            return success, "dockerImageId is not a valid image"
-        # for now using fixed directory for task manager scripts and write them out
-        # we may keep them in memory and only write for a debug or logging option
+            raise Exception('dockerImageId not accessible or valid.')
         os.makedirs(f'{self.workdir}/worker', exist_ok=True)
         task_text = self.build_text(task)
         task_script = f'{self.workdir}/worker/{task.name}.sh'
-        try:
-            script_f = open(task_script, 'w')
-            script_f.write(task_text)
-            script_f.close()
-            success = 1
-        except subprocess.CalledProcessError as error:
-            task_script = error.output.decode('utf-8')
-        print(f'in write_script returning success {success} and task_script')
-        return success, task_script
+        script_f = open(task_script, 'w')
+        script_f.write(task_text)
+        script_f.close()
+        return task_script
 
-    @staticmethod
-    def query_job(job_id):
+    def query_job(self, job_id):
         """Query lsf for job status."""
-        print(f'in Query job {job_id}')
-        query_success = 1
-        job_state = 'PENDING'
-        if job_state == 'RUNNING':
-            job_state = 'COMPLETED'
+        job_st = subprocess.check_output(['bjobs', '-aX', str(job_id), '-noheader'],
+                                         stderr=subprocess.STDOUT)
+        if 'not found' in str(job_st):
+            raise Exception
         else:
-            job_state = 'RUNNING'
-        return query_success, job_state
-
-    @staticmethod
-    def cancel_job(job_id):
-        """Cancel LSF job and reports status."""
-        print('LSF cancel')
-        cancel_success = 1
-        job_state = "CANCELLED"
-        return cancel_success, job_state
+            job_state = self.BEE_STATE[job_st.decode().split()[2]]
+        return job_state
 
     def submit_job(self, script):
         """Worker submits job-returns (job_id, job_state), or (-1, error)."""
-        print(f'LSF submit job script:\n {script}')
-        job_id = 1
-        job_state = 'PENDING'
+        job_st = subprocess.check_output(['bsub', script], stderr=subprocess.STDOUT)
+        job_id = int(job_st.decode().split()[1][1:-1])
+        job_state = self.query_job(job_id)
         return job_id, job_state
 
     def submit_task(self, task):
         """Worker builds & submits script."""
-        build_success, task_script = self.write_script(task)
-        if build_success:
-            job_id, job_state = self.submit_job(task_script)
-        else:
-            # build script error in task_script
-            job_id = build_success
-            job_state = task_script
+        task_script = self.write_script(task)
+        job_id, job_state = self.submit_job(task_script)
         return job_id, job_state
 
     def query_task(self, job_id):
         """Worker queries job; returns (1, job_state), or (-1, error_msg)."""
-        query_success, job_state = self.query_job(job_id)
-        print(f'LSF query task {job_id}')
-        return query_success, job_state
+        job_state = self.query_job(job_id)
+        return job_state
 
     def cancel_task(self, job_id):
-        """Worker cancels job; returns (1, job_state), or (-1, error_msg)."""
-        cancel_success = 1
+        """Worker cancels job; job_state."""
+        job_st = subprocess.check_output(['bkill', job_id], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"
-        return cancel_success, job_state
+        return job_state

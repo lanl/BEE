@@ -58,7 +58,6 @@ else:
 tm_dict = {}
 tm_log = f"{bc.userconfig['DEFAULT'].get('bee_workdir')}/logs/tm.log"
 tm_default = {'listen_port': TM_PORT,
-              'workload_scheduler': 'Slurm',
               'log': tm_log,
               'container_runtime': 'Charliecloud'}
 if bc.userconfig.has_section('task_manager'):
@@ -76,7 +75,7 @@ if bc.userconfig.has_section('task_manager'):
 else:
     tm_listen_port = TM_PORT
     bc.modify_section('user', 'task_manager', tm_default)
-    check_crt_config('Charliecloud')
+    check_crt_config(tm_default['container_runtime'])
     sys.exit(f'[task_manager] section missing in {bc.userconfig_file}\n' +
              'Default values added. Please check and restart Task Manager.')
 runtime = bc.userconfig.get('task_manager', 'container_runtime')
@@ -207,12 +206,10 @@ class TaskActions(Resource):
     def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
         cancel_msg = ""
-
         for job in job_queue:
             task_id = list(job.keys())[0]
             job_id = job[task_id]['job_id']
             name = job[task_id]['name']
-
             job_queue.remove(job)
             print(f"Cancelling {name} with job_id: {job_id}")
             try:
@@ -232,7 +229,7 @@ from beeflow.common.worker.lsf_worker import LSFWorker
 
 supported_workload_schedulers = {'Slurm', 'LSF'}
 try:
-    WLS = bc.userconfig.get('task_manager', 'workload_scheduler')
+    WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
 except ValueError as error:
     print(f'workload scheduler error {error}')
     WLS = None
