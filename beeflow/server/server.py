@@ -235,7 +235,7 @@ class JobActions(Resource):
         print("self is referenced but not used. Evaluate JobActions().get decorators", self)
         resp = requests.delete(_resource())
         if resp.status_code != 200:
-            print("Received wrong response {resp.status_code} {resp.text}")
+            print(f"Received wrong response {resp.status_code} {resp.text}")
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()

@@ -117,6 +117,6 @@ class LSFWorker(Worker):
 
     def cancel_task(self, job_id):
         """Worker cancels job; job_state."""
-        job_st = subprocess.check_output(['bkill', job_id], stderr=subprocess.STDOUT)
+        job_st = subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"
         return job_state
