@@ -88,7 +88,7 @@ class SlurmWorker(Worker):
             success = 1
         except subprocess.CalledProcessError as error:
             task_script = error.output.decode('utf-8')
-        return success, task_script
+        return success, task_script, task_text
 
     @staticmethod
     def query_job(job_id, session, slurm_url):
@@ -118,21 +118,20 @@ class SlurmWorker(Worker):
     def submit_job(self, script, session, slurm_url):
         """Worker submits job-returns (job_id, job_state), or (-1, error)."""
         job_id = -1
-        try:
-            job_st = subprocess.check_output(['sbatch', '--parsable', script],
-                                             stderr=subprocess.STDOUT)
-            job_id = int(job_st)
-        except subprocess.CalledProcessError as error:
-            job_status = error.output.decode('utf-8')
-            print(f'job_status is {job_status}')
+        resp = session.post(f'{slurm_url}/job/submit', json={"job": {"environment": { "LD_LIBRARY_PATH": ""} }, 'script': script})
+        if resp.status_code != 200:
+            print(f'Error job submision failed with {resp.text}')
+        else:
+            status = json.loads(resp.text)
+            job_id = status['job_id']
         _, job_state = self.query_job(job_id, session, slurm_url)
         return job_id, job_state
 
     def submit_task(self, task):
         """Worker builds & submits script."""
-        build_success, task_script = self.write_script(task)
+        build_success, task_script, task_text = self.write_script(task)
         if build_success:
-            job_id, job_state = self.submit_job(task_script,
+            job_id, job_state = self.submit_job(task_text,
                                                 self.session, self.slurm_url)
         else:
             job_id = build_success
