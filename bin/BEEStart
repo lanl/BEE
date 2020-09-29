@@ -309,9 +309,14 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
+    proc = subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
                             '--config-file',userconfig_file,'2>&1'],
                             stdout=PIPE, stderr=PIPE)
+    if args.debug:
+        print("Debug mode is on. Check logs for verbose output.")
+        while proc.poll() is None:
+            check_io(proc)
+    return proc
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
