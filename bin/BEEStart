@@ -164,9 +164,9 @@ def StartGDB(bc, args):
         log.error("neo4j failed to start.")
         print("neo4j failed to start.", file=sys.stderr)
         return None
+    time.sleep(args.sleep_time)
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
-        time.sleep(3)
         while proc.poll() is None:
             check_io(proc)
     return proc
@@ -207,9 +207,9 @@ def StartSlurmRestD(bc, args):
     log.info("Attempting to open socket: {}".format(slurm_socket))
     proc =  subprocess.Popen([f"slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
                              stdout=PIPE, stderr=PIPE, shell=True)
+    time.sleep(args.sleep_time)
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
-        time.sleep(3)
         while proc.poll() is None:
             check_io(proc)
     return proc
@@ -243,9 +243,9 @@ def StartWorkflowManager(bc, args):
     proc = subprocess.Popen(["python", 'beeflow/server/server.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+    time.sleep(args.sleep_time)
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
-        time.sleep(3)
         while proc.poll() is None:
             check_io(proc)
     return proc
@@ -278,9 +278,9 @@ def StartTaskManager(bc, args):
     proc = subprocess.Popen(["python", 'beeflow/task_manager/task_manager.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+    time.sleep(args.sleep_time)
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
-        time.sleep(3)
         while proc.poll() is None:
             check_io(proc)
     return proc
@@ -314,8 +314,10 @@ def StartScheduler(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     proc = subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
-                            '--config-file',userconfig_file,'2>&1'],
+                            '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+
+    time.sleep(args.sleep_time)
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
         while proc.poll() is None:
@@ -452,7 +454,6 @@ def main():
     if args.config_only:
         return 0
 
-    time.sleep(args.sleep_time)
     # Check if any processes have finished early
     for name, proc in wait_list:
         exit_code = proc.poll()
