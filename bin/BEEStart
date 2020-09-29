@@ -164,7 +164,10 @@ def StartGDB(bc, args):
         log.error("neo4j failed to start.")
         print("neo4j failed to start.", file=sys.stderr)
         return None
-
+    if args.debug:
+        print("Debug mode is on. Check logs for verbose output.")
+        while proc.poll() is None:
+            check_io(proc)
     return proc
 
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr 
@@ -201,8 +204,13 @@ def StartSlurmRestD(bc, args):
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
     subprocess.Popen(['rm','-f',slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
-    return subprocess.Popen([f"slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
-                            stdout=PIPE, stderr=PIPE, shell=True)
+    proc =  subprocess.Popen([f"slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
+                             stdout=PIPE, stderr=PIPE, shell=True)
+    if args.debug:
+        print("Debug mode is on. Check logs for verbose output.")
+        while proc.poll() is None:
+            check_io(proc)
+    return proc
 
 def StartWorkflowManager(bc, args):
     """Start BEEWorkflowManager. Returns a Popen process object."""
@@ -230,9 +238,14 @@ def StartWorkflowManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/server/server.py',
+    proc = subprocess.Popen(["python", 'beeflow/server/server.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+    if args.debug:
+        print("Debug mode is on. Check logs for verbose output.")
+        while proc.poll() is None:
+            check_io(proc)
+    return proc
 
 def StartTaskManager(bc, args):
     """Start BEETaskManager. Returns a Popen process object."""
@@ -259,9 +272,14 @@ def StartTaskManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/task_manager/task_manager.py',
+    proc = subprocess.Popen(["python", 'beeflow/task_manager/task_manager.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+    if args.debug:
+        print("Debug mode is on. Check logs for verbose output.")
+        while proc.poll() is None:
+            check_io(proc)
+    return proc
 
 def StartScheduler(bc, args):
     """Start BEEScheduler.
@@ -322,6 +340,15 @@ def setup_logging(bc, debug=False):
         logging.getLogger().addHandler(logging.StreamHandler())
         logging.basicConfig(filename=path)
     return logging.getLogger(BEESTART)
+
+def check_io(proc):
+    log = logging.getLogger(BEESTART)
+    while True:
+        output = proc.stdout.readline().decode()
+        if output:
+            log.log(logging.INFO, output)
+        else:
+            break
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
