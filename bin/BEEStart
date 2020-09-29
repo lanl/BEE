@@ -166,6 +166,7 @@ def StartGDB(bc, args):
         return None
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
+        time.sleep(3)
         while proc.poll() is None:
             check_io(proc)
     return proc
@@ -208,6 +209,7 @@ def StartSlurmRestD(bc, args):
                              stdout=PIPE, stderr=PIPE, shell=True)
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
+        time.sleep(3)
         while proc.poll() is None:
             check_io(proc)
     return proc
@@ -243,6 +245,7 @@ def StartWorkflowManager(bc, args):
                             stdout=PIPE, stderr=PIPE)
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
+        time.sleep(3)
         while proc.poll() is None:
             check_io(proc)
     return proc
@@ -277,6 +280,7 @@ def StartTaskManager(bc, args):
                             stdout=PIPE, stderr=PIPE)
     if args.debug:
         print("Debug mode is on. Check logs for verbose output.")
+        time.sleep(3)
         while proc.poll() is None:
             check_io(proc)
     return proc
