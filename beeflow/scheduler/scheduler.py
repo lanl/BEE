@@ -168,6 +168,8 @@ if __name__ == '__main__':
     # Load algorithm data
     algorithms.load(**vars(CONF))
 
+    print("hi from scheduler.py")
+
     handler = logging.FileHandler(CONF.log)
     handler.setLevel(logging.DEBUG)
 
