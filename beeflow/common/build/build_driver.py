@@ -12,7 +12,7 @@ class BuildDriver(ABC):
     """
 
     @abstractmethod
-    def initialize_builder(self, requirements, hints, kwargs):
+    def __init__(self, task, kwargs):
         """Begin build request.
 
         Parse hints and requirements to determine target build

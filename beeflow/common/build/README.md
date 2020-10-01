@@ -39,3 +39,14 @@ Each step in a workflow may include a reference to `DockerRequirement` in the CW
 4. `dockerImport:` Provide HTTP URL to download and gunzip a Docker images using `docker import`. This should be the path to a compressed image. 
 5. `dockerImageId:` A reference to the image id that will be invoked by the container runtime's `run` or `exec` command. Note that this differs from `dockerPull` slightly, in that `dockerPull` is the image to be acquired. It is possible to pull an image in a workflow stage, and then run an entirely different image by specifying a different `dockerImageId`. If `dockerImageId` is not defined, assume `dockerPull` references the container to run. If `dockerImageId` is specified and image does not exist, error.
 6. `dockerOutputDirectory:` Set the designated output directory to a specific location inside the Docker container.
+
+
+An example task to use with testing:
+
+```
+task = Task(name='hi',command=['hi','hello'],
+            hints={'DockerRequirement':{'dockerPull':'debian'}},
+            subworkflow=None,
+            inputs={},
+            outputs={})
+```
