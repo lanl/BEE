@@ -79,7 +79,7 @@ class Task:
     def __repr__(self):
         """Construct a task's string representation."""
         return (f"<Task id={self.id} name='{self.name}' command={self.command} hints={self.hints} "
-                f"requirements={self.requirements subworkflow='{self.subworkflow}'"
+                f"requirements={self.requirements} subworkflow='{self.subworkflow}'"
                 f"inputs={self.inputs} outputs={self.outputs}>")
 
     def construct_command(self):
