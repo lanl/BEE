@@ -9,7 +9,7 @@ Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, name, command, hints, subworkflow, inputs, outputs):
+    def __init__(self, name, command, subworkflow, inputs, outputs, hints=None, requirements=None):
         """Store a task description.
 
         There are two special tasks: those with the name bee_init and bee_exit.
@@ -26,7 +26,9 @@ class Task:
         :type name: string
         :param command: the command to run for the task
         :type command: list of strings
-        :param hints: the task hints (optional requirements)
+        :param hints: the task hints (optional)
+        :type hints: dictionary
+        :param hints: the task requirements (optional)
         :type hints: dictionary
         :param subworkflow: an identifier for the subworkflow to which the task belongs
         :type subworkflow: string
@@ -38,6 +40,7 @@ class Task:
         self.name = name
         self.command = command
         self.hints = hints
+        self.requirements = requirements
         self.subworkflow = subworkflow
         self.inputs = inputs
         self.outputs = outputs
@@ -56,6 +59,7 @@ class Task:
         return bool(self.name == other.name and
                     self.command == other.command and
                     self.hints == other.hints and
+                    self.requirements == other.requirements and
                     self.subworkflow == other.subworkflow and
                     self.inputs == other.inputs and
                     self.outputs == other.outputs)
@@ -75,7 +79,8 @@ class Task:
     def __repr__(self):
         """Construct a task's string representation."""
         return (f"<Task id={self.id} name='{self.name}' command={self.command} hints={self.hints} "
-                f"subworkflow='{self.subworkflow}' inputs={self.inputs} outputs={self.outputs}>")
+                f"requirements={self.requirements subworkflow='{self.subworkflow}'"
+                f"inputs={self.inputs} outputs={self.outputs}>")
 
     def construct_command(self):
         """Construct a task's command representation."""
