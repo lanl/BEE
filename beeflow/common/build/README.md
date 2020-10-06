@@ -45,7 +45,7 @@ An example task to use with testing:
 
 ```
 task = Task(name='hi',command=['hi','hello'],
-            hints={'DockerRequirement':{'dockerPull':'debian'}},
+            requirements={'DockerRequirement':{'dockerPull':'debian'}},
             subworkflow=None,
             inputs={},
             outputs={})

@@ -19,6 +19,7 @@ def create_task(tx, task):
                     "SET t.task_id = $task_id "
                     "SET t.name = $name "
                     "SET t.command = $command "
+                    "SET t.requirements = $requirements "
                     "SET t.hints = $hints "
                     "SET t.subworkflow = $subworkflow "
                     "SET t.inputs = $inputs "
@@ -26,9 +27,20 @@ def create_task(tx, task):
                     "SET t.state = 'WAITING'")
 
     # Unpack requirements, hints dictionaries into flat list
-    tx.run(create_query, task_id=task.id, name=task.name,
-           command=task.command, hints=_encode_requirements(task.hints),
-           subworkflow=task.subworkflow, inputs=list(task.inputs), outputs=list(task.outputs))
+    try:
+        inputs=list(task.inputs)
+    except TypeError:
+        inputs=[]
+    try:
+        outputs=list(task.outputs)
+    except TypeError:
+        outputs=[]
+    print([create_query, task.id, task.name,
+           task.command, _encode_reqs_and_hints(task.requirements),
+           _encode_reqs_and_hints(task.hints), task.subworkflow,
+           inputs, outputs])
+
+    tx.run(create_query, task_id=task.id, name=task.name, command=task.command, requirements=_encode_reqs_and_hints(task.requirements), hints=_encode_reqs_and_hints(task.hints), subworkflow=task.subworkflow, inputs=inputs, outputs=outputs)
 
 
 def create_bee_init_node(tx, inputs):
@@ -76,8 +88,8 @@ def create_metadata_node(tx, requirements, hints):
     metadata_query = "CREATE (n:Metadata {requirements: $requirements, hints: $hints})"
 
     # Store the workflow requirements and hints in a metadata node
-    tx.run(metadata_query, requirements=_encode_requirements(requirements),
-           hints=_encode_requirements(hints))
+    tx.run(metadata_query, requirements=_encode_reqs_and_hints(requirements),
+           hints=_encode_reqs_and_hints(hints))
 
 
 def add_dependencies(tx, task):
@@ -236,10 +248,13 @@ def cleanup(tx):
     tx.run(cleanup_query)
 
 
-def _encode_requirements(reqs):
+def _encode_reqs_and_hints(reqs_xor_hints):
     """Encode requirements as a flat list of ordered class-key-value triplets as strings.
 
-    :param reqs: the requirements to encode
+    :param reqs: the requirements or hints to encode
     :type reqs: iterable of Requirement instances
     """
-    return [str(prop) for req in reqs for prop in req]
+    if reqs_xor_hints:
+        return [str(prop) for req_xor_hint in reqs_xor_hints for prop in req_xor_hint]
+    else:
+        return []

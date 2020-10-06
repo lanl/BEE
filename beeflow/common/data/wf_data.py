@@ -1,9 +1,10 @@
 """Defines data structures for holding task and workflow data."""
 from collections import namedtuple
-
+import time
 
 # Requirement class for storing requirement class, key, and value
 Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
+Hint = namedtuple("Hint", ["req_class", "key", "value"])
 
 
 class Task:
@@ -74,7 +75,7 @@ class Task:
 
     def __hash__(self):
         """Return the hash value for a task."""
-        return hash((self.name, self.subworkflow))
+        return hash((self.name, time.time()))
 
     def __repr__(self):
         """Construct a task's string representation."""
