@@ -4,7 +4,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 """
 
 from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
-from beeflow.common.data.wf_data import Task, Requirement, Hint
+from beeflow.common.data.wf_data import Task, Requirement
 
 
 class WorkflowInterface:
@@ -64,21 +64,8 @@ class WorkflowInterface:
         """
         return Requirement(req_class, key, value)
 
-    @staticmethod
-    def create_hint(req_class, key, value):
-        """Create a workflow hint.
-
-        :param req_class: the hint class
-        :type req_class: string
-        :param key: the hint key
-        :type key: string
-        :param value: the hint value
-        :type value: string, boolean, or integer
-        """
-        return Hint(req_class, key, value)
-
-    def add_task(self, name, command=None, requirements=None, hints=None, subworkflow=None,
-                 inputs=None, outputs=None):
+    def add_task(self, name, command=None, hints=None, subworkflow=None, inputs=None,
+                 outputs=None):
         """Create a new BEE workflow task.
 
         In its current form, this method allows the user to create bee_init and bee_exit
@@ -101,8 +88,6 @@ class WorkflowInterface:
         # Immutable default arguments
         if command is None:
             command = []
-        if requirements is None:
-            requirements = set()
         if hints is None:
             hints = set()
         if inputs is None:
@@ -110,7 +95,7 @@ class WorkflowInterface:
         if outputs is None:
             outputs = set()
 
-        task = Task(name, command, requirements, hints, subworkflow, inputs, outputs)
+        task = Task(name, command, hints, subworkflow, inputs, outputs)
         self._gdb_interface.load_task(task)
         return task
 

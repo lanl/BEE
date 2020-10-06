@@ -103,15 +103,6 @@ def create_task(obj, wfi):
     # cmd = base + " " + sorted_params_str + " > " + redirect_out
     cmd = base
 
-    # Get any requirements for the task. We only support DockerRequirement for now.
-    trequirements = set()
-    if obj.run.requirements is not None:
-        for i in obj.run.requirements:
-            if "DockerRequirement" in i.values():
-                del i["class"]
-                for key, value in i.items():
-                    trequirements.add(wfi.create_requirement("DockerRequirement", key, value))
-
     # Get any hints for the task. We only support DockerRequirement for now.
     thints = set()
     if obj.run.hints is not None:
@@ -126,7 +117,6 @@ def create_task(obj, wfi):
     print(f"  outs:     {outs}")
     print(f"  command:  {cmd}")
     print(f"  hints:    {thints}")
-    print(f"  requirements:    {trequirements}")
 
     # Using the BEE workflow interface (note the passed in reference
     # to a Neo4j databse) to load the task nto the database.
