@@ -58,7 +58,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerPull(self):
+    def dockerPull(self, addr):
         """CWL compliant dockerPull.
 
         CWL spec 09-23-2020: Specify a Docker image to

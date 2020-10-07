@@ -44,9 +44,16 @@ Each step in a workflow may include a reference to `DockerRequirement` in the CW
 An example task to use with testing:
 
 ```
-task = Task(name='hi',command=['hi','hello'],
-            requirements={'DockerRequirement':{'dockerPull':'debian'}},
-            subworkflow=None,
-            inputs={},
-            outputs={})
+from beeflow.common.build.container_drivers import CharliecloudBuildDriver
+from beeflow.common.data.wf_data import BuildTask
+task = BuildTask(name='hi',command=['hi','hello'],
+                 requirements={'DockerRequirement':{'dockerPull':'debian'}},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
+>>> a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
+CompletedProcess(args='ch-grow pull git.lanl.gov:5050/qwofford/containerhub/lstopo\nch-builder2tar git.lanl.gov:5050%qwofford%containerhub%lstopo /yellow/users/qwofford/.beeflow/build_cache', returncode=0, stdout=b'builder: ch-grow\nexporting\ncompressing\n-rw-rw---- 1 qwofford viz_public 53M Oct  7 14:08 /yellow/users/qwofford/.beeflow/build_cache/git.lanl.gov:5050%qwofford%containerhub%lstopo.tar.gz\n', stderr=b'pulling image:   git.lanl.gov:5050/qwofford/containerhub/lstopo\nmanifest: downloading\nlayer 1/5: fe703b6: downloading\nlayer 2/5: f9df1fa: downloading\nlayer 3/5: a645a4b: downloading\nlayer 4/5: 57db7fe: downloading\nlayer 5/5: 2c1fd9f: downloading\nlayer 1/5: fe703b6: listing\nlayer 2/5: f9df1fa: listing\nlayer 3/5: a645a4b: listing\nlayer 4/5: 57db7fe: listing\nlayer 5/5: 2c1fd9f: listing\nvalidating tarball members\nlayer 1/5: fe703b6: ignored 79 devices and/or FIFOs\nresolving whiteouts\nflattening image\nlayer 1/5: fe703b6: extracting\nlayer 2/5: f9df1fa: extracting\nlayer 3/5: a645a4b: extracting\nlayer 4/5: 57db7fe: extracting\nlayer 5/5: 2c1fd9f: extracting\ndone\n')
+
 ```

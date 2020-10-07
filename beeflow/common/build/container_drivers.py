@@ -5,6 +5,7 @@ All container-based build systems belong here.
 
 from abc import ABC
 import os
+import subprocess
 from beeflow.common.config.config_driver import BeeConfig
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 
@@ -44,18 +45,19 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         try:
             if bc.userconfig['DEFAULT'].get('bee_workdir'):
                 build_dir = '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                     'build_scratch'])
+                                     'build_cache'])
             else:
                 print('Invalid config file. bee_workdir not found in DEFAULT.')
                 print('Assuming bee_workdir is ~/.beeflow')
-                build_dir = '~/.beeflow/build_scratch'
+                build_dir = '~/.beeflow/build_cache'
         except KeyError:
             print('Invalid config file. DEFAULT section missing.')
             print('Assuming bee_workdir is ~/.beeflow')
-            build_dir = '~/.beeflow/build_scratch'
+            build_dir = '~/.beeflow/build_cache'
         finally:
             self.build_dir = bc.resolve_path(build_dir)
             os.makedirs(self.build_dir, exist_ok=True)
+            print('Build cache directory is:', self.build_dir)
         self.task = task
 
     def parse_build_config(self):
@@ -89,13 +91,18 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """
         print('Charliecloud, validate_build:', self, '.')
 
-    def dockerPull(self, path, kwargs):
+    def dockerPull(self, addr):
         """CWL compliant dockerPull.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
         digest to ensure an exact container is used.
         """
+        ch_build_addr = addr.replace('/', '%')
+        cmd = (f'ch-grow pull {addr}\n'
+               f'ch-builder2tar {ch_build_addr} {self.build_dir}'
+               )
+        return subprocess.run(cmd, capture_output=True, check=True, shell=True)
 
     def dockerLoad(self):
         """CWL compliant dockerLoad.
