@@ -109,10 +109,8 @@ class JobsList(Resource):
     # Give client a wf_id
     # wf_id not needed if we just support a single workflow
     def post(self):
-        """TEMPORARY: Hard-coded lister to get workflow 42."""
         data = self.reqparse.parse_args()
         title = data['title']
-        print("Retrieved a title \"{}\". What to do with it?".format(title))
         # Return the wf_id and created
         resp = make_response(jsonify(wf_id="42"), 201)
         return resp
@@ -167,7 +165,7 @@ def submit_task(task):
     print(f"Submitted {task.name} to Task Manager")
     resp = requests.post(_resource("submit/"), json={'task': task_json})
     if resp.status_code != 200:
-        print("Something bad happened")
+        print(f"Submit task to TM returned bad status: {resp.status_code}")
 
 
 # Used to tell if the workflow is currently paused
@@ -204,8 +202,6 @@ class JobActions(Resource):
 
     def post(self, wf_id):
         """Start job. Send tasks to the task manager."""
-        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
-        print("self is referenced but not used. Evaluate JobActions().post decorators", self)
         # Get first task and send it to the task manager
         task = list(wfi.get_dependent_tasks(wfi.get_task_by_id(0)))[0]
         # Submit task to TM
@@ -214,13 +210,7 @@ class JobActions(Resource):
 
     def get(self, wf_id):
         """Check the database for the current status of all the tasks."""
-        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
-        print("self is referenced but not used. Evaluate JobActions().get decorators", self)
-        (tasks, requirements, hints) = wfi.get_workflow()
-        print('requirements={} obtained but unused. Either use or change argument to _'.
-              format(requirements))
-        print('hints={} obtained but unused. Either use or change argument to _'.
-              format(hints))
+        (tasks, _, _) = wfi.get_workflow()
         task_status = ""
         for task in tasks:
             if task.name != "bee_init" and task.name != "bee_exit":
@@ -231,11 +221,9 @@ class JobActions(Resource):
 
     def delete(self, wf_id):
         """Send a request to the task manager to cancel any ongoing tasks."""
-        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
-        print("self is referenced but not used. Evaluate JobActions().get decorators", self)
         resp = requests.delete(_resource())
         if resp.status_code != 200:
-            print("Something bad happened")
+            print(f"Delete from task manager returned bad status: {resp.status_code}")
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()
@@ -245,7 +233,6 @@ class JobActions(Resource):
 
     def patch(self, wf_id):
         """Pause or resume workflow."""
-        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
         global WORKFLOW_PAUSED
         # Stop sending jobs to the task manager
         data = self.reqparse.parse_args()
@@ -268,7 +255,7 @@ class JobActions(Resource):
 
 
 class JobUpdate(Resource):
-    """Class for to interact with an existing job."""
+    """Class to interact with an existing job."""
 
     def __init__(self):
         """Initialize JobUpdate with task_id and job_state requirements."""
