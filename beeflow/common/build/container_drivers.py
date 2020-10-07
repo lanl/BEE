@@ -91,13 +91,23 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """
         print('Charliecloud, validate_build:', self, '.')
 
-    def dockerPull(self, addr):
+    def dockerPull(self, addr=None):
         """CWL compliant dockerPull.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
         digest to ensure an exact container is used.
         """
+        try:
+            task_addr = self.task.requirements['DockerRequirement']['dockerPull']
+            if addr:
+                print(f"Forcing pull of arg {addr} over Task defined pull {task_addr}")
+            else:
+                addr = task_addr
+        except KeyError:
+            if not addr:
+                print("Task and args do not specify image target. Nothing to do.")
+                return 1
         ch_build_addr = addr.replace('/', '%')
         cmd = (f'ch-grow pull {addr}\n'
                f'ch-builder2tar {ch_build_addr} {self.build_dir}'
