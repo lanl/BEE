@@ -5,6 +5,7 @@ All container-based build systems belong here.
 
 from abc import ABC
 import os
+import shutil
 import subprocess
 from beeflow.common.config.config_driver import BeeConfig
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
@@ -103,13 +104,13 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         try:
             # Try to get Hints
             hint_addr = self.task.hints['DockerRequirement']['dockerPull']
-        except KeyError:
+        except (KeyError, TypeError):
             # Task Hints are not mandatory. No dockerPull image specified in task hints.
             hint_addr = None
         try:
             # Try to get Requirements
             req_addr = self.task.requirements['DockerRequirement']['dockerPull']
-        except KeyError:
+        except (KeyError, TypeError):
             # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
             req_addr = None
 
@@ -124,7 +125,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             addr = task_addr
 
         # If Requirement is set but not specified, and param empty, do nothing and error.
-        if req_addr == {} and not addr:
+        if self.task.requirements == {} and not addr:
             print("ERROR: dockerPull set but no image path specified.")
             return 1
         # If no image specified and no image required, nothing to do.
@@ -134,9 +135,20 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Determine name for successful build target
         ch_build_addr = addr.replace('/', '%')
 
+        ch_build_target = '/'.join([self.build_dir, ch_build_addr]) + '.tar.gz'
         # Return if image already exist and force==False.
-        if os.path.exists('/'.join([self.build_dir, ch_build_addr])) and not force:
+        if os.path.exists(ch_build_target) and not force:
             return 0
+        # Force remove any cached images if force==True
+        if os.path.exists(ch_build_target) and force:
+            try:
+                os.remove(ch_build_target)
+            except FileNotFoundError:
+                pass
+            try:
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow')
+            except FileNotFoundError:
+                pass
 
         # Provably out of excuses. Pull the image.
         cmd = (f'ch-grow pull {addr}\n'

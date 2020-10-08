@@ -72,4 +72,5 @@ task = BuildTask(name='hi',command=['hi','hello'],
 a = CharliecloudBuildDriver(task)
 a.dockerPull()
 a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
+a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=True)
 ```
