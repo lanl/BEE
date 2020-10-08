@@ -123,12 +123,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if not addr:
             addr = task_addr
 
-        # If we still don't have an addr, exit with success determined by dockerPull entry
-        if req_addr and not addr:
+        # If Requirement is set but not specified, and param empty, do nothing and error.
+        if req_addr == {} and not addr:
             print("ERROR: dockerPull set but no image path specified.")
             return 1
-        elif req_addr not {}:
-            # If no image specified and no image required, nothing to do.
+        # If no image specified and no image required, nothing to do.
+        if not req_addr and not addr:
             return 0
 
         # Determine name for successful build target
