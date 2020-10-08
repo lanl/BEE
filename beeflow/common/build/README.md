@@ -41,7 +41,7 @@ Each step in a workflow may include a reference to `DockerRequirement` in the CW
 6. `dockerOutputDirectory:` Set the designated output directory to a specific location inside the Docker container.
 
 
-A few example to use for testing:
+A few examples to use for testing:
 
 ### dockerPull
 ```
@@ -55,8 +55,17 @@ task = BuildTask(name='hi',command=['hi','hello'],
 a = CharliecloudBuildDriver(task)
 a.dockerPull()
 a.dockerPull('git.lanl.gov:5050/trandles/baseimages/centos:7')
+
 task = BuildTask(name='hi',command=['hi','hello'],
                  requirements={},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+a.dockerPull()
+a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
+
+task = BuildTask(name='hi',command=['hi','hello'],
                  subworkflow=None,
                  inputs={},
                  outputs={})
