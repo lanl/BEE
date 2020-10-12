@@ -91,12 +91,12 @@ class SlurmWorker(Worker):
             resp = session.get(f'{slurm_url}/job/{job_id}')
 
             if resp.status_code != 200:
-                job_state = f"BAD RESPONSE {resp.status_code}"
+                job_state = f"BAD_RESPONSE_{resp.status_code}"
             else:
                 status = json.loads(resp.text)
                 job_state = status['job_state']
         except requests.exceptions.ConnectionError:
-            job_state = "NOT RESPONDING"
+            job_state = "NOT_RESPONDING"
         return job_state
 
     def submit_job(self, script, session, slurm_url):
