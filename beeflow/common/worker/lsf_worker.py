@@ -57,14 +57,14 @@ class LSFWorker(Worker):
             self.template_text = '#! /bin/bash\n#BSUB\n'
 
         # Table of LSF states for translation to BEE states
-        self.BEE_STATE = {'PEND': 'PENDING',
-                          'RUN': 'RUNNING',
-                          'DONE': 'COMPLETED',
-                          'EXIT': 'FAILED',
-                          'QUIT': 'FAILED',
-                          'PSUSP': 'PAUSED',
-                          'USUSP': 'PAUSED',
-                          'SSUSP': 'PAUSED'}
+        self.bee_states = {'PEND': 'PENDING',
+                           'RUN': 'RUNNING',
+                           'DONE': 'COMPLETED',
+                           'EXIT': 'FAILED',
+                           'QUIT': 'FAILED',
+                           'PSUSP': 'PAUSED',
+                           'USUSP': 'PAUSED',
+                           'SSUSP': 'PAUSED'}
 
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
@@ -93,8 +93,7 @@ class LSFWorker(Worker):
                                          stderr=subprocess.STDOUT)
         if 'not found' in str(job_st):
             raise Exception
-        else:
-            job_state = self.BEE_STATE[job_st.decode().split()[2]]
+        job_state = self.bee_states[job_st.decode().split()[2]]
         return job_state
 
     def submit_job(self, script):
@@ -117,6 +116,6 @@ class LSFWorker(Worker):
 
     def cancel_task(self, job_id):
         """Worker cancels job; job_state."""
-        job_st = subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
+        subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"
         return job_state

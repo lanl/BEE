@@ -92,10 +92,9 @@ class SlurmWorker(Worker):
         """Query slurm for job status."""
         resp = session.get(f'{slurm_url}/job/{job_id}')
         if resp.status_code != 200:
-            raise Exception (f'Unable to query job id {job_id}.')
-        else:
-            status = json.loads(resp.text)
-            job_state = status['job_state']
+            raise Exception(f'Unable to query job id {job_id}.')
+        status = json.loads(resp.text)
+        job_state = status['job_state']
         return job_state
 
     def submit_job(self, script, session, slurm_url):
@@ -122,8 +121,7 @@ class SlurmWorker(Worker):
         resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
         if resp.status_code != 200:
             raise Exception(f'Unable to cancel job id {job_id}!')
-        else:
-            job_state = "CANCELLED"
+        job_state = "CANCELLED"
         return job_state
 
 # Ignore module imported but unused error. No way to know which crt will be needed

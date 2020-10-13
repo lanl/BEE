@@ -139,8 +139,7 @@ def submit_jobs():
                 # place job in queue to monitor and send initial state to WFM
                 print(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
                 job_queue.append({task_id: {'name': task.name,
-                                        'job_id': job_id,
-                                        'job_state': job_state}})
+                                 'job_id': job_id, 'job_state': job_state}})
         # Send the initial state to WFM
         update_task_state(task_id, job_state)
 
