@@ -5,6 +5,7 @@ All container-based build systems belong here.
 
 from abc import ABC
 import os
+import shutil
 import subprocess
 from beeflow.common.config.config_driver import BeeConfig
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
@@ -91,24 +92,65 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """
         print('Charliecloud, validate_build:', self, '.')
 
-    def dockerPull(self, addr=None):
+    def dockerPull(self, addr=None, force=False):
         """CWL compliant dockerPull.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
         digest to ensure an exact container is used.
         """
+        # By default, tasks need not specify hints or reqs
+        task_addr = None
         try:
-            task_addr = self.task.requirements['DockerRequirement']['dockerPull']
-            if addr:
-                print(f"Forcing pull of arg {addr} over Task defined pull {task_addr}")
-            else:
-                addr = task_addr
-        except KeyError:
-            if not addr:
-                print("Task and args do not specify image target. Nothing to do.")
-                return 1
+            # Try to get Hints
+            hint_addr = self.task.hints['DockerRequirement']['dockerPull']
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No dockerPull image specified in task hints.
+            hint_addr = None
+        try:
+            # Try to get Requirements
+            req_addr = self.task.requirements['DockerRequirement']['dockerPull']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
+            req_addr = None
+
+        # Prefer requirements over hints
+        if (req_addr or hint_addr) and (not hint_addr):
+            task_addr = req_addr
+        elif hint_addr:
+            task_addr = hint_addr
+
+        # Use task specified image if image parameter empty
+        if not addr:
+            addr = task_addr
+
+        # If Requirement is set but not specified, and param empty, do nothing and error.
+        if self.task.requirements == {} and not addr:
+            print("ERROR: dockerPull set but no image path specified.")
+            return 1
+        # If no image specified and no image required, nothing to do.
+        if not req_addr and not addr:
+            return 0
+
+        # Determine name for successful build target
         ch_build_addr = addr.replace('/', '%')
+
+        ch_build_target = '/'.join([self.build_dir, ch_build_addr]) + '.tar.gz'
+        # Return if image already exist and force==False.
+        if os.path.exists(ch_build_target) and not force:
+            return 0
+        # Force remove any cached images if force==True
+        if os.path.exists(ch_build_target) and force:
+            try:
+                os.remove(ch_build_target)
+            except FileNotFoundError:
+                pass
+            try:
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow')
+            except FileNotFoundError:
+                pass
+
+        # Provably out of excuses. Pull the image.
         cmd = (f'ch-grow pull {addr}\n'
                f'ch-builder2tar {ch_build_addr} {self.build_dir}'
                )
