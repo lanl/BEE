@@ -354,7 +354,7 @@ def main():
     except NoOptionError:
         workload_scheduler = 'Slurm'
         bc.modify_section('user', 'DEFAULT', {'workload_scheduler':workload_scheduler} )
-    if workload_scheduler == 'SLURM':
+    if workload_scheduler == 'Slurm':
         if args.restd or start_all:
             proc = StartSlurmRestD(bc, args)
             if not args.config_only:
