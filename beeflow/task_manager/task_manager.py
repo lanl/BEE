@@ -143,11 +143,8 @@ def update_jobs():
         task_id = list(job)[0]
         current_task = job[task_id]
         job_id = current_task['job_id']
-        try:
-            job_state = worker.query_task(job_id)
-        except Exception as error:
-            print(f'Cannot query state of {job_id}\n {error}')
-            job_state = 'ZOMBIE'
+        job_state = worker.query_task(job_id)
+
         if job_state != current_task['job_state']:
             print(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
             current_task['job_state'] = job_state
