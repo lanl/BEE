@@ -298,7 +298,6 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    print("I'm trying")
     return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
