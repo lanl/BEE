@@ -46,7 +46,6 @@ def create_workflow(job_name, workflow_path):
         json= {'title': job_name, 
                'filename': os.path.basename(workflow_path)
         })
-
     if resp.status_code != requests.codes.created:
         print(f"Returned {resp.status_code}")
         raise ApiError("POST /jobs".format(resp.status_code))
@@ -142,9 +141,9 @@ if __name__ == '__main__':
             print("What is the workflow path?")
             workflow_path = safe_input(Path)
             wf_id = create_workflow(job_name, workflow_path)
-            submit_workflow(wf_id, workflow_path) 
+            submit_workflow(wf_id, workflow_path)
             print("Job submitted! Your workflow id is 42.")
-        else:
+        elif int(choice) < 6:
             print("What is the workflow id?")
             wf_id = safe_input(str)
             list(menu_items[int(choice)].values())[0](wf_id)

@@ -85,6 +85,15 @@ class BeeConfig:
             self.modify_section('user',
                                 'DEFAULT',
                                 {'bee_workdir': str(self.bee_workdir)})
+            # Set workload scheduler
+            try:
+                self.workload_scheduler = kwargs['workload_scheduler']
+            except KeyError:
+                self.workload_scheduler = 'Slurm'
+            self.modify_section('user',
+                                'DEFAULT',
+                                {'workload_scheduler': str(self.workload_scheduler)})
+
 
     def modify_section(self, conf, section, keyvalue, replace=False):
         """Add a new section to the system or user config file.

@@ -19,9 +19,9 @@ import sys
 import tempfile
 import time
 import platform
-from beeflow.common.config.config_driver import BeeConfig
 from subprocess import PIPE
 from configparser import NoOptionError
+from beeflow.common.config.config_driver import BeeConfig
 
 BEESTART = os.path.splitext(__file__)[0]
 
@@ -43,12 +43,12 @@ def StartGDB(bc, args):
             'bolt_port': 7687+offset,
             'http_port': 7474+offset,
             'https_port': 7473+offset,
-            'gdb_image': '/usr/projects/beedev/neo4j-3-5-17.tar.gz',
-            'gdb_image_mntdir': f'/tmp',
+            'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
+            'gdb_image_mntdir': '/tmp',
         }
         # Add section (writes to config file)
         bc.modify_section('user','graphdb',graphdb_dict)
-    if args.config_only: 
+    if args.config_only:
        return None
     if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
         log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
@@ -91,14 +91,14 @@ def StartGDB(bc, args):
     if args.debug:
         log.info('Created certificates directory %s', container_certs_path)
     # Setup working path data
-    gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'), 
+    gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'),
                                newdir)
     gdb_config_path = os.path.join(gdb_workdir, "conf")
     os.makedirs(gdb_config_path, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
     if args.debug:
         log.info(gdb_configfile)
-            
+
     cfile = open(gdb_configfile, "rt")
     data = cfile.read()
     cfile.close()
@@ -122,8 +122,8 @@ def StartGDB(bc, args):
     os.makedirs(gdb_certs_path, exist_ok=True)
 
     try:
-        cp = subprocess.run([ 
-            "ch-run","--set-env=" + container_path + "/environment","-b",
+        cp = subprocess.run([
+            "ch-run","--set-env=" + container_path + "/ch/environment","-b",
             gdb_config_path + ":/var/lib/neo4j/conf","-b",
             gdb_data_path + ":/data",
             "-b",
@@ -142,9 +142,9 @@ def StartGDB(bc, args):
         return None
 
     try:
-        proc = subprocess.Popen([ 
+        proc = subprocess.Popen([
             "ch-run",
-            "--set-env=" + container_path + "/environment",
+            "--set-env=" + container_path + "/ch/environment",
             "-b",
             gdb_config_path + ":/var/lib/neo4j/conf",
             "-b",
@@ -167,7 +167,7 @@ def StartGDB(bc, args):
 
     return proc
 
-# Workflow manager and task manager need to be opened with PIPE for their stdout/stderr 
+# Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
 def StartSlurmRestD(bc, args):
     """Start BEESlurmRestD. Returns a Popen process object."""
 
@@ -245,14 +245,20 @@ def StartTaskManager(bc, args):
             offset = os.getppid()%100
         else:
             offset = os.getuid()%100
+        if args.job_template:
+            job_template = args.job_template
         tm_dict = {
             'listen_port': 5050 + offset,
             'container_runtime': 'Charliecloud'
         }
         # Add section (writes to config file)
         bc.modify_section('user','task_manager',tm_dict)
-    if args.config_only:
         return None
+    finally:
+        if args.job_template:
+            tm_dict= {'job_template': args.job_template}
+            bc.modify_section('user','task_manager',tm_dict)
+
     # Either use the userconfig file argument specified to BEEStart,
     # or assume the default path to ~/.config/beeflow/bee.conf.
     if args.userconfig_file:
@@ -292,7 +298,6 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    print("I'm trying")
     return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
@@ -339,6 +344,8 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--sched", action="store_true", help="start the BEEScheduler")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
     parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
+    parser.add_argument("--job-template", help="specify path of job template.")
+    parser.add_argument("--workload-scheduler", help="specify workload scheduler")
     parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
     parser.add_argument("--sleep-time", default=4, type=int,
                         help="amount of time to sleep before checking processes")
@@ -357,10 +364,17 @@ def main():
         config_params['userconfig'] = args.userconfig_file
     if args.bee_workdir:
         config_params['bee_workdir'] = args.bee_workdir
+    if args.workload_scheduler:
+        config_params['workload_scheduler'] = args.workload_scheduler
+    if args.job_template:
+        config_params['job_template'] = args.job_template
     bc = BeeConfig(**config_params)
     # If workdir argument exists, over-write
     if args.bee_workdir:
         bc.modify_section('user', 'DEFAULT', {'bee_workdir':bc.resolve_path(args.bee_workdir)} )
+    # If workload_scheduler argument exists, over-write
+    if args.workload_scheduler:
+        bc.modify_section('user', 'DEFAULT', {'workload_scheduler':args.workload_scheduler} )
 
     # Setup logging based on args.debug
     log = setup_logging(bc, args.debug)
@@ -370,14 +384,21 @@ def main():
 
     # Start all processes
     wait_list = [] # List of processes to wait for
-    if args.restd or start_all:
-        proc = StartSlurmRestD(bc, args)
-        if not args.config_only:
-            if proc is None:
-                log.error('slurmrestd failed to start. Exiting.')
-                return 1
-            # Don't append the graph database to list of processes to wait for
-            log.info('Starting slurmrestd based on userconfig file.')
+    # Only start slurmrestd if workload_scheduler is Slurm (default)
+    try:
+        workload_scheduler = bc.userconfig.get('DEFAULT','workload_scheduler')
+    except NoOptionError:
+        workload_scheduler = 'Slurm'
+        bc.modify_section('user', 'DEFAULT', {'workload_scheduler':workload_scheduler} )
+    if workload_scheduler == 'Slurm':
+        if args.restd or start_all:
+            proc = StartSlurmRestD(bc, args)
+            if not args.config_only:
+                if proc is None:
+                    log.error('slurmrestd failed to start. Exiting.')
+                    return 1
+                # Don't append the graph database to list of processes to wait for
+                log.info('Starting slurmrestd based on userconfig file.')
     if args.gdb or start_all:
         proc = StartGDB(bc, args)
         if not args.config_only:

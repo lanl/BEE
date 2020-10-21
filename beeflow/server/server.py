@@ -167,7 +167,7 @@ def submit_task(task):
     print(f"Submitted {task.name} to Task Manager")
     resp = requests.post(_resource("submit/"), json={'task': task_json})
     if resp.status_code != 200:
-        print("Something bad happened")
+        print(f"Received wrong response {resp.status_code} {resp.text}")
 
 
 # Used to tell if the workflow is currently paused
@@ -235,7 +235,7 @@ class JobActions(Resource):
         print("self is referenced but not used. Evaluate JobActions().get decorators", self)
         resp = requests.delete(_resource())
         if resp.status_code != 200:
-            print("Something bad happened")
+            print(f"Received wrong response {resp.status_code} {resp.text}")
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()
