@@ -61,6 +61,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             os.makedirs(self.build_dir, exist_ok=True)
             print('Build cache directory is:', self.build_dir)
         self.task = task
+        self.docker_image_id = None
 
     def parse_build_config(self):
         """Parse bc_options to separate BeeConfig and CWL concerns.
@@ -256,7 +257,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         gunzip a Docker images using docker import.
         """
 
-    def dockerImageId(self):
+    def dockerImageId(self, param_imageid=None):
         """CWL compliant dockerImageId.
 
         CWL spec 09-23-2020: The image id that will be used for
@@ -265,6 +266,37 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         specified, in which case the dockerPull image id must be
         used.
         """
+        if param_imageid:
+            self.docker_image_id = param_imageid
+            return 0
+
+        # Need imageid to know how dockerfile should be named, else fail
+        try:
+            # Try to get Hints
+            hint_imageid = self.task.hints['DockerRequirement']['dockerImageId']
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No imageid specified in task hints.
+            hint_imageid = None
+        try:
+            # Try to get Requirements
+            req_imageid = self.task.requirements['DockerRequirement']['dockerImageId']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No imageid specified in task reqs.
+            req_imageid = None
+
+        # Prefer requirements over hints
+        if (req_imageid or hint_imageid) and (not hint_imageid):
+            task_imageid = req_imageid
+        elif hint_imageid:
+            task_imageid = hint_imageid
+
+        # Set imageid
+        self.docker_image_id = task_imageid
+
+        # If task and parameter still doesn't specify image_id, consider this an error.
+        if self.docker_image_id:
+            return 0
+        return 1
 
     def dockerOutputDirectory(self):
         """CWL compliant dockerOutputDirectory.
