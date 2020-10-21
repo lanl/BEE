@@ -5,6 +5,7 @@ All container-based build systems belong here.
 
 from abc import ABC
 import os
+import tempfile
 import shutil
 import subprocess
 from beeflow.common.config.config_driver import BeeConfig
@@ -146,7 +147,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow')
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow/'+ch_build_addr)
             except FileNotFoundError:
                 pass
 
@@ -217,7 +218,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             print("ERROR: dockerFile not specified as task attribute or parameter.")
             return 1
 
-        tmp_dockerfile = "/tmp/Dockerfile_{self.task.name}_{self.task.id}"
+        # Create random directory to use as Dockerfile context
+        tmp_dir = tempfile.mkdtemp(prefix=f"bee_task{self.task.name}_id{self.task.id}", dir="/tmp")
+        tmp_dockerfile = f"{tmp_dir}/Dockerfile"
         # Now that we know what the image is called, make a Dockerfile for CCloud
         with open(tmp_dockerfile, 'w') as fh:
             fh.write(task_dockerfile)
@@ -236,13 +239,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow')
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow/'+ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Provably out of excuses. Pull the image.
-        user_login = os.getlogin() 
-        cmd = (f'ch-grow build -t {task_imageid} -f {tmp_dockerfile} /tmp/build_{self.task.name}_{self.task.id}\n'
+        cmd = (f'ch-grow build -t {task_imageid} -f {tmp_dockerfile} {tmp_dir}\n'
                f'ch-builder2tar {ch_build_addr} {self.build_dir}'
                )
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
