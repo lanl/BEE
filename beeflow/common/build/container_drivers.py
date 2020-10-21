@@ -5,6 +5,7 @@ All container-based build systems belong here.
 
 from abc import ABC
 import os
+import tempfile
 import shutil
 import subprocess
 from beeflow.common.config.config_driver import BeeConfig
@@ -132,7 +133,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if not req_addr and not addr:
             return 0
 
-        # Determine name for successful build target
+        # DetermVine name for successful build target
         ch_build_addr = addr.replace('/', '%')
 
         ch_build_target = '/'.join([self.build_dir, ch_build_addr]) + '.tar.gz'
@@ -146,7 +147,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow')
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow/'+ch_build_addr)
             except FileNotFoundError:
                 pass
 
@@ -163,12 +164,90 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         download a Docker image using docker load.
         """
 
-    def dockerFile(self):
+    def dockerFile(self, task_imageid=None, task_dockerfile=None, force=False):
         """CWL compliant dockerFile.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build.
         """
+        # Need imageid to know how dockerfile should be named, else fail
+        try:
+            # Try to get Hints
+            hint_imageid = self.task.hints['DockerRequirement']['dockerImageId']
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No imageid specified in task hints.
+            hint_imageid = None
+        try:
+            # Try to get Requirements
+            req_imageid = self.task.requirements['DockerRequirement']['dockerImageId']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No imageid specified in task reqs.
+            req_imageid = None
+
+        # Prefer requirements over hints
+        if (req_imageid or hint_imageid) and (not hint_imageid):
+            task_imageid = req_imageid
+        elif hint_imageid:
+            task_imageid = hint_imageid
+
+        if not task_imageid:
+            print("ERROR: dockerFile may not be specified without dockerImageId")
+            return 1
+
+        # Need dockerfile in order to build, else fail
+        try:
+            # Try to get Hints
+            hint_dockerfile = self.task.hints['DockerRequirement']['dockerFile']
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No dockerfile specified in task hints.
+            hint_dockerfile = None
+        try:
+            # Try to get Requirements
+            req_dockerfile = self.task.requirements['DockerRequirement']['dockerFile']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No dockerfile specified in task reqs.
+            req_dockerfile = None
+
+        # Prefer requirements over hints
+        if (req_dockerfile or hint_dockerfile) and (not hint_dockerfile):
+            task_dockerfile = req_dockerfile
+        elif hint_dockerfile:
+            task_dockerfile = hint_dockerfile
+
+        if not task_dockerfile:
+            print("ERROR: dockerFile not specified as task attribute or parameter.")
+            return 1
+
+        # Create random directory to use as Dockerfile context
+        tmp_dir = tempfile.mkdtemp(prefix=f"bee_task{self.task.name}_id{self.task.id}", dir="/tmp")
+        tmp_dockerfile = f"{tmp_dir}/Dockerfile"
+        # Now that we know what the image is called, make a Dockerfile for CCloud
+        with open(tmp_dockerfile, 'w') as fh:
+            fh.write(task_dockerfile)
+
+        # Determine name for successful build target
+        ch_build_addr = task_imageid.replace('/', '%')
+
+        ch_build_target = '/'.join([self.build_dir, ch_build_addr]) + '.tar.gz'
+        # Return if image already exist and force==False.
+        if os.path.exists(ch_build_target) and not force:
+            return 0
+        # Force remove any cached images if force==True
+        if os.path.exists(ch_build_target) and force:
+            try:
+                os.remove(ch_build_target)
+            except FileNotFoundError:
+                pass
+            try:
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow/'+ch_build_addr)
+            except FileNotFoundError:
+                pass
+
+        # Provably out of excuses. Pull the image.
+        cmd = (f'ch-grow build -t {task_imageid} -f {tmp_dockerfile} {tmp_dir}\n'
+               f'ch-builder2tar {ch_build_addr} {self.build_dir}'
+               )
+        return subprocess.run(cmd, capture_output=True, check=True, shell=True)
 
     def dockerImport(self):
         """CWL compliant dockerImport.
