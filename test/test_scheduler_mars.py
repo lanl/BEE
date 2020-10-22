@@ -5,6 +5,7 @@ Test internal MARS functions.
 import os
 import tensorflow as tf
 
+import beeflow.scheduler.mars_util as mars_util
 import beeflow.scheduler.mars as mars
 import beeflow.scheduler.sched_types as sched_types
 
@@ -17,10 +18,10 @@ def test_workflow2vec_one_task():
     tasks = [sched_types.Task(workflow_name='workflow-1', task_name='task-1',
                               requirements={'cost': 3.0, 'max_runtime': 2})]
 
-    vec = mars.workflow2vec(tasks[0], tasks)
+    vec = mars_util.workflow2vec(tasks[0], tasks)
 
     # TODO: Assert correct size and contains task
-    assert len(vec) == mars.VECTOR_SIZE
+    assert len(vec) == mars_util.VECTOR_SIZE
     assert vec[0] == 3.0
     assert vec[1] == 2.0
     assert all(v == 0.0 for v in vec[2:])
@@ -41,11 +42,11 @@ def test_workflow2vec_three_tasks():
                          requirements={'cost': -10.0, 'max_runtime': 55})
     ]
 
-    vec = mars.workflow2vec(tasks[1], tasks)
+    vec = mars_util.workflow2vec(tasks[1], tasks)
 
     # TODO: Assert correct size and contains task information of all three
     # tasks
-    assert len(vec) == mars.VECTOR_SIZE
+    assert len(vec) == mars_util.VECTOR_SIZE
     assert vec[0] == 44.0
     assert vec[1] == 1.0
     assert vec[2] == 3.0
