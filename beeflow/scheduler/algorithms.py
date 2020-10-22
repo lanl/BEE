@@ -387,7 +387,9 @@ def load(use_mars=False, algorithm=None, **kwargs):
 
     Load data needed by algorithms, if necessary.
     """
+    use_mars = use_mars == 'True' or use_mars == True
     if use_mars or algorithm == 'mars':
+        print('Loading MARS')
         MARS.load(**kwargs)
 
 

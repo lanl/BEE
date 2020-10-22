@@ -78,7 +78,7 @@ api.add_resource(WorkflowJobHandler,
 SCHEDULER_PORT = 5100
 # TODO: Use MODEL_FILE when interacting with MARS scheduling
 MODEL_FILE = 'model'
-ALLOC_LOGFILE = 'scheduler_alloc_log.txt'
+ALLOC_LOGFILE = 'schedule_trace.txt'
 MARS_CNT = 4
 DEFAULT_ALGORITHM = 'fcfs'
 
