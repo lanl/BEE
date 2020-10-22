@@ -328,11 +328,6 @@ class AlgorithmWrapper:
                         if alloc[0].start_time == start_time:
                             a = i
                             break
-                vec = mars_util.workflow2vec(task, tasks)
-                # vec.append(a)
-                # TODO: Add more information for calculating reward (i.e. CPU
-                # usage, memory usage, resources available, etc.)
-
                 # Output in SWF format
                 # TODO: These variables may not be all in the right spot and
                 # some may be missing as well
@@ -387,7 +382,7 @@ def load(use_mars=False, algorithm=None, **kwargs):
 
     Load data needed by algorithms, if necessary.
     """
-    use_mars = use_mars == 'True' or use_mars == True
+    use_mars = use_mars == 'True' or use_mars is True
     if use_mars or algorithm == 'mars':
         print('Loading MARS')
         MARS.load(**kwargs)

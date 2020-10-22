@@ -6,7 +6,7 @@ import tensorflow as tf
 import beeflow.scheduler.mars_util as mars_util
 
 
-def _get_action(x):
+def _get_action(x, total_avail):
     """Get the action for x.
 
     Get the action for x.
@@ -60,10 +60,7 @@ class Model:
             params.append(x)
             x = tf.matmul(x, layer)
         # Calculate the action
-        # mean = tf.math.reduce_mean(x)
-        # total = tf.math.reduce_sum(x)
-        # a = int(mean / total) * (total_avail - 1)
-        a = _get_action(x)
+        a = _get_action(x, total_avail)
         return a, params, x
 
     def make_batch(self, cost, result, params):

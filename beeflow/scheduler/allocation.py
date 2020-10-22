@@ -5,8 +5,6 @@ workflows (such as number of nodes, partitions, and other more
 specific resource details).
 """
 
-import beeflow.scheduler.sched_types as sched_types
-
 
 def schedule_all(algorithm, tasks, resources):
     """Schedule a list of independent tasks.

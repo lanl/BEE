@@ -149,7 +149,7 @@ def load_config_values():
         if not conf['log']:
             conf['log'] = '/'.join([bee_workdir, 'logs', 'sched.log'])
         if not conf['workdir']:
-           conf['workdir'] = bee_workdir
+            conf['workdir'] = os.path.join(bee_workdir, 'scheduler')
         if not conf['alloc_logfile']:
             conf['alloc_logfile'] = os.path.join(conf['workdir'],
                                                  ALLOC_LOGFILE)
@@ -182,6 +182,9 @@ if __name__ == '__main__':
     flask_app.sched_conf = CONF
     # Load algorithm data
     algorithms.load(**vars(CONF))
+
+    # Create the scheduler workdir, if necessary
+    os.makedirs(CONF.workdir, exist_ok=True)
 
     handler = logging.FileHandler(CONF.log)
     handler.setLevel(logging.DEBUG)

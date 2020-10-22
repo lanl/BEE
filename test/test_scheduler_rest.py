@@ -347,7 +347,7 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
     r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1, task2])
 
     assert r.ok
-    data = r.json() 
+    data = r.json()
     assert len(data) == 2
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[1]['workflow_name'] == 'test-workflow'
