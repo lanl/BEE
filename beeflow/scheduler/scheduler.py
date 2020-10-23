@@ -4,6 +4,7 @@
 import argparse
 import sys
 import logging
+import os
 
 from flask import Flask, request
 from flask_restful import Resource, Api
@@ -54,7 +55,7 @@ class WorkflowJobHandler(Resource):
     """
 
     @staticmethod
-    def put():
+    def put(workflow_name):
         """Schedule a list of independent tasks.
 
         Schedules a new list of independent tasks with available resources.
@@ -77,7 +78,7 @@ api.add_resource(WorkflowJobHandler,
 SCHEDULER_PORT = 5100
 # TODO: Use MODEL_FILE when interacting with MARS scheduling
 MODEL_FILE = 'model'
-LOGFILE = 'schedule_log.txt'
+ALLOC_LOGFILE = 'schedule_trace.txt'
 MARS_CNT = 4
 DEFAULT_ALGORITHM = 'fcfs'
 
@@ -106,12 +107,14 @@ def load_config_values():
     parser.add_argument('--mars-task-cnt', dest='mars_task_cnt',
                         help='number of tasks needed for scheduling with MARS',
                         default=MARS_CNT)
-    parser.add_argument('--logfile', dest='logfile',
-                        help='logfile/trace file to write to', default=LOGFILE)
+    parser.add_argument('--allog-logfile', dest='alloc_logfile',
+                        help='logfile/trace file to write to')
     parser.add_argument('--default-algorithm', dest='default_algorithm',
                         help='default algorithm to use')
     parser.add_argument('--algorithm', dest='algorithm',
                         help='specific algorithm to use')
+    parser.add_argument('--workdir', dest='workdir',
+                        help='workdir to use for the scheduler')
     args = parser.parse_args()
     # Set the default config values
     conf = {
@@ -120,9 +123,10 @@ def load_config_values():
         'use_mars': args.use_mars,
         'mars_model': args.mars_model,
         'mars_task_cnt': args.mars_task_cnt,
-        'logfile': args.logfile,
+        'alloc_logfile': args.alloc_logfile,
         'algorithm': args.algorithm,
         'default_algorithm': args.default_algorithm,
+        'workdir': args.workdir,
     }
     if args.read_config:
         # Read config values from the config file
@@ -140,22 +144,34 @@ def load_config_values():
             bc.modify_section('user', 'scheduler', conf)
             sys.exit(f'Please check {bc.userconfig_file} and restart '
                      'Scheduler')
-
-    # Set the default log
-    if conf['log'] is None or not conf['log']:
-        conf['log'] = ('/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                'logs', 'sched.log'])
-                       if args.read_config else 'sched.log')
+        bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
+        # Set some defaults
+        if not conf['log']:
+            conf['log'] = '/'.join([bee_workdir, 'logs', 'sched.log'])
+        if not conf['workdir']:
+            conf['workdir'] = os.path.join(bee_workdir, 'scheduler')
+        if not conf['alloc_logfile']:
+            conf['alloc_logfile'] = os.path.join(conf['workdir'],
+                                                 ALLOC_LOGFILE)
+    else:
+        # Don't read from the config
+        if not conf['log']:
+            conf['log'] = 'sched.log'
+        if not conf['workdir']:
+            conf['workdir'] = os.getcwd()
+        if not conf['alloc_logfile']:
+            conf['alloc_logfile'] = ALLOC_LOGFILE
 
     conf = argparse.Namespace(**conf)
     print('Config = [')
-    print(f'\tlisten_port {conf.listen_port}')
-    print(f'\tuse_mars {conf.use_mars}')
-    print(f'\tmars_model {conf.mars_model}')
-    print(f'\tmars_task_cnt {conf.mars_task_cnt}')
-    print(f'\tlogfile {conf.logfile}')
-    print(f'\talgorithm {conf.algorithm}')
-    print(f'\tdefault_algorithm {conf.default_algorithm}')
+    print(f'\tlisten_port = {conf.listen_port}')
+    print(f'\tuse_mars = {conf.use_mars}')
+    print(f'\tmars_model = {conf.mars_model}')
+    print(f'\tmars_task_cnt = {conf.mars_task_cnt}')
+    print(f'\talloc_logfile = {conf.alloc_logfile}')
+    print(f'\talgorithm = {conf.algorithm}')
+    print(f'\tdefault_algorithm = {conf.default_algorithm}')
+    print(f'\tworkdir = {conf.workdir}')
     print(']')
     return conf
 
@@ -166,6 +182,9 @@ if __name__ == '__main__':
     flask_app.sched_conf = CONF
     # Load algorithm data
     algorithms.load(**vars(CONF))
+
+    # Create the scheduler workdir, if necessary
+    os.makedirs(CONF.workdir, exist_ok=True)
 
     handler = logging.FileHandler(CONF.log)
     handler.setLevel(logging.DEBUG)

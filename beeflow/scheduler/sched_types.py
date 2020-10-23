@@ -4,7 +4,6 @@ This file holds classes for respresenting workflows and tasks/jobs, as
 well as resources that will be used during scheduling.
 """
 import abc
-import time
 
 
 class Serializable(abc.ABC):

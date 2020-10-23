@@ -399,6 +399,16 @@ def main():
                     return 1
                 # Don't append the graph database to list of processes to wait for
                 log.info('Starting slurmrestd based on userconfig file.')
+    if args.sched or start_all:
+        proc = StartScheduler(bc, args)
+        if not args.config_only:
+            if proc is None:
+                log.error('Scheduler failed to start. Exiting.')
+                print('Scheduler failed to start. Exiting.', file=sys.stderr)
+                return 1
+            create_pid_file(proc, 'sched.pid', bc)
+            wait_list.append(('Scheduler', proc))
+            log.info('Loading Scheduler')
     if args.gdb or start_all:
         proc = StartGDB(bc, args)
         if not args.config_only:
@@ -425,17 +435,6 @@ def main():
             create_pid_file(proc, 'tm.pid', bc)
             wait_list.append(('Task Manager', proc))
             log.info('Loading Task Manager')
-    if args.sched or start_all:
-        proc = StartScheduler(bc, args)
-        if not args.config_only:
-            if proc is None:
-                log.error('Scheduler failed to start. Exiting.')
-                print('Scheduler failed to start. Exiting.', file=sys.stderr)
-                return 1
-            create_pid_file(proc, 'sched.pid', bc)
-            wait_list.append(('Scheduler', proc))
-            log.info('Loading Scheduler')
-
     if args.config_only:
         return 0
 

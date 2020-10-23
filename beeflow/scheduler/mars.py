@@ -3,41 +3,10 @@
 import json
 import os
 import tensorflow as tf
+import beeflow.scheduler.mars_util as mars_util
 
 
-# TODO: Perhaps this should be set in the config
-VECTOR_SIZE = 512
-
-
-def workflow2vec(task, tasks):
-    """Convert a workflow with a particular into a vector representation.
-
-    Represent a workflow with a particular task as a vector and return it.
-    :param task: task being scheduled
-    :type task: instance of Task
-    :param tasks: list of indepdent workflow tasks
-    :type tasks: list of instance of Task
-    """
-    # Note: task must be in the list of tasksjj
-    i = tasks.index(task)
-    new_tasks = tasks[:i]
-    new_tasks.extend(tasks[i+1:])
-    tasks = new_tasks
-    vec = _task2vec(task)
-    # vec = [float(t.requirements.cost), float(t.requirements.max_runtime)]
-    for task in tasks:
-        vec.extend(_task2vec(task))
-        # vec.extend([float(task.requirements.cost),
-        #            float(task.requirements.max_runtime)])
-    # Resize the vector
-    if len(vec) < VECTOR_SIZE:
-        vec.extend([0.0] * (VECTOR_SIZE - len(vec)))
-    elif len(vec) > VECTOR_SIZE:
-        vec = vec[:VECTOR_SIZE]
-    return vec
-
-
-def _get_action(x):
+def _get_action(x, total_avail):
     """Get the action for x.
 
     Get the action for x.
@@ -65,7 +34,7 @@ class Model:
             self.layers = layers
         else:
             self.layers = [
-                tf.random.uniform((VECTOR_SIZE, 64)),
+                tf.random.uniform((mars_util.VECTOR_SIZE, 64)),
                 tf.random.uniform((64, 64)),
                 tf.random.uniform((64, 64)),
                 tf.random.uniform((64, 64)),
@@ -81,7 +50,7 @@ class Model:
         :type total_avail: int
         :rtype: index of resource to allocate (i >= 0 and i < total_avail)
         """
-        vec = tf.reshape(vec, (1, VECTOR_SIZE))
+        vec = tf.reshape(vec, (1, mars_util.VECTOR_SIZE))
         # TODO: Convert this into the actual model policy function
         if not total_avail:
             return -1, None
@@ -91,10 +60,7 @@ class Model:
             params.append(x)
             x = tf.matmul(x, layer)
         # Calculate the action
-        # mean = tf.math.reduce_mean(x)
-        # total = tf.math.reduce_sum(x)
-        # a = int(mean / total) * (total_avail - 1)
-        a = _get_action(x)
+        a = _get_action(x, total_avail)
         return a, params, x
 
     def make_batch(self, cost, result, params):
@@ -273,7 +239,7 @@ def save_models(actor, critic, path):
     critic.save(critic_path)
 
 
-def _task2vec(task):
+def task2vec(task):
     """Convert a single task into a vector.
 
     Convert a single task into a vector and return it.

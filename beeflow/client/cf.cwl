@@ -47,8 +47,6 @@ steps:
       stdout: CLAMR_movie.mp4
       baseCommand: "ffmpeg -f image2 -i $HOME/graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p $HOME/CLAMR_movie.mp4"
       hints:
-        DockerRequirement:
-          dockerImageId: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
     in:
       infile: clamr/outfile
     out: [outfile]
