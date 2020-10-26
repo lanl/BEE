@@ -8,6 +8,7 @@ import tensorflow as tf
 import json
 
 import beeflow.scheduler.mars as mars
+import beeflow.scheduler.mars_util as mars_util
 import beeflow.scheduler.evaluate as evaluate
 import beeflow.scheduler.sched_types as sched_types
 
@@ -71,7 +72,7 @@ if __name__ == '__main__':
             actor_losses = []
             critic_losses = []
             for task in tasks:
-                vec = tf.constant([mars.workflow2vec(task, tasks)])
+                vec = tf.constant([mars_util.workflow2vec(task, tasks)])
                 print(vec)
                 p = actor.call(vec)
                 ps.append(p)
@@ -116,7 +117,7 @@ if __name__ == '__main__':
 
     # For some reason predict() must be run on the actor and critic before they
     # can be saved. See https://github.com/tensorflow/tensorflow/issues/31057
-    vec = tf.constant([mars.workflow2vec(workload[0],
+    vec = tf.constant([mars_util.workflow2vec(workload[0],
                                          workload[:args.step_size])])
     # record = tf.constant([workload.records[0]])
     actor.predict(vec)

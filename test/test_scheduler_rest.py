@@ -23,7 +23,30 @@ def scheduler():
         'python', 'beeflow/scheduler/scheduler.py',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
-        '--use-mars',  # Required for testing MARS
+        # '--use-mars',  # Required for testing MARS
+    ], shell=False)
+    time.sleep(6)
+    try:
+        # Give control over to the test function
+        yield 'http://localhost:%s/bee_sched/v1' % SCHEDULER_TEST_PORT
+    finally:
+        # Teardown
+        # Note: Should not use proc.kill() here with flask debug
+        proc.terminate()
+
+@pytest.fixture(scope='function')
+def scheduler_mars_simple():
+    """Fixture code to setup a new MARS + Simple algorithm scheduler.
+
+    Start a new scheduler as a subprocess for each test function.
+    """
+    # Setup
+    proc = subprocess.Popen([
+        'python', 'beeflow/scheduler/scheduler.py',
+        '-p', SCHEDULER_TEST_PORT,
+        '--no-config',
+        '--mars-task-cnt', '2', # Need 2 tasks to use MARS
+        '--use-mars',
     ], shell=False)
     time.sleep(6)
     try:
@@ -238,6 +261,107 @@ def test_schedule_multi_job_two_resources(scheduler):
     assert len(data[2]['allocations']) > 0
     # Ensure proper scheduled time
     assert data[2]['allocations'][0]['start_time'] < 6
+
+
+def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
+    """Test scheduling a job with one task.
+
+    Test scheduling a job with one resource. Here the MARS + Simple scheduler
+    should use a simple algorithm (not MARS) to schedule the task since we
+    only have one to schedule.
+    :param scheduler: url returned by scheduler fixture function
+    :type scheduler: str
+    """
+    url = scheduler_mars_simple
+    # with scheduler() as url:
+    # Create a single resource
+    resource1 = {
+        'id_': 'resource-1',
+        'nodes': 10,
+    }
+    r = requests.put(f'{url}/resources', json=[resource1])
+
+    assert r.ok
+    assert r.json() == 'created 1 resource(s)'
+
+    workflow_name = 'test-workflow'
+    task1 = {
+        'workflow_name': 'test-workflow',
+        'task_name': 'test-task',
+        'requirements': {
+            'max_runtime': 1,
+        },
+    }
+    r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
+
+    assert r.ok
+    data = r.json()
+    assert len(data) == 1
+    assert data[0]['workflow_name'] == 'test-workflow'
+    assert data[0]['task_name'] == 'test-task'
+    assert data[0]['requirements']['max_runtime'] == 1
+    assert len(data[0]['allocations']) == 1
+    assert data[0]['allocations'][0]['id_'] == 'resource-1'
+    assert data[0]['allocations'][0]['nodes'] == 1
+    assert data[0]['allocations'][0]['start_time'] == 0
+    assert data[0]['allocations'][0]['max_runtime'] == 1
+
+
+def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
+    """Test scheduling a job with two tasks.
+
+    Test scheduling a job with two resources. Here the MARS + Simple scheduler
+    should use MARS for scheduling since we have two tasks.
+    :param scheduler: url returned by scheduler fixture function
+    :type scheduler: str
+    """
+    url = scheduler_mars_simple
+    # with scheduler() as url:
+    # Create a single resource
+    resource1 = {
+        'id_': 'resource-1',
+        'nodes': 1,
+    }
+    r = requests.put(f'{url}/resources', json=[resource1])
+
+    assert r.ok
+    assert r.json() == 'created 1 resource(s)'
+
+    workflow_name = 'test-workflow'
+    task1 = {
+        'workflow_name': 'test-workflow',
+        'task_name': 'test-task',
+        'requirements': {
+            'max_runtime': 1,
+            'nodes': 1,
+        },
+    }
+    task2 = {
+        'workflow_name': 'test-workflow',
+        'task_name': 'test-task-2',
+        'requirements': {
+            'max_runtime': 1,
+            'nodes': 1,
+        },
+    }
+    r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1, task2])
+
+    assert r.ok
+    data = r.json()
+    assert len(data) == 2
+    assert data[0]['workflow_name'] == 'test-workflow'
+    assert data[1]['workflow_name'] == 'test-workflow'
+    assert data[0]['task_name'] != data[1]['task_name']
+    assert data[0]['requirements']['max_runtime'] == 1
+    assert data[1]['requirements']['max_runtime'] == 1
+    assert len(data[0]['allocations']) > 0
+    assert len(data[1]['allocations']) > 0
+    # Make sure that one task is scheduled after the other
+    assert (data[0]['allocations'][0]['start_time']
+            == (data[1]['allocations'][0]['start_time'] - 1)
+            or data[1]['allocations'][0]['start_time']
+            == (data[0]['allocations'][0]['start_time'] - 1))
+
 
 def test_mars_timing(scheduler_mars):
     """Test that the scheduler uses 0 based timing.

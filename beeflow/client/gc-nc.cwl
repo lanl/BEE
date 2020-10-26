@@ -31,7 +31,7 @@ steps:
       outputs:
         outfile: stdout
       stdout: grepout.txt
-      baseCommand: grep
+      baseCommand: "grep integer $HOME/lorem.txt > $HOME/grepout.txt"
       hints:
     in:
       pattern: pattern
@@ -49,7 +49,7 @@ steps:
       outputs:
         outfile: stdout
       stdout: counts.txt
-      baseCommand: "wc -l"
+      baseCommand: "wc -l $HOME/grepout.txt > $HOME/counts.txt"
       hints:
     in:
       infile: grep/outfile

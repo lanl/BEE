@@ -5,11 +5,10 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 
 import abc
 import time
-import tensorflow as tf
 
 import beeflow.scheduler.sched_types as sched_types
-import beeflow.scheduler.mars as mars
 import beeflow.scheduler.util as util
+import beeflow.scheduler.mars_util as mars_util
 
 
 class Algorithm(abc.ABC):
@@ -219,6 +218,9 @@ class MARS(Algorithm):
 
         Load the model.
         """
+        # Only import the mars module if necessary
+        import beeflow.scheduler.mars as mars
+        MARS.mod = mars
         MARS.actor, MARS.critic = mars.load_models(mars_model)
 
     @staticmethod
@@ -236,14 +238,15 @@ class MARS(Algorithm):
         :type possible_allocs: list of instance of Allocation
         :rtype: int, index of allocation to use
         """
+        mars = MARS.mod
         # No possible allocations
         if not possible_allocs:
             return -1
         # Convert the task and possible_allocs into a vector
         # for input into the policy function.
         # TODO: Input should include the specific task
-        vec = mars.workflow2vec(task, tasks)
-        vec = tf.constant([vec])
+        vec = mars_util.workflow2vec(task, tasks)
+        vec = mars.tf.constant([vec])
         # Convert the result into an action index
         pl = [float(n) for n in actor.call(vec)[0]]
         a = pl.index(max(pl))
@@ -286,19 +289,19 @@ class AlgorithmWrapper:
     data for future training and other extra information.
     """
 
-    def __init__(self, cls, logfile='schedule_log.txt', **kwargs):
+    def __init__(self, cls, alloc_logfile='schedule_log.txt', **kwargs):
         """Algorithm wrapper class constructor.
 
         Algorithm wrapper class constructor.
         :param cls: class to pass operations onto
         :type cls: Python class
-        :param logfile: name of logfile to write to
-        :type logfile: str
+        :param alloc_logfile: name of logfile to write task scheduling to
+        :type alloc_logfile: str
         :param kwargs: key word arguments to pass to schedule_all()
         :type kwargs: instance of dict
         """
         self.cls = cls
-        self.logfile = logfile
+        self.alloc_logfile = alloc_logfile
         self.kwargs = kwargs
 
     def schedule_all(self, tasks, resources):
@@ -308,7 +311,7 @@ class AlgorithmWrapper:
         results out to a log file.
         """
         self.cls.schedule_all(tasks, resources, **self.kwargs)
-        with open(self.logfile, 'a') as fp:
+        with open(self.alloc_logfile, 'a') as fp:
             print('; Log start at', time.time(), file=fp)
             curr_allocs = []
             for task in tasks:
@@ -325,11 +328,6 @@ class AlgorithmWrapper:
                         if alloc[0].start_time == start_time:
                             a = i
                             break
-                vec = mars.workflow2vec(task, tasks)
-                # vec.append(a)
-                # TODO: Add more information for calculating reward (i.e. CPU
-                # usage, memory usage, resources available, etc.)
-
                 # Output in SWF format
                 # TODO: These variables may not be all in the right spot and
                 # some may be missing as well
@@ -382,9 +380,11 @@ MEDIAN = 2
 def load(use_mars=False, algorithm=None, **kwargs):
     """Load data needed by the algorithms.
 
-    Load data needed by the algorithms.
+    Load data needed by algorithms, if necessary.
     """
+    use_mars = use_mars == 'True' or use_mars is True
     if use_mars or algorithm == 'mars':
+        print('Loading MARS')
         MARS.load(**kwargs)
 
 
