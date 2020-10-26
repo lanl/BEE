@@ -93,6 +93,17 @@ except KeyError:
     wfi = WorkflowInterface()
 
 
+def validate_wf_id(func):
+    def wrapper(*args, **kwargs):
+        wf_id = int(kwargs['wf_id'])
+        if wf_id != 42:
+            print(f'Wrong workflow id. Set to {wf_id}, but should be 42')
+            resp = make_response(jsonify(status='wf_id not found'), 404)
+            return
+        return func(*args, **kwargs)
+    return wrapper
+        
+
 # Client registers with the workflow manager.
 # Workflow manager returns a workflow ID used for subsequent communication
 class JobsList(Resource):
@@ -110,7 +121,9 @@ class JobsList(Resource):
     # wf_id not needed if we just support a single workflow
     def post(self):
         data = self.reqparse.parse_args()
-        title = data['title']
+        # title = data['title'] Not currently needed. 
+        # Will probably be incorporated with a GUI client down the road
+
         # Return the wf_id and created
         resp = make_response(jsonify(wf_id="42"), 201)
         return resp
@@ -127,7 +140,8 @@ class JobSubmit(Resource):
                                    location='files', required=True)
 
     # Client Submits workflow
-    def put(self, wf_id): #noqa
+    @validate_wf_id
+    def put(self, wf_id):
         # wf_id requires support in the GDB which we do not currently have
         # Ignore pylama error with noqa
         """Get a workflow or give file not found error."""
@@ -200,7 +214,9 @@ class JobActions(Resource):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('option', type=str, location='json')
 
-    def post(self, wf_id):
+    @staticmethod
+    @validate_wf_id
+    def post(wf_id):
         """Start job. Send tasks to the task manager."""
         # Get first task and send it to the task manager
         task = list(wfi.get_dependent_tasks(wfi.get_task_by_id(0)))[0]
@@ -208,7 +224,9 @@ class JobActions(Resource):
         submit_task(task)
         return "Started workflow!"
 
-    def get(self, wf_id):
+    @staticmethod
+    @validate_wf_id
+    def get(wf_id):
         """Check the database for the current status of all the tasks."""
         (tasks, _, _) = wfi.get_workflow()
         task_status = ""
@@ -219,7 +237,9 @@ class JobActions(Resource):
         resp = make_response(jsonify(msg=task_status, status='ok'), 200)
         return resp
 
-    def delete(self, wf_id):
+    @staticmethod
+    @validate_wf_id
+    def delete(wf_id):
         """Send a request to the task manager to cancel any ongoing tasks."""
         resp = requests.delete(_resource())
         if resp.status_code != 200:
@@ -231,6 +251,7 @@ class JobActions(Resource):
         resp = make_response(jsonify(status='cancelled'), 202)
         return resp
 
+    @validate_wf_id
     def patch(self, wf_id):
         """Pause or resume workflow."""
         global WORKFLOW_PAUSED
