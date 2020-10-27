@@ -42,7 +42,7 @@ Each step in a workflow may include a reference to `DockerRequirement` in the CW
 
 
 A few examples to use for testing:
-
+## CharliecloudBuildDriver Examples
 ### dockerPull
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
@@ -74,7 +74,7 @@ a.dockerPull()
 a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
 a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=True)
 ```
-## dockerFile
+### dockerFile
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.data.wf_data import BuildTask
@@ -86,4 +86,40 @@ task = BuildTask(name='hi',command=['hi','hello'],
                  outputs={})
 b = CharliecloudBuildDriver(task)
 b.dockerFile()
+```
+### dockerImport
+```
+from beeflow.common.build.container_drivers import CharliecloudBuildDriver
+from beeflow.common.data.wf_data import BuildTask
+task = BuildTask(name='hi',command=['hi','hello'],
+                 requirements={},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+# When a "builder" entry does not exist in bee.conf
+# >>> Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
+# >>> Config file is missing builder section.
+# >>> Assuming deployed image root is /var/tmp/qwofford/beeflow
+# >>> Wrote deployed image root to user BeeConfig file.
+# >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
+# When a "builder entry does exist in bee.conf
+# >>> Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
+# >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
+task = BuildTask(name='hi',command=['hi','hello'],
+                 requirements={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+a.dockerImport()
+# >>> CompletedProcess(args='ch-tar2dir /usr/projects/beedev/neo4j-3-5-17-ch.tar.gz /var/tmp/qwofford/beeflow/', returncode=0, stdout=b'/var/tmp/qwofford/beeflow//neo4j-3-5-17-ch unpacked ok\n', stderr=b'replacing existing image /var/tmp/qwofford/beeflow//neo4j-3-5-17-ch\n')
+task = BuildTask(name='hi',command=['hi','hello'],
+                 hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+a.dockerImport()
+# >>> CompletedProcess(args='ch-tar2dir /usr/projects/beedev/neo4j-3-5-17-ch.tar.gz /var/tmp/qwofford/beeflow/', returncode=0, stdout=b'/var/tmp/qwofford/beeflow//neo4j-3-5-17-ch unpacked ok\n', stderr=b'replacing existing image /var/tmp/qwofford/beeflow//neo4j-3-5-17-ch\n')
 ```

@@ -44,6 +44,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             bc = BeeConfig(userconfig=userconf_file)
         else:
             bc = BeeConfig()
+        # Store build tarballs relative to bee_workdir.
         try:
             if bc.userconfig['DEFAULT'].get('bee_workdir'):
                 build_dir = '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
@@ -60,6 +61,36 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             self.build_dir = bc.resolve_path(build_dir)
             os.makedirs(self.build_dir, exist_ok=True)
             print('Build cache directory is:', self.build_dir)
+        # Deploy build tarballs relative to /var/tmp/username/beeflow by default
+        try:
+            if bc.userconfig['builder'].get('deployed_image_root'):
+                deployed_image_root = bc.userconfig['builder'].get('deployed_image_root')
+                # Make sure conf_file path exists
+                os.makedirs(deployed_image_root, exist_ok=True)
+                # Make sure path is absolute
+                deployed_image_root = bc.resolve_path(deployed_image_root)
+            else:
+                print('Deployed image root not found.')
+                deployed_image_root = '/'.join(['/var/tmp', os.getlogin(), 'beeflow'])
+                # Make sure conf_file path exists
+                os.makedirs(deployed_image_root, exist_ok=True)
+                # Make sure path is absolute
+                deployed_image_root = bc.resolve_path(deployed_image_root)
+                print(f'Assuming deployed image root is {deployed_image_root}')
+        except KeyError:
+            print('Config file is missing builder section.')
+            deployed_image_root = '/'.join(['/var/tmp', os.getlogin(), 'beeflow'])
+            # Make sure conf_file path exists
+            os.makedirs(deployed_image_root, exist_ok=True)
+            # Make sure path is absolute
+            deployed_image_root = bc.resolve_path(deployed_image_root)
+            print(f'Assuming deployed image root is {deployed_image_root}')
+            bc.modify_section('user', 'builder', {'deployed_image_root': deployed_image_root})
+            print("Wrote deployed image root to user BeeConfig file.")
+        finally:
+            self.deployed_image_root = deployed_image_root
+            os.makedirs(self.deployed_image_root, exist_ok=True)
+            print('Deployed image root directory is:', self.deployed_image_root)
         self.task = task
         self.docker_image_id = None
 
@@ -220,8 +251,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
 
         # Create random directory to use as Dockerfile context
-        tmp_dir = tempfile.mkdtemp(prefix=f"bee_task{self.task.name}_id{self.task.id}", dir="/tmp")
-        tmp_dockerfile = f"{tmp_dir}/Dockerfile"
+        tmp_dir = tempfile.mkdtemp(prefix=f'bee_task{self.task.name}_id{self.task.id}", dir="/tmp')
+        tmp_dockerfile = f'{tmp_dir}/Dockerfile'
         # Now that we know what the image is called, make a Dockerfile for CCloud
         with open(tmp_dockerfile, 'w') as fh:
             fh.write(task_dockerfile)
@@ -250,12 +281,40 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                )
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
 
-    def dockerImport(self):
+    def dockerImport(self, param_import=None):
         """CWL compliant dockerImport.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
         gunzip a Docker images using docker import.
         """
+        # If parameter import is specified, use that, otherwise look at task.
+        if param_import:
+            import_input_path = param_import
+        else:
+            # Get path for tarball to import
+            try:
+                # Try to get Hints
+                hint_import = self.task.hints['DockerRequirement']['dockerImport']
+            except (KeyError, TypeError):
+                # Task Hints are not mandatory. No import specified in task hints.
+                hint_import = None
+            try:
+                # Try to get Requirements
+                req_import = self.task.requirements['DockerRequirement']['dockerImport']
+            except (KeyError, TypeError):
+                # Task Requirements are not mandatory. No import specified in task reqs.
+                req_import = None
+            # Prefer requirements over hints
+            if (req_import or hint_import) and (not hint_import):
+                task_import = req_import
+            elif hint_import:
+                task_import = hint_import
+            # Set import
+            import_input_path = task_import
+
+        # Pull the image.
+        cmd = (f'ch-tar2dir {import_input_path} {self.deployed_image_root}/')
+        return subprocess.run(cmd, capture_output=True, check=True, shell=True)
 
     def dockerImageId(self, param_imageid=None):
         """CWL compliant dockerImageId.
