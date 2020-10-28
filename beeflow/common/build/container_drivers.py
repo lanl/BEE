@@ -91,6 +91,21 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             self.deployed_image_root = deployed_image_root
             os.makedirs(self.deployed_image_root, exist_ok=True)
             print('Deployed image root directory is:', self.deployed_image_root)
+        # Set container-relative output directory based on BeeConfig, or use '/'
+        try:
+            container_output_path = bc.userconfig['builder'].get('container_output_path')
+            # If the builder section exists but not the container_output_path entry,
+            # bc will return "None". Treat this is as a KeyError.
+            if not container_output_path:
+                raise KeyError
+        except KeyError:
+            container_output_path = '/'
+            print(f'Assuming container-relative output path is {container_output_path}')
+            bc.modify_section('user', 'builder', {'container_output_path': container_output_path})
+            print('Wrote container-relative output path to user BeeConfig file.')
+        finally:
+            self.container_output_path = container_output_path
+            print('Container-relative output path is:', self.container_output_path)
         self.task = task
         self.docker_image_id = None
 
@@ -357,12 +372,16 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 0
         return 1
 
-    def dockerOutputDirectory(self):
+    def dockerOutputDirectory(self, param_output_directory=None):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container.
         """
+        # Allow parameter over-ride.
+        if param_output_directory:
+            self.container_output_path = param_output_directory
+        return self.container_output_path
 
 
 class SingularityBuildDriver(ContainerBuildDriver):
@@ -463,5 +482,6 @@ class SingularityBuildDriver(ContainerBuildDriver):
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container.
         """
-# Ignore snake_case requirement to enable CWL compliant names.
-# pylama:ignore=C0103
+# Ignore snake_case requirement to enable CWL compliant names. (C0103)
+# Ignore "too many statements". Some of these methods are long, and that's ok (R0915)
+# pylama:ignore=C0103,R0915

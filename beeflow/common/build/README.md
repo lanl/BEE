@@ -123,3 +123,16 @@ a = CharliecloudBuildDriver(task)
 a.dockerImport()
 # >>> CompletedProcess(args='ch-tar2dir /usr/projects/beedev/neo4j-3-5-17-ch.tar.gz /var/tmp/qwofford/beeflow/', returncode=0, stdout=b'/var/tmp/qwofford/beeflow//neo4j-3-5-17-ch unpacked ok\n', stderr=b'replacing existing image /var/tmp/qwofford/beeflow//neo4j-3-5-17-ch\n')
 ```
+### dockerOutputDirectory
+```
+Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
+# >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
+# >>> Container-relative output path is: /
+# >>> a.dockerOutputDirectory()
+# >>> '/'
+a.dockerOutputDirectory(param_output_directory='/home/qwofford')
+# >>> '/home/qwofford'
+# Note: Changing the output directory by parameter changes the bc object, but it does NOT over-write the config file.
+a.dockerOutputDirectory()
+# >>> '/home/qwofford'
+```
