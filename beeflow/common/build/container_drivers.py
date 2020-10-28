@@ -354,9 +354,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         specified, in which case the dockerPull image id must be
         used.
         """
+        # Parameter takes precedence
         if param_imageid:
             self.docker_image_id = param_imageid
-            return 0
+        # If previously set by param, return previous setting and ignore task.
+        if self.docker_image_id:
+            return self.docker_image_id
 
         # Need imageid to know how dockerfile should be named, else fail
         try:
@@ -373,6 +376,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             req_imageid = None
 
         # Prefer requirements over hints
+        task_imageid = None
         if (req_imageid or hint_imageid) and (not hint_imageid):
             task_imageid = req_imageid
         elif hint_imageid:
@@ -383,7 +387,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # If task and parameter still doesn't specify image_id, consider this an error.
         if self.docker_image_id:
-            return 0
+            return self.docker_image_id
         return 1
 
     def dockerOutputDirectory(self, param_output_directory=None):

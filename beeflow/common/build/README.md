@@ -170,3 +170,31 @@ a.dockerLoad()
 # >>> ERROR: dockerLoad specified as requirement.
 # >>> 1
 ```
+### dockerImageId
+```
+from beeflow.common.build.container_drivers import CharliecloudBuildDriver
+from beeflow.common.data.wf_data import BuildTask
+task = BuildTask(name='hi',command=['hi','hello'],
+                 hints={'DockerRequirement':{'dockerImageId':'my_imageid'}},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+a.dockerImageId()
+# >>> 'my_imageid'
+a.dockerImageId(param_imageid='another_imageid')
+# >>> 'another_imageid'
+a.dockerImageId()
+# >>> 'my_imageid'
+task = BuildTask(name='hi',command=['hi','hello'],
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+a.dockerImageId()
+# >>> 1
+a.dockerImageId(param_imageid='another_imageid')
+# >>> 'another_imageid'
+a.dockerImageId()
+# >>> 'another_imageid'
+```
