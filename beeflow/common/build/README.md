@@ -125,7 +125,15 @@ a.dockerImport()
 ```
 ### dockerOutputDirectory
 ```
-Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
+from beeflow.common.build.container_drivers import CharliecloudBuildDriver
+from beeflow.common.data.wf_data import BuildTask
+task = BuildTask(name='hi',command=['hi','hello'],
+                 hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+# >>> Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
 # >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
 # >>> Container-relative output path is: /
 # >>> a.dockerOutputDirectory()
@@ -135,4 +143,30 @@ a.dockerOutputDirectory(param_output_directory='/home/qwofford')
 # Note: Changing the output directory by parameter changes the bc object, but it does NOT over-write the config file.
 a.dockerOutputDirectory()
 # >>> '/home/qwofford'
+```
+### dockerLoad
+```
+from beeflow.common.build.container_drivers import CharliecloudBuildDriver
+from beeflow.common.data.wf_data import BuildTask
+task = BuildTask(name='hi',command=['hi','hello'],
+                 hints={'DockerRequirement':{'dockerLoad':'bogus path'}},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+a.dockerLoad()
+# >>> Charliecloud does not have the concept of a layered image tarball.
+# >>> Did you mean to use dockerImport?
+# >>> 0
+task = BuildTask(name='hi',command=['hi','hello'],
+                 requirements={'DockerRequirement':{'dockerLoad':'bogus path'}},
+                 subworkflow=None,
+                 inputs={},
+                 outputs={})
+a = CharliecloudBuildDriver(task)
+a.dockerLoad()
+# >>> Charliecloud does not have the concept of a layered image tarball.
+# >>> Did you mean to use dockerImport?
+# >>> ERROR: dockerLoad specified as requirement.
+# >>> 1
 ```

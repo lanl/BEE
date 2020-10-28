@@ -210,6 +210,20 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         CWL spec 09-23-2020: Specify a HTTP URL from which to
         download a Docker image using docker load.
         """
+        # Need to know if dockerLoad is a requirement in order to determine fail/success
+        try:
+            # Try to get Requirements
+            req_dockerload = self.task.requirements['DockerRequirement']['dockerLoad']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No dockerload specified in task reqs.
+            req_dockerload = None
+
+        print('Charliecloud does not have the concept of a layered image tarball.')
+        print('Did you mean to use dockerImport?')
+        if req_dockerload:
+            print('ERROR: dockerLoad specified as requirement.')
+            return 1
+        return 0
 
     def dockerFile(self, task_imageid=None, task_dockerfile=None, force=False):
         """CWL compliant dockerFile.
