@@ -17,9 +17,14 @@ class Algorithm(abc.ABC):
     Base abstract class for implementing a scheduling algorithm.
     """
 
-    @staticmethod
     @abc.abstractmethod
-    def schedule_all(tasks, resources, **kwargs):
+    def __init__(self, **kwargs):
+        """Scheduling constructor.
+
+        """
+
+    @abc.abstractmethod
+    def schedule_all(self, tasks, resources, **kwargs):
         """Schedule all tasks with the implemented algorithm.
 
         Schedule all tasks with the implemented algorithm.
@@ -35,6 +40,11 @@ class SJF(Algorithm):
 
     Class holding scheduling code for runing the shortest job first algorithm.
     """
+
+    def __init__(self, **kwargs):
+        """Scheduling constructor.
+
+        """
 
     @staticmethod
     def schedule_all(tasks, resources, **kwargs):
@@ -82,6 +92,11 @@ class FCFS(Algorithm):
     scheduling algorithm.
     """
 
+    def __init__(self, **kwargs):
+        """Scheduling constructor.
+
+        """
+
     @staticmethod
     def schedule_all(tasks, resources, **kwargs):
         """Schedule a list of independent tasks with FCFS.
@@ -127,6 +142,11 @@ class Backfill(Algorithm):
     This class holds the scheduling code used for the Backfill
     scheduling algorithm.
     """
+
+    def __init__(self, **kwargs):
+        """Scheduling constructor.
+
+        """
 
     @staticmethod
     def schedule_all(tasks, resources, **kwargs):
@@ -212,19 +232,19 @@ class MARS(Algorithm):
 
     MARS Scheduler.
     """
-    @staticmethod
-    def load(mars_model='model', **kwargs):
-        """Load the model.
 
-        Load the model.
+    def __init__(self, mars_model='model', **kwargs):
+        """MARS scheduling constructor.
+
+        :param mars_model: model file path
+        :type mars_model: str
         """
         # Only import the mars module if necessary
         import beeflow.scheduler.mars as mars
-        MARS.mod = mars
-        MARS.actor, MARS.critic = mars.load_models(mars_model)
+        self.mod = mars
+        self.actor, self.critic = mars.load_models(mars_model)
 
-    @staticmethod
-    def policy(actor, critic, task, tasks, possible_allocs):
+    def policy(self, actor, critic, task, tasks, possible_allocs):
         """Evaluate the policy function to find scheduling of task.
 
         Evaluate the policy function with the model task.
@@ -238,7 +258,7 @@ class MARS(Algorithm):
         :type possible_allocs: list of instance of Allocation
         :rtype: int, index of allocation to use
         """
-        mars = MARS.mod
+        mars = self.mod
         # No possible allocations
         if not possible_allocs:
             return -1
@@ -253,8 +273,7 @@ class MARS(Algorithm):
         a = (float(a) / len(pl)) * (len(possible_allocs) - 1)
         return int(a)
 
-    @staticmethod
-    def schedule_all(tasks, resources, mars_model='model', **kwargs):
+    def schedule_all(self, tasks, resources, mars_model='model', **kwargs):
         """Schedule a list of tasks on the given resources.
 
         Schedule a full list of tasks on the given resources. Note: MARS.load()
@@ -272,7 +291,7 @@ class MARS(Algorithm):
         for task in tasks:
             possible_allocs = build_allocation_list(task, tasks, resources,
                                                     curr_allocs=allocations)
-            pi = MARS.policy(MARS.actor, MARS.critic, task, tasks,
+            pi = self.policy(self.actor, self.critic, task, tasks,
                              possible_allocs)
             # -1 indicates no allocation found
             if pi != -1:
@@ -293,8 +312,8 @@ class AlgorithmWrapper:
         """Algorithm wrapper class constructor.
 
         Algorithm wrapper class constructor.
-        :param cls: class to pass operations onto
-        :type cls: Python class
+        :param cls: object to pass operations onto
+        :type cls: algorithm object
         :param alloc_logfile: name of logfile to write task scheduling to
         :type alloc_logfile: str
         :param kwargs: key word arguments to pass to schedule_all()
@@ -343,13 +362,12 @@ class AlgorithmWrapper:
 def build_allocation_list(task, tasks, resources, curr_allocs):
     """Build a list of allocations for a task.
 
-    Build a list of allocations for a task.
-    :param task:
-    :type task:
-    :param tasks:
-    :type tasks:
-    :param resources:
-    :type resources:
+    :param task: task being allocated
+    :type task: instance of sched_types.Task
+    :param tasks: list of other tasks
+    :type tasks: list of instance of sched_types.Task
+    :param resources: list of resources
+    :type resources: list of instance of sched_types.Resource
     """
     times = set(t.allocations[0].start_time + t.requirements.max_runtime
                 for t in tasks if t.allocations)
@@ -377,15 +395,27 @@ def build_allocation_list(task, tasks, resources, curr_allocs):
 MEDIAN = 2
 
 
+algorithm_objects = {
+    'fcfs': None,
+    'mars': None,
+    'backfill': None,
+    'sjf': None,
+}
+
+
 def load(use_mars=False, algorithm=None, **kwargs):
     """Load data needed by the algorithms.
 
     Load data needed by algorithms, if necessary.
     """
+    algorithm_objects['fcfs'] = FCFS(**kwargs)
     use_mars = use_mars == 'True' or use_mars is True
     if use_mars or algorithm == 'mars':
         print('Loading MARS')
-        MARS.load(**kwargs)
+        algorithm_objects['mars'] = MARS(**kwargs)
+        # MARS.load(**kwargs)
+    algorithm_objects['backfill'] = Backfill(**kwargs)
+    algorithm_objects['sjf'] = SJF(**kwargs)
 
 
 def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
@@ -399,29 +429,12 @@ def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
     """
     # TODO: Correctly choose based on size of the workflow
     # return Logger(Backfill)
-    if algorithm == 'fcfs':
-        print('Using FCFS')
-        cls = FCFS
-    elif algorithm == 'mars':
-        print('Using MARS')
-        cls = MARS
-    elif algorithm == 'backfill':
-        print('Using Backfill')
-        cls = Backfill
-    elif algorithm == 'sjf':
-        print('Using SJF')
-        cls = SJF
-    else:
-        # Choose default algorithm
-        cls = FCFS
-        if default_algorithm == 'backfill':
-            print('Using Backfill')
-            cls = Backfill
-        elif default_algorithm == 'sjf':
-            print('Using SJF')
-            cls = SJF
+    # Choose the default algorithm 
+    default = default_algorithm if default_algorithm is not None else 'fcfs'
+    cls = algorithm_objects[default]
+    if algorithm is not None:
+        cls = algorithm_objects[algorithm]
+    if use_mars and len(tasks) >= int(mars_task_cnt):
+        cls = algorithm_objects['mars']
 
-        if use_mars and len(tasks) >= int(mars_task_cnt):
-            print('Using MARS')
-            cls = MARS
     return AlgorithmWrapper(cls, **kwargs)

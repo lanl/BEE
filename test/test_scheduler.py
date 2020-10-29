@@ -6,7 +6,6 @@ Tests of the BEE Scheduler module.
 import time
 
 import beeflow.scheduler.algorithms as algorithms
-import beeflow.scheduler.allocation as allocation
 import beeflow.scheduler.sched_types as sched_types
 # import beeflow.common.data.wf_data as wf_data
 
@@ -22,7 +21,7 @@ class TestFCFS:
 
         Test scheduling one task.
         """
-        schedule_one_task(algorithms.FCFS)
+        schedule_one_task(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_two_tasks():
@@ -30,7 +29,7 @@ class TestFCFS:
 
         Test scheduling two tasks.
         """
-        schedule_two_tasks(algorithms.FCFS)
+        schedule_two_tasks(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_task_fail():
@@ -38,7 +37,7 @@ class TestFCFS:
 
         Test scheduling a task with more resources required than available.
         """
-        schedule_task_fail(algorithms.FCFS)
+        schedule_task_fail(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_six_tasks():
@@ -69,7 +68,7 @@ class TestFCFS:
         resource = sched_types.Resource(id_='test-resource-1', nodes=4)
 
         tasks = [task1, task2, task3, task4, task5, task6]
-        allocation.schedule_all(algorithms.FCFS, tasks, [resource])
+        algorithms.FCFS().schedule_all(tasks, [resource])
 
         assert task1.allocations[0].id_ == 'test-resource-1'
         assert task1.allocations[0].start_time == 0
@@ -104,7 +103,7 @@ class TestBackfill:
 
         Test scheduling one task.
         """
-        schedule_one_task(algorithms.Backfill)
+        schedule_one_task(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_two_tasks():
@@ -112,7 +111,7 @@ class TestBackfill:
 
         Test scheduling two tasks.
         """
-        schedule_two_tasks(algorithms.Backfill)
+        schedule_two_tasks(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_task_fail():
@@ -120,7 +119,7 @@ class TestBackfill:
 
         Test scheduling a task with more resources required than available.
         """
-        schedule_task_fail(algorithms.Backfill)
+        schedule_task_fail(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_three_tasks():
@@ -144,7 +143,7 @@ class TestBackfill:
                                         nodes=2)
 
         tasks = [task1, task2, task3]
-        allocation.schedule_all(algorithms.Backfill, tasks, [resource])
+        algorithms.Backfill().schedule_all(tasks, [resource])
 
         assert task1.allocations[0].id_ == 'resource-0'
         assert task1.allocations[0].nodes == 1
@@ -190,7 +189,7 @@ class TestBackfill:
 
         tasks = [task1, task2, task3, task4]
         resources = [resource1, resource2, resource3, resource4]
-        allocation.schedule_all(algorithms.Backfill, tasks, resources)
+        algorithms.Backfill().schedule_all(tasks, resources)
 
         assert len(task1.allocations) == 2
         assert all(a.start_time == 0 for a in task1.allocations)
@@ -238,7 +237,7 @@ class TestBackfill:
                                         nodes=4)
 
         tasks = [task1, task2, task3, task4, task5, task6]
-        allocation.schedule_all(algorithms.Backfill, tasks, [resource])
+        algorithms.Backfill().schedule_all(tasks, [resource])
 
         assert task1.allocations[0].id_ == 'resource-0'
         assert task1.allocations[0].nodes == 1
@@ -293,7 +292,7 @@ class TestSJF:
                                  task_name='task-2', requirements=requirements)
         resource = sched_types.Resource(id_='test-resource-1', nodes=2)
 
-        allocation.schedule_all(algorithms.SJF, [task1, task2], [resource])
+        algorithms.SJF().schedule_all([task1, task2], [resource])
 
         assert task1.allocations[0].id_ == 'test-resource-1'
         assert task1.allocations[0].nodes == 1
@@ -308,7 +307,7 @@ class TestSJF:
 
         Test scheduling a task with more resources required than available.
         """
-        schedule_task_fail(algorithms.SJF)
+        schedule_task_fail(algorithms.SJF())
 
 
 #
@@ -325,7 +324,7 @@ def schedule_one_task(algorithm):
                             requirements=requirements)
     resource = sched_types.Resource(id_='test-resource-1', nodes=4)
 
-    allocation.schedule_all(algorithm, [task], [resource])
+    algorithm.schedule_all([task], [resource])
 
     assert task.allocations[0].id_ == 'test-resource-1'
     assert task.allocations[0].start_time == 0
@@ -344,7 +343,7 @@ def schedule_two_tasks(algorithm):
                              task_name='task-2', requirements=requirements)
     resource = sched_types.Resource(id_='test-resource-1', nodes=2)
 
-    allocation.schedule_all(algorithm, [task1, task2], [resource])
+    algorithm.schedule_all([task1, task2], [resource])
 
     assert task1.allocations[0].id_ == 'test-resource-1'
     assert task1.allocations[0].nodes == 1
@@ -364,7 +363,6 @@ def schedule_task_fail(algorithm):
                              task_name='task-1', requirements=requirements)
     resource = sched_types.Resource(id_='test-resource-1', nodes=2)
 
-    assert (allocation.schedule_all(algorithm, [task1], [resource])
-            is None)
+    assert algorithm.schedule_all([task1], [resource]) is None
     # No allocations available
     assert not task1.allocations

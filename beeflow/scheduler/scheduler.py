@@ -10,7 +10,6 @@ from flask import Flask, request
 from flask_restful import Resource, Api
 
 import beeflow.scheduler.algorithms as algorithms
-import beeflow.scheduler.allocation as allocation
 import beeflow.scheduler.sched_types as sched_types
 from beeflow.common.config.config_driver import BeeConfig
 
@@ -25,14 +24,12 @@ resources = []
 class ResourcesHandler(Resource):
     """Resources handler.
 
-    Handle creation of resources.
     """
 
     @staticmethod
     def put():
         """Create a list of resources to use for allocation.
 
-        Create new resources based on a list of resources.
         """
         resources.clear()
         resources.extend([sched_types.Resource.decode(r)
@@ -43,7 +40,6 @@ class ResourcesHandler(Resource):
     def get():
         """Get a list of all resources.
 
-        Return a list of all available resources known to the scheduler.
         """
         return [r.encode() for r in resources]
 
@@ -66,7 +62,7 @@ class WorkflowJobHandler(Resource):
         algorithm = algorithms.choose(tasks, **vars(flask_app.sched_conf))
         # algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
         #                              mars_model=Config.conf.mars_model)
-        allocation.schedule_all(algorithm, tasks, resources)
+        algorithm.schedule_all(tasks, resources)
         return [t.encode() for t in tasks]
 
 
