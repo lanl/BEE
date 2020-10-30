@@ -161,8 +161,6 @@ class Backfill(Algorithm):
         :type resources: list of instance of sched_types.Resource
         """
         tasks = tasks[:]
-        # TODO: This time may be invalidated if the algorithm
-        # takes too long
         current_time = 0
         allocations = []
         while tasks:

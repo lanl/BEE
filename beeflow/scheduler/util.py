@@ -38,6 +38,11 @@ def allocate_aggregate(resources, allocations, task, start_time):
     task_allocated = []
     for resource in resources:
         # TODO
+        # Check if this resource can even be allocated to this task (for
+        # instance, if we need a number of GPUs, but this resource doesn't have
+        # any, then we can't allocate this resource)
+        if not resource.can_allocate(task.requirements):
+            continue
         total_used = sched_types.rsum(*[a for a in allocations
                                         if a.id_ == resource.id_])
         remaining = sched_types.diff(resource, total_used)

@@ -91,7 +91,7 @@ class Resource(Serializable):
     Resource base class.
     """
 
-    def __init__(self, id_=None, nodes=1, mem=8192):
+    def __init__(self, id_=None, nodes=1, mem=8192, gpus=0):
         """Resource base constructor.
 
         Resource base constructor.
@@ -99,17 +99,32 @@ class Resource(Serializable):
         self.id_ = id_
         self.nodes = nodes
         self.mem = mem
+        self.gpus = gpus
+
+    def can_allocate(self, requirements):
+        """Check if this resource can even be allocated for these requirements.
+
+        If this resource cannot provide certain properties that are required,
+        then it cannot be allocated for the given task. For example, if a
+        number of gpus are required, but this resource has none, then no nodes
+        should be allocated.
+        :param requirements: allocation requirements to check
+        :type requirements: instance of RequirementBase
+        """
+        return (requirements.gpus == 0 or (requirements.gpus > 0
+                                           and self.gpus > 0))
 
     def fits_requirements(self, requirements):
-        """Check the resource against a dict of requirements.
+        """Check the resource against a set of requirements.
 
-        Check this resource against a dict of requirements.
+        Check this resource against the requirements.
         :param requirements: requirements to match against
         :type requirements: instance of RequirementBase
         :rtype: bool
         """
         return (requirements.nodes <= self.nodes
-                and requirements.mem <= self.mem)
+                and requirements.mem <= self.mem
+                and requirements.gpus <= self.gpus)
 
     def allocate(self, remaining, task_allocated, requirements, start_time):
         """Return the largest needed new allocation.
@@ -128,16 +143,20 @@ class Resource(Serializable):
         """
         total_task_allocated = rsum(*task_allocated)
         nodes = (remaining.nodes
-                 if (remaining.nodes <= (requirements.nodes
-                                         - total_task_allocated.nodes))
+                 if (remaining.nodes
+                     <= (requirements.nodes - total_task_allocated.nodes))
                  else (requirements.nodes - total_task_allocated.nodes))
         mem = (remaining.mem
                if (remaining.mem
                    <= (requirements.mem - total_task_allocated.mem))
                else (requirements.mem - total_task_allocated.mem))
+        gpus = (remaining.gpus
+                if (remaining.gpus
+                    <= (requirements.gpus - total_task_allocated.gpus))
+                else (requirements.gpus - total_task_allocated.gpus))
         return Allocation(start_time=start_time,
                           max_runtime=requirements.max_runtime, id_=self.id_,
-                          nodes=nodes, mem=mem)
+                          nodes=nodes, mem=mem, gpus=gpus)
 
     @property
     def empty(self):
@@ -178,7 +197,8 @@ def diff(resource1, resource2):
     :rtype: new instance of Resource
     """
     return Resource(nodes=resource1.nodes-resource2.nodes,
-                    mem=resource1.mem-resource2.mem)
+                    mem=resource1.mem-resource2.mem,
+                    gpus=resource1.gpus-resource2.gpus)
 
 
 def rsum(*resources):
@@ -190,7 +210,8 @@ def rsum(*resources):
     :rtype: new instance of Resource
     """
     return Resource(nodes=sum(r.nodes for r in resources),
-                    mem=sum(r.mem for r in resources))
+                    mem=sum(r.mem for r in resources),
+                    gpus=sum(r.gpus for r in resources))
 
 
 class RequirementsError(Exception):
@@ -215,7 +236,7 @@ class RequirementBase:
     Base requirements class.
     """
 
-    def __init__(self, nodes=1, mem=1024, max_runtime=1, cost=1):
+    def __init__(self, nodes=1, mem=1024, gpus=0, max_runtime=1, cost=1):
         """Constructor for requirements.
 
         Constructor for requirements.
@@ -229,6 +250,9 @@ class RequirementBase:
         if mem < 0:
             raise RequirementsError('Invalid "mem" requirement of %i' % mem)
         self.mem = mem
+        if gpus < 0:
+            raise RequirementsError('Invalid "gpus" requirement of %i' % gpus)
+        self.gpus = gpus
         if max_runtime < 0:
             raise RequirementsError('Invalid "max_runtime" requirement of %i'
                                     % max_runtime)

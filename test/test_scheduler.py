@@ -40,6 +40,20 @@ class TestFCFS:
         schedule_task_fail(algorithms.FCFS())
 
     @staticmethod
+    def test_schedule_task_gpus_req():
+        """Test scheduling a task with a gpus requirement.
+
+        """
+        schedule_task_gpus_req(algorithms.FCFS())
+
+    @staticmethod
+    def test_schedule_task_gpus_req_fail():
+        """Test scheduling a task with a gpus requirement that should fail.
+
+        """
+        schedule_task_gpus_req_fail(algorithms.FCFS())
+
+    @staticmethod
     def test_schedule_six_tasks():
         """Test scheduling six tasks.
 
@@ -120,6 +134,20 @@ class TestBackfill:
         Test scheduling a task with more resources required than available.
         """
         schedule_task_fail(algorithms.Backfill())
+
+    @staticmethod
+    def test_schedule_task_gpus_req():
+        """Test scheduling a task with a gpus requirement.
+
+        """
+        schedule_task_gpus_req(algorithms.Backfill())
+
+    @staticmethod
+    def test_schedule_task_gpus_req_fail():
+        """Test scheduling a task with a gpus requirement that should fail.
+
+        """
+        schedule_task_gpus_req_fail(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_three_tasks():
@@ -309,6 +337,20 @@ class TestSJF:
         """
         schedule_task_fail(algorithms.SJF())
 
+    @staticmethod
+    def test_schedule_task_gpus_req():
+        """Test scheduling a task with a gpus requirement.
+
+        """
+        schedule_task_gpus_req(algorithms.SJF())
+
+    @staticmethod
+    def test_schedule_task_gpus_req_fail():
+        """Test scheduling a task with a gpus requirement that should fail.
+
+        """
+        schedule_task_gpus_req_fail(algorithms.SJF())
+
 
 #
 # Shared testing functions.
@@ -365,4 +407,42 @@ def schedule_task_fail(algorithm):
 
     assert algorithm.schedule_all([task1], [resource]) is None
     # No allocations available
+    assert not task1.allocations
+
+def schedule_task_gpus_req(algorithm):
+    """Test scheduling a task with the gpus requirement.
+
+    """
+    requirements = {
+        'max_runtime': 10,
+        'nodes': 10,
+        'gpus': 4,
+    }
+    task1 = sched_types.Task(workflow_name='test-workflow', task_name='task-1',
+                             requirements=requirements)
+    resource1 = sched_types.Resource(id_='test-resource-1', nodes=20, gpus=0)
+    resource2 = sched_types.Resource(id_='test-resource-2', nodes=20, gpus=20)
+
+    algorithm.schedule_all([task1], [resource1, resource2])
+
+    assert task1.allocations[0].id_ == 'test-resource-2'
+    assert task1.allocations[0].nodes == 10
+    assert task1.allocations[0].gpus == 4
+    assert task1.allocations[0].start_time == 0
+
+def schedule_task_gpus_req_fail(algorithm):
+    """Test scheduling a task with the gpus requirement that should fail.
+
+    """
+    requirements = {
+        'max_runtime': 10,
+        'nodes': 10,
+        'gpus': 10,
+    }
+    task1 = sched_types.Task(workflow_name='test-workflow', task_name='task-1',
+                             requirements=requirements)
+    resource1 = sched_types.Resource(id_='test-resource-1', nodes=20, gpus=0)
+
+    algorithm.schedule_all([task1], [resource1])
+
     assert not task1.allocations
