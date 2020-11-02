@@ -1,0 +1,3 @@
+Expected Salary from Regression is $ [45618.17859389]
+Expected Salary from DT is $ [70000]
+{"Predicted Salary (S) by Regression and DT Model": ["[45618.1785938945]", "[70000]"]}
