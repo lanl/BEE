@@ -29,5 +29,5 @@ Python package: Scikit learn
 
 3. View Expected Outputs:
 * cat expectedValue.txt
-![GitHub output]()
-Format: ![.PNG](url)
+![GitHub output](examples/subworkflows/machine_learning/out.PNG)
+
