@@ -350,8 +350,10 @@ class AlgorithmWrapper:
                 # some may be missing as well
                 print(-1, -1, -1, task.requirements.max_runtime,
                       task.requirements.nodes, task.requirements.max_runtime,
-                      task.requirements.mem, task.requirements.nodes, -1,
-                      task.requirements.mem, task.requirements.mem, -1,
+                      task.requirements.mem_per_node, task.requirements.nodes, -1,
+                      task.requirements.mem_per_node, task.requirements.mem_per_node, -1,
+                      #task.requirements.mem, task.requirements.nodes, -1,
+                      #task.requirements.mem, task.requirements.mem, -1,
                       -1, -1, -1, -1, -1, -1, -1, file=fp)
                 # print(*vec, file=fp)
                 curr_allocs.extend(task.allocations)

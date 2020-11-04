@@ -416,18 +416,20 @@ def schedule_task_gpus_req(algorithm):
     requirements = {
         'max_runtime': 10,
         'nodes': 10,
-        'gpus': 4,
+        'gpus_per_node': 4,
     }
     task1 = sched_types.Task(workflow_name='test-workflow', task_name='task-1',
                              requirements=requirements)
-    resource1 = sched_types.Resource(id_='test-resource-1', nodes=20, gpus=0)
-    resource2 = sched_types.Resource(id_='test-resource-2', nodes=20, gpus=20)
+    resource1 = sched_types.Resource(id_='test-resource-1', nodes=20,
+                                     gpus_per_node=0)
+    resource2 = sched_types.Resource(id_='test-resource-2', nodes=20,
+                                     gpus_per_node=20)
 
     algorithm.schedule_all([task1], [resource1, resource2])
 
     assert task1.allocations[0].id_ == 'test-resource-2'
     assert task1.allocations[0].nodes == 10
-    assert task1.allocations[0].gpus == 4
+    assert task1.allocations[0].gpus_per_node == 20
     assert task1.allocations[0].start_time == 0
 
 def schedule_task_gpus_req_fail(algorithm):
@@ -437,11 +439,12 @@ def schedule_task_gpus_req_fail(algorithm):
     requirements = {
         'max_runtime': 10,
         'nodes': 10,
-        'gpus': 10,
+        'gpus_per_node': 10,
     }
     task1 = sched_types.Task(workflow_name='test-workflow', task_name='task-1',
                              requirements=requirements)
-    resource1 = sched_types.Resource(id_='test-resource-1', nodes=20, gpus=0)
+    resource1 = sched_types.Resource(id_='test-resource-1', nodes=20,
+                                     gpus_per_node=0)
 
     algorithm.schedule_all([task1], [resource1])
 

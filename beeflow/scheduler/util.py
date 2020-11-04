@@ -16,6 +16,8 @@ def calculate_remaining(resources, allocations):
     :rtype: instance of Allocation
     """
     resource_total = sched_types.rsum(*resources)
+    if not allocations:
+        return resource_total
     resource_allocated = sched_types.rsum(*allocations)
     return sched_types.diff(resource_total, resource_allocated)
 
