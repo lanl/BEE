@@ -322,12 +322,16 @@ class TestSJF:
 
         algorithms.SJF().schedule_all([task1, task2], [resource])
 
+        assert len(task1.allocations) == 1
         assert task1.allocations[0].id_ == 'test-resource-1'
         assert task1.allocations[0].nodes == 1
+        assert len(task2.allocations) == 1
         assert task2.allocations[0].id_ == 'test-resource-1'
         assert task2.allocations[0].nodes == 1
-        # TODO: This test may need to change if the SJF algorithm is updated
-        assert task1.allocations[0].start_time != task2.allocations[0].start_time
+        # These can be allocated at the same time, since the resource has two
+        # nodes
+        assert (task1.allocations[0].start_time
+                == task2.allocations[0].start_time)
 
     @staticmethod
     def test_schedule_task_fail():
