@@ -7,7 +7,7 @@ import tensorflow as tf
 
 import beeflow.scheduler.mars_util as mars_util
 import beeflow.scheduler.mars as mars
-import beeflow.scheduler.sched_types as sched_types
+import beeflow.scheduler.task as task
 
 
 def test_workflow2vec_one_task():
@@ -15,8 +15,8 @@ def test_workflow2vec_one_task():
 
     Test workflow2vec() with one task.
     """
-    tasks = [sched_types.Task(workflow_name='workflow-1', task_name='task-1',
-                              requirements={'cost': 3.0, 'max_runtime': 2})]
+    tasks = [task.Task(workflow_name='workflow-1', task_name='task-1',
+             requirements={'cost': 3.0, 'max_runtime': 2})]
 
     vec = mars_util.workflow2vec(tasks[0], tasks)
 
@@ -33,13 +33,12 @@ def test_workflow2vec_three_tasks():
     Test workflow2vec() with three tasks.
     """
     tasks = [
-        sched_types.Task(workflow_name='workflow-1',
-                         task_name='task-1',
-                         requirements={'cost': 3.0, 'max_runtime': 4}),
-        sched_types.Task(workflow_name='workflow-1', task_name='task-2',
-                         requirements={'cost': 44.0, 'max_runtime': 1}),
-        sched_types.Task(workflow_name='workflow-1', task_name='task-3',
-                         requirements={'cost': -10.0, 'max_runtime': 55})
+        task.Task(workflow_name='workflow-1', task_name='task-1',
+                  requirements={'cost': 3.0, 'max_runtime': 4}),
+        task.Task(workflow_name='workflow-1', task_name='task-2',
+                  requirements={'cost': 44.0, 'max_runtime': 1}),
+        task.Task(workflow_name='workflow-1', task_name='task-3',
+                  requirements={'cost': -10.0, 'max_runtime': 55})
     ]
 
     vec = mars_util.workflow2vec(tasks[1], tasks)

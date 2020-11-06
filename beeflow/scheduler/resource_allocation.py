@@ -4,7 +4,8 @@
 
 # TODO: Remove this import when the Allocation, Resource and Requirements
 # clases have been implemented here
-import beeflow.scheduler.sched_types as sched_types
+# import beeflow.scheduler.sched_types as sched_types
+import beeflow.scheduler.serializable as serializable
 
 
 class TaskAllocator:
@@ -17,11 +18,10 @@ class TaskAllocator:
         """Task allocator constructor.
 
         :param resources: available resources that can be allocated
-        :type resources: list of instance of sched_types.Resource
+        :type resources: list of instance of Resource
         """
         self.allocations = []
         self.resources = resources
-        # TODO
 
     def _fits_requirements_with_overlap(self, reqs, overlap):
         """Check if a task with these requirements can run with overlap.
@@ -29,42 +29,23 @@ class TaskAllocator:
         This determines if a task can run given `overlap`, a list of
         overlapping allocations.
         :param reqs: task requirements
-        :type reqs: instance of sched_types.RequirementsBase
+        :type reqs: instance of Requirements
         :param overlap: overlappinig allocations
-        :type overlap: list of instance of sched_types.Allocation
+        :type overlap: list of instance of Allocation
         :rtype: bool
         """
-        # TODO
         total_nodes = 0
         # Count the total number of nodes that match the required properties
         for res in self.resources:
             # TODO: Handle shared nodes (perhaps with a shared option)
             allocs = [alloc for alloc in overlap if alloc.id_ == res.id_]
-            if (reqs.mem_per_node <= res.mem_per_node
-                and reqs.gpus_per_node <= res.gpus_per_node):
+            #if (reqs.mem_per_node <= res.mem_per_node
+            #    and reqs.gpus_per_node <= res.gpus_per_node):
+            if res.fits(reqs):
                 total_nodes += (res.nodes
                                 - sum(alloc.nodes for alloc in allocs))
         # Return True if we have enough nodes that match
         return total_nodes >= reqs.nodes
-
-    def fits_requirements(self, reqs):
-        """Determine if the resources can fit the requirements given.
-
-        :param reqs: requirements
-        :type reqs: instance of sched_types.RequirementsBase
-        :rtype: bool
-        """
-        return self._fits_requirements_with_overlap(reqs, [])
-        """
-        total_nodes = 0
-        # Count the total number of nodes that match the required properties
-        for res in self.resources:
-            if (reqs.mem_per_node <= res.mem_per_node
-                and reqs.gpus_per_node <= res.gpus_per_node):
-                total_nodes += res.nodes
-        # Return True if we have enough nodes that match
-        return total_nodes >= reqs.nodes
-        """
 
     def _calculate_overlap(self, start_time, max_runtime):
         """Calculate the overlap for the time period [start_time, max_runtime].
@@ -73,29 +54,34 @@ class TaskAllocator:
         :type start_time: int
         :param max_runtime: max runtime for the time period
         :type max_runtime: int
-        :rtype: list of instance of sched_types.Allocation
+        :rtype: list of instance of Allocation
         """
+        # TODO: This calculation be off
         return [alloc for alloc in self.allocations
                 if (start_time < (alloc.start_time + alloc.max_runtime)
                     and (start_time + max_runtime) > alloc.start_time)]
 
+    def fits_requirements(self, reqs):
+        """Determine if the resources can fit the requirements given.
+
+        :param reqs: requirements
+        :type reqs: instance of Requirements
+        :rtype: bool
+        """
+        return self._fits_requirements_with_overlap(reqs, [])
 
     def can_run_now(self, reqs, start_time):
         """Determine if a task with the requirements can run at start_time.
 
         :param reqs: requirements of a task
-        :type reqs: instance of sched_types.RequirementsBase
+        :type reqs: instance of Requirements
         :param start_time: start time of a task
         :type start_time: int
         :rtype: bool
         """
         # Calculate the overlapping allocations
         overlap = self._calculate_overlap(start_time, reqs.max_runtime)
-        #overlap = [alloc for alloc in self.allocations
-        #           if start_time < (alloc.start_time + alloc.max_runtime)
-        #           and (start_time + max_runtime) > alloc.start_time]
         return self._fits_requirements_with_overlap(reqs, overlap)
-        # TODO
 
     def get_next_end_time(self, start_time):
         """Return the next finish time after start_time.
@@ -105,16 +91,7 @@ class TaskAllocator:
         start_time will just be returned.
         :param start_time: start time of a possible task
         :type start_time: int
-
-        The event times are the set of times (in seconds) of all the allocated start times and finish times of tasks. For example if occur anytime a task allocation starts or finishes. For example if a 
         """
-        #if not self.allocations:
-        #    end_time = start_time
-        #else:
-        #    min(a.start_time + a.max_runtime for a in self.allocations)
-
-        #end_time = start_time
-        # end_times = [a.start_time + a.max_runtime for a in self.allocations]
         end_times = self.get_end_times()
         for end_time in end_times:
             if end_time > start_time:
@@ -135,11 +112,11 @@ class TaskAllocator:
 
         Note: This assumes that this allocation can be made and that there are
         no other overlapping allocations that could conflict.
-        :param reqs:
-        :type reqs:
-        :param start_time:
-        :type start_time:
-        :rtype: list of instance of sched_types.Allocation
+        :param reqs: task requirements
+        :type reqs: instance of Requirements
+        :param start_time: start time of the task allocation
+        :type start_time: int
+        :rtype: list of instance of Allocation
         """
         # TODO
         overlap = self._calculate_overlap(start_time, reqs.max_runtime)
@@ -152,52 +129,113 @@ class TaskAllocator:
                 break
             other_allocs = [alloc for alloc in overlap if alloc.id_ == res.id_]
             # TODO: Replace this with a method res.fits()
-            if (reqs.mem_per_node <= res.mem_per_node
-                and reqs.gpus_per_node <= res.gpus_per_node):
+            #if (reqs.mem_per_node <= res.mem_per_node
+            #    and reqs.gpus_per_node <= res.gpus_per_node):
+            if res.fits(reqs):
                 used_nodes = sum(alloc.nodes for alloc in other_allocs)
                 avail_nodes = res.nodes - used_nodes
                 if avail_nodes > 0:
                     nodes = reqs.nodes - total_nodes
                     nodes = nodes if nodes < avail_nodes else avail_nodes
                     total_nodes += nodes
-                    # TODO: Allocations should just contain a reference to the
-                    # resource, rather than duplicating all the properties
-                    alloc = sched_types.Allocation(
-                        id_=res.id_, start_time=start_time,
-                        max_runtime=reqs.max_runtime, nodes=nodes,
-                        mem_per_node=res.mem_per_node,
-                        gpus_per_node=res.gpus_per_node)
+                    # Allocations should just contain a reference to the
+                    # resource, by id_, rather than duplicating all the
+                    # properties
+                    alloc = Allocation(id_=res.id_, start_time=start_time,
+                                       max_runtime=reqs.max_runtime,
+                                       nodes=nodes)
                     allocs.append(alloc)
         # Add the new allocations to the stored allocations
         self.allocations.extend(allocs)
         return allocs
 
 
-class Resource:
-    """
+class Resource(serializable.Serializable):
+    """Resource class.
+
+    Resource class representing a resource.
     """
 
-    def __init__(self):
+    def __init__(self, id_, nodes=1, mem_per_node=8192, gpus_per_node=0):
+        """Resource class constructor.
+
         """
+        self.id_ = id_
+        self.nodes = nodes
+        self.mem_per_node = mem_per_node
+        self.gpus_per_node = gpus_per_node
+
+    def fits(self, reqs):
+        """Return True if the requirements fit this resource.
+
+        :param reqs: task requirements
+        :type reqs: instance of Requirements
+        :rtype: bool
         """
-        # TODO
+        return (reqs.mem_per_node <= self.mem_per_node
+                and reqs.gpus_per_node <= self.gpus_per_node)
 
+    @staticmethod
+    def decode(data):
+        """Decode the resource.
 
-class Requirements:
-    """
-    """
-
-    def __init__(self):
+        :param data: data representing the resource
+        :type data: dict
         """
-        """
-        # TODO
+        return Resource(**data)
 
 
-class Allocation:
+class Requirements(serializable.Serializable):
+    """Requirements class.
+
+    Requirements class representing task requirements.
     """
+
+    # TODO: Determine default requirements
+    def __init__(self, max_runtime, nodes=1, mem_per_node=1024, gpus_per_node=0, cost=1):
+        """Requirements constructor.
+
+        """
+        self.max_runtime = max_runtime
+        self.nodes = nodes
+        self.mem_per_node = mem_per_node
+        self.gpus_per_node = gpus_per_node
+        # TODO: Determine what other requirement properties are needed
+        # TODO: Determine what the cost should be and how it is computed
+        self.cost = cost
+
+    @staticmethod
+    def decode(data):
+        """Decode the requirements.
+
+        :param data: data representing the requirements
+        :type data: dict
+        """
+        return Requirements(**data)
+
+
+class Allocation(serializable.Serializable):
+    """Allocation class.
+
+    This represents an allocation for a task on a single resource.
     """
 
     def __init__(self, id_, start_time, max_runtime, nodes):
+        """Allocation constructor.
+
         """
+        self.id_ = id_
+        self.start_time = start_time
+        self.max_runtime = max_runtime
+        # TODO: Determine what other allocation properties are needed (other
+        # than just nodes)
+        self.nodes = nodes
+
+    @staticmethod
+    def decode(data):
+        """Decode the allocation.
+
+        :param data: data representing the allocation
+        :type data: dict
         """
-        # TODO
+        return Allocation(**data)

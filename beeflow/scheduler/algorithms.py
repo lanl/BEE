@@ -7,8 +7,6 @@ import abc
 import time
 
 import beeflow.scheduler.resource_allocation as resource_allocation
-import beeflow.scheduler.sched_types as sched_types
-import beeflow.scheduler.util as util
 import beeflow.scheduler.mars_util as mars_util
 
 
@@ -32,7 +30,7 @@ class Algorithm(abc.ABC):
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
-        :type resources: list of instance of sched_types.Resource
+        :type resources: list of instance of resource_allocation.Resource
         """
 
 
@@ -55,7 +53,7 @@ class SJF(Algorithm):
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
-        :type resources list of instance of sched_types.Resource
+        :type resources list of instance of resource_allocation.Resource
         """
         # First sort the tasks by how long they are, then send them off to
         # FCFS
@@ -86,7 +84,7 @@ class FCFS(Algorithm):
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
-        :type resources: list of instance of sched_types.Resource
+        :type resources: list of instance of resource_allocation.Resource
         """
         allocator = resource_allocation.TaskAllocator(resources)
         start_time = 0
@@ -122,7 +120,7 @@ class Backfill(Algorithm):
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
-        :type resources: list of instance of sched_types.Resource
+        :type resources: list of instance of resource_allocation.Resource
         """
         tasks = tasks[:]
         current_time = 0
@@ -187,8 +185,8 @@ class MARS(Algorithm):
         self.mod = mars
         self.actor, self.critic = mars.load_models(mars_model)
 
-    def policy(self, actor, critic, task, tasks, possible_allocs):
-        """Evaluate the policy function to find scheduling of task.
+    def policy(self, actor, critic, task, tasks, possible_times):
+        """Evaluate the policy function to find a scheduling of the task.
 
         Evaluate the policy function with the model task.
         :param actor: actor used for scheduling
@@ -197,13 +195,13 @@ class MARS(Algorithm):
         :type critic: instance of mars.CriticModel
         :param task: task to get the scheduling policy for
         :type task: instance of Task
-        :param possible_allocs: possible allocations for the task
-        :type possible_allocs: list of instance of Allocation
+        :param possible_times: possible allocation times for the task
+        :type possible_times: list of int
         :rtype: int, index of allocation to use
         """
         mars = self.mod
         # No possible allocations
-        if not possible_allocs:
+        if not possible_times:
             return -1
         # Convert the task and possible_allocs into a vector
         # for input into the policy function.
@@ -213,7 +211,7 @@ class MARS(Algorithm):
         # Convert the result into an action index
         pl = [float(n) for n in actor.call(vec)[0]]
         a = pl.index(max(pl))
-        a = (float(a) / len(pl)) * (len(possible_allocs) - 1)
+        a = (float(a) / len(pl)) * (len(possible_times) - 1)
         return int(a)
 
     def schedule_all(self, tasks, resources, mars_model='model', **kwargs):
@@ -228,49 +226,34 @@ class MARS(Algorithm):
         :param mars_model: the mars model path
         :type mars_model: str
         """
-        """
         allocator = resource_allocation.TaskAllocator(resources)
-        # TODO: Make policy decisions based on end times, rather than building
-        # a possible allocation list
+        current_time = 0
         for task in tasks:
-            possible_allocs = allocator.build_allocation_list(task, tasks,
-                                                              resources)
+            start_times = [current_time]
+            start_times.extend(allocator.get_end_times())
+            possible_times = []
+            # Add each possible time for the task to start
+            for start_time in start_times:
+                if allocator.can_run_now(task.requirements, start_time):
+                    possible_times.append(start_time)
+            # Now choose the policy
             pi = self.policy(self.actor, self.critic, task, tasks,
-                             possible_allocs)
+                             possible_times)
             if pi != -1:
-                # TODO: This is incorrect
-                allocs = possible_allocs[pi]
-                allocations.extend(allocs)
+                allocs = allocator.allocate(task.requirements,
+                                            possible_times[pi])
                 task.allocations = allocs
-        """
-        # TODO: Rewrite this function using resource_allocation.TaskAllocator()
 
 
-        # TODO: Set the path somewhere else
-        # actor, critic = mars.load_models(mars_model)
-        allocations = []
-        for task in tasks:
-            possible_allocs = build_allocation_list(task, tasks, resources,
-                                                    curr_allocs=allocations)
-            pi = self.policy(self.actor, self.critic, task, tasks,
-                             possible_allocs)
-            # -1 indicates no allocation found
-            if pi != -1:
-                allocs = possible_allocs[pi]
-                allocations.extend(allocs)
-                task.allocations = allocs
-        # TODO: Update time based on runtime of algorithm
-
-
-class AlgorithmWrapper:
-    """Algorithm wrapper class.
+class AlgorithmLogWrapper:
+    """Algorithm log wrapper class.
 
     Algorithm wrapper class to be used as a wrap to log the task scheduling
     data for future training and other extra information.
     """
 
     def __init__(self, cls, alloc_logfile='schedule_log.txt', **kwargs):
-        """Algorithm wrapper class constructor.
+        """Algorithm log wrapper class constructor.
 
         Algorithm wrapper class constructor.
         :param cls: object to pass operations onto
@@ -293,21 +276,23 @@ class AlgorithmWrapper:
         self.cls.schedule_all(tasks, resources, **self.kwargs)
         with open(self.alloc_logfile, 'a') as fp:
             print('; Log start at', time.time(), file=fp)
-            curr_allocs = []
+            # curr_allocs = []
             for task in tasks:
-                possible_allocs = build_allocation_list(task, tasks, resources,
-                                                        curr_allocs)
+                # TODO: Rethink this log output
+
+                #possible_allocs = build_allocation_list(task, tasks, resources,
+                #                                        curr_allocs)
                 # Find the value of a - the index of the allocation for this
                 # task
-                a = -1
+                #a = -1
                 # TODO: Calculation of a needs to change
-                if task.allocations:
-                    start_time = task.allocations[0].start_time
-                    # a should be the first alloc with the same start_time
-                    for i, alloc in enumerate(possible_allocs):
-                        if alloc[0].start_time == start_time:
-                            a = i
-                            break
+                #if task.allocations:
+                #    start_time = task.allocations[0].start_time
+                #    # a should be the first alloc with the same start_time
+                #    for i, alloc in enumerate(possible_allocs):
+                #        if alloc[0].start_time == start_time:
+                #            a = i
+                #            break
                 # Output in SWF format
                 # TODO: These variables may not be all in the right spot and
                 # some may be missing as well
@@ -319,41 +304,7 @@ class AlgorithmWrapper:
                       #task.requirements.mem, task.requirements.mem, -1,
                       -1, -1, -1, -1, -1, -1, -1, file=fp)
                 # print(*vec, file=fp)
-                curr_allocs.extend(task.allocations)
-
-
-# TODO: This function and all references to it needs be removed and or updated
-# to use the resource_allocation interfacee
-def build_allocation_list(task, tasks, resources, curr_allocs):
-    """Build a list of allocations for a task.
-
-    :param task: task being allocated
-    :type task: instance of sched_types.Task
-    :param tasks: list of other tasks
-    :type tasks: list of instance of sched_types.Task
-    :param resources: list of resources
-    :type resources: list of instance of sched_types.Resource
-    """
-    times = set(t.allocations[0].start_time + t.requirements.max_runtime
-                for t in tasks if t.allocations)
-    times = list(times)
-    # Add initial start time
-    times.append(0)
-    times.sort()
-    allocations = []
-    for start_time in times:
-        overlap = util.calculate_overlap(curr_allocs, start_time,
-                                         task.requirements.max_runtime)
-        remaining = sched_types.diff(sched_types.rsum(*resources),
-                                     sched_types.rsum(*overlap))
-        if remaining.fits_requirements(task.requirements):
-            # TODO: Ensure that these allocations are not final (in other
-            # other words, if the algorithm decides to pick one and not the
-            # other, later on, we don't want there to be conflicts)
-            allocs = util.allocate_aggregate(resources, overlap, task,
-                                             start_time)
-            allocations.append(allocs)
-    return allocations
+                # curr_allocs.extend(task.allocations)
 
 
 # TODO: Perhaps this value should be a config value
@@ -392,14 +343,13 @@ def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
     :type tasks: list of instance of Task
     :rtype: class derived from Algorithm (not an instance)
     """
-    # TODO: Correctly choose based on size of the workflow
-    # return Logger(Backfill)
     # Choose the default algorithm 
     default = default_algorithm if default_algorithm is not None else 'fcfs'
     cls = algorithm_objects[default]
     if algorithm is not None:
         cls = algorithm_objects[algorithm]
+    # TODO: Correctly choose based on size of the workflow
     if use_mars and len(tasks) >= int(mars_task_cnt):
         cls = algorithm_objects['mars']
 
-    return AlgorithmWrapper(cls, **kwargs)
+    return AlgorithmLogWrapper(cls, **kwargs)

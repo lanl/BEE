@@ -6,8 +6,8 @@ Tests of the BEE Scheduler module.
 import time
 
 import beeflow.scheduler.algorithms as algorithms
-import beeflow.scheduler.sched_types as sched_types
-# import beeflow.common.data.wf_data as wf_data
+import beeflow.scheduler.task as task
+import beeflow.scheduler.resource_allocation as resource_allocation
 
 
 class TestFCFS:
@@ -60,26 +60,20 @@ class TestFCFS:
         Test scheduling six tasks.
         """
         requirements1 = {'max_runtime': 3}
-        task1 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-1',
-                                 requirements=requirements1)
-        task2 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-2',
-                                 requirements=requirements1)
+        task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+                          requirements=requirements1)
+        task2 = task.Task(workflow_name='workflow-1', task_name='task-2',
+                          requirements=requirements1)
         requirements2 = {'max_runtime': 4}
-        task3 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-3',
-                                 requirements=requirements2)
-        task4 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-4',
-                                 requirements=requirements2)
-        task5 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-5',
-                                 requirements=requirements2)
-        task6 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-6',
-                                 requirements=requirements2)
-        resource = sched_types.Resource(id_='test-resource-1', nodes=4)
+        task3 = task.Task(workflow_name='workflow-1', task_name='task-3',
+                          requirements=requirements2)
+        task4 = task.Task(workflow_name='workflow-1', task_name='task-4',
+                          requirements=requirements2)
+        task5 = task.Task(workflow_name='workflow-1', task_name='task-5',
+                          requirements=requirements2)
+        task6 = task.Task(workflow_name='workflow-1', task_name='task-6',
+                          requirements=requirements2)
+        resource = resource_allocation.Resource(id_='test-resource-1', nodes=4)
 
         tasks = [task1, task2, task3, task4, task5, task6]
         algorithms.FCFS().schedule_all(tasks, [resource])
@@ -156,19 +150,15 @@ class TestBackfill:
         Test scheduling three tasks.
         """
         requirements = {'max_runtime': 1, 'nodes': 1}
-        task1 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-1',
-                                 requirements=requirements)
+        task1 = task.Task(workflow_name='workflow-0', task_name='task-1',
+                          requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 2}
-        task2 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-2',
-                                 requirements=requirements)
+        task2 = task.Task(workflow_name='workflow-0', task_name='task-2',
+                          requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 1}
-        task3 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-3',
-                                 requirements=requirements)
-        resource = sched_types.Resource(id_='resource-0',
-                                        nodes=2)
+        task3 = task.Task(workflow_name='workflow-0', task_name='task-3',
+                          requirements=requirements)
+        resource = resource_allocation.Resource(id_='resource-0', nodes=2)
 
         tasks = [task1, task2, task3]
         algorithms.Backfill().schedule_all(tasks, [resource])
@@ -193,27 +183,23 @@ class TestBackfill:
         Test scheduling four tasks.
         """
         requirements = {'max_runtime': 2, 'nodes': 4}
-        task1 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-0',
-                                 requirements=requirements)
+        task1 = task.Task(workflow_name='workflow-0', task_name='task-0',
+                          requirements=requirements)
         requirements = {'max_runtime': 2, 'nodes': 8}
-        task2 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-1',
-                                 requirements=requirements)
+        task2 = task.Task(workflow_name='workflow-0', task_name='task-1',
+                          requirements=requirements)
         requirements = {'max_runtime': 3, 'nodes': 2}
         # This task should not be backfilled (too much time)
-        task3 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-2',
-                                 requirements=requirements)
+        task3 = task.Task(workflow_name='workflow-0', task_name='task-2',
+                          requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 2}
         # This task should be backfilled
-        task4 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-3',
-                                 requirements=requirements)
-        resource1 = sched_types.Resource(id_='resource-0', nodes=2)
-        resource2 = sched_types.Resource(id_='resource-1', nodes=2)
-        resource3 = sched_types.Resource(id_='resource-2', nodes=2)
-        resource4 = sched_types.Resource(id_='resource-3', nodes=2)
+        task4 = task.Task(workflow_name='workflow-0', task_name='task-3',
+                          requirements=requirements)
+        resource1 = resource_allocation.Resource(id_='resource-0', nodes=2)
+        resource2 = resource_allocation.Resource(id_='resource-1', nodes=2)
+        resource3 = resource_allocation.Resource(id_='resource-2', nodes=2)
+        resource4 = resource_allocation.Resource(id_='resource-3', nodes=2)
 
         tasks = [task1, task2, task3, task4]
         resources = [resource1, resource2, resource3, resource4]
@@ -241,28 +227,21 @@ class TestBackfill:
         Test scheduling six tasks.
         """
         requirements = {'max_runtime': 1, 'nodes': 1}
-        task1 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-1',
-                                 requirements=requirements)
+        task1 = task.Task(workflow_name='workflow-0', task_name='task-1',
+                          requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 4}
-        task2 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-2',
-                                 requirements=requirements)
+        task2 = task.Task(workflow_name='workflow-0', task_name='task-2',
+                          requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 1}
-        task3 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-3',
-                                 requirements=requirements)
-        task4 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-4',
-                                 requirements=requirements)
-        task5 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-5',
-                                 requirements=requirements)
-        task6 = sched_types.Task(workflow_name='workflow-0',
-                                 task_name='task-6',
-                                 requirements=requirements)
-        resource = sched_types.Resource(id_='resource-0',
-                                        nodes=4)
+        task3 = task.Task(workflow_name='workflow-0', task_name='task-3',
+                          requirements=requirements)
+        task4 = task.Task(workflow_name='workflow-0', task_name='task-4',
+                          requirements=requirements)
+        task5 = task.Task(workflow_name='workflow-0', task_name='task-5',
+                          requirements=requirements)
+        task6 = task.Task(workflow_name='workflow-0', task_name='task-6',
+                          requirements=requirements)
+        resource = resource_allocation.Resource(id_='resource-0', nodes=4)
 
         tasks = [task1, task2, task3, task4, task5, task6]
         algorithms.Backfill().schedule_all(tasks, [resource])
@@ -314,11 +293,11 @@ class TestSJF:
         """
         # schedule_two_tasks(algorithms.SJF)
         requirements = {'max_runtime': 3}
-        task1 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-1', requirements=requirements)
-        task2 = sched_types.Task(workflow_name='workflow-1',
-                                 task_name='task-2', requirements=requirements)
-        resource = sched_types.Resource(id_='test-resource-1', nodes=2)
+        task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+                          requirements=requirements)
+        task2 = task.Task(workflow_name='workflow-1', task_name='task-2',
+                          requirements=requirements)
+        resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
         algorithms.SJF().schedule_all([task1, task2], [resource])
 
@@ -366,15 +345,15 @@ def schedule_one_task(algorithm):
     Test scheduling one task.
     """
     requirements = {'max_runtime': 3}
-    task = sched_types.Task(workflow_name='workflow-1', task_name='task-1',
-                            requirements=requirements)
-    resource = sched_types.Resource(id_='test-resource-1', nodes=4)
+    task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+                      requirements=requirements)
+    resource = resource_allocation.Resource(id_='test-resource-1', nodes=4)
 
-    algorithm.schedule_all([task], [resource])
+    algorithm.schedule_all([task1], [resource])
 
-    assert task.allocations[0].id_ == 'test-resource-1'
-    assert task.allocations[0].start_time == 0
-    assert task.allocations[0].nodes == 1
+    assert task1.allocations[0].id_ == 'test-resource-1'
+    assert task1.allocations[0].start_time == 0
+    assert task1.allocations[0].nodes == 1
 
 
 def schedule_two_tasks(algorithm):
@@ -383,11 +362,11 @@ def schedule_two_tasks(algorithm):
     Test scheduling two tasks.
     """
     requirements = {'max_runtime': 3}
-    task1 = sched_types.Task(workflow_name='workflow-1',
-                             task_name='task-1', requirements=requirements)
-    task2 = sched_types.Task(workflow_name='workflow-1',
-                             task_name='task-2', requirements=requirements)
-    resource = sched_types.Resource(id_='test-resource-1', nodes=2)
+    task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+                      requirements=requirements)
+    task2 = task.Task(workflow_name='workflow-1', task_name='task-2',
+                      requirements=requirements)
+    resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
     algorithm.schedule_all([task1, task2], [resource])
 
@@ -405,9 +384,9 @@ def schedule_task_fail(algorithm):
     Test scheduling a task with more resources required than available.
     """
     requirements = {'max_runtime': 3, 'nodes': 10}
-    task1 = sched_types.Task(workflow_name='workflow-1',
-                             task_name='task-1', requirements=requirements)
-    resource = sched_types.Resource(id_='test-resource-1', nodes=2)
+    task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+                      requirements=requirements)
+    resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
     assert algorithm.schedule_all([task1], [resource]) is None
     # No allocations available
@@ -422,18 +401,17 @@ def schedule_task_gpus_req(algorithm):
         'nodes': 10,
         'gpus_per_node': 4,
     }
-    task1 = sched_types.Task(workflow_name='test-workflow', task_name='task-1',
-                             requirements=requirements)
-    resource1 = sched_types.Resource(id_='test-resource-1', nodes=20,
-                                     gpus_per_node=0)
-    resource2 = sched_types.Resource(id_='test-resource-2', nodes=20,
-                                     gpus_per_node=20)
+    task1 = task.Task(workflow_name='test-workflow', task_name='task-1',
+                      requirements=requirements)
+    resource1 = resource_allocation.Resource(id_='test-resource-1', nodes=20,
+                                             gpus_per_node=0)
+    resource2 = resource_allocation.Resource(id_='test-resource-2', nodes=20,
+                                             gpus_per_node=20)
 
     algorithm.schedule_all([task1], [resource1, resource2])
 
     assert task1.allocations[0].id_ == 'test-resource-2'
     assert task1.allocations[0].nodes == 10
-    assert task1.allocations[0].gpus_per_node == 20
     assert task1.allocations[0].start_time == 0
 
 def schedule_task_gpus_req_fail(algorithm):
@@ -445,10 +423,10 @@ def schedule_task_gpus_req_fail(algorithm):
         'nodes': 10,
         'gpus_per_node': 10,
     }
-    task1 = sched_types.Task(workflow_name='test-workflow', task_name='task-1',
-                             requirements=requirements)
-    resource1 = sched_types.Resource(id_='test-resource-1', nodes=20,
-                                     gpus_per_node=0)
+    task1 = task.Task(workflow_name='test-workflow', task_name='task-1',
+                      requirements=requirements)
+    resource1 = resource_allocation.Resource(id_='test-resource-1', nodes=20,
+                                             gpus_per_node=0)
 
     algorithm.schedule_all([task1], [resource1])
 
