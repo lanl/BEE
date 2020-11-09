@@ -23,6 +23,7 @@ def scheduler():
         'python', 'beeflow/scheduler/scheduler.py',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
+        '--log', '/tmp/sched.log',
         # '--use-mars',  # Required for testing MARS
     ], shell=False)
     time.sleep(6)
@@ -45,6 +46,7 @@ def scheduler_mars_simple():
         'python', 'beeflow/scheduler/scheduler.py',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
+        '--log', '/tmp/sched.log',
         '--mars-task-cnt', '2', # Need 2 tasks to use MARS
         '--use-mars',
     ], shell=False)
@@ -68,6 +70,7 @@ def scheduler_mars():
         'python', 'beeflow/scheduler/scheduler.py',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
+        '--log', '/tmp/sched.log',
         '--algorithm', 'mars',  # Test only MARS
     ], shell=False)
     time.sleep(6)
