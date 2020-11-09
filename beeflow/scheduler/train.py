@@ -10,7 +10,7 @@ import json
 import beeflow.scheduler.mars as mars
 import beeflow.scheduler.mars_util as mars_util
 import beeflow.scheduler.evaluate as evaluate
-import beeflow.scheduler.sched_types as sched_types
+import beeflow.scheduler.task as task
 
 
 if __name__ == '__main__':
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--workload', type=str,
-                        default='./schedule_log.txt')
+                        default='./schedule_trace.txt')
     parser.add_argument('--step-size', type=int, default=10, dest='step_size',
                         help=('step size to use for training (number of tasks '
                               'to pass at once)'))
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # TODO: Use hyper-parameters
     # workload = mars.Workload.load(args.workload)
     workload = evaluate.read_logfile(args.workload)
-    workload = [sched_types.Task.decode(task) for task in workload]
+    workload = [task.Task.decode(t) for t in workload]
     buf = []
     # for record in workload.records:
     for i in range(0, len(workload), args.step_size):
@@ -71,8 +71,8 @@ if __name__ == '__main__':
             vs = []
             actor_losses = []
             critic_losses = []
-            for task in tasks:
-                vec = tf.constant([mars_util.workflow2vec(task, tasks)])
+            for t in tasks:
+                vec = tf.constant([mars_util.workflow2vec(t, tasks)])
                 print(vec)
                 p = actor.call(vec)
                 ps.append(p)
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     # For some reason predict() must be run on the actor and critic before they
     # can be saved. See https://github.com/tensorflow/tensorflow/issues/31057
     vec = tf.constant([mars_util.workflow2vec(workload[0],
-                                         workload[:args.step_size])])
+                                              workload[:args.step_size])])
     # record = tf.constant([workload.records[0]])
     actor.predict(vec)
     critic.predict(vec)

@@ -31,8 +31,10 @@ class Task(serializable.Serializable):
         """
         self.workflow_name = workflow_name
         self.task_name = task_name
-        self.requirements = (resource_allocation.Requirements.decode(requirements)
-                             if requirements is not None else {})
+        self.requirements = (
+            resource_allocation.Requirements.decode(requirements)
+            if requirements is not None else {}
+        )
         self.requirements
         self.allocations = allocations if allocations is not None else []
 

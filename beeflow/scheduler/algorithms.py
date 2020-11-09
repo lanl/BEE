@@ -146,9 +146,8 @@ class Backfill(Algorithm):
             times = allocator.get_end_times()
             times.sort()
             shadow_time = 0
-            for time in times:
-                if allocator.can_run_now(task.requirements, time):
-                    shadow_time = time
+            for shadow_time in times:
+                if allocator.can_run_now(task.requirements, shadow_time):
                     allocs = allocator.allocate(task.requirements, shadow_time)
                     task.allocations = allocs
                     break
@@ -157,12 +156,13 @@ class Backfill(Algorithm):
             remaining = []
             for backfill_task in tasks:
                 max_runtime = backfill_task.requirements.max_runtime
-                possible_times = [time for time in times
-                                  if (time + max_runtime) < shadow_time]
-                for time in possible_times:
-                    if allocator.can_run_now(backfill_task.requirements, time):
+                possible_times = [start_time for start_time in times
+                                  if (start_time + max_runtime) < shadow_time]
+                for start_time in possible_times:
+                    if allocator.can_run_now(backfill_task.requirements,
+                                             start_time):
                         allocs = allocator.allocate(backfill_task.requirements,
-                                                    time)
+                                                    start_time)
                         backfill_task.allocations = allocs
                 # Could not backfill this task
                 if not backfill_task.allocations:
@@ -286,28 +286,30 @@ class AlgorithmLogWrapper:
             for task in tasks:
                 # TODO: Rethink this log output
 
-                #possible_allocs = build_allocation_list(task, tasks, resources,
-                #                                        curr_allocs)
+                # possible_allocs = build_allocation_list(task, tasks,
+                #                                         resources,
+                #                                         curr_allocs)
                 # Find the value of a - the index of the allocation for this
                 # task
-                #a = -1
+                # a = -1
                 # TODO: Calculation of a needs to change
-                #if task.allocations:
-                #    start_time = task.allocations[0].start_time
-                #    # a should be the first alloc with the same start_time
-                #    for i, alloc in enumerate(possible_allocs):
-                #        if alloc[0].start_time == start_time:
-                #            a = i
-                #            break
+                # if task.allocations:
+                #     start_time = task.allocations[0].start_time
+                #     # a should be the first alloc with the same start_time
+                #     for i, alloc in enumerate(possible_allocs):
+                #         if alloc[0].start_time == start_time:
+                #             a = i
+                #             break
                 # Output in SWF format
                 # TODO: These variables may not be all in the right spot and
                 # some may be missing as well
                 print(-1, -1, -1, task.requirements.max_runtime,
                       task.requirements.nodes, task.requirements.max_runtime,
-                      task.requirements.mem_per_node, task.requirements.nodes, -1,
-                      task.requirements.mem_per_node, task.requirements.mem_per_node, -1,
-                      #task.requirements.mem, task.requirements.nodes, -1,
-                      #task.requirements.mem, task.requirements.mem, -1,
+                      task.requirements.mem_per_node, task.requirements.nodes,
+                      -1, task.requirements.mem_per_node,
+                      task.requirements.mem_per_node, -1,
+                      # task.requirements.mem, task.requirements.nodes, -1,
+                      # task.requirements.mem, task.requirements.mem, -1,
                       -1, -1, -1, -1, -1, -1, -1, file=fp)
                 # print(*vec, file=fp)
                 # curr_allocs.extend(task.allocations)
@@ -347,7 +349,7 @@ def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
     :type tasks: list of instance of Task
     :rtype: class derived from Algorithm (not an instance)
     """
-    # Choose the default algorithm 
+    # Choose the default algorithm
     default = default_algorithm if default_algorithm is not None else 'fcfs'
     cls = algorithm_objects[default]
     if algorithm is not None:

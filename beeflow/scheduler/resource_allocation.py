@@ -39,8 +39,8 @@ class TaskAllocator:
         for res in self.resources:
             # TODO: Handle shared nodes (perhaps with a shared option)
             allocs = [alloc for alloc in overlap if alloc.id_ == res.id_]
-            #if (reqs.mem_per_node <= res.mem_per_node
-            #    and reqs.gpus_per_node <= res.gpus_per_node):
+            # if (reqs.mem_per_node <= res.mem_per_node
+            #     and reqs.gpus_per_node <= res.gpus_per_node):
             if res.fits(reqs):
                 total_nodes += (res.nodes
                                 - sum(alloc.nodes for alloc in allocs))
@@ -129,8 +129,8 @@ class TaskAllocator:
                 break
             other_allocs = [alloc for alloc in overlap if alloc.id_ == res.id_]
             # TODO: Replace this with a method res.fits()
-            #if (reqs.mem_per_node <= res.mem_per_node
-            #    and reqs.gpus_per_node <= res.gpus_per_node):
+            # if (reqs.mem_per_node <= res.mem_per_node
+            #     and reqs.gpus_per_node <= res.gpus_per_node):
             if res.fits(reqs):
                 used_nodes = sum(alloc.nodes for alloc in other_allocs)
                 avail_nodes = res.nodes - used_nodes
@@ -159,6 +159,14 @@ class Resource(serializable.Serializable):
     def __init__(self, id_, nodes=1, mem_per_node=8192, gpus_per_node=0):
         """Resource class constructor.
 
+        :param id_: ID of the resource
+        :type id_: str
+        :param nodes: number of nodes
+        :type nodes: int
+        :param mem_per_node: amount of memory
+        :type mem_per_node: int
+        :param gpus_per_node: number of GPUs per node
+        :type gpus_per_node: int
         """
         self.id_ = id_
         self.nodes = nodes
@@ -192,9 +200,20 @@ class Requirements(serializable.Serializable):
     """
 
     # TODO: Determine default requirements
-    def __init__(self, max_runtime, nodes=1, mem_per_node=1024, gpus_per_node=0, cost=1):
+    def __init__(self, max_runtime, nodes=1, mem_per_node=1024,
+                 gpus_per_node=0, cost=1):
         """Requirements constructor.
 
+        :param max_runtime: maximum runtime in seconds
+        :type max_runtime: int
+        :param nodes: number of nodes in total
+        :type nodes: int
+        :param mem_per_node: amount of memory per node
+        :type mem_per_node: int
+        :param gpus_per_node: number of gpus per node
+        :type gpus_per_node: int
+        :param cost: cost value
+        :type cost: float
         """
         self.max_runtime = max_runtime
         self.nodes = nodes
@@ -223,6 +242,14 @@ class Allocation(serializable.Serializable):
     def __init__(self, id_, start_time, max_runtime, nodes):
         """Allocation constructor.
 
+        :param id_: ID of the resource
+        :type id_: str
+        :param start_time: start time of the allocation (seconds)
+        :type start_time: int
+        :param max_runtime: maximum runtime of the allocation (seconds)
+        :type max_runtime: int
+        :param nodes: number of nodes allocated
+        :type nodes: int
         """
         self.id_ = id_
         self.start_time = start_time
