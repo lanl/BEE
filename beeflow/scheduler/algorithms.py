@@ -16,14 +16,16 @@ class Algorithm(abc.ABC):
     Base abstract class for implementing a scheduling algorithm.
     """
 
+    @staticmethod
     @abc.abstractmethod
-    def __init__(self, **kwargs):
-        """Scheduling constructor.
+    def load(**kwargs):
+        """Load configuration for the algorithm.
 
         """
 
+    @staticmethod
     @abc.abstractmethod
-    def schedule_all(self, tasks, resources, **kwargs):
+    def schedule_all(tasks, resources, **kwargs):
         """Schedule all tasks with the implemented algorithm.
 
         Schedule all tasks with the implemented algorithm.
@@ -40,8 +42,9 @@ class SJF(Algorithm):
     Class holding scheduling code for runing the shortest job first algorithm.
     """
 
-    def __init__(self, **kwargs):
-        """Scheduling constructor.
+    @staticmethod
+    def load(**kwargs):
+        """Load algorithm configuration, if necessary.
 
         """
 
@@ -69,8 +72,9 @@ class FCFS(Algorithm):
     scheduling algorithm.
     """
 
-    def __init__(self, **kwargs):
-        """Scheduling constructor.
+    @staticmethod
+    def load(**kwargs):
+        """Load algorithm configuration, if necessary.
 
         """
 
@@ -105,8 +109,8 @@ class Backfill(Algorithm):
     scheduling algorithm.
     """
 
-    def __init__(self, **kwargs):
-        """Scheduling constructor.
+    def load(**kwargs):
+        """Load algorithm configuration, if necessary.
 
         """
 
@@ -174,18 +178,19 @@ class MARS(Algorithm):
     MARS Scheduler.
     """
 
-    def __init__(self, mars_model='model', **kwargs):
-        """MARS scheduling constructor.
+    @staticmethod
+    def load(mars_model='model', **kwargs):
+        """MARS configuration loading.
 
         :param mars_model: model file path
         :type mars_model: str
         """
         # Only import the mars module if necessary
         import beeflow.scheduler.mars as mars
-        self.mod = mars
-        self.actor, self.critic = mars.load_models(mars_model)
+        MARS.mod = mars
+        MARS.actor, MARS.critic = mars.load_models(mars_model)
 
-    def policy(self, actor, critic, task, tasks, possible_times):
+    def policy(actor, critic, task, tasks, possible_times):
         """Evaluate the policy function to find a scheduling of the task.
 
         Evaluate the policy function with the model task.
@@ -199,7 +204,7 @@ class MARS(Algorithm):
         :type possible_times: list of int
         :rtype: int, index of allocation to use
         """
-        mars = self.mod
+        mars = MARS.mod
         # No possible allocations
         if not possible_times:
             return -1
@@ -214,7 +219,8 @@ class MARS(Algorithm):
         a = (float(a) / len(pl)) * (len(possible_times) - 1)
         return int(a)
 
-    def schedule_all(self, tasks, resources, mars_model='model', **kwargs):
+    @staticmethod
+    def schedule_all(tasks, resources, mars_model='model', **kwargs):
         """Schedule a list of tasks on the given resources.
 
         Schedule a full list of tasks on the given resources. Note: MARS.load()
@@ -237,7 +243,7 @@ class MARS(Algorithm):
                 if allocator.can_run_now(task.requirements, start_time):
                     possible_times.append(start_time)
             # Now choose the policy
-            pi = self.policy(self.actor, self.critic, task, tasks,
+            pi = MARS.policy(MARS.actor, MARS.critic, task, tasks,
                              possible_times)
             if pi != -1:
                 allocs = allocator.allocate(task.requirements,
@@ -312,10 +318,10 @@ MEDIAN = 2
 
 
 algorithm_objects = {
-    'fcfs': None,
-    'mars': None,
-    'backfill': None,
-    'sjf': None,
+    'fcfs': FCFS,
+    'mars': MARS,
+    'backfill': Backfill,
+    'sjf': SJF,
 }
 
 
@@ -324,14 +330,12 @@ def load(use_mars=False, algorithm=None, **kwargs):
 
     Load data needed by algorithms, if necessary.
     """
-    algorithm_objects['fcfs'] = FCFS(**kwargs)
+    FCFS.load(**kwargs)
     use_mars = use_mars == 'True' or use_mars is True
     if use_mars or algorithm == 'mars':
-        print('Loading MARS')
-        algorithm_objects['mars'] = MARS(**kwargs)
-        # MARS.load(**kwargs)
-    algorithm_objects['backfill'] = Backfill(**kwargs)
-    algorithm_objects['sjf'] = SJF(**kwargs)
+        MARS.load(**kwargs)
+    Backfill.load(**kwargs)
+    SJF.load(**kwargs)
 
 
 def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
