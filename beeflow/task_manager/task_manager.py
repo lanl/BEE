@@ -3,6 +3,7 @@
 Submits, cancels and monitors states of tasks.
 Communicates status to the Work Flow Manager, through RESTful API.
 """
+import configparser
 from configparser import NoOptionError
 import atexit
 import sys
@@ -11,6 +12,7 @@ import platform
 import logging
 import jsonpickle
 import requests
+import types
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -18,11 +20,26 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config.config_driver import BeeConfig
 
-try:
-    bc = BeeConfig(userconfig=sys.argv[1])
-except IndexError:
-    bc = BeeConfig()
-
+# Hardcode config if in pytest
+if "pytest" not in sys.modules:
+    try:
+        bc = BeeConfig(userconfig=sys.argv[1])
+    except IndexError:
+        bc = BeeConfig()
+else:
+    bc = types.SimpleNamespace()
+    bc.userconfig = configparser.ConfigParser()
+    bc.userconfig.set('DEFAULT', 'bee_workdir', '/myworkdir')
+    bc.userconfig.set('DEFAULT', 'workload_scheduler', 'Slurm')
+    bc.userconfig.add_section('task_manager')
+    bc.userconfig.set('task_manager', 'listen_port', '5195')
+    bc.userconfig.set('task_manager', 'container_runtime', 'Charliecloud')
+    bc.userconfig.add_section('workflow_manager')
+    bc.userconfig.set('workflow_manager', 'listen_port', '5150')
+    bc.userconfig.add_section('slurmrestd')
+    bc.userconfig.set('slurmrestd', 'slurm_socket', '/mysock')
+    def do_nothing(*args, **kwargs): pass
+    bc.modify_section = do_nothing
 
 def check_crt_config(container_runtime):
     """Check container runtime configurations."""
@@ -167,14 +184,15 @@ def process_queues():
     update_jobs()
 
 
-# TODO Decide on the time interval for the scheduler
-scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
-scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
-scheduler.start()
+if "pytest" not in sys.modules:
+    # TODO Decide on the time interval for the scheduler
+    scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
+    scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
+    scheduler.start()
 
-# This kills the scheduler when the process terminates
-# so we don't accidentally leave a zombie process
-atexit.register(lambda x: scheduler.shutdown())
+    # This kills the scheduler when the process terminates
+    # so we don't accidentally leave a zombie process
+    atexit.register(lambda x: scheduler.shutdown())
 
 
 class TaskSubmit(Resource):
@@ -206,14 +224,13 @@ class TaskActions(Resource):
             task_id = list(job.keys())[0]
             job_id = job[task_id]['job_id']
             name = job[task_id]['name']
-            job_queue.remove(job)
             print(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
             except Exception as error:
                 print(error)
                 job_state = 'ZOMBIE'
-            cancel_msg += f"{name} {task_id} {job_id} {job_state}"
+            cancel_msg += f"{name} {task_id} {job_id} {job_state} "
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
 
