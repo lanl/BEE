@@ -206,7 +206,6 @@ class TaskActions(Resource):
             task_id = list(job.keys())[0]
             job_id = job[task_id]['job_id']
             name = job[task_id]['name']
-            job_queue.remove(job)
             print(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
@@ -214,6 +213,8 @@ class TaskActions(Resource):
                 print(error)
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
+        job_queue.clear()
+        submit_queue.clear()
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
 
