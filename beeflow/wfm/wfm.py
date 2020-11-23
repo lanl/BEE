@@ -5,7 +5,6 @@ import sys
 import platform
 import logging
 import configparser
-from configparser import NoOptionError
 import jsonpickle
 import requests
 import cwl_utils.parser_v1_0 as cwl
@@ -20,27 +19,10 @@ from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
 import types
 
-if "pytest" not in sys.modules:
-    try:
-        bc = BeeConfig(userconfig=sys.argv[1])
-    except IndexError:
-        bc = BeeConfig()
+if (len(sys.argv) > 2):
+    bc = BeeConfig(userconfig=sys.argv[1])
 else:
-    bc = types.SimpleNamespace()
-    bc.userconfig = configparser.ConfigParser()
-    bc.userconfig.set('DEFAULT', 'bee_workdir', '/myworkdir')
-    bc.userconfig.add_section('task_manager')
-    bc.userconfig.set('task_manager', 'listen_port', '5195')
-    bc.userconfig.set('task_manager', 'container_runtime', 'Charliecloud')
-    bc.userconfig.add_section('workflow_manager')
-    bc.userconfig.set('workflow_manager', 'listen_port', '5150')
-    bc.userconfig.add_section('graphdb')
-    bc.userconfig.set('graphdb', 'bolt_port', '5100')
-    bc.userconfig.set('graphdb', 'hostname', 'localhost')
-    bc.userconfig.set('graphdb', 'dbpass', 'password')
-
-    def do_nothing(*args, **kwargs): pass
-    bc.modify_section = do_nothing
+    bc = BeeConfig()
 
 # Set Workflow manager ports, attempt to prevent collisions
 WM_PORT = 5000
@@ -449,7 +431,7 @@ if __name__ == '__main__':
     # Get the paramater for logging
     try:
         bc.userconfig.get('workflow_manager', 'log')
-    except NoOptionError:
+    except configparser.NoOptionError:
         bc.modify_section('user', 'workflow_manager',
                           {'log': '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
                                             'logs', 'wfm.log'])})

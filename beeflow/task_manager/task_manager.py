@@ -4,7 +4,6 @@ Submits, cancels and monitors states of tasks.
 Communicates status to the Work Flow Manager, through RESTful API.
 """
 import configparser
-from configparser import NoOptionError
 import atexit
 import sys
 import os
@@ -20,26 +19,10 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config.config_driver import BeeConfig
 
-# Hardcode config if in pytest
-if "pytest" not in sys.modules:
-    try:
-        bc = BeeConfig(userconfig=sys.argv[1])
-    except IndexError:
-        bc = BeeConfig()
+if (len(sys.argv) > 2):
+    bc = BeeConfig(userconfig=sys.argv[1])
 else:
-    bc = types.SimpleNamespace()
-    bc.userconfig = configparser.ConfigParser()
-    bc.userconfig.set('DEFAULT', 'bee_workdir', '/myworkdir')
-    bc.userconfig.set('DEFAULT', 'workload_scheduler', 'Slurm')
-    bc.userconfig.add_section('task_manager')
-    bc.userconfig.set('task_manager', 'listen_port', '5195')
-    bc.userconfig.set('task_manager', 'container_runtime', 'Charliecloud')
-    bc.userconfig.add_section('workflow_manager')
-    bc.userconfig.set('workflow_manager', 'listen_port', '5150')
-    bc.userconfig.add_section('slurmrestd')
-    bc.userconfig.set('slurmrestd', 'slurm_socket', '/mysock')
-    def do_nothing(*args, **kwargs): pass
-    bc.modify_section = do_nothing
+    bc = BeeConfig()
 
 def check_crt_config(container_runtime):
     """Check container runtime configurations."""
@@ -59,7 +42,7 @@ def check_crt_config(container_runtime):
         else:
             try:
                 bc.userconfig.get('charliecloud', 'image_mntdir')
-            except NoOptionError:
+            except configparser.NoOptionError:
                 bc.modify_section('user', 'charliecloud', {'image_mntdir': '/tmp'})
 
 
