@@ -2,9 +2,6 @@
 
 """
 
-# TODO: Remove this import when the Allocation, Resource and Requirements
-# clases have been implemented here
-# import beeflow.scheduler.sched_types as sched_types
 import beeflow.scheduler.serializable as serializable
 
 
