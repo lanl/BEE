@@ -61,6 +61,19 @@ else:
     else:
         TM_LISTEN_PORT += os.getuid() % 100
 
+if bc.userconfig.has_section('scheduler'):
+    # Try getting listen port from config if exists, use 5050 if it doesnt exist
+    SCHED_LISTEN_PORT = bc.userconfig['scheduler'].get('listen_port', '5050')
+else:
+    print("[scheduler] section not found in configuration file, default values will be used")
+    # Set Workflow manager ports, attempt to prevent collisions
+    SCHED_LISTEN_PORT = 5054
+    if platform.system() == 'Windows':
+        # Get parent's pid to offset ports. uid method better but not available in Windows
+        SCHED_LISTEN_PORT += os.getppid() % 100
+    else:
+        SCHED_LISTEN_PORT += os.getuid() % 100
+
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
@@ -72,15 +85,25 @@ if not os.path.exists(UPLOAD_FOLDER):
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-# Returns the url to the TM
-def _url():
-    task_manager = "/bee_tm/v1/task/"
+def tm_url():
+    """Get Task Manager url."""
+    task_manager = "bee_tm/v1/task/"
     return f'http://127.0.0.1:{TM_LISTEN_PORT}/{task_manager}'
 
 
-# Used to access the TM
-def _resource(tag=""):
-    return _url() + str(tag)
+def sched_url():
+    """Get Scheduler url."""
+    scheduler = "bee_sched/v1/"
+    return f'http://127.0.0.1:{SCHED_LISTEN_PORT}/{scheduler}'
+
+
+def _resource(component, tag=""):
+    """Access Task Manager or Scheduler."""
+    if component == "tm":
+        url = tm_url() + str(tag)
+    elif component == "sched":
+        url = sched_url() + str(tag)
+    return url
 
 
 # Instantiate the workflow interface
@@ -91,6 +114,39 @@ try:
 
 except KeyError:
     wfi = WorkflowInterface()
+
+
+class ResourceMonitor():
+    """Class def to interact with resource monitor."""
+
+    def __init__(self):
+        """Construct resource monitor."""
+        self.hostname = os.uname()[1].split('.')[0]
+        self.nodes = 32
+
+    def get(self):
+        """Construct data dictionary for resource monitor."""
+        data = {
+                'hostname': self.hostname,
+                'nodes': self.nodes
+                }
+
+        return data
+
+
+rm = ResourceMonitor()
+
+
+def validate_wf_id(func):
+    """Validate tempoary hard coded workflow id."""
+    def wrapper(*args, **kwargs):
+        wf_id = int(kwargs['wf_id'])
+        if wf_id != 42:
+            print(f'Wrong workflow id. Set to {wf_id}, but should be 42')
+            resp = make_response(jsonify(status='wf_id not found'), 404)
+            return resp
+        return func(*args, **kwargs)
+    return wrapper
 
 
 # Client registers with the workflow manager.
@@ -106,13 +162,13 @@ class JobsList(Resource):
                                    location='json')
         super(JobsList, self).__init__()
 
-    # Give client a wf_id
-    # wf_id not needed if we just support a single workflow
     def post(self):
-        """TEMPORARY: Hard-coded lister to get workflow 42."""
+        """Give client a workflow id."""
+        # wf_id not needed if we just support a single workflow
         data = self.reqparse.parse_args()
-        title = data['title']
-        print("Retrieved a title \"{}\". What to do with it?".format(title))
+        # title = data['title'] Not currently needed.
+        # Will probably be incorporated with a GUI client down the road
+
         # Return the wf_id and created
         resp = make_response(jsonify(wf_id="42"), 201)
         return resp
@@ -129,7 +185,8 @@ class JobSubmit(Resource):
                                    location='files', required=True)
 
     # Client Submits workflow
-    def put(self, wf_id): #noqa
+    @validate_wf_id
+    def put(self, wf_id):
         # wf_id requires support in the GDB which we do not currently have
         # Ignore pylama error with noqa
         """Get a workflow or give file not found error."""
@@ -159,15 +216,49 @@ class JobSubmit(Resource):
 
 
 # Submit a task to the TM
-def submit_task(task):
+def submit_task_tm(task):
     """Submit a task to the task manager."""
     # Serialize task with json
     task_json = jsonpickle.encode(task)
     # Send task_msg to task manager
     print(f"Submitted {task.name} to Task Manager")
-    resp = requests.post(_resource("submit/"), json={'task': task_json})
+    resp = requests.post(_resource('tm', "submit/"), json={'task': task_json})
     if resp.status_code != 200:
-        print("Something bad happened")
+        print(f"Submit task to TM returned bad status: {resp.status_code}")
+
+
+# Submit a list of tasks to the Scheduler
+def submit_tasks_scheduler(sched_tasks):
+    """Submit a list of tasks to the scheduler."""
+    tasks_json = jsonpickle.encode(sched_tasks)
+    print(f"Submitted {sched_tasks} to Scheduler")
+    # The workflow name will eventually be added to the wfi workflow object
+    print(_resource('sched', "workflows/workflow/jobs"))
+    resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
+    if resp.status_code != 200:
+        print(f"Something bad happened {resp.status_code}")
+    return resp.json()
+
+
+def setup_scheduler():
+    """Get info from the resource monitor and sends it to the scheduler."""
+    # Get the info for the current server
+    nodes = 32
+
+    data = rm.get()
+    print(data)
+
+    resources = [
+            {
+                'id_': data['hostname'],
+                'nodes': data['nodes']
+            }
+    ]
+
+    print(_resource('sched', "resources/"))
+    #resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
+    resp = requests.put(_resource('sched', "resources"), json=resources)
+    print(resp.json())
 
 
 # Used to tell if the workflow is currently paused
@@ -188,9 +279,25 @@ def resume():
     """Resume a saved task."""
     global SAVED_TASK
     if SAVED_TASK is not None:
-        submit_task(SAVED_TASK)
+        submit_task_tm(SAVED_TASK)
     # Clear out the saved task
     SAVED_TASK = None
+
+
+def tasks_to_sched(tasks):
+    """Convert gdb tasks to sched tasks."""
+    sched_tasks = []
+    for task in tasks:
+        sched_task = {
+            'workflow_name': 'workflow',
+            'task_name': task.name,
+            'requirements': {
+                'max_runtime': 1,
+                'nodes': 1
+            }
+        }
+        sched_tasks.append(sched_task)
+    return sched_tasks
 
 
 # This class is where we act on existing jobs
@@ -202,25 +309,27 @@ class JobActions(Resource):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('option', type=str, location='json')
 
-    def post(self, wf_id):
+    @staticmethod
+    @validate_wf_id
+    def post(wf_id):
         """Start job. Send tasks to the task manager."""
-        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
-        print("self is referenced but not used. Evaluate JobActions().post decorators", self)
-        # Get first task and send it to the task manager
-        task = list(wfi.get_dependent_tasks(wfi.get_task_by_id(0)))[0]
+        # Get dependent tasks that branch off of bee_init and send to the scheduler
+        tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(0)))
+        # Convert to a scheduler task object
+        sched_tasks = tasks_to_sched(tasks)
+        # Submit all dependent tasks to the scheduler
+        allocation = submit_tasks_scheduler(sched_tasks)
+        print(f"Scheduler says {allocation}")
         # Submit task to TM
-        submit_task(task)
-        return "Started workflow!"
+        submit_task_tm(tasks[0])
+        #resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
+        return "Started Workflow"
 
-    def get(self, wf_id):
+    @staticmethod
+    @validate_wf_id
+    def get(wf_id):
         """Check the database for the current status of all the tasks."""
-        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
-        print("self is referenced but not used. Evaluate JobActions().get decorators", self)
-        (tasks, requirements, hints) = wfi.get_workflow()
-        print('requirements={} obtained but unused. Either use or change argument to _'.
-              format(requirements))
-        print('hints={} obtained but unused. Either use or change argument to _'.
-              format(hints))
+        (tasks, _, _) = wfi.get_workflow()
         task_status = ""
         for task in tasks:
             if task.name != "bee_init" and task.name != "bee_exit":
@@ -229,13 +338,13 @@ class JobActions(Resource):
         resp = make_response(jsonify(msg=task_status, status='ok'), 200)
         return resp
 
-    def delete(self, wf_id):
+    @staticmethod
+    @validate_wf_id
+    def delete(wf_id):
         """Send a request to the task manager to cancel any ongoing tasks."""
-        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
-        print("self is referenced but not used. Evaluate JobActions().get decorators", self)
-        resp = requests.delete(_resource())
+        resp = requests.delete(_resource('tm'))
         if resp.status_code != 200:
-            print("Something bad happened")
+            print(f"Delete from task manager returned bad status: {resp.status_code}")
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()
@@ -243,9 +352,9 @@ class JobActions(Resource):
         resp = make_response(jsonify(status='cancelled'), 202)
         return resp
 
+    @validate_wf_id
     def patch(self, wf_id):
         """Pause or resume workflow."""
-        print("JobActions took wf_id={} as argument but it was unused.".format(wf_id))
         global WORKFLOW_PAUSED
         # Stop sending jobs to the task manager
         data = self.reqparse.parse_args()
@@ -268,7 +377,7 @@ class JobActions(Resource):
 
 
 class JobUpdate(Resource):
-    """Class for to interact with an existing job."""
+    """Class to interact with an existing job."""
 
     def __init__(self):
         """Initialize JobUpdate with task_id and job_state requirements."""
@@ -284,25 +393,27 @@ class JobUpdate(Resource):
         data = self.reqparse.parse_args()
         task_id = data['task_id']
         job_state = data['job_state']
-        print(f"Task_id: {task_id} State {job_state}")
 
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
 
         if job_state == "COMPLETED":
             remaining_tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(task_id)))
-            if len(remaining_tasks) == 0:
-                print("Workflow Completed")
 
-            task = remaining_tasks[0]
-            if task.name != 'bee_exit':
+            tasks = remaining_tasks
+            if remaining_tasks[0].name != 'bee_exit':
                 # Take the first task and schedule it
                 # TODO This won't work well for deeply nested workflows
                 if WORKFLOW_PAUSED:
                     # If we've paused the workflow save the task until we resume
                     save_task(task)
                 else:
-                    submit_task(task)
+                    sched_tasks = tasks_to_sched(remaining_tasks)
+                    if len(remaining_tasks) == 0:
+                        print("Workflow Completed")
+                    else:
+                        submit_tasks_scheduler(sched_tasks)
+                        submit_task_tm(tasks[0])
             else:
                 print("Workflow Completed!")
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
@@ -326,6 +437,9 @@ if __name__ == '__main__':
     finally:
         wfm_log = bc.userconfig.get('workflow_manager', 'log')
         wfm_log = bc.resolve_path(wfm_log)
+
+    # Setup the Scheduler
+    setup_scheduler()
 
     print('wfm_listen_port:', wfm_listen_port)
 
