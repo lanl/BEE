@@ -40,15 +40,18 @@ class BeeFormatter(logging.Formatter):
 
 
     def __init__(self, colors=True):
+        """Initialize formatted loggers.
+
+        :param colors: Format with or without ANSI Escape Code color formatting
+        :type colors: Bool
+        """
         self.log_fmt = self.log_format if colors else self.log_format_no_colors
 
     def format(self, record):
-        """
-        Args:
-          record(logging.LogRecord): The part of the log record from which
-                                        the information is to be extracted.
-        Returns:
-          str: String containing meaningful information from logs.
+        """Format record for logging.
+
+        :param record: The part of the log record to extract info from.
+        :type record: logging.LogRecord
         """
         fmt = self.log_fmt[logging.getLevelName(record.levelno)]
         if sys.version_info[0] < 3:
@@ -58,3 +61,5 @@ class BeeFormatter(logging.Formatter):
         result = f"{msg_prefix}{logging.Formatter.format(self, record)}"
         return result
 
+class setup_logging(level="STEP_INFO"):
+    """Setup logger.
