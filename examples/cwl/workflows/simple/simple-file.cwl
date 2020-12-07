@@ -1,5 +1,8 @@
 # -*- mode: yaml; -*-
 
+# PATH=$PATH:$PWD cwltool simple-file.cwl --infile input.txt --s1outfile s1out.txt
+# rm s1out.txt
+
 class: Workflow
 cwlVersion: v1.0
 
