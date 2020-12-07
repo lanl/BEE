@@ -1,5 +1,7 @@
 # -*- mode: yaml; -*-
 
+# cwltool scatter-strings.cwl scatter-strings-job.yml
+
 class: Workflow
 cwlVersion: v1.0
 

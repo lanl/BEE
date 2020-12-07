@@ -1,5 +1,7 @@
 # -*- mode: yaml; -*-
 
+# cwltool scatter-dot.cwl scatter-dot-job.cwl
+
 class: Workflow
 cwlVersion: v1.0
 
