@@ -1,5 +1,8 @@
 # -*- mode: yaml; -*-
 
+# PATH=$PATH:$PWD cwltool glob-dir.cwl --outdir outfiles --num 50
+# rm -rf outfiles
+
 class: Workflow
 cwlVersion: v1.0
 
