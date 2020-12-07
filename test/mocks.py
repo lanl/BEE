@@ -1,5 +1,5 @@
 class MockTask:
-    def __init__(self, task_name="task", state="DEFAULT", id=2):
+    def __init__(self, task_name="task", state="DEFAULT", id=42):
         self.name = task_name
         self.state = state
         self.id = id
@@ -38,19 +38,34 @@ class MockWFI:
     def get_task_state(self, task_name):
         return "RUNNING"
 
-class MockWorker:
+class MockWorkerSubmission:
 
     def __init__(self):
         pass
 
     def submit_task(self, task):
-        return 'PENDING'
+        return 1, 'PENDING'
 
     def query_task(self, job_id):
         return 'RUNNING'
 
     def cancel_task(self, job_id):
         return 'CANCELLED'
+
+class MockWorkerCompletion:
+
+    def __init__(self):
+        pass
+
+    def submit_task(self, task):
+        return 1, 'PENDING'
+
+    def query_task(self, job_id):
+        return 'COMPLETED'
+
+    def cancel_task(self, job_id):
+        return 'CANCELLED'
+
 
 class MockResponse:
     def __init__(self, status_code):
