@@ -7,9 +7,8 @@ components of the gdb_interface as required.
 """
 
 # from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
-# from beeflow.common.build.container_drivers import CharliecloudBuildDriver,
-#                                                    SingularityBuildDriver
-from beeflow.common.build.container_drivers import CharliecloudBuildDriver
+from beeflow.common.build.container_drivers import CharliecloudBuildDriver,
+                                                   SingularityBuildDriver
 
 
 class BuildInterfaceTM:
@@ -18,10 +17,27 @@ class BuildInterfaceTM:
     Requires an implemented subclass of BuildDriver (uses CharliecloudBuildDriver by default).
     """
 
-    def __init__(self, build_driver=CharliecloudBuildDriver):
-        """Initialize the build interface with a build driver.
+    def __init__(self, bc):
+        """Initialize the interface between tm and builder.
 
-        :param build_driver: the build system driver (CharliecloudBuildDriver by default)
-        :type build_driver: subclass of BuildDriver
+        :param bc: A BeeConfig object passed from Task Manager
+        :type bc: beeflow.common.config.config_driver.BeeConfig
         """
-        print("BuildInterface init:", self, build_driver)
+        self.bc = bc
+        # Get container type from BeeConfig
+        try:
+            container_type = bc.userconfig['builder'].get('container_type')
+            # No container_type means builder needs more info to proceed.
+            if not container_type:
+                raise KeyError
+        except KeyError:
+            raise KeyError('BeeConfig [builder] lacks container_type. Did builder run here?')
+        if container_type == 'charliecloud':
+            self.build_driver = CharliecloudBuildDriver
+        if container_type == 'SingularityBuildDriver':
+            self.build_driver = SingularityBuildDriver
+        else:
+            raise NotImplementedError('{} is not implemented. Extend container_drivers.py'\
+                                      .format(self.build_driver))
+
+    def validate_environment(self):

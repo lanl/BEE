@@ -106,6 +106,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         finally:
             self.container_output_path = container_output_path
             print('Container-relative output path is:', self.container_output_path)
+        # record that a Charliecloud builder was used
+        bc.modify_section('user', 'builder', {'container_type':'charliecloud'})
         self.task = task
         self.docker_image_id = None
 
