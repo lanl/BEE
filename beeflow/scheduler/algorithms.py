@@ -6,8 +6,7 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 import abc
 import time
 
-import beeflow.scheduler.sched_types as sched_types
-import beeflow.scheduler.util as util
+import beeflow.scheduler.resource_allocation as resource_allocation
 import beeflow.scheduler.mars_util as mars_util
 
 
@@ -19,6 +18,13 @@ class Algorithm(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
+    def load(**kwargs):
+        """Load configuration for the algorithm.
+
+        """
+
+    @staticmethod
+    @abc.abstractmethod
     def schedule_all(tasks, resources, **kwargs):
         """Schedule all tasks with the implemented algorithm.
 
@@ -26,7 +32,7 @@ class Algorithm(abc.ABC):
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
-        :type resources: list of instance of sched_types.Resource
+        :type resources: list of instance of resource_allocation.Resource
         """
 
 
@@ -37,6 +43,12 @@ class SJF(Algorithm):
     """
 
     @staticmethod
+    def load(**kwargs):
+        """Load algorithm configuration, if necessary.
+
+        """
+
+    @staticmethod
     def schedule_all(tasks, resources, **kwargs):
         """Schedule a list of independent tasks with SJF.
 
@@ -44,35 +56,13 @@ class SJF(Algorithm):
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
-        :type resources list of instance of sched_types.Resource
+        :type resources list of instance of resource_allocation.Resource
         """
-        # Note this doesn't allocate aggregate resources but only singular
-        # resources unlike the other algorithms
-        start_time = 0
+        # First sort the tasks by how long they are, then send them off to
+        # FCFS
         tasks = tasks[:]
-        # Sort by max_runtime
-        tasks.sort(key=lambda t: t.requirements.max_runtime)
-        resources = resources[:]
-        # Times for showing availability
-        times = [[res, start_time] for res in resources]
-        while tasks:
-            task = tasks.pop()
-            # Check if it can run
-            if not any(res.fits_requirements(task.requirements)
-                       for res in resources):
-                # Can't run on given resources
-                continue
-            # Sort the times
-            times.sort(key=lambda slot: slot[1])
-            for i, (res, start_time) in enumerate(times):
-                if res.fits_requirements(task.requirements):
-                    # alloc = res.allocate(res, [], task.requirements,
-                    #                      start_time)
-                    alloc = res.allocate(res, [], task.requirements,
-                                         start_time)
-                    task.allocations = [alloc]
-                    times[i][1] += task.requirements.max_runtime
-                    break
+        tasks.sort(key=lambda task: task.requirements.max_runtime)
+        FCFS.schedule_all(tasks, resources, **kwargs)
 
 
 class FCFS(Algorithm):
@@ -81,6 +71,12 @@ class FCFS(Algorithm):
     This class holds the scheduling code used for the FCFS
     scheduling algorithm.
     """
+
+    @staticmethod
+    def load(**kwargs):
+        """Load algorithm configuration, if necessary.
+
+        """
 
     @staticmethod
     def schedule_all(tasks, resources, **kwargs):
@@ -92,33 +88,18 @@ class FCFS(Algorithm):
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
-        :type resources: list of instance of sched_types.Resource
+        :type resources: list of instance of resource_allocation.Resource
         """
-        allocations = []
+        allocator = resource_allocation.TaskAllocator(resources)
         start_time = 0
-        # Continue while there are still tasks to schedule
         for task in tasks:
-            # Check if the task can run at all
-            remaining = sched_types.rsum(*resources)
-            if not remaining.fits_requirements(task.requirements):
-                # Can't run this task at all
+            if not allocator.fits_requirements(task.requirements):
                 continue
-            max_runtime = task.requirements.max_runtime
-            while True:
-                overlap = util.calculate_overlap(allocations, start_time,
-                                                 max_runtime)
-                remaining = sched_types.diff(sched_types.rsum(*resources),
-                                             sched_types.rsum(*overlap))
-                if remaining.fits_requirements(task.requirements):
-                    allocs = util.allocate_aggregate(resources, overlap, task,
-                                                     start_time)
-                    allocations.extend(allocs)
-                    task.allocations = allocs
-                    break
-                # Set the next time increment to check
-                start_time = min(a.start_time + a.max_runtime
-                                 for a in overlap)
-        # TODO: Update time based on runtime of algorithm
+            # Find the start_time
+            while not allocator.can_run_now(task.requirements, start_time):
+                start_time = allocator.get_next_end_time(start_time)
+            task.allocations = allocator.allocate(task.requirements,
+                                                  start_time)
 
 
 class Backfill(Algorithm):
@@ -127,6 +108,11 @@ class Backfill(Algorithm):
     This class holds the scheduling code used for the Backfill
     scheduling algorithm.
     """
+
+    def load(**kwargs):
+        """Load algorithm configuration, if necessary.
+
+        """
 
     @staticmethod
     def schedule_all(tasks, resources, **kwargs):
@@ -138,73 +124,52 @@ class Backfill(Algorithm):
         :param tasks: list of tasks to schedule
         :type tasks: list of instance of Task
         :param resources: list of resources
-        :type resources: list of instance of sched_types.Resource
+        :type resources: list of instance of resource_allocation.Resource
         """
         tasks = tasks[:]
-        # TODO: This time may be invalidated if the algorithm
-        # takes too long
         current_time = 0
-        allocations = []
+        allocator = resource_allocation.TaskAllocator(resources)
         while tasks:
-            # Get a task to schedule
             task = tasks.pop(0)
-            total = sched_types.rsum(*resources)
-            if not total.fits_requirements(task.requirements):
+            # Can this task run at all?
+            if not allocator.fits_requirements(task.requirements):
                 continue
             # Can this task run immediately?
             start_time = current_time
-            max_runtime = task.requirements.max_runtime
-            overlap = util.calculate_overlap(allocations, start_time,
-                                             max_runtime)
-            remaining = util.calculate_remaining(resources, overlap)
-            if remaining.fits_requirements(task.requirements):
-                allocs = util.allocate_aggregate(resources, overlap, task,
-                                                 start_time)
-                allocations.extend(allocs)
+            # max_runtime = task.requirements.max_runtime
+            if allocator.can_run_now(task.requirements, start_time):
+                allocs = allocator.allocate(task.requirements, start_time)
                 task.allocations = allocs
                 continue
-            # This job must run later, so find the shadow time (the earliest
-            # time at which the job can run)
-            shadow_time = current_time
-            times = [a.start_time + a.max_runtime for a in allocations]
+            # This job must run later, so we need to find the shadow time
+            # (earliest time at which the job can run)
+            times = allocator.get_end_times()
             times.sort()
-            for start_time in times:
-                overlap = util.calculate_overlap(allocations, start_time,
-                                                 max_runtime)
-                remaining = util.calculate_remaining(resources, overlap)
-                if remaining.fits_requirements(task.requirements):
-                    shadow_time = start_time
-                    allocs = util.allocate_aggregate(resources, overlap, task,
-                                                     start_time)
-                    allocations.extend(allocs)
+            shadow_time = 0
+            for shadow_time in times:
+                if allocator.can_run_now(task.requirements, shadow_time):
+                    allocs = allocator.allocate(task.requirements, shadow_time)
                     task.allocations = allocs
                     break
-            # Backfill tasks
-            tasks_left = []
-            for task in tasks:
-                times = [current_time]
-                times.extend(a.start_time + a.max_runtime for a in allocations)
-                max_runtime = task.requirements.max_runtime
-                # Ensure that the task will finish before the shadow time
-                times = [t for t in times if (t + max_runtime) <= shadow_time]
-                times.sort()
-                # Determine when it can run (if it can be backfilled)
-                for start_time in times:
-                    overlap = util.calculate_overlap(allocations, start_time,
-                                                     max_runtime)
-                    remaining = util.calculate_remaining(resources, overlap)
-                    if remaining.fits_requirements(task.requirements):
-                        allocs = util.allocate_aggregate(resources, overlap,
-                                                         task, start_time)
-                        allocations.extend(allocs)
-                        task.allocations = allocs
-                        break
+            # Now backfill other tasks
+            times.insert(0, current_time)
+            remaining = []
+            for backfill_task in tasks:
+                max_runtime = backfill_task.requirements.max_runtime
+                possible_times = [start_time for start_time in times
+                                  if (start_time + max_runtime) < shadow_time]
+                for start_time in possible_times:
+                    if allocator.can_run_now(backfill_task.requirements,
+                                             start_time):
+                        allocs = allocator.allocate(backfill_task.requirements,
+                                                    start_time)
+                        backfill_task.allocations = allocs
                 # Could not backfill this task
-                if not task.allocations:
-                    tasks_left.append(task)
+                if not backfill_task.allocations:
+                    remaining.append(backfill_task)
+            # Tasks in remaining cannot be backfilled and must be run later
             # Reset the tasks to the remaining list
-            tasks = tasks_left
-        # TODO: Update time based on runtime of algorithm
+            tasks = remaining
 
 
 class MARS(Algorithm):
@@ -212,20 +177,21 @@ class MARS(Algorithm):
 
     MARS Scheduler.
     """
+
     @staticmethod
     def load(mars_model='model', **kwargs):
-        """Load the model.
+        """MARS configuration loading.
 
-        Load the model.
+        :param mars_model: model file path
+        :type mars_model: str
         """
         # Only import the mars module if necessary
         import beeflow.scheduler.mars as mars
         MARS.mod = mars
         MARS.actor, MARS.critic = mars.load_models(mars_model)
 
-    @staticmethod
-    def policy(actor, critic, task, tasks, possible_allocs):
-        """Evaluate the policy function to find scheduling of task.
+    def policy(actor, critic, task, tasks, possible_times):
+        """Evaluate the policy function to find a scheduling of the task.
 
         Evaluate the policy function with the model task.
         :param actor: actor used for scheduling
@@ -234,13 +200,13 @@ class MARS(Algorithm):
         :type critic: instance of mars.CriticModel
         :param task: task to get the scheduling policy for
         :type task: instance of Task
-        :param possible_allocs: possible allocations for the task
-        :type possible_allocs: list of instance of Allocation
+        :param possible_times: possible allocation times for the task
+        :type possible_times: list of int
         :rtype: int, index of allocation to use
         """
         mars = MARS.mod
         # No possible allocations
-        if not possible_allocs:
+        if not possible_times:
             return -1
         # Convert the task and possible_allocs into a vector
         # for input into the policy function.
@@ -250,7 +216,7 @@ class MARS(Algorithm):
         # Convert the result into an action index
         pl = [float(n) for n in actor.call(vec)[0]]
         a = pl.index(max(pl))
-        a = (float(a) / len(pl)) * (len(possible_allocs) - 1)
+        a = (float(a) / len(pl)) * (len(possible_times) - 1)
         return int(a)
 
     @staticmethod
@@ -266,35 +232,38 @@ class MARS(Algorithm):
         :param mars_model: the mars model path
         :type mars_model: str
         """
-        # TODO: Set the path somewhere else
-        # actor, critic = mars.load_models(mars_model)
-        allocations = []
+        allocator = resource_allocation.TaskAllocator(resources)
+        current_time = 0
         for task in tasks:
-            possible_allocs = build_allocation_list(task, tasks, resources,
-                                                    curr_allocs=allocations)
+            start_times = [current_time]
+            start_times.extend(allocator.get_end_times())
+            possible_times = []
+            # Add each possible time for the task to start
+            for start_time in start_times:
+                if allocator.can_run_now(task.requirements, start_time):
+                    possible_times.append(start_time)
+            # Now choose the policy
             pi = MARS.policy(MARS.actor, MARS.critic, task, tasks,
-                             possible_allocs)
-            # -1 indicates no allocation found
+                             possible_times)
             if pi != -1:
-                allocs = possible_allocs[pi]
-                allocations.extend(allocs)
+                allocs = allocator.allocate(task.requirements,
+                                            possible_times[pi])
                 task.allocations = allocs
-        # TODO: Update time based on runtime of algorithm
 
 
-class AlgorithmWrapper:
-    """Algorithm wrapper class.
+class AlgorithmLogWrapper:
+    """Algorithm log wrapper class.
 
     Algorithm wrapper class to be used as a wrap to log the task scheduling
     data for future training and other extra information.
     """
 
     def __init__(self, cls, alloc_logfile='schedule_log.txt', **kwargs):
-        """Algorithm wrapper class constructor.
+        """Algorithm log wrapper class constructor.
 
         Algorithm wrapper class constructor.
-        :param cls: class to pass operations onto
-        :type cls: Python class
+        :param cls: object to pass operations onto
+        :type cls: algorithm object
         :param alloc_logfile: name of logfile to write task scheduling to
         :type alloc_logfile: str
         :param kwargs: key word arguments to pass to schedule_all()
@@ -313,68 +282,49 @@ class AlgorithmWrapper:
         self.cls.schedule_all(tasks, resources, **self.kwargs)
         with open(self.alloc_logfile, 'a') as fp:
             print('; Log start at', time.time(), file=fp)
-            curr_allocs = []
+            # curr_allocs = []
             for task in tasks:
-                possible_allocs = build_allocation_list(task, tasks, resources,
-                                                        curr_allocs)
+                # TODO: Rethink this log output
+
+                # possible_allocs = build_allocation_list(task, tasks,
+                #                                         resources,
+                #                                         curr_allocs)
                 # Find the value of a - the index of the allocation for this
                 # task
-                a = -1
+                # a = -1
                 # TODO: Calculation of a needs to change
-                if task.allocations:
-                    start_time = task.allocations[0].start_time
-                    # a should be the first alloc with the same start_time
-                    for i, alloc in enumerate(possible_allocs):
-                        if alloc[0].start_time == start_time:
-                            a = i
-                            break
+                # if task.allocations:
+                #     start_time = task.allocations[0].start_time
+                #     # a should be the first alloc with the same start_time
+                #     for i, alloc in enumerate(possible_allocs):
+                #         if alloc[0].start_time == start_time:
+                #             a = i
+                #             break
                 # Output in SWF format
                 # TODO: These variables may not be all in the right spot and
                 # some may be missing as well
                 print(-1, -1, -1, task.requirements.max_runtime,
                       task.requirements.nodes, task.requirements.max_runtime,
-                      task.requirements.mem, task.requirements.nodes, -1,
-                      task.requirements.mem, task.requirements.mem, -1,
+                      task.requirements.mem_per_node, task.requirements.nodes,
+                      -1, task.requirements.mem_per_node,
+                      task.requirements.mem_per_node, -1,
+                      # task.requirements.mem, task.requirements.nodes, -1,
+                      # task.requirements.mem, task.requirements.mem, -1,
                       -1, -1, -1, -1, -1, -1, -1, file=fp)
                 # print(*vec, file=fp)
-                curr_allocs.extend(task.allocations)
-
-
-def build_allocation_list(task, tasks, resources, curr_allocs):
-    """Build a list of allocations for a task.
-
-    Build a list of allocations for a task.
-    :param task:
-    :type task:
-    :param tasks:
-    :type tasks:
-    :param resources:
-    :type resources:
-    """
-    times = set(t.allocations[0].start_time + t.requirements.max_runtime
-                for t in tasks if t.allocations)
-    times = list(times)
-    # Add initial start time
-    times.append(0)
-    times.sort()
-    allocations = []
-    for start_time in times:
-        overlap = util.calculate_overlap(curr_allocs, start_time,
-                                         task.requirements.max_runtime)
-        remaining = sched_types.diff(sched_types.rsum(*resources),
-                                     sched_types.rsum(*overlap))
-        if remaining.fits_requirements(task.requirements):
-            # TODO: Ensure that these allocations are not final (in other
-            # other words, if the algorithm decides to pick one and not the
-            # other, later on, we don't want there to be conflicts)
-            allocs = util.allocate_aggregate(resources, overlap, task,
-                                             start_time)
-            allocations.append(allocs)
-    return allocations
+                # curr_allocs.extend(task.allocations)
 
 
 # TODO: Perhaps this value should be a config value
 MEDIAN = 2
+
+
+algorithm_objects = {
+    'fcfs': FCFS,
+    'mars': MARS,
+    'backfill': Backfill,
+    'sjf': SJF,
+}
 
 
 def load(use_mars=False, algorithm=None, **kwargs):
@@ -382,10 +332,12 @@ def load(use_mars=False, algorithm=None, **kwargs):
 
     Load data needed by algorithms, if necessary.
     """
+    FCFS.load(**kwargs)
     use_mars = use_mars == 'True' or use_mars is True
     if use_mars or algorithm == 'mars':
-        print('Loading MARS')
         MARS.load(**kwargs)
+    Backfill.load(**kwargs)
+    SJF.load(**kwargs)
 
 
 def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
@@ -397,31 +349,13 @@ def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
     :type tasks: list of instance of Task
     :rtype: class derived from Algorithm (not an instance)
     """
+    # Choose the default algorithm
+    default = default_algorithm if default_algorithm is not None else 'fcfs'
+    cls = algorithm_objects[default]
+    if algorithm is not None:
+        cls = algorithm_objects[algorithm]
     # TODO: Correctly choose based on size of the workflow
-    # return Logger(Backfill)
-    if algorithm == 'fcfs':
-        print('Using FCFS')
-        cls = FCFS
-    elif algorithm == 'mars':
-        print('Using MARS')
-        cls = MARS
-    elif algorithm == 'backfill':
-        print('Using Backfill')
-        cls = Backfill
-    elif algorithm == 'sjf':
-        print('Using SJF')
-        cls = SJF
-    else:
-        # Choose default algorithm
-        cls = FCFS
-        if default_algorithm == 'backfill':
-            print('Using Backfill')
-            cls = Backfill
-        elif default_algorithm == 'sjf':
-            print('Using SJF')
-            cls = SJF
+    if use_mars and len(tasks) >= int(mars_task_cnt):
+        cls = algorithm_objects['mars']
 
-        if use_mars and len(tasks) >= int(mars_task_cnt):
-            print('Using MARS')
-            cls = MARS
-    return AlgorithmWrapper(cls, **kwargs)
+    return AlgorithmLogWrapper(cls, **kwargs)
