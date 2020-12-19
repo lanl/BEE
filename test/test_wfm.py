@@ -1,14 +1,13 @@
 import beeflow.wfm.wfm as wfm
-#import flask_restful
-#from flask import Flask
 import pytest
 import requests
-import os
-from mocks import MockWFI, MockResponse, mock_get, mock_delete, mock_post, mock_put
+from mocks import MockWFI, mock_get
+from mocks import mock_delete, mock_post, mock_put
+
 
 @pytest.fixture
 def flask_client():
-    """This client lets us run flask queries"""
+    """Client runs flask queries."""
     app = wfm.flask_app
     app.config['TESTING'] = True
     client = app.test_client()
@@ -16,11 +15,11 @@ def flask_client():
 
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_create_workflow(flask_client, mocker):
-    """Create a workflow and get the ID back"""
-    request = {'title': 'job', 
-            'filename' : 'file.cwl'}
-    
+def test_create_workflow(flask_client, mocker): # noqa
+    """Create a workflow and get the ID back."""
+    request = {'title': 'job',
+               'filename': 'file.cwl'}
+
     response = flask_client.post('/bee_wfm/v1/jobs/', json=request)
 
     wf_id = response.get_json()['wf_id']
@@ -29,23 +28,25 @@ def test_create_workflow(flask_client, mocker):
     assert wf_id == '42'
     assert status == 201
 
+
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_submit_workflow(flask_client, mocker):
-    """Submit a cwl file to the WFM. parse the cwl file"""
-    mocker.patch('beeflow.wfm.wfm.wfi',  new_callable = MockWFI)
+def test_submit_workflow(flask_client, mocker): # noqa
+    """Submit a cwl file to the WFM. parse the cwl file."""
+    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
 
     wf_id = 42
 
     files = {'workflow': open('cf.cwl', 'rb')}
-    response = flask_client.put('/bee_wfm/v1/jobs/submit/' + str(wf_id), 
-            data=files)
+    response = flask_client.put('/bee_wfm/v1/jobs/submit/' + str(wf_id),
+                                data=files)
 
     status = response.status_code
     assert status == 201
 
+
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_start_workflow(flask_client, mocker):
-    mocker.patch('beeflow.wfm.wfm.wfi',  new_callable = MockWFI)
+def test_start_workflow(flask_client, mocker): # noqa
+    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
     wf_id = 42
     request = {'wf_id': wf_id}
 
@@ -54,9 +55,10 @@ def test_start_workflow(flask_client, mocker):
     response = flask_client.post('/bee_wfm/v1/jobs/' + str(wf_id), json=request)
     assert response.status_code == 200
 
+
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_query_workflow(flask_client, mocker):
-    mocker.patch('beeflow.wfm.wfm.wfi',  new_callable = MockWFI)
+def test_query_workflow(flask_client, mocker): # noqa
+    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
     wf_id = 42
     request = {'wf_id': wf_id}
 
@@ -65,10 +67,11 @@ def test_query_workflow(flask_client, mocker):
     assert tasks[0] == 'task1--RUNNING'
     assert response.status_code == 200
 
+
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_cancel_workflow(flask_client, mocker):
+def test_cancel_workflow(flask_client, mocker): # noqa
     mocker.patch.object(requests, 'delete', side_effect=mock_delete)
-    mocker.patch('beeflow.wfm.wfm.wfi',  new_callable = MockWFI)
+    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
 
     wf_id = 42
     request = {'wf_id': wf_id}
@@ -79,18 +82,19 @@ def test_cancel_workflow(flask_client, mocker):
 
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_pause_workflow(flask_client, mocker):
-    mocker.patch('beeflow.wfm.wfm.wfi',  new_callable = MockWFI)
+def test_pause_workflow(flask_client, mocker): # noqa
+    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
     wf_id = 42
-    request = {'wf_id': wf_id, 'option' : 'pause'}
+    request = {'wf_id': wf_id, 'option': 'pause'}
 
     response = flask_client.patch('/bee_wfm/v1/jobs/' + str(wf_id), json=request)
     assert response.json['status'] == 'Workflow Paused'
     assert response.status_code == 200
 
+
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_resume_workflow(flask_client, mocker):
-    mocker.patch('beeflow.wfm.wfm.wfi',  new_callable = MockWFI)
+def test_resume_workflow(flask_client, mocker): # noqa
+    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
     wf_id = 42
     request = {'wf_id': wf_id, 'option': 'resume'}
 
@@ -98,10 +102,11 @@ def test_resume_workflow(flask_client, mocker):
     assert response.json['status'] == 'Workflow Resumed'
     assert response.status_code == 200
 
+
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_update_task(flask_client, mocker):
+def test_update_task(flask_client, mocker): # noqa
     mocker.patch.object(requests, 'post', side_effect=mock_get)
-    mocker.patch('beeflow.wfm.wfm.wfi',  new_callable = MockWFI)
+    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
 
     task_id = 0
     job_state = 'COMPLETED'

@@ -1,5 +1,4 @@
 """Server launch script."""
-
 import os
 import sys
 import platform
