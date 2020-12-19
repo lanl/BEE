@@ -213,7 +213,9 @@ class TaskActions(Resource):
             except Exception as error:
                 print(error)
                 job_state = 'ZOMBIE'
-            cancel_msg += f"{name} {task_id} {job_id} {job_state} "
+            cancel_msg += f"{name} {task_id} {job_id} {job_state}"
+        job_queue.clear()
+        submit_queue.clear()
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
 
