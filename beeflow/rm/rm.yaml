@@ -1,0 +1,91 @@
+openapi: 3.0.1
+info:
+  title: Resource Monitor REST API
+  description: ''
+  version: 1.0.0
+servers: []
+tags: []
+paths:
+  /bee_rm/v1/nodes:
+    summary: Resource monitor node information
+    get:
+      summary: Get current node information
+      description: ''
+      operationId: ''
+      responses:
+        200:
+          description: Successful node information retrieval
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeInfo'
+        default:
+          description: Default error sample response
+  /bee_rm/v1/partitions:
+    summary: Resource monitor partition information
+    get:
+      summary: Get current partition information
+      description: ''
+      operationId: ''
+      responses:
+        200:
+          description: Successful partition information retrieval
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PartitionInfo'
+        default:
+          description: Default error sample response
+  /bee_rm/v1/reservations:
+    summary: Resource monitor reservation information
+    get:
+      summary: Get current reservation information
+      description: ''
+      operationId: ''
+      responses:
+        200:
+          description: Successful reservation information retrieval
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReservationInfo'
+        default:
+          description: Default error sample response
+  /bee_rm/v1/qos:
+    summary: Resource monitor Quality of Service information
+    get:
+      summary: Get current Quality of Service information
+      description: ''
+      operationId: ''
+      responses:
+        200:
+          description: Successful QoS information retrieval
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QOSInfo'
+        default:
+          description: Default error sample response
+components:
+  schemas: # {}
+    NodeDetail:
+      type: object
+      properties: {}
+    PartitionDetail:
+      type: object
+      properties: {}
+    ReservationDetail:
+      type: object
+      properties: {}
+    QOSDetail:
+      type: object
+      properties: {}
+
