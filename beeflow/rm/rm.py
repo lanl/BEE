@@ -3,6 +3,8 @@
 
 """
 
+# TODO: Should slurm interface be in the worker code?
+
 # Load BeeConfig
 # TODO
 

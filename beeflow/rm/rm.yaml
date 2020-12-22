@@ -76,15 +76,38 @@ paths:
           description: Default error sample response
 components:
   schemas: # {}
+    # TODO: Properties should be more generic
     NodeDetail:
       type: object
-      properties: {}
+      properties:
+        cores:
+          type: integer
+        cpus:
+          type: integer
     PartitionDetail:
       type: object
-      properties: {}
+      properties:
+        total_nodes:
+          type: integer
+        preemption_mode:
+          type: string
+          # TODO: Add more preemption modes based on slurm
+          enum:
+          - requeue
+          - gang_schedule
+    # This could use the /slurm/v0.0.35/jobs endpoint for information
     ReservationDetail:
       type: object
-      properties: {}
+      properties:
+        time_limit:
+          type: integer
+        submit_time:
+          type: integer
+        resv_name:
+          type: string
+        job_state:
+          type: string
+    # I'm not sure where exactly to get this information from with Slurmrestd
     QOSDetail:
       type: object
       properties: {}
