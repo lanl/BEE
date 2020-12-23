@@ -20,7 +20,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/NodeInfo'
+                  $ref: '#/components/schemas/NodeDetail'
         default:
           description: Default error sample response
   /bee_rm/v1/partitions:
@@ -37,7 +37,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PartitionInfo'
+                  $ref: '#/components/schemas/PartitionDetail'
         default:
           description: Default error sample response
   /bee_rm/v1/reservations:
@@ -54,7 +54,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ReservationInfo'
+                  $ref: '#/components/schemas/ReservationDetail'
         default:
           description: Default error sample response
   /bee_rm/v1/qos:
@@ -71,7 +71,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/QOSInfo'
+                  $ref: '#/components/schemas/QOSDetail'
         default:
           description: Default error sample response
 components:
@@ -107,8 +107,12 @@ components:
           type: string
         job_state:
           type: string
-    # I'm not sure where exactly to get this information from with Slurmrestd
+    # TODO: I'm not sure where exactly to get this information with Slurmrestd
     QOSDetail:
       type: object
-      properties: {}
+      properties:
+        network_type:
+          type: string
+        affinity:
+          type: string
 
