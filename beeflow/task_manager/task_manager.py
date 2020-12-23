@@ -3,7 +3,7 @@
 Submits, cancels and monitors states of tasks.
 Communicates status to the Work Flow Manager, through RESTful API.
 """
-from configparser import NoOptionError
+import configparser
 import atexit
 import sys
 import os
@@ -11,6 +11,7 @@ import platform
 import logging
 import jsonpickle
 import requests
+import types
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -18,11 +19,10 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config.config_driver import BeeConfig
 
-try:
+if (len(sys.argv) > 2):
     bc = BeeConfig(userconfig=sys.argv[1])
-except IndexError:
+else:
     bc = BeeConfig()
-
 
 def check_crt_config(container_runtime):
     """Check container runtime configurations."""
@@ -42,7 +42,7 @@ def check_crt_config(container_runtime):
         else:
             try:
                 bc.userconfig.get('charliecloud', 'image_mntdir')
-            except NoOptionError:
+            except configparser.NoOptionError:
                 bc.modify_section('user', 'charliecloud', {'image_mntdir': '/tmp'})
 
 
@@ -167,14 +167,15 @@ def process_queues():
     update_jobs()
 
 
-# TODO Decide on the time interval for the scheduler
-scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
-scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
-scheduler.start()
+if "pytest" not in sys.modules:
+    # TODO Decide on the time interval for the scheduler
+    scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
+    scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
+    scheduler.start()
 
-# This kills the scheduler when the process terminates
-# so we don't accidentally leave a zombie process
-atexit.register(lambda x: scheduler.shutdown())
+    # This kills the scheduler when the process terminates
+    # so we don't accidentally leave a zombie process
+    atexit.register(lambda x: scheduler.shutdown())
 
 
 class TaskSubmit(Resource):
@@ -206,7 +207,6 @@ class TaskActions(Resource):
             task_id = list(job.keys())[0]
             job_id = job[task_id]['job_id']
             name = job[task_id]['name']
-            job_queue.remove(job)
             print(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
@@ -214,6 +214,8 @@ class TaskActions(Resource):
                 print(error)
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
+        job_queue.clear()
+        submit_queue.clear()
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
 

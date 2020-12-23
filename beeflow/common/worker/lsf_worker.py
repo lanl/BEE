@@ -110,7 +110,7 @@ class LSFWorker(Worker):
         return job_id, job_state
 
     def query_task(self, job_id):
-        """Worker queries job; returns (1, job_state), or (-1, error_msg)."""
+        """Worker queries job; returns job_state."""
         job_state = self.query_job(job_id)
         return job_state
 

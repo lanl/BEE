@@ -23,6 +23,7 @@ def scheduler():
         'python', 'beeflow/scheduler/scheduler.py',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
+        '--log', '/tmp/sched.log',
         # '--use-mars',  # Required for testing MARS
     ], shell=False)
     time.sleep(6)
@@ -45,6 +46,7 @@ def scheduler_mars_simple():
         'python', 'beeflow/scheduler/scheduler.py',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
+        '--log', '/tmp/sched.log',
         '--mars-task-cnt', '2', # Need 2 tasks to use MARS
         '--use-mars',
     ], shell=False)
@@ -68,7 +70,8 @@ def scheduler_mars():
         'python', 'beeflow/scheduler/scheduler.py',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
-        '--algorithm', 'MARS',  # Test only MARS
+        '--log', '/tmp/sched.log',
+        '--algorithm', 'mars',  # Test only MARS
     ], shell=False)
     time.sleep(6)
     try:
@@ -373,19 +376,19 @@ def test_mars_timing(scheduler_mars):
     resources = [
         {
             "id_": "0",
-            "nodes": 1
+            "nodes": 1,
         },
         {
             "id_": "1",
-            "nodes": 1
+            "nodes": 1,
         },
         {
             "id_": "2",
-            "nodes": 1
+            "nodes": 1,
         },
         {
             "id_": "3",
-            "nodes": 1
+            "nodes": 1,
         },
     ]
     r = requests.put(f'{url}/resources', json=resources)
@@ -400,7 +403,7 @@ def test_mars_timing(scheduler_mars):
             "task_name": "0",
             "requirements": {
                 "max_runtime": 1,
-                "nodes": 1
+                "nodes": 1,
             }
         },
         {
@@ -408,7 +411,7 @@ def test_mars_timing(scheduler_mars):
             "task_name": "1",
             "requirements": {
                 "max_runtime": 1,
-                "nodes": 1
+                "nodes": 1,
             }
         },
     ]

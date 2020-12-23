@@ -216,11 +216,11 @@ def StartWorkflowManager(bc, args):
             offset = os.getppid()%100
         else:
             offset = os.getuid()%100
-        server_dict = {
+        wfm_dict = {
             'listen_port': 5000 + offset,
         }
         # Add section (writes to config file)
-        bc.modify_section('user','workflow_manager',server_dict)
+        bc.modify_section('user','workflow_manager',wfm_dict)
     if args.config_only:
         return None
 
@@ -230,7 +230,7 @@ def StartWorkflowManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/server/server.py',
+    return subprocess.Popen(["python", 'beeflow/wfm/wfm.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
@@ -284,11 +284,11 @@ def StartScheduler(bc, args):
             offset = os.getppid()%100
         else:
             offset = os.getuid()%100
-        server_dict = {
+        wfm_dict = {
             'listen_port': 5100 + offset,
         }
         # Add section (writes to config file)
-        bc.modify_section('user','scheduler',server_dict)
+        bc.modify_section('user','scheduler',wfm_dict)
 
     if args.config_only:
         return None
@@ -337,7 +337,7 @@ def parse_args(args=sys.argv[1:]):
 
     parser.add_argument("-d", "--debug", action="store_true",
                         help="enable debugging output\nIf debug is specified all output will go to the console.\nOnly one BEE service may be launched by BEEStart if debug is requested.")
-    parser.add_argument("--server", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
+    parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
     parser.add_argument("--gdb", action="store_true", help="start the configured graph database")
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
@@ -353,8 +353,8 @@ def parse_args(args=sys.argv[1:]):
 
 def main():
     args = parse_args()
-    start_all = not any([args.server, args.tm, args.gdb, args.restd, args.sched]) or all([args.server, args.tm, args.gdb, args.restd, args.sched])
-    if args.debug and not (sum([args.server,args.tm,args.gdb, args.restd, args.sched]) == 1):
+    start_all = not any([args.wfm, args.tm, args.gdb, args.restd, args.sched]) or all([args.wfm, args.tm, args.gdb, args.restd, args.sched])
+    if args.debug and not (sum([args.wfm, args.tm, args.gdb, args.restd, args.sched]) == 1):
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
@@ -417,13 +417,13 @@ def main():
                 return 1
             # Don't append the graph database to list of processes to wait for
             log.info('Loading Graph Database')
-    if args.server or start_all:
+    if args.wfm or start_all:
         proc = StartWorkflowManager(bc, args)
         if not args.config_only:
             if proc is None:
                 log.error('Workflow Manager failed to start. Exiting.')
                 return 1
-            create_pid_file(proc, 'server.pid', bc)
+            create_pid_file(proc, 'wfm.pid', bc)
             wait_list.append(('Workflow Manager', proc))
             log.info('Loading Workflow Manager')
     if args.tm or start_all:
