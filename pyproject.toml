@@ -55,6 +55,8 @@ pylint = { version = ">=2.3.1" }
 APScheduler = "^3.6.3"
 jsonpickle = "^1.3"
 requests-unixsocket = "^0.2.0"
+tensorflow = "^2.3.0"
+matplotlib = "^3.3.1"
 
 [tool.poetry.dev-dependencies]
 # Developer dependencies
@@ -63,6 +65,8 @@ pydocstyle = { version = ">=4.0.0" }
 pyflakes = { version = ">=2.1.1" }
 pylama = { version = ">=7.7.1" }
 pylint = { version = ">=2.3.1" }
+pytest = { version = ">=6.0.0" }
+pytest-mock = { version = ">=3.3.1" }
 sphinx = "^2.1"
 sphinx-rtd-theme = "^0.4.3"
 cwltool = "^3.0.20200324120055"

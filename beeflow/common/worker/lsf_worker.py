@@ -1,4 +1,4 @@
-"""Slurm worker for work load management.
+"""LSF worker for workload management.
 
 Builds command for submitting batch job.
 """
@@ -6,10 +6,6 @@ Builds command for submitting batch job.
 import os
 import string
 import subprocess
-import json
-import urllib
-import requests_unixsocket
-import requests
 
 from beeflow.common.worker.worker import Worker
 from beeflow.common.crt.crt_interface import ContainerRuntimeInterface
@@ -26,18 +22,11 @@ except ModuleNotFoundError:
     pass
 
 
-class SlurmWorker(Worker):
-    """The Worker for systems where Slurm is the Work Load Manager."""
+class LSFWorker(Worker):
+    """The Worker for systems where LSF is the Workload Manager."""
 
     def __init__(self, **kwargs):
-        """Create a new Slurm Worker object."""
-        # Pull slurm socket configs from kwargs
-        self.slurm_socket = kwargs.get('slurm_socket', f'/tmp/slurm_{os.getlogin()}.sock')
-        self.session = requests_unixsocket.Session()
-        encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
-        # Note: Socket path is encoded, http request is not generally.
-        self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
-
+        """Create a new LSF Worker object."""
         # Load appropriate container runtime driver, based on configs in kwargs
         try:
             self.tm_crt = kwargs['container_runtime']
@@ -65,10 +54,20 @@ class SlurmWorker(Worker):
             except ValueError as error:
                 print(error)
         else:
-            self.template_text = '#! /bin/bash\n#SBATCH\n'
+            self.template_text = '#! /bin/bash\n#BSUB\n'
+
+        # Table of LSF states for translation to BEE states
+        self.bee_states = {'PEND': 'PENDING',
+                           'RUN': 'RUNNING',
+                           'DONE': 'COMPLETED',
+                           'EXIT': 'FAILED',
+                           'QUIT': 'FAILED',
+                           'PSUSP': 'PAUSED',
+                           'USUSP': 'PAUSED',
+                           'SSUSP': 'PAUSED'}
 
     def build_text(self, task):
-        """Build text for task script use template if it exists."""
+        """Build text for task script; use template if it exists."""
         template_text = self.template_text
         template = string.Template(template_text)
         job_text = template.substitute({'name': task.name, 'id': task.id})
@@ -79,7 +78,7 @@ class SlurmWorker(Worker):
     def write_script(self, task):
         """Build task script; returns filename of script."""
         if not self.crt.image_exists(task):
-            raise Exception('dockerImageId not accessible.')
+            raise Exception('dockerImageId not accessible or valid.')
         os.makedirs(f'{self.workdir}/worker', exist_ok=True)
         task_text = self.build_text(task)
         task_script = f'{self.workdir}/worker/{task.name}.sh'
@@ -88,47 +87,35 @@ class SlurmWorker(Worker):
         script_f.close()
         return task_script
 
-    @staticmethod
-    def query_job(job_id, session, slurm_url):
-        """Query slurm for job status."""
-        try:
-            resp = session.get(f'{slurm_url}/job/{job_id}')
-
-            if resp.status_code != 200:
-                job_state = f"BAD_RESPONSE_{resp.status_code}"
-            else:
-                status = json.loads(resp.text)
-                job_state = status['job_state']
-        except requests.exceptions.ConnectionError:
-            job_state = "NOT_RESPONDING"
+    def query_job(self, job_id):
+        """Query lsf for job status."""
+        job_st = subprocess.check_output(['bjobs', '-aX', str(job_id), '-noheader'],
+                                         stderr=subprocess.STDOUT)
+        if 'not found' in str(job_st):
+            raise Exception
+        job_state = self.bee_states[job_st.decode().split()[2]]
         return job_state
 
-    def submit_job(self, script, session, slurm_url):
-        """Worker submits job-returns (job_id, job_state)."""
-        job_st = subprocess.check_output(['sbatch', '--parsable', script],
-                                         stderr=subprocess.STDOUT)
-        job_id = int(job_st)
-        job_state = self.query_job(job_id, session, slurm_url)
+    def submit_job(self, script):
+        """Worker submits job-returns (job_id, job_state), or (-1, error)."""
+        job_st = subprocess.check_output(['bsub', script], stderr=subprocess.STDOUT)
+        job_id = int(job_st.decode().split()[1][1:-1])
+        job_state = self.query_job(job_id)
         return job_id, job_state
 
     def submit_task(self, task):
         """Worker builds & submits script."""
         task_script = self.write_script(task)
-        job_id, job_state = self.submit_job(task_script, self.session, self.slurm_url)
+        job_id, job_state = self.submit_job(task_script)
         return job_id, job_state
 
     def query_task(self, job_id):
         """Worker queries job; returns job_state."""
-        job_state = self.query_job(job_id, self.session, self.slurm_url)
+        job_state = self.query_job(job_id)
         return job_state
 
     def cancel_task(self, job_id):
-        """Worker cancels job returns job_state."""
-        resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
-        if resp.status_code != 200:
-            raise Exception(f'Unable to cancel job id {job_id}!')
+        """Worker cancels job; job_state."""
+        subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"
         return job_state
-
-# Ignore module imported but unused error. No way to know which crt will be needed
-# pylama:ignore=W0611

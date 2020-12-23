@@ -1,4 +1,0 @@
- Clear the workflow that we just built from the database. Comment out if you
- want to take a look at the workflow in the database. Note that if this code
- dies with an error before it gets here you'll have to delete the databse via
- Cypher in the wen interface. This command will do the trick:
