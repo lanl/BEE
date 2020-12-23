@@ -1,13 +1,18 @@
 import logging
 import sys
+import os
 
-class BeeFormatter(logging.Formatter):
+STEP_INFO = 15
+logging.addLevelName(STEP_INFO, "STEP_INFO")
+
+class LogFormatter(logging.Formatter):
     """Format a string for the log file.
     
     This is a place to apply rich text formatting.
     
     Level Values are:
     DEBUG: 10
+    STEP_INFO: 15
     INFO: 20
     WARNING: 30
     ERROR: 40
@@ -53,13 +58,67 @@ class BeeFormatter(logging.Formatter):
         :param record: The part of the log record to extract info from.
         :type record: logging.LogRecord
         """
-        fmt = self.log_fmt[logging.getLevelName(record.levelno)]
-        if sys.version_info[0] < 3:
-            self._fmt = fmt
-        else:
-            self._style._fmt = fmt
-        result = f"{msg_prefix}{logging.Formatter.format(self, record)}"
-        return result
+        fmt = self.log_fmt.get(logging.getLevelName(record.levelno))
+        return logging.Formatter(fmt).format(record)
 
-class setup_logging(level="STEP_INFO"):
+class LevelFilter(logging.Filter):
+    """Filters the level that are to be accepted and rejected."""
+
+    def __init__(self, passlevels, reject):
+        self.passlevels = passlevels
+        self.reject = reject
+
+    def filter(self, record):
+        """Returns True and False according to the pass levels and reject value.
+
+        :param record: Record from logs
+        :type record: logging.LogRecord
+        """
+        if self.reject:
+            return record.levelno not in self.passlevels
+        else:
+            return record.levelno in self.passlevels
+
+
+def setup_logging(level="STEP_INFO"):
     """Setup logger.
+
+    :param level: Level to be logged in logger.
+    :type level: String
+    """
+    log = logging.getLogger("bee")
+    formatter = LogFormatter()
+
+    # Intermediate step info goes to stdout
+    h1 = logging.StreamHandler(sys.stdout)
+    h1.addFilter(LevelFilter([logging.INFO, STEP_INFO], False))
+    h1.setFormatter(formatter)
+
+    # All stepinfo goes to stdout
+    h2 = logging.StreamHandler(sys.stdout)
+    h2.addFilter(LevelFilter([logging.INFO, STEP_INFO], True))
+    h2.setFormatter(formatter)
+
+    log.addHandler(h1)
+    log.addHandler(h2)
+    log.setLevel(level)
+
+    return log
+
+def add_log(log, logfile):
+    """Set log formatter for handle and add handler to logger.
+
+    :param log: The logger object
+    :type log: Logging.logger
+    :param logfile: Path for the logfile
+    :type logfile: String
+    """
+    dir = os.path.dirname(logfile)
+    if not os.path.exists(dir) and dir != "":
+        os.makedirs(dir)
+    handler = logging.FileHandler(logfile)
+    formatter = LogFormatter(colors=False)
+
+    # Set
+    handler.setFormatter(formatter)
+    log.addHandler(handler)
