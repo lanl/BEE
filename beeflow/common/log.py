@@ -126,7 +126,7 @@ def setup_logging(level="STEP_INFO", colors=True):
         log.setLevel(level)
         return log
 
-def add_log(log, logfile):
+def save_log(log, logfile):
     """Set log formatter for handle and add handler to logger.
 
     :param log: The logger object
