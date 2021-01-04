@@ -1,10 +1,9 @@
 """Server launch script."""
-
 import os
 import sys
 import platform
 import logging
-from configparser import NoOptionError
+import configparser
 import jsonpickle
 import requests
 import cwl_utils.parser_v1_0 as cwl
@@ -17,10 +16,11 @@ from werkzeug.datastructures import FileStorage
 import beeflow.common.parser.parse_clamr as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
+import types
 
-try:
+if (len(sys.argv) > 2):
     bc = BeeConfig(userconfig=sys.argv[1])
-except IndexError:
+else:
     bc = BeeConfig()
 
 # Set Workflow manager ports, attempt to prevent collisions
@@ -430,7 +430,7 @@ if __name__ == '__main__':
     # Get the paramater for logging
     try:
         bc.userconfig.get('workflow_manager', 'log')
-    except NoOptionError:
+    except configparser.NoOptionError:
         bc.modify_section('user', 'workflow_manager',
                           {'log': '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
                                             'logs', 'wfm.log'])})
