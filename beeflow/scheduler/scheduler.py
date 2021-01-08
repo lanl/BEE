@@ -13,7 +13,7 @@ import beeflow.scheduler.algorithms as algorithms
 import beeflow.scheduler.task as task
 import beeflow.scheduler.resource_allocation as resource_allocation
 from beeflow.common.config.config_driver import BeeConfig
-
+from bin.BEEStart import log
 
 flask_app = Flask(__name__)
 api = Api(flask_app)

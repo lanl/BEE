@@ -11,7 +11,6 @@ will be started.
 
 import argparse
 import getpass
-import logging
 import os
 import shutil
 import subprocess
@@ -22,12 +21,12 @@ import platform
 from subprocess import PIPE
 from configparser import NoOptionError
 from beeflow.common.config.config_driver import BeeConfig
+import beeflow.common.log as bee_logging
 
-BEESTART = os.path.splitext(__file__)[0]
+log = bee_logging.setup_logging() 
 
 def StartGDB(bc, args):
-    """Start the graph database. Returns a Popen process object."""
-    log = logging.getLogger(BEESTART)
+    """Start the graph database. Returns a run process object."""
     # Load gdb config from config file if exists
     try:
         bc.userconfig['graphdb']
@@ -54,11 +53,6 @@ def StartGDB(bc, args):
         log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
         return None
 
-    # Setup subprocess output
-    stdout = sys.stdout
-    stderr = sys.stderr
-
-
     # Read the config file back in
     db_hostname = bc.userconfig.get('graphdb','hostname')
     db_password = bc.userconfig.get('graphdb','dbpass')
@@ -73,10 +67,10 @@ def StartGDB(bc, args):
         log.info("GraphDB container mount directory " + container_dir + " created")
 
     try:
-        cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=stdout, stderr=stderr, check=True)
+        cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir), '&'], 
+                           shell=True, capture_output=False)
     except subprocess.CalledProcessError as cp:
         log.error("ch-tar2dir failed")
-        print("ch-tar2dir failed", file=sys.stderr)
         shutil.rmtree(container_dir)
         if args.debug:
             log.error("GraphDB container mount directory " + container_dir + " removed")
@@ -134,15 +128,14 @@ def StartGDB(bc, args):
             "--",
             "neo4j-admin",
             "set-initial-password",
-            str(db_password)
-        ], stdout=stdout, stderr=stderr, check=True)
+            str(db_password), '&',
+            ], shell=True, capture_output=False)
     except subprocess.CalledProcessError as cp:
         log.error("neo4j-admin set-initial-password failed")
-        print("neo4j-admin set-initial-password failed", file=sys.stderr)
         return None
 
     try:
-        proc = subprocess.Popen([
+        proc = subprocess.run([
             "ch-run",
             "--set-env=" + container_path + "/ch/environment",
             "-b",
@@ -158,24 +151,17 @@ def StartGDB(bc, args):
             container_path,
             "--",
             "neo4j",
-            "start",
-        ], stdout=stdout, stderr=stderr)
+            "start", '&'
+        ], shell=True, capture_output=False)
     except FileNotFoundError as e:
         log.error("neo4j failed to start.")
-        print("neo4j failed to start.", file=sys.stderr)
         return None
-    if args.debug:
-        print("Debug mode is on. Check logs for verbose output.")
-        time.sleep(3)
-        while proc.poll() is None:
-            check_io(proc)
     return proc
 
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
 def StartSlurmRestD(bc, args):
-    """Start BEESlurmRestD. Returns a Popen process object."""
+    """Start BEESlurmRestD. Returns a run process object."""
 
-    log = logging.getLogger(BEESTART)
     # Load gdb config from config file if exists
     try:
         bc.userconfig['slurmrestd']
@@ -192,30 +178,15 @@ def StartSlurmRestD(bc, args):
         bc.modify_section('user','slurmrestd',restd_dict)
     if args.config_only:
         return None
-    # Try accessing the log path from config file, create if not there
-    # Perhaps better to do this when adding default slurm socket path?
-    try:
-        bc.userconfig.get('slurmrestd','log')
-    except NoOptionError:
-        bc.modify_section('user','slurmrestd',
-                          {'log':'/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                           'logs', 'slurmrestd.log'])})
-    finally:
-        slurmrestd_log = bc.userconfig.get('slurmrestd','log')
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
-    subprocess.Popen(['rm','-f',slurm_socket])
+    subprocess.run(['rm','-f',slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
-    proc =  subprocess.Popen([f"slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
-                             stdout=PIPE, stderr=PIPE, shell=True)
-    if args.debug:
-        print("Debug mode is on. Check logs for verbose output.")
-        time.sleep(3)
-        while proc.poll() is None:
-            check_io(proc)
+    proc =  subprocess.run([f"slurmrestd unix:{slurm_socket} &"],
+                             capture_output=False, shell=True)
     return proc
 
 def StartWorkflowManager(bc, args):
-    """Start BEEWorkflowManager. Returns a Popen process object."""
+    """Start BEEWorkflowManager. Returns a run process object."""
 
     # Load gdb config from config file if exists
     try:
@@ -240,18 +211,13 @@ def StartWorkflowManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    proc = subprocess.Popen(["python", 'beeflow/server/server.py',
-                            userconfig_file],
-                            stdout=PIPE, stderr=PIPE)
-    if args.debug:
-        print("Debug mode is on. Check logs for verbose output.")
-        time.sleep(3)
-        while proc.poll() is None:
-            check_io(proc)
+    proc = subprocess.run(["python", 'beeflow/server/server.py',
+                            userconfig_file, '&'],
+                            shell=True, check_output=False)
     return proc
 
 def StartTaskManager(bc, args):
-    """Start BEETaskManager. Returns a Popen process object."""
+    """Start BEETaskManager. Returns a run process object."""
     # Load gdb config from config file if exists
     try:
         bc.userconfig['task_manager']
@@ -281,21 +247,16 @@ def StartTaskManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    proc = subprocess.Popen(["python", 'beeflow/task_manager/task_manager.py',
-                            userconfig_file],
-                            stdout=PIPE, stderr=PIPE)
-    if args.debug:
-        print("Debug mode is on. Check logs for verbose output.")
-        time.sleep(3)
-        while proc.poll() is None:
-            check_io(proc)
+    proc = subprocess.run(["python", 'beeflow/task_manager/task_manager.py',
+                            userconfig_file, '&'],
+                            shell=True, capture_output=False)
     return proc
 
 def StartScheduler(bc, args):
     """Start BEEScheduler.
 
     Start BEEScheduler and return the process object.
-    :rtype: instance of Popen
+    :rtype: instance of run
     """
     # Load scheduler config if exists
     try:
@@ -320,9 +281,9 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
-                            '--config-file',userconfig_file],
-                            stdout=PIPE, stderr=PIPE)
+    return subprocess.run(['python', 'beeflow/scheduler/scheduler.py',
+                            '--config-file',userconfig_file])
+#                            capture_output=False, shell=True)
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
@@ -330,36 +291,25 @@ def create_pid_file(proc, pid_file, bc):
     with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 
-def setup_logging(bc, debug=False):
+def setup_logging(bc, stream=True, level='DEBUG'):
     """
     Setup logging. Add default values to the config if not found. Return None on
     error and the log otherwise.
     """
-    if debug:
+    if stream:
         # Output everything to the console
-        logging.basicConfig(level=logging.DEBUG)
+        log = bee_logging.setup_logging(level=level, colors=True)
     else:
         default = bc.userconfig['DEFAULT']
         bee_workdir = default.get('bee_workdir', '')
         logdir = default.get('logdir', os.path.join(bee_workdir, 'logs'))
+        bc.modify_section('user', 'DEFAULT', {'logdir':logdir})
         # Make the logdir if it doesn't exist already
         os.makedirs(logdir, exist_ok=True)
-        logfile = default.get('logfile', 'bee.log')
-        path = os.path.join(bee_workdir, logdir) if logdir else bee_workdir
-        path = os.path.join(path, logfile)
-        # Turn on the default stream handler so we print to a file and stderr
-        logging.getLogger().addHandler(logging.StreamHandler())
-        logging.basicConfig(filename=path)
-    return logging.getLogger(BEESTART)
-
-def check_io(proc):
-    log = logging.getLogger(BEESTART)
-    while True:
-        output = proc.stdout.readline().decode()
-        if output:
-            log.log(logging.INFO, output)
-        else:
-            break
+        logfile = os.path.join(logdir, 'beestart.log')
+        log = bee_logging.setup_logging(level=level, colors=False)
+        bee_logging.save_log(log, logfile)
+    return log
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
@@ -400,15 +350,14 @@ def main():
     if args.job_template:
         config_params['job_template'] = args.job_template
     bc = BeeConfig(**config_params)
+    # Save log based on config file path
+    setup_logging(bc)
     # If workdir argument exists, over-write
     if args.bee_workdir:
         bc.modify_section('user', 'DEFAULT', {'bee_workdir':bc.resolve_path(args.bee_workdir)} )
     # If workload_scheduler argument exists, over-write
     if args.workload_scheduler:
         bc.modify_section('user', 'DEFAULT', {'workload_scheduler':args.workload_scheduler} )
-
-    # Setup logging based on args.debug
-    log = setup_logging(bc, args.debug)
     if log is None:
         # Something went wrong
         return 1
@@ -435,7 +384,6 @@ def main():
         if not args.config_only:
             if proc is None:
                 log.error('Scheduler failed to start. Exiting.')
-                print('Scheduler failed to start. Exiting.', file=sys.stderr)
                 return 1
             create_pid_file(proc, 'sched.pid', bc)
             wait_list.append(('Scheduler', proc))
