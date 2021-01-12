@@ -68,10 +68,9 @@ class BeeConfig:
                 # Make sure conf_file path exists
                 os.makedirs(os.path.dirname(self.userconfig_file),
                             exist_ok=True)
-            except PermissionError as e:
-                raise PermissionError('Do you have write access to {}?'.\
-                                       format(conf_file)) from e
-            # Set default bee_workdir relative to HOME unless otherwise specified.
+            except PermissionError as error:
+                file = self.userconfig_file
+                raise PermissionError(f'Do you have write access to {file}?') from error
             try:
                 self.bee_workdir = kwargs['bee_workdir']
             except KeyError:
@@ -93,7 +92,19 @@ class BeeConfig:
             self.modify_section('user',
                                 'DEFAULT',
                                 {'workload_scheduler': str(self.workload_scheduler)})
-
+        # Set up default ports, get parent's pid to offset ports.
+        # Windows note: uid method better but not available in Windows
+        if platform.system() == 'Windows':
+            # Would prefer something like a uid for windows.
+            self.offset = os.getppid() % 100
+        else:
+            self.offset = os.getuid() % 100
+        self.default_bolt_port = 7687 + self.offset
+        self.default_http_port = 7474 + self.offset
+        self.default_https_port = 7473 + self.offset
+        self.default_wfm_port = 5000 + self.offset
+        self.default_tm_port = 5050 + self.offset
+        self.default_sched_port = 5100 + self.offset
 
     def modify_section(self, conf, section, keyvalue, replace=False):
         """Add a new section to the system or user config file.

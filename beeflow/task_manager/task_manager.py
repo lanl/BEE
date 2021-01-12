@@ -6,12 +6,9 @@ Communicates status to the Work Flow Manager, through RESTful API.
 import configparser
 import atexit
 import sys
-import os
-import platform
 import logging
 import jsonpickle
 import requests
-import types
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -19,10 +16,11 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config.config_driver import BeeConfig
 
-if (len(sys.argv) > 2):
+if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
+
 
 def check_crt_config(container_runtime):
     """Check container runtime configurations."""
@@ -36,7 +34,6 @@ def check_crt_config(container_runtime):
             cc_opts = {'setup': 'module load charliecloud',
                        'image_mntdir': '/tmp',
                        'chrun_opts': '--cd /home/$USER'
-
                        }
             bc.modify_section('user', 'charliecloud', cc_opts)
         else:
@@ -46,18 +43,10 @@ def check_crt_config(container_runtime):
                 bc.modify_section('user', 'charliecloud', {'image_mntdir': '/tmp'})
 
 
-# Set Task Manager default port, attempt to prevent collisions
-TM_PORT = 5050
-if platform.system() == 'Windows':
-    # Get parent's pid to offset ports. uid method better but not available in Windows
-    TM_PORT += os.getppid() % 100
-else:
-    TM_PORT += os.getuid() % 100
-
 # Check task_manager and container_runtime sections of user configuration file
 tm_dict = {}
 tm_log = f"{bc.userconfig['DEFAULT'].get('bee_workdir')}/logs/tm.log"
-tm_default = {'listen_port': TM_PORT,
+tm_default = {'listen_port': bc.default_tm_port,
               'log': tm_log,
               'container_runtime': 'Charliecloud'}
 if bc.userconfig.has_section('task_manager'):
@@ -73,26 +62,22 @@ if bc.userconfig.has_section('task_manager'):
     if UPDATE_CONFIG:
         bc.modify_section('user', 'task_manager', tm_dict)
 else:
-    tm_listen_port = TM_PORT
+    tm_listen_port = bc.default_tm_port
     bc.modify_section('user', 'task_manager', tm_default)
     check_crt_config(tm_default['container_runtime'])
-    sys.exit(f'[task_manager] section missing in {bc.userconfig_file}\n' +
+    sys.exit('[task_manager] section missing in {bc.userconfig_file}\n' +
              'Default values added. Please check and restart Task Manager.')
 runtime = bc.userconfig.get('task_manager', 'container_runtime')
 check_crt_config(runtime)
 
 tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 
-# Check Workflow manager port
+# Check Workflow manager port, use default if none.
 if bc.userconfig.has_section('workflow_manager'):
-    try:
-        bc.userconfig.get('workflow_manager', 'listen_port')
-    except NoOptionError:
-        sys.exit(f'[workflow_manager] missing listen_port in {bc.userconfig_file}')
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port',
+                                                            bc.default_wfm_port)
 else:
-    sys.exit(f'[workflow_manager] section missing in {bc.userconfig_file}')
-
-wfm_listen_port = bc.userconfig.get('workflow_manager', 'listen_port')
+    wfm_listen_port = bc.default_wfm_port
 
 flask_app = Flask(__name__)
 api = Api(flask_app)

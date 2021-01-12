@@ -32,17 +32,12 @@ def StartGDB(bc, args):
     try:
         bc.userconfig['graphdb']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
         graphdb_dict = {
             'hostname': 'localhost',
             'dbpass': 'password',
-            'bolt_port': 7687+offset,
-            'http_port': 7474+offset,
-            'https_port': 7473+offset,
+            'bolt_port': bc.default_bolt_port,
+            'http_port': bc.default_http_port,
+            'https_port': bc.default_https_port ,
             'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
             'gdb_image_mntdir': '/tmp',
         }
@@ -176,13 +171,8 @@ def StartSlurmRestD(bc, args):
     try:
         bc.userconfig['slurmrestd']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
         restd_dict = {
-            'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(os.getlogin(), 100 + offset),
+            'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(os.getlogin(), 100 + bc.offset),
         }
         # Add section (writes to config file)
         bc.modify_section('user','slurmrestd',restd_dict)
@@ -211,13 +201,8 @@ def StartWorkflowManager(bc, args):
     try:
         bc.userconfig['workflow_manager']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
         wfm_dict = {
-            'listen_port': 5000 + offset,
+            'listen_port': bc.default_wfm_port,
         }
         # Add section (writes to config file)
         bc.modify_section('user','workflow_manager',wfm_dict)
@@ -240,24 +225,21 @@ def StartTaskManager(bc, args):
     try:
         bc.userconfig['task_manager']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
         if args.job_template:
             job_template = args.job_template
         tm_dict = {
-            'listen_port': 5050 + offset,
+            'listen_port': bc.default_tm_port,
             'container_runtime': 'Charliecloud'
         }
         # Add section (writes to config file)
         bc.modify_section('user','task_manager',tm_dict)
-        return None
+
     finally:
         if args.job_template:
             tm_dict= {'job_template': args.job_template}
             bc.modify_section('user','task_manager',tm_dict)
+    if args.config_only:
+        return None
 
     # Either use the userconfig file argument specified to BEEStart,
     # or assume the default path to ~/.config/beeflow/bee.conf.
@@ -279,16 +261,11 @@ def StartScheduler(bc, args):
     try:
         bc.userconfig['scheduler']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
-        wfm_dict = {
-            'listen_port': 5100 + offset,
+        sched_dict = {
+            'listen_port': bc.default_sched_port,
         }
         # Add section (writes to config file)
-        bc.modify_section('user','scheduler',wfm_dict)
+        bc.modify_section('user','scheduler',sched_dict)
 
     if args.config_only:
         return None
