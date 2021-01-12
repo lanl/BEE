@@ -11,17 +11,17 @@ import urllib
 import requests_unixsocket
 import requests
 
-from beeflow.common.worker.worker import Worker
-from beeflow.common.crt.crt_interface import ContainerRuntimeInterface
+from common.worker.worker import Worker
+from common.crt.crt_interface import ContainerRuntimeInterface
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist
 try:
-    from beeflow.common.crt.crt_drivers import CharliecloudDriver
+    from common.crt.crt_drivers import CharliecloudDriver
 except ModuleNotFoundError:
     pass
 try:
-    from beeflow.common.crt.crt_drivers import SingularityDriver
+    from common.crt.crt_drivers import SingularityDriver
 except ModuleNotFoundError:
     pass
 

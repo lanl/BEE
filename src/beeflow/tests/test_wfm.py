@@ -1,4 +1,4 @@
-import beeflow.wfm.wfm as wfm
+import wfm.wfm as wfm
 import pytest
 import requests
 from mocks import MockWFI, mock_get

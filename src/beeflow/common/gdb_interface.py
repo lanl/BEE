@@ -5,7 +5,7 @@ the abstract base class `GraphDatabaseDriver`. By default,
 this is the `Neo4jDriver` class.
 """
 
-from beeflow.common.gdb.neo4j_driver import Neo4jDriver
+from common.gdb.neo4j_driver import Neo4jDriver
 
 
 class GraphDatabaseInterface:

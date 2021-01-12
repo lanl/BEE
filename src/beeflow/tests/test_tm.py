@@ -1,6 +1,6 @@
 """This is a sample docstring."""
 
-import beeflow.task_manager.task_manager as tm
+import task_manager.task_manager as tm
 import beeflow
 # import flask_restful
 # from flask import Flask

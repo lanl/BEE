@@ -5,9 +5,9 @@ Test internal MARS functions.
 import os
 import tensorflow as tf
 
-import beeflow.scheduler.mars_util as mars_util
-import beeflow.scheduler.mars as mars
-import beeflow.scheduler.task as task
+import scheduler.mars_util as mars_util
+import scheduler.mars as mars
+import scheduler.task as task
 
 
 def test_workflow2vec_one_task():

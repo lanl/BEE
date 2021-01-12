@@ -5,9 +5,9 @@ Tests of the BEE Scheduler module.
 
 import time
 
-import beeflow.scheduler.algorithms as algorithms
-import beeflow.scheduler.task as task
-import beeflow.scheduler.resource_allocation as resource_allocation
+import scheduler.algorithms as algorithms
+import scheduler.task as task
+import scheduler.resource_allocation as resource_allocation
 
 
 class TestFCFS:

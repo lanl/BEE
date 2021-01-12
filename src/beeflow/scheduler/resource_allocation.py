@@ -2,7 +2,7 @@
 
 """
 
-import beeflow.scheduler.serializable as serializable
+import scheduler.serializable as serializable
 
 
 class TaskAllocator:

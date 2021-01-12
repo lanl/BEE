@@ -5,7 +5,7 @@ Builds text for job to run task in a Container
 from abc import ABC, abstractmethod
 import os
 from configparser import NoOptionError
-from beeflow.common.config.config_driver import BeeConfig
+from common.config.config_driver import BeeConfig
 bc = BeeConfig()
 
 

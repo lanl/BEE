@@ -6,8 +6,8 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 import abc
 import time
 
-import beeflow.scheduler.resource_allocation as resource_allocation
-import beeflow.scheduler.mars_util as mars_util
+import scheduler.resource_allocation as resource_allocation
+import scheduler.mars_util as mars_util
 
 
 class Algorithm(abc.ABC):
@@ -186,7 +186,7 @@ class MARS(Algorithm):
         :type mars_model: str
         """
         # Only import the mars module if necessary
-        import beeflow.scheduler.mars as mars
+        import scheduler.mars as mars
         MARS.mod = mars
         MARS.actor, MARS.critic = mars.load_models(mars_model)
 

@@ -3,8 +3,8 @@
 This file holds classes for respresenting workflows and tasks/jobs, as
 well as resources that will be used during scheduling.
 """
-import beeflow.scheduler.serializable as serializable
-import beeflow.scheduler.resource_allocation as resource_allocation
+import scheduler.serializable as serializable
+import scheduler.resource_allocation as resource_allocation
 
 
 class Task(serializable.Serializable):
