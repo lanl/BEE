@@ -65,7 +65,7 @@ else:
     tm_listen_port = bc.default_tm_port
     bc.modify_section('user', 'task_manager', tm_default)
     check_crt_config(tm_default['container_runtime'])
-    sys.exit('[task_manager] section missing in {bc.userconfig_file}\n' +
+    sys.exit(f'[task_manager] section missing in {bc.userconfig_file}\n' +
              'Default values added. Please check and restart Task Manager.')
 runtime = bc.userconfig.get('task_manager', 'container_runtime')
 check_crt_config(runtime)
