@@ -1,4 +1,4 @@
-import wfm.wfm as wfm
+import wf_manager as wfm
 import pytest
 import requests
 from mocks import MockWFI, mock_get
@@ -32,7 +32,7 @@ def test_create_workflow(flask_client, mocker): # noqa
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_submit_workflow(flask_client, mocker): # noqa
     """Submit a cwl file to the WFM. parse the cwl file."""
-    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
+    mocker.patch('wf_manager.wfi', new_callable=MockWFI)
 
     wf_id = 42
 
@@ -46,7 +46,7 @@ def test_submit_workflow(flask_client, mocker): # noqa
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_start_workflow(flask_client, mocker): # noqa
-    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
+    mocker.patch('wf_manager.wfi', new_callable=MockWFI)
     wf_id = 42
     request = {'wf_id': wf_id}
 
@@ -58,7 +58,7 @@ def test_start_workflow(flask_client, mocker): # noqa
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_query_workflow(flask_client, mocker): # noqa
-    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
+    mocker.patch('wf_manager.wfi', new_callable=MockWFI)
     wf_id = 42
     request = {'wf_id': wf_id}
 
@@ -71,7 +71,7 @@ def test_query_workflow(flask_client, mocker): # noqa
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_cancel_workflow(flask_client, mocker): # noqa
     mocker.patch.object(requests, 'delete', side_effect=mock_delete)
-    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
+    mocker.patch('wf_manager.wfi', new_callable=MockWFI)
 
     wf_id = 42
     request = {'wf_id': wf_id}
@@ -83,7 +83,7 @@ def test_cancel_workflow(flask_client, mocker): # noqa
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_pause_workflow(flask_client, mocker): # noqa
-    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
+    mocker.patch('wf_manager.wfi', new_callable=MockWFI)
     wf_id = 42
     request = {'wf_id': wf_id, 'option': 'pause'}
 
@@ -94,7 +94,7 @@ def test_pause_workflow(flask_client, mocker): # noqa
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_resume_workflow(flask_client, mocker): # noqa
-    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
+    mocker.patch('wf_manager.wfi', new_callable=MockWFI)
     wf_id = 42
     request = {'wf_id': wf_id, 'option': 'resume'}
 
@@ -106,7 +106,7 @@ def test_resume_workflow(flask_client, mocker): # noqa
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_update_task(flask_client, mocker): # noqa
     mocker.patch.object(requests, 'post', side_effect=mock_get)
-    mocker.patch('beeflow.wfm.wfm.wfi', new_callable=MockWFI)
+    mocker.patch('wf_manager.wfi', new_callable=MockWFI)
 
     task_id = 0
     job_state = 'COMPLETED'
