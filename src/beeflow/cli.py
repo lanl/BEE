@@ -230,7 +230,7 @@ def StartWorkflowManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/wfm/wfm.py',
+    return subprocess.Popen(["python", 'wf_manager.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
@@ -265,7 +265,7 @@ def StartTaskManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/task_manager/task_manager.py',
+    return subprocess.Popen(["python", 'task_manager.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
@@ -298,7 +298,7 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
+    return subprocess.Popen(['python', 'scheduler/scheduler.py',
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
