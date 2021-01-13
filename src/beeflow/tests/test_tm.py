@@ -1,6 +1,6 @@
 """This is a sample docstring."""
 
-import beeflow.task_manager.task_manager as tm
+import beeflow.task_manager as tm
 import beeflow
 # import flask_restful
 # from flask import Flask
@@ -31,16 +31,16 @@ def test_submit_task(flask_client, mocker):  # noqa
     response = flask_client.post('/bee_tm/v1/task/submit/',
                                  json={'task': task_json})
 
-    mocker.patch('beeflow.task_manager.task_manager.worker',
+    mocker.patch('beeflow.task_manager.worker',
                  new_callable=MockWorkerSubmission)
 
     mocker.patch.object(requests, 'put', side_effect=mock_put)
-    beeflow.task_manager.task_manager.process_queues()
+    beeflow.task_manager.process_queues()
 
     msg = response.get_json()['msg']
     status = response.status_code
 
-    job_queue = beeflow.task_manager.task_manager.job_queue
+    job_queue = beeflow.task_manager.job_queue
     # 42 is the sample task ID
     job = job_queue[0][42]
 
@@ -57,14 +57,14 @@ def test_submit_task(flask_client, mocker):  # noqa
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_completed_task(flask_client, mocker): # noqa
     """Tests how the task manager processes a completed task."""
-    job_queue = beeflow.task_manager.task_manager.job_queue
+    job_queue = beeflow.task_manager.job_queue
     # 42 is the sample task ID
-    mocker.patch('beeflow.task_manager.task_manager.worker',
+    mocker.patch('beeflow.task_manager.worker',
                  new_callable=MockWorkerCompletion)
     mocker.patch.object(requests, 'put', side_effect=mock_put)
 
     # This should notice the job is complete and empty the job_queue
-    beeflow.task_manager.task_manager.process_queues()
+    beeflow.task_manager.process_queues()
     assert len(job_queue) == 0
 
 
@@ -72,25 +72,25 @@ def test_completed_task(flask_client, mocker): # noqa
 def test_remove_task(flask_client, mocker):  # noqa
     """Test cancelling a workflow and removing tasks."""
     # Add a few tasks
-    beeflow.task_manager.task_manager.job_queue.append({2: {'name': 'task1',
+    beeflow.task_manager.job_queue.append({2: {'name': 'task1',
                                                             'job_id': 1,
                                                             'job_state':
                                                             'RUNNING'}
                                                         })
 
-    beeflow.task_manager.task_manager.job_queue.append({4: {'name': 'task2',
+    beeflow.task_manager.job_queue.append({4: {'name': 'task2',
                                                             'job_id': 2,
                                                             'job_state':
                                                             'PENDING'}
                                                         })
 
-    beeflow.task_manager.task_manager.job_queue.append({6: {'name': 'task3',
+    beeflow.task_manager.job_queue.append({6: {'name': 'task3',
                                                             'job_id': 3,
                                                             'job_state':
                                                             'PENDING'}
                                                         })
 
-    mocker.patch('beeflow.task_manager.task_manager.worker',
+    mocker.patch('beeflow.task_manager.worker',
                  new_callable=MockWorkerCompletion)
 
     response = flask_client.delete('/bee_tm/v1/task/')

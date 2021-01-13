@@ -265,7 +265,7 @@ def StartTaskManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/task_manager/task_manager.py',
+    return subprocess.Popen(["python", 'beeflow/task_manager.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
