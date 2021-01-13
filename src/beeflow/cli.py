@@ -230,7 +230,7 @@ def StartWorkflowManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/wfm/wfm.py',
+    return subprocess.Popen(["python", 'beeflow/wf_manager.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
