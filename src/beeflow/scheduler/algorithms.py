@@ -6,8 +6,8 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 import abc
 import time
 
-import scheduler.resource_allocation as resource_allocation
-import scheduler.mars_util as mars_util
+import beeflow.scheduler.resource_allocation as resource_allocation
+import beeflow.scheduler.mars_util as mars_util
 
 
 class Algorithm(abc.ABC):

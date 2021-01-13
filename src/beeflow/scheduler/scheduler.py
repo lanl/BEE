@@ -9,10 +9,10 @@ import os
 from flask import Flask, request
 from flask_restful import Resource, Api
 
-import scheduler.algorithms as algorithms
-import scheduler.task as task
-import scheduler.resource_allocation as resource_allocation
-from common.config.config_driver import BeeConfig
+import beeflow.scheduler.algorithms as algorithms
+import beeflow.scheduler.task as task
+import beeflow.scheduler.resource_allocation as resource_allocation
+from beeflow.common.config.config_driver import BeeConfig
 
 
 flask_app = Flask(__name__)

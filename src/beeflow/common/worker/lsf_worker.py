@@ -8,7 +8,7 @@ import string
 import subprocess
 
 from common.worker.worker import Worker
-from common.crt.crt_interface import ContainerRuntimeInterface
+from common.crt_interface import ContainerRuntimeInterface
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist

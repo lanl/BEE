@@ -21,7 +21,7 @@ import time
 import platform
 from subprocess import PIPE
 from configparser import NoOptionError
-from common.config.config_driver import BeeConfig
+from beeflow.common.config.config_driver import BeeConfig
 
 BEESTART = os.path.splitext(__file__)[0]
 

@@ -8,9 +8,9 @@ either standardized or read from a config file.
 from neo4j import GraphDatabase as Neo4jDatabase
 from neobolt.exceptions import ServiceUnavailable
 
-from common.gdb.gdb_driver import GraphDatabaseDriver
-from common.gdb import neo4j_cypher as tx
-from common.data.wf_data import Task, Requirement
+from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
+from beeflow.common.gdb import neo4j_cypher as tx
+from beeflow.common.wf_data import Task, Requirement
 
 # Default Neo4j authentication
 # We may want to instead get these from a config at some point
