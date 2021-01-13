@@ -7,7 +7,7 @@ import sys
 import platform
 from errors import ApiError
 from pathlib import Path
-from common.config.config_driver import BeeConfig
+from beeflow.common.config.config_driver import BeeConfig
 
 try:
     bc = BeeConfig(userconfig=sys.argv[1])
