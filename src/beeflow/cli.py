@@ -20,8 +20,8 @@ import time
 import platform
 from subprocess import PIPE
 from configparser import NoOptionError
-from beeflow.common.config.config_driver import BeeConfig
 import beeflow.common.log as bee_logging
+from beeflow.common.config_driver import BeeConfig
 
 log = bee_logging.setup_logging()
 

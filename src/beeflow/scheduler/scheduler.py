@@ -12,7 +12,7 @@ from flask_restful import Resource, Api
 import beeflow.scheduler.algorithms as algorithms
 import beeflow.scheduler.task as task
 import beeflow.scheduler.resource_allocation as resource_allocation
-from beeflow.common.config.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig
 
 
 flask_app = Flask(__name__)

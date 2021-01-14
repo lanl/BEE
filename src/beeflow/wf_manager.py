@@ -15,7 +15,7 @@ from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
 import common.parser.parse_clamr as parser
 from common.wf_interface import WorkflowInterface
-from common.config.config_driver import BeeConfig
+from common.config_driver import BeeConfig
 import types
 
 if (len(sys.argv) > 2):
