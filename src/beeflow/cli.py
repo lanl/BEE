@@ -11,7 +11,6 @@ will be started.
 
 import argparse
 import getpass
-import logging
 import os
 import shutil
 import subprocess
@@ -22,12 +21,12 @@ import platform
 from subprocess import PIPE
 from configparser import NoOptionError
 from beeflow.common.config.config_driver import BeeConfig
+import beeflow.common.log as bee_logging
 
-BEESTART = os.path.splitext(__file__)[0]
+log = bee_logging.setup_logging()
 
 def StartGDB(bc, args):
     """Start the graph database. Returns a Popen process object."""
-    log = logging.getLogger(BEESTART)
     # Load gdb config from config file if exists
     try:
         bc.userconfig['graphdb']
@@ -171,7 +170,6 @@ def StartGDB(bc, args):
 def StartSlurmRestD(bc, args):
     """Start BEESlurmRestD. Returns a Popen process object."""
 
-    log = logging.getLogger(BEESTART)
     # Load gdb config from config file if exists
     try:
         bc.userconfig['slurmrestd']
@@ -188,16 +186,6 @@ def StartSlurmRestD(bc, args):
         bc.modify_section('user','slurmrestd',restd_dict)
     if args.config_only:
         return None
-    # Try accessing the log path from config file, create if not there
-    # Perhaps better to do this when adding default slurm socket path?
-    try:
-        bc.userconfig.get('slurmrestd','log')
-    except NoOptionError:
-        bc.modify_section('user','slurmrestd',
-                          {'log':'/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                           'logs', 'slurmrestd.log'])})
-    finally:
-        slurmrestd_log = bc.userconfig.get('slurmrestd','log')
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
     subprocess.Popen(['rm','-f',slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
@@ -308,27 +296,20 @@ def create_pid_file(proc, pid_file, bc):
     with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 
-def setup_logging(bc, debug=False):
-    """
-    Setup logging. Add default values to the config if not found. Return None on
-    error and the log otherwise.
-    """
-    if debug:
-        # Output everything to the console
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        default = bc.userconfig['DEFAULT']
-        bee_workdir = default.get('bee_workdir', '')
-        logdir = default.get('logdir', os.path.join(bee_workdir, 'logs'))
-        # Make the logdir if it doesn't exist already
-        os.makedirs(logdir, exist_ok=True)
-        logfile = default.get('logfile', 'bee.log')
-        path = os.path.join(bee_workdir, logdir) if logdir else bee_workdir
-        path = os.path.join(path, logfile)
-        # Turn on the default stream handler so we print to a file and stderr
-        logging.getLogger().addHandler(logging.StreamHandler())
-        logging.basicConfig(filename=path)
-    return logging.getLogger(BEESTART)
+#def setup_logging(bc, logfile='beeflow.log'):
+#    """
+#    Setup logging. Add default values to the config if not found. Return None on
+#    error and the log otherwise.
+#    """
+#    default = bc.userconfig['DEFAULT']
+#    bee_workdir = default.get('bee_workdir', '')
+#    logdir = os.path.join(bee_workdir, 'logs')
+#    # Make the logdir if it doesn't exist already
+#    os.makedirs(logdir, exist_ok=True)
+#    path = os.path.join(bee_workdir, logdir)
+#    path = os.path.join(path, logfile)
+#    bee_logging.save_log(log, path)
+#    return
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
@@ -374,10 +355,9 @@ def main():
         bc.modify_section('user', 'DEFAULT', {'bee_workdir':bc.resolve_path(args.bee_workdir)} )
     # If workload_scheduler argument exists, over-write
     if args.workload_scheduler:
-        bc.modify_section('user', 'DEFAULT', {'workload_scheduler':args.workload_scheduler} )
-
+        bc.modify_section('user', 'task_manager', {'workload_scheduler':args.workload_scheduler} )
     # Setup logging based on args.debug
-    log = setup_logging(bc, args.debug)
+    bee_logging.save_log(bc, log, logfile='beeflow.log')
     if log is None:
         # Something went wrong
         return 1
@@ -386,10 +366,10 @@ def main():
     wait_list = [] # List of processes to wait for
     # Only start slurmrestd if workload_scheduler is Slurm (default)
     try:
-        workload_scheduler = bc.userconfig.get('DEFAULT','workload_scheduler')
+        workload_scheduler = bc.userconfig.get('task_manager','workload_scheduler')
     except NoOptionError:
         workload_scheduler = 'Slurm'
-        bc.modify_section('user', 'DEFAULT', {'workload_scheduler':workload_scheduler} )
+        bc.modify_section('user', 'task_manager', {'workload_scheduler':workload_scheduler} )
     if workload_scheduler == 'Slurm':
         if args.restd or start_all:
             proc = StartSlurmRestD(bc, args)

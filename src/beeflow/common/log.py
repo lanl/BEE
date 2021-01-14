@@ -126,18 +126,25 @@ def setup_logging(level="STEP_INFO", colors=True):
         log.setLevel(level)
         return log
 
-def save_log(log, logfile):
+def save_log(bc, log, logfile):
     """Set log formatter for handle and add handler to logger.
 
+    :param bc: The BeeConfig object
+    :type bc: beeflow.common.config_driver
     :param log: The logger object
     :type log: Logging.logger
     :param logfile: Path for the logfile
     :type logfile: String
     """
-    dir = os.path.dirname(logfile)
-    if not os.path.exists(dir) and dir != "":
-        os.makedirs(dir)
-    handler = logging.FileHandler(logfile)
+    default = bc.userconfig['DEFAULT']
+    bee_workdir = default.get('bee_workdir', '')
+    logdir = os.path.join(bee_workdir, 'logs')
+    # Make the logdir if it doesn't exist already
+    os.makedirs(logdir, exist_ok=True)
+    path = os.path.join(bee_workdir, logdir)
+    path = os.path.join(path, logfile)
+
+    handler = logging.FileHandler(path)
     formatter = LogFormatter(colors=False)
 
     # Set
