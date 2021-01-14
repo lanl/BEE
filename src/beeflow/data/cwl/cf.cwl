@@ -21,7 +21,7 @@ steps:
       inputs:
         infile:
           type: File
-          default: lorem.txt
+          default: src/beeflow/data/lorem.txt
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
