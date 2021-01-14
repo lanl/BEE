@@ -296,21 +296,6 @@ def create_pid_file(proc, pid_file, bc):
     with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 
-#def setup_logging(bc, logfile='beeflow.log'):
-#    """
-#    Setup logging. Add default values to the config if not found. Return None on
-#    error and the log otherwise.
-#    """
-#    default = bc.userconfig['DEFAULT']
-#    bee_workdir = default.get('bee_workdir', '')
-#    logdir = os.path.join(bee_workdir, 'logs')
-#    # Make the logdir if it doesn't exist already
-#    os.makedirs(logdir, exist_ok=True)
-#    path = os.path.join(bee_workdir, logdir)
-#    path = os.path.join(path, logfile)
-#    bee_logging.save_log(log, path)
-#    return
-
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__,
@@ -357,7 +342,7 @@ def main():
     if args.workload_scheduler:
         bc.modify_section('user', 'task_manager', {'workload_scheduler':args.workload_scheduler} )
     # Setup logging based on args.debug
-    bee_logging.save_log(bc, log, logfile='beeflow.log')
+    _ = bee_logging.save_log(bc, log, logfile='beeflow.log')
     if log is None:
         # Something went wrong
         return 1

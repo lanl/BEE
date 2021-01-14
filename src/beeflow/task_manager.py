@@ -8,7 +8,6 @@ import atexit
 import sys
 import os
 import platform
-import logging
 import jsonpickle
 import requests
 import types
@@ -18,6 +17,8 @@ from flask_restful import Resource, Api, reqparse
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
 
 if (len(sys.argv) > 2):
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -56,9 +57,7 @@ else:
 
 # Check task_manager and container_runtime sections of user configuration file
 tm_dict = {}
-tm_log = f"{bc.userconfig['DEFAULT'].get('bee_workdir')}/logs/tm.log"
 tm_default = {'listen_port': TM_PORT,
-              'log': tm_log,
               'container_runtime': 'Charliecloud'}
 if bc.userconfig.has_section('task_manager'):
     # Insert defaults for any options not in task_manager section of userconfig file
@@ -255,27 +254,19 @@ api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
-    # Get the parameter for logging
-    try:
-        bc.userconfig.get('task_manager', 'log')
-    except NoOptionError:
-        tm_log = {'log': f'/{bc.userconfig["DEFAULT"].get("bee_workdir")}/logs/tm.log'}
-        bc.modify_section('user', 'task_manager', tm_log)
-    finally:
-        tm_log = bc.userconfig.get('task_manager', 'log')
-        tm_log = bc.resolve_path(tm_log)
-    print('tm_listen_port:', tm_listen_port)
-    print('container_runtime', bc.userconfig.get('task_manager', 'container_runtime'))
+    handler = bee_logging.save_log(bc, log, logfile='task_manager.log')
+    log.info('tm_listen_port:', tm_listen_port)
+    log.info('container_runtime', bc.userconfig.get('task_manager', 'container_runtime'))
 
-    handler = logging.FileHandler(tm_log)
-    handler.setLevel(logging.DEBUG)
+#    handler = logging.FileHandler(tm_log)
+#    handler.setLevel(logging.DEBUG)
 
     # Werkzeug logging
-    werk_log = logging.getLogger('werkzeug')
-    werk_log.setLevel(logging.INFO)
-    werk_log.addHandler(handler)
-
-    # Flask logging
+#    werk_log = logging.getLogger('werkzeug')
+#    werk_log.setLevel(logging.INFO)
+#    werk_log.addHandler(handler)
+#
+#    # Flask logging
     flask_app.logger.addHandler(handler)
     flask_app.run(debug=True, port=str(tm_listen_port))
 # Ignore TODO comments

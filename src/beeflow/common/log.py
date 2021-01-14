@@ -150,3 +150,4 @@ def save_log(bc, log, logfile):
     # Set
     handler.setFormatter(formatter)
     log.addHandler(handler)
+    return handler
