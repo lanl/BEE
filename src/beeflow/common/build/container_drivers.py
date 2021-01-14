@@ -8,7 +8,7 @@ import os
 import tempfile
 import shutil
 import subprocess
-from common.config.config_driver import BeeConfig
+from common.config_driver import BeeConfig
 # from common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 
 

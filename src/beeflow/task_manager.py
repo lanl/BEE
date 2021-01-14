@@ -17,7 +17,7 @@ from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from beeflow.common.config.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig
 
 if (len(sys.argv) > 2):
     bc = BeeConfig(userconfig=sys.argv[1])
