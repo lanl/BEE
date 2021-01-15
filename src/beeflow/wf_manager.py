@@ -1,11 +1,12 @@
 """Server launch script."""
 import os
 import sys
-import platform
 import logging
+import platform
 import configparser
 import jsonpickle
 import requests
+import types
 import cwl_utils.parser_v1_0 as cwl
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
@@ -16,7 +17,8 @@ from werkzeug.datastructures import FileStorage
 import common.parser.parse_clamr as parser
 from common.wf_interface import WorkflowInterface
 from common.config_driver import BeeConfig
-import types
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
 
 if (len(sys.argv) > 2):
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -427,24 +429,12 @@ api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
 
 if __name__ == '__main__':
-    # Get the paramater for logging
-    try:
-        bc.userconfig.get('workflow_manager', 'log')
-    except configparser.NoOptionError:
-        bc.modify_section('user', 'workflow_manager',
-                          {'log': '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                            'logs', 'wfm.log'])})
-    finally:
-        wfm_log = bc.userconfig.get('workflow_manager', 'log')
-        wfm_log = bc.resolve_path(wfm_log)
-
     # Setup the Scheduler
     setup_scheduler()
 
     print('wfm_listen_port:', wfm_listen_port)
 
-    handler = logging.FileHandler(wfm_log)
-    handler.setLevel(logging.DEBUG)
+    handler = bee_logging.save_log(bc, log, logfile='wf_manager.log')
 
     # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')

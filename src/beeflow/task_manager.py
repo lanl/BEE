@@ -19,6 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
+import logging
 
 if (len(sys.argv) > 2):
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -255,18 +256,16 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
     handler = bee_logging.save_log(bc, log, logfile='task_manager.log')
-    log.info('tm_listen_port:', tm_listen_port)
-    log.info('container_runtime', bc.userconfig.get('task_manager', 'container_runtime'))
-
-#    handler = logging.FileHandler(tm_log)
-#    handler.setLevel(logging.DEBUG)
+    log.info(f'tm_listen_port:{tm_listen_port}')
+    container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
+    log.info(f'container_runtime:{container_runtime}')
 
     # Werkzeug logging
-#    werk_log = logging.getLogger('werkzeug')
-#    werk_log.setLevel(logging.INFO)
-#    werk_log.addHandler(handler)
-#
-#    # Flask logging
+    werk_log = logging.getLogger('werkzeug')
+    werk_log.setLevel(logging.INFO)
+    werk_log.addHandler(handler)
+
+    # Flask logging
     flask_app.logger.addHandler(handler)
     flask_app.run(debug=True, port=str(tm_listen_port))
 # Ignore TODO comments

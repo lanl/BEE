@@ -23,10 +23,13 @@ from configparser import NoOptionError
 import beeflow.common.log as bee_logging
 from beeflow.common.config_driver import BeeConfig
 
-log = bee_logging.setup_logging()
+log = bee_logging.setup_logging(level='DEBUG')
+restd_log = bee_logging.setup_logging(level='DEBUG') 
+gdb_log = bee_logging.setup_logging(level='DEBUG')
 
 def StartGDB(bc, args):
     """Start the graph database. Returns a Popen process object."""
+    gdb_handler = bee_logging.save_log(bc, gdb_log, logfile='gdb_launch.log')
     # Load gdb config from config file if exists
     try:
         bc.userconfig['graphdb']
@@ -50,7 +53,7 @@ def StartGDB(bc, args):
     if args.config_only:
        return None
     if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
-        log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
+        gdb_log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
         return None
 
     # Setup subprocess output
@@ -69,16 +72,15 @@ def StartGDB(bc, args):
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
     if args.debug:
-        log.info("GraphDB container mount directory " + container_dir + " created")
+        gdb_log.info("GraphDB container mount directory " + container_dir + " created")
 
     try:
         cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
-        log.error("ch-tar2dir failed")
-        print("ch-tar2dir failed", file=sys.stderr)
+        gdb_log.error("ch-tar2dir failed")
         shutil.rmtree(container_dir)
         if args.debug:
-            log.error("GraphDB container mount directory " + container_dir + " removed")
+            gdb_log.error("GraphDB container mount directory " + container_dir + " removed")
         return None
 
     newdir = os.path.split(container_dir)[1]
@@ -88,7 +90,7 @@ def StartGDB(bc, args):
     container_certs_path = os.path.join(container_path, 'var/lib/neo4j/certificates')
     os.makedirs(container_certs_path, exist_ok=True)
     if args.debug:
-        log.info('Created certificates directory %s', container_certs_path)
+        gdb_log.info('Created certificates directory %s', container_certs_path)
     # Setup working path data
     gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'),
                                newdir)
@@ -96,7 +98,7 @@ def StartGDB(bc, args):
     os.makedirs(gdb_config_path, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
     if args.debug:
-        log.info(gdb_configfile)
+        gdb_log.info(gdb_configfile)
 
     cfile = open(gdb_configfile, "rt")
     data = cfile.read()
@@ -136,7 +138,7 @@ def StartGDB(bc, args):
             str(db_password)
         ], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
-        log.error("neo4j-admin set-initial-password failed")
+        gdb_log.error("neo4j-admin set-initial-password failed")
         print("neo4j-admin set-initial-password failed", file=sys.stderr)
         return None
 
@@ -160,8 +162,7 @@ def StartGDB(bc, args):
             "start",
         ], stdout=stdout, stderr=stderr)
     except FileNotFoundError as e:
-        log.error("neo4j failed to start.")
-        print("neo4j failed to start.", file=sys.stderr)
+        gdb_log.error("neo4j failed to start.")
         return None
 
     return proc
@@ -170,6 +171,8 @@ def StartGDB(bc, args):
 def StartSlurmRestD(bc, args):
     """Start BEESlurmRestD. Returns a Popen process object."""
 
+    restd_handler = bee_logging.save_log(bc, restd_log, logfile='restd.log')
+    slurmrestd_log = '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'logs','restd.log']) 
     # Load gdb config from config file if exists
     try:
         bc.userconfig['slurmrestd']
@@ -286,7 +289,7 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(['python', 'scheduler/scheduler.py',
+    return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
@@ -342,7 +345,7 @@ def main():
     if args.workload_scheduler:
         bc.modify_section('user', 'task_manager', {'workload_scheduler':args.workload_scheduler} )
     # Setup logging based on args.debug
-    _ = bee_logging.save_log(bc, log, logfile='beeflow.log')
+    handler = bee_logging.save_log(bc, log, logfile='beeflow.log')
     if log is None:
         # Something went wrong
         return 1
