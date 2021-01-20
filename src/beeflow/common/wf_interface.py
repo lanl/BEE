@@ -3,8 +3,8 @@
 Delegates its work to a GraphDatabaseInterface instance.
 """
 
-from common.gdb_interface import GraphDatabaseInterface
-from common.wf_data import Task, Requirement
+from beeflow.common.gdb_interface import GraphDatabaseInterface
+from beeflow.common.wf_data import Task, Requirement
 
 
 class WorkflowInterface:

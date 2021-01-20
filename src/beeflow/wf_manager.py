@@ -14,9 +14,9 @@ from flask_restful import Resource, Api, reqparse
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
-import common.parser.parse_clamr as parser
-from common.wf_interface import WorkflowInterface
-from common.config_driver import BeeConfig
+import beeflow.common.parser.parse_clamr as parser
+from beeflow.common.wf_interface import WorkflowInterface
+from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
