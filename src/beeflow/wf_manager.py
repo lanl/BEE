@@ -2,7 +2,6 @@
 import os
 import sys
 import logging
-import platform
 import configparser
 import jsonpickle
 import requests
@@ -20,30 +19,21 @@ from common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
-if (len(sys.argv) > 2):
+if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
 
-# Set Workflow manager ports, attempt to prevent collisions
-WM_PORT = 5000
-
-if platform.system() == 'Windows':
-    # Get parent's pid to offset ports. uid method better but not available in Windows
-    WM_PORT += os.getppid() % 100
-else:
-    WM_PORT += os.getuid() % 100
-
 if bc.userconfig.has_section('workflow_manager'):
     # Try getting listen port from config if exists, use WM_PORT if it doesnt exist
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', WM_PORT)
-    print(f"wfm_listen_port {wfm_listen_port}")
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', bc.default_wfm_port)
+    log.info(f"wfm_listen_port {wfm_listen_port}")
 else:
-    print("[workflow_manager] section not found in configuration file, default values\
+    log.info("[workflow_manager] section not found in configuration file, default values\
  will be added")
 
     wfm_dict = {
-        'listen_port': WM_PORT,
+        'listen_port': bc.default_wfm_port,
     }
 
     bc.modify_section('user', 'workflow_manager', wfm_dict)
@@ -51,25 +41,20 @@ else:
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart WorkflowManager")
 
 if bc.userconfig.has_section('task_manager'):
-    # Try getting listen port from config if exists, use 5050 if it doesnt exist
-    TM_LISTEN_PORT = bc.userconfig['task_manager'].get('listen_port', '5050')
+    # Try getting listen port from config if exists, use default if it doesnt exist
+    TM_LISTEN_PORT = bc.userconfig['task_manager'].get('listen_port', bc.default_tm_port)
 else:
-    print("[task_manager] section not found in configuration file, default values will be used")
+    log.info("[task_manager] section not found in configuration file, default values will be used")
     # Set Workflow manager ports, attempt to prevent collisions
-    TM_LISTEN_PORT = 5050
-    if platform.system() == 'Windows':
-        # Get parent's pid to offset ports. uid method better but not available in Windows
-        TM_LISTEN_PORT += os.getppid() % 100
-    else:
-        TM_LISTEN_PORT += os.getuid() % 100
+    TM_LISTEN_PORT = bc.default_tm_port
 
 if bc.userconfig.has_section('scheduler'):
     # Try getting listen port from config if exists, use 5050 if it doesnt exist
-    SCHED_LISTEN_PORT = bc.userconfig['scheduler'].get('listen_port', '5050')
+    SCHED_LISTEN_PORT = bc.userconfig['scheduler'].get('listen_port', bc.default_sched_port)
 else:
-    print("[scheduler] section not found in configuration file, default values will be used")
+    log.info("[scheduler] section not found in configuration file, default values will be used")
     # Set Workflow manager ports, attempt to prevent collisions
-    SCHED_LISTEN_PORT = 5054
+    SCHED_LISTEN_PORT = bc.default_sched_port
     if platform.system() == 'Windows':
         # Get parent's pid to offset ports. uid method better but not available in Windows
         SCHED_LISTEN_PORT += os.getppid() % 100
@@ -144,7 +129,7 @@ def validate_wf_id(func):
     def wrapper(*args, **kwargs):
         wf_id = int(kwargs['wf_id'])
         if wf_id != 42:
-            print(f'Wrong workflow id. Set to {wf_id}, but should be 42')
+            log.info(f'Wrong workflow id. Set to {wf_id}, but should be 42')
             resp = make_response(jsonify(status='wf_id not found'), 404)
             return resp
         return func(*args, **kwargs)
@@ -223,22 +208,22 @@ def submit_task_tm(task):
     # Serialize task with json
     task_json = jsonpickle.encode(task)
     # Send task_msg to task manager
-    print(f"Submitted {task.name} to Task Manager")
+    log.info(f"Submitted {task.name} to Task Manager")
     resp = requests.post(_resource('tm', "submit/"), json={'task': task_json})
     if resp.status_code != 200:
-        print(f"Submit task to TM returned bad status: {resp.status_code}")
+        log.info(f"Submit task to TM returned bad status: {resp.status_code}")
 
 
 # Submit a list of tasks to the Scheduler
 def submit_tasks_scheduler(sched_tasks):
     """Submit a list of tasks to the scheduler."""
     tasks_json = jsonpickle.encode(sched_tasks)
-    print(f"Submitted {sched_tasks} to Scheduler")
+    log.info(f"Submitted {sched_tasks} to Scheduler")
     # The workflow name will eventually be added to the wfi workflow object
-    print(_resource('sched', "workflows/workflow/jobs"))
+    log.info(_resource('sched', "workflows/workflow/jobs"))
     resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
     if resp.status_code != 200:
-        print(f"Something bad happened {resp.status_code}")
+        log.info(f"Something bad happened {resp.status_code}")
     return resp.json()
 
 
@@ -248,7 +233,7 @@ def setup_scheduler():
     nodes = 32
 
     data = rm.get()
-    print(data)
+    log.info(data)
 
     resources = [
             {
@@ -257,10 +242,10 @@ def setup_scheduler():
             }
     ]
 
-    print(_resource('sched', "resources/"))
+    log.info(_resource('sched', "resources/"))
     #resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
     resp = requests.put(_resource('sched', "resources"), json=resources)
-    print(resp.json())
+    log.info(resp.json())
 
 
 # Used to tell if the workflow is currently paused
@@ -273,7 +258,7 @@ SAVED_TASK = None
 def save_task(task):
     """Save a task."""
     global SAVED_TASK
-    print(f"Saving {task.name}")
+    log.info(f"Saving {task.name}")
     SAVED_TASK = task
 
 
@@ -321,7 +306,7 @@ class JobActions(Resource):
         sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
         allocation = submit_tasks_scheduler(sched_tasks)
-        print(f"Scheduler says {allocation}")
+        log.info(f"Scheduler says {allocation}")
         # Submit task to TM
         submit_task_tm(tasks[0])
         #resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
@@ -336,7 +321,7 @@ class JobActions(Resource):
         for task in tasks:
             if task.name != "bee_init" and task.name != "bee_exit":
                 task_status += f"{task.name}--{wfi.get_task_state(task)}\n"
-        print("Returned query")
+        log.info("Returned query")
         resp = make_response(jsonify(msg=task_status, status='ok'), 200)
         return resp
 
@@ -346,11 +331,11 @@ class JobActions(Resource):
         """Send a request to the task manager to cancel any ongoing tasks."""
         resp = requests.delete(_resource('tm'))
         if resp.status_code != 200:
-            print(f"Delete from task manager returned bad status: {resp.status_code}")
+            log.info(f"Delete from task manager returned bad status: {resp.status_code}")
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()
-        print("Workflow cancelled")
+        log.info("Workflow cancelled")
         resp = make_response(jsonify(status='cancelled'), 202)
         return resp
 
@@ -363,17 +348,17 @@ class JobActions(Resource):
         option = data['option']
         if option == 'pause':
             WORKFLOW_PAUSED = True
-            print("Workflow Paused")
+            log.info("Workflow Paused")
             resp = make_response(jsonify(status='Workflow Paused'), 200)
             return resp
         if option == 'resume':
             if WORKFLOW_PAUSED:
                 WORKFLOW_PAUSED = False
                 resume()
-            print("Workflow Resumed")
+            log.info("Workflow Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)
             return resp
-        print("Invalid option")
+        log.error("Invalid option")
         resp = make_response(jsonify(status='Invalid option for pause/resume'), 400)
         return resp
 
@@ -412,12 +397,12 @@ class JobUpdate(Resource):
                 else:
                     sched_tasks = tasks_to_sched(remaining_tasks)
                     if len(remaining_tasks) == 0:
-                        print("Workflow Completed")
+                        log.info("Workflow Completed")
                     else:
                         submit_tasks_scheduler(sched_tasks)
                         submit_task_tm(tasks[0])
             else:
-                print("Workflow Completed!")
+                log.info("Workflow Completed!")
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
 
@@ -432,7 +417,7 @@ if __name__ == '__main__':
     # Setup the Scheduler
     setup_scheduler()
 
-    print('wfm_listen_port:', wfm_listen_port)
+    log.info('wfm_listen_port:', wfm_listen_port)
 
     handler = bee_logging.save_log(bc, log, logfile='wf_manager.log')
 
