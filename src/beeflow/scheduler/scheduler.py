@@ -13,7 +13,8 @@ import beeflow.scheduler.algorithms as algorithms
 import beeflow.scheduler.task as task
 import beeflow.scheduler.resource_allocation as resource_allocation
 from beeflow.common.config_driver import BeeConfig
-
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -136,8 +137,8 @@ def load_config_values():
             for key in bc.userconfig['scheduler']:
                 conf[key] = bc.userconfig['scheduler'].get(key)
         else:
-            print('[scheduler] section not found in configuration file, '
-                  'default values will be added')
+            log.info('[scheduler] section not found in configuration file, '
+                    'default values will be added')
             bc.modify_section('user', 'scheduler', conf)
             sys.exit(f'Please check {bc.userconfig_file} and restart '
                      'Scheduler')
@@ -160,31 +161,28 @@ def load_config_values():
             conf['alloc_logfile'] = ALLOC_LOGFILE
 
     conf = argparse.Namespace(**conf)
-    print('Config = [')
-    print(f'\tlisten_port = {conf.listen_port}')
-    print(f'\tuse_mars = {conf.use_mars}')
-    print(f'\tmars_model = {conf.mars_model}')
-    print(f'\tmars_task_cnt = {conf.mars_task_cnt}')
-    print(f'\talloc_logfile = {conf.alloc_logfile}')
-    print(f'\talgorithm = {conf.algorithm}')
-    print(f'\tdefault_algorithm = {conf.default_algorithm}')
-    print(f'\tworkdir = {conf.workdir}')
-    print(']')
-    return conf
+    log.info('Config = [')
+    log.info(f'\tlisten_port = {conf.listen_port}')
+    log.info(f'\tuse_mars = {conf.use_mars}')
+    log.info(f'\tmars_model = {conf.mars_model}')
+    log.info(f'\tmars_task_cnt = {conf.mars_task_cnt}')
+    log.info(f'\talloc_logfile = {conf.alloc_logfile}')
+    log.info(f'\talgorithm = {conf.algorithm}')
+    log.info(f'\tdefault_algorithm = {conf.default_algorithm}')
+    log.info(f'\tworkdir = {conf.workdir}')
+    log.info(']')
+    return conf, bc
 
 
 if __name__ == '__main__':
-    print('Scheduler first line')
-    CONF = load_config_values()
+    CONF, bc = load_config_values()
+    handler = bee_logging.save_log(bc, log, logfile='sched.log')
     flask_app.sched_conf = CONF
     # Load algorithm data
     algorithms.load(**vars(CONF))
 
     # Create the scheduler workdir, if necessary
     os.makedirs(CONF.workdir, exist_ok=True)
-
-    handler = logging.FileHandler(CONF.log)
-    handler.setLevel(logging.DEBUG)
 
     # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
@@ -194,7 +192,6 @@ if __name__ == '__main__':
     # Flask logging
     flask_app.logger.addHandler(handler) # noqa
     flask_app.run(debug=True, port=CONF.listen_port)
-    print('Scheduler last line')
 
 # Ignore todo's or pylama fails
 # pylama:ignore=W0511

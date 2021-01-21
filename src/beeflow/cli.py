@@ -11,7 +11,6 @@ will be started.
 
 import argparse
 import getpass
-import logging
 import os
 import shutil
 import subprocess
@@ -21,28 +20,26 @@ import time
 import platform
 from subprocess import PIPE
 from configparser import NoOptionError
+import beeflow.common.log as bee_logging
 from beeflow.common.config_driver import BeeConfig
 
-BEESTART = os.path.splitext(__file__)[0]
+log = bee_logging.setup_logging(level='DEBUG')
+restd_log = bee_logging.setup_logging(level='DEBUG') 
+gdb_log = bee_logging.setup_logging(level='DEBUG')
 
 def StartGDB(bc, args):
     """Start the graph database. Returns a Popen process object."""
-    log = logging.getLogger(BEESTART)
+    gdb_handler = bee_logging.save_log(bc, gdb_log, logfile='gdb_launch.log')
     # Load gdb config from config file if exists
     try:
         bc.userconfig['graphdb']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
         graphdb_dict = {
             'hostname': 'localhost',
             'dbpass': 'password',
-            'bolt_port': 7687+offset,
-            'http_port': 7474+offset,
-            'https_port': 7473+offset,
+            'bolt_port': bc.default_bolt_port,
+            'http_port': bc.default_http_port,
+            'https_port': bc.default_https_port ,
             'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
             'gdb_image_mntdir': '/tmp',
         }
@@ -51,7 +48,7 @@ def StartGDB(bc, args):
     if args.config_only:
        return None
     if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
-        log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
+        gdb_log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
         return None
 
     # Setup subprocess output
@@ -70,16 +67,15 @@ def StartGDB(bc, args):
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
     if args.debug:
-        log.info("GraphDB container mount directory " + container_dir + " created")
+        gdb_log.info("GraphDB container mount directory " + container_dir + " created")
 
     try:
         cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
-        log.error("ch-tar2dir failed")
-        print("ch-tar2dir failed", file=sys.stderr)
+        gdb_log.error("ch-tar2dir failed")
         shutil.rmtree(container_dir)
         if args.debug:
-            log.error("GraphDB container mount directory " + container_dir + " removed")
+            gdb_log.error("GraphDB container mount directory " + container_dir + " removed")
         return None
 
     newdir = os.path.split(container_dir)[1]
@@ -89,7 +85,7 @@ def StartGDB(bc, args):
     container_certs_path = os.path.join(container_path, 'var/lib/neo4j/certificates')
     os.makedirs(container_certs_path, exist_ok=True)
     if args.debug:
-        log.info('Created certificates directory %s', container_certs_path)
+        gdb_log.info('Created certificates directory %s', container_certs_path)
     # Setup working path data
     gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'),
                                newdir)
@@ -97,7 +93,7 @@ def StartGDB(bc, args):
     os.makedirs(gdb_config_path, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
     if args.debug:
-        log.info(gdb_configfile)
+        gdb_log.info(gdb_configfile)
 
     cfile = open(gdb_configfile, "rt")
     data = cfile.read()
@@ -137,7 +133,7 @@ def StartGDB(bc, args):
             str(db_password)
         ], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
-        log.error("neo4j-admin set-initial-password failed")
+        gdb_log.error("neo4j-admin set-initial-password failed")
         print("neo4j-admin set-initial-password failed", file=sys.stderr)
         return None
 
@@ -161,8 +157,7 @@ def StartGDB(bc, args):
             "start",
         ], stdout=stdout, stderr=stderr)
     except FileNotFoundError as e:
-        log.error("neo4j failed to start.")
-        print("neo4j failed to start.", file=sys.stderr)
+        gdb_log.error("neo4j failed to start.")
         return None
 
     return proc
@@ -171,7 +166,8 @@ def StartGDB(bc, args):
 def StartSlurmRestD(bc, args):
     """Start BEESlurmRestD. Returns a Popen process object."""
 
-    log = logging.getLogger(BEESTART)
+    restd_handler = bee_logging.save_log(bc, restd_log, logfile='restd.log')
+    slurmrestd_log = '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'logs','restd.log']) 
     # Load gdb config from config file if exists
     try:
         bc.userconfig['slurmrestd']
@@ -182,22 +178,12 @@ def StartSlurmRestD(bc, args):
         else:
             offset = os.getuid()%100
         restd_dict = {
-            'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(os.getlogin(), 100 + offset),
+            'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(os.getlogin(), 100 + bc.offset),
         }
         # Add section (writes to config file)
         bc.modify_section('user','slurmrestd',restd_dict)
     if args.config_only:
         return None
-    # Try accessing the log path from config file, create if not there
-    # Perhaps better to do this when adding default slurm socket path?
-    try:
-        bc.userconfig.get('slurmrestd','log')
-    except NoOptionError:
-        bc.modify_section('user','slurmrestd',
-                          {'log':'/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                           'logs', 'slurmrestd.log'])})
-    finally:
-        slurmrestd_log = bc.userconfig.get('slurmrestd','log')
     slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
     subprocess.Popen(['rm','-f',slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
@@ -211,13 +197,8 @@ def StartWorkflowManager(bc, args):
     try:
         bc.userconfig['workflow_manager']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
         wfm_dict = {
-            'listen_port': 5000 + offset,
+            'listen_port': bc.default_wfm_port,
         }
         # Add section (writes to config file)
         bc.modify_section('user','workflow_manager',wfm_dict)
@@ -240,24 +221,20 @@ def StartTaskManager(bc, args):
     try:
         bc.userconfig['task_manager']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
         if args.job_template:
             job_template = args.job_template
         tm_dict = {
-            'listen_port': 5050 + offset,
+            'listen_port': bc.default_tm_port,
             'container_runtime': 'Charliecloud'
         }
         # Add section (writes to config file)
         bc.modify_section('user','task_manager',tm_dict)
-        return None
     finally:
         if args.job_template:
             tm_dict= {'job_template': args.job_template}
             bc.modify_section('user','task_manager',tm_dict)
+    if args.config_only:
+        return None
 
     # Either use the userconfig file argument specified to BEEStart,
     # or assume the default path to ~/.config/beeflow/bee.conf.
@@ -279,16 +256,11 @@ def StartScheduler(bc, args):
     try:
         bc.userconfig['scheduler']
     except KeyError:
-        if platform.system() == 'Windows':
-            # Would prefer something like a uid for windows.
-            offset = os.getppid()%100
-        else:
-            offset = os.getuid()%100
-        wfm_dict = {
-            'listen_port': 5100 + offset,
+        sched_dict = {
+            'listen_port': bc.default_sched_port
         }
         # Add section (writes to config file)
-        bc.modify_section('user','scheduler',wfm_dict)
+        bc.modify_section('user','scheduler',sched_dict)
 
     if args.config_only:
         return None
@@ -298,7 +270,7 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(['python', 'scheduler/scheduler.py',
+    return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
@@ -307,28 +279,6 @@ def create_pid_file(proc, pid_file, bc):
     os.makedirs(bc.userconfig.get('DEFAULT','bee_workdir'), exist_ok=True)
     with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
-
-def setup_logging(bc, debug=False):
-    """
-    Setup logging. Add default values to the config if not found. Return None on
-    error and the log otherwise.
-    """
-    if debug:
-        # Output everything to the console
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        default = bc.userconfig['DEFAULT']
-        bee_workdir = default.get('bee_workdir', '')
-        logdir = default.get('logdir', os.path.join(bee_workdir, 'logs'))
-        # Make the logdir if it doesn't exist already
-        os.makedirs(logdir, exist_ok=True)
-        logfile = default.get('logfile', 'bee.log')
-        path = os.path.join(bee_workdir, logdir) if logdir else bee_workdir
-        path = os.path.join(path, logfile)
-        # Turn on the default stream handler so we print to a file and stderr
-        logging.getLogger().addHandler(logging.StreamHandler())
-        logging.basicConfig(filename=path)
-    return logging.getLogger(BEESTART)
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
@@ -374,10 +324,9 @@ def main():
         bc.modify_section('user', 'DEFAULT', {'bee_workdir':bc.resolve_path(args.bee_workdir)} )
     # If workload_scheduler argument exists, over-write
     if args.workload_scheduler:
-        bc.modify_section('user', 'DEFAULT', {'workload_scheduler':args.workload_scheduler} )
-
+        bc.modify_section('user', 'task_manager', {'workload_scheduler':args.workload_scheduler} )
     # Setup logging based on args.debug
-    log = setup_logging(bc, args.debug)
+    handler = bee_logging.save_log(bc, log, logfile='beeflow.log')
     if log is None:
         # Something went wrong
         return 1

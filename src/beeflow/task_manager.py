@@ -6,20 +6,19 @@ Communicates status to the Work Flow Manager, through RESTful API.
 import configparser
 import atexit
 import sys
-import os
-import platform
-import logging
 import jsonpickle
 import requests
-import types
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
+import logging
 
-if (len(sys.argv) > 2):
+if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
@@ -36,7 +35,6 @@ def check_crt_config(container_runtime):
             cc_opts = {'setup': 'module load charliecloud',
                        'image_mntdir': '/tmp',
                        'chrun_opts': '--cd /home/$USER'
-
                        }
             bc.modify_section('user', 'charliecloud', cc_opts)
         else:
@@ -46,19 +44,9 @@ def check_crt_config(container_runtime):
                 bc.modify_section('user', 'charliecloud', {'image_mntdir': '/tmp'})
 
 
-# Set Task Manager default port, attempt to prevent collisions
-TM_PORT = 5050
-if platform.system() == 'Windows':
-    # Get parent's pid to offset ports. uid method better but not available in Windows
-    TM_PORT += os.getppid() % 100
-else:
-    TM_PORT += os.getuid() % 100
-
 # Check task_manager and container_runtime sections of user configuration file
 tm_dict = {}
-tm_log = f"{bc.userconfig['DEFAULT'].get('bee_workdir')}/logs/tm.log"
-tm_default = {'listen_port': TM_PORT,
-              'log': tm_log,
+tm_default = {'listen_port': bc.default_tm_port,
               'container_runtime': 'Charliecloud'}
 if bc.userconfig.has_section('task_manager'):
     # Insert defaults for any options not in task_manager section of userconfig file
@@ -73,7 +61,7 @@ if bc.userconfig.has_section('task_manager'):
     if UPDATE_CONFIG:
         bc.modify_section('user', 'task_manager', tm_dict)
 else:
-    tm_listen_port = TM_PORT
+    tm_listen_port =bc.default_tm_port 
     bc.modify_section('user', 'task_manager', tm_default)
     check_crt_config(tm_default['container_runtime'])
     sys.exit(f'[task_manager] section missing in {bc.userconfig_file}\n' +
@@ -83,14 +71,12 @@ check_crt_config(runtime)
 
 tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 
-# Check Workflow manager port
+# Check Workflow manager port, use default if none
 if bc.userconfig.has_section('workflow_manager'):
-    try:
-        bc.userconfig.get('workflow_manager', 'listen_port')
-    except NoOptionError:
-        sys.exit(f'[workflow_manager] missing listen_port in {bc.userconfig_file}')
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port',
+                                                            bc.default_wfm_port)
 else:
-    sys.exit(f'[workflow_manager] section missing in {bc.userconfig_file}')
+    wfm_listen_port = bc.default_wfm_port
 
 wfm_listen_port = bc.userconfig.get('workflow_manager', 'listen_port')
 
@@ -137,7 +123,7 @@ def submit_jobs():
                 print(f'{task.name} state: {job_state}')
             else:
                 # place job in queue to monitor and send initial state to WFM
-                print(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
+                log.step_info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
                 job_queue.append({task_id: {'name': task.name,
                                  'job_id': job_id, 'job_state': job_state}})
         # Send the initial state to WFM
@@ -153,7 +139,7 @@ def update_jobs():
         job_state = worker.query_task(job_id)
 
         if job_state != current_task['job_state']:
-            print(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
+            log.step_info(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
             current_task['job_state'] = job_state
             update_task_state(task_id, job_state)
         if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
@@ -255,20 +241,10 @@ api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
-    # Get the parameter for logging
-    try:
-        bc.userconfig.get('task_manager', 'log')
-    except NoOptionError:
-        tm_log = {'log': f'/{bc.userconfig["DEFAULT"].get("bee_workdir")}/logs/tm.log'}
-        bc.modify_section('user', 'task_manager', tm_log)
-    finally:
-        tm_log = bc.userconfig.get('task_manager', 'log')
-        tm_log = bc.resolve_path(tm_log)
-    print('tm_listen_port:', tm_listen_port)
-    print('container_runtime', bc.userconfig.get('task_manager', 'container_runtime'))
-
-    handler = logging.FileHandler(tm_log)
-    handler.setLevel(logging.DEBUG)
+    handler = bee_logging.save_log(bc, log, logfile='task_manager.log')
+    log.info(f'tm_listen_port:{tm_listen_port}')
+    container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
+    log.info(f'container_runtime:{container_runtime}')
 
     # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
