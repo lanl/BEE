@@ -36,7 +36,7 @@ def test_submit_workflow(flask_client, mocker): # noqa
 
     wf_id = 42
 
-    files = {'workflow': open('cf.cwl', 'rb')}
+    files = {'workflow': open('beeflow/data/cwl/cf.cwl', 'rb')}
     response = flask_client.put('/bee_wfm/v1/jobs/submit/' + str(wf_id),
                                 data=files)
 

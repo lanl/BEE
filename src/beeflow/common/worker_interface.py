@@ -5,8 +5,8 @@ the abstract base class 'Worker'. Default: 'SlurmWorker' class.
 Worker may be a configuration value in the future.
 """
 
-from common.worker.slurm_worker import SlurmWorker
-from common.worker.lsf_worker import LSFWorker
+from beeflow.common.worker.slurm_worker import SlurmWorker
+from beeflow.common.worker.lsf_worker import LSFWorker
 
 
 class WorkerInterface:

@@ -123,7 +123,7 @@ def submit_jobs():
                 print(f'{task.name} state: {job_state}')
             else:
                 # place job in queue to monitor and send initial state to WFM
-                print(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
+                log.step_info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
                 job_queue.append({task_id: {'name': task.name,
                                  'job_id': job_id, 'job_state': job_state}})
         # Send the initial state to WFM
@@ -139,7 +139,7 @@ def update_jobs():
         job_state = worker.query_task(job_id)
 
         if job_state != current_task['job_state']:
-            print(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
+            log.step_info(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
             current_task['job_state'] = job_state
             update_task_state(task_id, job_state)
         if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
