@@ -1,7 +1,6 @@
 """Server launch script."""
 import os
 import sys
-import platform
 import logging
 import configparser
 import jsonpickle
@@ -16,63 +15,43 @@ from werkzeug.datastructures import FileStorage
 import beeflow.common.parser.parse_clamr as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config.config_driver import BeeConfig
-import types
 
-if (len(sys.argv) > 2):
+if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
-
 # Set Workflow manager ports, attempt to prevent collisions
-WM_PORT = 5000
-
-if platform.system() == 'Windows':
-    # Get parent's pid to offset ports. uid method better but not available in Windows
-    WM_PORT += os.getppid() % 100
-else:
-    WM_PORT += os.getuid() % 100
 
 if bc.userconfig.has_section('workflow_manager'):
     # Try getting listen port from config if exists, use WM_PORT if it doesnt exist
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', WM_PORT)
+    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', bc.default_wfm_port)
     print(f"wfm_listen_port {wfm_listen_port}")
 else:
     print("[workflow_manager] section not found in configuration file, default values\
  will be added")
 
     wfm_dict = {
-        'listen_port': WM_PORT,
+        'listen_port': bc.default_wfm_port,
     }
 
     bc.modify_section('user', 'workflow_manager', wfm_dict)
-
     sys.exit("Please check " + str(bc.userconfig_file) + " and restart WorkflowManager")
 
 if bc.userconfig.has_section('task_manager'):
-    # Try getting listen port from config if exists, use 5050 if it doesnt exist
-    TM_LISTEN_PORT = bc.userconfig['task_manager'].get('listen_port', '5050')
+    # Try getting listen port from config if exists, use default if it doesn't exist
+    TM_LISTEN_PORT = bc.userconfig['task_manager'].get('listen_port', bc.default_tm_port)
 else:
     print("[task_manager] section not found in configuration file, default values will be used")
     # Set Workflow manager ports, attempt to prevent collisions
-    TM_LISTEN_PORT = 5050
-    if platform.system() == 'Windows':
-        # Get parent's pid to offset ports. uid method better but not available in Windows
-        TM_LISTEN_PORT += os.getppid() % 100
-    else:
-        TM_LISTEN_PORT += os.getuid() % 100
+    TM_LISTEN_PORT = bc.default_tm_port
 
 if bc.userconfig.has_section('scheduler'):
     # Try getting listen port from config if exists, use 5050 if it doesnt exist
-    SCHED_LISTEN_PORT = bc.userconfig['scheduler'].get('listen_port', '5050')
+    SCHED_LISTEN_PORT = bc.userconfig['scheduler'].get('listen_port', bc.default_sched_port)
 else:
     print("[scheduler] section not found in configuration file, default values will be used")
     # Set Workflow manager ports, attempt to prevent collisions
-    SCHED_LISTEN_PORT = 5054
-    if platform.system() == 'Windows':
-        # Get parent's pid to offset ports. uid method better but not available in Windows
-        SCHED_LISTEN_PORT += os.getppid() % 100
-    else:
-        SCHED_LISTEN_PORT += os.getuid() % 100
+    SCHED_LISTEN_PORT = bc.default_sched_port
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
