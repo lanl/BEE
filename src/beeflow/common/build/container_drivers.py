@@ -8,8 +8,8 @@ import os
 import tempfile
 import shutil
 import subprocess
-from common.config_driver import BeeConfig
-# from common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
+from beeflow.common.config.config_driver import BeeConfig
+# from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 
 
 class ContainerBuildDriver(ABC):
