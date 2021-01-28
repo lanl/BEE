@@ -22,7 +22,7 @@ import sys
 import argparse
 import uuid
 import cwl_utils.parser_v1_0 as cwl
-from common.wf_interface import WorkflowInterface
+from beeflow.common.wf_interface import WorkflowInterface
 
 
 

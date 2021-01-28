@@ -55,7 +55,7 @@ activities later in this document.
 
 At this point, Neo4j is not yet running, but from within this shell (in the
 `neo4j` container we just started with `docker run`) you can start/stop the
-database, execute the Cypher shell, and export/import databases:
+database, execute the Cypher shell, and export/import beeflow.databases:
 
 ```sh
 bash-4.4$ neo4j start

@@ -5,10 +5,10 @@ import unittest
 import os
 import string
 
-from common.data.wf_data import Task
-from common.worker.worker_interface import WorkerInterface
-from common.worker.slurm_worker import SlurmWorker
-from common.worker.slurm_worker import submit_job
+from beeflow.common.data.wf_data import Task
+from beeflow.common.worker.worker_interface import WorkerInterface
+from beeflow.common.worker.slurm_worker import SlurmWorker
+from beeflow.common.worker.slurm_worker import submit_job
 
 
 class TestSlurmWorker(unittest.TestCase):
