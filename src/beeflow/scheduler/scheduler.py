@@ -192,6 +192,9 @@ if __name__ == '__main__':
     # Flask logging
     flask_app.logger.addHandler(handler) # noqa
     flask_app.run(debug=True, port=CONF.listen_port)
+else:
+    CONF, bc = load_config_values()
+    flask_app.sched_conf = CONF
 
 # Ignore todo's or pylama fails
 # pylama:ignore=W0511

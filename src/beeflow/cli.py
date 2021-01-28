@@ -14,6 +14,7 @@ import getpass
 import os
 import shutil
 import subprocess
+import string
 import sys
 import tempfile
 import time
@@ -26,6 +27,7 @@ from beeflow.common.config_driver import BeeConfig
 log = bee_logging.setup_logging(level='DEBUG')
 restd_log = bee_logging.setup_logging(level='DEBUG') 
 gdb_log = bee_logging.setup_logging(level='DEBUG')
+nginx_log = bee_logging.setup_logging(level='DEBUG')
 
 def StartGDB(bc, args):
     """Start the graph database. Returns a Popen process object."""
@@ -47,6 +49,7 @@ def StartGDB(bc, args):
         bc.modify_section('user','graphdb',graphdb_dict)
     if args.config_only:
        return None
+
     if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
         gdb_log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
         return None
@@ -162,6 +165,7 @@ def StartGDB(bc, args):
 
     return proc
 
+
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
 def StartSlurmRestD(bc, args):
     """Start BEESlurmRestD. Returns a Popen process object."""
@@ -206,9 +210,15 @@ def StartWorkflowManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/wf_manager.py',
+    use_wsgi = bc.userconfig.get('DEFAULT','use_wsgi')
+    if use_wsgi == "True":
+        proc = subprocess.Popen(['uwsgi', '--ini', 'beeflow/data/uwsgi_configs/wf_manager.ini'],
+                            stdout=PIPE, stderr=PIPE)
+    else:
+        proc = subprocess.Popen(["python", 'beeflow/wf_manager.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+    return proc 
 
 def StartTaskManager(bc, args):
     """Start BEETaskManager. Returns a Popen process object."""
@@ -237,9 +247,15 @@ def StartTaskManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", 'beeflow/task_manager.py',
+    use_wsgi = bc.userconfig.get('DEFAULT','use_wsgi')
+    if use_wsgi == "True":
+        proc = subprocess.Popen(['uwsgi', '--ini', 'beeflow/data/uwsgi_configs/task_manager.ini'],
+                            stdout=PIPE, stderr=PIPE)
+    else:
+        proc = subprocess.Popen(["python", 'beeflow/task_manager.py',
                             userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+    return proc
 
 def StartScheduler(bc, args):
     """Start BEEScheduler.
@@ -265,9 +281,88 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
+    use_wsgi = bc.userconfig.get('DEFAULT','use_wsgi')
+    if use_wsgi == "True":
+        proc = subprocess.Popen(['uwsgi', '--ini', 'beeflow/data/uwsgi_configs/scheduler.ini'],
+                            stdout=PIPE, stderr=PIPE)
+    else:
+        proc = subprocess.Popen(['python', 'beeflow/scheduler/scheduler.py',
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+    return proc
+
+def StartNginx(bc, args):
+    """Start the nginx server. Returns a Popen process object."""
+    nginx_handler = bee_logging.save_log(bc, nginx_log, logfile='nginx_launch.log')
+    try:
+        bc.userconfig['nginx']
+    except KeyError:
+        nginx_dict = {
+            'nginx_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
+            'nginx_image_mntdir': '/tmp',
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','graphdb',graphdb_dict)
+    
+    if args.config_only:
+        return None
+
+    if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
+        nginx_log.error("ch-tar2dir or ch-run not found. Charliecloud required for nginx container.")
+        return None
+
+    # Setup subprocess output
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+    wfm_port = bc.userconfig['workflow_manager']['listen_port']
+    tm_port = bc.userconfig['task_manager']['listen_port']
+    sched_port  = bc.userconfig['scheduler']['listen_port']
+    options = { 'wfm_listen_port': wfm_port, 'tm_listen_port': tm_port,
+                'sched_listen_port': sched_port, 'user': getpass.getuser()}
+    tm_port = bc.userconfig['task_manager']['listen_port']
+    nginx_img     = bc.userconfig.get('nginx','nginx_image')
+    nginx_img_mntdir = bc.userconfig.get('nginx','nginx_image_mntdir')
+
+    # Create Nginx config based on config template
+    with open('beeflow/data/nginx_config_template/bee.ini.in', 'r') as f_in:
+        input_config = string.Template(f_in.read())
+        output_config = input_config.substitute(options)
+        with open('beeflow/data/nginx_config/bee.ini', 'w') as f_out:
+            f_out.write(output_config)
+
+    container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="nginx_", dir=str(nginx_img_mntdir))
+    if args.debug:
+        nginx_log.info("Nginx container mount directory " + container_dir + " created")
+
+    try:
+        cp = subprocess.run(["ch-tar2dir",str(nginx_img), str(container_dir)], stdout=stdout, stderr=stderr, check=True)
+    except subprocess.CalledProcessError as cp:
+        nginx_log.error("ch-tar2dir failed")
+        shutil.rmtree(container_dir)
+        if args.debug:
+            nginx_log.error("Nginx container mount directory " + container_dir + " removed")
+        return None
+
+    container_path = container_dir + "/" + os.listdir(str(container_dir))[0]
+    print(container_path)
+    try:
+        proc = subprocess.Popen([
+            "ch-run",
+            container_path,
+            "-g", "0",
+            "-u" "0",
+            "-w",
+            "-b","beeflow/data/nginx_config/" + ":/etc/nginx/sites-available",
+            "-b","beeflow/data/nginx_config/" + ":/etc/nginx/sites-enabled",
+            "--",
+            "service","nginx","start"
+        ], stdout=stdout, stderr=stderr)
+    except FileNotFoundError as e:
+        gdb_log.error("nginx failed to start.")
+        return None
+
+
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
@@ -285,6 +380,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
     parser.add_argument("--gdb", action="store_true", help="start the configured graph database")
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
+    parser.add_argument("--nginx", action="store_true", help="start NginX")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--sched", action="store_true", help="start the BEEScheduler")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
@@ -298,8 +394,8 @@ def parse_args(args=sys.argv[1:]):
 
 def main():
     args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.gdb, args.restd, args.sched]) or all([args.wfm, args.tm, args.gdb, args.restd, args.sched])
-    if args.debug and not (sum([args.wfm, args.tm, args.gdb, args.restd, args.sched]) == 1):
+    start_all = not any([args.wfm, args.tm, args.nginx, args.gdb, args.restd, args.sched]) or all([args.wfm, args.tm, args.nginx, args.gdb, args.restd, args.sched])
+    if args.debug and not (sum([args.wfm, args.nginx, args.tm, args.gdb, args.restd, args.sched]) == 1):
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
@@ -379,6 +475,16 @@ def main():
             create_pid_file(proc, 'tm.pid', bc)
             wait_list.append(('Task Manager', proc))
             log.info('Loading Task Manager')
+    if args.nginx or start_all:
+        proc = StartNginx(bc, args)
+        if not args.config_only:
+            if proc is None:
+                log.error('NGINX failed to start. Exiting.')
+                return 1
+            create_pid_file(proc, 'nginx.pid', bc)
+            wait_list.append(('NGINX', proc))
+            log.info('Loading NGINX')
+
     if args.config_only:
         return 0
 
