@@ -3,7 +3,7 @@
 import json
 import os
 import tensorflow as tf
-import scheduler.mars_util as mars_util
+import beeflow.scheduler.mars_util as mars_util
 
 
 def _get_action(x, total_avail):
