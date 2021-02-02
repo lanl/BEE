@@ -20,7 +20,7 @@ def scheduler():
     """
     # Setup
     proc = subprocess.Popen([
-        'python', 'beeflow/scheduler/scheduler.py',
+        'python', '-m', 'beeflow.scheduler.scheduler',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
         '--log', '/tmp/sched.log',
