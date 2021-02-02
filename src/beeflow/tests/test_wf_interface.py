@@ -6,7 +6,7 @@
 
 import unittest
 
-from common.wf_interface import WorkflowInterface
+from beeflow.common.wf_interface import WorkflowInterface
 
 
 class TestWorkflowInterface(unittest.TestCase):

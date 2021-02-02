@@ -6,10 +6,10 @@ The build_interface will access components of the build_driver and
 components of the gdb_interface as required.
 """
 
-# from common.gdb.gdb_interface import GraphDatabaseInterface
-# from common.build.container_drivers import CharliecloudBuildDriver,
+# from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
+# from beeflow.common.build.container_drivers import CharliecloudBuildDriver,
 #                                                    SingularityBuildDriver
-from common.build.container_drivers import CharliecloudBuildDriver
+from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 
 
 class BuildInterfaceTM:

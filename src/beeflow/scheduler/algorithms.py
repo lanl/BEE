@@ -186,7 +186,7 @@ class MARS(Algorithm):
         :type mars_model: str
         """
         # Only import the mars module if necessary
-        import scheduler.mars as mars
+        import beeflow.scheduler.mars as mars
         MARS.mod = mars
         MARS.actor, MARS.critic = mars.load_models(mars_model)
 

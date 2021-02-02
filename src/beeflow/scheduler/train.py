@@ -7,10 +7,10 @@ import numpy as np
 import tensorflow as tf
 import json
 
-import scheduler.mars as mars
-import scheduler.mars_util as mars_util
-import scheduler.evaluate as evaluate
-import scheduler.task as task
+import beeflow.scheduler.mars as mars
+import beeflow.scheduler.mars_util as mars_util
+import beeflow.scheduler.evaluate as evaluate
+import beeflow.scheduler.task as task
 
 
 if __name__ == '__main__':

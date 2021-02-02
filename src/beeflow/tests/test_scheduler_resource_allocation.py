@@ -1,7 +1,7 @@
 """Test the resource_allocation submodule of BEE.
 
 """
-import scheduler.resource_allocation as resource_allocation
+import beeflow.scheduler.resource_allocation as resource_allocation
 import json
 
 
