@@ -59,3 +59,5 @@ def test_simple_worker_submit_task_wait_complete():
         time.sleep(1)
         state = worker.query_task(id_)
     assert state == 'COMPLETED'
+
+# TODO: Add tests for container runtimes

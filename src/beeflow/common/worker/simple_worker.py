@@ -18,7 +18,6 @@ class SimpleWorker(worker.Worker):
         :param task: instance of Task
         :rtype tuple (int, string)
         """
-        # TODO
         proc = subprocess.Popen(task.command.split())
         self.tasks[task.id] = proc
         return (task.id, 'PENDING')
@@ -30,7 +29,6 @@ class SimpleWorker(worker.Worker):
         :type job_id: integer
         :rtype string
         """
-        # TODO
         self.tasks[job_id].kill()
         return 'CANCELLED'
 
@@ -42,6 +40,7 @@ class SimpleWorker(worker.Worker):
         :rtype string
         """
         rc = self.tasks[job_id].poll()
+        # This assumes a standard returncode
         if rc is None:
             return 'RUNNING'
         elif rc == 0:

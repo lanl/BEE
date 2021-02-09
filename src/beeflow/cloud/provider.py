@@ -23,7 +23,6 @@ class MockNode:
 
     def __init__(self, ram_per_vcpu, vcpu_per_node, ext_ip):
         """Mock node constructor."""
-        # TODO
         self.ram_per_vcpu = ram_per_vcpu
         self.vcpu_per_node = vcpu_per_node
         self.ext_ip = ext_ip
@@ -42,23 +41,8 @@ class MockProvider(Provider):
 
     def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip):
         """Create a node."""
-        # TODO
         return MockNode(ram_per_vcpu, vcpu_per_node, ext_ip)
 
     def wait(self):
         """Wait for complete setup."""
         # TODO
-
-
-providers = {
-    'Mock': MockProvider,  # Provider to be used for testing
-}
-
-
-def get_provider(name, **kwargs):
-    """Return a Provider object for the given provider."""
-    if name in providers:
-        return providers[name](**kwargs)
-
-    raise RuntimeError('Invalid provider "%s"' % name)
-    # TODO

@@ -6,6 +6,11 @@ import beeflow.cloud as cloud
 PROVIDER = 'Mock'
 
 
+def test_cloud_bee_user():
+    """Test for the cloud user."""
+    assert cloud.BEE_USER == 'bee'
+
+
 def test_cloud_one_node():
     """Test cloud set up with a single node."""
     provider = cloud.get_provider(PROVIDER)
