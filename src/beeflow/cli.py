@@ -256,9 +256,9 @@ def StartScheduler(bc, args):
         }
         # Add section (writes to config file)
         bc.modify_section('user','scheduler',sched_dict)
-
     if args.config_only:
         return None
+
     # Either use the userconfig file argument specified to BEEStart,
     # or assume the default path to ~/.config/beeflow/bee.conf.
     if args.userconfig_file:
@@ -268,6 +268,31 @@ def StartScheduler(bc, args):
     return subprocess.Popen(["python", "-m", "beeflow.scheduler.scheduler",
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
+
+def StartCloudLauncher(bc, args):
+    """Start the BEE Cloud Launcher.
+
+    Start the BEE Cloud Launcher and return the process object.
+    :rtype: instance of Popen
+    """
+    try:
+        bc.userconfig['cloud']
+    except KeyError:
+        cloud_dict = {
+            'node_count': 1,
+            'provider': 'Google',
+        }
+        bc.modify_section('user', 'cloud', cloud_dict)
+
+    if args.config_only:
+        return None
+    # Either use the userconfig file argument specified to BEEStart,
+    # or assume the default path to ~/.config/beeflow/bee.conf.
+    if args.userconfig_file:
+        userconfig_file = args.userconfig_file
+    else:
+        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
+    return subprocess.Popen(["python", "-m", "beeflow.cloud_launcher", userconfig_file], stdout=PIPE, stderr=PIPE)
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""

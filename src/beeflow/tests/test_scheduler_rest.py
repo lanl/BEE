@@ -43,7 +43,7 @@ def scheduler_mars_simple():
     """
     # Setup
     proc = subprocess.Popen([
-        'python', 'beeflow/scheduler/scheduler.py',
+        'python', '-m', 'beeflow.scheduler.scheduler',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
         '--log', '/tmp/sched.log',
@@ -67,7 +67,7 @@ def scheduler_mars():
     """
     # Setup
     proc = subprocess.Popen([
-        'python', 'beeflow/scheduler/scheduler.py',
+        'python', '-m', 'beeflow.scheduler.scheduler',
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
         '--log', '/tmp/sched.log',
