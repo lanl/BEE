@@ -3,7 +3,7 @@ import abc
 
 
 class Provider(abc.ABC):
-    """Cloud Provider Class."""
+    """Provider Abstract Base Class."""
 
     @abc.abstractmethod
     def __init__(self):
@@ -16,6 +16,18 @@ class Provider(abc.ABC):
     @abc.abstractmethod
     def wait(self):
         """Wait for complete setup."""
+
+
+class ProviderNode(abc.ABC):
+    """Provider Node Abstract Base Class."""
+
+    @abc.abstractmethod
+    def __init__(self):
+        """Provider node constructor."""
+
+    @abc.abstractmethod
+    def get_ext_ip(self):
+        """Get external IP address."""
 
 
 class MockNode:

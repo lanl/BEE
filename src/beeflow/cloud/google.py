@@ -1,8 +1,9 @@
 """Google provider code."""
 import base64
 import googleapiclient.discovery
+import time
 
-import beeflow.clouse.provider as provider
+import beeflow.cloud.provider as provider
 
 
 PREFIX = 'googlenode'
@@ -80,14 +81,35 @@ class GoogleProvider(provider.Provider):
                                            body=config).execute()
 
         time.sleep(2)
-        instance = self._api.instance().get(instance=name,
+        instance = self._api.instances().get(instance=name,
                                             project=self._project,
                                             zone=self._zone).execute()
 
         self._nodes[name] = instance
-
-        return instance
+        return GoogleNode(name, zone=self._zone, project=self._project,
+                          api=self._api)
 
     def wait(self):
         """Wait for complete setup."""
         # TODO
+
+
+class GoogleNode(provider.ProviderNode):
+    """Google node class."""
+
+    def __init__(self, name, zone, project, api):
+        """Google node constructor."""
+        self.name = name
+        self._zone = zone
+        self._project = project
+        self._api = api
+
+    def get_ext_ip(self):
+        """Get the external IP of this node (or None if no IP)."""
+        res = self._api.instances().get(instance=self.name,
+                                        project=self._project,
+                                        zone=self._zone).execute()
+        try:
+            return res['networkInterfaces'][0]['accessConfigs'][0]['natIP']
+        except:
+            return None

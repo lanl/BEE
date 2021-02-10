@@ -312,6 +312,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--sched", action="store_true", help="start the BEEScheduler")
+    parser.add_argument("--cloud", action="store_true", help="start the Cloud Launcher")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
     parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
     parser.add_argument("--job-template", help="specify path of job template.")
@@ -323,8 +324,8 @@ def parse_args(args=sys.argv[1:]):
 
 def main():
     args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.gdb, args.restd, args.sched]) or all([args.wfm, args.tm, args.gdb, args.restd, args.sched])
-    if args.debug and not (sum([args.wfm, args.tm, args.gdb, args.restd, args.sched]) == 1):
+    start_all = not any([args.wfm, args.tm, args.gdb, args.restd, args.sched, args.cloud]) or all([args.wfm, args.tm, args.gdb, args.restd, args.sched, args.cloud])
+    if args.debug and not (sum([args.wfm, args.tm, args.gdb, args.restd, args.sched, args.cloud]) == 1):
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
@@ -404,6 +405,15 @@ def main():
             create_pid_file(proc, 'tm.pid', bc)
             wait_list.append(('Task Manager', proc))
             log.info('Loading Task Manager')
+    if args.cloud or start_all:
+        proc = StartCloudLauncher(bc, args)
+        if not args.config_only:
+            if proc is None:
+                log.error('Cloud Launcher failed to start. Exiting.')
+                return 1
+            create_pid_file(proc, 'cloud.pid', bc)
+            wait_list.append(('Cloud Launcher', proc))
+            log.info('Loading Cloud Launcher')
     if args.config_only:
         return 0
 
