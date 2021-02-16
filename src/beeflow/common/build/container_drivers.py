@@ -199,12 +199,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow/'+ch_build_addr)
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-image/'+ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Provably out of excuses. Pull the image.
-        cmd = (f'ch-grow pull {addr}\n'
+        cmd = (f'ch-image pull {addr}\n'
                f'ch-builder2tar {ch_build_addr} {self.build_dir}'
                )
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
@@ -305,12 +305,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-grow/'+ch_build_addr)
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-image/'+ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Provably out of excuses. Pull the image.
-        cmd = (f'ch-grow build -t {task_imageid} -f {tmp_dockerfile} {tmp_dir}\n'
+        cmd = (f'ch-image build -t {task_imageid} -f {tmp_dockerfile} {tmp_dir}\n'
                f'ch-builder2tar {ch_build_addr} {self.build_dir}'
                )
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
