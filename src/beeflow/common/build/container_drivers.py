@@ -181,6 +181,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
         # If no image specified and no image required, nothing to do.
         if not req_addr and not addr:
+            log.info('No image specified and no image required, nothing to do.')
             return 0
 
         # DetermVine name for successful build target
