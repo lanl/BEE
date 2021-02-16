@@ -10,6 +10,8 @@ import shutil
 import subprocess
 from beeflow.common.config.config_driver import BeeConfig
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
 
 
 class ContainerBuildDriver(ABC):
@@ -44,23 +46,24 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             bc = BeeConfig(userconfig=userconf_file)
         else:
             bc = BeeConfig()
+        handler = bee_logging.save_log(bc, log, logfile='CharliecloudBuildDriver.log')
         # Store build tarballs relative to bee_workdir.
         try:
             if bc.userconfig['DEFAULT'].get('bee_workdir'):
                 build_dir = '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
                                      'build_cache'])
             else:
-                print('Invalid config file. bee_workdir not found in DEFAULT.')
-                print('Assuming bee_workdir is ~/.beeflow')
+                log.error('Invalid config file. bee_workdir not found in DEFAULT.')
+                log.error('Assuming bee_workdir is ~/.beeflow')
                 build_dir = '~/.beeflow/build_cache'
         except KeyError:
-            print('Invalid config file. DEFAULT section missing.')
-            print('Assuming bee_workdir is ~/.beeflow')
+            log.error('Invalid config file. DEFAULT section missing.')
+            log.error('Assuming bee_workdir is ~/.beeflow')
             build_dir = '~/.beeflow/build_cache'
         finally:
             self.build_dir = bc.resolve_path(build_dir)
             os.makedirs(self.build_dir, exist_ok=True)
-            print('Build cache directory is:', self.build_dir)
+            log.info('Build cache directory is:', self.build_dir)
         # Deploy build tarballs relative to /var/tmp/username/beeflow by default
         try:
             if bc.userconfig['builder'].get('deployed_image_root'):
@@ -70,27 +73,27 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 # Make sure path is absolute
                 deployed_image_root = bc.resolve_path(deployed_image_root)
             else:
-                print('Deployed image root not found.')
+                log.info('Deployed image root not found.')
                 deployed_image_root = '/'.join(['/var/tmp', os.getlogin(), 'beeflow'])
                 # Make sure conf_file path exists
                 os.makedirs(deployed_image_root, exist_ok=True)
                 # Make sure path is absolute
                 deployed_image_root = bc.resolve_path(deployed_image_root)
-                print(f'Assuming deployed image root is {deployed_image_root}')
+                log.info(f'Assuming deployed image root is {deployed_image_root}')
         except KeyError:
-            print('Config file is missing builder section.')
+            log.info('Config file is missing builder section.')
             deployed_image_root = '/'.join(['/var/tmp', os.getlogin(), 'beeflow'])
             # Make sure conf_file path exists
             os.makedirs(deployed_image_root, exist_ok=True)
             # Make sure path is absolute
             deployed_image_root = bc.resolve_path(deployed_image_root)
-            print(f'Assuming deployed image root is {deployed_image_root}')
+            log.info(f'Assuming deployed image root is {deployed_image_root}')
             bc.modify_section('user', 'builder', {'deployed_image_root': deployed_image_root})
-            print("Wrote deployed image root to user BeeConfig file.")
+            log.info("Wrote deployed image root to user BeeConfig file.")
         finally:
             self.deployed_image_root = deployed_image_root
             os.makedirs(self.deployed_image_root, exist_ok=True)
-            print('Deployed image root directory is:', self.deployed_image_root)
+            log.info('Deployed image root directory is:', self.deployed_image_root)
         # Set container-relative output directory based on BeeConfig, or use '/'
         try:
             container_output_path = bc.userconfig['builder'].get('container_output_path')
@@ -100,12 +103,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 raise KeyError
         except KeyError:
             container_output_path = '/'
-            print(f'Assuming container-relative output path is {container_output_path}')
+            log.info(f'Assuming container-relative output path is {container_output_path}')
             bc.modify_section('user', 'builder', {'container_output_path': container_output_path})
-            print('Wrote container-relative output path to user BeeConfig file.')
+            log.info('Wrote container-relative output path to user BeeConfig file.')
         finally:
             self.container_output_path = container_output_path
-            print('Container-relative output path is:', self.container_output_path)
+            log.info('Container-relative output path is:', self.container_output_path)
         self.task = task
         self.docker_image_id = None
 
@@ -116,7 +119,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         both BeeConfig and CWL files may have options required for
         the build service. Parse and store them.
         """
-        print('Charliecloud, parse_build_config:', self, '.')
+        log.info('Charliecloud, parse_build_config:', self, '.')
 
     def validate_build_config(self):
         """Ensure valid config.
@@ -124,21 +127,21 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         Parse bc_options to ensure BeeConfig options are compatible
         with CWL specs.
         """
-        print('Charliecloud, validate_build_config:', self, '.')
+        log.info('Charliecloud, validate_build_config:', self, '.')
 
     def build(self):
         """Build RTE as configured.
 
         Build the RTE based on a validated configuration.
         """
-        print('Charliecloud, validate_build_config:', self, '.')
+        log.info('Charliecloud, validate_build_config:', self, '.')
 
     def validate_build(self):
         """Validate RTE.
 
         Confirm build procedure completed successfully.
         """
-        print('Charliecloud, validate_build:', self, '.')
+        log.info('Charliecloud, validate_build:', self, '.')
 
     def dockerPull(self, addr=None, force=False):
         """CWL compliant dockerPull.
@@ -174,7 +177,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # If Requirement is set but not specified, and param empty, do nothing and error.
         if self.task.requirements == {} and not addr:
-            print("ERROR: dockerPull set but no image path specified.")
+            log.error("dockerPull set but no image path specified.")
             return 1
         # If no image specified and no image required, nothing to do.
         if not req_addr and not addr:
@@ -218,10 +221,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             # Task Requirements are not mandatory. No dockerload specified in task reqs.
             req_dockerload = None
 
-        print('Charliecloud does not have the concept of a layered image tarball.')
-        print('Did you mean to use dockerImport?')
+        log.error('Charliecloud does not have the concept of a layered image tarball.')
+        log.error('Did you mean to use dockerImport?')
         if req_dockerload:
-            print('ERROR: dockerLoad specified as requirement.')
+            log.error('dockerLoad specified as requirement.')
             return 1
         return 0
 
@@ -252,7 +255,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             task_imageid = hint_imageid
 
         if not task_imageid:
-            print("ERROR: dockerFile may not be specified without dockerImageId")
+            log.error("dockerFile may not be specified without dockerImageId")
             return 1
 
         # Need dockerfile in order to build, else fail
@@ -276,7 +279,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             task_dockerfile = hint_dockerfile
 
         if not task_dockerfile:
-            print("ERROR: dockerFile not specified as task attribute or parameter.")
+            log.error("dockerFile not specified as task attribute or parameter.")
             return 1
 
         # Create random directory to use as Dockerfile context
@@ -422,7 +425,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         :param bc_options: Dictionary of build system config options
         :type bc_options: set of build system parameters
         """
-        print('Singularity, initialize_builder:', self, requirements, hints, bc_options, '.')
+        log.info('Singularity, initialize_builder:', self, requirements, hints, bc_options, '.')
 
     def parse_build_config(self):
         """Parse bc_options to separate BeeConfig and CWL concerns.
@@ -431,7 +434,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         both BeeConfig and CWL files may have options required for
         the build service. Parse and store them.
         """
-        print('Singularity, parse_build_config:', self, '.')
+        log.info('Singularity, parse_build_config:', self, '.')
 
     def validate_build_config(self):
         """Ensure valid config.
@@ -439,21 +442,21 @@ class SingularityBuildDriver(ContainerBuildDriver):
         Parse bc_options to ensure BeeConfig options are compatible
         with CWL specs.
         """
-        print('Singularity, validate_build_config:', self, '.')
+        log.info('Singularity, validate_build_config:', self, '.')
 
     def build(self):
         """Build RTE as configured.
 
         Build the RTE based on a validated configuration.
         """
-        print('Singularity, validate_build_config:', self, '.')
+        log.info('Singularity, validate_build_config:', self, '.')
 
     def validate_build(self):
         """Validate RTE.
 
         Confirm build procedure completed successfully.
         """
-        print('Singularity, validate_build:', self, '.')
+        log.info('Singularity, validate_build:', self, '.')
 
     def dockerPull(self):
         """CWL compliant dockerPull.
