@@ -8,7 +8,7 @@ import os
 import tempfile
 import shutil
 import subprocess
-from beeflow.common.config.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
@@ -63,7 +63,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         finally:
             self.build_dir = bc.resolve_path(build_dir)
             os.makedirs(self.build_dir, exist_ok=True)
-            log.info('Build cache directory is:', self.build_dir)
+            log.info(f'Build cache directory is: {self.build_dir}')
         # Deploy build tarballs relative to /var/tmp/username/beeflow by default
         try:
             if bc.userconfig['builder'].get('deployed_image_root'):
@@ -93,7 +93,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         finally:
             self.deployed_image_root = deployed_image_root
             os.makedirs(self.deployed_image_root, exist_ok=True)
-            log.info('Deployed image root directory is:', self.deployed_image_root)
+            log.info(f'Deployed image root directory is: {self.deployed_image_root}')
         # Set container-relative output directory based on BeeConfig, or use '/'
         try:
             container_output_path = bc.userconfig['builder'].get('container_output_path')
@@ -108,7 +108,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.info('Wrote container-relative output path to user BeeConfig file.')
         finally:
             self.container_output_path = container_output_path
-            log.info('Container-relative output path is:', self.container_output_path)
+            log.info(f'Container-relative output path is: {self.container_output_path}')
         self.task = task
         self.docker_image_id = None
 
