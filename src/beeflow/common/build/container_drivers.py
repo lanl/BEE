@@ -191,6 +191,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Return if image already exist and force==False.
         if os.path.exists(ch_build_target) and not force:
             log.info('Image already exists. If you want to refresh container, use force option.')
+            log.info(f'Image path: {ch_build_target}')
             return 0
         # Force remove any cached images if force==True
         if os.path.exists(ch_build_target) and force:
