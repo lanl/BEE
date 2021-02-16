@@ -1,10 +1,9 @@
 
-BEE_USER = 'bee'
-
 import beeflow.cloud.google as google
 import beeflow.cloud.provider as provider
 
 from beeflow.cloud.cloud import Cloud
+from beeflow.cloud.constants import *
 
 
 providers = {

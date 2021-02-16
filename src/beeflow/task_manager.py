@@ -209,8 +209,9 @@ class TaskActions(Resource):
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.worker.lsf_worker import LSFWorker
+from beeflow.common.worker.simple_worker import SimpleWorker
 
-supported_workload_schedulers = {'Slurm', 'LSF'}
+supported_workload_schedulers = {'Slurm', 'LSF', 'Simple'}
 try:
     WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
 except ValueError as error:
@@ -235,6 +236,9 @@ elif WLS == 'LSF':
                                                                  'container_runtime'),
                              job_template=bc.userconfig.get('task_manager',
                                                             'job_template', fallback=None))
+elif WLS == 'Simple':
+    # TODO: Add configuration information
+    worker = WorkerInterface(SimpleWorker)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')

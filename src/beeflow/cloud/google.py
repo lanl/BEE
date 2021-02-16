@@ -4,6 +4,7 @@ import googleapiclient.discovery
 import time
 
 import beeflow.cloud.provider as provider
+import beeflow.cloud.constants as constants
 
 
 PREFIX = 'googlenode'
@@ -23,13 +24,10 @@ class GoogleProvider(provider.Provider):
         self._api = googleapiclient.discovery.build('compute', 'v1')
         self._nodes = {}
 
-    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip):
+    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script):
         """Create a node."""
         name = f'{PREFIX}-{len(self._nodes)}'
         assert name not in self._nodes
-
-        # TODO: Generate proper startup script
-        startup_script = '#!/bin/sh\n'
 
         # TODO: Set correct machine type
         machine_type = 'n1-standard-1'
@@ -91,7 +89,8 @@ class GoogleProvider(provider.Provider):
 
     def wait(self):
         """Wait for complete setup."""
-        # TODO
+        # Wait for two minutes -- this is arbitrary and should probably be user configurable
+        time.sleep(240)
 
 
 class GoogleNode(provider.ProviderNode):

@@ -10,7 +10,7 @@ class Provider(abc.ABC):
         """Cloud Provider default constructor."""
 
     @abc.abstractmethod
-    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip):
+    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script):
         """Create a node."""
 
     @abc.abstractmethod
@@ -51,7 +51,7 @@ class MockProvider(Provider):
         """Mock provider constructor."""
         # TODO
 
-    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip):
+    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script):
         """Create a node."""
         return MockNode(ram_per_vcpu, vcpu_per_node, ext_ip)
 
