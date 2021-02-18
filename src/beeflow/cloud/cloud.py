@@ -61,6 +61,8 @@ class Cloud:
                 './configure --prefix=/usr\n'
                 'make\n'
                 'make install\n'
+                '# Enable user+mount namespaces\n'
+                'sysctl kernel.unprivileged_userns_clone=1\n'
             )
         else:
             # Empty start up script

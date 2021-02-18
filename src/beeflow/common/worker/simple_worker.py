@@ -4,13 +4,28 @@
 import subprocess
 import beeflow.common.worker.worker as worker
 
+from beeflow.common.crt_interface import ContainerRuntimeInterface
+
+# Import all implemented container runtime drivers now
+# No error if they don't exist
+try:
+    from beeflow.common.crt.crt_drivers import CharliecloudDriver
+except ModuleNotFoundError:
+    pass
+try:
+    from beeflow.common.crt.crt_drivers import SingularityDriver
+except ModuleNotFoundError:
+    pass
+
 
 class SimpleWorker(worker.Worker):
-    """Worker interface for a generic workload manager."""
+    """The Worker interface for no workload manager."""
 
     def __init__(self):
         """Simple worker class."""
         self.tasks = {}
+        # Use Charliecloud for now
+        self.crt = ContainerRuntimeInterface(CharliecloudDriver)
 
     def submit_task(self, task):
         """Worker submits task; returns job_id, job_state.
@@ -18,8 +33,14 @@ class SimpleWorker(worker.Worker):
         :param task: instance of Task
         :rtype tuple (int, string)
         """
-        proc = subprocess.Popen(task.command.split())
-        self.tasks[task.id] = proc
+        # TODO: Run the script
+        # TODO: Container runtimes
+        # TODO: MPI jobs
+        # proc = subprocess.Popen(task.command.split())
+        script = self.crt.script_text(task)
+        # subprocess.Popen(['/bin/sh', task.command])
+        self.tasks[task.id] = subprocess.Popen(['/bin/sh', '-c', script])
+        # self.tasks[task.id] = proc
         return (task.id, 'PENDING')
 
     def cancel_task(self, job_id):
