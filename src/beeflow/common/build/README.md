@@ -46,7 +46,7 @@ A few examples to use for testing:
 ### dockerPull
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.data.wf_data import BuildTask
+from beeflow.common.wf_data import BuildTask
 task = BuildTask(name='hi',command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerPull':'git.lanl.gov:5050/qwofford/containerhub/lstopo'}},
                  subworkflow=None,
@@ -77,7 +77,7 @@ a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=True)
 ### dockerFile
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.data.wf_data import BuildTask
+from beeflow.common.wf_data import BuildTask
 task = BuildTask(name='hi',command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerFile':'FROM git.lanl.gov:5050/trandles/baseimages/centos:7\nCMD cat /etc/centos-release',
                                                     'dockerImageId':'my_fun_container:sillytag'}},
@@ -90,7 +90,7 @@ b.dockerFile()
 ### dockerImport
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.data.wf_data import BuildTask
+from beeflow.common.wf_data import BuildTask
 task = BuildTask(name='hi',command=['hi','hello'],
                  requirements={},
                  subworkflow=None,
@@ -126,7 +126,7 @@ a.dockerImport()
 ### dockerOutputDirectory
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.data.wf_data import BuildTask
+from beeflow.common.wf_data import BuildTask
 task = BuildTask(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
                  subworkflow=None,
@@ -147,7 +147,7 @@ a.dockerOutputDirectory()
 ### dockerLoad
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.data.wf_data import BuildTask
+from beeflow.common.wf_data import BuildTask
 task = BuildTask(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerLoad':'bogus path'}},
                  subworkflow=None,
@@ -173,7 +173,7 @@ a.dockerLoad()
 ### dockerImageId
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.data.wf_data import BuildTask
+from beeflow.common.wf_data import BuildTask
 task = BuildTask(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImageId':'my_imageid'}},
                  subworkflow=None,
