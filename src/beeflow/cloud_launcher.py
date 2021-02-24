@@ -15,25 +15,58 @@ from beeflow.common.config_driver import BeeConfig
 # TODO: Refactor this code
 
 # IDEA: 
-#
-# class CloudInfoError(Exception):
-#     """Error class raised by the CloudInfo class."""
-#
-#     def __init__(self, msg):
-#         """Cloud info error constructor."""
-#         self.msg = msg
-#
-# class CloudInfo:
-#     """This wraps a secondary set up file that stores conf information."""
-#
-#     def __init__(self, fname):
-#         """Cloud info constructor."""
-#     def save(self):
-#         """Save the Cloud Info file."""
-#     def set(self, key, value):
-#         """Set the value of a key."""
-#     def get(self, key):
-#         """Get the value of a key."""
+
+class CloudInfoError(Exception):
+    """Error class raised by the CloudInfo class."""
+
+    def __init__(self, msg):
+        """Cloud info error constructor."""
+        self.msg = msg
+
+
+class CloudInfo:
+    """This wraps a secondary set up file that stores conf information."""
+
+    def __init__(self, fname):
+        """Cloud info constructor."""
+        self._fname = fname
+        self._data = None
+
+    def save(self):
+        """Save the Cloud Info file."""
+        if self._data is None:
+            with open(self._fname, 'w') as fp:
+                json.dump(self._data, fp=fp, indent=4)
+
+    def set(self, key, value):
+        """Set the value of a key."""
+        self._load()
+        if key in self._data:
+            print('Overwriting CloudInfo key', key, file=sys.stderr)
+        self._data[key] = value
+
+    def get(self, key):
+        """Get the value of a key."""
+        self._load()
+        try:
+            return self._data[key]
+        except KeyError:
+            raise CloudInfoError('Missing data from the CloudInfo file. You may have skipped a step in the cloud setup')
+
+    def _load(self):
+        """Load data from the file."""
+        if self._data is None:
+            if os.path.exists(self._fname):
+                with open(self._fname) as fp:
+                    self._data = json.load(fp)
+            else:
+                self._data = {}
+
+class CloudLauncher:
+    """Cloud Launcher class."""
+    # TODO
+    pass
+
 
 def generate_private_key(keyfile):
     """Generate the SSH private key."""
@@ -61,9 +94,10 @@ def load_config():
 
     # TODO: Check for missing sections
     assert bc.userconfig.has_section('cloud')
+    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
     return {
         # Config file options
-        'bee_workdir': bc.userconfig.get('DEFAULT', 'bee_workdir'),
+        'bee_workdir': bee_workdir,
         # Cloud specific options
         'cloud_workdir': bc.userconfig.get('cloud', 'cloud_workdir'),
         'provider': bc.userconfig['cloud'].get('provider', 'Google'),
@@ -71,6 +105,8 @@ def load_config():
         'ram_per_vcpu': int(bc.userconfig['cloud'].get('ram_per_vcpu', '2')),
         'vcpu_per_node': int(bc.userconfig['cloud'].get('vcpu_per_node', '1')),
         'bee_user': bc.userconfig['cloud'].get('bee_user', 'bee'),
+        'key_file': bc.userconfig['cloud'].get('key_file',
+                                               os.path.join(bee_workdir, 'bee_key'))
         # Tarball containing the BEE code
         'bee_code': bc.userconfig['cloud'].get('bee_code'),
         # Ports
@@ -115,8 +151,6 @@ def install_tm(priv_key_file, ip_addr, bee_code, bee_user=cloud.BEE_USER, **kwar
     Returns the directory containing the BEE source code.
     :rtype string
     """
-    # user_ip = f'{cloud.BEE_USER}@{ip_addr}'
-    # opts = ['-i', priv_key_file, '-o', 'StrictHostKeyChecking=no']
     # Copy over the bee code
     scp(bee_user, ip_addr, priv_key_file, conf['bee_code'], '~/')
 
@@ -164,14 +198,19 @@ def install_tm(priv_key_file, ip_addr, bee_code, bee_user=cloud.BEE_USER, **kwar
 def run_tm(bee_user, ip_addr, priv_key_file, bee_srcdir):
     """Run the Task Manager."""
     # Now start the Task Manager
-    return subprocess.Popen([
+    tm_proc = subprocess.Popen([
         'ssh',
         '-i', priv_key_file,
         '-o', 'StrictHostKeyChecking=no',
+        '-o', 'ConnectTimeout=8',
         f'{bee_user}@{ip_addr}',
         # f'cd {dirname}; . ./venv/bin/activate; beeflow --tm --debug',
         f'cd {bee_srcdir}; . ./venv/bin/activate; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
     ])
+    time.sleep(10)
+    if tm_proc.poll() is not None:
+        raise RuntimeError('Failed to launch the Remote Task Manager')
+    return tm_proc
 
 
 def setup(conf, priv_key_file):
@@ -214,13 +253,10 @@ def setup(conf, priv_key_file):
 
 
 def connect(ip_addr, priv_key_file, tm_listen_port, wfm_listen_port, bee_user, **kwargs):
-    """Connect to the remote head node."""
-    # TODO
+    """Connect to the remote head node and wait."""
     # Open SSH Tunnel or VPN to the remote Task Manager
-    #tm_listen_port = conf['tm_listen_port']
-    #wfm_listen_port = conf['wfm_listen_port']
     print('Setting up SSH tunnel to head node')
-    tun_proc = subprocess.Popen([
+    tun_proc = subprocess.run([
         'ssh',
         f'{bee_user}@{ip_addr}',
         '-i', priv_key_file,
@@ -234,12 +270,6 @@ def connect(ip_addr, priv_key_file, tm_listen_port, wfm_listen_port, bee_user, *
         # Required in order to allow port forwarding
         '-o', 'UserKnownHostsFile=/dev/null',
     ])
-    time.sleep(2)
-    if tun_proc.poll() is not None:
-        raise RuntimeError('Could not set up SSH Connection')
-
-    # Wait on the SSH tunnel process
-    tun_proc.wait()
 
 
 # TODO: Use a more object oriented/encapsulated design here
@@ -248,72 +278,43 @@ def connect(ip_addr, priv_key_file, tm_listen_port, wfm_listen_port, bee_user, *
 if __name__ == '__main__':
     # Get configuration values
     conf = load_config()
-    # priv_key_file = os.path.join(conf['bee_workdir'], 'bee_key')
     # TODO: Remove this temporary hack
-    # priv_key_file = os.path.expanduser('~/bee/chameleon/chameleon-key')
+    """
+    priv_key_file = conf['key_file']
+    """
     priv_key_file = os.path.expanduser('~/bee/chameleon-bee-key.pem')
 
     # File to store temporary cloud information
-    cloud_info_file = os.path.join(conf['bee_workdir'], 'cloud-info.json')
-    ip_addr = None
-    bee_srcdir = None
-    if os.path.exists(cloud_info_file):
-        with open(cloud_info_file) as fp:
-            data = json.load(fp)
-            ip_addr = data['head_node_ip_addr']
-            bee_srcdir = data['bee_srcdir']
+    # cloud_info_file = os.path.join(conf['bee_workdir'], 'cloud-info.json')
+    info = CloudInfo(os.path.join(conf['bee_workdir'], 'cloud-info.json'))
 
     if conf['setup']:
         # Set up the cloud
         ip_addr = setup(**conf)
+        info.set('head_node_ip_addr', ip_addr)
+        info.save()
         # Write out new cloud information
-        with open(cloud_info_file, 'w') as fp:
-            json.dump({
-                'head_node_ip_addr': ip_addr,
-                'bee_srcdir': bee_srcdir,
-            }, fp=fp, indent=4)
         # TODO: Change the user to the one in the config file
         print(f'Cloud setup should be complete. You should check by logging into the remote head node ({cloud.BEE_USER}@{ip_addr}).')
 
     if conf['install_tm']:
         # Install the Task Manager
         # Copy over the BEE code and install it
-        bee_srcdir = install_tm(priv_key_file, ip_addr, **conf)
+        bee_srcdir = install_tm(priv_key_file, info.get('head_node_ip_addr'),
+                                **conf)
         # Write out cloud information
-        with open(cloud_info_file, 'w') as fp:
-            json.dump({
-                'head_node_ip_addr': ip_addr,
-                'bee_srcdir': bee_srcdir,
-            }, fp=fp, indent=4)
+        # info.set('head_node_ip_addr', ip_addr)
+        info.set('bee_srcdir', bee_srcdir)
+        info.save()
         print('Task Manager is now installed on the remote head node.')
-
-    # TODO: Better error checking
-    """
-    else:
-        # Cloud should already be set up, so get info from the cloud info file
-        try:
-            with open(cloud_info_file) as fp:
-                data = json.load(fp)
-        except FileNotFoundError:
-            print('Cloud info file is missing. You need to run setup before you can start the Task Manager',
-                  file=sys.stderr)
-            sys.exit(1)
-        ip_addr = data['head_node_ip_addr']
-        bee_srcdir = data['bee_srcdir']
-    """
 
     if conf['tm']:
         # Launch the task manager
         print('Launching the Remote Task Manager')
-        tm_proc = run_tm(conf['bee_user'], ip_addr, priv_key_file, bee_srcdir)
-
-        time.sleep(2)
-        if tm_proc.poll() is not None:
-            raise RuntimeError('Could not start Remote Task Manager')
-
+        tm_proc = run_tm(conf['bee_user'], info.get('head_node_ip_addr'), priv_key_file, info.get('bee_srcdir'))
         # Set up the connection
         try:
-            connect(ip_addr, priv_key_file, **conf)
+            connect(info.get('head_node_ip_addr'), priv_key_file, **conf)
         finally:
             print('Killing the task manager')
             tm_proc.kill()
