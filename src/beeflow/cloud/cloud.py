@@ -33,10 +33,11 @@ class Cloud:
     """Cloud Class."""
 
     def __init__(self, provider, priv_key_file=None, node_cnt=1,
-                 ram_per_vcpu=2, vcpu_per_node=4):
+                 ram_per_vcpu=2, vcpu_per_node=4, bee_user=constants.BEE_USER):
         """Cloud Class constructor."""
         self.provider = provider
         self.priv_key_file = priv_key_file
+        self.bee_user = bee_user
 
     def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip=None):
         """Create a node."""
@@ -48,11 +49,11 @@ class Cloud:
             # TODO: Generate proper startup script
             startup_script = (
                 '#!/bin/sh\n'
-                f'useradd -m -s /bin/bash {constants.BEE_USER}\n'
-                f'echo {constants.BEE_USER}:{constants.BEE_USER} | chpasswd\n'
-                f'echo "%{constants.BEE_USER} ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/{constants.BEE_USER}\n'
-                f'mkdir -p /home/{constants.BEE_USER}/.ssh\n'
-                f'echo {pubkey_data} | base64 -d > /home/{constants.BEE_USER}/.ssh/authorized_keys\n'
+                f'useradd -m -s /bin/bash {self.bee_user}\n'
+                f'echo {self.bee_user}:{self.bee_user} | chpasswd\n'
+                f'echo "%{self.bee_user} ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/{self.bee_user}\n'
+                f'mkdir -p /home/{self.bee_user}/.ssh\n'
+                f'echo {pubkey_data} | base64 -d > /home/{self.bee_user}/.ssh/authorized_keys\n'
                 'apt-get -y update\n'
                 'apt-get -y install python3 python3-venv python3-pip build-essential\n'
                 'curl -O -L https://github.com/hpc/charliecloud/releases/download/v0.22/charliecloud-0.22.tar.gz\n'
@@ -69,7 +70,8 @@ class Cloud:
             startup_script = '#!/bin/sh\n'
 
         pnode = self.provider.create_node(ram_per_vcpu, vcpu_per_node, ext_ip,
-                                          startup_script=startup_script)
+                                          startup_script=startup_script,
+                                          bee_user=self.bee_user)
                                           #keyfile=self.priv_key_file)
         return Node(pnode)
 

@@ -24,7 +24,8 @@ class GoogleProvider(provider.Provider):
         self._api = googleapiclient.discovery.build('compute', 'v1')
         self._nodes = {}
 
-    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script):
+    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script,
+                    bee_user):
         """Create a node."""
         name = f'{PREFIX}-{len(self._nodes)}'
         assert name not in self._nodes
@@ -90,7 +91,7 @@ class GoogleProvider(provider.Provider):
     def wait(self):
         """Wait for complete setup."""
         # Wait for two minutes -- this is arbitrary and should probably be user configurable
-        time.sleep(240)
+        time.sleep(100)
 
 
 class GoogleNode(provider.ProviderNode):

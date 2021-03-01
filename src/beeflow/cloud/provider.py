@@ -10,7 +10,8 @@ class Provider(abc.ABC):
         """Cloud Provider default constructor."""
 
     @abc.abstractmethod
-    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script):
+    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script,
+                    bee_user):
         """Create a node."""
 
     @abc.abstractmethod
@@ -33,11 +34,12 @@ class ProviderNode(abc.ABC):
 class MockNode:
     """Mock node class."""
 
-    def __init__(self, ram_per_vcpu, vcpu_per_node, ext_ip):
+    def __init__(self, ram_per_vcpu, vcpu_per_node, ext_ip, bee_user):
         """Mock node constructor."""
         self.ram_per_vcpu = ram_per_vcpu
         self.vcpu_per_node = vcpu_per_node
         self.ext_ip = ext_ip
+        self.bee_user = bee_user
 
     def get_ext_ip(self):
         """Get external IP address."""
@@ -51,9 +53,10 @@ class MockProvider(Provider):
         """Mock provider constructor."""
         # TODO
 
-    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script):
+    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script,
+                    bee_user):
         """Create a node."""
-        return MockNode(ram_per_vcpu, vcpu_per_node, ext_ip)
+        return MockNode(ram_per_vcpu, vcpu_per_node, ext_ip, bee_user)
 
     def wait(self):
         """Wait for complete setup."""

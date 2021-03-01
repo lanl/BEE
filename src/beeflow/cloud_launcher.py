@@ -24,6 +24,7 @@ class CloudInfoError(Exception):
         self.msg = msg
 
 
+# TODO: Add tests for CloudInfo
 class CloudInfo:
     """This wraps a secondary set up file that stores conf information."""
 
@@ -34,7 +35,7 @@ class CloudInfo:
 
     def save(self):
         """Save the Cloud Info file."""
-        if self._data is None:
+        if self._data is not None:
             with open(self._fname, 'w') as fp:
                 json.dump(self._data, fp=fp, indent=4)
 
@@ -61,6 +62,7 @@ class CloudInfo:
                     self._data = json.load(fp)
             else:
                 self._data = {}
+
 
 class CloudLauncher:
     """Cloud Launcher class."""
@@ -105,13 +107,17 @@ def load_config():
         'ram_per_vcpu': int(bc.userconfig['cloud'].get('ram_per_vcpu', '2')),
         'vcpu_per_node': int(bc.userconfig['cloud'].get('vcpu_per_node', '1')),
         'bee_user': bc.userconfig['cloud'].get('bee_user', 'bee'),
-        'key_file': bc.userconfig['cloud'].get('key_file',
-                                               os.path.join(bee_workdir, 'bee_key'))
+        'private_key_file': bc.userconfig['cloud'].get('private_key_file',
+                                               os.path.join(bee_workdir, 'bee_key')),
+        # TODO: Need to set up the cloud storage
+        'storage': bc.userconfig['cloud'].get('storage', None),
         # Tarball containing the BEE code
         'bee_code': bc.userconfig['cloud'].get('bee_code'),
         # Ports
-        'tm_listen_port': bc.userconfig['task_manager'].get('listen_port', bc.default_tm_port),
-        'wfm_listen_port': bc.userconfig['workflow_manager'].get('listen_port', bc.default_wfm_port),
+        'tm_listen_port': bc.userconfig['task_manager'].get('listen_port',
+                                                            bc.default_tm_port),
+        'wfm_listen_port': bc.userconfig['workflow_manager'].get('listen_port',
+                                                                 bc.default_wfm_port),
         # Command-line argument options
         'setup': args.setup,
         'install_tm': args.install_tm,
@@ -221,14 +227,14 @@ def setup(conf, priv_key_file):
     :rtype tuple (str, str)
     """
     provider = cloud.get_provider(conf['provider'])
+    bee_user = conf['bee_user']
 
     # Generate the private key if it doesn't exist yet
-    if (not os.path.exists(priv_key_file)
-            or not os.path.exists(f'{priv_key_file}.pub')):
+    if not os.path.exists(priv_key_file):
         generate_private_key(priv_key_file)
 
     # Set up the Cloud
-    c = cloud.Cloud(provider, priv_key_file=priv_key_file)
+    c = cloud.Cloud(provider, priv_key_file=priv_key_file, bee_user=bee_user)
 
     # Create the head node
     print('Creating head node')
@@ -244,12 +250,12 @@ def setup(conf, priv_key_file):
     # Wait for set up to complete
     print('Waiting for cloud setup...')
     c.wait()
-    ip_addr = head_node.get_ext_ip()
+    # ip_addr = head_node.get_ext_ip()
+    return head_node.get_ext_ip()
 
     # Copy over the BEE code and install it
-    bee_srcdir = install_tm(conf, priv_key_file, ip_addr)
-
-    return ip_addr, bee_srcdir
+    # bee_srcdir = install_tm(conf, priv_key_file, ip_addr)
+    # return ip_addr, bee_srcdir
 
 
 def connect(ip_addr, priv_key_file, tm_listen_port, wfm_listen_port, bee_user, **kwargs):
@@ -272,49 +278,62 @@ def connect(ip_addr, priv_key_file, tm_listen_port, wfm_listen_port, bee_user, *
     ])
 
 
+class CloudLauncher:
+    """Cloud launcher."""
+
+    def __init__(self, conf):
+        """Cloud launcher constructor."""
+        self._conf = conf
+        self._info = CloudInfo(os.path.join(conf['bee_workdir'],
+                                            'cloud-info.json'))
+        # TODO: Remove this temporary hack
+        # self._priv_key_file = os.path.expanduser('~/bee/chameleon-bee-key.pem')
+        # self._priv_key_file = os.path.expanduser('~/bee/bee_key')
+        self._priv_key_file = conf['private_key_file']
+
+    def setup(self):
+        """Set up the cloud."""
+        # Set up the cloud
+        ip_addr = setup(self._conf, self._priv_key_file)
+        self._info.set('head_node_ip_addr', ip_addr)
+        self._info.save()
+        # Write out new cloud information
+        # TODO: Change the user to the one in the config file
+        print(f'Cloud setup should be complete. You should check by logging into the remote head node ({self._conf["bee_user"]}@{ip_addr}).')
+
+    def install_tm(self):
+        """Install the Task Manager."""
+        # Install the Task Manager
+        # Copy over the BEE code and install it
+        bee_srcdir = install_tm(self._priv_key_file, self._info.get('head_node_ip_addr'),
+                                **self._conf)
+        # Write out cloud information
+        # info.set('head_node_ip_addr', ip_addr)
+        self._info.set('bee_srcdir', bee_srcdir)
+        self._info.save()
+        print('Task Manager is now installed on the remote head node.')
+
+    def tm(self):
+        """Start the Task Manager on the remote head node."""
+        print('Launching the Remote Task Manager')
+        tm_proc = run_tm(self._conf['bee_user'], self._info.get('head_node_ip_addr'), self._priv_key_file, self._info.get('bee_srcdir'))
+        # Set up the connection
+        try:
+            connect(self._info.get('head_node_ip_addr'), self._priv_key_file, **self._conf)
+        finally:
+            print('Killing the task manager')
+            tm_proc.kill()
+
+
 # TODO: Use a more object oriented/encapsulated design here
 
 # TODO: Add a general connect option to only connect to the remote head node without setup
 if __name__ == '__main__':
-    # Get configuration values
     conf = load_config()
-    # TODO: Remove this temporary hack
-    """
-    priv_key_file = conf['key_file']
-    """
-    priv_key_file = os.path.expanduser('~/bee/chameleon-bee-key.pem')
-
-    # File to store temporary cloud information
-    # cloud_info_file = os.path.join(conf['bee_workdir'], 'cloud-info.json')
-    info = CloudInfo(os.path.join(conf['bee_workdir'], 'cloud-info.json'))
-
+    launcher = CloudLauncher(conf)
     if conf['setup']:
-        # Set up the cloud
-        ip_addr = setup(**conf)
-        info.set('head_node_ip_addr', ip_addr)
-        info.save()
-        # Write out new cloud information
-        # TODO: Change the user to the one in the config file
-        print(f'Cloud setup should be complete. You should check by logging into the remote head node ({cloud.BEE_USER}@{ip_addr}).')
-
+        launcher.setup()
     if conf['install_tm']:
-        # Install the Task Manager
-        # Copy over the BEE code and install it
-        bee_srcdir = install_tm(priv_key_file, info.get('head_node_ip_addr'),
-                                **conf)
-        # Write out cloud information
-        # info.set('head_node_ip_addr', ip_addr)
-        info.set('bee_srcdir', bee_srcdir)
-        info.save()
-        print('Task Manager is now installed on the remote head node.')
-
+        launcher.install_tm()
     if conf['tm']:
-        # Launch the task manager
-        print('Launching the Remote Task Manager')
-        tm_proc = run_tm(conf['bee_user'], info.get('head_node_ip_addr'), priv_key_file, info.get('bee_srcdir'))
-        # Set up the connection
-        try:
-            connect(info.get('head_node_ip_addr'), priv_key_file, **conf)
-        finally:
-            print('Killing the task manager')
-            tm_proc.kill()
+        launcher.tm()
