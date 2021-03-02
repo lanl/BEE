@@ -64,12 +64,6 @@ class CloudInfo:
                 self._data = {}
 
 
-class CloudLauncher:
-    """Cloud Launcher class."""
-    # TODO
-    pass
-
-
 def generate_private_key(keyfile):
     """Generate the SSH private key."""
     cp = subprocess.run(['ssh-keygen', '-N', '', '-f', keyfile])
