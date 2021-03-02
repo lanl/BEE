@@ -31,7 +31,7 @@ class LSFWorker(Worker):
         try:
             self.tm_crt = kwargs['container_runtime']
         except KeyError:
-            print("No container runtime specified in config, proceeding with caution.")
+            log.warning("No container runtime specified in config, proceeding with caution.")
             self.tm_crt = None
             crt_driver = None
         finally:
@@ -52,7 +52,7 @@ class LSFWorker(Worker):
                 self.template_text = template_file.read()
                 template_file.close()
             except ValueError as error:
-                print(error)
+                log.error('Cannot open template for jobs', error)
         else:
             self.template_text = '#! /bin/bash\n#BSUB\n'
 
