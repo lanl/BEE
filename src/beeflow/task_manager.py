@@ -141,7 +141,7 @@ def update_jobs():
             log.info(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
             current_task['job_state'] = job_state
             update_task_state(task_id, job_state)
-        if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
+        if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
 
