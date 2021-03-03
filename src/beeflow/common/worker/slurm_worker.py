@@ -80,9 +80,9 @@ class SlurmWorker(Worker):
         """Build task script; returns filename of script."""
         if not self.crt.image_exists(task):
             raise Exception('dockerImageId not accessible.')
-        os.makedirs(f'{self.workdir}/worker', exist_ok=True)
+        os.makedirs(f'{self.workdir}/{task.wf_id}', exist_ok=True)
         task_text = self.build_text(task)
-        task_script = f'{self.workdir}/worker/{task.name}.sh'
+        task_script = f'{self.workdir}/{task.wf_id}/{task.name}.sh'
         script_f = open(task_script, 'w')
         script_f.write(task_text)
         script_f.close()
