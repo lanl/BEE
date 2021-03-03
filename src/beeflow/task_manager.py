@@ -103,8 +103,6 @@ def update_task_state(task_id, job_state):
                         json={'task_id': task_id, 'job_state': job_state})
     if resp.status_code != 200:
         log.info("WFM not responding")
-    else:
-        log.info('Updated task state!')
 
 
 def submit_jobs():
@@ -144,6 +142,7 @@ def update_jobs():
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
+            log.info(f'Job {job_id} done {current_task["name"]}: removed from job status queue')
 
 
 def process_queues():
