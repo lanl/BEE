@@ -411,10 +411,10 @@ if __name__ == '__main__':
     # Setup the Scheduler
     setup_scheduler()
 
-    log.info('wfm_listen_port:', wfm_listen_port)
+    log.info(f'wfm_listen_port:{wfm_listen_port}')
 
     bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log, logfile='wf_manager.log')
+    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='wf_manager.log')
 
     # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
