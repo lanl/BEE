@@ -50,6 +50,7 @@ class LSFWorker(Worker):
         self.workdir = kwargs['bee_workdir']
 
         # Get template for job, if option in configuration
+        self.template_text = '#! /bin/bash\n#BSUB\n'
         self.job_template = kwargs['job_template']
         if self.job_template:
             try:
@@ -57,9 +58,14 @@ class LSFWorker(Worker):
                 self.template_text = template_file.read()
                 template_file.close()
             except ValueError as error:
-                log.error('Cannot open template for jobs', error)
-        else:
-            self.template_text = '#! /bin/bash\n#BSUB\n'
+                log.warning(f'Cannot open job template {self.job_template}, {error}')
+                log.warning('Proceeding with Caution!')
+            except FileNotFoundError as error:
+                log.warning(f'Cannot find job template {self.job_template}')
+                log.warning('Proceeding with Caution!')
+            except PermissionError as error:
+                log.warning(f'Permission error job template {self.job_template}')
+                log.warning('Proceeding with Caution!')
 
         # Table of LSF states for translation to BEE states
         self.bee_states = {'PEND': 'PENDING',
