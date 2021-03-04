@@ -239,7 +239,8 @@ api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
-    handler = bee_logging.save_log(bc, log, logfile='task_manager.log')
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
     container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
     log.info(f'container_runtime:{container_runtime}')

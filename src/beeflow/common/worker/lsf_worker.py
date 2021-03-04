@@ -9,6 +9,8 @@ import subprocess
 
 from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist
@@ -25,8 +27,11 @@ except ModuleNotFoundError:
 class LSFWorker(Worker):
     """The Worker for systems where LSF is the Workload Manager."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, bee_workdir, **kwargs):
         """Create a new LSF Worker object."""
+        # Setup logger
+        bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='LSFWorker.log')
+
         # Load appropriate container runtime driver, based on configs in kwargs
         try:
             self.tm_crt = kwargs['container_runtime']

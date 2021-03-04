@@ -176,7 +176,8 @@ def load_config_values():
 
 if __name__ == '__main__':
     CONF, bc = load_config_values()
-    handler = bee_logging.save_log(bc, log, logfile='sched.log')
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='sched.log')
     flask_app.sched_conf = CONF
     # Load algorithm data
     algorithms.load(**vars(CONF))

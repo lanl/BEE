@@ -413,7 +413,8 @@ if __name__ == '__main__':
 
     log.info('wfm_listen_port:', wfm_listen_port)
 
-    handler = bee_logging.save_log(bc, log, logfile='wf_manager.log')
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    handler = bee_logging.save_log(bee_workdir=bee_workdir, log, logfile='wf_manager.log')
 
     # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
