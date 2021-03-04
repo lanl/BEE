@@ -13,6 +13,9 @@ import requests
 
 from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
+import logging
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist
@@ -37,6 +40,8 @@ class SlurmWorker(Worker):
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
+        # Add log to task_manager log needs fix for bc alternative
+        #handler = bee_logging.save_log(bc, log, logfile='task_manager.log')
 
         # Load appropriate container runtime driver, based on configs in kwargs
         try:
@@ -56,6 +61,7 @@ class SlurmWorker(Worker):
         self.workdir = kwargs['bee_workdir']
 
         # Get template for job, if option in configuration
+        self.template_text = '#! /bin/bash\n#SBATCH\n'
         self.job_template = kwargs['job_template']
         if self.job_template:
             try:
@@ -63,15 +69,28 @@ class SlurmWorker(Worker):
                 self.template_text = template_file.read()
                 template_file.close()
             except ValueError as error:
-                log.error('Cannot open template for jobs', error)
-        else:
-            self.template_text = '#! /bin/bash\n#SBATCH\n'
+                #log.warn(f'Cannot open job template {self.job_template}, {error}')
+                print(f'Cannot open job template {self.job_template}, {error}')
+                #log.warn('Proceeding with Caution!')
+                print('Proceeding with Caution!')
+            except FileNotFoundError as error:
+                #log.warn(f'Cannot find job template {self.job_template} proceeding with Caution!')
+                print(f'Cannot find job template {self.job_template}')
+                #log.warn('Proceeding with Caution!')
+                print('Proceeding with Caution!')
+            except PermissionError as error:
+                #log.warn(f'Permission error job template {self.job_template}')
+                print(f'Permission error job template {self.job_template}')
+                #log.warn('Proceeding with Caution!')
+                print('Proceeding with Caution!')
 
     def build_text(self, task):
         """Build text for task script use template if it exists."""
         template_text = self.template_text
+        print(f'template_text = {template_text}')
         template = string.Template(template_text)
         job_text = template.substitute({'name': task.name, 'id': task.id})
+        print(f'job_text = {job_text}')
         crt_text = self.crt.script_text(task)
         job_text += crt_text
         return job_text
