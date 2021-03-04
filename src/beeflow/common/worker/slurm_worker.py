@@ -15,7 +15,6 @@ from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
-import logging
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist
@@ -32,7 +31,7 @@ except ModuleNotFoundError:
 class SlurmWorker(Worker):
     """The Worker for systems where Slurm is the Work Load Manager."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, bee_workdir, **kwargs):
         """Create a new Slurm Worker object."""
         # Pull slurm socket configs from kwargs
         self.slurm_socket = kwargs.get('slurm_socket', f'/tmp/slurm_{os.getlogin()}.sock')
@@ -40,8 +39,9 @@ class SlurmWorker(Worker):
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
-        # Add log to task_manager log needs fix for bc alternative
-        #handler = bee_logging.save_log(bc, log, logfile='task_manager.log')
+        
+        # Setup logger
+        bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='SlurmWorker.log')
 
         # Load appropriate container runtime driver, based on configs in kwargs
         try:
@@ -58,7 +58,7 @@ class SlurmWorker(Worker):
             self.crt = ContainerRuntimeInterface(crt_driver)
 
         # Get BEE workdir from config file
-        self.workdir = kwargs['bee_workdir']
+        self.workdir = bee_workdir
 
         # Get template for job, if option in configuration
         self.template_text = '#! /bin/bash\n#SBATCH\n'
@@ -69,20 +69,14 @@ class SlurmWorker(Worker):
                 self.template_text = template_file.read()
                 template_file.close()
             except ValueError as error:
-                #log.warn(f'Cannot open job template {self.job_template}, {error}')
-                print(f'Cannot open job template {self.job_template}, {error}')
-                #log.warn('Proceeding with Caution!')
-                print('Proceeding with Caution!')
+                log.warn(f'Cannot open job template {self.job_template}, {error}')
+                log.warn('Proceeding with Caution!')
             except FileNotFoundError as error:
-                #log.warn(f'Cannot find job template {self.job_template} proceeding with Caution!')
-                print(f'Cannot find job template {self.job_template}')
-                #log.warn('Proceeding with Caution!')
-                print('Proceeding with Caution!')
+                log.warn(f'Cannot find job template {self.job_template} proceeding with Caution!')
+                log.warn('Proceeding with Caution!')
             except PermissionError as error:
-                #log.warn(f'Permission error job template {self.job_template}')
-                print(f'Permission error job template {self.job_template}')
-                #log.warn('Proceeding with Caution!')
-                print('Proceeding with Caution!')
+                log.warn(f'Permission error job template {self.job_template}')
+                log.warn('Proceeding with Caution!')
 
     def build_text(self, task):
         """Build text for task script use template if it exists."""

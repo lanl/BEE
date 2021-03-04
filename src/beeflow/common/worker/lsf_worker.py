@@ -11,7 +11,6 @@ from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
-import logging
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist
@@ -28,10 +27,10 @@ except ModuleNotFoundError:
 class LSFWorker(Worker):
     """The Worker for systems where LSF is the Workload Manager."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, bee_workdir, **kwargs):
         """Create a new LSF Worker object."""
-        # Add log to task_manager log needs fix for bc alternative
-        #handler = bee_logging.save_log(bc, log, logfile='task_manager.log')
+        # Setup logger
+        bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='LSFWorker.log')
 
         # Load appropriate container runtime driver, based on configs in kwargs
         try:
@@ -59,20 +58,14 @@ class LSFWorker(Worker):
                 self.template_text = template_file.read()
                 template_file.close()
             except ValueError as error:
-                #log.warning(f'Cannot open job template {self.job_template}, {error}')
-                print(f'Cannot open job template {self.job_template}, {error}')
-                #log.warning('Proceeding with Caution!')
-                print('Proceeding with Caution!')
+                log.warning(f'Cannot open job template {self.job_template}, {error}')
+                log.warning('Proceeding with Caution!')
             except FileNotFoundError as error:
-                #log.warning(f'Cannot find job template {self.job_template}')
-                print(f'Cannot find job template {self.job_template}')
-                #log.warning('Proceeding with Caution!')
-                print('Proceeding with Caution!')
+                log.warning(f'Cannot find job template {self.job_template}')
+                log.warning('Proceeding with Caution!')
             except PermissionError as error:
-                #log.warning(f'Permission error job template {self.job_template}')
-                print(f'Permission error job template {self.job_template}')
-                #log.warning('Proceeding with Caution!')
-                print('Proceeding with Caution!')
+                log.warning(f'Permission error job template {self.job_template}')
+                log.warning('Proceeding with Caution!')
 
         # Table of LSF states for translation to BEE states
         self.bee_states = {'PEND': 'PENDING',
