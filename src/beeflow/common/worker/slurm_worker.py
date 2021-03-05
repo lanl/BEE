@@ -39,7 +39,7 @@ class SlurmWorker(Worker):
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
-        
+
         # Setup logger
         bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='SlurmWorker.log')
 
@@ -47,7 +47,7 @@ class SlurmWorker(Worker):
         try:
             self.tm_crt = kwargs['container_runtime']
         except KeyError:
-            log.warning("No container runtime specified in config, proceeding with caution.")
+            log.warn("No container runtime specified in config, proceeding with caution.")
             self.tm_crt = None
             crt_driver = None
         finally:
@@ -72,7 +72,7 @@ class SlurmWorker(Worker):
                 log.warn(f'Cannot open job template {self.job_template}, {error}')
                 log.warn('Proceeding with Caution!')
             except FileNotFoundError as error:
-                log.warn(f'Cannot find job template {self.job_template} proceeding with Caution!')
+                log.warn(f'Cannot find job template {self.job_template}')
                 log.warn('Proceeding with Caution!')
             except PermissionError as error:
                 log.warn(f'Permission error job template {self.job_template}')
@@ -81,10 +81,8 @@ class SlurmWorker(Worker):
     def build_text(self, task):
         """Build text for task script use template if it exists."""
         template_text = self.template_text
-        print(f'template_text = {template_text}')
         template = string.Template(template_text)
         job_text = template.substitute({'name': task.name, 'id': task.id})
-        print(f'job_text = {job_text}')
         crt_text = self.crt.script_text(task)
         job_text += crt_text
         return job_text
