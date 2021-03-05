@@ -3,6 +3,7 @@ import beeflow.cloud.google as google
 import beeflow.cloud.provider as provider
 
 from beeflow.cloud.cloud import Cloud
+from beeflow.cloud.cloud_info import CloudInfo
 from beeflow.cloud.constants import *
 
 
@@ -18,4 +19,3 @@ def get_provider(name, **kwargs):
         return providers[name](**kwargs)
 
     raise RuntimeError('Invalid provider "%s"' % name)
-    # TODO

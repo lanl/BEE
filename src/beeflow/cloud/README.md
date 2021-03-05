@@ -11,8 +11,12 @@
 
 TODO: Document cloud launcher configuation, options and set up.
 
-* `head_node_ip_addr` -
-* `bee_srcdir` -
+* `head_node_ip_addr` - External IP address of the cloud head node
+    * Generated during the `--setup` step (or set manually in the case of
+      Chameleon cloud)
+* `bee_srcdir` - source directory of BEE (to be used for launching the Task
+   Manager)
+    * Generated during the `--install-tm` step
 
 ## Providers
 

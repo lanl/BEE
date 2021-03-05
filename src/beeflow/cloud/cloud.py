@@ -41,7 +41,6 @@ class Cloud:
 
     def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip=None):
         """Create a node."""
-        # TODO: Read in the proper pubkey data
         if self.priv_key_file is not None:
             with open(f'{self.priv_key_file}.pub', 'rb') as fp:
                 pubkey_data = str(base64.b64encode(fp.read()), encoding='utf-8')
