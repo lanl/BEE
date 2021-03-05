@@ -47,7 +47,7 @@ class LSFWorker(Worker):
             self.crt = ContainerRuntimeInterface(crt_driver)
 
         # Get BEE workdir from config file
-        self.workdir = kwargs['bee_workdir']
+        self.workdir = bee_workdir
 
         # Get template for job, if option in configuration
         self.template_text = '#! /bin/bash\n#BSUB\n'
