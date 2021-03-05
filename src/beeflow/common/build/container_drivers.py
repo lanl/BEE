@@ -9,6 +9,7 @@ import tempfile
 import shutil
 import subprocess
 from beeflow.common.config_driver import BeeConfig
+import sys
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
@@ -46,19 +47,22 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             bc = BeeConfig(userconfig=userconf_file)
         else:
             bc = BeeConfig()
-        handler = bee_logging.save_log(bc, log, logfile='CharliecloudBuildDriver.log')
         # Store build tarballs relative to bee_workdir.
         try:
             if bc.userconfig['DEFAULT'].get('bee_workdir'):
-                build_dir = '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                     'build_cache'])
+                bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
+                build_dir = '/'.join([bee_workdir,'build_cache'])
+                handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
+                                              logfile='CharliecloudBuildDriver.log')
             else:
-                log.error('Invalid config file. bee_workdir not found in DEFAULT.')
-                log.error('Assuming bee_workdir is ~/.beeflow')
+                # Can't log if we don't know where to log, just print error
+                print('Invalid config file. bee_workdir not found in DEFAULT.', file=sys.stderr)
+                print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
                 build_dir = '~/.beeflow/build_cache'
         except KeyError:
-            log.error('Invalid config file. DEFAULT section missing.')
-            log.error('Assuming bee_workdir is ~/.beeflow')
+            # Can't log if we don't know where to log, just print error
+            print('Invalid config file. DEFAULT section missing.', file=sys.stderr)
+            print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
             build_dir = '~/.beeflow/build_cache'
         finally:
             self.build_dir = bc.resolve_path(build_dir)
