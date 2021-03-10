@@ -9,7 +9,7 @@ import tempfile
 import shutil
 import subprocess
 from beeflow.common.config_driver import BeeConfig
-# from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
+# from beeflow.common.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 

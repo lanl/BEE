@@ -17,11 +17,11 @@ from beeflow.common.crt_interface import ContainerRuntimeInterface
 # Import all implemented container runtime drivers now
 # No error if they don't exist
 try:
-    from beeflow.common.crt.crt_drivers import CharliecloudDriver
+    from beeflow.common.crt_drivers import CharliecloudDriver
 except ModuleNotFoundError:
     pass
 try:
-    from beeflow.common.crt.crt_drivers import SingularityDriver
+    from beeflow.common.crt_drivers import SingularityDriver
 except ModuleNotFoundError:
     pass
 
