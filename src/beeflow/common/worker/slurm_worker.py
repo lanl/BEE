@@ -61,6 +61,7 @@ class SlurmWorker(Worker):
         self.workdir = bee_workdir
 
         # Get template for job, if option in configuration
+        self.template_text = ''
         self.job_template = kwargs['job_template']
         if self.job_template:
             try:
@@ -77,6 +78,8 @@ class SlurmWorker(Worker):
             except PermissionError as error:
                 log.warn(f'Permission error job template {self.job_template}')
                 log.warn('Proceeding with Caution!')
+        else:
+                log.info(f'No template for jobs.')
 
     def build_text(self, task):
         """Build text for task script use template if it exists."""
