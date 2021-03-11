@@ -36,7 +36,7 @@ class LSFWorker(Worker):
         try:
             self.tm_crt = kwargs['container_runtime']
         except KeyError:
-            log.warn("No container runtime specified in config, proceeding with caution.")
+            log.warning("No container runtime specified in config, proceeding with caution.")
             self.tm_crt = None
             crt_driver = None
         finally:
@@ -59,14 +59,14 @@ class LSFWorker(Worker):
                 self.template_text = template_file.read()
                 template_file.close()
             except ValueError as error:
-                log.warn(f'Cannot open job template {self.job_template}, {error}')
-                log.warn('Proceeding with Caution!')
-            except FileNotFoundError as error:
-                log.warn(f'Cannot find job template {self.job_template}')
-                log.warn('Proceeding with Caution!')
-            except PermissionError as error:
-                log.warn(f'Permission error job template {self.job_template}')
-                log.warn('Proceeding with Caution!')
+                log.warning(f'Cannot open job template {self.job_template}, {error}')
+                log.warning('Proceeding with Caution!')
+            except FileNotFoundError:
+                log.warning(f'Cannot find job template {self.job_template}')
+                log.warning('Proceeding with Caution!')
+            except PermissionError:
+                log.warning(f'Permission error job template {self.job_template}')
+                log.warning('Proceeding with Caution!')
 
         # Table of LSF states for translation to BEE states
         self.bee_states = {'PEND': 'PENDING',
