@@ -53,6 +53,7 @@ class LSFWorker(Worker):
         self.template_text = '#! /bin/bash\n#BSUB\n'
         self.job_template = kwargs['job_template']
         if self.job_template:
+            log.info(f'Jobs will use template: {self.job_template}')
             try:
                 template_file = open(self.job_template, 'r')
                 self.template_text = template_file.read()

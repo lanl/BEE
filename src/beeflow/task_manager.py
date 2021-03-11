@@ -243,7 +243,7 @@ if __name__ == '__main__':
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
     container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
-    log.info(f'container_runtime:{container_runtime}')
+    log.info(f'container_runtime: {container_runtime}')
 
     # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
