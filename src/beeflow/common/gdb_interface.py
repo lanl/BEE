@@ -1,8 +1,8 @@
 """Mid-level interface for managing a graph database with workflows.
 
 Delegates the actual work to an instance of a subclass of
-the abstract base class `GraphDatabaseDriver`. By default,
-this is the `Neo4jDriver` class.
+the abstract base class GraphDatabaseDriver. By default,
+this is the Neo4jDriver class.
 """
 
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
@@ -26,9 +26,10 @@ class GraphDatabaseInterface:
 
     def __del__(self):
         """Disconnect from the graph database when interface deconstructs."""
-        self.close()
+        if self.initialized():
+            self.close()
 
-    def connect(self,**kwargs):
+    def connect(self, **kwargs):
         """Initialize a graph database interface with a driver.
 
         :param kwargs: arguments for initializing the graph database connection
@@ -37,22 +38,17 @@ class GraphDatabaseInterface:
         # Initialize the graph database driver
         self._connection = self._gdb_driver(**kwargs)
 
-    def initialize_workflow(self, inputs, outputs, requirements, hints):
+    def initialize_workflow(self, workflow):
         """Begin construction of a workflow in the graph database.
 
-        Connects to the database and creates the bee_init, bee_exit, and metadata nodes.
+        Connects to the database and creates the Workflow with accompanying Hint
+        and Requirement nodes.
         Permits the addition of task nodes to the workflow.
 
-        :param inputs: the inputs to the workflow
-        :type inputs: set of strings
-        :param outputs: the outputs to the workflow
-        :type outputs: set of strings
-        :param requirements: the workflow requirements
-        :type requirements: set of Requirement instances
-        :param hints: the workflow hints (optional requirements)
-        :type hints: set of Requirement instances
+        :param workflow: the workflow description
+        :type workflow: instance of Workflow
         """
-        self._connection.initialize_workflow(inputs, outputs, requirements, hints)
+        self._connection.initialize_workflow(workflow)
 
     def execute_workflow(self):
         """Begin execution of the loaded workflow."""
@@ -73,23 +69,28 @@ class GraphDatabaseInterface:
         :type task_id: int
         :rtype: instance of Task
         """
-        task_records = self._connection.get_task_by_id(task_id)
-        return self._connection.reconstruct_task(task_records)
+        return self._connection.get_task_by_id(task_id)
+
+    def get_workflow_description(self):
+        """Return the workflow description from the graph database.
+
+        :rtype: instance of Workflow
+        """
+        return self._connection.get_workflow_description()
 
     def get_workflow_tasks(self):
         """Return a workflow's Task objects from the graph database.
 
         :rtype: set of Task
         """
-        task_records = self._connection.get_workflow_tasks()
-        return {self._connection.reconstruct_task(task_record) for task_record in task_records}
+        return self._connection.get_workflow_tasks()
 
     def get_workflow_requirements_and_hints(self):
         """Return a tuple containing a list of requirements and a list of hints.
 
         The returned tuple format is (requirements, hints).
 
-        :rtype: (set of Requirement, set of Requirement)
+        :rtype: (set of Requirement, set of Hint)
         """
         return self._connection.get_workflow_requirements_and_hints()
 
@@ -98,20 +99,18 @@ class GraphDatabaseInterface:
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: string
-        :rtype: set of Task instances
+        :rtype: set of Task
         """
-        task_records = self._connection.get_subworkflow_tasks(subworkflow)
-        return {self._connection.reconstruct_task(task_record) for task_record in task_records}
+        return self._connection.get_subworkflow_tasks(subworkflow)
 
     def get_dependent_tasks(self, task):
         """Return the dependents of a task in a graph database workflow.
 
         :param task: the task whose dependents to retrieve
         :type task: instance of Task
-        :rtype: list of Task instances
+        :rtype: set of Task
         """
-        task_records = self._connection.get_dependent_tasks(task)
-        return {self._connection.reconstruct_task(task_record) for task_record in task_records}
+        return self._connection.get_dependent_tasks(task)
 
     def get_task_state(self, task):
         """Return the state of a task in a graph database workflow.
@@ -131,13 +130,13 @@ class GraphDatabaseInterface:
         :type state: string
         """
         return self._connection.set_task_state(task, state)
-    
+
     def initialized(self):
         """Return true if the workflow_has been initialized, else false.
 
         :rtype: boolean
         """
-        return self._connection != None
+        return bool(self._connection is not None)
 
     def empty(self):
         """Return true if the graph database is empty, else false.

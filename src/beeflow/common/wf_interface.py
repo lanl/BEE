@@ -4,7 +4,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 """
 
 from beeflow.common.gdb_interface import GraphDatabaseInterface
-from beeflow.common.wf_data import Task, Requirement
+from beeflow.common.wf_data import Workflow, Task, Requirement, Hint
 
 
 class WorkflowInterface:
@@ -41,7 +41,10 @@ class WorkflowInterface:
 
         # Connect to the graph database
         self._gdb_interface.connect(**self._gdb_details)
-        self._gdb_interface.initialize_workflow(inputs, outputs, requirements, hints)
+
+        workflow = Workflow(hints, requirements, inputs, outputs)
+        self._gdb_interface.initialize_workflow(workflow)
+        return workflow
 
     def execute_workflow(self):
         """Begin execution of the BEE workflow."""
@@ -56,33 +59,45 @@ class WorkflowInterface:
         """Create a workflow requirement.
 
         :param req_class: the requirement class
-        :type req_class: string
+        :type req_class: str
         :param key: the requirement key
-        :type key: string
+        :type key: str
         :param value: the requirement value
-        :type value: string, boolean, or integer
+        :type value: str, bool, or int
+        :rtype: instance of Requirement
         """
         return Requirement(req_class, key, value)
+
+    @staticmethod
+    def create_hint(req_class, key, value):
+        """Create a workflow hint.
+
+        :param req_class: the requirement class
+        :type req_class: str
+        :param key: the requirement key
+        :type key: str
+        :param value: the requirement value
+        :type value: str, bool, or int
+        :rtype: instance of Hint
+        """
+        return Hint(req_class, key, value)
 
     def add_task(self, name, command=None, hints=None, subworkflow=None, inputs=None,
                  outputs=None):
         """Create a new BEE workflow task.
 
-        In its current form, this method allows the user to create bee_init and bee_exit
-        nodes manually.
-
         :param name: the name given to the task
-        :type name: string
+        :type name: str
         :param command: the command for the task
-        :type command: list of strings
+        :type command: list of str
         :param hints: the task-specific hints (optional requirements)
-        :type hints: set of Requirement instances, or None
+        :type hints: set of Requirement, or None
         :param subworkflow: an identifier for the subworkflow to which the task belongs
-        :type subworkflow: string or None
+        :type subworkflow: str, or None
         :param inputs: the task inputs
-        :type inputs: set of strings, or None
+        :type inputs: set of str, or None
         :param outputs: the task outputs
-        :type outputs: set of strings, or None
+        :type outputs: set of str, or None
         :rtype: instance of Task
         """
         # Immutable default arguments
@@ -96,6 +111,7 @@ class WorkflowInterface:
             outputs = set()
 
         task = Task(name, command, hints, subworkflow, inputs, outputs)
+        # Load the new task into the graph database
         self._gdb_interface.load_task(task)
         return task
 
@@ -103,7 +119,7 @@ class WorkflowInterface:
         """Get a task by its Task ID.
 
         :param task_id: the task's ID
-        :type task_id: int
+        :type task_id: str
         :rtype: instance of Task
         """
         return self._gdb_interface.get_task_by_id(task_id)
@@ -111,16 +127,13 @@ class WorkflowInterface:
     def get_workflow(self):
         """Get the loaded workflow.
 
-        Returns a tuple of (tasks, requirements, hints).
+        Returns a tuple of (workflow_description, tasks)
 
-        :rtype: tuple of (set, set, set)
+        :rtype: a tuple of (Workflow, set of Task)
         """
-        # Obtain a list of workflow tasks
-        workflow_tasks = self._gdb_interface.get_workflow_tasks()
-        # Obtain the workflow requirements, hints
-        requirements, hints = self._gdb_interface.get_workflow_requirements_and_hints()
-        # Return a new Workflow object with the given tasks (don't reset IDs)
-        return (workflow_tasks, requirements, hints)
+        workflow = self._gdb_interface.get_workflow_description()
+        tasks = self._gdb_interface.get_workflow_tasks()
+        return workflow, tasks
 
     def get_subworkflow(self, subworkflow):
         """Get a subworkflow by its identifier.
@@ -128,25 +141,20 @@ class WorkflowInterface:
         Returns a tuple of (tasks, requirements, hints).
 
         :param subworkflow: the unique identifier of the subworkflow
-        :type subworkflow: string
-        :rtype: a tuple of (set, set of Requirement, set of Requirement)
+        :type subworkflow: str
+        :rtype: a tuple of (set of Task, set of Requirement, set of Hint)
         """
-        # Obtain a list of the subworkflow tasks
         subworkflow_tasks = self._gdb_interface.get_subworkflow_tasks(subworkflow)
-        # Obtain the subworkflow requirements, hints
         requirements, hints = self._gdb_interface.get_workflow_requirements_and_hints()
-
-        # Return a new Workflow object with the given tasks
-        return (subworkflow_tasks, requirements, hints)
+        return subworkflow_tasks, requirements, hints
 
     def get_dependent_tasks(self, task):
         """Return the dependents of a task in the BEE workflow.
 
         :param task: the task whose dependents to retrieve
         :type task: instance of Task
-        :rtype: set of Task instances
+        :rtype: set of Task
         """
-        # Return a set of the dependent Task objects
         return self._gdb_interface.get_dependent_tasks(task)
 
     def get_task_state(self, task):
@@ -154,7 +162,7 @@ class WorkflowInterface:
 
         :param task: the task whose state to retrieve
         :type task: instance of Task
-        :rtype: string
+        :rtype: str
         """
         return self._gdb_interface.get_task_state(task)
 
@@ -163,21 +171,21 @@ class WorkflowInterface:
 
         :param task: the task whose state to change
         :type task: instance of Task
-        :param state: the new state
-        :type state: string
+        :param state: the new state of the task
+        :type state: str
         """
         self._gdb_interface.set_task_state(task, state)
 
     def workflow_initialized(self):
         """Return true if a workflow has been initialized, else false.
-        
-        :rtype: boolean
+
+        :rtype: bool
         """
         return self._gdb_interface.initialized()
 
     def workflow_loaded(self):
         """Return true if a workflow is loaded, else false.
 
-        :rtype: boolean
+        :rtype: bool
         """
         return bool(not self._gdb_interface.empty())
