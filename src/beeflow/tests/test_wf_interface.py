@@ -19,40 +19,31 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
-        if self.wfi.workflow_loaded():
+        if self.wfi.workflow_initialized() and self.wfi.workflow_loaded():
             self.wfi.finalize_workflow()
 
     def test_initialize_workflow(self):
         """Test workflow initialization.
 
-        The bee_init, bee_exit, and metadata nodes should have been created.
+        The workflow node and associated requirement/hint nodes should have been created.
         """
         requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024)}
         hints = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024),
                  self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
-        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
+        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
 
-        (tasks, requirements, hints) = self.wfi.get_workflow()
-        for task in tasks:
-            if task.name == "bee_init":
-                self.assertEqual(0, task.id)
-                self.assertSetEqual({"input.txt"}, task.inputs)
-                self.assertSetEqual({"input.txt"}, task.outputs)
-            elif task.name == "bee_exit":
-                self.assertEqual(1, task.id)
-                self.assertSetEqual({"output.txt"}, task.inputs)
-                self.assertSetEqual({"output.txt"}, task.outputs)
-            else:
-                self.fail("BEE init and exit nodes missing")
+        gdb_workflow, _ = self.wfi.get_workflow()
+
+        self.assertEqual(gdb_workflow, workflow)
+        self.assertEqual(gdb_workflow.id, workflow.id)
 
     def test_execute_workflow(self):
-        """Test workflow execution initialization (set bee_init's state to READY)."""
+        """Test workflow execution initialization (set initial tasks' states to READY)."""
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        self._create_test_tasks()
+        tasks = self._create_test_tasks()
         self.wfi.execute_workflow()
 
-        bee_init_task = self.wfi.get_task_by_id(0)
-        self.assertEqual("READY", self.wfi.get_task_state(bee_init_task))
+        self.assertEqual(self.wfi.get_task_state(tasks[0]), "READY")
 
     def test_finalize_workflow(self):
         """Test workflow deletion from the graph database."""
@@ -87,16 +78,11 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(subworkflow, task.subworkflow)
         self.assertSetEqual(inputs, task.inputs)
         self.assertSetEqual(outputs, task.outputs)
-        self.assertIsInstance(task.id, int)
+        self.assertIsInstance(task.id, str)
 
         # Graph database assertions
         gdb_task = self.wfi.get_task_by_id(task.id)
-        self.assertEqual(gdb_task.name, task.name)
-        self.assertListEqual(gdb_task.command, task.command)
-        self.assertSetEqual(gdb_task.hints, task.hints)
-        self.assertEqual(gdb_task.subworkflow, task.subworkflow)
-        self.assertSetEqual(gdb_task.inputs, task.inputs)
-        self.assertSetEqual(gdb_task.outputs, task.outputs)
+        self.assertEqual(gdb_task, task)
         self.assertEqual(gdb_task.id, task.id)
 
     def test_create_requirement(self):
@@ -139,13 +125,11 @@ class TestWorkflowInterface(unittest.TestCase):
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
         tasks = self._create_test_tasks()
 
-        self.assertTrue(self.wfi.workflow_loaded())
+        (workflow, wf_tasks) = self.wfi.get_workflow()
 
-        (wf_tasks, wf_requirements, wf_hints) = self.wfi.get_workflow()
-
-        self.assertTrue(set(tasks).issubset(wf_tasks))
-        self.assertEqual(requirements, wf_requirements)
-        self.assertEqual(hints, wf_hints)
+        self.assertSetEqual(set(tasks), wf_tasks)
+        self.assertSetEqual(requirements, workflow.requirements)
+        self.assertSetEqual(hints, workflow.hints)
 
     def test_get_subworkflow(self):
         """Test obtaining of a subworkflow."""
@@ -175,12 +159,12 @@ class TestWorkflowInterface(unittest.TestCase):
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
         task = self.wfi.add_task("Test Task")
 
-        # Should be WAITING because workflow not initialized
+        # Should be WAITING because workflow not yet executed
         self.assertEqual("WAITING", self.wfi.get_task_state(task))
 
     def test_workflow_loaded(self):
         """Test determining if a workflow is loaded."""
-        # No workflow loaded
+        # Workflow not loaded
         self.assertFalse(self.wfi.workflow_loaded())
 
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
@@ -189,12 +173,8 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertTrue(self.wfi.workflow_loaded())
 
     def _create_test_tasks(self):
-        """Create test tasks to reduce redundancy.
-
-        :param bee_nodes: flag to add bee_init and bee_exit tasks
-        :type bee_nodes: boolean
-        """
-        # Remember that add_task uploads the task to the database
+        """Create test tasks to reduce redundancy."""
+        # Remember that add_task uploads the task to the database as well as returns a Task
         tasks = [
             self.wfi.add_task(
                 "Data Prep", command=["ls", "-a", "-l", "-F"],
