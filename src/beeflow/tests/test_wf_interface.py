@@ -208,6 +208,32 @@ class TestWorkflowInterface(unittest.TestCase):
         # Should now be RUNNING
         self.assertEqual("RUNNING", self.wfi.get_task_state(task))
 
+    def test_get_task_metadata(self):
+        """Test the obtaining of task metadata."""
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        task = self.wfi.add_task("Test Task")
+        metadata = {"cluster": "fog", "crt": "charliecloud",
+                    "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
+
+        self.wfi.set_task_metadata(task, metadata)
+        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+
+    def test_set_task_metadata(self):
+        """Test the setting of task metadata."""
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        task = self.wfi.add_task("Test Task")
+        metadata = {"cluster": "fog", "crt": "charliecloud",
+                    "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
+        empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
+
+        # Metadata should be empty
+        self.assertDictEqual(empty_metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+
+        self.wfi.set_task_metadata(task, metadata)
+
+        # Metadata should now be populated
+        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+
     def test_workflow_initialized(self):
         """Test determining if a workflow is initialized.
 
