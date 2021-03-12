@@ -14,8 +14,6 @@ class GraphDatabaseDriver(ABC):
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow in the graph database.
 
-        Create the Workflow, Requirement, and Hint nodes in the graph database.
-
         :param workflow: the workflow description
         :type workflow: Workflow
         """
@@ -114,10 +112,31 @@ class GraphDatabaseDriver(ABC):
     def set_task_state(self, task, state):
         """Set the state of a task in the graph database workflow.
 
-        :param task: the task whose state to change
+        :param task: the task whose state to set
         :type task: Task
         :param state: the new state
         :type state: str
+        """
+
+    @abstractmethod
+    def get_task_metadata(self, task, keys):
+        """Return the metadata of a task in the graph database workflow.
+
+        :param task: the task whose metadata to retrieve
+        :type task: Task
+        :param keys: the metadata keys whose values to retrieve
+        :type keys: iterable of str
+        :rtype: dict
+        """
+
+    @abstractmethod
+    def set_task_metadata(self, task, metadata):
+        """Set the metadata of a task in the graph database workflow.
+
+        :param task: the task whose metadata to set
+        :type task: Task
+        :param metadata: the job description metadata
+        :type metadata: dict
         """
 
     @abstractmethod

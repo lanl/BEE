@@ -140,6 +140,7 @@ def get_task_by_id(tx, task_id):
 
     :param task_id: the task's ID
     :type task_id: str
+    :rtype: BoltStatementResult
     """
     task_query = "MATCH (t:Task {task_id: $task_id}) RETURN t"
 
@@ -151,6 +152,7 @@ def get_task_hints(tx, task_id):
 
     :param task_id: the task's ID
     :type task_id: str
+    :rtype: BoltStatementResult
     """
     hints_query = "MATCH (:Task {task_id: $task_id})-[:HAS_HINT]->(h:Hint) RETURN h"
 
@@ -158,35 +160,50 @@ def get_task_hints(tx, task_id):
 
 
 def get_workflow_description(tx):
-    """Get the workflow description from the Neo4j database."""
+    """Get the workflow description from the Neo4j database.
+
+    :rtype: BoltStatementResult
+    """
     workflow_desc_query = "MATCH (w:Workflow) RETURN w"
 
     return tx.run(workflow_desc_query).single()
 
 
 def get_workflow_tasks(tx):
-    """Get workflow tasks from the Neo4j database."""
+    """Get workflow tasks from the Neo4j database.
+
+    :rtype: BoltStatementResult
+    """
     workflow_query = "MATCH (t:Task) RETURN t"
 
     return tx.run(workflow_query)
 
 
 def get_workflow_requirements(tx):
-    """Get workflow requirements from the Neo4j database."""
+    """Get workflow requirements from the Neo4j database.
+
+    :rtype: BoltStatementResult
+    """
     requirements_query = "MATCH (:Workflow)-[:HAS_REQUIREMENT]->(r:Requirement) RETURN r"
 
     return tx.run(requirements_query)
 
 
 def get_workflow_hints(tx):
-    """Get workflow hints from the Neo4j database."""
+    """Get workflow hints from the Neo4j database.
+
+    :rtype: BoltStatementResult
+    """
     hints_query = "MATCH (:Workflow)-[:HAS_HINT]->(h:Hint) RETURN h"
 
     return tx.run(hints_query)
 
 
 def get_ready_tasks(tx):
-    """Get all tasks that are ready to execute."""
+    """Get all tasks that are ready to execute.
+
+    :rtype: BoltStatementResult
+    """
     get_ready_query = "MATCH (:Metadata {state: 'READY'})-[:DESCRIBES]->(t:Task) RETURN t"
 
     return tx.run(get_ready_query)
@@ -209,6 +226,7 @@ def get_dependent_tasks(tx, task):
 
     :param task: the task whose dependencies to obtain
     :type task: Task
+    :rtype: BoltStatementResult
     """
     dependents_query = "MATCH (t:Task)-[:DEPENDS]->(:Task {task_id: $task_id}) RETURN t"
 
@@ -230,7 +248,7 @@ def get_task_state(tx, task):
 def set_task_state(tx, task, state):
     """Set a task's state.
 
-    :param task: the task whose state to change
+    :param task: the task whose state to set
     :type task: Task
     :param state: the new task state
     :type state: str
@@ -239,6 +257,37 @@ def set_task_state(tx, task, state):
                    "SET m.state = $state")
 
     tx.run(state_query, task_id=task.id, state=state)
+
+
+def get_task_metadata(tx, task):
+    """Get a task's metadata.
+
+    :param task: the task whose metadata to get
+    :type task: Task
+    :rtype: BoltStatementResult
+    """
+    metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id}) RETURN m"
+
+    return tx.run(metadata_query, task_id=task.id).single()
+
+
+def set_task_metadata(tx, task, metadata):
+    """Set a task's metadata.
+
+    :param task: the task whose metadata to set
+    :type task: Task
+    :param metadata: the task metadata
+    :type metadata: dict
+    """
+    metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id})"
+
+    for key, val in metadata.items():
+        if isinstance(val, str):
+            metadata_query += f" SET m.{key} = '{val}'"
+        else:
+            metadata_query += f" SET m.{key} = {val}"
+
+    tx.run(metadata_query, task_id=task.id)
 
 
 def set_init_tasks_to_ready(tx):

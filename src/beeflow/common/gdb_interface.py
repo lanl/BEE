@@ -132,12 +132,36 @@ class GraphDatabaseInterface:
     def set_task_state(self, task, state):
         """Set the state of a task in the graph database workflow.
 
-        :param task: the task whose state to change
+        :param task: the task whose state to set
         :type task: Task
         :param state: the new state
         :type state: str
         """
         return self._connection.set_task_state(task, state)
+
+    def get_task_metadata(self, task, keys):
+        """Return the job description metadata of a task.
+
+        :param task: the task whose metadata to retrieve
+        :type task: Task
+        :param keys: the metadata keys whose values to retrieve
+        :type keys: iterable of str
+        :rtype: dict
+        """
+        return self._connection.get_task_metadata(task, keys)
+
+    def set_task_metadata(self, task, metadata):
+        """Set the job description metadata of a task.
+
+        This method should not be used to update task state.
+        set_task_state() should instead be used.
+
+        :param task: the task whose metadata to set
+        :type task: Task
+        :param metadata: the job description metadata
+        :type metadata: dict
+        """
+        self._connection.set_task_metadata(task, metadata)
 
     def initialized(self):
         """Return true if the database connection has been initialized, else false.
