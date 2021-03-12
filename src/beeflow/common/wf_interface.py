@@ -50,6 +50,14 @@ class WorkflowInterface:
         """Begin execution of the BEE workflow."""
         self._gdb_interface.execute_workflow()
 
+    def pause_workflow(self):
+        """Pause the execution of a BEE workflow."""
+        self._gdb_interface.pause_workflow()
+
+    def resume_workflow(self):
+        """Resume the execution of a paused BEE workflow."""
+        self._gdb_interface.resume_workflow()
+
     def finalize_workflow(self):
         """Deconstruct the BEE workflow."""
         self._gdb_interface.cleanup()
@@ -178,6 +186,9 @@ class WorkflowInterface:
 
     def workflow_initialized(self):
         """Return true if a workflow has been initialized, else false.
+
+        Currently functionally the same as workflow_loaded() but may
+        change when multiple workflows per database instance are supported.
 
         :rtype: bool
         """

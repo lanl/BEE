@@ -54,6 +54,14 @@ class GraphDatabaseInterface:
         """Begin execution of the loaded workflow."""
         self._connection.execute_workflow()
 
+    def pause_workflow(self):
+        """Pause execution of a running workflow."""
+        self._connection.pause_workflow()
+
+    def resume_workflow(self):
+        """Resume execution of a running workflow."""
+        self._connection.resume_workflow()
+
     def load_task(self, task):
         """Load a task into the workflow in the graph database.
 

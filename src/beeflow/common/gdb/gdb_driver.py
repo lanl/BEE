@@ -24,7 +24,21 @@ class GraphDatabaseDriver(ABC):
     def execute_workflow(self):
         """Begin execution of the stored workflow.
 
-        Set the initial tasks' states to ready.
+        Set the initial tasks' states to 'READY'.
+        """
+
+    @abstractmethod
+    def pause_workflow(self):
+        """Pause execution of a running workflow.
+
+        Set tasks with state 'RUNNING' to 'PAUSED'.
+        """
+
+    @abstractmethod
+    def resume_workflow(self):
+        """Resume execution of a paused workflow.
+
+        Set tasks with state 'PAUSED' to 'RUNNING'.
         """
 
     @abstractmethod

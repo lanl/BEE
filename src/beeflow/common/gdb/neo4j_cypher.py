@@ -242,11 +242,27 @@ def set_task_state(tx, task, state):
 
 
 def set_init_tasks_to_ready(tx):
-    """Set the initial workflow tasks' states to ready."""
+    """Set the initial workflow tasks' states to 'READY'."""
     init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)-[:BEGINS]->(:Workflow) "
                         "SET m.state = 'READY'")
 
     tx.run(init_ready_query)
+
+
+def set_running_tasks_to_paused(tx):
+    """Set 'RUNNING' task states to 'PAUSED'."""
+    set_paused_query = ("MATCH (m:Metadata {state: 'RUNNING'})-[:DESCRIBES]->(:Task) "
+                        "SET m.state = 'PAUSED'")
+
+    tx.run(set_paused_query)
+
+
+def set_paused_tasks_to_running(tx):
+    """Set 'PAUSED' task states to 'RUNNING'."""
+    set_running_query = ("MATCH (m:Metadata {state: 'PAUSED'})-[:DESCRIBES]->(:Task) "
+                         "SET m.state = 'RUNNING'")
+
+    tx.run(set_running_query)
 
 
 def is_empty(tx):

@@ -68,6 +68,20 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Begin execution of the workflow stored in the Neo4j database."""
         self._write_transaction(tx.set_init_tasks_to_ready)
 
+    def pause_workflow(self):
+        """Pause execution of a running workflow in Neo4j.
+
+        Set tasks with state 'RUNNING' to 'PAUSED'.
+        """
+        self._write_transaction(tx.set_running_tasks_to_paused)
+
+    def resume_workflow(self):
+        """Resume execution of a paused workflow in Neo4j.
+
+        Set tasks with state 'PAUSED' to 'RUNNING'.
+        """
+        self._write_transaction(tx.set_paused_tasks_to_running)
+
     def load_task(self, task):
         """Load a task into the workflow stored in the Neo4j database.
 
