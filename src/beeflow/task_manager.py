@@ -102,9 +102,7 @@ def update_task_state(task_id, job_state):
     resp = requests.put(_resource("update/"),
                         json={'task_id': task_id, 'job_state': job_state})
     if resp.status_code != 200:
-        print("WFM not responding")
-    else:
-        print('Updated task state!')
+        log.info("WFM not responding")
 
 
 def submit_jobs():
@@ -118,11 +116,11 @@ def submit_jobs():
             except Exception as error:
                 # Set job state to failed message
                 job_state = 'SUBMIT_FAIL'
-                print(f'Task Manager submit task {task.name} failed! \n {error}')
-                print(f'{task.name} state: {job_state}')
+                log.error(f'Task Manager submit task {task.name} failed! \n {error}')
+                log.error(f'{task.name} state: {job_state}')
             else:
                 # place job in queue to monitor and send initial state to WFM
-                log.step_info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
+                log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
                 job_queue.append({task_id: {'name': task.name,
                                  'job_id': job_id, 'job_state': job_state}})
         # Send the initial state to WFM
@@ -138,12 +136,13 @@ def update_jobs():
         job_state = worker.query_task(job_id)
 
         if job_state != current_task['job_state']:
-            log.step_info(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
+            log.info(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
             current_task['job_state'] = job_state
             update_task_state(task_id, job_state)
-        if job_state in ('COMPLETED', 'CANCELLED', 'ZOMBIE'):
+        if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
+            log.info(f'Job {job_id} done {current_task["name"]}: removed from job status queue')
 
 
 def process_queues():
@@ -176,7 +175,7 @@ class TaskSubmit(Resource):
         data = self.reqparse.parse_args()
         task = jsonpickle.decode(data['task'])
         submit_queue.append({task.id: task})
-        print(f"Added {task.name} task to the submit queue")
+        log.info(f"Added {task.name} task to the submit queue")
         resp = make_response(jsonify(msg='Task Added!', status='ok'), 200)
         return resp
 
@@ -192,11 +191,11 @@ class TaskActions(Resource):
             task_id = list(job.keys())[0]
             job_id = job[task_id]['job_id']
             name = job[task_id]['name']
-            print(f"Cancelling {name} with job_id: {job_id}")
+            log.info(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
             except Exception as error:
-                print(error)
+                log.error(error)
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
         job_queue.clear()
@@ -215,7 +214,7 @@ supported_workload_schedulers = {'Slurm', 'LSF', 'Simple'}
 try:
     WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
 except ValueError as error:
-    print(f'workload scheduler error {error}')
+    log.error(f'workload scheduler error {error}')
     WLS = None
 if WLS not in supported_workload_schedulers:
     sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
@@ -244,7 +243,8 @@ api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
-    handler = bee_logging.save_log(bc, log, logfile='task_manager.log')
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
     container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
     log.info(f'container_runtime:{container_runtime}')

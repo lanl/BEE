@@ -29,7 +29,8 @@ gdb_log = bee_logging.setup_logging(level='DEBUG')
 
 def StartGDB(bc, args):
     """Start the graph database. Returns a Popen process object."""
-    gdb_handler = bee_logging.save_log(bc, gdb_log, logfile='gdb_launch.log')
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    gdb_handler = bee_logging.save_log(bee_workdir=bee_workdir, log=gdb_log, logfile='gdb_launch.log')
     # Load gdb config from config file if exists
     try:
         bc.userconfig['graphdb']
@@ -166,8 +167,9 @@ def StartGDB(bc, args):
 def StartSlurmRestD(bc, args):
     """Start BEESlurmRestD. Returns a Popen process object."""
 
-    restd_handler = bee_logging.save_log(bc, restd_log, logfile='restd.log')
-    slurmrestd_log = '/'.join([bc.userconfig.get('DEFAULT','bee_workdir'),'logs','restd.log']) 
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    restd_handler = bee_logging.save_log(bee_workdir=bee_workdir, log=restd_log, logfile='restd.log')
+    slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log']) 
     # Load gdb config from config file if exists
     try:
         bc.userconfig['slurmrestd']
@@ -346,8 +348,9 @@ def main():
     # If workload_scheduler argument exists, over-write
     if args.workload_scheduler:
         bc.modify_section('user', 'task_manager', {'workload_scheduler':args.workload_scheduler} )
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
     # Setup logging based on args.debug
-    handler = bee_logging.save_log(bc, log, logfile='beeflow.log')
+    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='beeflow.log')
     if log is None:
         # Something went wrong
         return 1

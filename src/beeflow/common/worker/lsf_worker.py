@@ -9,6 +9,8 @@ import subprocess
 
 from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist
@@ -25,13 +27,16 @@ except ModuleNotFoundError:
 class LSFWorker(Worker):
     """The Worker for systems where LSF is the Workload Manager."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, bee_workdir, **kwargs):
         """Create a new LSF Worker object."""
+        # Setup logger
+        bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='LSFWorker.log')
+
         # Load appropriate container runtime driver, based on configs in kwargs
         try:
             self.tm_crt = kwargs['container_runtime']
         except KeyError:
-            print("No container runtime specified in config, proceeding with caution.")
+            log.warn("No container runtime specified in config, proceeding with caution.")
             self.tm_crt = None
             crt_driver = None
         finally:
@@ -42,9 +47,10 @@ class LSFWorker(Worker):
             self.crt = ContainerRuntimeInterface(crt_driver)
 
         # Get BEE workdir from config file
-        self.workdir = kwargs['bee_workdir']
+        self.workdir = bee_workdir
 
         # Get template for job, if option in configuration
+        self.template_text = '#! /bin/bash\n#BSUB\n'
         self.job_template = kwargs['job_template']
         if self.job_template:
             try:
@@ -52,15 +58,19 @@ class LSFWorker(Worker):
                 self.template_text = template_file.read()
                 template_file.close()
             except ValueError as error:
-                print(error)
-        else:
-            self.template_text = '#! /bin/bash\n#BSUB\n'
+                log.warn(f'Cannot open job template {self.job_template}, {error}')
+                log.warn('Proceeding with Caution!')
+            except FileNotFoundError as error:
+                log.warn(f'Cannot find job template {self.job_template}')
+                log.warn('Proceeding with Caution!')
+            except PermissionError as error:
+                log.warn(f'Permission error job template {self.job_template}')
+                log.warn('Proceeding with Caution!')
 
         # Table of LSF states for translation to BEE states
         self.bee_states = {'PEND': 'PENDING',
                            'RUN': 'RUNNING',
                            'DONE': 'COMPLETED',
-                           'EXIT': 'FAILED',
                            'QUIT': 'FAILED',
                            'PSUSP': 'PAUSED',
                            'USUSP': 'PAUSED',

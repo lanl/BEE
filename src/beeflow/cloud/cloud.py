@@ -74,6 +74,10 @@ class Cloud:
                                           #keyfile=self.priv_key_file)
         return Node(pnode)
 
+    def setup_interconnect(self):
+        """Set up connection between the nodes."""
+        # TODO
+
     def wait(self):
         """Wait until all created resources have been set up."""
         self.provider.wait()

@@ -191,6 +191,9 @@ def setup(conf, priv_key_file):
         nodes.append(c.create_node(ram_per_vcpu=2, vcpu_per_node=2,
                                    ext_ip=False))
 
+    # Now set up the interconnect between the nodes
+    c.setup_interconnect()
+
     # Wait for set up to complete
     print('Waiting for cloud setup...')
     c.wait()
