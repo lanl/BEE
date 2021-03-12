@@ -38,12 +38,48 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(gdb_workflow.id, workflow.id)
 
     def test_execute_workflow(self):
-        """Test workflow execution initialization (set initial tasks' states to READY)."""
+        """Test workflow execution initialization (set initial tasks' states to 'READY')."""
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
         tasks = self._create_test_tasks()
         self.wfi.execute_workflow()
 
         self.assertEqual(self.wfi.get_task_state(tasks[0]), "READY")
+
+    def test_pause_workflow(self):
+        """Test workflow execution pausing (set running tasks' states to 'PAUSED')."""
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
+
+        # Set Compute tasks to RUNNING
+        for task in tasks[1:4]:
+            self.wfi.set_task_state(task, "RUNNING")
+        self.wfi.pause_workflow()
+
+        # Compute tasks should now be PAUSED
+        for task in tasks[1:4]:
+            self.assertEqual("PAUSED", self.wfi.get_task_state(task))
+
+        # No other tasks should be affected
+        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[0]))
+        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[4]))
+
+    def test_resume_workflow(self):
+        """Test workflow execution resuming (set paused tasks' states to 'RUNNING')."""
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
+
+        # Set Compute tasks to RUNNING
+        for task in tasks[1:4]:
+            self.wfi.set_task_state(task, "PAUSED")
+        self.wfi.resume_workflow()
+
+        # Compute tasks should now be PAUSED
+        for task in tasks[1:4]:
+            self.assertEqual("RUNNING", self.wfi.get_task_state(task))
+
+        # No other tasks should be affected
+        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[0]))
+        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[4]))
 
     def test_finalize_workflow(self):
         """Test workflow deletion from the graph database."""
@@ -155,12 +191,36 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertSetEqual(set(tasks[1:4]), set(dependent_tasks))
 
     def test_get_task_state(self):
-        """Test obtaining of task status."""
+        """Test obtaining of task state."""
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
         task = self.wfi.add_task("Test Task")
 
         # Should be WAITING because workflow not yet executed
         self.assertEqual("WAITING", self.wfi.get_task_state(task))
+
+    def test_set_task_state(self):
+        """Test the setting of task state."""
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        task = self.wfi.add_task("Test Task")
+
+        self.wfi.set_task_state(task, "RUNNING")
+
+        # Should now be RUNNING
+        self.assertEqual("RUNNING", self.wfi.get_task_state(task))
+
+    def test_workflow_initialized(self):
+        """Test determining if a workflow is initialized.
+
+        This is currently functionally identical to workflow_loaded() but may
+        change when multiple workflows per database instance are supported.
+        """
+        # Workflow not initialized
+        self.assertFalse(self.wfi.workflow_loaded())
+
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+
+        # Workflow now initialized
+        self.assertTrue(self.wfi.workflow_loaded())
 
     def test_workflow_loaded(self):
         """Test determining if a workflow is loaded."""
