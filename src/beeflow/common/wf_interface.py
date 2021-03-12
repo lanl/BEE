@@ -26,13 +26,13 @@ class WorkflowInterface:
         """Begin construction of a BEE workflow.
 
         :param inputs: the inputs to the workflow
-        :type inputs: set of strings
+        :type inputs: set of str
         :param outputs: the outputs of the workflow
-        :type outputs: set of strings
+        :type outputs: set of str
         :param requirements: the workflow requirements
-        :type requirements: set of Requirement instances
+        :type requirements: set of Requirement
         :param hints: the workflow hints (optional requirements)
-        :type hints: set of Requirement instances
+        :type hints: set of Hint
         """
         if requirements is None:
             requirements = set()
@@ -64,7 +64,7 @@ class WorkflowInterface:
         :type key: str
         :param value: the requirement value
         :type value: str, bool, or int
-        :rtype: instance of Requirement
+        :rtype: Requirement
         """
         return Requirement(req_class, key, value)
 
@@ -78,7 +78,7 @@ class WorkflowInterface:
         :type key: str
         :param value: the requirement value
         :type value: str, bool, or int
-        :rtype: instance of Hint
+        :rtype: Hint
         """
         return Hint(req_class, key, value)
 
@@ -98,7 +98,7 @@ class WorkflowInterface:
         :type inputs: set of str, or None
         :param outputs: the task outputs
         :type outputs: set of str, or None
-        :rtype: instance of Task
+        :rtype: Task
         """
         # Immutable default arguments
         if command is None:
@@ -120,7 +120,7 @@ class WorkflowInterface:
 
         :param task_id: the task's ID
         :type task_id: str
-        :rtype: instance of Task
+        :rtype: Task
         """
         return self._gdb_interface.get_task_by_id(task_id)
 
@@ -129,7 +129,7 @@ class WorkflowInterface:
 
         Returns a tuple of (workflow_description, tasks)
 
-        :rtype: a tuple of (Workflow, set of Task)
+        :rtype: tuple of (Workflow, set of Task)
         """
         workflow = self._gdb_interface.get_workflow_description()
         tasks = self._gdb_interface.get_workflow_tasks()
@@ -142,7 +142,7 @@ class WorkflowInterface:
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: str
-        :rtype: a tuple of (set of Task, set of Requirement, set of Hint)
+        :rtype: tuple of (set of Task, set of Requirement, set of Hint)
         """
         subworkflow_tasks = self._gdb_interface.get_subworkflow_tasks(subworkflow)
         requirements, hints = self._gdb_interface.get_workflow_requirements_and_hints()
@@ -152,7 +152,7 @@ class WorkflowInterface:
         """Return the dependents of a task in the BEE workflow.
 
         :param task: the task whose dependents to retrieve
-        :type task: instance of Task
+        :type task: Task
         :rtype: set of Task
         """
         return self._gdb_interface.get_dependent_tasks(task)
@@ -161,7 +161,7 @@ class WorkflowInterface:
         """Return the state of the task in the BEE workflow.
 
         :param task: the task whose state to retrieve
-        :type task: instance of Task
+        :type task: Task
         :rtype: str
         """
         return self._gdb_interface.get_task_state(task)
@@ -170,7 +170,7 @@ class WorkflowInterface:
         """Set the state of the task in the BEE workflow.
 
         :param task: the task whose state to change
-        :type task: instance of Task
+        :type task: Task
         :param state: the new state of the task
         :type state: str
         """

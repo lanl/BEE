@@ -17,7 +17,7 @@ def create_workflow_node(tx, workflow):
 
     The workflow node is the entry point to the workflow.
     :param workflow: the workflow description
-    :type workflow: instance of Workflow
+    :type workflow: Workflow
     """
     workflow_query = ("CREATE (w:Workflow) "
                       "SET w.workflow_id = $workflow_id "
@@ -30,10 +30,10 @@ def create_workflow_node(tx, workflow):
 
 
 def create_workflow_hint_nodes(tx, hints):
-    """Create WorkflowHint nodes for the workflow.
+    """Create Hint nodes for the workflow.
 
     :param hints: the workflow hints
-    :type hints: list of Requirement instances
+    :type hints: set of Hint
     """
     hint_query = ("MATCH (w:Workflow) "
                   "CREATE (w)-[:HAS_HINT]->(h:Hint) "
@@ -46,10 +46,10 @@ def create_workflow_hint_nodes(tx, hints):
 
 
 def create_workflow_requirement_nodes(tx, requirements):
-    """Create WorkflowHint and WorkflowRequirement nodes for the workflow.
+    """Create Requirement nodes for the workflow.
 
     :param requirements: the workflow requirements
-    :type requirements: list of Requirement instances
+    :type requirements: set of Requirement
     """
     req_query = ("MATCH (w:Workflow) "
                  "CREATE (w)-[:HAS_REQUIREMENT]->(r:Requirement) "
@@ -65,7 +65,7 @@ def create_task(tx, task):
     """Create a Task node in the Neo4j database.
 
     :param task: the new task to create
-    :type task: instance of Task
+    :type task: Task
     """
     create_query = ("CREATE (t:Task) "
                     "SET t.task_id = $task_id "
@@ -81,10 +81,10 @@ def create_task(tx, task):
 
 
 def create_task_hint_nodes(tx, task):
-    """Create TaskHint nodes for a task.
+    """Create Hint nodes for a task.
 
     :param task: the task whose hints to add to the workflow
-    :type task: instance of Task
+    :type task: Task
     """
     hint_query = ("MATCH (t:Task {task_id: $task_id}) "
                   "CREATE (t)-[:HAS_HINT]->(h:Hint) "
@@ -102,10 +102,8 @@ def create_task_metadata_node(tx, task):
 
     The node holds metadata about a task's execution state.
 
-    :param requirements: the workflow requirements
-    :type requirements: set of Requirement instances
-    :param hints: the workflow hints
-    :type hints: set of Requirement instances
+    :param task: the task for which to create a metadata node
+    :type task: Task
     """
     metadata_query = ("MATCH (t:Task {task_id: $task_id}) "
                       "CREATE (m:Metadata {state: 'WAITING'})-[:DESCRIBES]->(t)")
@@ -117,7 +115,7 @@ def add_dependencies(tx, task):
     """Create dependencies between tasks.
 
     :param task: the workflow task
-    :type task: instance of Task
+    :type task: Task
     """
     begins_query = ("MATCH (s:Task {task_id: $task_id}), (w:Workflow) "
                     "WHERE ANY(input in s.inputs WHERE input in w.inputs) "
@@ -149,7 +147,7 @@ def get_task_by_id(tx, task_id):
 
 
 def get_task_hints(tx, task_id):
-    """Get task hints from the Neo4j database.
+    """Get task hints from the Neo4j database by the task's ID.
 
     :param task_id: the task's ID
     :type task_id: str
@@ -198,7 +196,7 @@ def get_subworkflow_tasks(tx, subworkflow):
     """Get subworkflow tasks from the Neo4j database with the specified identifier.
 
     :param subworkflow: the unique identifier of the subworkflow
-    :type subworkflow: string
+    :type subworkflow: str
     :rtype: BoltStatementResult
     """
     subworkflow_query = "MATCH (t:Task {subworkflow: $subworkflow}) RETURN t"
@@ -210,26 +208,19 @@ def get_dependent_tasks(tx, task):
     """Get the tasks that depend on a specified task.
 
     :param task: the task whose dependencies to obtain
-    :type task: instance of Task
+    :type task: Task
     """
     dependents_query = "MATCH (t:Task)-[:DEPENDS]->(:Task {task_id: $task_id}) RETURN t"
 
     return tx.run(dependents_query, task_id=task.id)
 
 
-def set_init_tasks_to_ready(tx):
-    """Set the initial workflow tasks' states to ready."""
-    init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)-[:BEGINS]->(:Workflow) "
-                        "SET m.state = 'READY'")
-
-    tx.run(init_ready_query)
-
-
 def get_task_state(tx, task):
     """Get the state of a task.
 
     :param task: the task whose state to get
-    :type task: instance of Task
+    :type task: Task
+    :rtype: str
     """
     state_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id}) RETURN m.state"
 
@@ -240,14 +231,22 @@ def set_task_state(tx, task, state):
     """Set a task's state.
 
     :param task: the task whose state to change
-    :type task: instance of Task
+    :type task: Task
     :param state: the new task state
-    :type state: string
+    :type state: str
     """
     state_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id}) "
                    "SET m.state = $state")
 
     tx.run(state_query, task_id=task.id, state=state)
+
+
+def set_init_tasks_to_ready(tx):
+    """Set the initial workflow tasks' states to ready."""
+    init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)-[:BEGINS]->(:Workflow) "
+                        "SET m.state = 'READY'")
+
+    tx.run(init_ready_query)
 
 
 def is_empty(tx):

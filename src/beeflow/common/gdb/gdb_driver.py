@@ -7,7 +7,7 @@ class GraphDatabaseDriver(ABC):
     """Driver interface for a generic graph database.
 
     The driver must implement a __init__ method that creates/connects to
-    the graph database and returns some kind of 'connection' object.
+    the graph database and returns some kind of 'connection' interface object.
     """
 
     @abstractmethod
@@ -17,7 +17,7 @@ class GraphDatabaseDriver(ABC):
         Create the Workflow, Requirement, and Hint nodes in the graph database.
 
         :param workflow: the workflow description
-        :type workflow: instance of Workflow
+        :type workflow: Workflow
         """
 
     @abstractmethod
@@ -35,7 +35,7 @@ class GraphDatabaseDriver(ABC):
         upon loading each task by matching task inputs and outputs.
 
         :param task: a workflow task
-        :type task: instance of Task
+        :type task: Task
         """
 
     @abstractmethod
@@ -44,23 +44,14 @@ class GraphDatabaseDriver(ABC):
 
         :param task_id: a task's ID
         :type task_id: str
-        :rtype: instance of Task
-        """
-
-    @abstractmethod
-    def get_task_hints(self, task):
-        """Return a workflow task record from the graph database.
-
-        :param task: a workflow task
-        :type task: instance of Task
-        :rtype: instance of Task
+        :rtype: Task
         """
 
     @abstractmethod
     def get_workflow_description(self):
-        """Return a workflow description record from the graph database.
+        """Return a reconstructed Workflow object from the graph database.
 
-        :rtype: instance of Workflow
+        :rtype: Workflow
         """
     @abstractmethod
     def get_workflow_tasks(self):
@@ -92,7 +83,7 @@ class GraphDatabaseDriver(ABC):
         """Return the dependent tasks of a workflow task in the graph database.
 
         :param task: the task whose dependents to retrieve
-        :type task: instance of Task
+        :type task: Task
         :rtype: set of Task
         """
 
@@ -101,7 +92,7 @@ class GraphDatabaseDriver(ABC):
         """Return the state of a task in the graph database workflow.
 
         :param task: the task whose status to retrieve
-        :type task: instance of Task
+        :type task: Task
         :rtype: str
         """
 
@@ -110,7 +101,7 @@ class GraphDatabaseDriver(ABC):
         """Set the state of a task in the graph database workflow.
 
         :param task: the task whose state to change
-        :type task: instance of Task
+        :type task: Task
         :param state: the new state
         :type state: str
         """
@@ -119,7 +110,7 @@ class GraphDatabaseDriver(ABC):
     def empty(self):
         """Determine if the database is empty.
 
-        :rtype: boolean
+        :rtype: bool
         """
 
     @abstractmethod

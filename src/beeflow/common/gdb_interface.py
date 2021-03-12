@@ -46,7 +46,7 @@ class GraphDatabaseInterface:
         Permits the addition of task nodes to the workflow.
 
         :param workflow: the workflow description
-        :type workflow: instance of Workflow
+        :type workflow: Workflow
         """
         self._connection.initialize_workflow(workflow)
 
@@ -58,7 +58,7 @@ class GraphDatabaseInterface:
         """Load a task into the workflow in the graph database.
 
         :param task: the workflow task
-        :type task: instance of Task
+        :type task: Task
         """
         self._connection.load_task(task)
 
@@ -66,20 +66,20 @@ class GraphDatabaseInterface:
         """Return a workflow Task given its ID.
 
         :param task_id: the task's ID
-        :type task_id: int
-        :rtype: instance of Task
+        :type task_id: str
+        :rtype: Task
         """
         return self._connection.get_task_by_id(task_id)
 
     def get_workflow_description(self):
         """Return the workflow description from the graph database.
 
-        :rtype: instance of Workflow
+        :rtype: Workflow
         """
         return self._connection.get_workflow_description()
 
     def get_workflow_tasks(self):
-        """Return a workflow's Task objects from the graph database.
+        """Return a workflow's tasks from the graph database.
 
         :rtype: set of Task
         """
@@ -98,7 +98,7 @@ class GraphDatabaseInterface:
         """Return a subworkflow's Task objects from the graph database.
 
         :param subworkflow: the unique identifier of the subworkflow
-        :type subworkflow: string
+        :type subworkflow: str
         :rtype: set of Task
         """
         return self._connection.get_subworkflow_tasks(subworkflow)
@@ -107,7 +107,7 @@ class GraphDatabaseInterface:
         """Return the dependents of a task in a graph database workflow.
 
         :param task: the task whose dependents to retrieve
-        :type task: instance of Task
+        :type task: Task
         :rtype: set of Task
         """
         return self._connection.get_dependent_tasks(task)
@@ -116,8 +116,8 @@ class GraphDatabaseInterface:
         """Return the state of a task in a graph database workflow.
 
         :param task: the task whose state to retrieve
-        :type task: instance of Task
-        :rtype: string
+        :type task: Task
+        :rtype: str
         """
         return self._connection.get_task_state(task)
 
@@ -125,23 +125,23 @@ class GraphDatabaseInterface:
         """Set the state of a task in the graph database workflow.
 
         :param task: the task whose state to change
-        :type task: instance of Task
+        :type task: Task
         :param state: the new state
-        :type state: string
+        :type state: str
         """
         return self._connection.set_task_state(task, state)
 
     def initialized(self):
-        """Return true if the workflow_has been initialized, else false.
+        """Return true if the database connection has been initialized, else false.
 
-        :rtype: boolean
+        :rtype: bool
         """
         return bool(self._connection is not None)
 
     def empty(self):
         """Return true if the graph database is empty, else false.
 
-        :rtype: boolean
+        :rtype: bool
         """
         return self._connection.empty()
 

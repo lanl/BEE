@@ -31,11 +31,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Create a new Neo4j database driver.
 
         :param uri: the URI of the Neo4j database
-        :type uri: string
+        :type uri: str
         :param user: the username for the database user account
-        :type user: string
+        :type user: str
         :param password: the password for the database user account
-        :type password: string
+        :type password: str
         """
         db_hostname = kwargs.get("db_hostname", DEFAULT_HOSTNAME)
         bolt_port = kwargs.get("bolt_port", DEFAULT_BOLT_PORT)
@@ -56,7 +56,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         Create the Workflow, Requirement, and Hint nodes in the Neo4j database.
 
         :param workflow: the workflow description
-        :type workflow: instance of Workflow
+        :type workflow: Workflow
         """
         with self._driver.session() as session:
             session.write_transaction(tx.create_workflow_node, workflow)
@@ -75,7 +75,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         each task by matching task inputs and outputs.
 
         :param task: a workflow task
-        :type task: instance of Task
+        :type task: Task
         """
         with self._driver.session() as session:
             session.write_transaction(tx.create_task, task=task)
@@ -84,30 +84,20 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.add_dependencies, task=task)
 
     def get_task_by_id(self, task_id):
-        """Return a workflow task record from the Neo4j database.
+        """Return a reconstructed task from the Neo4j database.
 
         :param task_id: a task's ID
         :type task_id: str
-        :rtype: instance of Task
+        :rtype: Task
         """
         task_record = self._read_transaction(tx.get_task_by_id, task_id=task_id)
         pairs = self._get_task_hint_pairs([task_record])
         return _reconstruct_task(pairs[0][0], pairs[0][1])
 
-    def get_task_hints(self, task):
-        """Return a workflow task record from the Neo4j database.
-
-        :param task: a workflow task
-        :type task: instance of Task
-        :rtype: set of Hint
-        """
-        hint_records = self._read_transaction(tx.get_task_hints, task_id=task.id)
-        return _reconstruct_hints(hint_records)
-
     def get_workflow_description(self):
-        """Return a workflow description record from the Neo4j database.
+        """Return a reconstructed Workflow object from the Neo4j database.
 
-        :rtype: instance of Workflow
+        :rtype: Workflow
         """
         requirements, hints = self.get_workflow_requirements_and_hints()
         workflow_record = self._read_transaction(tx.get_workflow_description)
@@ -150,8 +140,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Return the dependent tasks of a specified workflow task.
 
         :param task: the task whose dependents to retrieve
-        :type task: Task object
-        :rtype: set of Task objects
+        :type task: Task
+        :rtype: set of Task
         """
         task_records = self._read_transaction(tx.get_dependent_tasks, task=task)
         pairs = self._get_task_hint_pairs(task_records)
@@ -161,8 +151,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Return the state of a task in the Neo4j workflow.
 
         :param task: the task whose state to retrieve
-        :type task: instance of Task
-        :rtype: a string
+        :type task: Task
+        :rtype: str
         """
         return self._read_transaction(tx.get_task_state, task=task)
 
@@ -170,16 +160,16 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Set the state of a task in the Neo4j workflow.
 
         :param task: the task whose state to change
-        :type task: instance of Task
+        :type task: Task
         :param state: the new state
-        :type state: string
+        :type state: str
         """
         self._write_transaction(tx.set_task_state, task=task, state=state)
 
     def empty(self):
         """Determine if the database is empty.
 
-        :rtype: boolean
+        :rtype: bool
         """
         return bool(self._read_transaction(tx.is_empty) is None)
 
@@ -264,7 +254,7 @@ def _reconstruct_workflow(workflow_record, hints, requirements):
     :type hints: set of Hint
     :param requirements: the workflow requirements
     :type requirements: set of Requirement
-    :rtype: instance of Workflow
+    :rtype: Workflow
     """
     rec = workflow_record["w"]
     return Workflow(hints=hints, requirements=requirements, inputs=set(rec["inputs"]),
@@ -276,9 +266,9 @@ def _reconstruct_task(task_record, hints):
 
     :param task_record: the database record of the task
     :type task_record: BoltStatementResult
-    :param hints: set of Hint
-    :type hints:
-    :rtype: instance of Task
+    :param hints: the task hints
+    :type hints: set of Hint
+    :rtype: Task
     """
     rec = task_record["t"]
     return Task(name=rec["name"], command=rec["command"], hints=hints,
