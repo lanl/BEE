@@ -1,6 +1,7 @@
-#!/bin/bash
-#BSUB -P CSC420
+#BSUB -P <your project code> 
 #BSUB -W 0:30
 #BSUB -nnodes 1
-#BSUB -J $name
-#BSUB -o $name.%J
+
+echo "Workflow id: $WorkflowID"
+echo "Task $name with id $id"
+

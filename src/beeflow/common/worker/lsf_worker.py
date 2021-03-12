@@ -50,14 +50,14 @@ class LSFWorker(Worker):
         self.workdir = bee_workdir
 
         # Get template for job, if option in configuration
-        self.template_text = '#! /bin/bash\n#BSUB\n'
+        self.template_text = ''
         self.job_template = kwargs['job_template']
         if self.job_template:
-            log.info(f'Jobs will use template: {self.job_template}')
             try:
                 template_file = open(self.job_template, 'r')
                 self.template_text = template_file.read()
                 template_file.close()
+                log.info(f'Jobs will use template: {self.job_template}')
             except ValueError as error:
                 log.warning(f'Cannot open job template {self.job_template}, {error}')
                 log.warning('Proceeding with Caution!')
@@ -79,20 +79,29 @@ class LSFWorker(Worker):
 
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
-        template_text = self.template_text
+        workflow_path = f'{self.workdir}/{task.wf_id}/{task.name}'
+        template_text = '#! /bin/bash\n'
+        template_text += f'#BSUB -J {task.name}\n'
+        template_text += f'#BSUB -o {workflow_path}/{task.name}.out\n'
+        template_text += f'#BSUB -e {workflow_path}/{task.name}.err\n'
+        template_text += self.template_text
         template = string.Template(template_text)
-        job_text = template.substitute({'name': task.name, 'id': task.id})
+        job_text = template.substitute({'WorkflowID': task.wf_id,
+                                        'name': task.name,
+                                        'id': task.id}
+                                       )
         crt_text = self.crt.script_text(task)
         job_text += crt_text
         return job_text
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
+        script_dir = f'{self.workdir}/{task.wf_id}/{task.name}'
         if not self.crt.image_exists(task):
             raise Exception('dockerImageId not accessible or valid.')
-        os.makedirs(f'{self.workdir}/{task.wf_id}', exist_ok=True)
+        os.makedirs(script_dir, exist_ok=True)
         task_text = self.build_text(task)
-        task_script = f'{self.workdir}/{task.wf_id}/{task.name}.sh'
+        task_script = f'{script_dir}/{task.name}.sh'
         script_f = open(task_script, 'w')
         script_f.write(task_text)
         script_f.close()
