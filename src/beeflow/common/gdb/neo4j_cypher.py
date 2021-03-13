@@ -61,7 +61,7 @@ def create_workflow_requirement_nodes(tx, requirements):
         tx.run(req_query, req_class=req.req_class, key=req.key, value=req.value)
 
 
-def create_task(tx, task):
+def create_task(tx, workflow, task):
     """Create a Task node in the Neo4j database.
 
     :param task: the new task to create
@@ -69,6 +69,7 @@ def create_task(tx, task):
     """
     create_query = ("CREATE (t:Task) "
                     "SET t.task_id = $task_id "
+                    "SET t.workflow_id = $workflow_id "
                     "SET t.name = $name "
                     "SET t.command = $command "
                     "SET t.subworkflow = $subworkflow "
@@ -76,8 +77,9 @@ def create_task(tx, task):
                     "SET t.outputs = $outputs ")
 
     # Unpack requirements, hints dictionaries into flat list
-    tx.run(create_query, task_id=task.id, name=task.name, command=task.command,
-           subworkflow=task.subworkflow, inputs=list(task.inputs), outputs=list(task.outputs))
+    tx.run(create_query, task_id=task.id, workflow_id=workflow.id, name=task.name,
+           command=task.command, subworkflow=task.subworkflow, inputs=list(task.inputs),
+           outputs=list(task.outputs))
 
 
 def create_task_hint_nodes(tx, task):
@@ -111,28 +113,28 @@ def create_task_metadata_node(tx, task):
     tx.run(metadata_query, task_id=task.id)
 
 
-def add_dependencies(tx, task):
+def add_dependencies(tx, workflow, task):
     """Create dependencies between tasks.
 
     :param task: the workflow task
     :type task: Task
     """
-    begins_query = ("MATCH (s:Task {task_id: $task_id}), (w:Workflow) "
+    begins_query = ("MATCH (s:Task {task_id: $task_id}), (w:Workflow {workflow_id: $workflow_id}) "
                     "WHERE ANY(input in s.inputs WHERE input in w.inputs) "
                     "AND NOT (s)-[:BEGINS]->(w) "
                     "CREATE (s)-[:BEGINS]->(w)")
-    dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task) "
+    dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task {workflow_id: $workflow_id}) "
                         "WHERE ANY(input in s.inputs WHERE input in t.outputs) "
                         "AND NOT (s)-[:DEPENDS]->(t) "
                         "CREATE (s)-[:DEPENDS]->(t) "
                         "WITH s "
-                        "MATCH (t:Task) "
+                        "MATCH (t:Task {workflow_id: $workflow_id}) "
                         "WHERE ANY(output in s.outputs WHERE output in t.inputs) "
                         "AND NOT (t)-[:DEPENDS]->(s) "
                         "CREATE (t)-[:DEPENDS]->(s)")
 
-    tx.run(begins_query, task_id=task.id)
-    tx.run(dependency_query, task_id=task.id)
+    tx.run(begins_query, task_id=task.id, workflow_id=workflow.id)
+    tx.run(dependency_query, task_id=task.id, workflow_id=workflow.id)
 
 
 def get_task_by_id(tx, task_id):

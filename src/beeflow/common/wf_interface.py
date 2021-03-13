@@ -90,10 +90,12 @@ class WorkflowInterface:
         """
         return Hint(req_class, key, value)
 
-    def add_task(self, name, command=None, hints=None, subworkflow=None, inputs=None,
+    def add_task(self, workflow, name, command=None, hints=None, subworkflow=None, inputs=None,
                  outputs=None):
-        """Create a new BEE workflow task.
+        """Add a new task to a BEE workflow.
 
+        :param workflow: the workflow to which to assign the task
+        :type workflow: Workflow
         :param name: the name given to the task
         :type name: str
         :param command: the command for the task
@@ -118,9 +120,9 @@ class WorkflowInterface:
         if outputs is None:
             outputs = set()
 
-        task = Task(name, command, hints, subworkflow, inputs, outputs)
+        task = Task(name, command, hints, subworkflow, inputs, outputs, workflow.id)
         # Load the new task into the graph database
-        self._gdb_interface.load_task(task)
+        self._gdb_interface.load_task(workflow, task)
         return task
 
     def get_task_by_id(self, task_id):

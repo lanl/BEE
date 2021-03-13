@@ -66,7 +66,8 @@ class Workflow:
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, name, command, hints, subworkflow, inputs, outputs, task_id=None):
+    def __init__(self, name, command, hints, subworkflow, inputs, outputs, workflow_id,
+                 task_id=None):
         """Store a task description.
 
         Task ID should only be given as a parameter when reconstructing the Task object
@@ -88,6 +89,8 @@ class Task:
         :type outputs: set of str
         :param task_id: the task ID
         :type task_id: str
+        :param workflow_id: the workflow ID
+        :type workflow_id: str
         """
         self.name = name
         self.command = command
@@ -95,6 +98,7 @@ class Task:
         self.subworkflow = subworkflow
         self.inputs = inputs
         self.outputs = outputs
+        self.workflow_id = workflow_id
 
         # Task ID as UUID if not given
         if task_id:

@@ -62,13 +62,15 @@ class GraphDatabaseInterface:
         """Resume execution of a running workflow."""
         self._connection.resume_workflow()
 
-    def load_task(self, task):
-        """Load a task into the workflow in the graph database.
+    def load_task(self, workflow, task):
+        """Load a task into a workflow in the graph database.
 
+        :param workflow: the workflow
+        :type workflow: Workflow
         :param task: the workflow task
         :type task: Task
         """
-        self._connection.load_task(task)
+        self._connection.load_task(workflow, task)
 
     def get_task_by_id(self, task_id):
         """Return a workflow Task given its ID.
