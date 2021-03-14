@@ -2,7 +2,7 @@
 
 
 def constrain_workflow_unique(tx):
-    """Constrain tasks to have unique names."""
+    """Constrain workflows and tasks to have unique IDs."""
     unique_task_query = ("CREATE CONSTRAINT ON (t:Task) "
                          "ASSERT t.task_id IS UNIQUE")
     unique_workflow_query = ("CREATE CONSTRAINT ON (w:Workflow) "
@@ -64,6 +64,8 @@ def create_workflow_requirement_nodes(tx, requirements):
 def create_task(tx, workflow, task):
     """Create a Task node in the Neo4j database.
 
+    :param workflow: the workflow to which the task belongs
+    :type workflow: Workflow
     :param task: the new task to create
     :type task: Task
     """
@@ -116,6 +118,8 @@ def create_task_metadata_node(tx, task):
 def add_dependencies(tx, workflow, task):
     """Create dependencies between tasks.
 
+    :param workflow: the workflow to which the task belongs
+    :type workflow: Workflow
     :param task: the workflow task
     :type task: Task
     """

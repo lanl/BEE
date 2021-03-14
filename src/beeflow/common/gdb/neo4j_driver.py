@@ -90,6 +90,8 @@ class Neo4jDriver(GraphDatabaseDriver):
 
         Task hint nodes and metadata nodes are created for querying convenience.
 
+        :param workflow: the workflow
+        :type workflow: Workflow
         :param task: a workflow task
         :type task: Task
         """
