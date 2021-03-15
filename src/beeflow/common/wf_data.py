@@ -74,7 +74,7 @@ class Task:
         from the graph database.
 
         :param task_id: the task's unique ID
-        :type task_id: int
+        :type task_id: str
         :param name: the task name
         :type name: str
         :param command: the command to run for the task
@@ -87,8 +87,6 @@ class Task:
         :type inputs: set of str
         :param outputs: the task outputs
         :type outputs: set of str
-        :param task_id: the task ID
-        :type task_id: str
         :param workflow_id: the workflow ID
         :type workflow_id: str
         """
