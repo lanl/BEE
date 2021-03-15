@@ -43,6 +43,7 @@ class WorkflowInterface:
         self._gdb_interface.connect(**self._gdb_details)
 
         workflow = Workflow(hints, requirements, inputs, outputs)
+        # Load the new workflow into the graph database
         self._gdb_interface.initialize_workflow(workflow)
         return workflow
 
