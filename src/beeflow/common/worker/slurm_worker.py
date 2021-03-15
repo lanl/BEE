@@ -82,15 +82,15 @@ class SlurmWorker(Worker):
             log.info('No template for jobs.')
 
     def build_text(self, task):
-        """Build text for task script use template if it exists."""
-        workflow_path = f'{self.workdir}/{task.wf_id}/{task.name}'
+        """Build text for task script; use template if it exists."""
+        workflow_path = f'{self.workdir}/{task.workflow_id}/{task.name}-{task.id}'
         template_text = '#! /bin/bash\n'
-        template_text += f'#SBATCH --job-name={task.name}\n'
-        template_text += f'#SBATCH --output={workflow_path}/{task.name}.out\n'
-        template_text += f'#SBATCH --error={workflow_path}/{task.name}.err\n'
+        template_text += f'#SBATCH --job-name={task.name}-{task.id}\n'
+        template_text += f'#SBATCH --output={workflow_path}/{task.name}-{task.id}.out\n'
+        template_text += f'#SBATCH --error={workflow_path}/{task.name}-{task.id}.err\n'
         template_text += self.template_text
         template = string.Template(template_text)
-        job_text = template.substitute({'WorkflowID': task.wf_id,
+        job_text = template.substitute({'WorkflowID': task.workflow_id,
                                         'name': task.name,
                                         'id': task.id}
                                        )
@@ -100,12 +100,12 @@ class SlurmWorker(Worker):
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
-        script_dir = f'{self.workdir}/{task.wf_id}/{task.name}'
+        script_dir = f'{self.workdir}/{task.workflow_id}/{task.name}-{task.id}'
         if not self.crt.image_exists(task):
             raise Exception('dockerImageId not accessible.')
         os.makedirs(script_dir, exist_ok=True)
         task_text = self.build_text(task)
-        task_script = f'{script_dir}/{task.name}.sh'
+        task_script = f'{script_dir}/{task.name}-{task.id}.sh'
         script_f = open(task_script, 'w')
         script_f.write(task_text)
         script_f.close()
@@ -146,12 +146,9 @@ class SlurmWorker(Worker):
         return job_state
 
     def cancel_task(self, job_id):
-        """Worker cancels job returns job_state."""
+        """Worker cancels job, returns job_state."""
         resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
         if resp.status_code != 200:
             raise Exception(f'Unable to cancel job id {job_id}!')
         job_state = "CANCELLED"
         return job_state
-
-# Ignore module imported but unused error. No way to know which crt will be needed
-# pylama:ignore=W0611

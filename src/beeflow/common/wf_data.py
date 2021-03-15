@@ -18,8 +18,8 @@ class Task:
         workflow should depend on it.
         bee_exit should have no dependents and depend on all of the end tasks
         in the user's workflow.
-        :param wf_id: the unique id of the workflow that the task belongs to
-        :type wf_id: string
+        :param workflow_id: the unique id of the workflow that the task belongs to
+        :type workflow_id: string
         :param task_id: the task's unique ID
         :type task_id: integer
         :param name: the task name
@@ -43,7 +43,7 @@ class Task:
         self.outputs = outputs
 
         # Workflow ID
-        self.wf_id = 'workflow_id'
+        self.workflow_id = 'workflow_id'
         # Task ID
         self.id = abs(hash(self))
 

@@ -68,6 +68,9 @@ class LSFWorker(Worker):
                 log.warning(f'Permission error job template {self.job_template}')
                 log.warning('Proceeding with Caution!')
 
+        else:
+            log.info('No template for jobs.')
+
         # Table of LSF states for translation to BEE states
         self.bee_states = {'PEND': 'PENDING',
                            'RUN': 'RUNNING',
@@ -79,14 +82,14 @@ class LSFWorker(Worker):
 
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
-        workflow_path = f'{self.workdir}/{task.wf_id}/{task.name}'
+        workflow_path = f'{self.workdir}/{task.workflow_id}/{task.name}-{task.id}'
         template_text = '#! /bin/bash\n'
-        template_text += f'#BSUB -J {task.name}\n'
-        template_text += f'#BSUB -o {workflow_path}/{task.name}.out\n'
-        template_text += f'#BSUB -e {workflow_path}/{task.name}.err\n'
+        template_text += f'#BSUB -J {task.name}-{task.id}\n'
+        template_text += f'#BSUB -o {workflow_path}/{task.name}-{task.id}.out\n'
+        template_text += f'#BSUB -e {workflow_path}/{task.name}-{task.id}.err\n'
         template_text += self.template_text
         template = string.Template(template_text)
-        job_text = template.substitute({'WorkflowID': task.wf_id,
+        job_text = template.substitute({'WorkflowID': task.workflow_id,
                                         'name': task.name,
                                         'id': task.id}
                                        )
@@ -96,12 +99,12 @@ class LSFWorker(Worker):
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
-        script_dir = f'{self.workdir}/{task.wf_id}/{task.name}'
+        script_dir = f'{self.workdir}/{task.workflow_id}/{task.name}-{task.id}'
         if not self.crt.image_exists(task):
-            raise Exception('dockerImageId not accessible or valid.')
+            raise Exception('dockerImageId not accessible.')
         os.makedirs(script_dir, exist_ok=True)
         task_text = self.build_text(task)
-        task_script = f'{script_dir}/{task.name}.sh'
+        task_script = f'{script_dir}/{task.name}-{task.id}.sh'
         script_f = open(task_script, 'w')
         script_f.write(task_text)
         script_f.close()
@@ -117,7 +120,7 @@ class LSFWorker(Worker):
         return job_state
 
     def submit_job(self, script):
-        """Worker submits job-returns (job_id, job_state), or (-1, error)."""
+        """Worker submits job-returns (job_id, job_state)."""
         job_st = subprocess.check_output(['bsub', script], stderr=subprocess.STDOUT)
         job_id = int(job_st.decode().split()[1][1:-1])
         job_state = self.query_job(job_id)
@@ -135,7 +138,7 @@ class LSFWorker(Worker):
         return job_state
 
     def cancel_task(self, job_id):
-        """Worker cancels job; job_state."""
+        """Worker cancels job, returns job_state."""
         subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"
         return job_state
