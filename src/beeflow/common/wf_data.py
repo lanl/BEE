@@ -73,8 +73,6 @@ class Task:
         Task ID should only be given as a parameter when reconstructing the Task object
         from the graph database.
 
-        :param task_id: the task's unique ID
-        :type task_id: str
         :param name: the task name
         :type name: str
         :param command: the command to run for the task
@@ -89,6 +87,8 @@ class Task:
         :type outputs: set of str
         :param workflow_id: the workflow ID
         :type workflow_id: str
+        :param task_id: the task ID
+        :type task_id: str
         """
         self.name = name
         self.command = command
