@@ -68,7 +68,7 @@ class TestWorkflowInterface(unittest.TestCase):
         workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
         tasks = self._create_test_tasks(workflow)
 
-        # Set Compute tasks to RUNNING
+        # Set Compute tasks to PAUSED
         for task in tasks[1:4]:
             self.wfi.set_task_state(task, "PAUSED")
         self.wfi.resume_workflow()
@@ -80,6 +80,27 @@ class TestWorkflowInterface(unittest.TestCase):
         # No other tasks should be affected
         self.assertEqual("WAITING", self.wfi.get_task_state(tasks[0]))
         self.assertEqual("WAITING", self.wfi.get_task_state(tasks[4]))
+
+    def test_reset_workflow(self):
+        """Test workflow execution resetting (set all tasks to 'WAITING', delete metadata)."""
+        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks(workflow)
+        metadata = {"cluster": "fog", "crt": "charliecloud",
+                    "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
+        empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
+
+        # Set tasks' metadata, set state to COMPLETED
+        for task in tasks:
+            self.wfi.set_task_metadata(task, metadata)
+            self.wfi.set_task_state(task, "COMPLETED")
+            self.assertEqual("COMPLETED", self.wfi.get_task_state(task))
+
+        self.wfi.reset_workflow()
+
+        # States should be reset, metadata should be deleted
+        for task in tasks:
+            self.assertDictEqual(empty_metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+            self.assertEqual("WAITING", self.wfi.get_task_state(task))
 
     def test_finalize_workflow(self):
         """Test workflow deletion from the graph database."""
@@ -121,6 +142,26 @@ class TestWorkflowInterface(unittest.TestCase):
         gdb_task = self.wfi.get_task_by_id(task.id)
         self.assertEqual(gdb_task, task)
         self.assertEqual(gdb_task.id, task.id)
+
+    def test_initialize_ready_tasks(self):
+        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks(workflow)
+
+        # Not using finalize_task() to test independent use of initialize_ready_tasks()
+        self.wfi.set_task_state(tasks[0], "COMPLETED")
+        self.wfi.initialize_ready_tasks()
+
+        self.assertEqual("READY", self.wfi.get_task_state(tasks[1]))
+        self.assertEqual("READY", self.wfi.get_task_state(tasks[2]))
+        self.assertEqual("READY", self.wfi.get_task_state(tasks[3]))
+
+    def test_finalize_task(self):
+        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks(workflow)
+
+        ready_tasks = self.wfi.finalize_task(tasks[0])
+
+        self.assertSetEqual(set(tasks[1:4]), ready_tasks)
 
     def test_create_requirement(self):
         """Test workflow requirement creation."""
@@ -182,6 +223,20 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertSetEqual(requirements, subwf_requirements)
         self.assertSetEqual(hints, subwf_hints)
 
+    def test_get_ready_tasks(self):
+        """Test obtaining of ready workflow tasks."""
+        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks(workflow)
+
+        # Should be no ready tasks
+        self.assertSetEqual(set(), self.wfi.get_ready_tasks())
+
+        # Set Compute tasks to READY
+        for task in tasks[1:4]:
+            self.wfi.set_task_state(task, "READY")
+
+        self.assertSetEqual(set(tasks[1:4]), self.wfi.get_ready_tasks())
+
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
         workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
@@ -236,22 +291,32 @@ class TestWorkflowInterface(unittest.TestCase):
         # Metadata should now be populated
         self.assertDictEqual(metadata, self.wfi.get_task_metadata(task, metadata.keys()))
 
+    def test_workflow_completed(self):
+        """Test determining if a workflow has completed."""
+        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        task = self.wfi.add_task(workflow, "Test Task")
+
+        # Workflow not completed
+        self.assertFalse(self.wfi.workflow_completed())
+
+        # Not using finalize_task() to avoid unnecessary queries
+        self.wfi.set_task_state(task, 'COMPLETED')
+
+        # Workflow now completed
+        self.assertTrue(self.wfi.workflow_completed())
+
     def test_workflow_initialized(self):
-        """Test determining if a workflow is initialized.
-
-        This is currently functionally identical to workflow_loaded() but may
-        change when multiple workflows per database instance are supported.
-        """
-        # Workflow not initialized
-        self.assertFalse(self.wfi.workflow_loaded())
-
+        """Test determining if a workflow is initialized."""
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
 
         # Workflow now initialized
-        self.assertTrue(self.wfi.workflow_loaded())
+        self.assertTrue(self.wfi.workflow_initialized())
 
     def test_workflow_loaded(self):
         """Test determining if a workflow is loaded."""
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        self.wfi.finalize_workflow()
+
         # Workflow not loaded
         self.assertFalse(self.wfi.workflow_loaded())
 
