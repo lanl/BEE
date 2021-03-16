@@ -48,7 +48,7 @@ class WorkflowInterface:
         return workflow
 
     def execute_workflow(self):
-        """Begin execution of the BEE workflow."""
+        """Begin execution of a BEE workflow."""
         self._gdb_interface.execute_workflow()
 
     def pause_workflow(self):
@@ -59,8 +59,12 @@ class WorkflowInterface:
         """Resume the execution of a paused BEE workflow."""
         self._gdb_interface.resume_workflow()
 
+    def reset_workflow(self):
+        """Reset the execution state of an entire BEE workflow."""
+        self._gdb_interface.reset_workflow()
+
     def finalize_workflow(self):
-        """Deconstruct the BEE workflow."""
+        """Deconstruct a BEE workflow."""
         self._gdb_interface.cleanup()
 
     @staticmethod
@@ -126,6 +130,25 @@ class WorkflowInterface:
         self._gdb_interface.load_task(workflow, task)
         return task
 
+    def initialize_ready_tasks(self):
+        """Initialize runnable tasks in a BEE workflow to ready."""
+        self._gdb_interface.initialize_ready_tasks()
+
+    def finalize_task(self, task):
+        """Mark a BEE workflow task as completed.
+
+        This method also automatically deduces what tasks are now
+        runnable, updating their states to ready and returning a
+        set of the runnable tasks.
+
+        :param task: the task to finalize
+        :type task: Task
+        :rtype: set of Task
+        """
+        self._gdb_interface.finalize_task(task)
+        self._gdb_interface.initialize_ready_tasks()
+        return self._gdb_interface.get_ready_tasks()
+
     def get_task_by_id(self, task_id):
         """Get a task by its Task ID.
 
@@ -136,7 +159,7 @@ class WorkflowInterface:
         return self._gdb_interface.get_task_by_id(task_id)
 
     def get_workflow(self):
-        """Get the loaded workflow.
+        """Get a loaded BEE workflow.
 
         Returns a tuple of (workflow_description, tasks)
 
@@ -159,8 +182,15 @@ class WorkflowInterface:
         requirements, hints = self._gdb_interface.get_workflow_requirements_and_hints()
         return subworkflow_tasks, requirements, hints
 
+    def get_ready_tasks(self):
+        """Get ready tasks from a BEE workflow.
+
+        :rtype: set of Task
+        """
+        return self._gdb_interface.get_ready_tasks()
+
     def get_dependent_tasks(self, task):
-        """Return the dependents of a task in the BEE workflow.
+        """Get the dependents of a task in a BEE workflow.
 
         :param task: the task whose dependents to retrieve
         :type task: Task
@@ -169,7 +199,7 @@ class WorkflowInterface:
         return self._gdb_interface.get_dependent_tasks(task)
 
     def get_task_state(self, task):
-        """Return the state of the task in the BEE workflow.
+        """Get the state of the task in a BEE workflow.
 
         :param task: the task whose state to retrieve
         :type task: Task
@@ -178,7 +208,10 @@ class WorkflowInterface:
         return self._gdb_interface.get_task_state(task)
 
     def set_task_state(self, task, state):
-        """Set the state of the task in the BEE workflow.
+        """Set the state of the task in a BEE workflow.
+
+        This method should not be used to set a task as completed.
+        finalize_task() should instead be used.
 
         :param task: the task whose state to set
         :type task: Task
@@ -188,7 +221,7 @@ class WorkflowInterface:
         self._gdb_interface.set_task_state(task, state)
 
     def get_task_metadata(self, task, keys):
-        """Return the job description metadata of a task.
+        """Get the job description metadata of a task in a BEE workflow.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
@@ -199,10 +232,10 @@ class WorkflowInterface:
         return self._gdb_interface.get_task_metadata(task, keys)
 
     def set_task_metadata(self, task, metadata):
-        """Set the job description metadata of a task.
+        """Set the job description metadata of a task in a BEE workflow.
 
         This method should not be used to update task state.
-        set_task_state() should instead be used.
+        finalize_task() should instead be used.
 
         :param task: the task whose metadata to set
         :type task: Task
@@ -210,6 +243,13 @@ class WorkflowInterface:
         :type metadata: dict
         """
         self._gdb_interface.set_task_metadata(task, metadata)
+
+    def workflow_completed(self):
+        """Return true if all of a workflow's tasks have completed, else false.
+
+        :rtype: bool
+        """
+        return self._gdb_interface.workflow_completed()
 
     def workflow_initialized(self):
         """Return true if a workflow has been initialized, else false.

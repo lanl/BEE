@@ -40,6 +40,13 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def reset_workflow(self):
+        """Reset the execution state of an entire workflow.
+
+        Set all task states to 'WAITING'.
+        """
+
+    @abstractmethod
     def load_task(self, workflow, task):
         """Load a task into a stored workflow.
 
@@ -50,6 +57,14 @@ class GraphDatabaseDriver(ABC):
         :type workflow: Workflow
         :param task: a workflow task
         :type task: Task
+        """
+
+    @abstractmethod
+    def initialize_ready_tasks(self):
+        """Set runnable tasks to state 'READY'.
+
+        Runnable tasks are tasks with all dependency tasks'
+        states set to 'COMPLETED'.
         """
 
     @abstractmethod
@@ -85,10 +100,17 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_subworkflow_tasks(self, subworkflow):
-        """Return a list of subworkflow task records from the graph database.
+        """Return subworkflow tasks from the graph database.
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: str
+        :rtype: set of Task
+        """
+
+    @abstractmethod
+    def get_ready_tasks(self):
+        """Return tasks with state 'READY' from the graph database.
+
         :rtype: set of Task
         """
 
@@ -139,6 +161,15 @@ class GraphDatabaseDriver(ABC):
         :type task: Task
         :param metadata: the job description metadata
         :type metadata: dict
+        """
+
+    @abstractmethod
+    def workflow_completed(self):
+        """Determine if a workflow has completed.
+
+        A workflow has completed if each of its tasks has state 'COMPLETED'.
+
+        :rtype: bool
         """
 
     @abstractmethod

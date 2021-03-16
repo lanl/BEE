@@ -124,18 +124,15 @@ def add_dependencies(tx, workflow, task):
     :type task: Task
     """
     begins_query = ("MATCH (s:Task {task_id: $task_id}), (w:Workflow {workflow_id: $workflow_id}) "
-                    "WHERE ANY(input in s.inputs WHERE input in w.inputs) "
-                    "AND NOT (s)-[:BEGINS]->(w) "
-                    "CREATE (s)-[:BEGINS]->(w)")
+                    "WHERE any(input IN s.inputs WHERE input IN w.inputs) "
+                    "MERGE (s)-[:BEGINS]->(w)")
     dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task {workflow_id: $workflow_id}) "
-                        "WHERE ANY(input in s.inputs WHERE input in t.outputs) "
-                        "AND NOT (s)-[:DEPENDS]->(t) "
-                        "CREATE (s)-[:DEPENDS]->(t) "
+                        "WHERE any(input IN s.inputs WHERE input IN t.outputs) "
+                        "MERGE (s)-[:DEPENDS]->(t) "
                         "WITH s "
                         "MATCH (t:Task {workflow_id: $workflow_id}) "
-                        "WHERE ANY(output in s.outputs WHERE output in t.inputs) "
-                        "AND NOT (t)-[:DEPENDS]->(s) "
-                        "CREATE (t)-[:DEPENDS]->(s)")
+                        "WHERE any(output IN s.outputs WHERE output IN t.inputs) "
+                        "MERGE (t)-[:DEPENDS]->(s)")
 
     tx.run(begins_query, task_id=task.id, workflow_id=workflow.id)
     tx.run(dependency_query, task_id=task.id, workflow_id=workflow.id)
@@ -298,7 +295,8 @@ def set_task_metadata(tx, task, metadata):
 
 def set_init_tasks_to_ready(tx):
     """Set the initial workflow tasks' states to 'READY'."""
-    init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)-[:BEGINS]->(:Workflow) "
+    init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task)-[:BEGINS]->(:Workflow) "
+                        "WHERE NOT (t)-[:DEPENDS]->(:Task) "
                         "SET m.state = 'READY'")
 
     tx.run(init_ready_query)
@@ -320,11 +318,49 @@ def set_paused_tasks_to_running(tx):
     tx.run(set_running_query)
 
 
+def set_runnable_tasks_to_ready(tx):
+    """Set task states to 'READY' if all dependencies have state 'COMPLETED'."""
+    set_runnable_ready_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task)<-[:DESCRIBES]-(m:Metadata) "
+                                "WITH t, collect(m) AS mlist "
+                                "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
+                                "MATCH (m:Metadata)-[:DESCRIBES]->(t) "
+                                "SET m.state = 'READY'")
+
+    tx.run(set_runnable_ready_query)
+
+
+def reset_tasks_metadata(tx):
+    """Reset the metadata for each of a workflow's tasks."""
+    reset_metadata_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task) "
+                            "DETACH DELETE m "
+                            "WITH t "
+                            "CREATE (:Metadata {state: 'WAITING'})-[:DESCRIBES]->(t)")
+
+    tx.run(reset_metadata_query)
+
+
+def all_tasks_completed(tx):
+    """Return true if all of a workflow's tasks have state 'COMPLETED'.
+
+    :rtype: bool
+    """
+    not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task) "
+                           "WHERE m.state <> 'COMPLETED' "
+                           "RETURN t IS NOT NULL LIMIT 1")
+
+    # False if at least one task with state not 'COMPLETED'
+    return bool(tx.run(not_completed_query).single() is None)
+
+
 def is_empty(tx):
-    """Return true if the database is empty, else false."""
+    """Return true if the database is empty, else false.
+
+    :rtype: bool
+    """
     empty_query = "MATCH (n) RETURN n IS NULL LIMIT 1"
 
-    return tx.run(empty_query).single()
+    # False if at least one task
+    return bool(tx.run(empty_query).single() is None)
 
 
 def cleanup(tx):

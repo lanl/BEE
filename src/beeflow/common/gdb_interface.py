@@ -34,7 +34,6 @@ class GraphDatabaseInterface:
 
         :param kwargs: arguments for initializing the graph database connection
         """
-        print('gdbi passing kwargs')
         # Initialize the graph database driver
         self._connection = self._gdb_driver(**kwargs)
 
@@ -62,15 +61,31 @@ class GraphDatabaseInterface:
         """Resume execution of a running workflow."""
         self._connection.resume_workflow()
 
+    def reset_workflow(self):
+        """Reset the execution state of an entire workflow."""
+        self._connection.reset_workflow()
+
     def load_task(self, workflow, task):
         """Load a task into a workflow in the graph database.
 
         :param workflow: the workflow
         :type workflow: Workflow
-        :param task: the workflow task
+        :param task: the task
         :type task: Task
         """
         self._connection.load_task(workflow, task)
+
+    def initialize_ready_tasks(self):
+        """Mark runnable tasks in a workflow to ready."""
+        self._connection.initialize_ready_tasks()
+
+    def finalize_task(self, task):
+        """Set a task's state to completed.
+
+        :param task: the task to finalize
+        :type task: Task
+        """
+        self._connection.set_task_state(task, "COMPLETED")
 
     def get_task_by_id(self, task_id):
         """Return a workflow Task given its ID.
@@ -105,13 +120,20 @@ class GraphDatabaseInterface:
         return self._connection.get_workflow_requirements_and_hints()
 
     def get_subworkflow_tasks(self, subworkflow):
-        """Return a subworkflow's Task objects from the graph database.
+        """Return a subworkflow's tasks from the graph database.
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: str
         :rtype: set of Task
         """
         return self._connection.get_subworkflow_tasks(subworkflow)
+
+    def get_ready_tasks(self):
+        """Return the tasks in a workflow with state 'READY'.
+
+        :rtype: set of Task
+        """
+        return self._connection.get_ready_tasks()
 
     def get_dependent_tasks(self, task):
         """Return the dependents of a task in a graph database workflow.
@@ -123,7 +145,7 @@ class GraphDatabaseInterface:
         return self._connection.get_dependent_tasks(task)
 
     def get_task_state(self, task):
-        """Return the state of a task in a graph database workflow.
+        """Return the state of a task.
 
         :param task: the task whose state to retrieve
         :type task: Task
@@ -132,7 +154,7 @@ class GraphDatabaseInterface:
         return self._connection.get_task_state(task)
 
     def set_task_state(self, task, state):
-        """Set the state of a task in the graph database workflow.
+        """Set the state of a task.
 
         :param task: the task whose state to set
         :type task: Task
@@ -164,6 +186,13 @@ class GraphDatabaseInterface:
         :type metadata: dict
         """
         self._connection.set_task_metadata(task, metadata)
+
+    def workflow_completed(self):
+        """Return true if all tasks in a workflow have state 'COMPLETED', else false.
+
+        :rtype: bool
+        """
+        return self._connection.workflow_completed()
 
     def initialized(self):
         """Return true if the database connection has been initialized, else false.

@@ -82,6 +82,13 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_paused_tasks_to_running)
 
+    def reset_workflow(self):
+        """Reset the execution state of an entire workflow.
+
+        Set all task states to 'WAITING'.
+        """
+        self._write_transaction(tx.reset_tasks_metadata)
+
     def load_task(self, workflow, task):
         """Load a task into a workflow stored in the Neo4j database.
 
@@ -100,6 +107,14 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_hint_nodes, task=task)
             session.write_transaction(tx.create_task_metadata_node, task=task)
             session.write_transaction(tx.add_dependencies, workflow=workflow, task=task)
+
+    def initialize_ready_tasks(self):
+        """Set runnable tasks to state 'READY'.
+
+        Runnable tasks are tasks with all dependency tasks'
+        states set to 'COMPLETED'.
+        """
+        self._write_transaction(tx.set_runnable_tasks_to_ready)
 
     def get_task_by_id(self, task_id):
         """Return a reconstructed task from the Neo4j database.
@@ -144,13 +159,22 @@ class Neo4jDriver(GraphDatabaseDriver):
         return (requirements, hints)
 
     def get_subworkflow_tasks(self, subworkflow):
-        """Return task records from the Neo4j database.
+        """Return subworkflow tasks from the Neo4j database.
 
         :param subworkflow: the unique identifier of the subworkflow
         :type subworkflow: str
         :rtype: set of Task
         """
         task_records = self._read_transaction(tx.get_subworkflow_tasks, subworkflow=subworkflow)
+        pairs = self._get_task_hint_pairs(task_records)
+        return {_reconstruct_task(pair[0], pair[1]) for pair in pairs}
+
+    def get_ready_tasks(self):
+        """Return tasks with state 'READY' from the graph database.
+
+        :rtype: set of Task
+        """
+        task_records = self._read_transaction(tx.get_ready_tasks)
         pairs = self._get_task_hint_pairs(task_records)
         return {_reconstruct_task(pair[0], pair[1]) for pair in pairs}
 
@@ -206,12 +230,20 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_task_metadata, task=task, metadata=metadata)
 
+    def workflow_completed(self):
+        """Determine if a workflow in the Neo4j database has completed.
+
+        A workflow has completed if each of its tasks has state 'COMPLETED'.
+        :rtype: bool
+        """
+        return self._read_transaction(tx.all_tasks_completed)
+
     def empty(self):
-        """Determine if the database is empty.
+        """Determine if the Neo4j database is empty.
 
         :rtype: bool
         """
-        return bool(self._read_transaction(tx.is_empty) is None)
+        return self._read_transaction(tx.is_empty)
 
     def cleanup(self):
         """Clean up all data in the Neo4j database."""
