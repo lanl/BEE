@@ -31,6 +31,7 @@ def load_config():
                         help='install the Task Manager')
     parser.add_argument('--tm', action='store_true',
                         help='start the Task Manager on the cloud and connect to it')
+    parser.add_argument('--resource-id', help='resource ID for the Task Manager')
     args = parser.parse_args()
 
     if args.config_file is not None:
@@ -66,6 +67,7 @@ def load_config():
         'setup': args.setup,
         'install_tm': args.install_tm,
         'tm': args.tm,
+        'resource_id': args.resource_id if args.resource_id is not None else '',
     }
 
 
@@ -145,7 +147,7 @@ def install_tm(priv_key_file, ip_addr, bee_code, bee_user=cloud.BEE_USER, **kwar
     return bee_srcdir
 
 
-def run_tm(bee_user, ip_addr, priv_key_file, bee_srcdir):
+def run_tm(bee_user, ip_addr, priv_key_file, bee_srcdir, resource_id=''):
     """Run the Task Manager."""
     # Now start the Task Manager
     tm_proc = subprocess.Popen([
@@ -155,7 +157,7 @@ def run_tm(bee_user, ip_addr, priv_key_file, bee_srcdir):
         '-o', 'ConnectTimeout=8',
         f'{bee_user}@{ip_addr}',
         # f'cd {dirname}; . ./venv/bin/activate; beeflow --tm --debug',
-        f'cd {bee_srcdir}; . ./venv/bin/activate; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
+        f'cd {bee_srcdir}; . ./venv/bin/activate; python -m beeflow.task_manager ~/.config/beeflow/bee.conf {resource_id}',
     ])
     time.sleep(10)
     if tm_proc.poll() is not None:
@@ -264,7 +266,7 @@ class CloudLauncher:
     def tm(self):
         """Start the Task Manager on the remote head node."""
         print('Launching the Remote Task Manager')
-        tm_proc = run_tm(self._conf['bee_user'], self._info.get('head_node_ip_addr'), self._priv_key_file, self._info.get('bee_srcdir'))
+        tm_proc = run_tm(self._conf['bee_user'], self._info.get('head_node_ip_addr'), self._priv_key_file, self._info.get('bee_srcdir'), self._conf['resource_id'])
         # Set up the connection
         try:
             connect(self._info.get('head_node_ip_addr'), self._priv_key_file, **self._conf)
