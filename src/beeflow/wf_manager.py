@@ -5,6 +5,8 @@ import logging
 import configparser
 import jsonpickle
 import requests
+import random
+import time
 import types
 import cwl_utils.parser_v1_0 as cwl
 # Server and REST handlin
@@ -66,10 +68,12 @@ if not os.path.exists(UPLOAD_FOLDER):
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-def tm_url():
+def tm_url(host, port):
     """Get Task Manager url."""
     task_manager = "bee_tm/v1/task/"
-    return f'http://127.0.0.1:{TM_LISTEN_PORT}/{task_manager}'
+    if host is None or port is None:
+        return f'http://127.0.0.1:{TM_LISTEN_PORT}/{task_manager}'
+    return f'http://{host}:{port}/{task_manager}'
 
 
 def sched_url():
@@ -78,10 +82,10 @@ def sched_url():
     return f'http://127.0.0.1:{SCHED_LISTEN_PORT}/{scheduler}'
 
 
-def _resource(component, tag=""):
+def _resource(component, tag="", host=None, port=None):
     """Access Task Manager or Scheduler."""
     if component == "tm":
-        url = tm_url() + str(tag)
+        url = tm_url(host, port) + str(tag)
     elif component == "sched":
         url = sched_url() + str(tag)
     return url
@@ -201,9 +205,12 @@ def submit_task_tm(task):
     """Submit a task to the task manager."""
     # Serialize task with json
     task_json = jsonpickle.encode(task)
+    host, port, resources = choose_tm(task.id)
+    log.info("Running %s on %s:%i" % (task.name, host, port))
     # Send task_msg to task manager
     log.info(f"Submitted {task.name} to Task Manager")
-    resp = requests.post(_resource('tm', "submit/"), json={'task': task_json})
+    resp = requests.post(_resource('tm', "submit/", host=host, port=port),
+                         json={'task': task_json})
     if resp.status_code != 200:
         log.info(f"Submit task to TM returned bad status: {resp.status_code}")
 
@@ -401,10 +408,60 @@ class JobUpdate(Resource):
         return resp
 
 
+# Global Task Manager information
+task_managers = {}
+queue = []
+tasks_to_tm = {}
+
+
+def choose_tm(task_id):
+    """Choose the task manager to launch the given task on."""
+    tms = list(task_managers)
+    # TODO: Need to invoke the scheduler to determine which Task Manager to run
+    # it on. This should also take into account if a given TM seems to not be
+    # running right now.
+    # Just randomly choose a task manager right now
+    host, port = tms[random.randint(0, len(tms) - 1)]
+    # Get the status and resource information from the Task Manager
+    # TODO: Use the resource information to do scheduling
+    resp = requests.get('http://%s:%i/bee_tm/v1/status/' % (host, port))
+    resp_data = resp.json()
+    print(resp_data)
+    resources = resp_data['resources']
+    tasks_to_tm[task_id] = (host, port)
+    return host, port, resources
+
+
+class TM(Resource):
+    """Class to interact with the Task Managers."""
+
+    def __init__(self):
+        """Initialize the requirements for Task Manager data."""
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('tm_listen_host', type=str, location='json',
+                                   required=True)
+        self.reqparse.add_argument('tm_listen_port', type=int, location='json',
+                                   required=True)
+
+    def post(self):
+        """Add Task Manager information to the WFM Task Manager data."""
+        data = self.reqparse.parse_args()
+        host, port = data['tm_listen_host'], data['tm_listen_port']
+        log.info('Updating TM at %s:%i' % (host, port))
+        key = (host, port)
+        # Add the Task Manager to the list of task managers
+        task_managers[key] = {
+            'last_message_time': int(time.time()),
+        }
+        # TODO: Need to update the scheduler
+        # TODO: Perhaps send information to the resource manager
+
+
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<string:wf_id>')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
+api.add_resource(TM, '/bee_wfm/v1/task_managers/')
 
 
 if __name__ == '__main__':

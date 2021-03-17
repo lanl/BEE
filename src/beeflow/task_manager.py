@@ -8,6 +8,7 @@ import atexit
 import sys
 import jsonpickle
 import requests
+import time
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -22,6 +23,10 @@ if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
+
+
+# This is a resource_id that corresponds to task_manager specific overrides
+resource_id = sys.argv[2] if len(sys.argv) >= 3 else None
 
 
 def check_crt_config(container_runtime):
@@ -72,6 +77,20 @@ check_crt_config(runtime)
 
 tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 
+# ID of resource specific settings
+resource_section = f'task_manager.{resource_id}'
+tm_nodes = 1
+tm_mem_per_node = 1024
+tm_gpus_per_node = 0
+if resource_id is not None and resource_section in bc.userconfig:
+    tm_listen_port = bc.userconfig[resource_section].get('listen_port',
+                                                         tm_listen_port)
+    tm_nodes = bc.userconfig[resource_section].get('nodes', tm_nodes)
+    tm_mem_per_node = bc.userconfig[resource_section].get('mem_per_node',
+                                                          tm_mem_per_node)
+    tm_gpus_per_node = bc.userconfig[resource_section].get('gpus_per_node',
+                                                           tm_gpus_per_node)
+
 # Check Workflow manager port, use default if none.
 if bc.userconfig.has_section('workflow_manager'):
     wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port',
@@ -84,6 +103,11 @@ api = Api(flask_app)
 
 submit_queue = []  # tasks ready to be submitted
 job_queue = []  # jobs that are being monitored
+
+
+def _wfm():
+    """WFM base url."""
+    return f'http://127.0.0.1:{wfm_listen_port}'
 
 
 def _url():
@@ -151,10 +175,35 @@ def process_queues():
     update_jobs()
 
 
+last_status_check = None
+
+
+def call_wfm():
+    """Call the WFM, if necessary (makes a POST request)."""
+    global last_status_check
+    t = int(time.time())
+    if last_status_check is None or last_status_check < (t - 200):
+        data = {
+            'tm_listen_host': 'localhost',
+            'tm_listen_port': tm_listen_port,
+        }
+        log.info('Posting TM info to the WFM')
+        # POST TM info to the Workflow Manager
+        try:
+            resp = requests.post(f'{_wfm()}/bee_wfm/v1/task_managers/', json=data)
+            if not resp.ok:
+                log.error('WFM not responding')
+            else:
+                last_status_check = t
+        except requests.exceptions.ConnectionError:
+            log.error('Cannot connect to WFM')
+
+
 if "pytest" not in sys.modules:
     # TODO Decide on the time interval for the scheduler
     scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
     scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
+    scheduler.add_job(func=call_wfm, trigger="interval", seconds=20)
     scheduler.start()
 
     # This kills the scheduler when the process terminates
@@ -204,12 +253,35 @@ class TaskActions(Resource):
         return resp
 
 
+class Status(Resource):
+    """Task manager status endpoint."""
+
+    @staticmethod
+    def get():
+        """Get the status of the TM."""
+        # TODO
+        last_status_check = int(time.time())
+        msg = {
+            'tm_listen_host': 'localhost',
+            'tm_listen_port': tm_listen_port,
+            'resource_id': resource_id,
+            'resources': {
+                'nodes': tm_nodes,
+                'mem_per_node': tm_mem_per_node,
+                'gpus_per_node': tm_gpus_per_node,
+            },
+        }
+        resp = make_response(jsonify(**msg, status='ok'), 200)
+        return resp
+
+
 # WorkerInterface needs to be placed here. Don't Move!
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.worker.lsf_worker import LSFWorker
+from beeflow.common.worker.simple_worker import SimpleWorker
 
-supported_workload_schedulers = {'Slurm', 'LSF'}
+supported_workload_schedulers = {'Slurm', 'LSF', 'Simple'}
 try:
     WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
 except ValueError as error:
@@ -234,9 +306,13 @@ elif WLS == 'LSF':
                                                                  'container_runtime'),
                              job_template=bc.userconfig.get('task_manager',
                                                             'job_template', fallback=None))
+elif WLS == 'Simple':
+    # TODO: Add configuration information
+    worker = WorkerInterface(SimpleWorker)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
+api.add_resource(Status, '/bee_tm/v1/status/')
 
 if __name__ == '__main__':
     bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')

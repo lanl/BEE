@@ -1,0 +1,55 @@
+# See:
+# - https://github.com/ChameleonCloud/heat-templates/blob/master/hello-world/hello-world.yaml
+# - https://chameleoncloud.readthedocs.io/en/latest/technical/complex.html#writing-a-new-template
+description: Test BEE Heat Template
+
+heat_template_version: 2015-10-15
+
+resources:
+  head_node:
+    type: OS::Nova::Server
+    properties:
+      flavor: baremetal
+      image: CC-CentOS8
+      key_name: { get_param: key_name }
+      networks:
+        - network: sharednet1
+      scheduler_hints: { reservation: { get_param: reservation_id } }
+      # User set up script
+      user_data: |
+        #!/bin/sh
+        curl -O -L https://github.com/hpc/charliecloud/releases/download/v0.22/charliecloud-0.22.tar.gz
+        tar -xvf charliecloud-0.22.tar.gz
+        cd charliecloud-0.22
+        ./configure --prefix=/usr --libdir=/usr/lib
+        make
+        make install
+
+  head_node_floating_ip:
+    type: OS::Nova::FloatingIP
+    properties:
+      pool: public
+
+  head_node_ip_association:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: head_node_floating_ip }
+      port_id: { get_attr: [head_node, addresses, sharednet1, 0, port] }
+
+parameters:
+  key_name:
+    type: string
+    description: SSH KeyPair name
+    default: default
+    constraints:
+    - custom_constraint: nova.keypair
+  reservation_id:
+    type: string
+    description: Reservation ID created in the web interface
+    constraints:
+    - custom_constraint: blazar.reservation
+
+outputs:
+  head_node_login_ip:
+    description: IP of the head node
+    value: { get_attr: [head_node_floating_ip, ip] }
