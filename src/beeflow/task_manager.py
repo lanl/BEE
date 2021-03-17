@@ -6,6 +6,7 @@ Communicates status to the Work Flow Manager, through RESTful API.
 import configparser
 import atexit
 import sys
+import logging
 import jsonpickle
 import requests
 
@@ -16,7 +17,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
-import logging
 
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -24,14 +24,14 @@ else:
     bc = BeeConfig()
 
 
-def check_crt_config(container_runtime):
+def check_crt_config(c_runtime):
     """Check container runtime configurations."""
     supported_runtimes = ['Charliecloud', 'Singularity']
-    if container_runtime not in supported_runtimes:
+    if c_runtime not in supported_runtimes:
         sys.exit(f'Container runtime, {runtime}, not supported.\n' +
                  f'Please check {bc.userconfig_file} and restart TaskManager.')
 
-    if container_runtime == 'Charliecloud':
+    if c_runtime == 'Charliecloud':
         if not bc.userconfig.has_section('charliecloud'):
             cc_opts = {'setup': 'module load charliecloud',
                        'image_mntdir': '/tmp',
@@ -113,18 +113,21 @@ def submit_jobs():
         for task_id, task in task_dict.items():
             try:
                 job_id, job_state = worker.submit_task(task)
+                # place job in queue to monitor
+                log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
+                job_queue.append({task_id: {
+                                            'name': task.name,
+                                            'job_id': job_id,
+                                            'job_state': job_state
+                                            }})
             except Exception as error:
-                # Set job state to failed message
+                # Set job state to failed
                 job_state = 'SUBMIT_FAIL'
                 log.error(f'Task Manager submit task {task.name} failed! \n {error}')
                 log.error(f'{task.name} state: {job_state}')
-            else:
-                # place job in queue to monitor and send initial state to WFM
-                log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
-                job_queue.append({task_id: {'name': task.name,
-                                 'job_id': job_id, 'job_state': job_state}})
-        # Send the initial state to WFM
-        update_task_state(task_id, job_state)
+            finally:
+                # Send the initial state to WFM
+                update_task_state(task_id, job_state)
 
 
 def update_jobs():
@@ -239,11 +242,11 @@ api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
     container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
-    log.info(f'container_runtime:{container_runtime}')
+    log.info(f'container_runtime: {container_runtime}')
 
     # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
