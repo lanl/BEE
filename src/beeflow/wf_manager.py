@@ -106,17 +106,23 @@ class ResourceMonitor():
 
     def __init__(self):
         """Construct resource monitor."""
-        self.hostname = os.uname()[1].split('.')[0]
-        self.nodes = 32
+        #self.hostname = os.uname()[1].split('.')[0]
+        #self.nodes = 32
+        self.resources = {}
 
     def get(self):
         """Construct data dictionary for resource monitor."""
-        data = {
-                'hostname': self.hostname,
-                'nodes': self.nodes
-                }
+        #data = {
+        #        'hostname': self.hostname,
+        #        'nodes': self.nodes
+        #        }
 
-        return data
+        #return data
+        return {id_: self.resources[id_] for id_ in self.resources}
+
+    def add(self, id_, resource):
+        """Add a resource to the system."""
+        self.resources[id_] = resource
 
 
 rm = ResourceMonitor()
@@ -201,14 +207,16 @@ class JobSubmit(Resource):
 
 
 # Submit a task to the TM
-def submit_task_tm(task):
+def submit_task_tm(resource, task):
     """Submit a task to the task manager."""
     # Serialize task with json
     task_json = jsonpickle.encode(task)
-    host, port, resources = choose_tm(task.id)
-    log.info("Running %s on %s:%i" % (task.name, host, port))
+    # host, port, resources = choose_tm(task.id)
+    # log.info("Running %s on %s:%i" % (task.name, host, port))
     # Send task_msg to task manager
     log.info(f"Submitted {task.name} to Task Manager")
+    host, port = resource['id_'].split(':')
+    port = int(port)
     resp = requests.post(_resource('tm', "submit/", host=host, port=port),
                          json={'task': task_json})
     if resp.status_code != 200:
@@ -225,7 +233,8 @@ def submit_tasks_scheduler(sched_tasks):
     resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
     if resp.status_code != 200:
         log.info(f"Something bad happened {resp.status_code}")
-    return resp.json()
+    allocation = resp.json()
+    return {alloc['task_name']: alloc['allocations'] for alloc in allocation}
 
 
 def setup_scheduler():
@@ -236,12 +245,13 @@ def setup_scheduler():
     data = rm.get()
     log.info(data)
 
-    resources = [
-            {
-                'id_': data['hostname'],
-                'nodes': data['nodes']
-            }
-    ]
+    #resources = [
+    #        {
+    #            'id_': data['hostname'],
+    #            'nodes': data['nodes']
+    #        }
+    #]
+    resources = [{'id_': id_, 'nodes': data[id_]['nodes']} for id_ in data]
 
     log.info(_resource('sched', "resources/"))
     #resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
@@ -267,7 +277,8 @@ def resume():
     """Resume a saved task."""
     global SAVED_TASK
     if SAVED_TASK is not None:
-        submit_task_tm(SAVED_TASK)
+        # TODO: Need to keep track of allocations (perhaps in the database)
+        submit_task_tm(alloc, SAVED_TASK)
     # Clear out the saved task
     SAVED_TASK = None
 
@@ -278,7 +289,7 @@ def tasks_to_sched(tasks):
     for task in tasks:
         sched_task = {
             'workflow_name': 'workflow',
-            'task_name': task.name,
+            'task_name': task.id,
             'requirements': {
                 'max_runtime': 1,
                 'nodes': 1
@@ -301,15 +312,22 @@ class JobActions(Resource):
     @validate_wf_id
     def post(wf_id):
         """Start job. Send tasks to the task manager."""
+        # Begin execution
+        wfi.execute_workflow()
+
         # Get dependent tasks that branch off of bee_init and send to the scheduler
-        tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(0)))
+        # tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(0)))
+        tasks = list(wfi.get_ready_tasks())
         # Convert to a scheduler task object
         sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
         allocation = submit_tasks_scheduler(sched_tasks)
         log.info(f"Scheduler says {allocation}")
-        # Submit task to TM
-        submit_task_tm(tasks[0])
+        # Submit tasks to TM
+        for task in tasks:
+            alloc = allocation[task.id]
+            submit_task_tm(alloc, task)
+        # submit_task_tm(tasks[0])
         #resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
         return "Started Workflow"
 
@@ -370,7 +388,9 @@ class JobUpdate(Resource):
     def __init__(self):
         """Initialize JobUpdate with task_id and job_state requirements."""
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('task_id', type=int, location='json',
+        #self.reqparse.add_argument('task_id', type=int, location='json',
+        #                           required=True)
+        self.reqparse.add_argument('task_id', type=str, location='json',
                                    required=True)
         self.reqparse.add_argument('job_state', type=str, location='json',
                                    required=True)
@@ -384,9 +404,11 @@ class JobUpdate(Resource):
 
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
+        wfi.initialize_ready_tasks()
 
         if job_state == "COMPLETED":
-            remaining_tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(task_id)))
+            # remaining_tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(task_id)))
+            remaining_tasks = list(wfi.get_ready_tasks())
 
             tasks = remaining_tasks
             if remaining_tasks[0].name != 'bee_exit':
@@ -400,8 +422,12 @@ class JobUpdate(Resource):
                     if len(remaining_tasks) == 0:
                         log.info("Workflow Completed")
                     else:
-                        submit_tasks_scheduler(sched_tasks)
-                        submit_task_tm(tasks[0])
+                        allocation = submit_tasks_scheduler(sched_tasks)
+                        metadata = wfi.get_task_metadata(tasks[0], ['allocation'])
+                        # Set allocation information
+                        metadata['allocation'] = allocation
+                        wfi.set_task_metadata(tasks[0], metadata)
+                        submit_task_tm(allocation[tasks[0].id], tasks[0])
             else:
                 log.info("Workflow Completed!")
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
@@ -426,7 +452,6 @@ def choose_tm(task_id):
     # TODO: Use the resource information to do scheduling
     resp = requests.get('http://%s:%i/bee_tm/v1/status/' % (host, port))
     resp_data = resp.json()
-    print(resp_data)
     resources = resp_data['resources']
     tasks_to_tm[task_id] = (host, port)
     return host, port, resources
@@ -442,10 +467,13 @@ class TM(Resource):
                                    required=True)
         self.reqparse.add_argument('tm_listen_port', type=int, location='json',
                                    required=True)
+        self.reqparse.add_argument('resource', type=dict, location='json',
+                                   required=True)
 
     def post(self):
         """Add Task Manager information to the WFM Task Manager data."""
         data = self.reqparse.parse_args()
+        res = data['resource']
         host, port = data['tm_listen_host'], data['tm_listen_port']
         log.info('Updating TM at %s:%i' % (host, port))
         key = (host, port)
@@ -453,6 +481,10 @@ class TM(Resource):
         task_managers[key] = {
             'last_message_time': int(time.time()),
         }
+        rm.add('%s:%i' % (host, port), res)
+
+        # TODO: Add scheduler input information + resources
+        setup_scheduler()
         # TODO: Need to update the scheduler
         # TODO: Perhaps send information to the resource manager
 

@@ -52,16 +52,16 @@ def create_workflow(obj, wfi):
 
     # Use workflow interface (note the passed in reference to a Neo4j
     # instance) to instantiate a workflow.
-    wfi.initialize_workflow(ins, outs)
+    workflow = wfi.initialize_workflow(ins, outs)
 
     # Now create (and store in the databse) all the workdlow's tasks.
     for i in obj.steps:
-        create_task(i, wfi)
+        create_task(workflow, i, wfi)
 
 
 
 # Create task based on the parsed CWL and load it into the Neo4j databse.
-def create_task(obj, wfi):
+def create_task(workflow, obj, wfi):
     # Strip off leading garbage from the task name.
     tname = obj.id.split('#')[1]
 
@@ -114,7 +114,7 @@ def create_task(obj, wfi):
 
     # Using the BEE workflow interface (note the passed in reference
     # to a Neo4j databse) to load the task nto the database.
-    wfi.add_task(name=tname, command=cmd, inputs=ins, outputs=outs, hints=thints)
+    wfi.add_task(workflow, name=tname, command=cmd, inputs=ins, outputs=outs, hints=thints)
 
     
 

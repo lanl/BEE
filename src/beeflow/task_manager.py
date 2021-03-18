@@ -223,6 +223,7 @@ class TaskSubmit(Resource):
         """Receives task from WFM."""
         data = self.reqparse.parse_args()
         task = jsonpickle.decode(data['task'])
+        print(task.id)
         submit_queue.append({task.id: task})
         log.info(f"Added {task.name} task to the submit queue")
         resp = make_response(jsonify(msg='Task Added!', status='ok'), 200)
