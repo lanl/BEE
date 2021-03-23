@@ -155,6 +155,24 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual("READY", self.wfi.get_task_state(tasks[2]))
         self.assertEqual("READY", self.wfi.get_task_state(tasks[3]))
 
+    def test_initialize_ready_tasks_compute_tasks_completed(self):
+        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks(workflow)
+
+        # Not using finalize_task() to test independent use of initialize_ready_tasks()
+        self.wfi.set_task_state(tasks[0], "COMPLETED")
+        self.wfi.initialize_ready_tasks()
+        # Set Compute tasks to COMPLETED
+        for task in tasks[1:4]:
+            self.wfi.set_task_state(task, "COMPLETED")
+        self.wfi.initialize_ready_tasks()
+
+        self.assertEqual("COMPLETED", self.wfi.get_task_state(tasks[0]))
+        self.assertEqual("COMPLETED", self.wfi.get_task_state(tasks[1]))
+        self.assertEqual("COMPLETED", self.wfi.get_task_state(tasks[2]))
+        self.assertEqual("COMPLETED", self.wfi.get_task_state(tasks[3]))
+        self.assertEqual("READY", self.wfi.get_task_state(tasks[4]))
+
     def test_finalize_task(self):
         workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
         tasks = self._create_test_tasks(workflow)

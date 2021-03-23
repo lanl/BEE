@@ -55,7 +55,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         """Build text for Charliecloud batch script."""
         if task.hints is not None:
             docker = False
-            command = ''.join(task.command) + '\n'
+            command = ' '.join(task.command) + '\n'
             for hint in task.hints:
                 req_class, key, value = hint
                 if req_class == "DockerRequirement" and key == "dockerImageId":

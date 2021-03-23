@@ -207,20 +207,31 @@ class JobSubmit(Resource):
 
 
 # Submit a task to the TM
-def submit_task_tm(resource, task):
+def submit_task_tm(alloc, task):
     """Submit a task to the task manager."""
+    task_allocations[task.id] = alloc
     # Serialize task with json
     task_json = jsonpickle.encode(task)
     # host, port, resources = choose_tm(task.id)
     # log.info("Running %s on %s:%i" % (task.name, host, port))
     # Send task_msg to task manager
     log.info(f"Submitted {task.name} to Task Manager")
-    host, port = resource['id_'].split(':')
+    # Get the Task Manager information
+    assert len(alloc) > 0
+    # Choose the first allocation for now
+    host, port = alloc[0]['id_'].split(':')
+    log.info(f'Submitting to TM {host}:{port}')
+    # TODO: This ignores all allocation details except the resource itself
     port = int(port)
     resp = requests.post(_resource('tm', "submit/", host=host, port=port),
                          json={'task': task_json})
     if resp.status_code != 200:
         log.info(f"Submit task to TM returned bad status: {resp.status_code}")
+
+
+# dict of task_id -> allocation info (if the task is running)
+# TODO: this should perhaps be put in the database
+task_allocations = {}
 
 
 # Submit a list of tasks to the Scheduler
@@ -245,18 +256,17 @@ def setup_scheduler():
     data = rm.get()
     log.info(data)
 
-    #resources = [
-    #        {
-    #            'id_': data['hostname'],
-    #            'nodes': data['nodes']
-    #        }
-    #]
     resources = [{'id_': id_, 'nodes': data[id_]['nodes']} for id_ in data]
+    log.info(resources)
 
     log.info(_resource('sched', "resources/"))
     #resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
-    resp = requests.put(_resource('sched', "resources"), json=resources)
-    log.info(resp.json())
+    try:
+        # setup_scheduler()
+        resp = requests.put(_resource('sched', "resources"), json=resources)
+        log.info(resp.json())
+    except requests.exceptions.ConnectionError:
+        log.error('Unable to connect to scheduler')
 
 
 # Used to tell if the workflow is currently paused
@@ -326,6 +336,7 @@ class JobActions(Resource):
         # Submit tasks to TM
         for task in tasks:
             alloc = allocation[task.id]
+            # log.info('task alloc', alloc)
             submit_task_tm(alloc, task)
         # submit_task_tm(tasks[0])
         #resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
@@ -382,6 +393,7 @@ class JobActions(Resource):
         return resp
 
 
+
 class JobUpdate(Resource):
     """Class to interact with an existing job."""
 
@@ -403,33 +415,48 @@ class JobUpdate(Resource):
         job_state = data['job_state']
 
         task = wfi.get_task_by_id(task_id)
+
+        # Output profiling data
+        # TODO: Make this into a better type of log
+        # TODO: Put this is in the config file
+        with open('./profile.txt', 'a') as fp:
+            print(task.name, job_state, time.time(), file=fp)
+
         wfi.set_task_state(task, job_state)
         wfi.initialize_ready_tasks()
+        # assert wfi.get_task_state(task) == job_state
 
-        if job_state == "COMPLETED":
+        remaining_tasks = list(wfi.get_ready_tasks())
+        # if job_state == "COMPLETED":
+        if remaining_tasks and job_state == "COMPLETED":
             # remaining_tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(task_id)))
-            remaining_tasks = list(wfi.get_ready_tasks())
 
             tasks = remaining_tasks
-            if remaining_tasks[0].name != 'bee_exit':
-                # Take the first task and schedule it
-                # TODO This won't work well for deeply nested workflows
-                if WORKFLOW_PAUSED:
-                    # If we've paused the workflow save the task until we resume
-                    save_task(task)
-                else:
-                    sched_tasks = tasks_to_sched(remaining_tasks)
-                    if len(remaining_tasks) == 0:
-                        log.info("Workflow Completed")
-                    else:
-                        allocation = submit_tasks_scheduler(sched_tasks)
-                        metadata = wfi.get_task_metadata(tasks[0], ['allocation'])
-                        # Set allocation information
-                        metadata['allocation'] = allocation
-                        wfi.set_task_metadata(tasks[0], metadata)
-                        submit_task_tm(allocation[tasks[0].id], tasks[0])
+            # TODO: Stop using bee_exit
+            # if remaining_tasks[0].name != 'bee_exit':
+            # Take the first task and schedule it
+            # TODO This won't work well for deeply nested workflows
+            if WORKFLOW_PAUSED:
+                # If we've paused the workflow save the task until we resume
+                save_task(task)
             else:
-                log.info("Workflow Completed!")
+                sched_tasks = tasks_to_sched(remaining_tasks)
+                if len(remaining_tasks) == 0:
+                    log.info("Workflow Completed")
+                else:
+                    allocation = submit_tasks_scheduler(sched_tasks)
+                    metadata = wfi.get_task_metadata(tasks[0], ['allocation'])
+                    # Set allocation information
+                    # TODO: Perhaps this should go in the database, but I'm not sure
+                    # metadata['allocation'] = allocation
+                    # wfi.set_task_metadata(tasks[0], metadata)
+                    for task in tasks:
+                        # submit_task_tm(allocation[tasks[0].id], tasks[0])
+                        # TODO: Other profiling here
+                        submit_task_tm(allocation[task.id], task)
+        # TODO: Call wfi.workflow_completed()?
+        elif wfi.workflow_completed():
+            log.info("Workflow Completed!")
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
 
@@ -472,6 +499,7 @@ class TM(Resource):
 
     def post(self):
         """Add Task Manager information to the WFM Task Manager data."""
+        log.info('POST TM')
         data = self.reqparse.parse_args()
         res = data['resource']
         host, port = data['tm_listen_host'], data['tm_listen_port']
@@ -481,12 +509,14 @@ class TM(Resource):
         task_managers[key] = {
             'last_message_time': int(time.time()),
         }
+        log.info('Adding resource information')
         rm.add('%s:%i' % (host, port), res)
 
         # TODO: Add scheduler input information + resources
         setup_scheduler()
         # TODO: Need to update the scheduler
         # TODO: Perhaps send information to the resource manager
+        return make_response(jsonify(status='Created'), 201)
 
 
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
@@ -498,7 +528,7 @@ api.add_resource(TM, '/bee_wfm/v1/task_managers/')
 
 if __name__ == '__main__':
     # Setup the Scheduler
-    setup_scheduler()
+    # setup_scheduler()
 
     log.info(f'wfm_listen_port:{wfm_listen_port}')
 

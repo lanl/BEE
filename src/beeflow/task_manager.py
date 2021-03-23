@@ -77,6 +77,7 @@ check_crt_config(runtime)
 
 tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 
+# TODO: Perhaps just use separate config files for each resource
 # ID of resource specific settings
 resource_section = f'task_manager.{resource_id}'
 tm_nodes = 1
@@ -186,11 +187,18 @@ def call_wfm():
         data = {
             'tm_listen_host': 'localhost',
             'tm_listen_port': tm_listen_port,
+            # TODO: This is hardcoded for now
+            'resource': {
+                # 'nodes': 16,
+                'nodes': tm_nodes,
+            },
         }
         log.info('Posting TM info to the WFM')
         # POST TM info to the Workflow Manager
         try:
             resp = requests.post(f'{_wfm()}/bee_wfm/v1/task_managers/', json=data)
+            print(resp)
+            print(_wfm())
             if not resp.ok:
                 log.error('WFM not responding')
             else:

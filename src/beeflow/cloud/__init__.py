@@ -1,5 +1,6 @@
 
 import beeflow.cloud.google as google
+import beeflow.cloud.chameleon as chameleon
 import beeflow.cloud.provider as provider
 
 from beeflow.cloud.cloud import Cloud
@@ -9,6 +10,7 @@ from beeflow.cloud.constants import *
 
 providers = {
     'Google': google.GoogleProvider,
+    'Chameleon': chameleon.ChameleonProvider,
     'Mock': provider.MockProvider,  # Provider to be used for testing
 }
 

@@ -24,6 +24,7 @@ import uuid
 import cwl_utils.parser_v1_0 as cwl
 from beeflow.common.wf_interface import WorkflowInterface
 
+import sys
 
 
 
@@ -142,7 +143,10 @@ def get_wf_outputs(objarray):
 # Get the task's command parameters as parsed from the CWL file.
 def get_task_params(objarray):
     params = {}
+    print(objarray)
     for i in objarray:
+        print(i)
+        sys.stdout.flush()
         params.update({i.inputBinding.position: i.default})
     return params
 

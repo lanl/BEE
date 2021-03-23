@@ -68,6 +68,7 @@ def load_config():
         'install_tm': args.install_tm,
         'tm': args.tm,
         'resource_id': args.resource_id if args.resource_id is not None else '',
+        'config_file': os.path.expanduser(args.config_file),
     }
 
 
@@ -97,7 +98,8 @@ def scp(bee_user, ip_addr, priv_key_file, src, dst):
         raise RuntimeError(f'Could not copy file "{src}" to "{dst}" on the remote machine')
 
 
-def install_tm(priv_key_file, ip_addr, bee_code, bee_user=cloud.BEE_USER, **kwargs):
+def install_tm(priv_key_file, ip_addr, bee_code, config_file,
+               bee_user=cloud.BEE_USER, **kwargs):
     """Install the Task Manager on the remote machine.
 
     Returns the directory containing the BEE source code.
@@ -135,7 +137,8 @@ def install_tm(priv_key_file, ip_addr, bee_code, bee_user=cloud.BEE_USER, **kwar
     # Make a copy of the bee.conf and make edits to it for running the Task
     # Manager with cloud.BEE_USER
     tmp_bee_conf = f'/tmp/bee_{os.getuid()}.conf'
-    with open(os.path.expanduser('~/.config/beeflow/bee.conf')) as fp:
+    # with open(os.path.expanduser('~/.config/beeflow/bee.conf')) as fp:
+    with open(config_file) as fp:
         data = fp.read()
         data = data.replace(conf['bee_workdir'], f'/home/{bee_user}/.beeflow')
         with open(tmp_bee_conf, 'w') as fp:
@@ -234,7 +237,7 @@ class CloudLauncher:
         """Cloud launcher constructor."""
         self._conf = conf
         self._info = cloud.CloudInfo(
-            os.path.join(conf['bee_workdir'], 'cloud-info.json')
+            os.path.join(conf['cloud_workdir'], 'cloud-info.json')
         )
         # TODO: Remove this temporary hack
         # self._priv_key_file = os.path.expanduser('~/bee/chameleon-bee-key.pem')
@@ -248,7 +251,6 @@ class CloudLauncher:
         self._info.set('head_node_ip_addr', ip_addr)
         self._info.save()
         # Write out new cloud information
-        # TODO: Change the user to the one in the config file
         print(f'Cloud setup should be complete. You should check by logging into the remote head node ({self._conf["bee_user"]}@{ip_addr}).')
 
     def install_tm(self):

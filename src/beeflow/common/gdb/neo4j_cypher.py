@@ -320,11 +320,16 @@ def set_paused_tasks_to_running(tx):
 
 def set_runnable_tasks_to_ready(tx):
     """Set task states to 'READY' if all dependencies have state 'COMPLETED'."""
-    set_runnable_ready_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task)<-[:DESCRIBES]-(m:Metadata) "
-                                "WITH t, collect(m) AS mlist "
+    #set_runnable_ready_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task)<-[:DESCRIBES]-(m:Metadata) "
+    #                            "WITH t, collect(m) AS mlist "
+    #                            "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
+    #                            "MATCH (m:Metadata)-[:DESCRIBES]->(t) "
+    #                            "SET m.state = 'READY'")
+    set_runnable_ready_query = ("MATCH (tm:Metadata)-[:DESCRIBES]->(t:Task)-[:DEPENDS]->(s:Task)<-[:DESCRIBES]-(m:Metadata) "
+                                "WITH t, tm, collect(m) AS mlist "
                                 "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
-                                "MATCH (m:Metadata)-[:DESCRIBES]->(t) "
-                                "SET m.state = 'READY'")
+                                "AND NOT(tm.state IN ['COMPLETED', 'RUNNING', 'PAUSED']) "
+                                "MATCH (m:Metadata)-[:DESCRIBES]->(t) SET m.state = 'READY'")
 
     tx.run(set_runnable_ready_query)
 

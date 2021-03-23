@@ -149,7 +149,8 @@ def get_wf_outputs(objarray):
 def get_task_params(objarray):
     params = {}
     for i in objarray:
-        params.update({i.inputBinding.position: i.default})
+        if i.inputBinding is not None:
+            params.update({i.inputBinding.position: i.default})
     return params
 
 
