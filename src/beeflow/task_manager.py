@@ -276,7 +276,7 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
     hostname = socket.gethostname()
-    log.info(f'Starting Task Master on host: {hostname}')
+    log.info(f'Starting Task Manager on host: {hostname}')
     bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
