@@ -10,8 +10,10 @@ from beeflow.common.build.build_driver import task2arg, arg2task
 import sys
 
 if len(sys.argv) > 2:
-    bc = BeeConfig(userconfig=sys.argv[1])
+    userconfig = sys.argv[1]
+    bc = BeeConfig(userconfig=userconfig)
 else:
+    userconfig = None
     bc = BeeConfig()
 
 
@@ -82,9 +84,12 @@ class CharliecloudDriver(ContainerRuntimeDriver):
     def build_text(self, task):
         """Build text for Charliecloud batch script."""
         task_args = task2arg(task)
-        bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
-        text = (f'beeflow --build {bee_workdir} {task_args}\n'
-                )
+        if userconfig:
+            text = (f'beeflow --build {userconfig} {task_args}\n'
+                    )
+        else:
+            text = (f'beeflow --build {userconfig} {task_args}\n'
+                    )
         return text
 
     def image_exists(self, task):

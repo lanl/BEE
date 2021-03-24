@@ -17,17 +17,17 @@ from beeflow.common.build.build_driver import arg2task
 import json
 import sys
 
-arg_offset = 0 
-print(sys.argv)
-if len(sys.argv) > 2:
+try:
     bc = BeeConfig(userconfig=sys.argv[1])
-    arg_offset = arg_offset + 1
-else:
-    bc = BeeConfig()
+    my_args = sys.argv[2]
+except IndexError:
+    raise IndexError('build_interface must execute with 2 arguments.')
 
-my_args = sys.argv[1 + arg_offset]
 handler = bee_logging.save_log(bc, log, logfile='builder.log')
-log.info('raw:{}\narg2task:{}'.format(my_args,arg2task(my_args)))
+task = arg2task(my_args)
+builder = CharliecloudBuildDriver(task)
+builder.dockerPull()
+
 class BuildInterfaceTM:
     """Interface for managing a build system with WFM.
 

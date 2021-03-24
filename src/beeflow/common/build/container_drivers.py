@@ -207,8 +207,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 pass
 
         # Provably out of excuses. Pull the image.
-        cmd = (f'ch-image pull {addr}\n'
-               f'ch-builder2tar {ch_build_addr} {self.build_dir}'
+        cmd = (f'ch-image pull {addr} && ch-builder2tar {ch_build_addr} {self.build_dir}'
                )
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
 
