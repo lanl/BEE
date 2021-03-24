@@ -269,22 +269,19 @@ def StartScheduler(bc, args):
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
-def StartBuild(bc, args):
+def StartBuild(args):
     """Start builder.
 
     Start build tool with task described as Dict.
     :rtype: instance of Popen
     """
-    # Either use the userconfig file argument specified to BEEStart,
-    # or assume the default path to ~/.config/beeflow/bee.conf.
-    if args.userconfig_file:
-        userconfig_file = args.userconfig_file
-    else:
-        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    print(["python", "-m", "beeflow.common.build_interface",
-                            userconfig_file, args.build])
+    print('args.build:', args.build)
+    userconfig_file = args.build[0]
+    build_args = args.build[1] 
+    print(["python", "-m", "beeflow.common.build.build_interfaces",
+                            userconfig_file, build_args],)
     return subprocess.Popen(["python", "-m", "beeflow.common.build_interface",
-                            userconfig_file, args.build],
+                            userconfig_file, build_args],
                             stdout=PIPE, stderr=PIPE)
 
 def create_pid_file(proc, pid_file, bc):
@@ -309,7 +306,8 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
     parser.add_argument("--job-template", help="specify path of job template.")
     parser.add_argument("--workload-scheduler", help="specify workload scheduler")
-    parser.add_argument("--build", metavar="TASK_ARGS", help="build a container based on a task specification")
+    parser.add_argument("--build", metavar="TASK_ARGS", nargs=2,
+                       help="build a container based on a task specification")
     parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
     parser.add_argument("--sleep-time", default=4, type=int,
                         help="amount of time to sleep before checking processes")
@@ -346,7 +344,7 @@ def main():
         return 1
 
     if args.build:
-        proc = StartBuild(bc, args)
+        proc = StartBuild(args)
         if proc is None:
             log.error('Builder failed to initialize. Exiting.')
             return 1

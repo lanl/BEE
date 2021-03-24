@@ -6,7 +6,13 @@ from abc import ABC, abstractmethod
 import os
 from configparser import NoOptionError
 from beeflow.common.config_driver import BeeConfig
-bc = BeeConfig()
+from beeflow.common.build.build_driver import task2arg, arg2task
+import sys
+
+if len(sys.argv) > 2:
+    bc = BeeConfig(userconfig=sys.argv[1])
+else:
+    bc = BeeConfig()
 
 
 class ContainerRuntimeDriver(ABC):
@@ -75,24 +81,10 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
     def build_text(self, task):
         """Build text for Charliecloud batch script."""
-        if task.hints is not None:
-            docker = False
-            command = ''.join(task.command) + '\n'
-            for hint in task.hints:
-                req_class, key, value = hint
-                if req_class == "DockerRequirement" and key == "dockerImageId":
-                    name = self.get_ccname(value)
-                    chrun_opts, cc_setup = self.get_cc_options()
-                    image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
-                    text = (f'{cc_setup}\n'
-                            f'mkdir -p {image_mntdir}\n'
-                            f'ch-tar2dir {value} {image_mntdir}\n'
-                            f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
-                            f'rm -rf {image_mntdir}/{name}\n'
-                            )
-                    docker = True
-            if not docker:
-                text = command
+        task_args = task2arg(task)
+        bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+        text = (f'beeflow --build {bee_workdir} {task_args}\n'
+                )
         return text
 
     def image_exists(self, task):
