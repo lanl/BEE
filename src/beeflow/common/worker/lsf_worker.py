@@ -71,7 +71,7 @@ class LSFWorker(Worker):
         template_text = self.template_text
         template = string.Template(template_text)
         job_text = template.substitute({'name': task.name, 'id': task.id})
-        crt_text = self.crt.script_text(task)
+        crt_text = self.crt.run_text(task)
         job_text += crt_text
         return job_text
 

@@ -278,7 +278,7 @@ def StartBuild(args):
     print('args.build:', args.build)
     userconfig_file = args.build[0]
     build_args = args.build[1] 
-    print(["python", "-m", "beeflow.common.build.build_interfaces",
+    print(["python", "-m", "beeflow.common.build_interfaces",
                             userconfig_file, build_args],)
     return subprocess.Popen(["python", "-m", "beeflow.common.build_interfaces",
                             userconfig_file, build_args],

@@ -18,7 +18,8 @@ import json
 import sys
 
 try:
-    bc = BeeConfig(userconfig=sys.argv[1])
+    userconfig = sys.argv[1]
+    bc = BeeConfig(userconfig=userconfig)
     my_args = sys.argv[2]
 except IndexError:
     raise IndexError('build_interface must execute with 2 arguments.')

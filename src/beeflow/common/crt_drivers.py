@@ -81,15 +81,11 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 text = command
         return text
 
-    def build_text(self, task):
+    def build_text(self, userconfig, task):
         """Build text for Charliecloud batch script."""
         task_args = task2arg(task)
-        if userconfig:
-            text = (f'beeflow --build {userconfig} {task_args}\n'
-                    )
-        else:
-            text = (f'beeflow --build {userconfig} {task_args}\n'
-                    )
+        text = (f'beeflow --build {userconfig} {task_args}\n'
+                )
         return text
 
     def image_exists(self, task):
