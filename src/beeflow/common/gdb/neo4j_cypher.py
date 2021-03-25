@@ -324,6 +324,7 @@ def set_runnable_tasks_to_ready(tx):
                                 "WITH t, collect(m) AS mlist "
                                 "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
                                 "MATCH (m:Metadata)-[:DESCRIBES]->(t) "
+                                "WHERE m.state = 'WAITING' "
                                 "SET m.state = 'READY'")
 
     tx.run(set_runnable_ready_query)
