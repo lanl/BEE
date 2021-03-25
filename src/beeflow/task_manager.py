@@ -130,12 +130,30 @@ def update_task_state(task_id, job_state):
         log.info("WFM not responding")
 
 
+def pull_files(task):
+    """Pull files based on PullRequirements."""
+    if task.hints is not None:
+        pull_hints = [(key, value) for req_class, key, value in task.hints
+                      if req_class == 'PullRequirement']
+        # TODO
+
+
+def push_files(task):
+    """Push files for the given task based on PushRequirements."""
+    if task.hints is not None:
+        push_hints = [(key, value) for req_class, key, value in task.hints
+                      if req_class == 'PushRequirement']
+        # TODO
+
+
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
     while len(submit_queue) >= 1:
         # Single value dictionary
         task_dict = submit_queue.pop(0)
         for task_id, task in task_dict.items():
+            # TODO: Pull task required data
+            pull_files(task)
             try:
                 job_id, job_state = worker.submit_task(task)
             except Exception as error:
@@ -165,6 +183,8 @@ def update_jobs():
             current_task['job_state'] = job_state
             update_task_state(task_id, job_state)
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
+            # TODO: Try to push any created files
+            push_files(current_task)
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
             log.info(f'Job {job_id} done {current_task["name"]}: removed from job status queue')
@@ -268,7 +288,6 @@ class Status(Resource):
     @staticmethod
     def get():
         """Get the status of the TM."""
-        # TODO
         last_status_check = int(time.time())
         msg = {
             'tm_listen_host': 'localhost',
