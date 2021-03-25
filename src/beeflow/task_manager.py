@@ -139,6 +139,7 @@ def update_jobs():
             log.info(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
             current_task['job_state'] = job_state
             update_task_state(task_id, job_state)
+
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
@@ -163,20 +164,21 @@ if "pytest" not in sys.modules:
 
 
 class TaskSubmit(Resource):
-    """WFM sends task to the task manager."""
+    """WFM sends tasks to the task manager."""
 
     def __init__(self):
         """Intialize request."""
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('task', type=str, location='json')
+        self.reqparse.add_argument('tasks', type=str, location='json')
 
     def post(self):
         """Receives task from WFM."""
         data = self.reqparse.parse_args()
-        task = jsonpickle.decode(data['task'])
-        submit_queue.append({task.id: task})
-        log.info(f"Added {task.name} task to the submit queue")
-        resp = make_response(jsonify(msg='Task Added!', status='ok'), 200)
+        tasks = jsonpickle.decode(data['tasks'])
+        for task in tasks:
+            submit_queue.append({task.id: task})
+            log.info(f"Added {task.name} task to the submit queue")
+        resp = make_response(jsonify(msg='Tasks Added!', status='ok'), 200)
         return resp
 
 
