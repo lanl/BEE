@@ -196,14 +196,15 @@ class JobSubmit(Resource):
         return resp
 
 
-# Submit a task to the TM
-def submit_task_tm(task):
+# Submit tasks to the TM
+def submit_tasks_tm(tasks):
     """Submit a task to the task manager."""
     # Serialize task with json
-    task_json = jsonpickle.encode(task)
+    tasks_json = jsonpickle.encode(tasks)
     # Send task_msg to task manager
-    log.info(f"Submitted {task.name} to Task Manager")
-    resp = requests.post(_resource('tm', "submit/"), json={'task': task_json})
+    names = [task.name for task in tasks]
+    log.info(f"Submitted {names} to Task Manager")
+    resp = requests.post(_resource('tm', "submit/"), json={'tasks': tasks_json})
     if resp.status_code != 200:
         log.info(f"Submit task to TM returned bad status: {resp.status_code}")
 
@@ -212,9 +213,7 @@ def submit_task_tm(task):
 def submit_tasks_scheduler(sched_tasks):
     """Submit a list of tasks to the scheduler."""
     tasks_json = jsonpickle.encode(sched_tasks)
-    log.info(f"Submitted {sched_tasks} to Scheduler")
     # The workflow name will eventually be added to the wfi workflow object
-    log.info(_resource('sched', "workflows/workflow/jobs"))
     resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
     if resp.status_code != 200:
         log.info(f"Something bad happened {resp.status_code}")
@@ -237,7 +236,6 @@ def setup_scheduler():
     ]
 
     log.info(_resource('sched', "resources/"))
-    #resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
     resp = requests.put(_resource('sched', "resources"), json=resources)
     log.info(resp.json())
 
@@ -260,7 +258,7 @@ def resume():
     """Resume a saved task."""
     global SAVED_TASK
     if SAVED_TASK is not None:
-        submit_task_tm(SAVED_TASK)
+        submit_tasks_tm(SAVED_TASK)
     # Clear out the saved task
     SAVED_TASK = None
 
@@ -295,22 +293,22 @@ class JobActions(Resource):
     def post(wf_id):
         """Start job. Send tasks to the task manager."""
         # Get dependent tasks that branch off of bee_init and send to the scheduler
-        tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(0)))
+        wfi.execute_workflow()
+        tasks = wfi.get_ready_tasks()
         # Convert to a scheduler task object
         sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
         allocation = submit_tasks_scheduler(sched_tasks)
-        log.info(f"Scheduler says {allocation}")
-        # Submit task to TM
-        submit_task_tm(tasks[0])
-        #resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
+        # Submit tasks to TM
+        submit_tasks_tm(tasks)
+        resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
         return "Started Workflow"
 
     @staticmethod
     @validate_wf_id
     def get(wf_id):
         """Check the database for the current status of all the tasks."""
-        (tasks, _, _) = wfi.get_workflow()
+        (_, tasks) = wfi.get_workflow()
         task_status = ""
         for task in tasks:
             if task.name != "bee_init" and task.name != "bee_exit":
@@ -363,7 +361,7 @@ class JobUpdate(Resource):
     def __init__(self):
         """Initialize JobUpdate with task_id and job_state requirements."""
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('task_id', type=int, location='json',
+        self.reqparse.add_argument('task_id', type=str, location='json',
                                    required=True)
         self.reqparse.add_argument('job_state', type=str, location='json',
                                    required=True)
@@ -377,26 +375,22 @@ class JobUpdate(Resource):
 
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
-
         if job_state == "COMPLETED":
-            remaining_tasks = list(wfi.get_dependent_tasks(wfi.get_task_by_id(task_id)))
-
-            tasks = remaining_tasks
-            if remaining_tasks[0].name != 'bee_exit':
-                # Take the first task and schedule it
-                # TODO This won't work well for deeply nested workflows
-                if WORKFLOW_PAUSED:
-                    # If we've paused the workflow save the task until we resume
-                    save_task(task)
-                else:
-                    sched_tasks = tasks_to_sched(remaining_tasks)
-                    if len(remaining_tasks) == 0:
-                        log.info("Workflow Completed")
-                    else:
-                        submit_tasks_scheduler(sched_tasks)
-                        submit_task_tm(tasks[0])
+            tasks = wfi.finalize_task(task)
+            # TODO Replace this with Steven's pause task functions
+            if WORKFLOW_PAUSED:
+                # If we've paused the workflow save the task until we resume
+                save_task(task)
             else:
-                log.info("Workflow Completed!")
+                if wfi.workflow_completed():
+                    log.info("Workflow Completed")
+                else:
+                    if tasks:
+                        sched_tasks = tasks_to_sched(tasks)
+                        submit_tasks_scheduler(sched_tasks)
+                        submit_tasks_tm(tasks)
+
+
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
 
