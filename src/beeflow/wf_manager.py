@@ -294,8 +294,6 @@ class JobActions(Resource):
         """Start job. Send tasks to the task manager."""
         # Get dependent tasks that branch off of bee_init and send to the scheduler
         wfi.execute_workflow()
-        x = wfi.initialize_ready_tasks()
-        log.info(f'This should have tasks {x}')
         tasks = wfi.get_ready_tasks()
         # Convert to a scheduler task object
         sched_tasks = tasks_to_sched(tasks)
