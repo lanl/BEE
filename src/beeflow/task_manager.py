@@ -6,6 +6,9 @@ Communicates status to the Work Flow Manager, through RESTful API.
 import configparser
 import atexit
 import sys
+import logging
+import hashlib
+import socket
 import jsonpickle
 import requests
 
@@ -16,7 +19,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
-import logging
 
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -24,14 +26,14 @@ else:
     bc = BeeConfig()
 
 
-def check_crt_config(container_runtime):
+def check_crt_config(c_runtime):
     """Check container runtime configurations."""
     supported_runtimes = ['Charliecloud', 'Singularity']
-    if container_runtime not in supported_runtimes:
+    if c_runtime not in supported_runtimes:
         sys.exit(f'Container runtime, {runtime}, not supported.\n' +
                  f'Please check {bc.userconfig_file} and restart TaskManager.')
 
-    if container_runtime == 'Charliecloud':
+    if c_runtime == 'Charliecloud':
         if not bc.userconfig.has_section('charliecloud'):
             cc_opts = {'setup': 'module load charliecloud',
                        'image_mntdir': '/tmp',
@@ -102,48 +104,82 @@ def update_task_state(task_id, job_state):
     resp = requests.put(_resource("update/"),
                         json={'task_id': task_id, 'job_state': job_state})
     if resp.status_code != 200:
-        log.info("WFM not responding")
+        log.warning("WFM not responding when sending task update.")
+
+
+def update_task_metadata(task_id, metadata):
+    """Send workflow manager task metadata."""
+    log.info(f'Update task metadata for {task_id}:\n {metadata}')
+    # resp = requests.put(_resource("update/"), json=metadata)
+    # if resp.status_code != 200:
+    #     log.warning("WFM not responding when sending task metadata.")
+
+
+def gen_task_metadata(task, job_id):
+    """Generate dictionary of task metadata for the job submitted.
+
+    Includes:
+       job_id
+       hostname
+       container runtime (when task uses a container)
+       hash of container file (when task uses a container)
+    """
+    metadata = {'job_id': job_id, 'host': hostname}
+    for hint in task.hints:
+        req_class, req_key, req_value = hint
+        if req_class == "DockerRequirement" and req_key == "dockerImageId":
+            metadata['container_runtime'] = container_runtime
+            container_path = req_value
+            with open(container_path, 'rb') as container:
+                c_hash = hashlib.md5()
+                chunk = container.read(8192)
+                while chunk:
+                    c_hash.update(chunk)
+                    chunk = container.read(8192)
+            container_hash = c_hash.hexdigest()
+            metadata['container_hash'] = container_hash
+    return metadata
 
 
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
     while len(submit_queue) >= 1:
         # Single value dictionary
-        task_dict = submit_queue.pop(0)
-        for task_id, task in task_dict.items():
-            try:
-                job_id, job_state = worker.submit_task(task)
-            except Exception as error:
-                # Set job state to failed message
-                job_state = 'SUBMIT_FAIL'
-                log.error(f'Task Manager submit task {task.name} failed! \n {error}')
-                log.error(f'{task.name} state: {job_state}')
-            else:
-                # place job in queue to monitor and send initial state to WFM
-                log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
-                job_queue.append({task_id: {'name': task.name,
-                                 'job_id': job_id, 'job_state': job_state}})
-        # Send the initial state to WFM
-        update_task_state(task_id, job_state)
+        task = submit_queue.pop(0)
+        try:
+            job_id, job_state = worker.submit_task(task)
+            log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
+            # place job in queue to monitor
+            job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
+            # Update metadata
+            task_metadata = gen_task_metadata(task, job_id)
+            update_task_metadata(task.id, task_metadata)
+        except Exception as error:
+            # Set job state to failed
+            job_state = 'SUBMIT_FAIL'
+            log.error(f'Task Manager submit task {task.name} failed! \n {error}')
+            log.error(f'{task.name} state: {job_state}')
+        finally:
+            # Send the initial state to WFM
+            update_task_state(task.id, job_state)
 
 
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
     for job in job_queue:
-        task_id = list(job)[0]
-        current_task = job[task_id]
-        job_id = current_task['job_id']
+        task = job['task']
+        job_id = job['job_id']
         job_state = worker.query_task(job_id)
 
-        if job_state != current_task['job_state']:
-            log.info(f'{current_task["name"]} {current_task["job_state"]} -> {job_state}')
-            current_task['job_state'] = job_state
-            update_task_state(task_id, job_state)
+        if job_state != job['job_state']:
+            log.info(f'{task.name} {job["job_state"]} -> {job_state}')
+            job['job_state'] = job_state
+            update_task_state(task.id, job_state)
 
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
-            log.info(f'Job {job_id} done {current_task["name"]}: removed from job status queue')
+            log.info(f'Job {job_id} done {task.name}: removed from job status queue')
 
 
 def process_queues():
@@ -241,11 +277,13 @@ api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
 if __name__ == '__main__':
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    hostname = socket.gethostname()
+    log.info(f'Starting Task Manager on host: {hostname}')
+    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
     container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
-    log.info(f'container_runtime:{container_runtime}')
+    log.info(f'container_runtime: {container_runtime}')
 
     # Werkzeug logging
     werk_log = logging.getLogger('werkzeug')
