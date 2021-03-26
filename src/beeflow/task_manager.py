@@ -145,7 +145,8 @@ def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
     while len(submit_queue) >= 1:
         # Single value dictionary
-        task = submit_queue.pop(0)
+        task_dict = submit_queue.pop(0)
+        task = next(iter(task_dict.values()))
         try:
             job_id, job_state = worker.submit_task(task)
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
