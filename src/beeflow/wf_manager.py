@@ -293,14 +293,13 @@ class JobActions(Resource):
     def post(wf_id):
         """Start job. Send tasks to the task manager."""
         # Get dependent tasks that branch off of bee_init and send to the scheduler
-        #print(f'This is the wf {wfi.get_workflow()}')
-        #task = wfi.get_dependent_tasks(wfi.get_task_by_id(0))
         wfi.execute_workflow()
-        wfi.initialize_ready_tasks()
+        x = wfi.initialize_ready_tasks()
+        log.info(f'This should have tasks {x}')
         tasks = wfi.get_ready_tasks()
         # Convert to a scheduler task object
         sched_tasks = tasks_to_sched(tasks)
-        # Submit all dep#endent tasks to the scheduler
+        # Submit all dependent tasks to the scheduler
         allocation = submit_tasks_scheduler(sched_tasks)
         # Submit tasks to TM
         submit_tasks_tm(tasks)
@@ -388,10 +387,11 @@ class JobUpdate(Resource):
                 if wfi.workflow_completed():
                     log.info("Workflow Completed")
                 else:
-                    sched_tasks = tasks_to_sched(tasks)
-                    submit_tasks_scheduler(sched_tasks)
-                    tasks = wfi.get_ready_tasks()
-                    submit_tasks_tm(tasks)
+                    if tasks:
+                        sched_tasks = tasks_to_sched(tasks)
+                        submit_tasks_scheduler(sched_tasks)
+                        submit_tasks_tm(tasks)
+
 
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
