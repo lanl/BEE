@@ -20,6 +20,7 @@ from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
+import beeflow.common.wf_profiler as wf_profiler
 
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -309,6 +310,10 @@ def tasks_to_sched(tasks):
     return sched_tasks
 
 
+# TODO: Change the name to the real name of the workflow
+profiler = wf_profiler.WorkflowProfiler('test_workflow')
+
+
 # This class is where we act on existing jobs
 class JobActions(Resource):
     """Class to handle job actions."""
@@ -332,6 +337,7 @@ class JobActions(Resource):
         sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
         allocation = submit_tasks_scheduler(sched_tasks)
+        profiler.add_scheduling_results(rm.resources, allocation)
         log.info(f"Scheduler says {allocation}")
         # Submit tasks to TM
         for task in tasks:
@@ -393,7 +399,6 @@ class JobActions(Resource):
         return resp
 
 
-
 class JobUpdate(Resource):
     """Class to interact with an existing job."""
 
@@ -416,11 +421,8 @@ class JobUpdate(Resource):
 
         task = wfi.get_task_by_id(task_id)
 
-        # Output profiling data
-        # TODO: Make this into a better type of log
-        # TODO: Put this is in the config file
-        with open('./profile.txt', 'a') as fp:
-            print(task.name, job_state, time.time(), file=fp)
+        # Save profiling data
+        profiler.add_state_change(task, job_state)
 
         wfi.set_task_state(task, job_state)
         wfi.initialize_ready_tasks()
@@ -445,6 +447,7 @@ class JobUpdate(Resource):
                     log.info("Workflow Completed")
                 else:
                     allocation = submit_tasks_scheduler(sched_tasks)
+                    profiler.add_scheduling_results(rm.resources, allocation)
                     metadata = wfi.get_task_metadata(tasks[0], ['allocation'])
                     # Set allocation information
                     # TODO: Perhaps this should go in the database, but I'm not sure
@@ -456,6 +459,8 @@ class JobUpdate(Resource):
                         submit_task_tm(allocation[task.id], task)
         # TODO: Call wfi.workflow_completed()?
         elif wfi.workflow_completed():
+            # Save profiling data
+            profiler.save()
             log.info("Workflow Completed!")
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp

@@ -165,7 +165,7 @@ def submit_jobs():
                 # place job in queue to monitor and send initial state to WFM
                 log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
                 job_queue.append({task_id: {'name': task.name,
-                                 'job_id': job_id, 'job_state': job_state}})
+                                 'job_id': job_id, 'job_state': job_state, 'task': task}})
         # Send the initial state to WFM
         update_task_state(task_id, job_state)
 
@@ -184,7 +184,7 @@ def update_jobs():
             update_task_state(task_id, job_state)
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # TODO: Try to push any created files
-            push_files(current_task)
+            push_files(current_task['task'])
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
             log.info(f'Job {job_id} done {current_task["name"]}: removed from job status queue')
