@@ -45,6 +45,9 @@ class GraphDatabaseDriver(ABC):
 
         Set all task states to 'WAITING'.
         Change the workflow ID of the Workflow and Task nodes with new_id.
+
+        :param new_id: the new workflow ID
+        :type new_id: str
         """
 
     @abstractmethod

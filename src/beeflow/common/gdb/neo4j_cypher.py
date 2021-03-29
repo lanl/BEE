@@ -341,7 +341,11 @@ def reset_tasks_metadata(tx):
 
 
 def reset_workflow_id(tx, new_id):
-    """Reset the workflow ID of the workflow using uuid4."""
+    """Reset the workflow ID of the workflow using uuid4.
+
+    :param new_id: the new workflow ID
+    :type new_id: str
+    """
     reset_workflow_id_query = ("MATCH (w:Workflow), (t:Task) "
                                "SET w.workflow_id = $new_id "
                                "SET t.workflow_id = $new_id")

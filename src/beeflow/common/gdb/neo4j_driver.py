@@ -87,6 +87,9 @@ class Neo4jDriver(GraphDatabaseDriver):
 
         Sets all task states to 'WAITING'.
         Changes the workflow ID of the Workflow and Task nodes with new_id.
+
+        :param new_id: the new workflow ID
+        :type new_id: str
         """
         with self._driver.session() as session:
             session.write_transaction(tx.reset_tasks_metadata)
