@@ -40,10 +40,14 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def reset_workflow(self):
-        """Reset the execution state of an entire workflow.
+    def reset_workflow(self, new_id):
+        """Reset the execution state of a workflow.
 
         Set all task states to 'WAITING'.
+        Change the workflow ID of the Workflow and Task nodes with new_id.
+
+        :param new_id: the new workflow ID
+        :type new_id: str
         """
 
     @abstractmethod
