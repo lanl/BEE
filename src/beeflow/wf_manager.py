@@ -5,6 +5,7 @@ import logging
 import configparser
 import jsonpickle
 import requests
+import time
 import types
 import cwl_utils.parser_v1_0 as cwl
 # Server and REST handlin
@@ -18,6 +19,7 @@ from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
+import beeflow.common.wf_profiler as wf_profiler
 
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -55,6 +57,8 @@ else:
     # Set Workflow manager ports, attempt to prevent collisions
     SCHED_LISTEN_PORT = bc.default_sched_port
 
+bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
@@ -66,10 +70,10 @@ if not os.path.exists(UPLOAD_FOLDER):
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-def tm_url():
+def tm_url(host="127.0.0.1", port=TM_LISTEN_PORT):
     """Get Task Manager url."""
     task_manager = "bee_tm/v1/task/"
-    return f'http://127.0.0.1:{TM_LISTEN_PORT}/{task_manager}'
+    return f'http://{host}:{port}/{task_manager}'
 
 
 def sched_url():
@@ -78,10 +82,10 @@ def sched_url():
     return f'http://127.0.0.1:{SCHED_LISTEN_PORT}/{scheduler}'
 
 
-def _resource(component, tag=""):
+def _resource(component, tag="", **kwargs):
     """Access Task Manager or Scheduler."""
     if component == "tm":
-        url = tm_url() + str(tag)
+        url = tm_url(**kwargs) + str(tag)
     elif component == "sched":
         url = sched_url() + str(tag)
     return url
@@ -97,22 +101,28 @@ except KeyError:
     wfi = WorkflowInterface()
 
 
+# TODO: This needs to be put into somesort of database
+# Dict of Task Manager information {(host, port): resource information}
+task_managers = {}
+
+
 class ResourceMonitor():
     """Class def to interact with resource monitor."""
 
     def __init__(self):
         """Construct resource monitor."""
-        self.hostname = os.uname()[1].split('.')[0]
-        self.nodes = 32
 
     def get(self):
-        """Construct data dictionary for resource monitor."""
-        data = {
-                'hostname': self.hostname,
-                'nodes': self.nodes
-                }
+        """Construct resources dictionary for resource monitor."""
+        resources = [
+            {
+                'id_': f'{host}:{port}',
+                'nodes': task_managers[(host, port)]['resource']['nodes']
+            }
+            for host, port in task_managers
+        ]
 
-        return data
+        return resources
 
 
 rm = ResourceMonitor()
@@ -197,27 +207,44 @@ class JobSubmit(Resource):
 
 
 # Submit tasks to the TM
-def submit_tasks_tm(tasks):
-    """Submit a task to the task manager."""
-    # Serialize task with json
-    tasks_json = jsonpickle.encode(tasks)
-    # Send task_msg to task manager
-    names = [task.name for task in tasks]
-    log.info(f"Submitted {names} to Task Manager")
-    resp = requests.post(_resource('tm', "submit/"), json={'tasks': tasks_json})
-    if resp.status_code != 200:
-        log.info(f"Submit task to TM returned bad status: {resp.status_code}")
+def submit_tasks_tm(tasks, allocation):
+    """Submit multiple tasks to the task manager."""
+    # TODO: Keep track of where tasks are scheduled
+    # allocation[task.id]
+    schedule_tasks = {}
+    for task in tasks:
+        alloc = allocation[task.id]
+        resource_id = alloc[0]['id_']
+        resource = tuple(resource_id.split(':'))
+        if resource in schedule_tasks:
+            schedule_tasks[resource].append(task)
+        else:
+            schedule_tasks[resource] = [task]
+
+    for host, port in schedule_tasks:
+        tasks = schedule_tasks[(host, port)]
+        # Serialize task with json
+        tasks_json = jsonpickle.encode(tasks)
+        # Send task_msg to task manager
+        names = [task.name for task in tasks]
+        log.info(f"Submitted {names} to Task Manager")
+        resp = requests.post(_resource('tm', "submit/", host=host, port=port),
+                             json={'tasks': tasks_json})
+        if resp.status_code != 200:
+            log.info(f"Submit task to TM returned bad status: {resp.status_code}")
 
 
 # Submit a list of tasks to the Scheduler
 def submit_tasks_scheduler(sched_tasks):
     """Submit a list of tasks to the scheduler."""
-    tasks_json = jsonpickle.encode(sched_tasks)
+    # tasks_json = jsonpickle.encode(sched_tasks)
     # The workflow name will eventually be added to the wfi workflow object
     resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
     if resp.status_code != 200:
         log.info(f"Something bad happened {resp.status_code}")
-    return resp.json()
+    # return resp.json()
+    allocation = resp.json()
+    return {alloc['task_name']: alloc['allocations'] for alloc in allocation}
 
 
 def setup_scheduler():
@@ -225,15 +252,8 @@ def setup_scheduler():
     # Get the info for the current server
     nodes = 32
 
-    data = rm.get()
-    log.info(data)
-
-    resources = [
-            {
-                'id_': data['hostname'],
-                'nodes': data['nodes']
-            }
-    ]
+    resources = rm.get()
+    log.info(resources)
 
     log.info(_resource('sched', "resources/"))
     resp = requests.put(_resource('sched', "resources"), json=resources)
@@ -269,7 +289,7 @@ def tasks_to_sched(tasks):
     for task in tasks:
         sched_task = {
             'workflow_name': 'workflow',
-            'task_name': task.name,
+            'task_name': task.id,
             'requirements': {
                 'max_runtime': 1,
                 'nodes': 1
@@ -277,6 +297,10 @@ def tasks_to_sched(tasks):
         }
         sched_tasks.append(sched_task)
     return sched_tasks
+
+
+# TODO: Set to a real workflow name
+profiler = wf_profiler.WorkflowProfiler('workflow_name', save_dir=bee_workdir)
 
 
 # This class is where we act on existing jobs
@@ -299,8 +323,9 @@ class JobActions(Resource):
         sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
         allocation = submit_tasks_scheduler(sched_tasks)
+        profiler.add_scheduling_results(rm.get(), allocation)
         # Submit tasks to TM
-        submit_tasks_tm(tasks)
+        submit_tasks_tm(tasks, allocation)
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
         return "Started Workflow"
 
@@ -374,6 +399,10 @@ class JobUpdate(Resource):
         job_state = data['job_state']
 
         task = wfi.get_task_by_id(task_id)
+
+        # Save profiling data
+        profiler.add_state_change(task, job_state)
+
         wfi.set_task_state(task, job_state)
         if job_state == "COMPLETED":
             tasks = wfi.finalize_task(task)
@@ -384,21 +413,61 @@ class JobUpdate(Resource):
             else:
                 if wfi.workflow_completed():
                     log.info("Workflow Completed")
+                    # Save profiling information to a file
+                    profiler.save()
                 else:
                     if tasks:
                         sched_tasks = tasks_to_sched(tasks)
-                        submit_tasks_scheduler(sched_tasks)
-                        submit_tasks_tm(tasks)
+                        allocation = submit_tasks_scheduler(sched_tasks)
+                        profiler.add_scheduling_results(rm.get(), allocation)
+                        submit_tasks_tm(tasks, allocation)
 
 
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
 
 
+class TM(Resource):
+    """Class to interact with the Task Managers."""
+
+    def __init__(self):
+        """Initialize the requirements for Task Manager data."""
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('tm_listen_host', type=str, location='json',
+                                   required=True)
+        self.reqparse.add_argument('tm_listen_port', type=int, location='json',
+                                   required=True)
+        self.reqparse.add_argument('resource', type=dict, location='json',
+                                   required=True)
+
+    def post(self):
+        """Add Task Manager information to the WFM Task Manager data."""
+        log.info('Creating/updating Task Manager information')
+        data = self.reqparse.parse_args()
+        res = data['resource']
+        host, port = data['tm_listen_host'], data['tm_listen_port']
+        log.info('Updating TM at %s:%i and adding resource information' % (host, port))
+        key = (host, port)
+        # Add the Task Manager to the list of task managers
+        task_managers[key] = {
+            'resource': res,
+            'last_message_time': int(time.time()),
+        }
+        # log.info('Adding resource information')
+        # rm.add('%s:%i' % (host, port), res)
+
+        # TODO: Add scheduler input information + resources
+        setup_scheduler()
+        # TODO: Need to update the scheduler
+        # TODO: Perhaps send information to the resource manager
+        return make_response(jsonify(status='Created'), 201)
+
+
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<string:wf_id>')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
+api.add_resource(TM, '/bee_wfm/v1/task_managers/')
 
 
 if __name__ == '__main__':
@@ -407,7 +476,6 @@ if __name__ == '__main__':
 
     log.info(f'wfm_listen_port:{wfm_listen_port}')
 
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='wf_manager.log')
 
     # Werkzeug logging
