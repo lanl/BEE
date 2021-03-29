@@ -131,18 +131,30 @@ def update_task_state(task_id, job_state):
 
 
 def pull_files(task):
-    """Pull files based on PullRequirements."""
+    """Pull files."""
     if task.hints is not None:
-        pull_hints = [(key, value) for req_class, key, value in task.hints
-                      if req_class == 'PullRequirement']
+        # Check if the requirement files exist. If not try and pull then from the WFM.
+        for req_class, key, value in task.hints:
+            if req_class == 'DockerRequirement' and key == 'dockerImageId':
+                path = value
+                if not os.path.exists(path):
+                    # The file doesn't exists, so pull it
+                    fname = os.path.basename(path)
+                    resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{fname}')
+                    with open(path, 'wb') as fp:
+                        fp.write(resp.content)
+        #pull_hints = [(key, value) for req_class, key, value in task.hints
+        #              if req_class == 'PullRequirement']
         # TODO
 
 
+# TODO: Remove push files. This should be done in the CWL file itself.
 def push_files(task):
     """Push files for the given task based on PushRequirements."""
     if task.hints is not None:
-        push_hints = [(key, value) for req_class, key, value in task.hints
-                      if req_class == 'PushRequirement']
+        pass
+        #push_hints = [(key, value) for req_class, key, value in task.hints
+        #              if req_class == 'PushRequirement']
         # TODO
 
 

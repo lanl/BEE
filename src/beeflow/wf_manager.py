@@ -175,6 +175,8 @@ class JobSubmit(Resource):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('workflow', type=FileStorage,
                                    location='files', required=True)
+        self.reqparse.add_argument('metadata', type=FileStorage,
+                                   location='files', required=True)
 
     # Client Submits workflow
     @validate_wf_id
