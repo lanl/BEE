@@ -340,6 +340,19 @@ def reset_tasks_metadata(tx):
     tx.run(reset_metadata_query)
 
 
+def reset_workflow_id(tx, new_id):
+    """Reset the workflow ID of the workflow using uuid4.
+
+    :param new_id: the new workflow ID
+    :type new_id: str
+    """
+    reset_workflow_id_query = ("MATCH (w:Workflow), (t:Task) "
+                               "SET w.workflow_id = $new_id "
+                               "SET t.workflow_id = $new_id")
+
+    tx.run(reset_workflow_id_query, new_id=new_id)
+
+
 def all_tasks_completed(tx):
     """Return true if all of a workflow's tasks have state 'COMPLETED'.
 

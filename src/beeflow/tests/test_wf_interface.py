@@ -102,6 +102,14 @@ class TestWorkflowInterface(unittest.TestCase):
             self.assertDictEqual(empty_metadata, self.wfi.get_task_metadata(task, metadata.keys()))
             self.assertEqual("WAITING", self.wfi.get_task_state(task))
 
+        # Workflow ID should be reset
+        (gdb_workflow, gdb_tasks) = self.wfi.get_workflow()
+        new_workflow_id = gdb_workflow.id
+
+        self.assertNotEqual(new_workflow_id, workflow.id)
+        for task in gdb_tasks:
+            self.assertEqual(task.workflow_id, new_workflow_id)
+
     def test_finalize_workflow(self):
         """Test workflow deletion from the graph database."""
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
