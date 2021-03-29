@@ -62,7 +62,7 @@ class GraphDatabaseInterface:
         self._connection.resume_workflow()
 
     def reset_workflow(self):
-        """Reset the execution state of an entire workflow."""
+        """Reset the execution state and ID of a workflow."""
         self._connection.reset_workflow()
 
     def load_task(self, workflow, task):

@@ -60,7 +60,7 @@ class WorkflowInterface:
         self._gdb_interface.resume_workflow()
 
     def reset_workflow(self):
-        """Reset the execution state of an entire BEE workflow."""
+        """Reset the execution state and ID of a BEE workflow."""
         self._gdb_interface.reset_workflow()
 
     def finalize_workflow(self):

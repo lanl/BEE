@@ -1,4 +1,5 @@
 """Neo4j/Cypher transaction functions used by the Neo4jDriver class."""
+from uuid import uuid4
 
 
 def constrain_workflow_unique(tx):
@@ -338,6 +339,15 @@ def reset_tasks_metadata(tx):
                             "CREATE (:Metadata {state: 'WAITING'})-[:DESCRIBES]->(t)")
 
     tx.run(reset_metadata_query)
+
+
+def reset_workflow_id(tx):
+    """Reset the workflow ID of the workflow using uuid4."""
+    reset_workflow_id_query = ("MATCH (w:Workflow), (t:Task) "
+                               "SET w.workflow_id = $new_id "
+                               "SET t.workflow_id = $new_id")
+
+    tx.run(reset_workflow_id_query, new_id=str(uuid4()))
 
 
 def all_tasks_completed(tx):
