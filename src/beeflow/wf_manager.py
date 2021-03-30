@@ -3,8 +3,10 @@ import os
 import sys
 import logging
 import configparser
+import json
 import jsonpickle
 import requests
+import tempfile
 import time
 import types
 import cwl_utils.parser_v1_0 as cwl
@@ -165,6 +167,10 @@ class JobsList(Resource):
         return resp
 
 
+# This is a hack until Tasks support more requirements
+task_extra_requirements = {}
+
+
 # User submits the actual workflow.
 class JobSubmit(Resource):
     """Class to submit jobs to workflow manager."""
@@ -173,6 +179,8 @@ class JobSubmit(Resource):
         """Initialize workflow manager from parsed arguments."""
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('workflow', type=FileStorage,
+                                   location='files', required=True)
+        self.reqparse.add_argument('extra_requirements', type=FileStorage,
                                    location='files', required=True)
 
     # Client Submits workflow
@@ -185,6 +193,16 @@ class JobSubmit(Resource):
         if data['workflow'] == "":
             resp = make_response(jsonify(msg='No file found', status='error'), 400)
             return resp
+
+        # TODO: Need to also load extra requirements here (until tasks can support these by
+        # themselves)
+        if data['extra_requirements']:
+            tmp_fname = tempfile.mkstemp()[1]
+            f = data['extra_requirements']
+            f.save(tmp_fname)
+            with open(tmp_fname) as fp:
+                task_extra_requirements.update(json.load(fp))
+            log.info('Loaded extra_requirements: {}'.format(task_extra_requirements))
 
         # Workflow file
         cwl_file = data['workflow']
@@ -228,8 +246,15 @@ def submit_tasks_tm(tasks, allocation):
         # Send task_msg to task manager
         names = [task.name for task in tasks]
         log.info(f"Submitted {names} to Task Manager")
+        # Submit the Task
+        # The `extra_requirements` field is a hack until Tasks can hold more
+        # requirement data
+        extra_requirements = [task_extra_requirements[name] for name in task_extra_requirements
+                              if name == task.name]
+        extra_requirements = jsonpickle.encode(extra_requirements)
         resp = requests.post(_resource('tm', "submit/", host=host, port=port),
-                             json={'tasks': tasks_json})
+                             json={'tasks': tasks_json,
+                                   'extra_requirements': extra_requirements})
         if resp.status_code != 200:
             log.info(f"Submit task to TM returned bad status: {resp.status_code}")
 

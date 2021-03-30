@@ -248,14 +248,17 @@ class TaskSubmit(Resource):
         """Intialize request."""
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('tasks', type=str, location='json')
+        self.reqparse.add_argument('extra_requirements', type=str, location='json')
 
     def post(self):
         """Receives task from WFM."""
         data = self.reqparse.parse_args()
         tasks = jsonpickle.decode(data['tasks'])
+        extra_requirements = jsonpickle.decode(data['extra_requirements'])
         for task in tasks:
-            submit_queue.append({task.id: task})
+            submit_queue.append({task.id: task, 'extra_requirements': extra_requirements})
             log.info(f"Added {task.name} task to the submit queue")
+            log.info('Task {} has extra requirements: {}'.format(task.name, extra_requirements))
         resp = make_response(jsonify(msg='Tasks Added!', status='ok'), 200)
         return resp
 

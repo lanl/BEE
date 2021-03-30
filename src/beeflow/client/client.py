@@ -57,8 +57,11 @@ def create_workflow(job_name, workflow_path):
     return wf_id
 
 # Send workflow to wfm using wf_id 
-def submit_workflow(wf_id, workflow_path):
-    files = {'workflow': open(workflow_path, 'rb')}
+def submit_workflow(wf_id, workflow_path, extra_requirements):
+    files = {
+        'workflow': open(workflow_path, 'rb'),
+        'extra_requirements': open(extra_requirements, 'rb'),
+    }
     resp = requests.put(_resource("submit/" + wf_id), files=files)
     if resp.status_code != requests.codes.created:
         print(f"{resp.status_code}")
@@ -140,8 +143,10 @@ if __name__ == '__main__':
             job_name = safe_input(str)
             print("What is the workflow path?")
             workflow_path = safe_input(Path)
+            print("Where is the extra requirements file?")
+            extra_requirements = safe_input(Path)
             wf_id = create_workflow(job_name, workflow_path)
-            submit_workflow(wf_id, workflow_path)
+            submit_workflow(wf_id, workflow_path, extra_requirements)
             print("Job submitted! Your workflow id is 42.")
         elif int(choice) < 6:
             print("What is the workflow id?")
