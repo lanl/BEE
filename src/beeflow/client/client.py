@@ -5,6 +5,7 @@ import logging
 import requests
 import sys
 import platform
+import jsonpickle
 from errors import ApiError
 from pathlib import Path
 from beeflow.common.config_driver import BeeConfig
@@ -41,11 +42,13 @@ def _resource(tag=""):
 
 # Submit a job to the workflow manager
 # This creates a workflow on the wfm and returns an ID 
-def create_workflow(job_name, workflow_path):
-    resp = requests.post(_url(), 
-        json= {'title': job_name, 
-               'filename': os.path.basename(workflow_path)
-        })
+def submit_workflow(wf_name, workflow_path):
+    files = {
+                'wf_name': wf_name.encode(),
+                'filename': os.path.basename(workflow_path).encode(),
+                'workflow': open(workflow_path, 'rb')
+            }
+    resp = requests.post(_url(), files=files)
     if resp.status_code != requests.codes.created:
         print(f"Returned {resp.status_code}")
         raise ApiError("POST /jobs".format(resp.status_code))
@@ -55,15 +58,6 @@ def create_workflow(job_name, workflow_path):
     wf_id = resp.json()['wf_id']
     logging.info("wf_id is " + str(wf_id))
     return wf_id
-
-# Send workflow to wfm using wf_id 
-def submit_workflow(wf_id, workflow_path):
-    files = {'workflow': open(workflow_path, 'rb')}
-    resp = requests.put(_resource("submit/" + wf_id), files=files)
-    if resp.status_code != requests.codes.created:
-        print(f"{resp.status_code}")
-        raise ApiError("POST /jobs".format(resp.status_code))
-    logging.info('Submit workflow: ' + resp.text)
 
 # Start workflow on server
 def start_workflow(wf_id):
@@ -105,13 +99,51 @@ def resume_workflow(wf_id):
     logging.info('Resume job: ' + resp.text)
 
 
+def copy_workflow(wf_id, archive_path):
+    resp = requests.patch(_url(), files={'wf_id': wf_id.encode()})
+    if resp.status_code != requests.codes.okay:
+        raise ApiError("COPY /jobs{}".format(resp.status_code, wf_id))
+    archive_file = jsonpickle.decode(resp.json()['archive_file'])
+    archive_filename = resp.json()['archive_filename']
+    return archive_file, archive_filename
+
+def reexecute_workflow(archive_path, wf_name):
+    files = {
+                'filename': os.path.basename(archive_path).encode(),
+                'workflow_archive': open(archive_path, 'rb'),
+                'wf_name': wf_name.encode()
+            }
+    resp = requests.put(_url(), files=files)
+    if resp.status_code != requests.codes.created:
+        raise ApiError("REEXECUTE /jobs{}".format(resp.status_code))
+
+    logging.info("ReExecute Workflow: " + resp.text)
+
+    wf_id = resp.json()['wf_id']
+    return wf_id
+
+def list_workflows():
+    resp = requests.get(_url())
+    if resp.status_code != requests.codes.okay:
+        print(f"Returned {resp.status_code}")
+        raise ApiError("GET /jobs".format(resp.status_code))
+
+    logging.info("List Jobs: " + resp.text)
+    job_list = jsonpickle.decode(resp.json()['job_list'])
+    print(f"Name\tID\t\t\t\t\tStatus")
+    for i in job_list:
+        print(f"{i[0]}\t{i[1]}\t{i[2]}")
+
 menu_items = [
-    { "Submit Workflow": create_workflow },
+    { "Submit Workflow": submit_workflow },
+    { "List Workflows": list_workflows },
     { "Start Workflow": start_workflow },
     { "Query Workflow": query_workflow },
     { "Pause Workflow": pause_workflow },
     { "Resume Workflow": resume_workflow },
     { "Cancel Workflow": cancel_workflow },
+    { "Copy Workflow": copy_workflow },
+    { "ReExecute Workflow": reexecute_workflow },
     { "Exit": exit }
 ]
 
@@ -137,15 +169,32 @@ if __name__ == '__main__':
         if int(choice) == 0:
             # TODO needs error handling
             print("What will be the name of the job?")
-            job_name = safe_input(str)
+            wf_name = safe_input(str)
             print("What is the workflow path?")
             workflow_path = safe_input(Path)
-            wf_id = create_workflow(job_name, workflow_path)
-            submit_workflow(wf_id, workflow_path)
-            print("Job submitted! Your workflow id is 42.")
-        elif int(choice) < 6:
+            wf_id = submit_workflow(wf_name, workflow_path)
+            print(f"Job submitted! Your workflow id is {wf_id}.")
+        elif int(choice) == 1:
+            list_workflows()
+        elif int(choice) < 7:
             print("What is the workflow id?")
             wf_id = safe_input(str)
             list(menu_items[int(choice)].values())[0](wf_id)
+        elif int(choice) == 7:
+            print("What is the workflow id?")
+            wf_id = safe_input(str)
+            print("Where do you want to save it?")
+            archive_path = safe_input(str)
+            archive_file, archive_filename = copy_workflow(wf_id, archive_path)
+            with open(os.path.join(archive_path, archive_filename), 'wb') as a:
+                a.write(archive_file)
+        elif int(choice) == 8:
+            print("What is the archive path?")
+            archive_path = safe_input(Path)
+            print("What will be the name of the job?")
+            wf_name = safe_input(str)
+            wf_id = reexecute_workflow(archive_path, wf_name)
+            print(f"Job submitted! Your workflow id is {wf_id}.")
+
     except (ValueError, IndexError):
         pass
