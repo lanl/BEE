@@ -11,8 +11,10 @@ import time
 import types
 import cwl_utils.parser_v1_0 as cwl
 # Server and REST handlin
-from flask import Flask, jsonify, make_response
+from flask import Flask, jsonify, make_response, send_from_directory
+import flask
 from flask_restful import Resource, Api, reqparse
+from werkzeug.utils import secure_filename
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
@@ -249,8 +251,9 @@ def submit_tasks_tm(tasks, allocation):
         # Submit the Task
         # The `extra_requirements` field is a hack until Tasks can hold more
         # requirement data
-        extra_requirements = [task_extra_requirements[name] for name in task_extra_requirements
-                              if name == task.name]
+        # extra_requirements = {}
+        extra_requirements = (task_extra_requirements[task.name]
+                              if task.name in task_extra_requirements else {})
         extra_requirements = jsonpickle.encode(extra_requirements)
         resp = requests.post(_resource('tm', "submit/", host=host, port=port),
                              json={'tasks': tasks_json,
@@ -488,11 +491,40 @@ class TM(Resource):
         return make_response(jsonify(status='Created'), 201)
 
 
+# Directory for storing workflow data
+workflow_uploads_dir = os.path.join(bee_workdir, 'workflow_uploads')
+os.makedirs(workflow_uploads_dir, exist_ok=True)
+
+
+class FilePostManager(Resource):
+    """File Manager."""
+
+    def post(self):
+        """Post a file."""
+        log.info('Uploading files.')
+        for fname in flask.request.files:
+            file_ = flask.request.files[fname]
+            path = os.path.join(workflow_uploads_dir, os.path.basename(secure_filename(fname)))
+            file_.save(path)
+            log.info('Saving file to {}'.format(path))
+
+
+class FileGetManager(Resource):
+
+    def get(self, fname):
+        """Get an uploaded file."""
+        # TODO
+        log.info('Sending file {}'.format(fname))
+        return send_from_directory(workflow_uploads_dir, fname)
+
+
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<string:wf_id>')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 api.add_resource(TM, '/bee_wfm/v1/task_managers/')
+api.add_resource(FilePostManager, '/bee_wfm/v1/files/')
+api.add_resource(FileGetManager, '/bee_wfm/v1/files/<string:fname>')
 
 
 if __name__ == '__main__':

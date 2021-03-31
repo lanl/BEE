@@ -143,7 +143,7 @@ if __name__ == '__main__':
             job_name = safe_input(str)
             print("What is the workflow path?")
             workflow_path = safe_input(Path)
-            print("Where is the extra requirements file?")
+            print("What is the extra requirements path?")
             extra_requirements = safe_input(Path)
             wf_id = create_workflow(job_name, workflow_path)
             submit_workflow(wf_id, workflow_path, extra_requirements)

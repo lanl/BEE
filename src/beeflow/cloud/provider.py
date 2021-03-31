@@ -6,58 +6,41 @@ class Provider(abc.ABC):
     """Provider Abstract Base Class."""
 
     @abc.abstractmethod
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Cloud Provider default constructor."""
 
     @abc.abstractmethod
-    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script,
-                    bee_user):
+    def create_node(self, node_name, startup_script, ext_ip=False):
         """Create a node."""
 
     @abc.abstractmethod
     def wait(self):
         """Wait for complete setup."""
 
-
-class ProviderNode(abc.ABC):
-    """Provider Node Abstract Base Class."""
-
     @abc.abstractmethod
-    def __init__(self):
-        """Provider node constructor."""
-
-    @abc.abstractmethod
-    def get_ext_ip(self):
-        """Get external IP address."""
-
-
-class MockNode:
-    """Mock node class."""
-
-    def __init__(self, ram_per_vcpu, vcpu_per_node, ext_ip, bee_user):
-        """Mock node constructor."""
-        self.ram_per_vcpu = ram_per_vcpu
-        self.vcpu_per_node = vcpu_per_node
-        self.ext_ip = ext_ip
-        self.bee_user = bee_user
-
-    def get_ext_ip(self):
-        """Get external IP address."""
-        return '100.100.100.100' if self.ext_ip else None
+    def get_ext_ip_addr(self, node_name):
+        """Get the external IP address of the node, if it has one."""
 
 
 class MockProvider(Provider):
-    """Mock provider class."""
+    """Mock provider class for testing."""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Mock provider constructor."""
-        # TODO
+        self._nodes = {}
 
-    def create_node(self, ram_per_vcpu, vcpu_per_node, ext_ip, startup_script,
-                    bee_user):
+    def create_node(self, node_name, startup_script, ext_ip=False):
         """Create a node."""
-        return MockNode(ram_per_vcpu, vcpu_per_node, ext_ip, bee_user)
+        self._nodes[node_name] = {
+            'ext_ip': ext_ip,
+        }
 
     def wait(self):
         """Wait for complete setup."""
         # TODO
+
+    def get_ext_ip_addr(self, node_name):
+        """Get the external IP address of the node, if it has one."""
+        if self._nodes[node_name]['ext_ip']:
+            return '100.100.100.100'
+        return None
