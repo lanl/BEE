@@ -264,7 +264,8 @@ class JobsList(Resource):
 
             # Kill existing GDB if needed
             # TODO TERRIBLE Kludge until we can figure out a better way to get the PID
-            ps = subprocess.run(["ps aux | grep rustyd | grep [n]eo4j"], shell=True, stdout=subprocess.PIPE)
+            user = getpass.getuser()
+            ps = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True, stdout=subprocess.PIPE)
             if ps.stdout.decode() != '':
                 gdb_pid = int(ps.stdout.decode().split()[1])
                 kill_process(gdb_pid)
