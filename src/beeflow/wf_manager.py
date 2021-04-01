@@ -351,7 +351,7 @@ class JobActions(Resource):
         sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
         allocation = submit_tasks_scheduler(sched_tasks)
-        profiler.add_scheduling_results(rm.get(), allocation)
+        profiler.add_scheduling_results(sched_tasks, rm.get(), allocation)
         # Submit tasks to TM
         submit_tasks_tm(tasks, allocation)
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
@@ -447,7 +447,7 @@ class JobUpdate(Resource):
                     if tasks:
                         sched_tasks = tasks_to_sched(tasks)
                         allocation = submit_tasks_scheduler(sched_tasks)
-                        profiler.add_scheduling_results(rm.get(), allocation)
+                        profiler.add_scheduling_results(sched_tasks, rm.get(), allocation)
                         submit_tasks_tm(tasks, allocation)
 
 
@@ -492,7 +492,8 @@ class TM(Resource):
 
 
 # Directory for storing workflow data
-workflow_uploads_dir = os.path.join(bee_workdir, 'workflow_uploads')
+# workflow_uploads_dir = os.path.join(bee_workdir, 'workflow_uploads')
+workflow_uploads_dir = os.path.join(bee_workdir, 'workflow_files')
 os.makedirs(workflow_uploads_dir, exist_ok=True)
 
 

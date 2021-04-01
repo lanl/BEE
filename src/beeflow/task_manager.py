@@ -273,6 +273,22 @@ def update_jobs():
             log.info(f'Job {job_id} done {task.name}: removed from job status queue')
 
 
+def send_file_or_dir(fname):
+    """Send a file or a directory to the WFM."""
+    if os.path.isdir(fname):
+        # Put the directory in a tarball (cd to the directory, tar it up, then back out)
+        tarball = f'{fname}.tar.bz2'
+        cwd = os.getcwd()
+        os.chdir(os.path.dirname(fname))
+        subprocess.run(['tar', '-cf', tarball, os.path.basename(fname)])
+        os.chdir(cwd)
+        requests.post(f'{_wfm()}/bee_wfm/v1/files/',
+                      files={os.path.basename(tarball): open(tarball, 'rb')})
+    elif os.path.isfile(fname):
+        requests.post(f'{_wfm()}/bee_wfm/v1/files/',
+                      files={os.path.basename(fname): open(fname, 'rb')})
+
+
 def complete_jobs():
     """This runs code that needs to be run on job completion."""
     while completion_queue:
@@ -286,20 +302,16 @@ def complete_jobs():
                 # Push files back the WFM
                 push_files = extra_requirements['push']
                 for fname in push_files:
+                    # This checks multiple locations for output files, since
+                    # stdout results may have been in the cwd of the TM
                     try:
-                        if os.path.isdir(fname):
-                            # Put the directory in a tarball (cd to the directory, tar it up, then back out)
-                            tarball = f'{fname}.tar.bz2'
-                            cwd = os.getcwd()
-                            os.chdir(os.path.dirname(fname))
-                            subprocess.run(['tar', '-cf', tarball, os.path.basename(fname)])
-                            os.chdir(cwd)
-                            requests.post(f'{_wfm()}/bee_wfm/v1/files/',
-                                          files={os.path.basename(tarball): open(tarball, 'rb')})
-                        elif os.path.isfile(fname):
-                            # TODO
-                            requests.post(f'{_wfm()}/bee_wfm/v1/files/',
-                                              files={os.path.basename(fname): open(fname, 'rb')})
+                        # Check for files in the workdir and in the CWD
+                        workdir_name = os.path.join(extra_requirements['workdir'], fname)
+                        cwd_name = os.path.join(os.getcwd(), fname)
+                        if os.path.exists(workdir_name):
+                            send_file_or_dir(workdir_name)
+                        elif os.path.exists(cwd_name):
+                            send_file_or_dir(cwd_name)
                         else:
                             log.info('File {} could not be found'.format(fname))
                     except requests.exceptions.ConnectionError:

@@ -38,6 +38,7 @@ class SimpleWorker(worker.Worker):
         # TODO: MPI jobs
         # proc = subprocess.Popen(task.command.split())
         script = self.crt.script_text(task)
+        print(script)
         # subprocess.Popen(['/bin/sh', task.command])
         self.tasks[task.id] = subprocess.Popen(['/bin/sh', '-c', script])
         # self.tasks[task.id] = proc
