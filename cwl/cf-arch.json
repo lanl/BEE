@@ -1,0 +1,16 @@
+{
+    "clamr": {
+        "push": [
+            "/home/jaket/graphics_output"
+        ]
+    },
+    "ffmpeg": {
+        "workdir": "/home/jaket",
+        "pull": [
+            "graphics_output"
+        ],
+        "push": [
+            "/home/jaket/CLAMR_movie.mp4"
+        ]
+    }
+}

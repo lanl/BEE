@@ -1,0 +1,31 @@
+{
+    "makeblastdb": {
+        "workdir": "/home/jaket",
+        "pull": [
+            "reference.fasta"
+        ],
+        "push": [
+            "databases"
+        ]
+    },
+    "worker0": {
+        "workdir": "/home/jaket",
+        "pull": [
+            "databases",
+            "sequences.fasta"
+        ],
+        "push": [
+            "worker0.reference"
+        ]
+    },
+    "worker1": {
+        "workdir": "/home/jaket",
+        "pull": [
+            "databases",
+            "sequences.fasta"
+        ],
+        "push": [
+            "worker1.reference"
+        ]
+    }
+}
