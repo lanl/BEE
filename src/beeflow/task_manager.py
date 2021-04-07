@@ -79,6 +79,7 @@ tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 # Get Task Manager resource information
 # TODO: This may need to be determined dynamically on certain systems
 tm_nodes = bc.userconfig['task_manager'].get('nodes', 1)
+tm_name = bc.userconfig['task_manager'].get('name', 'local_tm')
 
 # Check Workflow manager port, use default if none.
 if bc.userconfig.has_section('workflow_manager'):
@@ -156,7 +157,7 @@ def gen_task_metadata(task, job_id):
 
 def write_request_file(fname, resp):
     """Write a request to a file."""
-    # Write the file
+    # Write the file (this iterates over the content to handle large files)
     with open(fname, 'wb') as fp:
         for chunk in resp.iter_content(chunk_size=8192):
             fp.write(chunk)
@@ -167,11 +168,12 @@ def pull_file(fname):
     # TODO: Set the tarball extension in the config file
     tar_ext = 'tar.bz2'
     try:
-        resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{fname}')
+        # The stream=True argument is required for large files
+        resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{fname}', stream=True)
         if not resp.ok:
             # Check if its a tarred directory
             tarfile = f'{fname}.{tar_ext}'
-            resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{tarfile}')
+            resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{tarfile}', stream=True)
             if not resp.ok:
                 log.error('Could not pull file {}'.format(fname))
                 return
@@ -340,6 +342,7 @@ def call_wfm():
         data = {
             'tm_listen_host': 'localhost',
             'tm_listen_port': tm_listen_port,
+            'tm_name': tm_name,
             'resource': {
                 'nodes': tm_nodes,
                 # TODO: Other resource properties

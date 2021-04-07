@@ -116,14 +116,19 @@ class ResourceMonitor():
     def __init__(self):
         """Construct resource monitor."""
 
+    @property
+    def resource_ids(self):
+        """Get a dict from Resource ID to name."""
+        return {f'{host}:{port}': name for host, port, name in task_managers}
+
     def get(self):
         """Construct resources dictionary for resource monitor."""
         resources = [
             {
                 'id_': f'{host}:{port}',
-                'nodes': task_managers[(host, port)]['resource']['nodes']
+                'nodes': task_managers[(host, port, name)]['resource']['nodes']
             }
-            for host, port in task_managers
+            for host, port, name in task_managers
         ]
 
         return resources
@@ -348,12 +353,15 @@ class JobActions(Resource):
         wfi.execute_workflow()
         tasks = wfi.get_ready_tasks()
         # Convert to a scheduler task object
-        sched_tasks = tasks_to_sched(tasks)
+        #sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
-        allocation = submit_tasks_scheduler(sched_tasks)
-        profiler.add_scheduling_results(sched_tasks, rm.get(), allocation)
+        #allocation = submit_tasks_scheduler(sched_tasks)
+        #profiler.add_scheduling_results(sched_tasks, rm.get(), allocation)
         # Submit tasks to TM
-        submit_tasks_tm(tasks, allocation)
+        #submit_tasks_tm(tasks, allocation)
+        # run_tasks(tasks)
+        run_queue.enqueue(tasks)
+        run_queue.run_tasks()
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
         return "Started Workflow"
 
@@ -408,6 +416,70 @@ class JobActions(Resource):
         return resp
 
 
+class RunQueue:
+    """Class for managing a queue of tasks to run."""
+
+    def __init__(self):
+        """RunQueue constructor."""
+        self._tasks_ids = set()
+        self._queue = []
+
+    def enqueue(self, tasks):
+        """Add a list of unscheduled tasks to the queue."""
+        # Remove tasks that are already in the queue
+        # tasks = [task for task in tasks if task.id not in self._task_ids]
+        task_ids = [task.id for qitem in self._queue for task in qitem['tasks']]
+        tasks = [task for task in tasks if task.id not in task_ids]
+        self._queue.append({
+            'allocation': None,
+            'tasks': tasks,
+        })
+        # TODO
+
+    def run_tasks(self):
+        """Schedule and run any tasks that are able to run."""
+        # TODO: Need to account for tasks that cannot be scheduled
+        if not self._queue:
+            return
+        qitem = self._queue.pop(0)
+        tasks = qitem['tasks']
+        allocation = qitem['allocation']
+        if allocation is None:
+            # Schedule the tasks
+            sched_tasks = tasks_to_sched(tasks)
+            allocation = submit_tasks_scheduler(sched_tasks)
+            # Store scheduling results for profiling
+            profiler.add_scheduling_results(sched_tasks, rm.resource_ids, rm.get(), allocation)
+            # Get all the scheduled start times
+            start_times = set(allocation[task_id][0]['start_time']
+                              for task_id in allocation if allocation[task_id])
+            # Order tasks by their start times
+            items = {
+                start_time: [
+                    task for task in tasks
+                    if allocation[task.id] and allocation[task.id][0]['start_time'] == start_time
+                ] for start_time in start_times
+            }
+            # Sort the start times
+            start_times = list(start_times)
+            start_times.sort(reverse=True)
+            # Go over the start times from highest to lowest
+            for start_time in start_times:
+                tasks = items[start_time]
+                allocs = {task.id: allocation[task.id] for task in tasks}
+                if start_time > 0:
+                    # Add tasks that can't run yet to the queue
+                    self._queue.insert(0, {'tasks': tasks, 'allocation': allocs})
+                else:
+                    # Launch tasks that can be launched now
+                    submit_tasks_tm(tasks, allocs)
+        else:
+            submit_tasks_tm(tasks, allocation)
+
+
+run_queue = RunQueue()
+
+
 class JobUpdate(Resource):
     """Class to interact with an existing job."""
 
@@ -444,11 +516,14 @@ class JobUpdate(Resource):
                     # Save profiling information to a file
                     profiler.save()
                 else:
-                    if tasks:
-                        sched_tasks = tasks_to_sched(tasks)
-                        allocation = submit_tasks_scheduler(sched_tasks)
-                        profiler.add_scheduling_results(sched_tasks, rm.get(), allocation)
-                        submit_tasks_tm(tasks, allocation)
+                    if tasks or run_queue:
+                        run_queue.enqueue(tasks)
+                        run_queue.run_tasks()
+                        #run_tasks(tasks)
+                        #sched_tasks = tasks_to_sched(tasks)
+                        #allocation = submit_tasks_scheduler(sched_tasks)
+                        #profiler.add_scheduling_results(sched_tasks, rm.get(), allocation)
+                        #submit_tasks_tm(tasks, allocation)
 
 
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
@@ -465,6 +540,8 @@ class TM(Resource):
                                    required=True)
         self.reqparse.add_argument('tm_listen_port', type=int, location='json',
                                    required=True)
+        self.reqparse.add_argument('tm_name', type=str, location='json',
+                                   required=True)
         self.reqparse.add_argument('resource', type=dict, location='json',
                                    required=True)
 
@@ -473,18 +550,15 @@ class TM(Resource):
         log.info('Creating/updating Task Manager information')
         data = self.reqparse.parse_args()
         res = data['resource']
-        host, port = data['tm_listen_host'], data['tm_listen_port']
+        host, port, name = data['tm_listen_host'], data['tm_listen_port'], data['tm_name']
         log.info('Updating TM at %s:%i and adding resource information' % (host, port))
-        key = (host, port)
+        key = (host, port, name)
         # Add the Task Manager to the list of task managers
         task_managers[key] = {
             'resource': res,
             'last_message_time': int(time.time()),
         }
-        # log.info('Adding resource information')
-        # rm.add('%s:%i' % (host, port), res)
 
-        # TODO: Add scheduler input information + resources
         setup_scheduler()
         # TODO: Need to update the scheduler
         # TODO: Perhaps send information to the resource manager
