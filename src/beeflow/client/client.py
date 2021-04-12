@@ -6,7 +6,6 @@ import requests
 import sys
 import platform
 import jsonpickle
-from errors import ApiError
 from pathlib import Path
 from beeflow.common.config_driver import BeeConfig
 
@@ -51,7 +50,7 @@ def submit_workflow(wf_name, workflow_path):
     resp = requests.post(_url(), files=files)
     if resp.status_code != requests.codes.created:
         print(f"Returned {resp.status_code}")
-        raise ApiError("POST /jobs".format(resp.status_code))
+        #raise ApiError("POST /jobs".format(resp.status_code))
 
     logging.info("Submit job: " + resp.text)
 
