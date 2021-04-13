@@ -1,0 +1,4 @@
+file_array: [
+  {class: File, path: "infiles/file1"},
+  {class: File, path: "infiles/file2"}
+]
