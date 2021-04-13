@@ -13,4 +13,4 @@ poetry.lock
 .env
 .venv
 doc-src/_build
-workflows/
+src/beeflow/tests/workflows/
