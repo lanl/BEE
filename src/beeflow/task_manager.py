@@ -165,6 +165,9 @@ def write_request_file(fname, resp):
 
 def pull_file(fname):
     """Try pulling a file."""
+    # If the path already exists, then don't pull anything
+    if os.path.exists(fname):
+        return
     # TODO: Set the tarball extension in the config file
     tar_ext = 'tar.bz2'
     try:
@@ -198,6 +201,7 @@ def presubmit_jobs():
         if 'pull' in extra_requirements and 'workdir' in extra_requirements:
             workdir = extra_requirements['workdir']
             pull_files = extra_requirements['pull']
+            # Change to the current working directory of tasks
             os.chdir(workdir)
             for file_ in pull_files:
                 log.info('Pulling file {} from the WFM'.format(file_))
@@ -254,27 +258,6 @@ def submit_jobs():
             update_task_state(task.id, job_state)
 
 
-def update_jobs():
-    """Check and update states of jobs in queue, remove completed jobs."""
-    for job in job_queue:
-        task = job['task']
-        job_id = job['job_id']
-        job_state = worker.query_task(job_id)
-
-        if job_state != job['job_state']:
-            log.info(f'{task.name} {job["job_state"]} -> {job_state}')
-            job['job_state'] = job_state
-            update_task_state(task.id, job_state)
-
-        if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
-            # TODO: Maybe removal should be done outside of the loop
-            # Remove from the job queue. Our job is finished
-            job_queue.remove(job)
-            # Add it to the completion queue
-            completion_queue.append(job)
-            log.info(f'Job {job_id} done {task.name}: removed from job status queue')
-
-
 def send_file_or_dir(fname):
     """Send a file or a directory to the WFM."""
     if os.path.isdir(fname):
@@ -291,6 +274,53 @@ def send_file_or_dir(fname):
                       files={os.path.basename(fname): open(fname, 'rb')})
 
 
+def update_jobs():
+    """Check and update states of jobs in queue, remove completed jobs."""
+    for job in job_queue[:]:
+        task = job['task']
+        job_id = job['job_id']
+        job_state = worker.query_task(job_id)
+
+
+        extra_requirements = job['extra_requirements']
+        log.info('Job has extra requirements {}'.format(extra_requirements))
+        if job_state == 'COMPLETED':
+            # TODO: Run any completion code here
+            if 'push' in extra_requirements:
+                # Push files back the WFM
+                push_files = extra_requirements['push']
+                log.info('Pusing files {}'.format(','.join(push_files)))
+                for fname in push_files:
+                    # This checks multiple locations for output files, since
+                    # stdout results may have been in the cwd of the TM
+                    try:
+                        # Check for files in the workdir and in the CWD
+                        workdir_name = os.path.join(extra_requirements['workdir'], fname)
+                        cwd_name = os.path.join(os.getcwd(), fname)
+                        if os.path.exists(workdir_name):
+                            send_file_or_dir(workdir_name)
+                        elif os.path.exists(cwd_name):
+                            send_file_or_dir(cwd_name)
+                        else:
+                            log.info('File {} could not be found'.format(fname))
+                    except requests.exceptions.ConnectionError:
+                        log.error('Could not connect to the WFM')
+
+
+        if job_state != job['job_state']:
+            log.info(f'{task.name} {job["job_state"]} -> {job_state}')
+            job['job_state'] = job_state
+            update_task_state(task.id, job_state)
+
+        if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
+            # TODO: Maybe removal should be done outside of the loop
+            # Remove from the job queue. Our job is finished
+            job_queue.remove(job)
+            # Add it to the completion queue
+            completion_queue.append(job)
+            log.info(f'Job {job_id} done {task.name}: removed from job status queue')
+
+
 def complete_jobs():
     """This runs code that needs to be run on job completion."""
     while completion_queue:
@@ -298,6 +328,7 @@ def complete_jobs():
         task = job['task']
         extra_requirements = job['extra_requirements']
         log.info('Running completion code for task {}'.format(task.name))
+        """
         if job['job_state'] == 'COMPLETED':
             # TODO: Run any completion code here
             if 'push' in extra_requirements:
@@ -319,6 +350,7 @@ def complete_jobs():
                     except requests.exceptions.ConnectionError:
                         log.error('Could not connect to the WFM')
 
+        """
 
 def process_queues():
     """Look for newly submitted jobs and update status of scheduled jobs."""
@@ -389,7 +421,8 @@ class TaskSubmit(Resource):
         for task in tasks:
             # submit_queue.append({task.id: task, 'extra_requirements': extra_requirements})
             # log.info(f"Added {task.name} task to the submit queue")
-            presubmit_queue.append({'task': task, 'extra_requirements': extra_requirements})
+            presubmit_queue.append({'task': task,
+                                    'extra_requirements': extra_requirements[task.id]})
             log.info(f"Added {task.name} task to the pre-submission queue")
             log.info('Task {} has extra requirements: {}'.format(task.name, extra_requirements))
         resp = make_response(jsonify(msg='Tasks Added!', status='ok'), 200)

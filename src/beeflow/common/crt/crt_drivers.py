@@ -64,8 +64,10 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                     image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
                     text = (f'{cc_setup}\n'
                             f'mkdir -p {image_mntdir}\n'
+                            #f'[ -d {image_mntdir}/{name} ] && chmod +w -R {image_mntdir}/{name}\n'
                             f'ch-tar2dir {value} {image_mntdir}\n'
                             f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
+                            #f'[ -d {image_mntdir}/{name} ] && chmod +w -R {image_mntdir}/{name}\n'
                             f'rm -rf {image_mntdir}/{name}\n'
                             )
                     docker = True

@@ -1,5 +1,6 @@
 """Chameleon provider code."""
 
+import beeflow.cloud as cloud
 import beeflow.cloud.provider as provider
 
 import openstack
@@ -28,6 +29,8 @@ class ChameleoncloudProvider(provider.Provider):
         # TODO: Get the external IP address from the Chameleon API
         if self._stack_name is not None:
             stack = self._api.get_stack(self._stack_name)
+            if stack is None:
+                raise cloud.CloudLauncher('Invalid stack %s' % (self._stack_name))
             outputs = {output['output_key']: output['output_value'] for output in stack['outputs']}
             if 'head_node_login_ip' in outputs:
                 return outputs['head_node_login_ip']

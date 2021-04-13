@@ -257,8 +257,10 @@ def submit_tasks_tm(tasks, allocation):
         # The `extra_requirements` field is a hack until Tasks can hold more
         # requirement data
         # extra_requirements = {}
-        extra_requirements = (task_extra_requirements[task.name]
-                              if task.name in task_extra_requirements else {})
+        extra_requirements = {
+            task.id: task_extra_requirements[task.name]
+            for task in tasks
+        }
         extra_requirements = jsonpickle.encode(extra_requirements)
         resp = requests.post(_resource('tm', "submit/", host=host, port=port),
                              json={'tasks': tasks_json,
@@ -416,25 +418,36 @@ class JobActions(Resource):
         return resp
 
 
+# TODO: This design is not necessarily the best since it doesn't take into
+# account when tasks finish early
 class RunQueue:
     """Class for managing a queue of tasks to run."""
 
     def __init__(self):
         """RunQueue constructor."""
-        self._tasks_ids = set()
         self._queue = []
+        # IDs of currently running tasks
+        self._running = set()
+
+    @property
+    def count(self):
+        """Return the number of tasks in the queue."""
+        return sum(1 for qitem in self._queue for task in qitem['tasks'])
+
+    def complete(self, task):
+        """Complete a Task (remove it from the running set)."""
+        self._running.remove(task.id)
 
     def enqueue(self, tasks):
         """Add a list of unscheduled tasks to the queue."""
         # Remove tasks that are already in the queue
-        # tasks = [task for task in tasks if task.id not in self._task_ids]
         task_ids = [task.id for qitem in self._queue for task in qitem['tasks']]
         tasks = [task for task in tasks if task.id not in task_ids]
-        self._queue.append({
-            'allocation': None,
-            'tasks': tasks,
-        })
-        # TODO
+        # if len(tasks) > 0:
+            self._queue.append({
+                'allocation': None,
+                'tasks': tasks,
+            })
 
     def run_tasks(self):
         """Schedule and run any tasks that are able to run."""
@@ -442,6 +455,11 @@ class RunQueue:
         if not self._queue:
             return
         qitem = self._queue.pop(0)
+        # Check if we can immediately run the tasks (if nothing is running right now)
+        ready = not self._running
+        print(self._queue)
+        print(self._running)
+        # Get the tasks and allocation from the qitem
         tasks = qitem['tasks']
         allocation = qitem['allocation']
         if allocation is None:
@@ -463,17 +481,22 @@ class RunQueue:
             # Sort the start times
             start_times = list(start_times)
             start_times.sort(reverse=True)
+            print(start_times)
             # Go over the start times from highest to lowest
             for start_time in start_times:
                 tasks = items[start_time]
+                if not tasks:
+                    continue
                 allocs = {task.id: allocation[task.id] for task in tasks}
-                if start_time > 0:
+                if start_time == 0 and ready:
+                    # Launch tasks that can be launched now
+                    self._running.update(task.id for task in tasks)
+                    submit_tasks_tm(tasks, allocs)
+                elif len(tasks) > 0:
                     # Add tasks that can't run yet to the queue
                     self._queue.insert(0, {'tasks': tasks, 'allocation': allocs})
-                else:
-                    # Launch tasks that can be launched now
-                    submit_tasks_tm(tasks, allocs)
-        else:
+        elif ready:
+            self._running.update(task.id for task in tasks)
             submit_tasks_tm(tasks, allocation)
 
 
@@ -505,6 +528,8 @@ class JobUpdate(Resource):
 
         wfi.set_task_state(task, job_state)
         if job_state == "COMPLETED":
+            # Tell the run_queue that this task has completed
+            run_queue.complete(task)
             tasks = wfi.finalize_task(task)
             # TODO Replace this with Steven's pause task functions
             if WORKFLOW_PAUSED:
@@ -516,8 +541,9 @@ class JobUpdate(Resource):
                     # Save profiling information to a file
                     profiler.save()
                 else:
-                    if tasks or run_queue:
-                        run_queue.enqueue(tasks)
+                    if tasks or run_queue.count > 0:
+                        if tasks:
+                            run_queue.enqueue(tasks)
                         run_queue.run_tasks()
                         #run_tasks(tasks)
                         #sched_tasks = tasks_to_sched(tasks)
