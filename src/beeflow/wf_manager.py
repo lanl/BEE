@@ -24,6 +24,7 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 import beeflow.common.wf_profiler as wf_profiler
+import beeflow.common.run_queue as run_queue
 
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
@@ -362,8 +363,8 @@ class JobActions(Resource):
         # Submit tasks to TM
         #submit_tasks_tm(tasks, allocation)
         # run_tasks(tasks)
-        run_queue.enqueue(tasks)
-        run_queue.run_tasks()
+        rq.enqueue(tasks)
+        rq.run_tasks()
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
         return "Started Workflow"
 
@@ -418,89 +419,31 @@ class JobActions(Resource):
         return resp
 
 
-# TODO: This design is not necessarily the best since it doesn't take into
-# account when tasks finish early
-class RunQueue:
-    """Class for managing a queue of tasks to run."""
+class RunQueueInterface(run_queue.Interface):
+    """Interface for running tasks."""
 
-    def __init__(self):
-        """RunQueue constructor."""
-        self._queue = []
-        # IDs of currently running tasks
-        self._running = set()
+    @staticmethod
+    def schedule(tasks):
+        """Schedule a list of tasks and return the profiling information."""
+        sched_tasks = tasks_to_sched(tasks)
+        allocation = submit_tasks_scheduler(sched_tasks)
+        # Store scheduling results
+        profiler.add_scheduling_results(sched_tasks, rm.resource_ids, rm.get(), allocation)
+        return allocation
 
-    @property
-    def count(self):
-        """Return the number of tasks in the queue."""
-        return sum(1 for qitem in self._queue for task in qitem['tasks'])
+    @staticmethod
+    def start_time(alloc):
+        """Return the start time for an allocation."""
+        return alloc[0]['start_time'] if alloc else None
 
-    def complete(self, task):
-        """Complete a Task (remove it from the running set)."""
-        self._running.remove(task.id)
-
-    def enqueue(self, tasks):
-        """Add a list of unscheduled tasks to the queue."""
-        # Remove tasks that are already in the queue
-        task_ids = [task.id for qitem in self._queue for task in qitem['tasks']]
-        tasks = [task for task in tasks if task.id not in task_ids]
-        # if len(tasks) > 0:
-            self._queue.append({
-                'allocation': None,
-                'tasks': tasks,
-            })
-
-    def run_tasks(self):
-        """Schedule and run any tasks that are able to run."""
-        # TODO: Need to account for tasks that cannot be scheduled
-        if not self._queue:
-            return
-        qitem = self._queue.pop(0)
-        # Check if we can immediately run the tasks (if nothing is running right now)
-        ready = not self._running
-        print(self._queue)
-        print(self._running)
-        # Get the tasks and allocation from the qitem
-        tasks = qitem['tasks']
-        allocation = qitem['allocation']
-        if allocation is None:
-            # Schedule the tasks
-            sched_tasks = tasks_to_sched(tasks)
-            allocation = submit_tasks_scheduler(sched_tasks)
-            # Store scheduling results for profiling
-            profiler.add_scheduling_results(sched_tasks, rm.resource_ids, rm.get(), allocation)
-            # Get all the scheduled start times
-            start_times = set(allocation[task_id][0]['start_time']
-                              for task_id in allocation if allocation[task_id])
-            # Order tasks by their start times
-            items = {
-                start_time: [
-                    task for task in tasks
-                    if allocation[task.id] and allocation[task.id][0]['start_time'] == start_time
-                ] for start_time in start_times
-            }
-            # Sort the start times
-            start_times = list(start_times)
-            start_times.sort(reverse=True)
-            print(start_times)
-            # Go over the start times from highest to lowest
-            for start_time in start_times:
-                tasks = items[start_time]
-                if not tasks:
-                    continue
-                allocs = {task.id: allocation[task.id] for task in tasks}
-                if start_time == 0 and ready:
-                    # Launch tasks that can be launched now
-                    self._running.update(task.id for task in tasks)
-                    submit_tasks_tm(tasks, allocs)
-                elif len(tasks) > 0:
-                    # Add tasks that can't run yet to the queue
-                    self._queue.insert(0, {'tasks': tasks, 'allocation': allocs})
-        elif ready:
-            self._running.update(task.id for task in tasks)
-            submit_tasks_tm(tasks, allocation)
+    @staticmethod
+    def submit(tasks, allocation):
+        """Submit these tasks to the Task Manager."""
+        submit_tasks_tm(tasks, allocation)
 
 
-run_queue = RunQueue()
+# rq = run_queue.RunQueue(_schedule_fn, _start_time_fn, submit_tasks_tm)
+rq = run_queue.RunQueue(RunQueueInterface)
 
 
 class JobUpdate(Resource):
@@ -529,7 +472,7 @@ class JobUpdate(Resource):
         wfi.set_task_state(task, job_state)
         if job_state == "COMPLETED":
             # Tell the run_queue that this task has completed
-            run_queue.complete(task)
+            rq.complete(task)
             tasks = wfi.finalize_task(task)
             # TODO Replace this with Steven's pause task functions
             if WORKFLOW_PAUSED:
@@ -541,10 +484,10 @@ class JobUpdate(Resource):
                     # Save profiling information to a file
                     profiler.save()
                 else:
-                    if tasks or run_queue.count > 0:
+                    if tasks or rq.count > 0:
                         if tasks:
-                            run_queue.enqueue(tasks)
-                        run_queue.run_tasks()
+                            rq.enqueue(tasks)
+                        rq.run_tasks()
                         #run_tasks(tasks)
                         #sched_tasks = tasks_to_sched(tasks)
                         #allocation = submit_tasks_scheduler(sched_tasks)
