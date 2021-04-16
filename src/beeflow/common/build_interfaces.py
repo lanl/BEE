@@ -24,10 +24,11 @@ try:
 except IndexError:
     raise IndexError('build_interface must execute with 2 arguments.')
 
-handler = bee_logging.save_log(bc, log, logfile='builder.log')
+bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='builder.log')
 task = arg2task(my_args)
 builder = CharliecloudBuildDriver(task)
-builder.dockerPull()
+builder.resolve_priority()
 
 class BuildInterfaceTM:
     """Interface for managing a build system with WFM.

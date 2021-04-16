@@ -122,5 +122,27 @@ class BuildDriver(ABC):
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container.
         """
+
+    def resolve_priority(self):
+        """Given multiple DockerRequirements, set order of execution.
+
+        The CWL spec as of 04-15-2021 does not specify order of
+        execution, but the cwltool gives some guidance by example.
+        We mimic cwltool in how we resolve priority, favoring
+        fast, cached container specs over slower specs. For example,
+        if both a docker pull and a docker file are supported, the
+        build interface will try to pull first, and only on pull
+        failure will the builder build the docker file. 
+        """
+        cwl_spec = [(self.dockerPull,'dockerPull',3),
+                    (self.dockerLoad,'dockerLoad',4),
+                    (self.dockerFile,'dockerFile',5),
+                    (self.dockerImport,'dockerImport',2),
+                    (self.dockerImageId,'dockerImageId',1),
+                    (self.dockerOutputDirectory,'dockerOutputDirectory',0),
+                    (None,'None', 999)
+                   ]
+        exec_list = sorted(cwl_spec, key=lambda x:x[2])
+        return(exec_list)
 # Ignore snake_case requirement to enable CWL compliant names.
 # pylama:ignore=C0103

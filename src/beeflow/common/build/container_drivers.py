@@ -9,12 +9,14 @@ import tempfile
 import shutil
 import subprocess
 from beeflow.common.config_driver import BeeConfig
-# from beeflow.common.crt_drivers import CharliecloudDriver, SingularityDriver
+import sys
+# from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
+from beeflow.common.build.build_driver import BuildDriver
 import beeflow.common.log as bee_logging
 
 
-class ContainerBuildDriver(ABC):
+class ContainerBuildDriver(BuildDriver):
     """Driver interface between WFM and a container build system.
 
     A driver object must implement an __init__ method that
@@ -46,19 +48,22 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             bc = BeeConfig(userconfig=userconf_file)
         else:
             bc = BeeConfig()
-        handler = bee_logging.save_log(bc, log, logfile='CharliecloudBuildDriver.log')
         # Store build tarballs relative to bee_workdir.
         try:
             if bc.userconfig['DEFAULT'].get('bee_workdir'):
-                build_dir = '/'.join([bc.userconfig['DEFAULT'].get('bee_workdir'),
-                                     'build_cache'])
+                bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
+                build_dir = '/'.join([bee_workdir,'build_cache'])
+                handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
+                                              logfile='CharliecloudBuildDriver.log')
             else:
-                log.error('Invalid config file. bee_workdir not found in DEFAULT.')
-                log.error('Assuming bee_workdir is ~/.beeflow')
+                # Can't log if we don't know where to log, just print error
+                print('Invalid config file. bee_workdir not found in DEFAULT.', file=sys.stderr)
+                print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
                 build_dir = '~/.beeflow/build_cache'
         except KeyError:
-            log.error('Invalid config file. DEFAULT section missing.')
-            log.error('Assuming bee_workdir is ~/.beeflow')
+            # Can't log if we don't know where to log, just print error
+            print('Invalid config file. DEFAULT section missing.', file=sys.stderr)
+            print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
             build_dir = '~/.beeflow/build_cache'
         finally:
             self.build_dir = bc.resolve_path(build_dir)
@@ -113,6 +118,32 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         bc.modify_section('user', 'builder', {'container_type':'charliecloud'})
         self.task = task
         self.docker_image_id = None
+        print('task stuff')
+        dockerRequirements = set() 
+        try:
+            requirement_DockerRequirements = self.task.requirements['DockerRequirement'].keys()
+            dockerRequirements = dockerRequirements.union(requirement_DockerRequirements)
+            log.info('task {} requirement DockerRequirements: {}'.\
+                     format(self.task.id, set(requirement_DockerRequirements)))
+        except TypeError:
+            log.info('task {} requirements has no DockerRequirements'.format(self.task.id))
+            pass
+        try:
+            hint_DockerRequirements = self.task.hints['DockerRequirement'].keys()
+            dockerRequirements = dockerRequirements.union(hint_DockerRequirements)
+            log.info('task {} hint DockerRequirements: {}'.format(self.task.id,
+                                                                  set(hint_DockerRequirements)))
+        except TypeError:
+            log.info('task {} hints has no DockerRequirements'.format(self.task.id))
+            pass
+        log.info('task {} union DockerRequirements consist of: {}'.format(self.task.id,
+                                                                          dockerRequirements))
+        exec_superset = self.resolve_priority()
+        self.exec_list = [i for i in exec_superset if i[1] in dockerRequirements]
+        log_exec_list = [i[1] for i in self.exec_list]
+        log.info('task {} DockerRequirement execution order will be: {}'.format(self.task.id,
+                                                                                log_exec_list))
+        log.info('Execution order pre-empts hint/requirement status.')
 
     def parse_build_config(self):
         """Parse bc_options to separate BeeConfig and CWL concerns.

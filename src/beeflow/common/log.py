@@ -126,7 +126,7 @@ def setup_logging(level="STEP_INFO", colors=True):
         log.setLevel(level)
         return log
 
-def save_log(bc, log, logfile):
+def save_log(bee_workdir, log, logfile):
     """Set log formatter for handle and add handler to logger.
 
     :param bc: The BeeConfig object
@@ -136,8 +136,6 @@ def save_log(bc, log, logfile):
     :param logfile: Path for the logfile
     :type logfile: String
     """
-    default = bc.userconfig['DEFAULT']
-    bee_workdir = default.get('bee_workdir', '')
     logdir = os.path.join(bee_workdir, 'logs')
     # Make the logdir if it doesn't exist already
     os.makedirs(logdir, exist_ok=True)
