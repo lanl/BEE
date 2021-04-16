@@ -118,7 +118,6 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         bc.modify_section('user', 'builder', {'container_type':'charliecloud'})
         self.task = task
         self.docker_image_id = None
-        print('task stuff')
         dockerRequirements = set() 
         try:
             requirement_DockerRequirements = self.task.requirements['DockerRequirement'].keys()
