@@ -33,14 +33,10 @@ class SimpleWorker(worker.Worker):
         :param task: instance of Task
         :rtype tuple (int, string)
         """
-        # TODO: Run the script
         # TODO: Container runtimes
         # TODO: MPI jobs
-        # proc = subprocess.Popen(task.command.split())
         script = self.crt.script_text(task)
-        # subprocess.Popen(['/bin/sh', task.command])
         self.tasks[task.id] = subprocess.Popen(['/bin/sh', '-c', script])
-        # self.tasks[task.id] = proc
         return (task.id, 'PENDING')
 
     def cancel_task(self, job_id):
