@@ -28,7 +28,11 @@ bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='builder.log')
 task = arg2task(my_args)
 builder = CharliecloudBuildDriver(task)
-builder.resolve_priority()
+print('pre-pop list:', builder.exec_list)
+first = builder.exec_list.pop(0)
+print('post-pop list:', builder.exec_list)
+print('first in list:' ,first)
+first[0]()
 
 class BuildInterfaceTM:
     """Interface for managing a build system with WFM.
