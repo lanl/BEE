@@ -41,7 +41,7 @@ def StartGDB(bc, args):
             'bolt_port': bc.default_bolt_port,
             'http_port': bc.default_http_port,
             'https_port': bc.default_https_port ,
-            'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
+            'gdb_image': '/projects/beedev/neo4j-3-5-17-ch.tar.gz',
             'gdb_image_mntdir': '/tmp',
         }
         # Add section (writes to config file)
