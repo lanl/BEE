@@ -21,7 +21,7 @@ steps:
       inputs:
         infile:
           type: File
-          default: src/beeflow/data/lorem.txt
+          default: src/beeflow/data/cwl/bee_workflows/grep-wordcount/lorem.txt
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
@@ -29,7 +29,7 @@ steps:
       baseCommand: "/clamr/CLAMR-master/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png"
       hints:
         DockerRequirement:
-          dockerImageId: "/projects/beedev/neo4j-3-5-17-ch.tar.gz"
+          dockerImageId: "/projects/beedev/clamr-toss.tar.gz"
     in:
       infile: infile
     out: [outfile]
