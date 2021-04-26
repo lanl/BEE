@@ -429,6 +429,7 @@ class RunQueueInterface(run_queue.Interface):
         allocation = submit_tasks_scheduler(sched_tasks)
         # Store scheduling results
         profiler.add_scheduling_results(sched_tasks, rm.resource_ids, rm.get(), allocation)
+        assert allocation
         return allocation
 
     @staticmethod
@@ -485,6 +486,7 @@ class JobUpdate(Resource):
                     profiler.save()
                 else:
                     if tasks or rq.count > 0:
+                        print('tasks =', [task.name for task in tasks])
                         if tasks:
                             rq.enqueue(tasks)
                         rq.run_tasks()

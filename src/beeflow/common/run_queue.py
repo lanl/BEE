@@ -44,9 +44,8 @@ class RunQueue:
                 yield qtask.id
         # IDs of scheduled tasks
         for sitem in self._scheduled:
-            for stasks in sitem['tasks']:
-                for stask_id in stasks:
-                    yield stask_id
+            for stask_id in sitem['tasks']:
+                yield stask_id
         # IDs of running tasks
         for task_id in self._running:
             yield task_id
@@ -71,18 +70,21 @@ class RunQueue:
 
     def complete(self, task):
         """Complete a Task (remove it from the running set)."""
-        self._running.remove(task.id)
+        self._running.discard(task.id)
 
     def enqueue(self, tasks):
         """Add a list of unscheduled tasks to the queue."""
         # Remove tasks that are already in the queue
         tasks = [task for task in tasks if task.id not in self._get_task_ids()]
+        # print('enqueue =', [task.name for task in tasks])
         if tasks:
             self._queue.append(tasks)
 
     def run_tasks(self):
         """Schedule and run any tasks that are able to run."""
-        assert self._queue or self._scheduled
+        # assert self._queue or self._scheduled
+        if not self._queue and not self._scheduled:
+            return
 
         if self._running:
             return

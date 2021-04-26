@@ -33,7 +33,7 @@ class WorkflowProfiler:
             'tasks': tasks,
             'resource_ids': resource_ids,
             'resources': resources,
-            'allocations': allocations,
+            'allocations': dict(allocations),
             'timestamp': int(time.time()),
         })
 

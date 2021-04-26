@@ -29,6 +29,7 @@ class RunQueueInterface(run_queue.Interface):
     @staticmethod
     def submit(tasks, allocation):
         """Submit tasks to the fake Task Manager."""
+        print([task.id for task in tasks])
         assert all(task.id in allocation for task in tasks)
 
 
@@ -119,3 +120,75 @@ def test_multiple_enqueue_and_run():
     rq.enqueue([FakeTask()])
 
     assert rq.count == 3
+
+def test_run_queue_enqueue_existing_task():
+    """Test enqueuing an existing task."""
+    rq = run_queue.RunQueue(RunQueueInterface)
+    existing = FakeTask()
+    rq.enqueue([existing, FakeTask(), FakeTask()])
+    rq.run_tasks()
+
+    rq.enqueue([existing])
+
+    assert rq.count == 3
+
+#def test_run_queue_enqueue_old_task():
+#    """Test enqueuing an old task."""
+#    rq = run_queue.RunQueue(RunQueueInterface)
+#    old = FakeTask()
+#    rq.enqueue([old, FakeTask(), FakeTask()])
+#    rq.run_tasks()
+#    rq.complete(old)
+#    print(rq._scheduled)
+#
+#    rq.enqueue([old])
+#
+#    assert rq.count == 2
+
+def test_run_queue_enqueue_running_task():
+    """Test enqueing a running task."""
+    rq = run_queue.RunQueue(RunQueueInterface)
+    old = FakeTask()
+    rq.enqueue([old, FakeTask()])
+    rq.run_tasks()
+
+    rq.enqueue([old])
+
+    assert rq.count == 2
+
+
+def test_submit_duplicates():
+    """Test submitting duplicates."""
+    rq = run_queue.RunQueue(RunQueueInterface)
+    task0 = FakeTask(start_time=1)
+    task1 = FakeTask(start_time=0)
+    task2 = FakeTask(start_time=1)
+    task3 = FakeTask(start_time=2)
+    rq.enqueue([task1, task0])
+    rq.run_tasks()
+    rq.complete(task1)
+
+    rq.enqueue([task0, task2, task3])
+    rq.run_tasks()
+
+    assert rq.count == 3
+
+def test_run_tasks_empty_queue():
+    """Test running tasks on an empty queue."""
+    rq = run_queue.RunQueue(RunQueueInterface)
+
+    rq.run_tasks()
+
+    assert rq.count == 0
+
+def test_double_complete_task():
+    """Test completing a task twice."""
+    rq = run_queue.RunQueue(RunQueueInterface)
+    task = FakeTask()
+    rq.enqueue([task])
+    rq.run_tasks()
+    rq.complete(task)
+
+    rq.complete(task)
+
+    assert rq.count == 0
