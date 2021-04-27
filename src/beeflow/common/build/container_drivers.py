@@ -144,37 +144,6 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                                                                                 log_exec_list))
         log.info('Execution order pre-empts hint/requirement status.')
 
-    def parse_build_config(self):
-        """Parse bc_options to separate BeeConfig and CWL concerns.
-
-        bc_options is used to receive an unknown number of parameters.
-        both BeeConfig and CWL files may have options required for
-        the build service. Parse and store them.
-        """
-        log.info('Charliecloud, parse_build_config:', self, '.')
-
-    def validate_build_config(self):
-        """Ensure valid config.
-
-        Parse bc_options to ensure BeeConfig options are compatible
-        with CWL specs.
-        """
-        log.info('Charliecloud, validate_build_config:', self, '.')
-
-    def build(self):
-        """Build RTE as configured.
-
-        Build the RTE based on a validated configuration.
-        """
-        log.info('Charliecloud, validate_build_config:', self, '.')
-
-    def validate_build(self):
-        """Validate RTE.
-
-        Confirm build procedure completed successfully.
-        """
-        log.info('Charliecloud, validate_build:', self, '.')
-
     def dockerPull(self, addr=None, force=False):
         """CWL compliant dockerPull.
 
@@ -446,51 +415,19 @@ class SingularityBuildDriver(ContainerBuildDriver):
     requests a RTE, and a method to return the requested RTE.
     """
 
-    def initialize_builder(self, requirements, hints, bc_options):
+    def __init__(self, task, userconf_file=None):
         """Begin build request.
 
         Parse hints and requirements to determine target build
-        system. Harvest relevant BeeConfig params in bc_options.
+        system. Harvest relevant BeeConfig params in kwargs.
 
         :param requirements: the workflow requirements
         :type requirements: set of Requirement instances
         :param hints: the workflow hints (optional requirements)
         :type hints: set of Requirement instances
-        :param bc_options: Dictionary of build system config options
-        :type bc_options: set of build system parameters
+        :param kwargs: Dictionary of build system config options
+        :type kwargs: set of build system parameters
         """
-        log.info('Singularity, initialize_builder:', self, requirements, hints, bc_options, '.')
-
-    def parse_build_config(self):
-        """Parse bc_options to separate BeeConfig and CWL concerns.
-
-        bc_options is used to receive an unknown number of parameters.
-        both BeeConfig and CWL files may have options required for
-        the build service. Parse and store them.
-        """
-        log.info('Singularity, parse_build_config:', self, '.')
-
-    def validate_build_config(self):
-        """Ensure valid config.
-
-        Parse bc_options to ensure BeeConfig options are compatible
-        with CWL specs.
-        """
-        log.info('Singularity, validate_build_config:', self, '.')
-
-    def build(self):
-        """Build RTE as configured.
-
-        Build the RTE based on a validated configuration.
-        """
-        log.info('Singularity, validate_build_config:', self, '.')
-
-    def validate_build(self):
-        """Validate RTE.
-
-        Confirm build procedure completed successfully.
-        """
-        log.info('Singularity, validate_build:', self, '.')
 
     def dockerPull(self):
         """CWL compliant dockerPull.

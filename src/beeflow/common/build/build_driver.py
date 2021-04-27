@@ -41,37 +41,6 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def parse_build_config(self):
-        """Parse kwargs to separate BeeConfig and CWL concerns.
-
-        kwargs is used to receive an unknown number of parameters.
-        both BeeConfig and CWL files may have options required for
-        the build service. Parse and store them.
-        """
-
-    @abstractmethod
-    def validate_build_config(self):
-        """Ensure valid config.
-
-        Parse kwargs to ensure BeeConfig options are compatible
-        with CWL specs.
-        """
-
-    @abstractmethod
-    def build(self):
-        """Build RTE as configured.
-
-        Build the RTE based on a validated configuration.
-        """
-
-    @abstractmethod
-    def validate_build(self):
-        """Validate RTE.
-
-        Confirm build procedure completed successfully.
-        """
-
-    @abstractmethod
     def dockerPull(self, addr):
         """CWL compliant dockerPull.
 
