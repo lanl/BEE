@@ -12,6 +12,7 @@ import socket
 import jsonpickle
 import requests
 import time
+import argparse
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -21,10 +22,16 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
-if len(sys.argv) > 2:
-    bc = BeeConfig(userconfig=sys.argv[1])
-else:
-    bc = BeeConfig()
+parser = argparse.ArgumentParser(description='BEE Task Manager')
+parser.add_argument('userconfig', help='bee.conf config file')
+parser.add_argument('-n', '--name', default='local', help='name of task manager')
+args = parser.parse_args()
+
+bc = BeeConfig(userconfig=args.userconfig)
+
+# Get the name of the task manager and its configuration section
+name = args.name
+section_name = 'task_manager.{}'.format(name)
 
 
 def check_crt_config(c_runtime):
@@ -52,10 +59,10 @@ def check_crt_config(c_runtime):
 tm_dict = {}
 tm_default = {'listen_port': bc.default_tm_port,
               'container_runtime': 'Charliecloud'}
-if bc.userconfig.has_section('task_manager'):
+if bc.userconfig.has_section(section_name):
     # Insert defaults for any options not in task_manager section of userconfig file
     UPDATE_CONFIG = False
-    items = bc.userconfig.items('task_manager')
+    items = bc.userconfig.items(section_name)
     for key, value in items:
         tm_dict.setdefault(key, value)
     for key in tm_default:
@@ -63,20 +70,20 @@ if bc.userconfig.has_section('task_manager'):
             tm_dict[key] = tm_default[key]
             UPDATE_CONFIG = True
     if UPDATE_CONFIG:
-        bc.modify_section('user', 'task_manager', tm_dict)
+        bc.modify_section('user', section_name, tm_dict)
 else:
     tm_listen_port = bc.default_tm_port
-    bc.modify_section('user', 'task_manager', tm_default)
+    bc.modify_section('user', section_name, tm_default)
     check_crt_config(tm_default['container_runtime'])
     sys.exit(f'[task_manager] section missing in {bc.userconfig_file}\n' +
              'Default values added. Please check and restart Task Manager.')
-runtime = bc.userconfig.get('task_manager', 'container_runtime')
+runtime = bc.userconfig.get(section_name, 'container_runtime')
 check_crt_config(runtime)
 
-tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
+tm_listen_port = bc.userconfig.get(section_name, 'listen_port')
 # Get Task Manager resource information
 # TODO: This may need to be determined dynamically on certain systems
-tm_nodes = bc.userconfig['task_manager'].get('nodes', 1)
+tm_nodes = bc.userconfig[section_name].get('nodes', 1)
 
 # Check Workflow manager port, use default if none.
 if bc.userconfig.has_section('workflow_manager'):
@@ -299,8 +306,8 @@ try:
 except KeyError:
     sys.exit('Invalid worker "{}"'.format(WLS))
 worker = WorkerInterface(worker_class, bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
-                         container_runtime=bc.userconfig.get('task_manager', 'container_runtime'),
-                         job_template=bc.userconfig.get('task_manager', 'job_template',
+                         container_runtime=bc.userconfig.get(section_name, 'container_runtime'),
+                         job_template=bc.userconfig.get(section_name, 'job_template',
                                                         fallback=None))
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
@@ -312,7 +319,7 @@ if __name__ == '__main__':
     bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
-    container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
+    container_runtime = bc.userconfig.get(section_name, 'container_runtime')
     log.info(f'container_runtime: {container_runtime}')
 
     # Werkzeug logging
