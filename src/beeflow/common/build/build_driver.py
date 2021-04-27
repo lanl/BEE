@@ -139,8 +139,7 @@ class BuildDriver(ABC):
                     (self.dockerFile,'dockerFile',5),
                     (self.dockerImport,'dockerImport',2),
                     (self.dockerImageId,'dockerImageId',1),
-                    (self.dockerOutputDirectory,'dockerOutputDirectory',0),
-                    (None,'None', 999)
+                    (self.dockerOutputDirectory,'dockerOutputDirectory',0)
                    ]
         exec_list = sorted(cwl_spec, key=lambda x:x[2])
         return(exec_list)
