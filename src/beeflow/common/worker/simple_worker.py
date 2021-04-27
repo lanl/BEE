@@ -2,30 +2,26 @@
 """Simple Worker class for launching tasks on a system with no workload manager."""
 
 import subprocess
+from beeflow.cli import log
 import beeflow.common.worker.worker as worker
 
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 
-# Import all implemented container runtime drivers now
-# No error if they don't exist
-try:
-    from beeflow.common.crt.crt_drivers import CharliecloudDriver
-except ModuleNotFoundError:
-    pass
-try:
-    from beeflow.common.crt.crt_drivers import SingularityDriver
-except ModuleNotFoundError:
-    pass
+import beeflow.common.crt as crt
 
 
 class SimpleWorker(worker.Worker):
     """The Worker interface for no workload manager."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, container_runtime, **kwargs):
         """Simple worker class."""
         self.tasks = {}
-        # Use Charliecloud for now
-        self.crt = ContainerRuntimeInterface(CharliecloudDriver)
+        # if container_runtime is not None
+        assert container_runtime is not None, '"container_runtime" must be specified in the config'
+        try:
+            self.crt = ContainerRuntimeInterface(crt.drivers[container_runtime])
+        except KeyError:
+            raise worker.WorkerError('Invalid container runtime "{}"'.format(container_runtime))
 
     def submit_task(self, task):
         """Worker submits task; returns job_id, job_state.

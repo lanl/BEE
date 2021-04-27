@@ -112,6 +112,12 @@ class ResourceMonitor():
     def __init__(self):
         """Construct resource monitor."""
 
+    @property
+    def resource_ids():
+        """Return a dict from resource ID to resource name."""
+        # TODO: Get this from the database
+        return {}
+
     def get(self):
         """Construct resources dictionary for resource monitor."""
         resources = [
@@ -323,7 +329,7 @@ class JobActions(Resource):
         sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
         allocation = submit_tasks_scheduler(sched_tasks)
-        profiler.add_scheduling_results(rm.get(), allocation)
+        profiler.add_scheduling_results(sched_tasks, rm.resource_ids, rm.get(), allocation)
         # Submit tasks to TM
         submit_tasks_tm(tasks, allocation)
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
@@ -419,7 +425,7 @@ class JobUpdate(Resource):
                     if tasks:
                         sched_tasks = tasks_to_sched(tasks)
                         allocation = submit_tasks_scheduler(sched_tasks)
-                        profiler.add_scheduling_results(rm.get(), allocation)
+                        profiler.add_scheduling_results(sched_tasks, rm.resource_ids, rm.get(), allocation)
                         submit_tasks_tm(tasks, allocation)
 
 

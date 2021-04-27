@@ -3,6 +3,14 @@
 from abc import ABC, abstractmethod
 
 
+class WorkerError(Exception):
+    """Worker error class."""
+
+    def __init__(self, msg):
+        """Worker error constructor."""
+        self.msg = msg
+
+
 class Worker(ABC):
     """Worker interface for a generic workload manager."""
 

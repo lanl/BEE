@@ -286,35 +286,22 @@ class TaskActions(Resource):
 
 # WorkerInterface needs to be placed here. Don't Move!
 from beeflow.common.worker_interface import WorkerInterface
-from beeflow.common.worker.slurm_worker import SlurmWorker
-from beeflow.common.worker.lsf_worker import LSFWorker
-from beeflow.common.worker.simple_worker import SimpleWorker
+import beeflow.common.worker as worker
 
-supported_workload_schedulers = {'Slurm', 'LSF', 'Simple'}
+
 try:
     WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
 except ValueError as error:
-    log.error(f'workload scheduler error {error}')
-    WLS = None
-if WLS not in supported_workload_schedulers:
-    sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
-             f'Please check {bc.userconfig_file} and restart TaskManager.')
-
-
-workload_args = {
-    'bee_workdir': bc.userconfig.get('DEFAULT', 'bee_workdir'),
-    'container_runtime': bc.userconfig.get('task_manager', 'container_runtime'),
-    'job_template': bc.userconfig.get('task_manager', 'job_template', fallback=None),
-}
-if WLS == 'Slurm':
-    worker_class = SlurmWorker
-    workload_args['slurm_socket'] = bc.userconfig.get('slurmrestd', 'slurm_socket')
-elif WLS == 'LSF':
-    worker_class = LSFWorker
-elif WLS == 'Simple':
-    worker_class = SimpleWorker
-
-worker = WorkerInterface(worker_class, **workload_args)
+    log.error('workload_scheduler option not found for the Task Manager')
+    sys.exit(1)
+try:
+    worker_class = worker.worker_classes[WLS]
+except KeyError:
+    sys.exit('Invalid worker "{}"'.format(WLS))
+worker = WorkerInterface(worker_class, bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
+                         container_runtime=bc.userconfig.get('task_manager', 'container_runtime'),
+                         job_template=bc.userconfig.get('task_manager', 'job_template',
+                                                        fallback=None))
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
