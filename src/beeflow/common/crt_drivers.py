@@ -22,11 +22,20 @@ class ContainerRuntimeDriver(ABC):
 
     @abstractmethod
     def run_text(self, task):
-        """Build text for job using the container runtime.
+        """Create text for job using the container runtime.
 
         :param task: instance of Task
         :rtype string
         """
+
+    @abstractmethod
+    def build_text(self, task):
+        """Create text for builder pre-run using the container runtime.
+
+        :param task: instance of Task
+        :rtype string
+        """
+
 
 
 class CharliecloudDriver(ContainerRuntimeDriver):
