@@ -1,0 +1,5 @@
+#SBATCH -t 0:0:10
+
+echo "Workflow id: $WorkflowID"
+echo "Task $name with id $id "
+
