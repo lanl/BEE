@@ -113,7 +113,7 @@ class ResourceMonitor():
         """Construct resource monitor."""
 
     @property
-    def resource_ids():
+    def resource_ids(self):
         """Return a dict from resource ID to resource name."""
         # TODO: Get this from the database
         return {}
