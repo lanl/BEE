@@ -12,9 +12,10 @@ Hint = namedtuple("Hint", ["req_class", "key", "value"])
 class Workflow:
     """Data structure for holding data about a workflow."""
 
-    def __init__(self, hints, requirements, inputs, outputs, workflow_id=None):
+    def __init__(self, name, hints, requirements, inputs, outputs, workflow_id=None):
         """Store a workflow description.
 
+        :param name: the workflow name
         :type name: string
         :param hints: the workflow hints
         :type hints: set of Requirements
@@ -25,6 +26,7 @@ class Workflow:
         :param outputs: the workflow outputs
         :type outputs: set of strings
         """
+        self.name = name
         self.hints = hints
         self.requirements = requirements
         self.inputs = inputs

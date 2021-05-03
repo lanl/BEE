@@ -335,8 +335,9 @@ def _reconstruct_workflow(workflow_record, hints, requirements):
     :rtype: Workflow
     """
     rec = workflow_record["w"]
-    return Workflow(hints=hints, requirements=requirements, inputs=set(rec["inputs"]),
-                    outputs=set(rec["outputs"]), workflow_id=rec["workflow_id"])
+    return Workflow(name=rec["name"], hints=hints, requirements=requirements,
+                    inputs=set(rec["inputs"]), outputs=set(rec["outputs"]),
+                    workflow_id=rec["workflow_id"])
 
 
 def _reconstruct_task(task_record, hints):

@@ -21,12 +21,13 @@ def create_workflow_node(tx, workflow):
     """
     workflow_query = ("CREATE (w:Workflow) "
                       "SET w.workflow_id = $workflow_id "
+                      "SET w.name = $name "
                       "SET w.inputs = $inputs "
                       "SET w.outputs = $outputs")
 
     # Store the workflow name, inputs, and outputs, in a new workflow node
-    tx.run(workflow_query, workflow_id=workflow.id, inputs=list(workflow.inputs),
-           outputs=list(workflow.outputs))
+    tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name,
+           inputs=list(workflow.inputs), outputs=list(workflow.outputs))
 
 
 def create_workflow_hint_nodes(tx, hints):

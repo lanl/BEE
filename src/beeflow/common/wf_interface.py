@@ -23,9 +23,11 @@ class WorkflowInterface:
         # In the future we may need to grab the details from a config file
         self._gdb_details = kwargs
 
-    def initialize_workflow(self, inputs, outputs, requirements=None, hints=None):
+    def initialize_workflow(self, name, inputs, outputs, requirements=None, hints=None):
         """Begin construction of a BEE workflow.
 
+        :param name: the workflow name
+        :type name: str
         :param inputs: the inputs to the workflow
         :type inputs: set of str
         :param outputs: the outputs of the workflow
@@ -43,7 +45,7 @@ class WorkflowInterface:
         # Connect to the graph database
         self._gdb_interface.connect(**self._gdb_details)
 
-        workflow = Workflow(hints, requirements, inputs, outputs)
+        workflow = Workflow(name, hints, requirements, inputs, outputs)
         # Load the new workflow into the graph database
         self._gdb_interface.initialize_workflow(workflow)
         return workflow
