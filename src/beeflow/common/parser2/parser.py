@@ -26,6 +26,8 @@ type_table = {
     'Directory': str,
     'Any': None
 }
+
+
 class CwlParser:
     """Class for parsing CWL files."""
 
@@ -74,14 +76,15 @@ class CwlParser:
         workflow_outputs = {(shortname(output.outputSource, True), output.type)
                             for output in self.cwl.outputs}
 
-        workflow_tools = [cwl_parser.load_document(step.run) for step in self.cwl.steps]
+        workflow_steps = [self.parse_step(step) for step in self.cwl.steps]
 
-    def parse_tool(self, tool):
-        """Parse a CWL CommandLineTool file.
+    def parse_step(self, step):
+        """Parse a CWL step object.
 
-        :param tool: the CWL file path
-        :type tool: str
+        :param step: the CWL step object
+        :type step: WorkflowStep
         """
+        step_cwl = cwl_parser.load_document(step.run)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
