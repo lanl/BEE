@@ -12,8 +12,6 @@ import beeflow.common.wf_data as wf_data
 def test_simple_worker_submit_task_cancel_task():
     """Test submitting a simple task and then cancelling it."""
     worker = simple_worker.SimpleWorker()
-    # TODO: Add a sleep command for this task
-    # task = mocks.MockTask('test-task')
     task = wf_data.Task('test-task', workflow_id=uuid.uuid4(), command='sleep 100', hints={}, subworkflow='', inputs=set(), outputs=set())
 
     id_, state0 = worker.submit_task(task)
@@ -28,8 +26,6 @@ def test_simple_worker_submit_task_cancel_task():
 def test_simple_worker_submit_task_query_task_cancel_task():
     """Test submitting a simple task and then cancelling it."""
     worker = simple_worker.SimpleWorker()
-    # TODO: Add a sleep command for this task
-    # task = mocks.MockTask('test-task')
     task = wf_data.Task('test-task', workflow_id=uuid.uuid4(), command='sleep 100', hints={}, subworkflow='', inputs=set(), outputs=set())
 
     id_, state0 = worker.submit_task(task)
@@ -57,5 +53,6 @@ def test_simple_worker_submit_task_wait_complete():
         time.sleep(1)
         state = worker.query_task(id_)
     assert state == 'COMPLETED'
+
 
 # TODO: Add tests for container runtimes
