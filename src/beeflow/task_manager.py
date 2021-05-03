@@ -76,6 +76,7 @@ check_crt_config(runtime)
 tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 # Get Task Manager resource information
 # TODO: This may need to be determined dynamically on certain systems
+# (slurmrestd might be able to give this information)
 tm_nodes = bc.userconfig['task_manager'].get('nodes', 1)
 
 # Check Workflow manager port, use default if none.
@@ -152,6 +153,8 @@ def gen_task_metadata(task, job_id):
 
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
+    # TODO: If scheduling is required, then submit jobs when there are slots available
+    # Here we could use the Redis bit-operators with a bit map to check for available jobs
     while len(submit_queue) >= 1:
         # Single value dictionary
         task_dict = submit_queue.pop(0)
@@ -176,6 +179,7 @@ def submit_jobs():
 
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
+    # TODO: For each completed job, set the bit map entry corresponding to the job to 0
     for job in job_queue:
         task = job['task']
         job_id = job['job_id']
@@ -194,6 +198,8 @@ def update_jobs():
 
 def process_queues():
     """Look for newly submitted jobs and update status of scheduled jobs."""
+    # TODO: Perhaps the order of calls should be reversed to allow for new jobs
+    # to run, after jobs have completed
     submit_jobs()
     update_jobs()
 
@@ -248,11 +254,16 @@ class TaskSubmit(Resource):
         """Intialize request."""
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('tasks', type=str, location='json')
+        self.reqparse.add_argument('allocations', type=str, location='json')
 
     def post(self):
         """Receives task from WFM."""
+        # TODO: Do something with the allocations
         data = self.reqparse.parse_args()
         tasks = jsonpickle.decode(data['tasks'])
+        allocations = jsonpickle.decode(data['allocations'])
+        # TODO: Sort by task start time
+        # TODO: Insert task + allocation information into submit queue in order (use Redis)
         for task in tasks:
             submit_queue.append({task.id: task})
             log.info(f"Added {task.name} task to the submit queue")

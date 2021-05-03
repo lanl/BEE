@@ -229,13 +229,15 @@ def submit_tasks_tm(tasks, allocation):
 
     for host, port in schedule_tasks:
         tasks = schedule_tasks[(host, port)]
+        allocs = {task.id: allocation[task.id] for task in tasks}
         # Serialize task with json
         tasks_json = jsonpickle.encode(tasks)
+        allocs_json = jsonpickle.encode(allocs)
         # Send task_msg to task manager
         names = [task.name for task in tasks]
         log.info(f"Submitted {names} to Task Manager")
         resp = requests.post(_resource('tm', "submit/", host=host, port=port),
-                             json={'tasks': tasks_json})
+                             json={'tasks': tasks_json, 'allocations': allocs_json})
         if resp.status_code != 200:
             log.info(f"Submit task to TM returned bad status: {resp.status_code}")
 
