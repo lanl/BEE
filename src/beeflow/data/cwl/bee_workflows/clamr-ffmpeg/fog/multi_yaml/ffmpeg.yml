@@ -1,0 +1,9 @@
+format: image2
+inputdirectory: 
+  class: Directory
+  path: ./graphics_output
+input-files-pattern: graph%05d.png
+frame-rate: 12
+frame-size: 800x800
+pixel-format: yuv420p
+outputfile: CLAMR-movie.mp4

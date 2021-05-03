@@ -21,7 +21,7 @@ steps:
       inputs:
         infile:
           type: File
-          default: src/beeflow/data/lorem.txt
+          default: src/beeflow/data/cwl/bee_workflows/grep-wordcount/lorem.txt
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
