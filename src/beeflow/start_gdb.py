@@ -67,21 +67,12 @@ def StartGDB(bc, gdb_workdir, reexecute, debug=False):
             gdb_log.error("GraphDB container mount directory " + container_dir + " removed")
         return None
 
-    #newdir = os.path.split(container_dir)[1]
-
     container_path = container_dir + "/" + os.listdir(str(container_dir))[0]
     # Make the certificates directory
     container_certs_path = os.path.join(container_path, 'var/lib/neo4j/certificates')
     os.makedirs(container_certs_path, exist_ok=True)
     if debug:
         gdb_log.info('Created certificates directory %s', container_certs_path)
-    # Setup working path data
-    #if reexecute: 
-    #    print(f'Reexecute is {reexecute}')
-    #    gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'), archive_dir)
-    #else:
-    #    gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'),
-    #                               newdir)
 
     gdb_config_path = os.path.join(gdb_workdir, "conf")
     os.makedirs(gdb_config_path, exist_ok=True)

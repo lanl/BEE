@@ -129,9 +129,12 @@ def list_workflows():
 
     logging.info("List Jobs: " + resp.text)
     job_list = jsonpickle.decode(resp.json()['job_list'])
-    print(f"Name\tID\t\t\t\t\tStatus")
-    for i in job_list:
-        print(f"{i[0]}\t{i[1]}\t{i[2]}")
+    if job_list:
+        print(f"Name\tID\t\t\t\t\tStatus")
+        for i in job_list:
+            print(f"{i[0]}\t{i[1]}\t{i[2]}")
+    else:
+        print("There are currently no jobs.")
 
 menu_items = [
     { "Submit Workflow": submit_workflow },

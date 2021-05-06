@@ -66,7 +66,8 @@ else:
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-UPLOAD_FOLDER = 'current_workflow'
+bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+UPLOAD_FOLDER = os.path.join(bee_workdir, 'current_workflow')
 # Create the upload folder if it doesn't exist
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -101,7 +102,7 @@ try:
     wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
                             db_hostname=bc.userconfig.get('graphdb', 'hostname'),
                             password=bc.userconfig.get('graphdb', 'dbpass'))
-except KeyError:
+except (KeyError, configparser.NoSectionError) as e:
     wfi = WorkflowInterface()
 
 
@@ -176,16 +177,18 @@ class JobsList(Resource):
         """Return list of workflows to client"""
         # For each dir in bee_workdir look at its state at .bee_state
         workflows_dir = os.path.join(bee_workdir, 'workflows')
-        workflows = next(os.walk(workflows_dir))[1]
         job_list = []
-        for w in workflows:
-            wf_path = os.path.join(workflows_dir, w) 
-            status_path = os.path.join(wf_path, 'bee_wf_status')
-            name_path = os.path.join(wf_path, 'bee_wf_name')
-            wf_id = w
-            status = pathlib.Path(status_path).read_text()
-            name = pathlib.Path(name_path).read_text()
-            job_list.append([name, wf_id, status])
+        if os.path.isdir(workflows_dir):
+            workflows = next(os.walk(workflows_dir))[1]
+            for w in workflows:
+                wf_path = os.path.join(workflows_dir, w) 
+                status_path = os.path.join(wf_path, 'bee_wf_status')
+                name_path = os.path.join(wf_path, 'bee_wf_name')
+                wf_id = w
+                status = pathlib.Path(status_path).read_text()
+                name = pathlib.Path(name_path).read_text()
+                job_list.append([name, wf_id, status])
+
         resp = make_response(jsonify(job_list=jsonpickle.encode(job_list)), 200)
         return resp
 
@@ -214,6 +217,8 @@ class JobsList(Resource):
 
             # Parse the workflow and add it to the database
             top = cwl.load_document(temp_path)
+            # Remove the workflow file
+
             if wfi.workflow_initialized() and wfi.workflow_loaded():
                 # Clear the workflow if we've already run one
                 wfi.finalize_workflow()
@@ -365,7 +370,7 @@ def setup_scheduler():
 
     log.info(_resource('sched', "resources/"))
     resp = requests.put(_resource('sched', "resources"), json=resources)
-    log.info(resp.json())
+    #log.info(resp.json())
 
 
 # Used to tell if the workflow is currently paused
@@ -575,7 +580,6 @@ api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
 
-bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
 if __name__ == '__main__':
     # Setup the Scheduler
     setup_scheduler()
@@ -594,4 +598,3 @@ if __name__ == '__main__':
     flask_app.logger.addHandler(handler) #noqa
     flask_app.run(debug=True, port=str(wfm_listen_port))
 
-# pylama:ignore=W0511
