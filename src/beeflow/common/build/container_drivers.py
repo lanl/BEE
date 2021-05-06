@@ -124,7 +124,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             dockerRequirements = dockerRequirements.union(requirement_DockerRequirements)
             log.info('task {} requirement DockerRequirements: {}'.\
                      format(self.task.id, set(requirement_DockerRequirements)))
-        except KeyError:
+        except (TypeError, KeyError):
             log.info('task {} requirements has no DockerRequirements'.format(self.task.id))
             pass
         try:
@@ -132,7 +132,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             dockerRequirements = dockerRequirements.union(hint_DockerRequirements)
             log.info('task {} hint DockerRequirements: {}'.format(self.task.id,
                                                                   set(hint_DockerRequirements)))
-        except KeyError:
+        except (TypeError, KeyError):
             log.info('task {} hints has no DockerRequirements'.format(self.task.id))
             pass
         log.info('task {} union DockerRequirements consist of: {}'.format(self.task.id,
