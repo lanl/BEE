@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""BEEStart.
+"""beeflow.
 
 This script manages the startup of the BEE daemons and supporting services.
 If no arguments are given this script will start the BEEWorkflowManager,
@@ -62,7 +62,7 @@ def StartWorkflowManager(bc, args):
     if args.config_only:
         return None
 
-    # Either use the userconfig file argument specified to BEEStart,
+    # Either use the userconfig file argument specified to beeflow,
     # or assume the default path to ~/.config/beeflow/bee.conf.
     if args.userconfig_file:
         userconfig_file = args.userconfig_file
@@ -93,7 +93,7 @@ def StartTaskManager(bc, args):
     if args.config_only:
         return None
 
-    # Either use the userconfig file argument specified to BEEStart,
+    # Either use the userconfig file argument specified to beeflow,
     # or assume the default path to ~/.config/beeflow/bee.conf.
     if args.userconfig_file:
         userconfig_file = args.userconfig_file
@@ -121,7 +121,7 @@ def StartScheduler(bc, args):
 
     if args.config_only:
         return None
-    # Either use the userconfig file argument specified to BEEStart,
+    # Either use the userconfig file argument specified to beeflow,
     # or assume the default path to ~/.config/beeflow/bee.conf.
     if args.userconfig_file:
         userconfig_file = args.userconfig_file
@@ -143,7 +143,7 @@ def parse_args(args=sys.argv[1:]):
                                      formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument("-d", "--debug", action="store_true",
-                        help="enable debugging output\nIf debug is specified all output will go to the console.\nOnly one BEE service may be launched by BEEStart if debug is requested.")
+                        help="enable debugging output\nIf debug is specified all output will go to the console.\nOnly one BEE service may be launched by beeflow if debug is requested.")
     parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")

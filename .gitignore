@@ -13,4 +13,3 @@ poetry.lock
 .env
 .venv
 doc-src/_build
-workflows/
