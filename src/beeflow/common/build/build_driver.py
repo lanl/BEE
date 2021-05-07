@@ -103,12 +103,14 @@ class BuildDriver(ABC):
         build interface will try to pull first, and only on pull
         failure will the builder build the docker file. 
         """
-        cwl_spec = [(self.dockerPull,'dockerPull',3),
-                    (self.dockerLoad,'dockerLoad',4),
-                    (self.dockerFile,'dockerFile',5),
-                    (self.dockerImport,'dockerImport',2),
-                    (self.dockerImageId,'dockerImageId',1),
-                    (self.dockerOutputDirectory,'dockerOutputDirectory',0)
+        # cwl spec priority list consists of:
+        # (bound method, method name, priority, termainal case bool)
+        cwl_spec = [(self.dockerPull,'dockerPull',3, True),
+                    (self.dockerLoad,'dockerLoad',4, True),
+                    (self.dockerFile,'dockerFile',5, True),
+                    (self.dockerImport,'dockerImport',2, True),
+                    (self.dockerImageId,'dockerImageId',1, False),
+                    (self.dockerOutputDirectory,'dockerOutputDirectory',0, False)
                    ]
         exec_list = sorted(cwl_spec, key=lambda x:x[2])
         return(exec_list)

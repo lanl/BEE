@@ -224,10 +224,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             # Task Requirements are not mandatory. No dockerload specified in task reqs.
             req_dockerload = None
 
-        log.error('Charliecloud does not have the concept of a layered image tarball.')
-        log.error('Did you mean to use dockerImport?')
+        log.warning('Charliecloud does not have the concept of a layered image tarball.')
+        log.warning('Did you mean to use dockerImport?')
         if req_dockerload:
-            log.error('dockerLoad specified as requirement.')
+            log.warning('dockerLoad specified as requirement.')
             return 1
         return 0
 
@@ -235,7 +235,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """CWL compliant dockerFile.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
-        which will be built using docker build.
+        which will be built using docker build. We have discussed implementing CWL
+        change to expect a file handle instead of file contents, and use the file 
+        handle expectation here.
         """
         # Need imageid to know how dockerfile should be named, else fail
         try:
@@ -285,17 +287,17 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.error("dockerFile not specified as task attribute or parameter.")
             return 1
 
-        # Create random directory to use as Dockerfile context
-        tmp_dir = tempfile.mkdtemp(prefix=f'bee_task{self.task.name}_id{self.task.id}", dir="/tmp')
-        tmp_dockerfile = f'{tmp_dir}/Dockerfile'
-        # Now that we know what the image is called, make a Dockerfile for CCloud
-        with open(tmp_dockerfile, 'w') as fh:
-            fh.write(task_dockerfile)
+        # Create context directory to use as Dockerfile context, use task ID so user
+        # can prep the directory with COPY sources as needed.
+        context_dir = '/'.join(['/tmp',task_imageid])
+        log.info('Context directory will be {}.'.format(context_dir))
+        os.makedirs(context_dir, exist_ok=True) 
 
         # Determine name for successful build target
         ch_build_addr = task_imageid.replace('/', '%')
 
         ch_build_target = '/'.join([self.build_dir, ch_build_addr]) + '.tar.gz'
+        log.info('Build will create tar ball at {}'.format(ch_build_target))
         # Return if image already exist and force==False.
         if os.path.exists(ch_build_target) and not force:
             return 0
@@ -310,10 +312,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
 
-        # Provably out of excuses. Pull the image.
-        cmd = (f'ch-image build -t {task_imageid} -f {tmp_dockerfile} {tmp_dir}\n'
+        # Provably out of excuses. Build the image.
+        log.info('Context directory configured. Beginning build.')
+        cmd = (f'ch-image build -t {task_imageid} -f {task_dockerfile} {context_dir}\n'
                f'ch-builder2tar {ch_build_addr} {self.build_dir}'
                )
+        log.info('Executing: {}'.format(cmd))
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
 
     def dockerImport(self, param_import=None):
@@ -363,9 +367,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Parameter takes precedence
         if param_imageid:
             self.docker_image_id = param_imageid
-        # If previously set by param, return previous setting and ignore task.
+        # If previously set by param, return 0 and ignore task.
         if self.docker_image_id:
-            return self.docker_image_id
+            return 0
 
         # Need imageid to know how dockerfile should be named, else fail
         try:
@@ -393,7 +397,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # If task and parameter still doesn't specify image_id, consider this an error.
         if self.docker_image_id:
-            return self.docker_image_id
+            return 0
         return 1
 
     def dockerOutputDirectory(self, param_output_directory=None):
@@ -405,7 +409,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Allow parameter over-ride.
         if param_output_directory:
             self.container_output_path = param_output_directory
-        return self.container_output_path
+        return 0
 
 
 class SingularityBuildDriver(ContainerBuildDriver):
