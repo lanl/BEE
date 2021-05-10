@@ -6,19 +6,36 @@ from abc import ABC, abstractmethod
 import os
 from configparser import NoOptionError
 from beeflow.common.config_driver import BeeConfig
-bc = BeeConfig()
+from beeflow.common.build.build_driver import task2arg, arg2task
+import sys
+
+if len(sys.argv) > 2:
+    userconfig = sys.argv[1]
+    bc = BeeConfig(userconfig=userconfig)
+else:
+    userconfig = None
+    bc = BeeConfig()
 
 
 class ContainerRuntimeDriver(ABC):
     """ContainerRuntimeDriver interface for generic container runtime."""
 
     @abstractmethod
-    def script_text(self, task):
-        """Build text for job using the container runtime.
+    def run_text(self, task):
+        """Create text for job using the container runtime.
 
         :param task: instance of Task
         :rtype string
         """
+
+    @abstractmethod
+    def build_text(self, task):
+        """Create text for builder pre-run using the container runtime.
+
+        :param task: instance of Task
+        :rtype string
+        """
+
 
 
 class CharliecloudDriver(ContainerRuntimeDriver):
@@ -51,7 +68,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             cc_setup = ''
         return(chrun_opts, cc_setup)
 
-    def script_text(self, task):
+    def run_text(self, task):
         """Build text for Charliecloud batch script."""
         if task.hints is not None:
             docker = False
@@ -73,6 +90,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 text = command
         return text
 
+    def build_text(self, userconfig, task):
+        """Build text for Charliecloud batch script."""
+        task_args = task2arg(task)
+        text = (f'beeflow --build {userconfig} {task_args}\n'
+                )
+        return text
+
     def image_exists(self, task):
         """Check if image exists."""
         if task.hints is not None:
@@ -89,7 +113,7 @@ class SingularityDriver(ContainerRuntimeDriver):
     Builds the text for the task for using Singularity to test abstract class.
     """
 
-    def script_text(self, task):
+    def run_text(self, task):
         """Build text for Singularity batch script."""
         if task.hints is not None:
             docker = False

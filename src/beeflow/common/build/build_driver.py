@@ -1,7 +1,21 @@
 """Abstract base class for the handling build systems."""
 
 from abc import ABC, abstractmethod
+from beeflow.common.wf_data import BuildTask
+import json
 
+def arg2task(task_arg):
+    task_arg = dict(json.loads(task_arg))
+    task = BuildTask(name=task_arg['name'],
+                    command=task_arg['command'],
+                    requirements=task_arg['requirements'],
+                    hints=task_arg['hints'],
+                    subworkflow=task_arg['subworkflow'],
+                    inputs=task_arg['inputs'],
+                    outputs=task_arg['outputs'])
+    return(task)
+
+task2arg = lambda task: json.dumps(vars(task))
 
 class BuildDriver(ABC):
     """Driver interface between WFM and a generic build system.
@@ -24,37 +38,6 @@ class BuildDriver(ABC):
         :type hints: set of Requirement instances
         :param kwargs: Dictionary of build system config options
         :type kwargs: set of build system parameters
-        """
-
-    @abstractmethod
-    def parse_build_config(self):
-        """Parse kwargs to separate BeeConfig and CWL concerns.
-
-        kwargs is used to receive an unknown number of parameters.
-        both BeeConfig and CWL files may have options required for
-        the build service. Parse and store them.
-        """
-
-    @abstractmethod
-    def validate_build_config(self):
-        """Ensure valid config.
-
-        Parse kwargs to ensure BeeConfig options are compatible
-        with CWL specs.
-        """
-
-    @abstractmethod
-    def build(self):
-        """Build RTE as configured.
-
-        Build the RTE based on a validated configuration.
-        """
-
-    @abstractmethod
-    def validate_build(self):
-        """Validate RTE.
-
-        Confirm build procedure completed successfully.
         """
 
     @abstractmethod
@@ -108,5 +91,28 @@ class BuildDriver(ABC):
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container.
         """
+
+    def resolve_priority(self):
+        """Given multiple DockerRequirements, set order of execution.
+
+        The CWL spec as of 04-15-2021 does not specify order of
+        execution, but the cwltool gives some guidance by example.
+        We mimic cwltool in how we resolve priority, favoring
+        fast, cached container specs over slower specs. For example,
+        if both a docker pull and a docker file are supported, the
+        build interface will try to pull first, and only on pull
+        failure will the builder build the docker file. 
+        """
+        # cwl spec priority list consists of:
+        # (bound method, method name, priority, termainal case bool)
+        cwl_spec = [(self.dockerPull,'dockerPull',3, True),
+                    (self.dockerLoad,'dockerLoad',4, True),
+                    (self.dockerFile,'dockerFile',5, True),
+                    (self.dockerImport,'dockerImport',2, True),
+                    (self.dockerImageId,'dockerImageId',1, False),
+                    (self.dockerOutputDirectory,'dockerOutputDirectory',0, False)
+                   ]
+        exec_list = sorted(cwl_spec, key=lambda x:x[2])
+        return(exec_list)
 # Ignore snake_case requirement to enable CWL compliant names.
 # pylama:ignore=C0103

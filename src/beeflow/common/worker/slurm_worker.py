@@ -19,11 +19,11 @@ import beeflow.common.log as bee_logging
 # Import all implemented container runtime drivers now
 # No error if they don't exist
 try:
-    from beeflow.common.crt.crt_drivers import CharliecloudDriver
+    from beeflow.common.crt_drivers import CharliecloudDriver
 except ModuleNotFoundError:
     pass
 try:
-    from beeflow.common.crt.crt_drivers import SingularityDriver
+    from beeflow.common.crt_drivers import SingularityDriver
 except ModuleNotFoundError:
     pass
 
@@ -94,7 +94,7 @@ class SlurmWorker(Worker):
                                         'name': task.name,
                                         'id': task.id}
                                        )
-        crt_text = self.crt.script_text(task)
+        crt_text = self.crt.run_text(task)
         job_text += crt_text
         return job_text
 
