@@ -18,12 +18,16 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
+from beeflow.common.build.build_driver import task2arg
 import beeflow.common.log as bee_logging
+
 
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
+
+USERCONFIG = bc.userconfig_file
 
 
 def check_crt_config(c_runtime):
@@ -141,6 +145,12 @@ def gen_task_metadata(task, job_id):
     return metadata
 
 
+def resolve_environment(task):
+    """Use build interface to create a valid environment."""
+    return subprocess.Popen(["beeflow","--build",USERCONFIG_FILE,task2arg(task)],
+                           stdout=PIPE, stderr=PIPE, shell=True)
+
+
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
     while len(submit_queue) >= 1:
@@ -148,6 +158,9 @@ def submit_jobs():
         task_dict = submit_queue.pop(0)
         task = next(iter(task_dict.values()))
         try:
+            log.info('Resolving environment for task {}'.format(task.name))
+            proc = resolve_environment(task)
+            log.info('Environment preparation complete for task {}'.format(task.name))
             job_id, job_state = worker.submit_task(task)
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
