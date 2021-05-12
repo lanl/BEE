@@ -76,6 +76,9 @@ flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 reexecute = False
 
+def get_script_path():
+    return os.path.dirname(os.path.realpath(__file__))
+
 def tm_url():
     """Get Task Manager url."""
     task_manager = "bee_tm/v1/task/"
@@ -207,7 +210,8 @@ class JobsList(Resource):
         if cwl_file:
             # Start the GDB 
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
-            subprocess.run(['./start_gdb.py', '--gdb_workdir', gdb_workdir])
+            script_path = get_script_path()
+            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir])
             # Need to wait a moment for the GDB
             time.sleep(10)
 
@@ -287,7 +291,9 @@ class JobsList(Resource):
             shutil.copytree(gdb_path, gdb_workdir) 
 
              # Launch new container with bindmounted GDB
-            subprocess.run(['./start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'])
+
+            script_path = get_script_path()
+            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'])
             time.sleep(10)
 
             # Initialize the database connection object
