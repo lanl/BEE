@@ -4,9 +4,9 @@ import time
 from uuid import uuid4
 
 # Requirement class for storing requirement class, key, and value
-Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
+Requirement = namedtuple("Requirement", ["class_", "key", "value"])
 # Hint class for storing hint class, key, and value
-Hint = namedtuple("Hint", ["req_class", "key", "value"])
+Hint = namedtuple("Hint", ["class_", "key", "value"])
 
 
 class Workflow:
@@ -66,8 +66,8 @@ class Workflow:
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, name, command, hints, subworkflow, inputs, outputs, workflow_id,
-                 task_id=None):
+    def __init__(self, name, command, hints, requirements, subworkflow, inputs, outputs,
+                 workflow_id, task_id=None):
         """Store a task description.
 
         Task ID should only be given as a parameter when reconstructing the Task object
@@ -79,6 +79,8 @@ class Task:
         :type command: list of str
         :param hints: the task hints (optional requirements)
         :type hints: set of Hint
+        :param requirements: the task requirements
+        :type requirements: set of Requirement
         :param subworkflow: an identifier for the subworkflow to which the task belongs
         :type subworkflow: str
         :param inputs: the task inputs
@@ -93,6 +95,7 @@ class Task:
         self.name = name
         self.command = command
         self.hints = hints
+        self.requirements = requirements
         self.subworkflow = subworkflow
         self.inputs = inputs
         self.outputs = outputs
