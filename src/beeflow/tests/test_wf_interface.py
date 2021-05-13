@@ -188,6 +188,19 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(req_key, req.key)
         self.assertEqual(req_value, req.value)
 
+    def test_create_hint(self):
+        """Test workflow hint creation."""
+        hint_class = "NetworkAccess"
+        hint_key = "networkAccess"
+        hint_value = True
+
+        hint = self.wfi.create_hint(hint_class, hint_key, hint_value)
+
+        self.assertIsInstance(hint, Hint)
+        self.assertEqual(hint_class, hint.class_)
+        self.assertEqual(hint_key, hint.key)
+        self.assertEqual(hint_value, hint.value)
+
     def test_get_task_by_id(self):
         """Test obtaining a task from the graph database by its ID."""
         task_name = "Test Task"
