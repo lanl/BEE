@@ -152,8 +152,8 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Graph database assertions
         gdb_task = self.wfi.get_task_by_id(task.id)
-        self.assertEqual(gdb_task, task)
-        self.assertEqual(gdb_task.id, task.id)
+        self.assertEqual(task, gdb_task)
+        self.assertEqual(task.id, gdb_task.id)
 
     def test_initialize_ready_tasks(self):
         self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
