@@ -104,14 +104,14 @@ def create_task_requirement_nodes(tx, task):
     :param task: the task whose requirements to add to the graph
     :type task: Task
     """
-    hint_query = ("MATCH (t:Task {task_id: $task_id}) "
-                  "CREATE (t)-[:HAS_REQUIREMENT]->(h:Hint) "
-                  "SET h.class = $class_ "
-                  "SET h.key = $key "
-                  "SET h.value = $value")
+    req_query = ("MATCH (t:Task {task_id: $task_id}) "
+                 "CREATE (t)-[:HAS_REQUIREMENT]->(h:Requirement) "
+                 "SET h.class = $class_ "
+                 "SET h.key = $key "
+                 "SET h.value = $value")
 
     for req in task.requirements:
-        tx.run(hint_query, task_id=task.id, class_=req.class_, key=req.key, value=req.value)
+        tx.run(req_query, task_id=task.id, class_=req.class_, key=req.key, value=req.value)
 
 
 def create_task_metadata_node(tx, task):
