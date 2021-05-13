@@ -15,7 +15,6 @@ class Workflow:
     def __init__(self, hints, requirements, inputs, outputs, workflow_id=None):
         """Store a workflow description.
 
-        :type name: string
         :param hints: the workflow hints
         :type hints: set of Requirements
         :param requirements: the workflow requirements
@@ -24,6 +23,8 @@ class Workflow:
         :type inputs: set of strings
         :param outputs: the workflow outputs
         :type outputs: set of strings
+        :param workflow_id: the workflow ID
+        :type workflow_id: str
         """
         self.hints = hints
         self.requirements = requirements
