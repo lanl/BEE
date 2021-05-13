@@ -118,6 +118,7 @@ class Task:
         return bool(self.name == other.name and
                     self.command == other.command and
                     self.hints == other.hints and
+                    self.requirements == other.requirements and
                     self.subworkflow == other.subworkflow and
                     self.inputs == other.inputs and
                     self.outputs == other.outputs)
@@ -137,7 +138,8 @@ class Task:
     def __repr__(self):
         """Construct a task's string representation."""
         return (f"<Task id={self.id} name='{self.name}' command={self.command} hints={self.hints} "
-                f"subworkflow='{self.subworkflow}' inputs={self.inputs} outputs={self.outputs}>")
+                f"requirements = {self.requirements} subworkflow='{self.subworkflow}' "
+                f"inputs={self.inputs} outputs={self.outputs}>")
 
     def construct_command(self):
         """Construct a task's command representation."""
