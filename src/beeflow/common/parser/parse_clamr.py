@@ -120,8 +120,7 @@ def create_task(obj, wfi, workflow):
 
     # Using the BEE workflow interface (note the passed in reference
     # to a Neo4j databse) to load the task nto the database.
-    wfi.add_task(workflow=workflow, name=tname, command=cmd, inputs=ins, 
-            outputs=outs, hints=thints)
+    wfi.add_task(name=tname, command=cmd, inputs=ins, outputs=outs, hints=thints)
 
     
 
