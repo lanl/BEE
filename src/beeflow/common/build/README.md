@@ -86,7 +86,7 @@ a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=True)
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
 task = Task(name='hi',command=['hi','hello'],
-                 requirements={'DockerRequirement':{'dockerFile':'FROM git.lanl.gov:5050/trandles/baseimages/centos:7\nCMD cat /etc/centos-release',
+                 requirements={'DockerRequirement':{'dockerFile':'src/beeflow/data/dockerfiles/Dockerfile.builder_demo',
                                                     'dockerImageId':'my_fun_container:sillytag'}},
                  hints=None,
                  workflow_id=42,

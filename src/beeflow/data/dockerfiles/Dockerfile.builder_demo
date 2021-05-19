@@ -1,0 +1,2 @@
+FROM git.lanl.gov:5050/trandles/baseimages/centos:7
+CMD cat /etc/centos-release
