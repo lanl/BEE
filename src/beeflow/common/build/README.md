@@ -150,6 +150,8 @@ from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
 task = Task(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerLoad':'bogus path'}},
+                 requirements=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -160,6 +162,8 @@ a.dockerLoad()
 # >>> 0
 task = Task(name='hi',command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerLoad':'bogus path'}},
+                 hints=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -176,6 +180,8 @@ from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
 task = Task(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImageId':'my_imageid'}},
+                 requirements=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -187,6 +193,9 @@ a.dockerImageId(param_imageid='another_imageid')
 a.dockerImageId()
 # >>> 'my_imageid'
 task = Task(name='hi',command=['hi','hello'],
+                 hints=None,
+                 requirements=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
