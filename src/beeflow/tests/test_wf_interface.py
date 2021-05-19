@@ -6,6 +6,7 @@
 
 import unittest
 
+from beeflow.common.wf_data import Requirement, Hint
 from beeflow.common.wf_interface import WorkflowInterface
 
 
@@ -28,8 +29,8 @@ class TestWorkflowInterface(unittest.TestCase):
         The workflow node and associated requirement/hint nodes should have been created.
         """
         requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024)}
-        hints = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024),
-                 self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
+        hints = {self.wfi.create_hint("ResourceRequirement", "ramMin", 1024),
+                 self.wfi.create_hint("NetworkAccess", "networkAccess", True)}
         workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
 
         gdb_workflow, _ = self.wfi.get_workflow()
@@ -39,16 +40,16 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_execute_workflow(self):
         """Test workflow execution initialization (set initial tasks' states to 'READY')."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        tasks = self._create_test_tasks(workflow)
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
         self.wfi.execute_workflow()
 
         self.assertEqual(self.wfi.get_task_state(tasks[0]), "READY")
 
     def test_pause_workflow(self):
         """Test workflow execution pausing (set running tasks' states to 'PAUSED')."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        tasks = self._create_test_tasks(workflow)
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
 
         # Set Compute tasks to RUNNING
         for task in tasks[1:4]:
@@ -65,8 +66,8 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_resume_workflow(self):
         """Test workflow execution resuming (set paused tasks' states to 'RUNNING')."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        tasks = self._create_test_tasks(workflow)
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
 
         # Set Compute tasks to PAUSED
         for task in tasks[1:4]:
@@ -84,7 +85,7 @@ class TestWorkflowInterface(unittest.TestCase):
     def test_reset_workflow(self):
         """Test workflow execution resetting (set all tasks to 'WAITING', delete metadata)."""
         workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        tasks = self._create_test_tasks(workflow)
+        tasks = self._create_test_tasks()
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
         empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
@@ -121,17 +122,19 @@ class TestWorkflowInterface(unittest.TestCase):
         """Test task creation."""
         task_name = "Test Task"
         command = ["ls", "-a", "-l", "-F"]
-        hints = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024),
-                 self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
+        requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024),
+                        self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
+        hints = {self.wfi.create_hint("ResourceRequirement", "ramMin", 1024),
+                 self.wfi.create_hint("NetworkAccess", "networkAccess", True)}
         subworkflow = "Test Subworkflow"
         inputs = {"input.txt"}
         outputs = {"test_task_done"}
 
         workflow = self.wfi.initialize_workflow({"input.txt"}, {"test_task_done"})
         task = self.wfi.add_task(
-            workflow=workflow,
             name=task_name,
             command=command,
+            requirements=requirements,
             hints=hints,
             subworkflow=subworkflow,
             inputs=inputs,
@@ -140,6 +143,7 @@ class TestWorkflowInterface(unittest.TestCase):
         # Task object assertions
         self.assertEqual(task_name, task.name)
         self.assertListEqual(command, task.command)
+        self.assertSetEqual(requirements, task.requirements)
         self.assertSetEqual(hints, task.hints)
         self.assertEqual(subworkflow, task.subworkflow)
         self.assertSetEqual(inputs, task.inputs)
@@ -148,12 +152,12 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Graph database assertions
         gdb_task = self.wfi.get_task_by_id(task.id)
-        self.assertEqual(gdb_task, task)
-        self.assertEqual(gdb_task.id, task.id)
+        self.assertEqual(task, gdb_task)
+        self.assertEqual(task.id, gdb_task.id)
 
     def test_initialize_ready_tasks(self):
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        tasks = self._create_test_tasks(workflow)
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
 
         # Not using finalize_task() to test independent use of initialize_ready_tasks()
         self.wfi.set_task_state(tasks[0], "COMPLETED")
@@ -164,8 +168,8 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual("READY", self.wfi.get_task_state(tasks[3]))
 
     def test_finalize_task(self):
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        tasks = self._create_test_tasks(workflow)
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
 
         ready_tasks = self.wfi.finalize_task(tasks[0])
 
@@ -179,25 +183,41 @@ class TestWorkflowInterface(unittest.TestCase):
 
         req = self.wfi.create_requirement(req_class, req_key, req_value)
 
-        self.assertEqual(req_class, req.req_class)
+        self.assertIsInstance(req, Requirement)
+        self.assertEqual(req_class, req.class_)
         self.assertEqual(req_key, req.key)
         self.assertEqual(req_value, req.value)
+
+    def test_create_hint(self):
+        """Test workflow hint creation."""
+        hint_class = "NetworkAccess"
+        hint_key = "networkAccess"
+        hint_value = True
+
+        hint = self.wfi.create_hint(hint_class, hint_key, hint_value)
+
+        self.assertIsInstance(hint, Hint)
+        self.assertEqual(hint_class, hint.class_)
+        self.assertEqual(hint_key, hint.key)
+        self.assertEqual(hint_value, hint.value)
 
     def test_get_task_by_id(self):
         """Test obtaining a task from the graph database by its ID."""
         task_name = "Test Task"
         command = ["ls", "-a", "-l", "-F"]
-        hints = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024),
-                 self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
+        requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024),
+                        self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
+        hints = {self.wfi.create_hint("ResourceRequirement", "ramMin", 1024),
+                 self.wfi.create_hint("NetworkAccess", "networkAccess", True)}
         subworkflow = "Test Subworkflow"
         inputs = {"input.txt"}
         outputs = {"test_task_done"}
 
         workflow = self.wfi.initialize_workflow({"input.txt"}, {"test_task_done"})
         task = self.wfi.add_task(
-            workflow=workflow,
             name=task_name,
             command=command,
+            requirements=requirements,
             hints=hints,
             subworkflow=subworkflow,
             inputs=inputs,
@@ -208,9 +228,9 @@ class TestWorkflowInterface(unittest.TestCase):
     def test_get_workflow(self):
         """Test obtaining the workflow from the graph database."""
         requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024)}
-        hints = {self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
-        tasks = self._create_test_tasks(workflow)
+        hints = {self.wfi.create_hint("NetworkAccess", "networkAccess", True)}
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
+        tasks = self._create_test_tasks()
 
         (workflow, wf_tasks) = self.wfi.get_workflow()
 
@@ -221,9 +241,9 @@ class TestWorkflowInterface(unittest.TestCase):
     def test_get_subworkflow(self):
         """Test obtaining of a subworkflow."""
         requirements = {self.wfi.create_requirement("ResourceRequirement", "ramMin", 1024)}
-        hints = {self.wfi.create_requirement("NetworkAccess", "networkAccess", True)}
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
-        tasks = self._create_test_tasks(workflow)
+        hints = {self.wfi.create_hint("NetworkAccess", "networkAccess", True)}
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"}, requirements, hints)
+        tasks = self._create_test_tasks()
 
         # Subworkflow assertion
         (subwf_tasks, subwf_requirements, subwf_hints) = self.wfi.get_subworkflow("Compute")
@@ -233,8 +253,8 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_ready_tasks(self):
         """Test obtaining of ready workflow tasks."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        tasks = self._create_test_tasks(workflow)
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
 
         # Should be no ready tasks
         self.assertSetEqual(set(), self.wfi.get_ready_tasks())
@@ -247,8 +267,8 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        tasks = self._create_test_tasks(workflow)
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        tasks = self._create_test_tasks()
         # Get dependent tasks of Data Prep
         dependent_tasks = self.wfi.get_dependent_tasks(tasks[0])
 
@@ -257,16 +277,16 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_task_state(self):
         """Test obtaining of task state."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        task = self.wfi.add_task(workflow, "Test Task")
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        task = self.wfi.add_task("Test Task")
 
         # Should be WAITING because workflow not yet executed
         self.assertEqual("WAITING", self.wfi.get_task_state(task))
 
     def test_set_task_state(self):
         """Test the setting of task state."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        task = self.wfi.add_task(workflow, "Test Task")
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        task = self.wfi.add_task("Test Task")
 
         self.wfi.set_task_state(task, "RUNNING")
 
@@ -275,8 +295,8 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_task_metadata(self):
         """Test the obtaining of task metadata."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        task = self.wfi.add_task(workflow, "Test Task")
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        task = self.wfi.add_task("Test Task")
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
@@ -285,8 +305,8 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_set_task_metadata(self):
         """Test the setting of task metadata."""
-        workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        task = self.wfi.add_task(workflow, "Test Task")
+        self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
+        task = self.wfi.add_task("Test Task")
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
         empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
@@ -302,7 +322,7 @@ class TestWorkflowInterface(unittest.TestCase):
     def test_workflow_completed(self):
         """Test determining if a workflow has completed."""
         workflow = self.wfi.initialize_workflow({"input.txt"}, {"output.txt"})
-        task = self.wfi.add_task(workflow, "Test Task")
+        task = self.wfi.add_task("Test Task")
 
         # Workflow not completed
         self.assertFalse(self.wfi.workflow_completed())
@@ -333,32 +353,37 @@ class TestWorkflowInterface(unittest.TestCase):
         # Workflow now loaded
         self.assertTrue(self.wfi.workflow_loaded())
 
-    def _create_test_tasks(self, workflow):
+    def _create_test_tasks(self):
         """Create test tasks to reduce redundancy."""
         # Remember that add_task uploads the task to the database as well as returns a Task
         tasks = [
             self.wfi.add_task(
-                workflow, "Data Prep", command=["ls", "-a", "-l", "-F"],
-                hints={self.wfi.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                "Data Prep", command=["ls", "-a", "-l", "-F"],
+                requirements={self.wfi.create_requirement("NetworkAccess", "networkAccess", True)},
+                hints={self.wfi.create_hint("ResourceRequirement", "ramMax", 2048)},
                 inputs={"input.txt"}, outputs={"prep_input.txt"}),
             self.wfi.add_task(
-                workflow, "Compute 0", command=["rm", "-r", "-f"],
-                hints={self.wfi.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                "Compute 0", command=["rm", "-r", "-f"],
+                requirements={self.wfi.create_requirement("NetworkAccess", "networkAccess", True)},
+                hints={self.wfi.create_hint("ResourceRequirement", "ramMax", 2048)},
                 subworkflow="Compute", inputs={"prep_input.txt"},
                 outputs={"output1.txt"}),
             self.wfi.add_task(
-                workflow, "Compute 1", command=["find"],
-                hints={self.wfi.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                "Compute 1", command=["find"],
+                requirements={self.wfi.create_requirement("NetworkAccess", "networkAccess", True)},
+                hints={self.wfi.create_hint("ResourceRequirement", "ramMax", 2048)},
                 subworkflow="Compute", inputs={"prep_input.txt"},
                 outputs={"output2.txt"}),
             self.wfi.add_task(
-                workflow, "Compute 2", command=["yes"],
-                hints={self.wfi.create_requirement("ResourceRequirement", "ramMax", 2048)},
+                "Compute 2", command=["yes"],
+                requirements={self.wfi.create_requirement("NetworkAccess", "networkAccess", True)},
+                hints={self.wfi.create_hint("ResourceRequirement", "ramMax", 2048)},
                 subworkflow="Compute", inputs={"prep_input.txt"},
                 outputs={"output3.txt"}),
             self.wfi.add_task(
-                workflow, "Visualization", command=["ln", "-s"],
-                hints={self.wfi.create_requirement("ResourceRequirement", "ramMax", 4096)},
+                "Visualization", command=["ln", "-s"],
+                requirements={self.wfi.create_requirement("NetworkAccess", "networkAccess", True)},
+                hints={self.wfi.create_hint("ResourceRequirement", "ramMax", 4096)},
                 inputs={"output1.txt", "output2.txt", "output3.txt"},
                 outputs={"output.txt"}),
         ]
