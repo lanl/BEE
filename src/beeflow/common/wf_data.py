@@ -3,10 +3,20 @@ from collections import namedtuple
 import time
 from uuid import uuid4
 
-# Requirement class for storing requirement class, key, and value
-Requirement = namedtuple("Requirement", ["req_class", "key", "value"])
-# Hint class for storing hint class, key, and value
-Hint = namedtuple("Hint", ["req_class", "key", "value"])
+# Workflow input parameter class
+InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
+# Workflow output parameter class
+OutputParameter = namedtuple("OutputParameter", ["id", "source", "type", "value"])
+# Step input class
+StepInput = namedtuple("StepInput", ["id", "source", "type", "value", "optional", "prefix",
+                                     "position"])
+# Step output class
+StepOutput = namedtuple("StepOutput", ["id", "glob", "type", "value"])
+
+# CWL requirement class
+Requirement = namedtuple("Requirement", ["class_", "key", "value"])
+# CWL hint class
+Hint = namedtuple("Hint", ["class_", "key", "value"])
 
 
 class Workflow:
