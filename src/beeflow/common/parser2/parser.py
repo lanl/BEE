@@ -6,6 +6,8 @@ inspired by the CWL parser written by the CWL parser written by the SABER team a
 University (see SABER project at https://github.com/aplbrain/saber).
 """
 
+import sys
+import argparse
 import json
 import os
 import re
@@ -72,11 +74,31 @@ class CwlParser:
                 return uri.split("#")[-1]
 
         workflow_name = os.path.basename(cwl).split(".")[0]
-        workflow_inputs = {(shortname(input_.id), input_.type) for input_ in self.cwl.inputs}
+        # Steven had tuples, I changed to dict to mirror output of parse_job
+        workflow_inputs = {shortname(input_.id): input_.type for input_ in self.cwl.inputs}
+        resolved_inputs = self.resolve_inputs(workflow_inputs)
+        print(f'self.params: {self.params}')
+        print(f'workflow_inputs: {workflow_inputs}')
+        print(f'resolved_inputs: {resolved_inputs}')
         workflow_outputs = {(shortname(output.outputSource, True), output.type)
                             for output in self.cwl.outputs}
 
         workflow_steps = [self.parse_step(step) for step in self.cwl.steps]
+
+
+    def resolve_inputs(self, wf_inputs):
+        rv = {}
+        for k, v in wf_inputs.items():
+            types = {'int': int, 'float': float, 'string': str}
+            print(f'inputs k: {k}   v: {v}')
+            print(f'type(v):   {types[v]}')
+            print(f'params[{k}]: {self.params[k]}')
+            print(f'type(params[{k}]): {type(self.params[k])}')
+            if not isinstance(self.params[k], types[v]):
+                raise ValueError(f'Types of input/param do not match: {v}/{self.params[k]}')
+            rv[k] = self.params[k]
+        return rv
+
 
     def parse_step(self, step):
         """Parse a CWL step object.
@@ -107,3 +129,23 @@ class CwlParser:
                 raise ValueError(f'Invalid input job key: {str(k)}')
             if not (isinstance(v, str) or isinstance(v, int) or isinstance(v, float)):
                 raise ValueError(f'Invalid input job parameter type: {type(v)}')
+
+
+def parse_args(args=sys.argv[1:]):
+    """Parse arguments."""
+    parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
+
+    parser.add_argument("wf_file", type=str, help="CWL workflow file")
+    parser.add_argument("wf_inputs", type=str, help="Workflow job file")
+
+    return parser.parse_args(args)
+
+
+def main():
+    wf = CwlParser()
+    args = parse_args()
+    wf.parse_workflow(args.wf_file, args.wf_inputs)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
