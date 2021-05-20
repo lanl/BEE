@@ -5,8 +5,8 @@ of the abstract base class 'ContainerRuntimeDriver'.
 Default: 'CharliecloudDriver' class.
 """
 
-from beeflow.common.crt.crt_drivers import CharliecloudDriver
-from beeflow.common.crt.crt_drivers import SingularityDriver
+from beeflow.common.crt_drivers import CharliecloudDriver
+from beeflow.common.crt_drivers import SingularityDriver
 
 
 class ContainerRuntimeInterface:
@@ -23,13 +23,22 @@ class ContainerRuntimeInterface:
         """
         self._crt_driver = crt_driver()
 
-    def script_text(self, task):
+    def run_text(self, task):
         """Create text required to run the task using the container_runtime.
 
         :param task: instance of Task
         :rtype string
         """
-        return self._crt_driver.script_text(task)
+        return self._crt_driver.run_text(task)
+
+    def build_text(self, userconfig, task):
+        """Create text required to build a task environment.
+
+        :param task: instance of Task
+        :param userconfig: path to userconfig file
+        :rtype string
+        """
+        return self._crt_driver.build_text(userconfig, task)
 
     def image_exists(self, task):
         """Check to see if the required container image exists.

@@ -38,12 +38,12 @@ def create_workflow_hint_nodes(tx, hints):
     """
     hint_query = ("MATCH (w:Workflow) "
                   "CREATE (w)-[:HAS_HINT]->(h:Hint) "
-                  "SET h.class = $req_class "
+                  "SET h.class = $class_ "
                   "SET h.key = $key "
                   "SET h.value = $value")
 
     for hint in hints:
-        tx.run(hint_query, req_class=hint.req_class, key=hint.key, value=hint.value)
+        tx.run(hint_query, class_=hint.class_, key=hint.key, value=hint.value)
 
 
 def create_workflow_requirement_nodes(tx, requirements):
@@ -54,19 +54,17 @@ def create_workflow_requirement_nodes(tx, requirements):
     """
     req_query = ("MATCH (w:Workflow) "
                  "CREATE (w)-[:HAS_REQUIREMENT]->(r:Requirement) "
-                 "SET r.class = $req_class "
+                 "SET r.class = $class_ "
                  "SET r.key = $key "
                  "SET r.value = $value")
 
     for req in requirements:
-        tx.run(req_query, req_class=req.req_class, key=req.key, value=req.value)
+        tx.run(req_query, class_=req.class_, key=req.key, value=req.value)
 
 
-def create_task(tx, workflow, task):
+def create_task(tx, task):
     """Create a Task node in the Neo4j database.
 
-    :param workflow: the workflow to which the task belongs
-    :type workflow: Workflow
     :param task: the new task to create
     :type task: Task
     """
@@ -80,7 +78,7 @@ def create_task(tx, workflow, task):
                     "SET t.outputs = $outputs ")
 
     # Unpack requirements, hints dictionaries into flat list
-    tx.run(create_query, task_id=task.id, workflow_id=workflow.id, name=task.name,
+    tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
            command=task.command, subworkflow=task.subworkflow, inputs=list(task.inputs),
            outputs=list(task.outputs))
 
@@ -88,18 +86,33 @@ def create_task(tx, workflow, task):
 def create_task_hint_nodes(tx, task):
     """Create Hint nodes for a task.
 
-    :param task: the task whose hints to add to the workflow
+    :param task: the task whose hints to add to the graph
     :type task: Task
     """
     hint_query = ("MATCH (t:Task {task_id: $task_id}) "
                   "CREATE (t)-[:HAS_HINT]->(h:Hint) "
-                  "SET h.class = $req_class "
+                  "SET h.class = $class_ "
                   "SET h.key = $key "
                   "SET h.value = $value")
 
     for hint in task.hints:
-        tx.run(hint_query, task_id=task.id, req_class=hint.req_class, key=hint.key,
-               value=hint.value)
+        tx.run(hint_query, task_id=task.id, class_=hint.class_, key=hint.key, value=hint.value)
+
+
+def create_task_requirement_nodes(tx, task):
+    """Create Requirement nodes for a task.
+
+    :param task: the task whose requirements to add to the graph
+    :type task: Task
+    """
+    req_query = ("MATCH (t:Task {task_id: $task_id}) "
+                 "CREATE (t)-[:HAS_REQUIREMENT]->(h:Requirement) "
+                 "SET h.class = $class_ "
+                 "SET h.key = $key "
+                 "SET h.value = $value")
+
+    for req in task.requirements:
+        tx.run(req_query, task_id=task.id, class_=req.class_, key=req.key, value=req.value)
 
 
 def create_task_metadata_node(tx, task):
@@ -116,27 +129,25 @@ def create_task_metadata_node(tx, task):
     tx.run(metadata_query, task_id=task.id)
 
 
-def add_dependencies(tx, workflow, task):
+def add_dependencies(tx, task):
     """Create dependencies between tasks.
 
-    :param workflow: the workflow to which the task belongs
-    :type workflow: Workflow
     :param task: the workflow task
     :type task: Task
     """
-    begins_query = ("MATCH (s:Task {task_id: $task_id}), (w:Workflow {workflow_id: $workflow_id}) "
+    begins_query = ("MATCH (s:Task {task_id: $task_id}), (w:Workflow) "
                     "WHERE any(input IN s.inputs WHERE input IN w.inputs) "
                     "MERGE (s)-[:BEGINS]->(w)")
-    dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task {workflow_id: $workflow_id}) "
+    dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task) "
                         "WHERE any(input IN s.inputs WHERE input IN t.outputs) "
                         "MERGE (s)-[:DEPENDS]->(t) "
                         "WITH s "
-                        "MATCH (t:Task {workflow_id: $workflow_id}) "
+                        "MATCH (t:Task) "
                         "WHERE any(output IN s.outputs WHERE output IN t.inputs) "
                         "MERGE (t)-[:DEPENDS]->(s)")
 
-    tx.run(begins_query, task_id=task.id, workflow_id=workflow.id)
-    tx.run(dependency_query, task_id=task.id, workflow_id=workflow.id)
+    tx.run(begins_query, task_id=task.id)
+    tx.run(dependency_query, task_id=task.id)
 
 
 def get_task_by_id(tx, task_id):
@@ -161,6 +172,18 @@ def get_task_hints(tx, task_id):
     hints_query = "MATCH (:Task {task_id: $task_id})-[:HAS_HINT]->(h:Hint) RETURN h"
 
     return tx.run(hints_query, task_id=task_id)
+
+
+def get_task_requirements(tx, task_id):
+    """Get task requirements from the Neo4j database by the task's ID.
+
+    :param task_id: the task's ID
+    :type task_id: str
+    :rtype: BoltStatementResult
+    """
+    reqs_query = "MATCH (:Task {task_id: $task_id})-[:HAS_REQUIREMENT]->(r:Requirement) RETURN r"
+
+    return tx.run(reqs_query, task_id=task_id)
 
 
 def get_workflow_description(tx):
