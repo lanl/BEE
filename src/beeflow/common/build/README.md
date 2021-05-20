@@ -46,9 +46,11 @@ A few examples to use for testing:
 ### dockerPull
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.wf_data import BuildTask
-task = BuildTask(name='hi',command=['hi','hello'],
+from beeflow.common.wf_data import Task
+task = Task(name='hi',command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerPull':'git.lanl.gov:5050/qwofford/containerhub/lstopo'}},
+                 hints=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -56,8 +58,10 @@ a = CharliecloudBuildDriver(task)
 a.dockerPull()
 a.dockerPull('git.lanl.gov:5050/trandles/baseimages/centos:7')
 
-task = BuildTask(name='hi',command=['hi','hello'],
+task = Task(name='hi',command=['hi','hello'],
                  requirements={},
+                 hints=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -65,8 +69,11 @@ a = CharliecloudBuildDriver(task)
 a.dockerPull()
 a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
 
-task = BuildTask(name='hi',command=['hi','hello'],
+task = Task(name='hi',command=['hi','hello'],
                  subworkflow=None,
+                 hints=None,
+                 requirements=None,
+                 workflow_id=42,
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -77,10 +84,12 @@ a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=True)
 ### dockerFile
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.wf_data import BuildTask
-task = BuildTask(name='hi',command=['hi','hello'],
-                 requirements={'DockerRequirement':{'dockerFile':'FROM git.lanl.gov:5050/trandles/baseimages/centos:7\nCMD cat /etc/centos-release',
+from beeflow.common.wf_data import Task
+task = Task(name='hi',command=['hi','hello'],
+                 requirements={'DockerRequirement':{'dockerFile':'src/beeflow/data/dockerfiles/Dockerfile.builder_demo',
                                                     'dockerImageId':'my_fun_container:sillytag'}},
+                 hints=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -90,9 +99,11 @@ b.dockerFile()
 ### dockerImport
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.wf_data import BuildTask
-task = BuildTask(name='hi',command=['hi','hello'],
+from beeflow.common.wf_data import Task
+task = Task(name='hi',command=['hi','hello'],
                  requirements={},
+                 hints=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -106,16 +117,20 @@ a = CharliecloudBuildDriver(task)
 # When a "builder entry does exist in bee.conf
 # >>> Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
 # >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
-task = BuildTask(name='hi',command=['hi','hello'],
+task = Task(name='hi',command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
+                 hints=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.dockerImport()
 # >>> CompletedProcess(args='ch-tar2dir /usr/projects/beedev/neo4j-3-5-17-ch.tar.gz /var/tmp/qwofford/beeflow/', returncode=0, stdout=b'/var/tmp/qwofford/beeflow//neo4j-3-5-17-ch unpacked ok\n', stderr=b'replacing existing image /var/tmp/qwofford/beeflow//neo4j-3-5-17-ch\n')
-task = BuildTask(name='hi',command=['hi','hello'],
+task = Task(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
+                 requirements=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -126,9 +141,11 @@ a.dockerImport()
 ### dockerOutputDirectory
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.wf_data import BuildTask
-task = BuildTask(name='hi',command=['hi','hello'],
+from beeflow.common.wf_data import Task
+task = Task(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
+                 requirements=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -147,9 +164,11 @@ a.dockerOutputDirectory()
 ### dockerLoad
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.wf_data import BuildTask
-task = BuildTask(name='hi',command=['hi','hello'],
+from beeflow.common.wf_data import Task
+task = Task(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerLoad':'bogus path'}},
+                 requirements=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -158,8 +177,10 @@ a.dockerLoad()
 # >>> Charliecloud does not have the concept of a layered image tarball.
 # >>> Did you mean to use dockerImport?
 # >>> 0
-task = BuildTask(name='hi',command=['hi','hello'],
+task = Task(name='hi',command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerLoad':'bogus path'}},
+                 hints=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -173,9 +194,11 @@ a.dockerLoad()
 ### dockerImageId
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.wf_data import BuildTask
-task = BuildTask(name='hi',command=['hi','hello'],
+from beeflow.common.wf_data import Task
+task = Task(name='hi',command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImageId':'my_imageid'}},
+                 requirements=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
@@ -186,7 +209,10 @@ a.dockerImageId(param_imageid='another_imageid')
 # >>> 'another_imageid'
 a.dockerImageId()
 # >>> 'my_imageid'
-task = BuildTask(name='hi',command=['hi','hello'],
+task = Task(name='hi',command=['hi','hello'],
+                 hints=None,
+                 requirements=None,
+                 workflow_id=42,
                  subworkflow=None,
                  inputs={},
                  outputs={})
