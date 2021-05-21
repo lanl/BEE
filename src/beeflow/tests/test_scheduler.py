@@ -10,6 +10,8 @@ import beeflow.scheduler.task as task
 import beeflow.scheduler.resource_allocation as resource_allocation
 
 
+# TODO: Check scheduled jobs in the schedule_all() function.
+
 class TestFCFS:
     """Test the FCFS algorithm.
 
@@ -60,18 +62,18 @@ class TestFCFS:
         Test scheduling six tasks.
         """
         requirements1 = {'max_runtime': 3}
-        task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+        task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
                           requirements=requirements1)
-        task2 = task.Task(workflow_name='workflow-1', task_name='task-2',
+        task2 = task.Task(workflow_name='workflow-1', job_name='task-2',
                           requirements=requirements1)
         requirements2 = {'max_runtime': 4}
-        task3 = task.Task(workflow_name='workflow-1', task_name='task-3',
+        task3 = task.Task(workflow_name='workflow-1', job_name='task-3',
                           requirements=requirements2)
-        task4 = task.Task(workflow_name='workflow-1', task_name='task-4',
+        task4 = task.Task(workflow_name='workflow-1', job_name='task-4',
                           requirements=requirements2)
-        task5 = task.Task(workflow_name='workflow-1', task_name='task-5',
+        task5 = task.Task(workflow_name='workflow-1', job_name='task-5',
                           requirements=requirements2)
-        task6 = task.Task(workflow_name='workflow-1', task_name='task-6',
+        task6 = task.Task(workflow_name='workflow-1', job_name='task-6',
                           requirements=requirements2)
         resource = resource_allocation.Resource(id_='test-resource-1', nodes=4)
 
@@ -150,13 +152,13 @@ class TestBackfill:
         Test scheduling three tasks.
         """
         requirements = {'max_runtime': 1, 'nodes': 1}
-        task1 = task.Task(workflow_name='workflow-0', task_name='task-1',
+        task1 = task.Task(workflow_name='workflow-0', job_name='task-1',
                           requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 2}
-        task2 = task.Task(workflow_name='workflow-0', task_name='task-2',
+        task2 = task.Task(workflow_name='workflow-0', job_name='task-2',
                           requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 1}
-        task3 = task.Task(workflow_name='workflow-0', task_name='task-3',
+        task3 = task.Task(workflow_name='workflow-0', job_name='task-3',
                           requirements=requirements)
         resource = resource_allocation.Resource(id_='resource-0', nodes=2)
 
@@ -183,18 +185,18 @@ class TestBackfill:
         Test scheduling four tasks.
         """
         requirements = {'max_runtime': 2, 'nodes': 4}
-        task1 = task.Task(workflow_name='workflow-0', task_name='task-0',
+        task1 = task.Task(workflow_name='workflow-0', job_name='task-0',
                           requirements=requirements)
         requirements = {'max_runtime': 2, 'nodes': 8}
-        task2 = task.Task(workflow_name='workflow-0', task_name='task-1',
+        task2 = task.Task(workflow_name='workflow-0', job_name='task-1',
                           requirements=requirements)
         requirements = {'max_runtime': 3, 'nodes': 2}
         # This task should not be backfilled (too much time)
-        task3 = task.Task(workflow_name='workflow-0', task_name='task-2',
+        task3 = task.Task(workflow_name='workflow-0', job_name='task-2',
                           requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 2}
         # This task should be backfilled
-        task4 = task.Task(workflow_name='workflow-0', task_name='task-3',
+        task4 = task.Task(workflow_name='workflow-0', job_name='task-3',
                           requirements=requirements)
         resource1 = resource_allocation.Resource(id_='resource-0', nodes=2)
         resource2 = resource_allocation.Resource(id_='resource-1', nodes=2)
@@ -227,19 +229,19 @@ class TestBackfill:
         Test scheduling six tasks.
         """
         requirements = {'max_runtime': 1, 'nodes': 1}
-        task1 = task.Task(workflow_name='workflow-0', task_name='task-1',
+        task1 = task.Task(workflow_name='workflow-0', job_name='task-1',
                           requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 4}
-        task2 = task.Task(workflow_name='workflow-0', task_name='task-2',
+        task2 = task.Task(workflow_name='workflow-0', job_name='task-2',
                           requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 1}
-        task3 = task.Task(workflow_name='workflow-0', task_name='task-3',
+        task3 = task.Task(workflow_name='workflow-0', job_name='task-3',
                           requirements=requirements)
-        task4 = task.Task(workflow_name='workflow-0', task_name='task-4',
+        task4 = task.Task(workflow_name='workflow-0', job_name='task-4',
                           requirements=requirements)
-        task5 = task.Task(workflow_name='workflow-0', task_name='task-5',
+        task5 = task.Task(workflow_name='workflow-0', job_name='task-5',
                           requirements=requirements)
-        task6 = task.Task(workflow_name='workflow-0', task_name='task-6',
+        task6 = task.Task(workflow_name='workflow-0', job_name='task-6',
                           requirements=requirements)
         resource = resource_allocation.Resource(id_='resource-0', nodes=4)
 
@@ -293,9 +295,9 @@ class TestSJF:
         """
         # schedule_two_tasks(algorithms.SJF)
         requirements = {'max_runtime': 3}
-        task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+        task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
                           requirements=requirements)
-        task2 = task.Task(workflow_name='workflow-1', task_name='task-2',
+        task2 = task.Task(workflow_name='workflow-1', job_name='task-2',
                           requirements=requirements)
         resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
@@ -345,7 +347,7 @@ def schedule_one_task(algorithm):
     Test scheduling one task.
     """
     requirements = {'max_runtime': 3}
-    task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+    task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
                       requirements=requirements)
     resource = resource_allocation.Resource(id_='test-resource-1', nodes=4)
 
@@ -362,9 +364,9 @@ def schedule_two_tasks(algorithm):
     Test scheduling two tasks.
     """
     requirements = {'max_runtime': 3}
-    task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+    task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
                       requirements=requirements)
-    task2 = task.Task(workflow_name='workflow-1', task_name='task-2',
+    task2 = task.Task(workflow_name='workflow-1', job_name='task-2',
                       requirements=requirements)
     resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
@@ -384,7 +386,7 @@ def schedule_task_fail(algorithm):
     Test scheduling a task with more resources required than available.
     """
     requirements = {'max_runtime': 3, 'nodes': 10}
-    task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
+    task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
                       requirements=requirements)
     resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
@@ -401,7 +403,7 @@ def schedule_task_gpus_req(algorithm):
         'nodes': 10,
         'gpus_per_node': 4,
     }
-    task1 = task.Task(workflow_name='test-workflow', task_name='task-1',
+    task1 = task.Task(workflow_name='test-workflow', job_name='task-1',
                       requirements=requirements)
     resource1 = resource_allocation.Resource(id_='test-resource-1', nodes=20,
                                              gpus_per_node=0)
@@ -423,7 +425,7 @@ def schedule_task_gpus_req_fail(algorithm):
         'nodes': 10,
         'gpus_per_node': 10,
     }
-    task1 = task.Task(workflow_name='test-workflow', task_name='task-1',
+    task1 = task.Task(workflow_name='test-workflow', job_name='task-1',
                       requirements=requirements)
     resource1 = resource_allocation.Resource(id_='test-resource-1', nodes=20,
                                              gpus_per_node=0)

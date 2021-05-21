@@ -15,7 +15,7 @@ def test_workflow2vec_one_task():
 
     Test workflow2vec() with one task.
     """
-    tasks = [task.Task(workflow_name='workflow-1', task_name='task-1',
+    tasks = [task.Task(workflow_name='workflow-1', job_name='task-1',
              requirements={'cost': 3.0, 'max_runtime': 2})]
 
     vec = mars_util.workflow2vec(tasks[0], tasks)
@@ -33,11 +33,11 @@ def test_workflow2vec_three_tasks():
     Test workflow2vec() with three tasks.
     """
     tasks = [
-        task.Task(workflow_name='workflow-1', task_name='task-1',
+        task.Task(workflow_name='workflow-1', job_name='task-1',
                   requirements={'cost': 3.0, 'max_runtime': 4}),
-        task.Task(workflow_name='workflow-1', task_name='task-2',
+        task.Task(workflow_name='workflow-1', job_name='task-2',
                   requirements={'cost': 44.0, 'max_runtime': 1}),
-        task.Task(workflow_name='workflow-1', task_name='task-3',
+        task.Task(workflow_name='workflow-1', job_name='task-3',
                   requirements={'cost': -10.0, 'max_runtime': 55})
     ]
 
@@ -77,7 +77,7 @@ def test_model_default():
 #
 #    Test build_availability_list() with one task and no resources.
 #    """
-#    tasks = [sched_types.Task(workflow_name='workflow-1', task_name='task-1',
+#    tasks = [sched_types.Task(workflow_name='workflow-1', job_name='task-1',
 #                              requirements={'cost': 33.0, 'max_runtime': 44})]
 #
 #    assert mars.build_availability_list(tasks, tasks[0], []) == []

@@ -15,22 +15,22 @@ class Task(serializable.Serializable):
     the best allocation.
     """
 
-    def __init__(self, workflow_name, task_name, requirements=None,
+    def __init__(self, workflow_name, job_name, requirements=None,
                  allocations=None):
         """Task constructor.
 
         Create a new Task with given parameters.
         :param workflow_name: name of the workflow
         :type workflow_name: str
-        :param task_name: name of the task
-        :type task_name: str
+        :param job_name: name of the task
+        :type job_name: str
         :param requirements: requirements dict
         :type requirements: dict of requirements
         :param allocations: list of current allocations
         :type allocations: list of instance of Allocation
         """
         self.workflow_name = workflow_name
-        self.task_name = task_name
+        self.job_name = job_name
         self.requirements = (
             resource_allocation.Requirements.decode(requirements)
             if requirements is not None else {}

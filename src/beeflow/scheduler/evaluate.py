@@ -81,7 +81,7 @@ def read_logfile(logfile):
             req_mem = int(split[9])
             tasks.append({
                 'workflow_name': logfile,
-                'task_name': task_id,
+                'job_name': task_id,
                 'requirements': {
                     'max_runtime': runtime,
                     'nodes': procs,

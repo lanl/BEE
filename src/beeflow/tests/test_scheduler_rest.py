@@ -93,7 +93,7 @@ def test_schedule_job_no_resources(scheduler):
     workflow_name = 'test-workflow'
     task1 = {
         'workflow_name': workflow_name,
-        'task_name': 'test-task',
+        'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
         },
@@ -104,7 +104,7 @@ def test_schedule_job_no_resources(scheduler):
     data = r.json()
     assert len(data) == 1
     assert data[0]['workflow_name'] == workflow_name
-    assert data[0]['task_name'] == 'test-task'
+    assert data[0]['job_name'] == 'test-task'
     assert data[0]['requirements']['max_runtime'] == 1
     assert data[0]['allocations'] == []
 
@@ -131,7 +131,7 @@ def test_schedule_job_one_resource(scheduler):
     workflow_name = 'test-workflow'
     task1 = {
         'workflow_name': 'test-workflow',
-        'task_name': 'test-task',
+        'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
         },
@@ -142,7 +142,7 @@ def test_schedule_job_one_resource(scheduler):
     data = r.json()
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['task_name'] == 'test-task'
+    assert data[0]['job_name'] == 'test-task'
     assert data[0]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) == 1
     assert data[0]['allocations'][0]['id_'] == 'resource-1'
@@ -177,7 +177,7 @@ def test_schedule_job_two_resources(scheduler):
     workflow_name = 'test-workflow'
     task1 = {
         'workflow_name': 'test-workflow',
-        'task_name': 'test-task',
+        'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
         },
@@ -188,7 +188,7 @@ def test_schedule_job_two_resources(scheduler):
     data = r.json() 
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['task_name'] == 'test-task'
+    assert data[0]['job_name'] == 'test-task'
     assert data[0]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) > 0
 
@@ -219,21 +219,21 @@ def test_schedule_multi_job_two_resources(scheduler):
     workflow_name = 'test-workflow'
     task1 = {
         'workflow_name': 'test-workflow',
-        'task_name': 'test-task-0',
+        'job_name': 'test-task-0',
         'requirements': {
             'max_runtime': 1,
         },
     }
     task2 = {
         'workflow_name': 'test-workflow',
-        'task_name': 'test-task-1',
+        'job_name': 'test-task-1',
         'requirements': {
             'max_runtime': 1,
         },
     }
     task3 = {
         'workflow_name': 'test-workflow',
-        'task_name': 'test-task-2',
+        'job_name': 'test-task-2',
         'requirements': {
             'max_runtime': 4,
             'nodes': 16,
@@ -246,19 +246,19 @@ def test_schedule_multi_job_two_resources(scheduler):
     data = r.json()
     assert len(data) == 3
     assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['task_name'] == 'test-task-0'
+    assert data[0]['job_name'] == 'test-task-0'
     assert data[0]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) > 0
     # Ensure proper scheduled time
     assert data[0]['allocations'][0]['start_time'] < 6
     assert data[1]['workflow_name'] == 'test-workflow'
-    assert data[1]['task_name'] == 'test-task-1'
+    assert data[1]['job_name'] == 'test-task-1'
     assert data[1]['requirements']['max_runtime'] == 1
     assert len(data[1]['allocations']) > 0
     # Ensure proper scheduled time
     assert data[1]['allocations'][0]['start_time'] < 6
     assert data[2]['workflow_name'] == 'test-workflow'
-    assert data[2]['task_name'] == 'test-task-2'
+    assert data[2]['job_name'] == 'test-task-2'
     assert data[2]['requirements']['max_runtime'] == 4
     assert data[2]['requirements']['nodes'] == 16
     assert len(data[2]['allocations']) > 0
@@ -290,7 +290,7 @@ def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
     workflow_name = 'test-workflow'
     task1 = {
         'workflow_name': 'test-workflow',
-        'task_name': 'test-task',
+        'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
         },
@@ -301,7 +301,7 @@ def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
     data = r.json()
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['task_name'] == 'test-task'
+    assert data[0]['job_name'] == 'test-task'
     assert data[0]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) == 1
     assert data[0]['allocations'][0]['id_'] == 'resource-1'
@@ -333,7 +333,7 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
     workflow_name = 'test-workflow'
     task1 = {
         'workflow_name': 'test-workflow',
-        'task_name': 'test-task',
+        'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
             'nodes': 1,
@@ -341,7 +341,7 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
     }
     task2 = {
         'workflow_name': 'test-workflow',
-        'task_name': 'test-task-2',
+        'job_name': 'test-task-2',
         'requirements': {
             'max_runtime': 1,
             'nodes': 1,
@@ -354,7 +354,7 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
     assert len(data) == 2
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[1]['workflow_name'] == 'test-workflow'
-    assert data[0]['task_name'] != data[1]['task_name']
+    assert data[0]['job_name'] != data[1]['job_name']
     assert data[0]['requirements']['max_runtime'] == 1
     assert data[1]['requirements']['max_runtime'] == 1
     assert len(data[0]['allocations']) > 0
@@ -400,7 +400,7 @@ def test_mars_timing(scheduler_mars):
     tasks = [
         {
             "workflow_name": "workflow",
-            "task_name": "0",
+            "job_name": "0",
             "requirements": {
                 "max_runtime": 1,
                 "nodes": 1,
@@ -408,7 +408,7 @@ def test_mars_timing(scheduler_mars):
         },
         {
             "workflow_name": "workflow",
-            "task_name": "1",
+            "job_name": "1",
             "requirements": {
                 "max_runtime": 1,
                 "nodes": 1,

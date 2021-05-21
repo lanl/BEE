@@ -58,6 +58,7 @@ class WorkflowJobHandler(Resource):
 
         Schedules a new list of independent tasks with available resources.
         """
+        # TODO: Allow for updating job states
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
