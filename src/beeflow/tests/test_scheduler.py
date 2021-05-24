@@ -1,6 +1,6 @@
 """BEE Scheduler tests.
 
-Tests of the BEE Scheduler module.
+Unit tests for the BEE Scheduler.
 """
 
 import time
@@ -11,57 +11,41 @@ import beeflow.scheduler.resource_allocation as resource_allocation
 
 
 # TODO: Check scheduled jobs in the schedule_all() function.
+# TODO: Add test cases for workflow dependencies
+# TODO: Add tests cases for job state changes
 
 class TestFCFS:
-    """Test the FCFS algorithm.
-
-    Test the FCFS algorithm.
-    """
+    """Test the FCFS algorithm."""
     @staticmethod
     def test_schedule_one_task():
-        """Test scheduling one task.
-
-        Test scheduling one task.
-        """
+        """Test scheduling one task."""
         schedule_one_task(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_two_tasks():
-        """Test scheduling two tasks.
-
-        Test scheduling two tasks.
-        """
+        """Test scheduling two tasks."""
         schedule_two_tasks(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_task_fail():
-        """Test scheduling a task with more resources required than available.
-
-        Test scheduling a task with more resources required than available.
-        """
+        """Test scheduling a task with more resources required than available."""
         schedule_task_fail(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_task_gpus_req():
-        """Test scheduling a task with a gpus requirement.
-
-        """
+        """Test scheduling a task with a gpus requirement."""
         schedule_task_gpus_req(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_task_gpus_req_fail():
-        """Test scheduling a task with a gpus requirement that should fail.
-
-        """
+        """Test scheduling a task with a gpus requirement that should fail."""
         schedule_task_gpus_req_fail(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_six_tasks():
-        """Test scheduling six tasks.
-
-        Test scheduling six tasks.
-        """
+        """Test scheduling six tasks."""
         requirements1 = {'max_runtime': 3}
+        workflow_name = 'workflow-1'
         task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
                           requirements=requirements1)
         task2 = task.Task(workflow_name='workflow-1', job_name='task-2',
@@ -78,7 +62,25 @@ class TestFCFS:
         resource = resource_allocation.Resource(id_='test-resource-1', nodes=4)
 
         tasks = [task1, task2, task3, task4, task5, task6]
-        algorithms.FCFS().schedule_all(tasks, [resource])
+        schedule = algorithms.FCFS().schedule_all(tasks, [resource])
+
+        for task in [task1, task2, task3, task4]:
+            alloc = schedule[workflow_name][task.job_name]
+            assert alloc['after'] == {}
+            # assert alloc['resources'][0].id_ == 'test-resource-1'
+            assert resource.id_ in alloc['allocations']
+            assert alloc['allocations'][resource.id_].nodes == 1
+            # assert alloc['nodes'] == 1
+        after = {
+            workflow_name: [task.job_name for task in [task1, task2, task3, task4]],
+        }
+        for task in [task5, task6]:
+            alloc = schedule[workflow_name][task.job_name]
+            assert alloc['after'] == after
+            assert alloc['nodes'] == 1
+        """
+        schedule[workflow_name][task1.job_name]['resources'][0].id_ == 'test-resource-1'
+        schedule[workflow_name][task1.job_name][0].after == []
 
         assert task1.allocations[0].id_ == 'test-resource-1'
         assert task1.allocations[0].start_time == 0
@@ -99,59 +101,42 @@ class TestFCFS:
         assert task6.allocations[0].id_ == 'test-resource-1'
         assert task6.allocations[0].start_time == t
         assert task6.allocations[0].nodes == 1
+"""
 
 
 class TestBackfill:
-    """Test the Backfill algorithm.
-
-    Test the Backfill algorithm.
-    """
+    """Test the Backfill algorithm."""
 
     @staticmethod
     def test_schedule_one_task():
-        """Test scheduling one task.
-
-        Test scheduling one task.
-        """
+        """Test scheduling one task."""
         schedule_one_task(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_two_tasks():
-        """Test scheduling two tasks.
-
-        Test scheduling two tasks.
-        """
+        """Test scheduling two tasks."""
         schedule_two_tasks(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_task_fail():
-        """Test scheduling a task with more resources required than available.
-
-        Test scheduling a task with more resources required than available.
-        """
+        """Test scheduling a task with more resources required than available."""
         schedule_task_fail(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_task_gpus_req():
-        """Test scheduling a task with a gpus requirement.
-
-        """
+        """Test scheduling a task with a gpus requirement."""
         schedule_task_gpus_req(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_task_gpus_req_fail():
-        """Test scheduling a task with a gpus requirement that should fail.
-
-        """
+        """Test scheduling a task with a gpus requirement that should fail."""
         schedule_task_gpus_req_fail(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_three_tasks():
-        """Test scheduling three tasks.
-
-        Test scheduling three tasks.
-        """
+        """Test scheduling three tasks."""
         requirements = {'max_runtime': 1, 'nodes': 1}
+        workflow_name = 'workflow-0'
         task1 = task.Task(workflow_name='workflow-0', job_name='task-1',
                           requirements=requirements)
         requirements = {'max_runtime': 1, 'nodes': 2}
@@ -163,8 +148,26 @@ class TestBackfill:
         resource = resource_allocation.Resource(id_='resource-0', nodes=2)
 
         tasks = [task1, task2, task3]
-        algorithms.Backfill().schedule_all(tasks, [resource])
+        schedule = algorithms.Backfill().schedule_all(tasks, [resource])
 
+        # Task 1
+        alloc = schedule[workflow_name][task1.job_name]
+        assert not alloc['after']
+        assert 'resource-0' in alloc['allocations']
+        assert alloc['allocations']['resource-0'].nodes == 1
+        #assert alloc['resources'][0].id_ == 'resource-0'
+        #assert alloc['resources'][]
+        # Task 2
+        alloc = schedule[workflow_name][task2.job_name]
+        assert all(task.job_name in alloc['after'][workflow_name] for task in [task1, task3])
+        assert 'resource-0' in alloc['allocations']
+        assert alloc['allocations']['resource-0'].nodes == 2
+        # Task 3 (should have been backfilled)
+        alloc = schedule[workflow_name][task3.job_name]
+        assert not alloc['after']
+        assert 'resource-0' in alloc['allocations']
+        assert alloc['allocations']['resource-0'].nodes == 1
+        """
         assert task1.allocations[0].id_ == 'resource-0'
         assert task1.allocations[0].nodes == 1
         assert task1.allocations[0].start_time == 0
@@ -177,13 +180,11 @@ class TestBackfill:
         assert task3.allocations[0].id_ == 'resource-0'
         assert task3.allocations[0].nodes == 1
         assert task3.allocations[0].start_time == 0
+"""
 
     @staticmethod
     def test_schedule_four_tasks():
-        """Test scheduling four tasks.
-
-        Test scheduling four tasks.
-        """
+        """Test scheduling four tasks."""
         requirements = {'max_runtime': 2, 'nodes': 4}
         task1 = task.Task(workflow_name='workflow-0', job_name='task-0',
                           requirements=requirements)
@@ -205,8 +206,26 @@ class TestBackfill:
 
         tasks = [task1, task2, task3, task4]
         resources = [resource1, resource2, resource3, resource4]
-        algorithms.Backfill().schedule_all(tasks, resources)
+        schedule = algorithms.Backfill().schedule_all(tasks, resources)
 
+        # Task 1
+        alloc = schedule[workflow_name][task1.job_name]
+        assert len(alloc['allocations']) == 2
+        assert not alloc['after']
+        # Task 2
+        alloc = schedule[workflow_name][task2.job_name]
+        assert len(alloc['allocations']) == 4
+        assert all(task.job_name in alloc['after'][workflow_name] for task in [task1, task4])
+        # Task 3 (should not have been backfilled)
+        alloc = schedule[workflow_name][task3.job_name]
+        assert len(alloc['allocations']) == 1
+        assert all(task.job_name in alloc['after'][workflow_name]
+                   for task in [task1, task2, task4])
+        # Task 4 (should have been backfilled)
+        alloc = schedule[workflow_name][task4.job_name]
+        assert len(alloc['allocations']) == 1
+        assert not alloc['after']
+        """
         assert len(task1.allocations) == 2
         assert all(a.start_time == 0 for a in task1.allocations)
         assert len(task2.allocations) == 4
@@ -221,13 +240,11 @@ class TestBackfill:
         # task4 should have been backfilled
         assert len(task4.allocations) == 1
         assert task4.allocations[0].start_time == 0
+"""
 
     @staticmethod
     def test_schedule_six_tasks():
-        """Test scheduling six tasks.
-
-        Test scheduling six tasks.
-        """
+        """Test scheduling six tasks."""
         requirements = {'max_runtime': 1, 'nodes': 1}
         task1 = task.Task(workflow_name='workflow-0', job_name='task-1',
                           requirements=requirements)
@@ -246,8 +263,31 @@ class TestBackfill:
         resource = resource_allocation.Resource(id_='resource-0', nodes=4)
 
         tasks = [task1, task2, task3, task4, task5, task6]
-        algorithms.Backfill().schedule_all(tasks, [resource])
+        schedule = algorithms.Backfill().schedule_all(tasks, [resource])
 
+        # Task 1
+        alloc = schedule[task1.workflow_name][task1.job_name]
+        assert resource.id_ in alloc['allocations']
+        assert alloc['allocations'][resource.id_].nodes == task1.requirements.nodes
+        assert not alloc['after']
+        # Task 2
+        alloc = schedule[task2.workflow_name][task2.job_name]
+        assert resource.id_ in alloc['allocations']
+        assert alloc['allocations'][resource.id_].nodes == task2.requirements.nodes
+        assert all(task.job_name in alloc['after'][task.workflow_name]
+                   for task in [task1, task3, task4, task5])
+        # Tasks 3-5 should have been backfilled before task 2
+        for task in [task3, task4, task5]:
+            alloc = schedule[task.workflow_name][task.job_name]
+            assert resource.id_ in alloc['allocations']
+            assert alloc['allocations'][resource.id_].nodes == task.requirements.nodes
+            assert not alloc['after']
+        # Task 6 runs last
+        alloc = schedule[task6.workflow_name][task6.job_name]
+        assert resource.id_ in alloc['allocations']
+        assert alloc['allocations'][resource.id_].nodes == task.requirements.nodes
+        assert task2.job_name in alloc['after'][task2.workflow_name]
+        """
         assert task1.allocations[0].id_ == 'resource-0'
         assert task1.allocations[0].nodes == 1
         assert task1.allocations[0].start_time == 0
@@ -271,28 +311,20 @@ class TestBackfill:
         assert task6.allocations[0].nodes == 1
         t = task1.requirements.max_runtime + task2.requirements.max_runtime
         assert task6.allocations[0].start_time == t
+"""
 
 
 class TestSJF:
-    """Test SJF.
-
-    Test SJF.
-    """
+    """Test SJF."""
 
     @staticmethod
     def test_schedule_one_task():
-        """Test scheduling one task.
-
-        Test scheduling one task.
-        """
+        """Test scheduling one task."""
         schedule_one_task(algorithms.SJF)
 
     @staticmethod
     def test_schedule_two_tasks():
-        """Test scheduling two tasks.
-
-        Test scheduling two tasks.
-        """
+        """Test scheduling two tasks."""
         # schedule_two_tasks(algorithms.SJF)
         requirements = {'max_runtime': 3}
         task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
@@ -301,8 +333,16 @@ class TestSJF:
                           requirements=requirements)
         resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
-        algorithms.SJF().schedule_all([task1, task2], [resource])
+        schedule = algorithms.SJF().schedule_all([task1, task2], [resource])
 
+        # These can be allocated at the same time, since the resource has two
+        # nodes
+        for task in [task1, task2]:
+            alloc = schedule[task.workflow_name][task.job_name]
+            assert resource.id_ in alloc['allocations']
+            assert alloc['allocations'][resource.id_].nodes == task.requirements.nodes
+            assert not alloc['after']
+        """
         assert len(task1.allocations) == 1
         assert task1.allocations[0].id_ == 'test-resource-1'
         assert task1.allocations[0].nodes == 1
@@ -313,27 +353,21 @@ class TestSJF:
         # nodes
         assert (task1.allocations[0].start_time
                 == task2.allocations[0].start_time)
+"""
 
     @staticmethod
     def test_schedule_task_fail():
-        """Test scheduling a task with more resources required than available.
-
-        Test scheduling a task with more resources required than available.
-        """
+        """Test scheduling a task with more resources required than available."""
         schedule_task_fail(algorithms.SJF())
 
     @staticmethod
     def test_schedule_task_gpus_req():
-        """Test scheduling a task with a gpus requirement.
-
-        """
+        """Test scheduling a task with a gpus requirement."""
         schedule_task_gpus_req(algorithms.SJF())
 
     @staticmethod
     def test_schedule_task_gpus_req_fail():
-        """Test scheduling a task with a gpus requirement that should fail.
-
-        """
+        """Test scheduling a task with a gpus requirement that should fail."""
         schedule_task_gpus_req_fail(algorithms.SJF())
 
 
@@ -342,27 +376,26 @@ class TestSJF:
 #
 
 def schedule_one_task(algorithm):
-    """Test scheduling one task.
-
-    Test scheduling one task.
-    """
+    """Test scheduling one task."""
     requirements = {'max_runtime': 3}
     task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
                       requirements=requirements)
     resource = resource_allocation.Resource(id_='test-resource-1', nodes=4)
 
-    algorithm.schedule_all([task1], [resource])
+    schedule = algorithm.schedule_all([task1], [resource])
 
+    alloc = schedule[task1.workflow_name][task1.job_name]
+    assert resource.id_ in alloc['allocations']
+    assert alloc['allocations'][resource.id_].nodes == task1.requirements.nodes
+    """
     assert task1.allocations[0].id_ == 'test-resource-1'
     assert task1.allocations[0].start_time == 0
     assert task1.allocations[0].nodes == 1
+"""
 
 
 def schedule_two_tasks(algorithm):
-    """Test scheduling two tasks.
-
-    Test scheduling two tasks.
-    """
+    """Test scheduling two tasks."""
     requirements = {'max_runtime': 3}
     task1 = task.Task(workflow_name='workflow-1', job_name='task-1',
                       requirements=requirements)
@@ -370,14 +403,25 @@ def schedule_two_tasks(algorithm):
                       requirements=requirements)
     resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
-    algorithm.schedule_all([task1, task2], [resource])
+    schedule = algorithm.schedule_all([task1, task2], [resource])
 
+    for task in [task1, task2]:
+        alloc = schedule[task.workflow_name][task.job_name]
+        assert resource.id_ in alloc['allocations']
+        assert alloc['allocations'][resource.id_].nodes == task.nodes
+        # All tasks run at the same time
+        assert not alloc['after']
+    """
+    alloc = _get_alloc(schedule, task1)
+    assert resource.id_ in alloc['allocations']
+    assert alloc['allocations'][resource.id_].nodes == task1.nodes
     assert task1.allocations[0].id_ == 'test-resource-1'
     assert task1.allocations[0].nodes == 1
     assert task1.allocations[0].start_time == 0
     assert task2.allocations[0].id_ == 'test-resource-1'
     assert task2.allocations[0].nodes == 1
     assert task2.allocations[0].start_time == 0
+"""
 
 
 def schedule_task_fail(algorithm):
@@ -390,14 +434,19 @@ def schedule_task_fail(algorithm):
                       requirements=requirements)
     resource = resource_allocation.Resource(id_='test-resource-1', nodes=2)
 
-    assert algorithm.schedule_all([task1], [resource]) is None
+    schedule = algorithm.schedule_all([task1], [resource])
+
+    # No allocations should be available
+    alloc = schedule[task1.workflow_name][task1.job_name]
+    assert not alloc['allocations']
+    """
+    # assert algorithm.schedule_all([task1], [resource]) is None
     # No allocations available
     assert not task1.allocations
+"""
 
 def schedule_task_gpus_req(algorithm):
-    """Test scheduling a task with the gpus requirement.
-
-    """
+    """Test scheduling a task with the gpus requirement."""
     requirements = {
         'max_runtime': 10,
         'nodes': 10,
@@ -407,19 +456,25 @@ def schedule_task_gpus_req(algorithm):
                       requirements=requirements)
     resource1 = resource_allocation.Resource(id_='test-resource-1', nodes=20,
                                              gpus_per_node=0)
+    # I really doubt that any node would ever actually have 20 gpus
     resource2 = resource_allocation.Resource(id_='test-resource-2', nodes=20,
                                              gpus_per_node=20)
 
-    algorithm.schedule_all([task1], [resource1, resource2])
+    schedule = algorithm.schedule_all([task1], [resource1, resource2])
 
+    alloc = schedule[task1.workflow_name][task1.job_name]
+    assert resource2.id_ in alloc['allocations']
+    res_alloc = alloc['allocations'][resource2.id_]
+    assert res_alloc.nodes == task1.requirements.nodes
+    # TODO: res_alloc may need to contain information about how many GPUs were allocated
+    """
     assert task1.allocations[0].id_ == 'test-resource-2'
     assert task1.allocations[0].nodes == 10
     assert task1.allocations[0].start_time == 0
+"""
 
 def schedule_task_gpus_req_fail(algorithm):
-    """Test scheduling a task with the gpus requirement that should fail.
-
-    """
+    """Test scheduling a task with the gpus requirement that should fail."""
     requirements = {
         'max_runtime': 10,
         'nodes': 10,
@@ -430,6 +485,7 @@ def schedule_task_gpus_req_fail(algorithm):
     resource1 = resource_allocation.Resource(id_='test-resource-1', nodes=20,
                                              gpus_per_node=0)
 
-    algorithm.schedule_all([task1], [resource1])
+    schedule = algorithm.schedule_all([task1], [resource1])
 
-    assert not task1.allocations
+    alloc = schedule[task1.workflow_name][task1.job_name]
+    assert not alloc['allocations']
