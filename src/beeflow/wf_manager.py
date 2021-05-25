@@ -546,7 +546,7 @@ class JobUpdate(Resource):
                 metadata = jsonpickle.decode(data['metadata'])
                 wfi.set_task_metadata(task, metadata)
 
-        if job_state == "COMPLETED":
+        if job_state == "COMPLETED" or job_state == "FAILED":
             tasks = wfi.finalize_task(task)
             # TODO Replace this with Steven's pause task functions
             if WORKFLOW_PAUSED:
