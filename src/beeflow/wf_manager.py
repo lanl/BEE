@@ -155,6 +155,23 @@ def kill_process(pid):
     except OSError:
         log.info('Process already killed')
 
+def kill_gdb():
+    """Kill the current GDB process."""
+    # TODO TERRIBLE Kludge until we can figure out a better way to get the PID
+    user = getpass.getuser()
+    ps = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True, stdout=subprocess.PIPE)
+    if ps.stdout.decode() != '':
+        gdb_pid = int(ps.stdout.decode().split()[1])
+        kill_process(gdb_pid)
+
+def remove_gdb():
+    """Remove the current GDB bind mount directory"""
+    gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
+    if os.path.isdir(gdb_workdir):
+        time.sleep(2)
+        shutil.rmtree(gdb_workdir)
+        time.sleep(2)
+
 
 # Client registers with the workflow manager.
 # Workflow manager returns a workflow ID used for subsequent communication
@@ -208,7 +225,11 @@ class JobsList(Resource):
         job_name = data['wf_name'].read().decode()
 
         if cwl_file:
-            # Start the GDB 
+            # We have to bind mount a new GDB with charliecloud.
+            kill_gdb()
+            # Remove the old gdb
+            remove_gdb()
+            # Start a new GDB 
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
             script_path = get_script_path()
             subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir])
@@ -272,26 +293,17 @@ class JobsList(Resource):
             subprocess.run(['tar', '-xf', archive_path, '-C', tmp_path])
 
             # Kill existing GDB if needed
-            # TODO TERRIBLE Kludge until we can figure out a better way to get the PID
-            user = getpass.getuser()
-            ps = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True, stdout=subprocess.PIPE)
-            if ps.stdout.decode() != '':
-                gdb_pid = int(ps.stdout.decode().split()[1])
-                kill_process(gdb_pid)
+            kill_gdb()
 
-            # Copy GDB to gdb_workdir
+            ## Copy GDB to gdb_workdir
             archive_dir = filename.split('.')[0]
             gdb_path = os.path.join(tmp_path, archive_dir, 'gdb')
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
-            # need to use copy instead of remove because move doesn't play nicely with network FS
-            # I'm incredibly leery of ignore_errors but it seems to be the way to go
-            time.sleep(2)
-            shutil.rmtree(gdb_workdir)
-            time.sleep(2)
+
+            remove_gdb()
             shutil.copytree(gdb_path, gdb_workdir) 
 
              # Launch new container with bindmounted GDB
-
             script_path = get_script_path()
             subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'])
             time.sleep(10)
@@ -328,7 +340,7 @@ class JobsList(Resource):
         wf_id = data['wf_id'].read().decode()
         archive_path = os.path.join(bee_workdir, 'archives', wf_id + '.tgz')
         with open(archive_path, 'rb') as a:
-            archive_file = jsonpickle.encode(a.read())
+           archive_file = jsonpickle.encode(a.read())
         archive_filename = os.path.basename(archive_path)
         resp = make_response(jsonify(archive_file=archive_file, 
             archive_filename=archive_filename), 200)
@@ -376,8 +388,6 @@ def setup_scheduler():
 
     log.info(_resource('sched', "resources/"))
     resp = requests.put(_resource('sched', "resources"), json=resources)
-    #log.info(resp.json())
-
 
 # Used to tell if the workflow is currently paused
 # Will eventually be moved to a Workflow class
@@ -553,8 +563,7 @@ class JobUpdate(Resource):
                         workflows_dir = os.path.join(bee_workdir, 'workflows')
                         workflow_dir = os.path.join(workflows_dir, wf_id)
                         # Archive GDB
-                        save_path = os.path.join(workflow_dir, 'gdb')
-                        shutil.copytree(gdb_workdir, save_path)
+                        shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
                         # Archive Config
                         shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                                 workflow_dir + '/' + 'bee.conf')
