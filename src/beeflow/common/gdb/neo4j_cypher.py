@@ -1,15 +1,12 @@
 """Neo4j/Cypher transaction functions used by the Neo4jDriver class."""
 
 
-def constrain_workflow_unique(tx):
-    """Constrain workflows and tasks to have unique IDs."""
+def constrain_tasks_unique(tx):
+    """Constrain tasks to have unique names."""
     unique_task_query = ("CREATE CONSTRAINT ON (t:Task) "
-                         "ASSERT t.task_id IS UNIQUE")
-    unique_workflow_query = ("CREATE CONSTRAINT ON (w:Workflow) "
-                             "ASSERT w.workflow_id IS UNIQUE")
+                         "ASSERT t.name IS UNIQUE")
 
     tx.run(unique_task_query)
-    tx.run(unique_workflow_query)
 
 
 def create_workflow_node(tx, workflow):

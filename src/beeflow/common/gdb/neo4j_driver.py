@@ -277,7 +277,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def _require_tasks_unique(self):
         """Require tasks to have unique names."""
-        self._write_transaction(tx.constrain_workflow_unique)
+        self._write_transaction(tx.constrain_tasks_unique)
 
     def _read_transaction(self, tx_fun, **kwargs):
         """Run a Neo4j read transaction.
