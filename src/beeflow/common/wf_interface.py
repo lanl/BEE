@@ -22,6 +22,8 @@ class WorkflowInterface:
         self._gdb_interface = GraphDatabaseInterface()
         # In the future we may need to grab the details from a config file
         self._gdb_details = kwargs
+        # Store the Workflow ID in the interface to assign it to new task objects
+        self._workflow_id = None
 
     def initialize_workflow(self, inputs, outputs, requirements=None, hints=None, existing=False):
         """Begin construction of a BEE workflow.
@@ -42,13 +44,12 @@ class WorkflowInterface:
 
         # Connect to the graph database
         self._gdb_interface.connect(**self._gdb_details)
+        workflow = Workflow(hints, requirements, inputs, outputs)
+        self._workflow_id = workflow.id
+        # Load the new workflow into the graph database
+        self._gdb_interface.initialize_workflow(workflow)
+        return workflow
 
-        if not existing:
-            workflow = Workflow(hints, requirements, inputs, outputs)
-            # Load the new workflow into the graph database
-            self._gdb_interface.initialize_workflow(workflow)
-            return workflow
-        return
     def execute_workflow(self):
         """Begin execution of a BEE workflow."""
         self._gdb_interface.execute_workflow()
@@ -70,45 +71,45 @@ class WorkflowInterface:
         self._gdb_interface.cleanup()
 
     @staticmethod
-    def create_requirement(req_class, key, value):
+    def create_requirement(class_, key, value):
         """Create a workflow requirement.
 
-        :param req_class: the requirement class
-        :type req_class: str
+        :param class_: the requirement class
+        :type class_: str
         :param key: the requirement key
         :type key: str
         :param value: the requirement value
         :type value: str, bool, or int
         :rtype: Requirement
         """
-        return Requirement(req_class, key, value)
+        return Requirement(class_, key, value)
 
     @staticmethod
-    def create_hint(req_class, key, value):
+    def create_hint(class_, key, value):
         """Create a workflow hint.
 
-        :param req_class: the requirement class
-        :type req_class: str
+        :param class_: the requirement class
+        :type class_: str
         :param key: the requirement key
         :type key: str
         :param value: the requirement value
         :type value: str, bool, or int
         :rtype: Hint
         """
-        return Hint(req_class, key, value)
+        return Hint(class_, key, value)
 
-    def add_task(self, workflow, name, command=None, hints=None, subworkflow=None, inputs=None,
-                 outputs=None):
+    def add_task(self, name, command=None, requirements=None, hints=None, subworkflow=None,
+                 inputs=None, outputs=None):
         """Add a new task to a BEE workflow.
 
-        :param workflow: the workflow to which to assign the task
-        :type workflow: Workflow
         :param name: the name given to the task
         :type name: str
         :param command: the command for the task
         :type command: list of str
+        :param requirements: the task-specific requirements
+        :type requirements: set of Requirement, or None
         :param hints: the task-specific hints (optional requirements)
-        :type hints: set of Requirement, or None
+        :type hints: set of Hint, or None
         :param subworkflow: an identifier for the subworkflow to which the task belongs
         :type subworkflow: str, or None
         :param inputs: the task inputs
@@ -120,6 +121,8 @@ class WorkflowInterface:
         # Immutable default arguments
         if command is None:
             command = []
+        if requirements is None:
+            requirements = set()
         if hints is None:
             hints = set()
         if inputs is None:
@@ -127,9 +130,10 @@ class WorkflowInterface:
         if outputs is None:
             outputs = set()
 
-        task = Task(name, command, hints, subworkflow, inputs, outputs, workflow.id)
+        task = Task(name, command, hints, requirements, subworkflow, inputs, outputs,
+                    self._workflow_id)
         # Load the new task into the graph database
-        self._gdb_interface.load_task(workflow, task)
+        self._gdb_interface.load_task(task)
         return task
 
     def initialize_ready_tasks(self):

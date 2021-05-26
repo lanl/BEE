@@ -142,6 +142,7 @@ def validate_wf_id(func):
     return wrapper
 
 def process_running(pid):
+    """Check if the process with pid is running"""
     try:
         os.kill(pid, 0)
     except OSError:
@@ -150,6 +151,7 @@ def process_running(pid):
         return True
 
 def kill_process(pid):
+    """Kill the process with pid"""
     try:
         os.kill(pid, signal.SIGTERM)
     except OSError:
@@ -232,7 +234,7 @@ class JobsList(Resource):
             # Start a new GDB 
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
             script_path = get_script_path()
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir])
+            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # Need to wait a moment for the GDB
             time.sleep(10)
 
@@ -388,6 +390,7 @@ def setup_scheduler():
 
     log.info(_resource('sched', "resources/"))
     resp = requests.put(_resource('sched', "resources"), json=resources)
+
 
 # Used to tell if the workflow is currently paused
 # Will eventually be moved to a Workflow class

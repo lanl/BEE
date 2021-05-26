@@ -69,15 +69,13 @@ class GraphDatabaseInterface:
         """
         self._connection.reset_workflow(new_id)
 
-    def load_task(self, workflow, task):
+    def load_task(self, task):
         """Load a task into a workflow in the graph database.
 
-        :param workflow: the workflow
-        :type workflow: Workflow
         :param task: the task
         :type task: Task
         """
-        self._connection.load_task(workflow, task)
+        self._connection.load_task(task)
 
     def initialize_ready_tasks(self):
         """Mark runnable tasks in a workflow to ready."""
