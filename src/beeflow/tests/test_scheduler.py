@@ -489,3 +489,27 @@ def schedule_task_gpus_req_fail(algorithm):
 
     alloc = schedule[task1.workflow_name][task1.job_name]
     assert not alloc['allocations']
+
+
+#
+# Test runtime estimation
+#
+
+import beeflow.scheduler.runtime_estimator as runtime_estimator
+
+
+def test_runtime_estimator_interface():
+    """Test runtime estimator interface."""
+    # TODO: Need other information like input data size
+    requirements = {
+        'nodes': 10,
+        'gpus_per_node': 10,
+    }
+    task = task.Task(workflow_name='test', job_name='test', requirements=requirements)
+
+    # The state stores task runtime information and useful estimate data
+    # (state will most likely correspond to Redis in the future)
+    state = {}
+    estimate = runtime_estimator.estimate(state, task)
+
+    assert estimate > 0 and estimate < 100

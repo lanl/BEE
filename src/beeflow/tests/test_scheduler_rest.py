@@ -82,6 +82,28 @@ def scheduler_mars():
         # Note: Should not use proc.kill() here with flask debug
         proc.terminate()
 
+
+def create_workflow(url, name, requirements):
+    """Create a workflow."""
+    workflow_data = {
+        'requirements': requirements,
+    }
+
+    r = requests.put(f'{url}/workflows/{name}', json=workflow_data)
+
+    assert r.ok
+    return r.json()
+
+
+def test_scheduler_create_workflow(scheduler):
+    """Test creating a new workflow."""
+    url = scheduler
+
+    data = create_workflow(url, 'test-workflow', {})
+
+    assert data['workflow_name'] == 'test-workflow'
+
+
 def test_schedule_job_no_resources(scheduler):
     """Test scheduling a job with no resources.
 
@@ -91,6 +113,7 @@ def test_schedule_job_no_resources(scheduler):
     """
     url = scheduler
     workflow_name = 'test-workflow'
+    create_workflow(url, workflow_name, {})
     task1 = {
         'workflow_name': workflow_name,
         'job_name': 'test-task',
@@ -129,6 +152,7 @@ def test_schedule_job_one_resource(scheduler):
     assert r.json() == 'created 1 resource(s)'
 
     workflow_name = 'test-workflow'
+    create_workflow(url, workflow_name, {})
     task1 = {
         'workflow_name': 'test-workflow',
         'job_name': 'test-task',
@@ -175,6 +199,7 @@ def test_schedule_job_two_resources(scheduler):
     assert r.json() == 'created 2 resource(s)'
 
     workflow_name = 'test-workflow'
+    create_workflow(url, workflow_name, {})
     task1 = {
         'workflow_name': 'test-workflow',
         'job_name': 'test-task',
@@ -217,6 +242,7 @@ def test_schedule_multi_job_two_resources(scheduler):
     assert r.json() == 'created 2 resource(s)'
 
     workflow_name = 'test-workflow'
+    create_workflow(url, workflow_name, {})
     task1 = {
         'workflow_name': 'test-workflow',
         'job_name': 'test-task-0',
@@ -288,6 +314,7 @@ def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
     assert r.json() == 'created 1 resource(s)'
 
     workflow_name = 'test-workflow'
+    create_workflow(url, workflow_name, {})
     task1 = {
         'workflow_name': 'test-workflow',
         'job_name': 'test-task',
@@ -331,6 +358,7 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
     assert r.json() == 'created 1 resource(s)'
 
     workflow_name = 'test-workflow'
+    create_workflow(url, workflow_name, {})
     task1 = {
         'workflow_name': 'test-workflow',
         'job_name': 'test-task',
@@ -397,6 +425,7 @@ def test_mars_timing(scheduler_mars):
     assert r.json() == 'created 4 resource(s)'
 
     workflow_name = 'workflow'
+    create_workflow(url, workflow_name, {})
     tasks = [
         {
             "workflow_name": "workflow",
