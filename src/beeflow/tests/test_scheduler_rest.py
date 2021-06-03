@@ -10,8 +10,8 @@ import pytest
 
 SCHEDULER_TEST_PORT = '5100'
 
+# TODO: Job dependency tests
 
-# @contextlib.contextmanager
 @pytest.fixture(scope='function')
 def scheduler():
     """Fixture code to setup a new scheduler per test function.
@@ -105,17 +105,12 @@ def test_scheduler_create_workflow(scheduler):
 
 
 def test_schedule_job_no_resources(scheduler):
-    """Test scheduling a job with no resources.
-
-    Test scheduling a job with no resources.
-    :param scheduler: url returned by scheduler fixture function
-    :type scheduler: str
-    """
+    """Test scheduling a job with no resources."""
     url = scheduler
     workflow_name = 'test-workflow'
     create_workflow(url, workflow_name, {})
     task1 = {
-        'workflow_name': workflow_name,
+        # 'workflow_name': workflow_name,
         'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
@@ -124,21 +119,15 @@ def test_schedule_job_no_resources(scheduler):
     r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
     assert r.ok
-    data = r.json()
-    assert len(data) == 1
-    assert data[0]['workflow_name'] == workflow_name
-    assert data[0]['job_name'] == 'test-task'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert data[0]['allocations'] == []
+    schedule = r.json()
+    assert len(schedule) == 1
+    alloc = schedule[task1['job_name']]
+    assert not alloc['allocations']
+    assert not alloc['after']
 
 
 def test_schedule_job_one_resource(scheduler):
-    """Test scheduling a job with one resource.
-
-    Test scheduling a job with one resource.
-    :param scheduler: url returned by scheduler fixture function
-    :type scheduler: str
-    """
+    """Test scheduling a job with one resource."""
     url = scheduler
     # with scheduler() as url:
     # Create a single resource
@@ -154,7 +143,7 @@ def test_schedule_job_one_resource(scheduler):
     workflow_name = 'test-workflow'
     create_workflow(url, workflow_name, {})
     task1 = {
-        'workflow_name': 'test-workflow',
+        # 'workflow_name': 'test-workflow',
         'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
@@ -163,25 +152,16 @@ def test_schedule_job_one_resource(scheduler):
     r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
     assert r.ok
-    data = r.json()
-    assert len(data) == 1
-    assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['job_name'] == 'test-task'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert len(data[0]['allocations']) == 1
-    assert data[0]['allocations'][0]['id_'] == 'resource-1'
-    assert data[0]['allocations'][0]['nodes'] == 1
-    assert data[0]['allocations'][0]['start_time'] == 0
-    assert data[0]['allocations'][0]['max_runtime'] == 1
+    schedule = r.json()
+    alloc = schedule[task1['job_name']]
+    assert len(alloc['allocations']) == 1
+    assert resource1['id_'] in alloc['allocations']
+    assert alloc['allocations'][resource1['id_']]['nodes'] == 1
+    assert not alloc['after']
 
 
 def test_schedule_job_two_resources(scheduler):
-    """Test scheduling a job with two resources.
-
-    Test scheduling a job with two resources.
-    :param scheduler: url returned by scheduler fixture function
-    :type scheduler: str
-    """
+    """Test scheduling a job with two resources."""
     url = scheduler
     # with scheduler() as url:
     # Create a single resource
@@ -201,7 +181,7 @@ def test_schedule_job_two_resources(scheduler):
     workflow_name = 'test-workflow'
     create_workflow(url, workflow_name, {})
     task1 = {
-        'workflow_name': 'test-workflow',
+        # 'workflow_name': 'test-workflow',
         'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
@@ -211,20 +191,13 @@ def test_schedule_job_two_resources(scheduler):
 
     assert r.ok
     data = r.json() 
-    assert len(data) == 1
-    assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['job_name'] == 'test-task'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert len(data[0]['allocations']) > 0
+    alloc = data[task1['job_name']]
+    assert len(alloc['allocations']) == 1
+    assert any(res['id_'] in alloc['allocations'] for res in (resource1, resource2))
 
 
 def test_schedule_multi_job_two_resources(scheduler):
-    """Test scheduling multiple jobs with two resources.
-
-    Test scheduling multiple jobs with two resources.
-    :param scheduler: url returned by scheduler fixture function
-    :type scheduler: str
-    """
+    """Test scheduling multiple jobs with two resources."""
     url = scheduler
     # with scheduler() as url:
     # Create a single resource
@@ -244,21 +217,18 @@ def test_schedule_multi_job_two_resources(scheduler):
     workflow_name = 'test-workflow'
     create_workflow(url, workflow_name, {})
     task1 = {
-        'workflow_name': 'test-workflow',
         'job_name': 'test-task-0',
         'requirements': {
             'max_runtime': 1,
         },
     }
     task2 = {
-        'workflow_name': 'test-workflow',
         'job_name': 'test-task-1',
         'requirements': {
             'max_runtime': 1,
         },
     }
     task3 = {
-        'workflow_name': 'test-workflow',
         'job_name': 'test-task-2',
         'requirements': {
             'max_runtime': 4,
@@ -270,26 +240,11 @@ def test_schedule_multi_job_two_resources(scheduler):
 
     assert r.ok
     data = r.json()
-    assert len(data) == 3
-    assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['job_name'] == 'test-task-0'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert len(data[0]['allocations']) > 0
-    # Ensure proper scheduled time
-    assert data[0]['allocations'][0]['start_time'] < 6
-    assert data[1]['workflow_name'] == 'test-workflow'
-    assert data[1]['job_name'] == 'test-task-1'
-    assert data[1]['requirements']['max_runtime'] == 1
-    assert len(data[1]['allocations']) > 0
-    # Ensure proper scheduled time
-    assert data[1]['allocations'][0]['start_time'] < 6
-    assert data[2]['workflow_name'] == 'test-workflow'
-    assert data[2]['job_name'] == 'test-task-2'
-    assert data[2]['requirements']['max_runtime'] == 4
-    assert data[2]['requirements']['nodes'] == 16
-    assert len(data[2]['allocations']) > 0
-    # Ensure proper scheduled time
-    assert data[2]['allocations'][0]['start_time'] < 6
+    for task in (task1, task2, task3):
+        alloc = data[task.job_name]
+        assert any(res['id_'] in alloc['allocations'] for res in (resource1, resource2))
+        # TODO: Check for proper dependencies
+        assert not alloc['after']
 
 
 def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
@@ -316,7 +271,6 @@ def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
     workflow_name = 'test-workflow'
     create_workflow(url, workflow_name, {})
     task1 = {
-        'workflow_name': 'test-workflow',
         'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
@@ -325,16 +279,11 @@ def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
     r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
     assert r.ok
-    data = r.json()
-    assert len(data) == 1
-    assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['job_name'] == 'test-task'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert len(data[0]['allocations']) == 1
-    assert data[0]['allocations'][0]['id_'] == 'resource-1'
-    assert data[0]['allocations'][0]['nodes'] == 1
-    assert data[0]['allocations'][0]['start_time'] == 0
-    assert data[0]['allocations'][0]['max_runtime'] == 1
+    schedule = r.json()
+    assert len(schedule) == 1
+    alloc = schedule[task1.job_name]
+    assert resource1['id_'] in alloc['allocations']
+    assert not alloc['after']
 
 
 def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
@@ -360,7 +309,6 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
     workflow_name = 'test-workflow'
     create_workflow(url, workflow_name, {})
     task1 = {
-        'workflow_name': 'test-workflow',
         'job_name': 'test-task',
         'requirements': {
             'max_runtime': 1,
@@ -368,7 +316,6 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
         },
     }
     task2 = {
-        'workflow_name': 'test-workflow',
         'job_name': 'test-task-2',
         'requirements': {
             'max_runtime': 1,
@@ -378,80 +325,14 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
     r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1, task2])
 
     assert r.ok
-    data = r.json()
-    assert len(data) == 2
-    assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[1]['workflow_name'] == 'test-workflow'
-    assert data[0]['job_name'] != data[1]['job_name']
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert data[1]['requirements']['max_runtime'] == 1
-    assert len(data[0]['allocations']) > 0
-    assert len(data[1]['allocations']) > 0
+    schedule = r.json()
+    assert len(schedule) == 2
     # Make sure that one task is scheduled after the other
-    assert (data[0]['allocations'][0]['start_time']
-            == (data[1]['allocations'][0]['start_time'] - 1)
-            or data[1]['allocations'][0]['start_time']
-            == (data[0]['allocations'][0]['start_time'] - 1))
+    assert (task2.job_name in schedule[task1.job_name]['after']
+            or task1.job_name in schedule[task2.job_name]['after'])
+    assert all(resource1['id_'] in schedule[task.job_name]['allocations']
+               for task in (task1, task2))
 
-
-def test_mars_timing(scheduler_mars):
-    """Test that the scheduler uses 0 based timing.
-
-    Test that the scheduler uses 0 based timing and not UNIX timestamp
-    scheduling.
-    """
-    url = scheduler_mars
-    resources = [
-        {
-            "id_": "0",
-            "nodes": 1,
-        },
-        {
-            "id_": "1",
-            "nodes": 1,
-        },
-        {
-            "id_": "2",
-            "nodes": 1,
-        },
-        {
-            "id_": "3",
-            "nodes": 1,
-        },
-    ]
-    r = requests.put(f'{url}/resources', json=resources)
-
-    assert r.ok
-    assert r.json() == 'created 4 resource(s)'
-
-    workflow_name = 'workflow'
-    create_workflow(url, workflow_name, {})
-    tasks = [
-        {
-            "workflow_name": "workflow",
-            "job_name": "0",
-            "requirements": {
-                "max_runtime": 1,
-                "nodes": 1,
-            }
-        },
-        {
-            "workflow_name": "workflow",
-            "job_name": "1",
-            "requirements": {
-                "max_runtime": 1,
-                "nodes": 1,
-            }
-        },
-    ]
-    r = requests.put(f'{url}/workflows/{workflow_name}/jobs',
-                     json=tasks)
-
-    assert r.ok
-    data = r.json()
-    # Ensure both start times are good (much less than time.time())
-    assert data[0]['allocations'][0]['start_time'] < (time.time() / 8)
-    assert data[1]['allocations'][0]['start_time'] < (time.time() / 8)
 
 # TODO: More job tests
 # TODO: More resource tests

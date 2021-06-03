@@ -13,7 +13,6 @@ import beeflow.scheduler.resource_allocation as resource_allocation
 # TODO: Check scheduled jobs in the schedule_all() function.
 # TODO: Add test cases for workflow dependencies
 # TODO: Add tests cases for job state changes
-
 class TestFCFS:
     """Test the FCFS algorithm."""
     @staticmethod
