@@ -402,10 +402,8 @@ api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<string:wf_id>')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
-checkthis
 
 if __name__ == '__main__':
-    print("HUH")
     # Setup the Scheduler
     setup_scheduler()
 
@@ -422,6 +420,6 @@ if __name__ == '__main__':
     # Flask logging
     # Putting this off for another issue so noqa to appease the lama
     flask_app.logger.addHandler(handler) #noqa
-    flask_app.run(debug=False, port=str(wfm_listen_port))
+    flask_app.run(debug=True, port=str(wfm_listen_port))
 
 # pylama:ignore=W0511
