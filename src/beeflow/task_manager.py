@@ -20,6 +20,8 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
+sys.excepthook = bee_logging.catch_exception
+
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:

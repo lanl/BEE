@@ -1,10 +1,13 @@
 import logging
+import inspect
 import sys
 import os
 
 STEP_INFO = 15
 logging.addLevelName(STEP_INFO, "STEP_INFO")
 
+# We fallback to the global beeflow.log file 
+__module_log__ = None
 
 class LogFormatter(logging.Formatter):
     """Format a string for the log file.
@@ -136,6 +139,8 @@ def save_log(bee_workdir, log, logfile):
     :param logfile: Path for the logfile
     :type logfile: String
     """
+    global __module_log__
+
     logdir = os.path.join(bee_workdir, 'logs')
     # Make the logdir if it doesn't exist already
     os.makedirs(logdir, exist_ok=True)
@@ -148,4 +153,25 @@ def save_log(bee_workdir, log, logfile):
     # Set
     handler.setFormatter(formatter)
     log.addHandler(handler)
+    __module_log__ = log
     return handler
+
+def catch_exception(type, value, traceback):
+    """Catch unhandled exceptions and submit to log"""
+    # Ignore keyboard interrupts so we can close with ctrl+c
+    if issubclass(type, KeyboardInterrupt):
+        sys.__excepthook__(type, value, traceback)
+        return
+
+    # If we don't have a module log handler, figure out which log we need
+    if __module_log__ is None:
+        from beeflow.cli import log
+        from beeflow.common.config_driver import BeeConfig
+        bc = BeeConfig()
+        bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+        # Get the filename sans extension
+        filename = traceback.tb_frame.f_code.co_filename.rsplit('.', 1)[0]
+        save_log(bee_workdir=bee_workdir, log=log, logfile=f'{filename}.log')
+        log.critical("Uncaught exception", exc_info=(type, value, traceback))
+    else:
+        __module_log__.critical("Uncaught exception", exc_info=(type, value, traceback))

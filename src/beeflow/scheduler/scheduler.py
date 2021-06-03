@@ -16,6 +16,8 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
+sys.excepthook = bee_logging.catch_exception
+
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
@@ -145,7 +147,7 @@ def load_config_values():
         bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
         # Set some defaults
         if not conf['log']:
-            conf['log'] = '/'.join([bee_workdir, 'logs', 'sched.log'])
+            conf['log'] = '/'.join([bee_workdir, 'logs', 'scheduler.log'])
         if not conf['workdir']:
             conf['workdir'] = os.path.join(bee_workdir, 'scheduler')
         if not conf['alloc_logfile']:
@@ -154,7 +156,7 @@ def load_config_values():
     else:
         # Don't read from the config
         if not conf['log']:
-            conf['log'] = 'sched.log'
+            conf['log'] = 'scheduler.log'
         if not conf['workdir']:
             conf['workdir'] = os.getcwd()
         if not conf['alloc_logfile']:
@@ -177,7 +179,7 @@ def load_config_values():
 if __name__ == '__main__':
     CONF, bc = load_config_values()
     bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='sched.log')
+    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='scheduler.log')
     flask_app.sched_conf = CONF
     # Load algorithm data
     algorithms.load(**vars(CONF))
