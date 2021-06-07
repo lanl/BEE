@@ -24,15 +24,11 @@ resources = []
 
 
 class ResourcesHandler(Resource):
-    """Resources handler.
-
-    """
+    """Resources handler."""
 
     @staticmethod
     def put():
-        """Create a list of resources to use for allocation.
-
-        """
+        """Create a list of resources to use for allocation."""
         resources.clear()
         resources.extend([resource_allocation.Resource.decode(r)
                           for r in request.json])
@@ -40,10 +36,18 @@ class ResourcesHandler(Resource):
 
     @staticmethod
     def get():
-        """Get a list of all resources.
-
-        """
+        """Get a list of all resources."""
         return [r.encode() for r in resources]
+
+
+class WorkflowHandler(Resource):
+    """Handle creation and updating of full workflows."""
+
+    @staticmethod
+    def put(workflow_name):
+        """PUT a workflow and update it."""
+        # TODO
+        return make_response(jsonify(msg='done'), 201)
 
 
 class WorkflowJobHandler(Resource):
@@ -69,9 +73,10 @@ class WorkflowJobHandler(Resource):
         return [t.encode() for t in tasks]
 
 
-api.add_resource(ResourcesHandler, '/bee_sched/v1/resources')
-api.add_resource(WorkflowJobHandler,
-                 '/bee_sched/v1/workflows/<string:workflow_name>/jobs')
+BASE_URL = '/bee_sched/v1'
+api.add_resource(ResourcesHandler, f'{BASE_URL}/resources')
+api.add_resource(WorkflowHandler, f'{BASE_URL}/workflows/<string:workflow_name>')
+api.add_resource(WorkflowJobHandler, f'{BASE_URL}/workflows/<string:workflow_name>/jobs')
 
 # Default config values
 SCHEDULER_PORT = 5100
@@ -82,6 +87,7 @@ MARS_CNT = 4
 DEFAULT_ALGORITHM = 'fcfs'
 
 
+# TODO: Simplify configuration here
 def load_config_values():
     """Load the config, if necessary, and return config values.
 
