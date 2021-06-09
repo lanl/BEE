@@ -48,27 +48,42 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             bc = BeeConfig(userconfig=userconf_file)
         else:
             bc = BeeConfig()
-        # Store build tarballs relative to bee_workdir.
+        # Store build logs relative to bee_workdir.
         try:
             if bc.userconfig['DEFAULT'].get('bee_workdir'):
                 bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
-                build_dir = '/'.join([bee_workdir,'build_cache'])
-                handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
-                                              logfile='CharliecloudBuildDriver.log')
             else:
                 # Can't log if we don't know where to log, just print error
                 print('Invalid config file. bee_workdir not found in DEFAULT.', file=sys.stderr)
                 print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
-                build_dir = '~/.beeflow/build_cache'
+                bee_workdir = '~/.beeflow'
         except KeyError:
             # Can't log if we don't know where to log, just print error
             print('Invalid config file. DEFAULT section missing.', file=sys.stderr)
             print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
-            build_dir = '~/.beeflow/build_cache'
+            bee_workdir = '~/.beeflow'
         finally:
-            self.build_dir = bc.resolve_path(build_dir)
-            os.makedirs(self.build_dir, exist_ok=True)
-            log.info(f'Build cache directory is: {self.build_dir}')
+            handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
+                                           logfile='CharliecloudBuildDriver.log')
+        # Store build container archive pased on config file or relative to bee_workdir if not set.
+        try:
+            if bc.userconfig['builder'].get('container_archive'):
+                container_archive = bc.userconfig['builder'].get('container_archive')
+            else:
+                # Set container archive relative to bee_workdir if config does not specify
+                log.warning('Invalid config file. container_archive not found in builder section.')
+                container_archive = '/'.join([bee_workdir,'container_archive'])
+                log.warning(f'Assuming container_archive is {container_archive}')
+        except KeyError:
+            log.warning('Container is missing builder section')
+            log.warning('Setting container archive relative to bee_workdir')
+            container_archive = f'{bee_workdir}/container_archive'
+        finally:
+            self.container_archive = bc.resolve_path(container_archive)
+            os.makedirs(self.container_archive, exist_ok=True)
+            bc.modify_section('user', 'builder', {'container_archive': self.container_archive})
+            log.info(f'Build container archive directory is: {self.container_archive}')
+            log.info("Wrote deployed image root to user BeeConfig file.")
         # Deploy build tarballs relative to /var/tmp/username/beeflow by default
         try:
             if bc.userconfig['builder'].get('deployed_image_root'):
@@ -93,12 +108,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             # Make sure path is absolute
             deployed_image_root = bc.resolve_path(deployed_image_root)
             log.info(f'Assuming deployed image root is {deployed_image_root}')
-            bc.modify_section('user', 'builder', {'deployed_image_root': deployed_image_root})
-            log.info("Wrote deployed image root to user BeeConfig file.")
         finally:
             self.deployed_image_root = deployed_image_root
             os.makedirs(self.deployed_image_root, exist_ok=True)
+            bc.modify_section('user', 'builder', {'deployed_image_root': self.deployed_image_root})
             log.info(f'Deployed image root directory is: {self.deployed_image_root}')
+            log.info("Wrote deployed image root to user BeeConfig file.")
         # Set container-relative output directory based on BeeConfig, or use '/'
         try:
             container_output_path = bc.userconfig['builder'].get('container_output_path')
@@ -188,7 +203,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # DetermVine name for successful build target
         ch_build_addr = addr.replace('/', '%')
 
-        ch_build_target = '/'.join([self.build_dir, ch_build_addr]) + '.tar.gz'
+        ch_build_target = '/'.join([self.container_archive, ch_build_addr]) + '.tar.gz'
         # Return if image already exist and force==False.
         if os.path.exists(ch_build_target) and not force:
             log.info('Image already exists. If you want to refresh container, use force option.')
@@ -206,7 +221,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 pass
 
         # Provably out of excuses. Pull the image.
-        cmd = (f'ch-image pull {addr} && ch-builder2tar {ch_build_addr} {self.build_dir}'
+        cmd = (f'ch-image pull {addr} && ch-builder2tar {ch_build_addr} {self.container_archive}'
                )
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
 
@@ -296,7 +311,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Determine name for successful build target
         ch_build_addr = task_imageid.replace('/', '%')
 
-        ch_build_target = '/'.join([self.build_dir, ch_build_addr]) + '.tar.gz'
+        ch_build_target = '/'.join([self.container_archive, ch_build_addr]) + '.tar.gz'
         log.info('Build will create tar ball at {}'.format(ch_build_target))
         # Return if image already exist and force==False.
         if os.path.exists(ch_build_target) and not force:
@@ -315,7 +330,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Provably out of excuses. Build the image.
         log.info('Context directory configured. Beginning build.')
         cmd = (f'ch-image build -t {task_imageid} -f {task_dockerfile} {context_dir}\n'
-               f'ch-builder2tar {ch_build_addr} {self.build_dir}'
+               f'ch-builder2tar {ch_build_addr} {self.container_archive}'
                )
         log.info('Executing: {}'.format(cmd))
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)

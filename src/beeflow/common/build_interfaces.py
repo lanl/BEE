@@ -31,7 +31,13 @@ task = arg2task(my_args)
 builder = CharliecloudBuildDriver(task)
 
 # Deque the next build instruction until empty or reach terminal case
-build_op, op_name, op_priority, op_terminal = builder.exec_list.pop(0)
+# ...catch the case where no build instructions are required.
+try:
+    build_op, op_name, op_priority, op_terminal = builder.exec_list.pop(0)
+except IndexError:
+    log.info('No build instructions provided. Assuming this is ok...')
+    build_op, op_name, op_priority, op_terminal = None, None, None, True
+
 while build_op:
     log.info('Executing build operation: "{}"'.format(op_name))
     try:
@@ -54,8 +60,9 @@ while build_op:
     try:
         build_op, op_name, op_priority, op_terminal = builder.exec_list.pop(0)
     except IndexError:
-        log.info('Out of build instructions. Build operations complete.')
         build_op, op_name, op_priority, op_terminal = None, None, None, True
+    
+log.info('Out of build instructions. Build operations complete.')
         
     
 
