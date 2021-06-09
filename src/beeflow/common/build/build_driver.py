@@ -1,18 +1,18 @@
 """Abstract base class for the handling build systems."""
 
 from abc import ABC, abstractmethod
-from beeflow.common.wf_data import BuildTask
+from beeflow.common.wf_data import Task
 import json
 
 def arg2task(task_arg):
     task_arg = dict(json.loads(task_arg))
-    task = BuildTask(name=task_arg['name'],
-                    command=task_arg['command'],
-                    requirements=task_arg['requirements'],
-                    hints=task_arg['hints'],
-                    subworkflow=task_arg['subworkflow'],
-                    inputs=task_arg['inputs'],
-                    outputs=task_arg['outputs'])
+    task = Task(name=task_arg['name'],
+                command=task_arg['command'],
+                requirements=task_arg['requirements'],
+                hints=task_arg['hints'],
+                subworkflow=task_arg['subworkflow'],
+                inputs=task_arg['inputs'],
+                outputs=task_arg['outputs'])
     return(task)
 
 task2arg = lambda task: json.dumps(vars(task))
