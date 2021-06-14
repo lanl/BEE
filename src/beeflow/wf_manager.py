@@ -169,9 +169,12 @@ def kill_gdb():
 def remove_gdb():
     """Remove the current GDB bind mount directory"""
     gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
+    old_gdb_workdir = os.path.join(bee_workdir, 'old_gdb')
     if os.path.isdir(gdb_workdir):
+        # Rename the directory to guard against NFS errors
+        shutil.move(gdb_workdir, old_gdb_workdir)
         time.sleep(2)
-        shutil.rmtree(gdb_workdir)
+        shutil.rmtree(old_gdb_workdir)
         time.sleep(2)
 
 
@@ -234,7 +237,7 @@ class JobsList(Resource):
             # Start a new GDB 
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
             script_path = get_script_path()
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run(['python', f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # Need to wait a moment for the GDB
             time.sleep(10)
 
@@ -296,19 +299,19 @@ class JobsList(Resource):
 
             # Kill existing GDB if needed
             kill_gdb()
+            remove_gdb()
 
             ## Copy GDB to gdb_workdir
             archive_dir = filename.split('.')[0]
             gdb_path = os.path.join(tmp_path, archive_dir, 'gdb')
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
 
-            remove_gdb()
             shutil.copytree(gdb_path, gdb_workdir) 
 
              # Launch new container with bindmounted GDB
             script_path = get_script_path()
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'])
-            time.sleep(10)
+            subprocess.run(['python', f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'])
+            time.sleep(30)
 
             # Initialize the database connection object
             wfi.initialize_workflow(inputs=None, outputs=None, existing=True)

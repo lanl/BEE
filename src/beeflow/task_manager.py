@@ -8,7 +8,6 @@ import atexit
 import sys
 import logging
 import hashlib
-import time
 import socket
 import jsonpickle
 import requests
@@ -104,11 +103,19 @@ def update_task_state(task_id, job_state, metadata=None):
     """Informs the workflow manager of the current state of a task."""
     data = {'task_id': task_id, 'job_state': job_state}
     if metadata:
-      data['metadata'] = metadata
+      metadata_json = jsonpickle.encode(metadata)
+      data['metadata'] = metadata_json
     resp = requests.put(_resource("update/"),
                         json=data)
     if resp.status_code != 200:
         log.warning("WFM not responding when sending task update.")
+
+def update_task_metadata(task_id, metadata):
+    """Send workflow manager task metadata."""
+    log.info(f'Update task metadata for {task_id}:\n {metadata}')
+    # resp = requests.put(_resource("update/"), json=metadata)
+    # if resp.status_code != 200:
+    #     log.warning("WFM not responding when sending task metadata.")
 
 
 def gen_task_metadata(task, job_id):
@@ -150,6 +157,8 @@ def submit_jobs():
             job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
             # Update metadata
             task_metadata = gen_task_metadata(task, job_id)
+            # Need to 
+            #task_metadata.replace("'", '"')
             #update_task_metadata(task.id, task_metadata)
         except Exception as error:
             # Set job state to failed
@@ -158,7 +167,7 @@ def submit_jobs():
             log.error(f'{task.name} state: {job_state}')
         finally:
             # Send the initial state to WFM
-            update_task_state(task.id, job_state, metadata=jsonpickle.encode(task_metadata))
+            update_task_state(task.id, job_state, metadata=task_metadata)
 
 
 def update_jobs():
