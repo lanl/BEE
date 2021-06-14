@@ -25,7 +25,7 @@ class WorkflowInterface:
         # Store the Workflow ID in the interface to assign it to new task objects
         self._workflow_id = None
 
-    def initialize_workflow(self, inputs, outputs, requirements=None, hints=None):
+    def initialize_workflow(self, inputs, outputs, requirements=None, hints=None, existing=False):
         """Begin construction of a BEE workflow.
 
         :param inputs: the inputs to the workflow
@@ -44,7 +44,6 @@ class WorkflowInterface:
 
         # Connect to the graph database
         self._gdb_interface.connect(**self._gdb_details)
-
         workflow = Workflow(hints, requirements, inputs, outputs)
         self._workflow_id = workflow.id
         # Load the new workflow into the graph database
@@ -175,6 +174,16 @@ class WorkflowInterface:
         workflow = self._gdb_interface.get_workflow_description()
         tasks = self._gdb_interface.get_workflow_tasks()
         return workflow, tasks
+
+    def get_workflow_id(self):
+        """Get a BEE workflow ID
+
+        Returns a uuid4 string with the id
+
+        :rtype: str
+        """
+        workflow_id = self._gdb_interface.get_workflow_description().id
+        return workflow_id
 
     def get_subworkflow(self, subworkflow):
         """Get a subworkflow by its identifier.
