@@ -16,9 +16,7 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.common.wf_data import (InputParameter,
                                     OutputParameter,
                                     StepInput,
-                                    StepOutput,
-                                    Hint,
-                                    Requirement)
+                                    StepOutput)
 from beeflow.common.wf_interface import WorkflowInterface
 
 try:
@@ -83,14 +81,14 @@ class CwlParser:
 
         workflow_name = os.path.basename(cwl).split(".")[0]
         # Steven had tuples, I changed to dict to mirror output of parse_job
-        #workflow_inputs = {_shortname(input_.id): input_.type for input_ in self.cwl.inputs}
+        # workflow_inputs = {_shortname(input_.id): input_.type for input_ in self.cwl.inputs}
         workflow_inputs = {_shortname(input_.id) for input_ in self.cwl.inputs}
-        #resolved_inputs = resolve_inputs(workflow_inputs)
+        # resolved_inputs = resolve_inputs(workflow_inputs)
         print(f'self.params: {self.params}')
         print(f'workflow_inputs: {workflow_inputs}')
-        #print(f'resolved_inputs: {resolved_inputs}')
-        #workflow_outputs = {(_shortname(output.outputSource, True), output.type)
-        #                    for output in self.cwl.outputs}
+        # print(f'resolved_inputs: {resolved_inputs}')
+        # workflow_outputs = {(_shortname(output.outputSource, True), output.type)
+        #                     for output in self.cwl.outputs}
         workflow_outputs = {_shortname(output.outputSource, True) for output in self.cwl.outputs}
         workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
@@ -119,12 +117,10 @@ class CwlParser:
         print(f'step inputs: {step_inputs}')
         step_outputs = {f"{step_name}/{_shortname(output.id)}" for output in step_cwl.outputs}
         print(f'step outputs: {step_outputs}')
-        step_hints = self.parse_requirements(step.hints, as_hints=True).union(
-            self.parse_requirements(step_cwl.hints, as_hints=True)
-        )
-        step_requirements = self.parse_requirements(step.requirements).union(
-            self.parse_requirements(step_cwl.requirements)
-        )
+        step_hints = self.parse_requirements(step.hints, as_hints=True)
+        step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
+        step_requirements = self.parse_requirements(step.requirements)
+        step_requirements.extend(self.parse_requirements(step_cwl.requirements))
 
         return wfi.add_task(step_name, hints=step_hints, requirements=step_requirements,
                             inputs=step_inputs, outputs=step_outputs)
@@ -156,25 +152,25 @@ class CwlParser:
         """Parse CWL hints/requirements.
 
         :param requirements: the CWL requirements dictionary
-        :type requirements: list of ordereddict
+        :type requirements: list
         :param as_hints: parse as hints instead of requirements
         :type as_hints: bool
-        :rtype: set of Hint or set of Requirement or None
+        :rtype: list of Hint or list of Requirement
         """
-        reqs = set()
+        reqs = []
         if not requirements:
             return reqs
         if as_hints:
             for req in requirements:
-                pairs = ((k, v) for k, v in req.items() if k != "class")
-                for pair in pairs:
-                    reqs.add(Hint(req["class"], pair[0], pair[1]))
+                reqs.append(wfi.create_hint(req["class"], {k: v for k, v in req.items()
+                                                           if k != "class"}))
         else:
             for req in requirements:
-                pairs = ((k, v) for k, v in req.items() if k != "class")
-                for pair in pairs:
-                    reqs.add(Requirement(req["class"], pair[0], pair[1]))
-
+                reqs.append(wfi.create_requirement(req.class_, {k: v for k, v in vars(req).items()
+                                                                if k not in ("extension_fields",
+                                                                             "loadingOptions",
+                                                                             "class_")
+                                                                and v is not None}))
         return reqs
 
 
@@ -197,8 +193,10 @@ def _shortname(uri, output_source=False):
     return uri.split("#")[-1]
 
 
-def parse_args(args=sys.argv[1:]):
+def parse_args(args=None):
     """Parse arguments."""
+    if args is None:
+        args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
 
     parser.add_argument("wf_file", type=str, help="CWL workflow file")
