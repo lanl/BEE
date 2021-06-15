@@ -40,7 +40,7 @@ steps:
       graphic_steps: steps_between_graphics
       graphics_type: graphics_type
     out: [stdout, outdir, time_log]
-    hints:
+    requirements:
         DockerRequirement:
             dockerImport: clamr_img.tar.gz
             dockerImageId: clamr
