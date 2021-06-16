@@ -27,6 +27,9 @@ log = bee_logging.setup_logging(level='DEBUG')
 restd_log = bee_logging.setup_logging(level='DEBUG') 
 gdb_log = bee_logging.setup_logging(level='DEBUG')
 
+def get_script_path():
+    return os.path.dirname(os.path.realpath(__file__))
+
 def StartGDB(bc, args):
     """Start the graph database. Returns a Popen process object."""
     bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
@@ -208,9 +211,8 @@ def StartWorkflowManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", "-m", "beeflow.wf_manager",
-                            userconfig_file],
-                            stdout=PIPE, stderr=PIPE)
+    return subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
+                            userconfig_file])
 
 def StartTaskManager(bc, args):
     """Start BEETaskManager. Returns a Popen process object."""
@@ -239,9 +241,9 @@ def StartTaskManager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", "-m", "beeflow.task_manager",
-                            userconfig_file],
-                            stdout=PIPE, stderr=PIPE)
+    return subprocess.Popen(["python", get_script_path() + "/task_manager.py",
+                            userconfig_file])
+#                            stdout=PIPE, stderr=PIPE)
 
 def StartScheduler(bc, args):
     """Start BEEScheduler.
@@ -267,7 +269,7 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", "-m", "beeflow.scheduler.scheduler",
+    return subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
                             '--config-file',userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 

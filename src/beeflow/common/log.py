@@ -150,7 +150,6 @@ def save_log(bee_workdir, log, logfile):
     handler = logging.FileHandler(path)
     formatter = LogFormatter(colors=False)
 
-    # Set
     handler.setFormatter(formatter)
     log.addHandler(handler)
     __module_log__ = log
@@ -170,8 +169,10 @@ def catch_exception(type, value, traceback):
         bc = BeeConfig()
         bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
         # Get the filename sans extension
-        filename = traceback.tb_frame.f_code.co_filename.rsplit('.', 1)[0]
+        path = traceback.tb_frame.f_code.co_filename
+        filename = path.split('/')[-1].rsplit('.', 1)[0]
         save_log(bee_workdir=bee_workdir, log=log, logfile=f'{filename}.log')
         log.critical("Uncaught exception", exc_info=(type, value, traceback))
     else:
+        print(f'__module_log__{__module_log__}')
         __module_log__.critical("Uncaught exception", exc_info=(type, value, traceback))

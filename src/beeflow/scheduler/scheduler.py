@@ -24,7 +24,6 @@ api = Api(flask_app)
 # List of all available resources
 resources = []
 
-
 class ResourcesHandler(Resource):
     """Resources handler.
 
