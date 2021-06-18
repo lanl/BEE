@@ -6,16 +6,18 @@ from uuid import uuid4
 # Workflow input parameter class
 InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
 # Workflow output parameter class
-OutputParameter = namedtuple("OutputParameter", ["id", "source", "type", "value"])
+OutputParameter = namedtuple("OutputParameter", ["id", "type", "value", "source"])
 # Step input class
-StepInput = namedtuple("StepInput", ["id", "source", "type", "value", "optional", "prefix",
+StepInput = namedtuple("StepInput", ["id", "type", "value", "source", "optional", "prefix",
                                      "position"])
 # Step output class
-StepOutput = namedtuple("StepOutput", ["id", "glob", "type", "value"])
+StepOutput = namedtuple("StepOutput", ["id", "type", "value", "glob"])
 
 # CWL requirement class
+# Workflow interface should be used to populate
 Requirement = namedtuple("Requirement", ["class_", "key", "value"])
 # CWL hint class
+# Workflow interface should be used to populate
 Hint = namedtuple("Hint", ["class_", "key", "value"])
 
 
