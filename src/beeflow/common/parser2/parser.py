@@ -70,10 +70,10 @@ class CwlParser:
         def resolve_inputs(wf_inputs):
             rv = {}
             for k, v in wf_inputs.items():
-                print(f'inputs k: {k}   v: {v}')
-                print(f'type(v):   {type_map[v]}')
-                print(f'params[{k}]: {self.params[k]}')
-                print(f'type(params[{k}]): {type(self.params[k])}')
+                # print(f'inputs k: {k}   v: {v}')
+                # print(f'type(v):   {type_map[v]}')
+                # print(f'params[{k}]: {self.params[k]}')
+                # print(f'type(params[{k}]): {type(self.params[k])}')
                 if not isinstance(self.params[k], type_map[v]):
                     raise ValueError(f'Types of input/param do not match: {v}/{self.params[k]}')
                 rv[k] = self.params[k]
@@ -84,8 +84,8 @@ class CwlParser:
         # workflow_inputs = {_shortname(input_.id): input_.type for input_ in self.cwl.inputs}
         workflow_inputs = {_shortname(input_.id) for input_ in self.cwl.inputs}
         # resolved_inputs = resolve_inputs(workflow_inputs)
-        print(f'self.params: {self.params}')
-        print(f'workflow_inputs: {workflow_inputs}')
+        # print(f'self.params: {self.params}')
+        # print(f'workflow_inputs: {workflow_inputs}')
         # print(f'resolved_inputs: {resolved_inputs}')
         # workflow_outputs = {(_shortname(output.outputSource, True), output.type)
         #                     for output in self.cwl.outputs}
@@ -112,11 +112,11 @@ class CwlParser:
             raise ValueError(f"{os.path.basename(step.run)} class must be CommandLineTool")
 
         step_name = os.path.basename(step_cwl.id).split(".")[0]
-        print(f'step name: {step_name}')
+        # print(f'step name: {step_name}')
         step_inputs = {_shortname(input_.source) for input_ in step.in_}
-        print(f'step inputs: {step_inputs}')
+        # print(f'step inputs: {step_inputs}')
         step_outputs = {f"{step_name}/{_shortname(output.id)}" for output in step_cwl.outputs}
-        print(f'step outputs: {step_outputs}')
+        # print(f'step outputs: {step_outputs}')
         step_hints = self.parse_requirements(step.hints, as_hints=True)
         step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
         step_requirements = self.parse_requirements(step.requirements)
