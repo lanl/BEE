@@ -31,6 +31,7 @@ except KeyError:
 except configparser.NoSectionError:
     wfi = WorkflowInterface()
 
+# Map CWL types to Python types
 type_map = {
     'string': str,
     'int': int,
@@ -69,29 +70,29 @@ class CwlParser:
             # Parse input job params into self.params
             self.parse_job(job)
 
-        def resolve_inputs(wf_inputs):
-            rv = {}
-            for k, v in wf_inputs.items():
-                print(f'inputs k: {k}   v: {v}')
-                print(f'type(v):   {type_map[v]}')
-                print(f'params[{k}]: {self.params[k]}')
-                print(f'type(params[{k}]): {type(self.params[k])}')
-                if not isinstance(self.params[k], type_map[v]):
-                    raise ValueError(f'Types of input/param do not match: {v}/{self.params[k]}')
-                rv[k] = self.params[k]
-            return rv
+        def resolve_input(input_, type_):
+            """Resolve workflow input parameter from job file.
+
+            :param input_: the workflow input name
+            :type input_: str
+            :param type_: the workflow input type
+            :type type_: str
+            :rtype: str or int or float
+            """
+            if not isinstance(self.params[input_], type_map[type_]):
+                raise ValueError(f'Input/param types do not match: {input_}/{self.params[input_]}')
+            return self.params[input_]
 
         workflow_name = os.path.basename(cwl).split(".")[0]
-        # Steven had tuples, I changed to dict to mirror output of parse_job
-        #workflow_inputs = {_shortname(input_.id): input_.type for input_ in self.cwl.inputs}
-        workflow_inputs = {_shortname(input_.id) for input_ in self.cwl.inputs}
-        #resolved_inputs = resolve_inputs(workflow_inputs)
+        workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
+                                          resolve_input(_shortname(input_.id), input_.type))
+                           for input_ in self.cwl.inputs}
         print(f'self.params: {self.params}')
         print(f'workflow_inputs: {workflow_inputs}')
-        #print(f'resolved_inputs: {resolved_inputs}')
-        #workflow_outputs = {(_shortname(output.outputSource, True), output.type)
-        #                    for output in self.cwl.outputs}
-        workflow_outputs = {_shortname(output.outputSource, True) for output in self.cwl.outputs}
+        workflow_outputs = {OutputParameter(_shortname(output.id), output.type, None,
+                                            _shortname(output.outputSource, True))
+                            for output in self.cwl.outputs}
+        print(f'workflow_outputs: {workflow_outputs}')
         workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
 
