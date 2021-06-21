@@ -9,12 +9,12 @@
 
 """Parse contents a CWL file.
 
-This script will parse (and build a workflow in the databse) the
+This script will parse (and build a workflow in the database) the
 contents of a CWL file. The CWL file is parsed using parser_v1_0.py
 from the cwl-utils repository. That parser creates Python objects from
 the CWL file (as opposed to other parsing techniques that produce
 Python dictionaries. This graph of Python objects is then traversed
-and loaded into the Neo4j databse.
+and loaded into the Neo4j database.
 
 """
 
@@ -104,13 +104,13 @@ def create_task(obj, wfi, workflow):
     cmd = base
 
     # Get any hints for the task. We only support DockerRequirement for now.
-    thints = set()
+    thints = []
     if obj.run.hints is not None:
         for i in obj.run.hints:
             if "DockerRequirement" in i.values():
                 del i["class"]
-                for key, value in i.items():
-                    thints.add(wfi.create_requirement("DockerRequirement", key, value))
+                thints.append(wfi.create_requirement("DockerRequirement",
+                                                     {key: value for key, value in i.items()}))
 
     print(f"task:  {tname}")
     print(f"  ins:      {ins}")
@@ -162,8 +162,8 @@ def dump_tasks(tarray, wfi):
         if t.hints is not None:
             print("      hints:")
             for h in t.hints:
-                req_class, key, value = h
-                print(f"        req_class: {req_class}   key: {key}   value: {value}")
+                req_class, params = h
+                print(f"        req_class: {req_class}   params: {params}")
     print("\n-- Tasks: name, dependent tasks")
     for t in tarray:
         print(f"{t.name:<12}", end="")
