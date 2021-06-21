@@ -237,10 +237,20 @@ def submit_tasks_tm(tasks, allocation):
     """Submit multiple tasks to the task manager."""
     # TODO: Keep track of where tasks are scheduled
     # allocation[task.id]
+    """
     schedule_tasks = {}
     for task in tasks:
         alloc = allocation[task.id]
         resource_id = alloc[0]['id_']
+        resource = tuple(resource_id.split(':'))
+        if resource in schedule_tasks:
+            schedule_tasks[resource].append(task)
+        else:
+            schedule_tasks[resource] = [task]
+"""
+    schedule_tasks = {}
+    for task in tasks:
+        resource_id = allocation[task.id]
         resource = tuple(resource_id.split(':'))
         if resource in schedule_tasks:
             schedule_tasks[resource].append(task)
@@ -273,14 +283,13 @@ def submit_tasks_tm(tasks, allocation):
 # Submit a list of tasks to the Scheduler
 def submit_tasks_scheduler(sched_tasks):
     """Submit a list of tasks to the scheduler."""
-    # tasks_json = jsonpickle.encode(sched_tasks)
     # The workflow name will eventually be added to the wfi workflow object
     resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
     if resp.status_code != 200:
         log.info(f"Something bad happened {resp.status_code}")
-    # return resp.json()
-    allocation = resp.json()
-    return {alloc['task_name']: alloc['allocations'] for alloc in allocation}
+    return resp.json()
+    #allocation = resp.json()
+    #return {alloc['task_name']: alloc['allocations'] for alloc in allocation}
 
 
 def setup_scheduler():
@@ -321,6 +330,13 @@ def resume():
 
 def tasks_to_sched(tasks):
     """Convert gdb tasks to sched tasks."""
+    # TODO: Need to get task dependencies somehow
+    return {
+        task.id: {
+            'deps': [],
+        } for task in tasks
+    }
+    """
     sched_tasks = []
     for task in tasks:
         sched_task = {
@@ -333,6 +349,7 @@ def tasks_to_sched(tasks):
         }
         sched_tasks.append(sched_task)
     return sched_tasks
+"""
 
 
 # TODO: Set to a real workflow name
