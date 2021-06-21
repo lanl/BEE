@@ -268,7 +268,7 @@ def StartScheduler(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", "-m", "beeflow.scheduler.scheduler",
-                            '--config-file',userconfig_file],
+                            userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
 def create_pid_file(proc, pid_file, bc):
