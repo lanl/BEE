@@ -52,7 +52,7 @@ def create_workflow(obj, wfi):
 
     # Use workflow interface (note the passed in reference to a Neo4j
     # instance) to instantiate a workflow.
-    workflow = wfi.initialize_workflow(ins, outs)
+    workflow = wfi.initialize_workflow("Clamr Workflow", ins, outs)
 
     # Now create (and store in the databse) all the workdlow's tasks.
     for i in obj.steps:
@@ -179,16 +179,16 @@ def verify_workflow(wfi):
     print(wfi.workflow_loaded())
 
     # Get all the tasks from Neo4j and print them to console.
-    (tasks, requirements, hints) = wfi.get_workflow()
+    (workflow, tasks) = wfi.get_workflow()
     dump_tasks(tasks, wfi)
     
-    # Fake a workflow manager loop.  By convention, bee_init is ID 0,
-    # bee_exit is ID 1. This little hack only works for workflows
+    # Fake a workflow manager loop. This little hack only works for workflows
     # where each task has at most one dependent task. In other words,
     # fan in and fan out workflows are not handled here.
-    tid = 0
+    wfi.execute_workflow()
+    tid = list(wfi.get_ready_tasks())[0].id
     print(f"{wfi.get_task_by_id(tid).name}", end="")
-    while tid != 1:
+    while wfi.get_dependent_tasks(wfi.get_task_by_id(tid)):
         print(" --> ", end="")
         # HACK: doesn't handle set sizes greater than one (i.e. fan
         # in, fan out))
