@@ -17,8 +17,8 @@ from flask_restful import Resource, Api, reqparse
 from werkzeug.utils import secure_filename
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
-# Temporary clamr parser
-import beeflow.common.parser.parse_clamr as parser
+# Temporary parser for hints usage
+import beeflow.common.parser.parse_cwl as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
@@ -250,7 +250,7 @@ def submit_tasks_tm(tasks, allocation):
 """
     schedule_tasks = {}
     for task in tasks:
-        resource_id = allocation[task.id]
+        resource_id = allocation[task.id]['resource']
         resource = tuple(resource_id.split(':'))
         if resource in schedule_tasks:
             schedule_tasks[resource].append(task)
@@ -372,14 +372,6 @@ class JobActions(Resource):
         # Get dependent tasks that branch off of bee_init and send to the scheduler
         wfi.execute_workflow()
         tasks = wfi.get_ready_tasks()
-        # Convert to a scheduler task object
-        #sched_tasks = tasks_to_sched(tasks)
-        # Submit all dependent tasks to the scheduler
-        #allocation = submit_tasks_scheduler(sched_tasks)
-        #profiler.add_scheduling_results(sched_tasks, rm.get(), allocation)
-        # Submit tasks to TM
-        #submit_tasks_tm(tasks, allocation)
-        # run_tasks(tasks)
         rq.enqueue(tasks)
         rq.run_tasks()
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
@@ -460,7 +452,6 @@ class RunQueueInterface(run_queue.Interface):
         submit_tasks_tm(tasks, allocation)
 
 
-# rq = run_queue.RunQueue(_schedule_fn, _start_time_fn, submit_tasks_tm)
 rq = run_queue.RunQueue(RunQueueInterface)
 
 

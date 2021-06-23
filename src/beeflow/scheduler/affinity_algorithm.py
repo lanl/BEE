@@ -29,5 +29,9 @@ def schedule_all(tasks, resource, **kwargs):
             res_names = [res_name for res_name in resources]
             res_name = res_names[random.randint(0, len(res_names) - 1)]
         # Schedule the task
-        schedule[task_name] = res_name
+        schedule[task_name] = {
+            # Time slots are per-resource
+            'time_slot': 0,	# XXX: the time slot should be based on what tasks can run at once and those that should run later
+            'resource': res_name,
+        }
     return schedule

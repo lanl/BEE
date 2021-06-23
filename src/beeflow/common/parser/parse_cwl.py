@@ -52,16 +52,16 @@ def create_workflow(obj, wfi):
 
     # Use workflow interface (note the passed in reference to a Neo4j
     # instance) to instantiate a workflow.
-    wfi.initialize_workflow(ins, outs)
+    wfl =  wfi.initialize_workflow(ins, outs)
 
     # Now create (and store in the databse) all the workdlow's tasks.
     for i in obj.steps:
-        create_task(i, wfi)
+        create_task(wfl, i, wfi)
 
 
 
 # Create task based on the parsed CWL and load it into the Neo4j databse.
-def create_task(obj, wfi):
+def create_task(wfl, obj, wfi):
     # Strip off leading garbage from the task name.
     tname = obj.id.split('#')[1]
 
@@ -92,12 +92,14 @@ def create_task(obj, wfi):
     params = get_task_params(obj.run.inputs)
     # Need to sort the input parameters so they are in the correct
     # order on the command line.
-    sorted_params = [value for (key, value) in sorted(params.items())]
-    sorted_params_str = ""
-    for p in sorted_params:
-        sorted_params_str = sorted_params_str + " " + p
-    redirect_out = obj.run.stdout
-    cmd = base + " " + sorted_params_str + " > " + redirect_out
+    # Hack to get the command working for now
+    cmd = base
+    # sorted_params = [value for (key, value) in sorted(params.items())]
+    # sorted_params_str = ""
+    # for p in sorted_params:
+    #     sorted_params_str = sorted_params_str + " " + p
+    # redirect_out = obj.run.stdout
+    # cmd = base + " " + sorted_params_str + " > " + redirect_out
 
     # Get any hints for the task. We only support DockerRequirement for now.
     thints = set()
@@ -114,7 +116,7 @@ def create_task(obj, wfi):
 
     # Using the BEE workflow interface (note the passed in reference
     # to a Neo4j databse) to load the task nto the database.
-    wfi.add_task(name=tname, command=cmd, inputs=ins, outputs=outs, hints=thints)
+    wfi.add_task(wfl, name=tname, command=cmd, inputs=ins, outputs=outs, hints=thints)
 
     
 
@@ -143,7 +145,8 @@ def get_wf_outputs(objarray):
 def get_task_params(objarray):
     params = {}
     for i in objarray:
-        params.update({i.inputBinding.position: i.default})
+        if i.inputBinding is not None:
+            params.update({i.inputBinding.position: i.default})
     return params
 
 
@@ -173,7 +176,7 @@ def verify_workflow(wfi):
     print(wfi.workflow_loaded())
 
     # Get all the tasks from Neo4j and print them to console.
-    (tasks, requirements, hints) = wfi.get_workflow()
+    (workflow, tasks) = wfi.get_workflow()
     dump_tasks(tasks, wfi)
     
     # Fake a workflow manager loop.  By convention, bee_init is ID 0,
