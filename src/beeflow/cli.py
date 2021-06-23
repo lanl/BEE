@@ -26,6 +26,143 @@ restd_log = bee_logging.setup_logging(level='DEBUG')
 def get_script_path():
     return os.path.dirname(os.path.realpath(__file__))
 
+def StartGDB(bc, args):
+    """Start the graph database. Returns a Popen process object."""
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    gdb_handler = bee_logging.save_log(bee_workdir=bee_workdir, log=gdb_log, logfile='gdb_launch.log')
+    # Load gdb config from config file if exists
+    try:
+        bc.userconfig['graphdb']
+    except KeyError:
+        graphdb_dict = {
+            'hostname': 'localhost',
+            'dbpass': 'password',
+            'bolt_port': bc.default_bolt_port,
+            'http_port': bc.default_http_port,
+            'https_port': bc.default_https_port ,
+            'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
+            'gdb_image_mntdir': '/tmp',
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','graphdb',graphdb_dict)
+    if args.config_only:
+       return None
+    if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
+        gdb_log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
+        return None
+
+    # Setup subprocess output
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+
+    # Read the config file back in
+    db_hostname = bc.userconfig.get('graphdb','hostname')
+    db_password = bc.userconfig.get('graphdb','dbpass')
+    bolt_port   = bc.userconfig.get('graphdb','bolt_port')
+    http_port   = bc.userconfig.get('graphdb','http_port')
+    https_port  = bc.userconfig.get('graphdb','https_port')
+    gdb_img     = bc.userconfig.get('graphdb','gdb_image')
+    gdb_img_mntdir = bc.userconfig.get('graphdb','gdb_image_mntdir')
+
+    container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
+    if args.debug:
+        gdb_log.info("GraphDB container mount directory " + container_dir + " created")
+
+    try:
+        cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=stdout, stderr=stderr, check=True)
+    except subprocess.CalledProcessError as cp:
+        gdb_log.error("ch-tar2dir failed")
+        shutil.rmtree(container_dir)
+        if args.debug:
+            gdb_log.error("GraphDB container mount directory " + container_dir + " removed")
+        return None
+
+    newdir = os.path.split(container_dir)[1]
+
+    container_path = container_dir + "/" + os.listdir(str(container_dir))[0]
+    # Make the certificates directory
+    container_certs_path = os.path.join(container_path, 'var/lib/neo4j/certificates')
+    os.makedirs(container_certs_path, exist_ok=True)
+    if args.debug:
+        gdb_log.info('Created certificates directory %s', container_certs_path)
+    # Setup working path data
+    gdb_workdir = os.path.join(bc.userconfig.get('DEFAULT','bee_workdir'),
+                               newdir)
+    gdb_config_path = os.path.join(gdb_workdir, "conf")
+    os.makedirs(gdb_config_path, exist_ok=True)
+    gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
+    if args.debug:
+        gdb_log.info(gdb_configfile)
+
+    cfile = open(gdb_configfile, "rt")
+    data = cfile.read()
+    cfile.close()
+    data = data.replace("#dbms.connector.bolt.listen_address=:7687", "dbms.connector.bolt.listen_address=:" + str(bolt_port))
+    data = data.replace("#dbms.connector.http.listen_address=:7474", "dbms.connector.http.listen_address=:" + str(http_port))
+    data = data.replace("#dbms.connector.https.listen_address=:7473", "dbms.connector.https.listen_address=:" + str(https_port))
+    cfile = open(gdb_configfile, "wt")
+    cfile.write(data)
+    cfile.close()
+
+    gdb_data_path = os.path.join(gdb_workdir, "data")
+    os.makedirs(gdb_data_path, exist_ok=True)
+
+    gdb_log_path = os.path.join(gdb_workdir, "logs")
+    os.makedirs(gdb_log_path, exist_ok=True)
+
+    gdb_run_path = os.path.join(gdb_workdir, "run")
+    os.makedirs(gdb_run_path, exist_ok=True)
+
+    gdb_certs_path = os.path.join(gdb_workdir, "certificates")
+    os.makedirs(gdb_certs_path, exist_ok=True)
+
+    try:
+        cp = subprocess.run([
+            "ch-run","--set-env=" + container_path + "/ch/environment","-b",
+            gdb_config_path + ":/var/lib/neo4j/conf","-b",
+            gdb_data_path + ":/data",
+            "-b",
+            gdb_log_path + ":/logs",
+            "-b",
+            gdb_run_path + ":/var/lib/neo4j/run",
+            container_path,
+            "--",
+            "neo4j-admin",
+            "set-initial-password",
+            str(db_password)
+        ], stdout=stdout, stderr=stderr, check=True)
+    except subprocess.CalledProcessError as cp:
+        gdb_log.error("neo4j-admin set-initial-password failed")
+        print("neo4j-admin set-initial-password failed", file=sys.stderr)
+        return None
+
+    try:
+        proc = subprocess.Popen([
+            "ch-run",
+            "--set-env=" + container_path + "/ch/environment",
+            "-b",
+            gdb_config_path + ":/var/lib/neo4j/conf",
+            "-b",
+            gdb_data_path + ":/data",
+            "-b",
+            gdb_log_path + ":/logs",
+            "-b",
+            gdb_run_path + ":/var/lib/neo4j/run",
+            "-b",
+            gdb_certs_path + ":/var/lib/neo4j/certificates",
+            container_path,
+            "--",
+            "neo4j",
+            "start",
+        ], stdout=stdout, stderr=stderr)
+    except FileNotFoundError as e:
+        gdb_log.error("neo4j failed to start.")
+        return None
+
+    return proc
+>>>>>>> origin
+
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
 def StartSlurmRestD(bc, args):
     """Start BEESlurmRestD. Returns a Popen process object."""
