@@ -74,14 +74,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             docker = False
             command = ''.join(task.command) + '\n'
             for hint in task.hints:
-                req_class, key, value = hint
-                if req_class == "DockerRequirement" and key == "dockerImageId":
-                    name = self.get_ccname(value)
+                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
+                    name = self.get_ccname(hint.params["dockerImageId"])
                     chrun_opts, cc_setup = self.get_cc_options()
                     image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
                     text = (f'{cc_setup}\n'
                             f'mkdir -p {image_mntdir}\n'
-                            f'ch-tar2dir {value} {image_mntdir}\n'
+                            f'ch-tar2dir {hint.params["dockerImageId"]} {image_mntdir}\n'
                             f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
                             f'rm -rf {image_mntdir}/{name}\n'
                             )
@@ -101,9 +100,8 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         """Check if image exists."""
         if task.hints is not None:
             for hint in task.hints:
-                req_class, key, value = hint
-                if req_class == "DockerRequirement" and key == "dockerImageId":
-                    return os.access(value, os.R_OK)
+                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
+                    return os.access(hint.params["dockerImageId"], os.R_OK)
         return True
 
 
@@ -119,10 +117,9 @@ class SingularityDriver(ContainerRuntimeDriver):
             docker = False
             command = ''.join(task.command) + '\n'
             for hint in task.hints:
-                req_class, key, value = hint
-                if req_class == "DockerRequirement" and key == "dockerImageId":
+                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
                     text = ''.join([
-                        'singularity exec ', value,
+                        'singularity exec ', hint.params["dockerImagaeId"],
                         ' ', command,
                         ])
                     docker = True
@@ -134,7 +131,6 @@ class SingularityDriver(ContainerRuntimeDriver):
         """Check if image exists."""
         if task.hints is not None:
             for hint in task.hints:
-                req_class, key, value = hint
-                if req_class == "DockerRequirement" and key == "dockerImageId":
-                    return os.access(value, os.R_OK)
+                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
+                    return os.access(hint.params["dockerImageID"], os.R_OK)
         return True

@@ -166,3 +166,39 @@ class Task:
         :rtype: list of strings
         """
         return self.command[0]
+
+class BuildTask:
+    """Data structure for holding data about a single task."""
+
+    def __init__(self, name, command, subworkflow, inputs, outputs, hints=None, requirements=None):
+        """Store a task description.
+
+        :param task_id: the task's unique ID
+        :type task_id: int
+        :param name: the task name
+        :type name: str
+        :param command: the command to run for the task
+        :type command: list of str
+        :param hints: the task hints (optional)
+        :type hints: set of Hint
+        :param hints: the task requirements (optional)
+        :type hints: set of Requirement
+        :param subworkflow: an identifier for the subworkflow to which the task belongs
+        :type subworkflow: str
+        :param inputs: the task inputs
+        :type inputs: set of str
+        :param outputs: the task outputs
+        :type outputs: set of str
+        """
+        self.name = name
+        self.command = command
+        self.hints = hints
+        self.requirements = requirements
+        self.subworkflow = subworkflow
+        self.inputs = inputs
+        self.outputs = outputs
+
+        # Task ID as UUID
+        self.id = str(uuid4())
+
+
