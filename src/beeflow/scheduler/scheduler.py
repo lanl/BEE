@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     # Flask logging
     flask_app.logger.addHandler(handler) # noqa
-    flask_app.run(debug=True, port=CONF.listen_port)
+    flask_app.run(debug=False, port=CONF.listen_port)
 
 # Ignore todo's or pylama fails
 # pylama:ignore=W0511

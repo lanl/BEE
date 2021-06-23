@@ -270,8 +270,7 @@ def StartScheduler(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
-                            '--config-file',userconfig_file],
-                            stdout=PIPE, stderr=PIPE)
+                            '--config-file',userconfig_file])
 
 def StartBuild(args):
     """Start builder.
