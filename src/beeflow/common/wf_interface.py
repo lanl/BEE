@@ -53,14 +53,6 @@ class WorkflowInterface:
             return workflow
         return
 
-#=======
-#        workflow = Workflow(hints, requirements, inputs, outputs)
-#        self._workflow_id = workflow.id
-#        # Load the new workflow into the graph database
-#        self._gdb_interface.initialize_workflow(workflow)
-#        return workflow
-#
-#>>>>>>> develop
     def execute_workflow(self):
         """Begin execution of a BEE workflow."""
         self._gdb_interface.execute_workflow()

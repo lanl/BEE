@@ -237,7 +237,7 @@ class JobsList(Resource):
             # Start a new GDB 
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
             script_path = get_script_path()
-            subprocess.run(['python', f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # Need to wait a moment for the GDB
             time.sleep(10)
 
@@ -310,8 +310,8 @@ class JobsList(Resource):
 
              # Launch new container with bindmounted GDB
             script_path = get_script_path()
-            subprocess.run(['python', f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'])
-            time.sleep(30)
+            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'])
+            time.sleep(10)
 
             # Initialize the database connection object
             wfi.initialize_workflow(inputs=None, outputs=None, existing=True)
