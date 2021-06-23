@@ -213,6 +213,7 @@ def StartWorkflowManager(bc, args):
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
                             userconfig_file])
+    #, stdout=PIPE)
 
 def StartTaskManager(bc, args):
     """Start BEETaskManager. Returns a Popen process object."""
@@ -242,8 +243,7 @@ def StartTaskManager(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/task_manager.py",
-                            userconfig_file])
-#                            stdout=PIPE, stderr=PIPE)
+                            userconfig_file], stdout=PIPE, stderr=PIPE)
 
 def StartScheduler(bc, args):
     """Start BEEScheduler.

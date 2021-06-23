@@ -418,6 +418,6 @@ if __name__ == '__main__':
     # Flask logging
     # Putting this off for another issue so noqa to appease the lama
     flask_app.logger.addHandler(handler) #noqa
-    flask_app.run(debug=False, port=str(wfm_listen_port))
+    flask_app.run(debug=True, port=str(wfm_listen_port))
 
 # pylama:ignore=W0511
