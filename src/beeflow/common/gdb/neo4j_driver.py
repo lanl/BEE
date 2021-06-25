@@ -195,6 +195,17 @@ class Neo4jDriver(GraphDatabaseDriver):
         pairs = self._get_task_hint_pairs(task_records)
         return {_reconstruct_task(pair[0], pair[1]) for pair in pairs}
 
+    def get_previous_tasks(self, task):
+        """Get the previous tasks for a given task.
+
+        :param task: the task to get previous tasks for
+        :type task: Task
+        :rtype: set of Task
+        """
+        task_records = self._read_transaction(tx.get_previous_tasks, task=task)
+        pairs = self._get_task_hint_pairs(task_records)
+        return {_reconstruct_task(pair[0], pair[1]) for pair in pairs}
+
     def get_task_state(self, task):
         """Return the state of a task in the Neo4j workflow.
 

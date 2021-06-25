@@ -124,13 +124,15 @@ class ResourceMonitor():
 
     def get(self):
         """Construct resources dictionary for resource monitor."""
-        resources = [
-            {
-                'id_': f'{host}:{port}',
-                'nodes': task_managers[(host, port, name)]['resource']['nodes']
-            }
-            for host, port, name in task_managers
-        ]
+        #resources = [
+        #    {
+        #        'id_': f'{host}:{port}',
+        #        'nodes': task_managers[(host, port, name)]['resource']['nodes']
+        #    }
+        #    for host, port, name in task_managers
+        #]
+        # XXX: Just using a simple list of resource names for right now
+        resources = [f'{host}:{port}' for host, port, name in task_managers]
 
         return resources
 
@@ -333,7 +335,9 @@ def tasks_to_sched(tasks):
     # TODO: Need to get task dependencies somehow
     return {
         task.id: {
-            'deps': [],
+            # 'deps' refers to all tasks that have already run, that this is
+            # task is dependent on
+            'deps': [dep.id for dep in wfi.get_previous_tasks(task)],
         } for task in tasks
     }
     """
@@ -444,7 +448,10 @@ class RunQueueInterface(run_queue.Interface):
     @staticmethod
     def start_time(alloc):
         """Return the start time for an allocation."""
-        return alloc[0]['start_time'] if alloc else None
+        # return alloc[0]['start_time'] if alloc else None
+        # TODO: start_time() should perhaps be changed to time_slot()
+        print(alloc)
+        return alloc['time_slot'] if alloc else None
 
     @staticmethod
     def submit(tasks, allocation):

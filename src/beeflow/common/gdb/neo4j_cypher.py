@@ -236,6 +236,18 @@ def get_dependent_tasks(tx, task):
     return tx.run(dependents_query, task_id=task.id)
 
 
+def get_previous_tasks(tx, task):
+    """Get the previous tasks that this task dependened upon.
+
+    :param task: the task to get previous dependencies for
+    :type task: Task
+    :rtype: BoltStatementResult
+    """
+    query = "MATCH (:Task {task_id: $task_id})-[:DEPENDS]->(t:Task) RETURN t"
+
+    return tx.run(query, task_id=task.id)
+
+
 def get_task_state(tx, task):
     """Get the state of a task.
 

@@ -148,6 +148,15 @@ class GraphDatabaseInterface:
         """
         return self._connection.get_dependent_tasks(task)
 
+    def get_previous_tasks(self, task):
+        """Get previous tasks that needed to run before this one.
+
+        :param task: the task from which to get previous tasks
+        :type task: Task
+        :rtype: set of Task
+        """
+        return self._connection.get_previous_tasks(task)
+
     def get_task_state(self, task):
         """Return the state of a task.
 

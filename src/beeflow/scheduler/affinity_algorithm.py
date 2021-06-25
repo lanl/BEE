@@ -1,5 +1,7 @@
 """Simple task-resource affinity algorithm."""
 
+import random
+
 
 # XXX: Hack until we can use Redis for this
 prev_schedules = {}
@@ -16,14 +18,14 @@ def find_best_resource(dep_tasks):
     return None
 
 
-def schedule_all(tasks, resource, **kwargs):
+def schedule_all(tasks, resources, **kwargs):
     """Schedule all tasks onto the resources using the affinity algorithm."""
     schedule = {}
     for task_name in tasks:
         task_reqs = tasks[task_name]
         # Get the list of dependent tasks
         dep_tasks = task_reqs['deps']
-        res_name = find_best_resource(deps)
+        res_name = find_best_resource(dep_tasks)
         if res_name is None:
             # Choose a random resource
             res_names = [res_name for res_name in resources]
@@ -34,4 +36,6 @@ def schedule_all(tasks, resource, **kwargs):
             'time_slot': 0,	# XXX: the time slot should be based on what tasks can run at once and those that should run later
             'resource': res_name,
         }
+        # Store the scheduled allocation
+        prev_schedules[task_name] = res_name
     return schedule

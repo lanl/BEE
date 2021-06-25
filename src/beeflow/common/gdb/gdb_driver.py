@@ -128,6 +128,15 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_previous_tasks(self, task):
+        """Get the set of previous tasks for the given task.
+
+        :param task: the task to get previous tasks for
+        :type task: Task
+        :rtype: set of Task
+        """
+
+    @abstractmethod
     def get_task_state(self, task):
         """Return the state of a task in the graph database workflow.
 

@@ -199,6 +199,15 @@ class WorkflowInterface:
         """
         return self._gdb_interface.get_dependent_tasks(task)
 
+    def get_previous_tasks(self, task):
+        """Get a set of previous tasks that this task dependended on.
+
+        :param task: the task to find previous tasks for
+        :type task: Task
+        :rtype: set of Task
+        """
+        return self._gdb_interface.get_previous_tasks(task)
+
     def get_task_state(self, task):
         """Get the state of the task in a BEE workflow.
 
