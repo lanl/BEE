@@ -11,15 +11,8 @@ interface and suports commands for:
 import argparse
 
 import cmd2
-from cmd2 import (
-    ansi
-)
 
-from colorama import (
-    Back,
-    Fore,
-    Style,
-)
+from rich.console import Console
 
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.gdb_interface import GraphDatabaseInterface
@@ -27,12 +20,13 @@ from beeflow.common.wf_data import Workflow, Task, Requirement, Hint
 
 gdb = None
 
+con = Console()
+
 class NeoApp(cmd2.Cmd):
     """An app to single-step a BEE workflow."""
 
     def __init__(self):
         shortcuts = cmd2.DEFAULT_SHORTCUTS
-        self.allow_style = ansi.STYLE_TERMINAL
         hist_file='bee_history.dat'
         self.prompt = 'BEE> '
         del cmd2.Cmd.do_shell
@@ -43,8 +37,7 @@ class NeoApp(cmd2.Cmd):
 
     neo_parser = argparse.ArgumentParser()
     neo_parser.add_argument('-d', '--database', type=str, help='Neo4j DB location')
-    neo_parser.add_argument('-f', '--fg', choices=ansi.fg.colors(), help='foreground color to apply to output')
-
+    
     task_states = ['READY', 'RUNNING', 'COMPLETE', 'CRASHED', 'WAITING']
     CMD_CAT_BEE = "BEE Commands"
 
@@ -80,42 +73,42 @@ class NeoApp(cmd2.Cmd):
     def db_info(self, args):
         """info subcommand of db command"""
         if gdb.initialized():
-            self.poutput('GDB connected!')
+            con.print('GDB [green]connected[/green]')
         else:
-            self.poutput('GDB not connected')
+            con.print('GDB [red]not connected[/red]')
 
     def db_connect(self, args):
         """connect subcommand of db command"""
         if gdb.initialized():
-            self.poutput('GDB already connected!')
+            con.print('GDB already connected!')
         else:
             gdb.connect()
-            self.poutput('GDB connected')
+            con.print('GDB [green]connected[/green]')
 
     def db_disconnect(self, args):
         """disconnect subcommand of db command"""
         if gdb.initialized():
             gdb.close()
-            self.poutput('GDB disconnected')
+            con.print('GDB [red]disconnected[/red]')
         else:
-            self.poutput('GDB already disconnected')
+            con.print('GDB already disconnected!')
     parser_dbinfo.set_defaults(func=db_info)
     parser_dbconnect.set_defaults(func=db_connect)
     parser_dbdisconnect.set_defaults(func=db_disconnect)
 
     ###################################################
-    # subcommand functions for the db command
+    # subcommand functions for the workflow command
     def workflow_info(self, args):
         """info subcommand of workflow command"""
         if gdb.initialized():
             wf = gdb.get_workflow_description()
-            print(f'Workflow ID/name: {wf.id}/{wf.name}')
-            print(f'  hints:        {wf.hints}')
-            print(f'  requirements: {wf.requirements}')
-            print(f'  inputs:       {wf.inputs}')
-            print(f'  outputs:      {wf.outputs}')
+            con.print(f'Workflow ID/name: {wf.id}/{wf.name}')
+            con.print(f'  hints:        {wf.hints}')
+            con.print(f'  requirements: {wf.requirements}')
+            con.print(f'  inputs:       {wf.inputs}')
+            con.print(f'  outputs:      {wf.outputs}')
         else:
-            self.poutput('GDB not connected')
+            con.print('GDB [red]not connected[/red]!')
     parser_workflowinfo.set_defaults(func=workflow_info)
 
     # subcommand functions for the task command
@@ -176,8 +169,8 @@ class NeoApp(cmd2.Cmd):
     def do_connect(self, args):
         """Connects to existing Neo4j database."""
         if args.database:
-            self.poutput(ansi.style(args.database, fg=args.fg))
-            print(f'{Fore.RED}{Back.YELLOW}databse{Style.RESET_ALL}: {args.database}')
+            print(f'[bold cyan]databse[/bold cyan]: {args.database}')
+            print('[bold cyan]databse[/bold cyan]: butt')
 
     def do_status(self, _):
         """Dump status of connected Neo4j DB"""
