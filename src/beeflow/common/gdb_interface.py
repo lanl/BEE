@@ -217,3 +217,4 @@ class GraphDatabaseInterface:
     def close(self):
         """Close the connection to the graph database."""
         self._connection.close()
+        self._connection = None
