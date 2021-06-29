@@ -24,16 +24,13 @@ api = Api(flask_app)
 resources = []
 
 
+# TODO: Need to document precisely all the properties that a resource may have
 class ResourcesHandler(Resource):
-    """Resources handler.
-
-    """
+    """Resources handler."""
 
     @staticmethod
     def put():
-        """Create a list of resources to use for allocation.
-
-        """
+        """Create a list of resources to use for allocation."""
         resources.clear()
         #resources.extend([resource_allocation.Resource.decode(r)
         #                  for r in request.json])
@@ -42,10 +39,7 @@ class ResourcesHandler(Resource):
 
     @staticmethod
     def get():
-        """Get a list of all resources.
-
-        """
-        # return [r.encode() for r in resources]
+        """Get a list of all resources."""
         return resources
 
 
@@ -62,15 +56,7 @@ class WorkflowJobHandler(Resource):
         Schedules a new list of independent tasks with available resources.
         """
         data = request.json
-        # tasks = [task.Task.decode(t) for t in data]
         tasks = data
-        # Pick the scheduling algorithm
-        #algorithm = affinity_algorithm.AffinityAlgorithm()
-        # algorithm = algorithms.choose(tasks, **vars(flask_app.sched_conf))
-        # algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
-        #                              mars_model=Config.conf.mars_model)
-        #algorithm.schedule_all(tasks, resources)
-        #return [t.encode() for t in tasks]
         return affinity_algorithm.schedule_all(tasks, resources)
 
 
@@ -116,6 +102,9 @@ if __name__ == '__main__':
     os.makedirs(conf['workdir'], exist_ok=True)
 
     flask_app.run(debug=True, port=conf['listen_port'])
+
+
+# TODO: Redo test cases
 
 # Ignore todo's or pylama fails
 # pylama:ignore=W0511

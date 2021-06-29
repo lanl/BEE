@@ -29,8 +29,15 @@ else:
     bc = BeeConfig()
 
 
+# Hack to get debugging working
+def info(msg):
+    """Print message to stdout for debugging."""
+    print(msg)
+
+
 def check_crt_config(c_runtime):
     """Check container runtime configurations."""
+    info('check_crt_config()')
     supported_runtimes = ['Charliecloud', 'Singularity']
     if c_runtime not in supported_runtimes:
         sys.exit(f'Container runtime, {runtime}, not supported.\n' +
@@ -115,6 +122,7 @@ def _resource(tag=""):
 
 def update_task_state(task_id, job_state):
     """Informs the workflow manager of the current state of a task."""
+    info('update_task_state()')
     resp = requests.put(_resource("update/"),
                         json={'task_id': task_id, 'job_state': job_state})
     if resp.status_code != 200:
@@ -123,11 +131,13 @@ def update_task_state(task_id, job_state):
 
 def update_task_metadata(task_id, metadata):
     """Send workflow manager task metadata."""
+    info('update_task_metadata()')
     log.info(f'Update task metadata for {task_id}:\n {metadata}')
     # resp = requests.put(_resource("update/"), json=metadata)
     # if resp.status_code != 200:
     #     log.warning("WFM not responding when sending task metadata.")
 
+container_dir = bc.userconfig.get('charliecloud', 'container_dir')
 
 def gen_task_metadata(task, job_id):
     """Generate dictionary of task metadata for the job submitted.
@@ -138,12 +148,13 @@ def gen_task_metadata(task, job_id):
        container runtime (when task uses a container)
        hash of container file (when task uses a container)
     """
+    info('gen_task_metadata()')
     metadata = {'job_id': job_id, 'host': hostname}
     for hint in task.hints:
         req_class, req_key, req_value = hint
         if req_class == "DockerRequirement" and req_key == "dockerImageId":
             metadata['container_runtime'] = container_runtime
-            container_path = req_value
+            container_path = os.path.join(container_dir, req_value)
             with open(container_path, 'rb') as container:
                 c_hash = hashlib.md5()
                 chunk = container.read(8192)
@@ -158,6 +169,7 @@ def gen_task_metadata(task, job_id):
 def write_request_file(fname, resp):
     """Write a request to a file."""
     # Write the file (this iterates over the content to handle large files)
+    info('write_request_file')
     with open(fname, 'wb') as fp:
         for chunk in resp.iter_content(chunk_size=8192):
             fp.write(chunk)
@@ -165,6 +177,7 @@ def write_request_file(fname, resp):
 
 def pull_file(fname):
     """Try pulling a file."""
+    info('pull_file()')
     # If the path already exists, then don't pull anything
     if os.path.exists(fname):
         return
@@ -188,48 +201,53 @@ def pull_file(fname):
         log.error('Could not connect to the WFM to pull file {}'.format(fname))
 
 
+# TODO: Perhaps this function should be moved somewhere into beeflow/common
+def get_hint(task, hint_class, hint_key):
+    """Helper function for getting a hint from a task."""
+    info('get_hint()')
+    # Based on the container run time code for getting the dockerImageId
+    if task.hints is not None:
+        for hint in task.hints:
+            class_, key, value = hint
+            if class_ == hint_class and key == hint_key:
+                return value
+    return None
+
+
 def presubmit_jobs():
     """Run job code that needs be done before submission."""
+    info('presubmit_jobs()')
     while presubmit_queue:
         task_data = presubmit_queue.pop(0)
         task = task_data['task']
         extra_requirements = task_data['extra_requirements']
         # TODO: Check for extra requirements
         log.info('Running presubmit code for task {}'.format(task.name))
+        pull_hint = get_hint(task, 'Pull', 'files')
         # submit_queue
         cwd = os.getcwd()
-        if 'pull' in extra_requirements and 'workdir' in extra_requirements:
-            workdir = extra_requirements['workdir']
-            pull_files = extra_requirements['pull']
+        # if 'pull' in extra_requirements and 'workdir' in extra_requirements:
+        if pull_hint is not None:
+            # XXX: I use '|' as a separator to allow for lists of files to pull
+            pull_files = pull_hint.split('|')
+            #workdir = extra_requirements['workdir']
+            #pull_files = extra_requirements['pull']
+            # XXX: Assume workdir is the user's home directory
+            workdir = os.path.expanduser('~/')
             # Change to the current working directory of tasks
             os.chdir(workdir)
+            # Pull any files
             for file_ in pull_files:
                 log.info('Pulling file {} from the WFM'.format(file_))
                 pull_file(file_)
             os.chdir(cwd)
-        # Now see if we need to pull any containers (this will need to be hamdled by the Builder at some point)
-        for hint in task.hints:
-            if hint.req_class == 'DockerRequirement' and hint.key == 'dockerImageId':
-                # Check if the container exists
-                if not os.path.exists(hint.value):
-                    log.info("Container file %s doesn't exists on this system, trying to pull it"
-                             % (hint.value,))
-                    # If the container doesn't exist, then try to pull it from the WFM
-                    basename = os.path.basename(hint.value)
-                    try:
-                        resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{basename}')
-                        if not resp.ok:
-                            log.error('Could not pull container {} from the WFM'.format(hint.value))
-                            continue
-                        write_request_file(hint.value, resp)
-                    except requests.exceptions.ConnectionError:
-                        log.error('Could not connect to the WFM')
         # Now add it to the submit queue
         submit_queue.append({task.id: task, 'extra_requirements': extra_requirements})
 
 
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
+    info('submit_jobs()')
     while len(submit_queue) >= 1:
         # Single value dictionary
         task_dict = submit_queue.pop(0)
@@ -260,6 +278,7 @@ def submit_jobs():
 
 def send_file_or_dir(fname):
     """Send a file or a directory to the WFM."""
+    info('send_file_or_dir()')
     if os.path.isdir(fname):
         # Put the directory in a tarball (cd to the directory, tar it up, then back out)
         tarball = f'{fname}.tar.bz2'
@@ -276,6 +295,7 @@ def send_file_or_dir(fname):
 
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
+    info('update_jobs()')
     for job in job_queue[:]:
         task = job['task']
         job_id = job['job_id']
@@ -286,23 +306,27 @@ def update_jobs():
         log.info('Job has extra requirements {}'.format(extra_requirements))
         if job_state == 'COMPLETED':
             # TODO: Run any completion code here
-            if 'push' in extra_requirements:
+            push = get_hint(task, 'Push', 'files')
+            # if 'push' in extra_requirements:
+            if push is not None:
                 # Push files back the WFM
-                push_files = extra_requirements['push']
+                # push_files = extra_requirements['push']
+                # XXX: I use '|' as a separator here
+                push_files = push.split('|')
                 log.info('Pusing files {}'.format(','.join(push_files)))
                 for fname in push_files:
                     # This checks multiple locations for output files, since
                     # stdout results may have been in the cwd of the TM
                     try:
-                        # Check for files in the workdir and in the CWD
-                        workdir_name = os.path.join(extra_requirements['workdir'], fname)
-                        cwd_name = os.path.join(os.getcwd(), fname)
-                        if os.path.exists(workdir_name):
-                            send_file_or_dir(workdir_name)
-                        elif os.path.exists(cwd_name):
-                            send_file_or_dir(cwd_name)
-                        else:
-                            log.info('File {} could not be found'.format(fname))
+                        # TODO: Check other directories other than just the home directory.
+                        home = os.path.expanduser('~/')
+                        home_fname = os.path.join(home, fname)
+                        if os.path.exists(fname):
+                            # Its in the CWD
+                            send_file_or_dir(fname)
+                        elif os.path.exists(home_fname):
+                            # It's in the home dir
+                            send_file_or_dir(home_fname)
                     except requests.exceptions.ConnectionError:
                         log.error('Could not connect to the WFM')
 
@@ -323,6 +347,7 @@ def update_jobs():
 
 def complete_jobs():
     """This runs code that needs to be run on job completion."""
+    info('complete_jobs()')
     while completion_queue:
         job = completion_queue.pop(0)
         task = job['task']
@@ -354,6 +379,7 @@ def complete_jobs():
 
 def process_queues():
     """Look for newly submitted jobs and update status of scheduled jobs."""
+    info('process_queues()')
     presubmit_jobs()
     submit_jobs()
     update_jobs()
@@ -415,6 +441,7 @@ class TaskSubmit(Resource):
 
     def post(self):
         """Receives task from WFM."""
+        info('TaskSubmit.post()')
         data = self.reqparse.parse_args()
         tasks = jsonpickle.decode(data['tasks'])
         extra_requirements = jsonpickle.decode(data['extra_requirements'])
@@ -435,6 +462,7 @@ class TaskActions(Resource):
     @staticmethod
     def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
+        info('TaskActions.delete()')
         cancel_msg = ""
         for job in job_queue:
             task_id = list(job.keys())[0]

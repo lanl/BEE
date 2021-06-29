@@ -30,6 +30,10 @@ def schedule_all(tasks, resources, **kwargs):
             # Choose a random resource
             res_names = [res_name for res_name in resources]
             res_name = res_names[random.randint(0, len(res_names) - 1)]
+            # Check if the task has an affinity for a resource
+            if 'affinity' in task_reqs and task_reqs['affinity'] in res_names:
+                # TODO: Log this some how
+                res_name = task_reqs['affinity']
         # Schedule the task
         schedule[task_name] = {
             # Time slots are per-resource

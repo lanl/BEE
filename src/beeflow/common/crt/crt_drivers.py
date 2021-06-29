@@ -53,6 +53,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
     def script_text(self, task):
         """Build text for Charliecloud batch script."""
+        text = None
         if task.hints is not None:
             docker = False
             command = ''.join(task.command) + '\n'
@@ -62,6 +63,10 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                     name = self.get_ccname(value)
                     chrun_opts, cc_setup = self.get_cc_options()
                     image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
+                    # Check for containers in a designated container dir
+                    container_dir = bc.userconfig.get('charliecloud', 'container_dir')
+                    if container_dir is not None:
+                        value = os.path.join(container_dir, value)
                     text = (f'{cc_setup}\n'
                             f'mkdir -p {image_mntdir}\n'
                             #f'[ -d {image_mntdir}/{name} ] && chmod +w -R {image_mntdir}/{name}\n'
@@ -73,6 +78,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                     docker = True
             if not docker:
                 text = command
+            print(text)
         return text
 
     def image_exists(self, task):

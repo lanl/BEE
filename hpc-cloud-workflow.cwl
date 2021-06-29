@@ -11,7 +11,7 @@ steps:
       class: CommandLineTool
       baseCommand: sleep 10
       hints:
-        Affinity: {resource: HPC}
+        Affinity: {resource: 'localhost:5129'}
       inputs:
         input: {type: string}
       outputs:
@@ -23,7 +23,7 @@ steps:
       class: CommandLineTool
       baseCommand: sleep 20
       hints:
-        Affinity: {resource: HPC}
+        Affinity: {resource: 'localhost:5129'}
       inputs:
         input: {type: string}
       outputs:
@@ -35,7 +35,7 @@ steps:
       class: CommandLineTool
       baseCommand: sleep 20
       hints:
-        Affinity: {resource: CLOUD}
+        Affinity: {resource: 'localhost:5055'}
       inputs:
         input: {type: string}
       outputs:
@@ -47,7 +47,7 @@ steps:
       class: CommandLineTool
       baseCommand: sleep 16
       hints:
-        Affinity: {resource: CLOUD}
+        Affinity: {resource: 'localhost:5055'}
       inputs:
         input: {type: string}
       outputs:

@@ -100,8 +100,8 @@ class LSFWorker(Worker):
     def write_script(self, task):
         """Build task script; returns filename of script."""
         script_dir = f'{self.workdir}/{task.workflow_id}/{task.name}-{task.id}'
-        if not self.crt.image_exists(task):
-            raise Exception(f'dockerImageId not accessible for task {task.name}.')
+        #if not self.crt.image_exists(task):
+        #    raise Exception(f'dockerImageId not accessible for task {task.name}.')
         os.makedirs(script_dir, exist_ok=True)
         task_text = self.build_text(task)
         task_script = f'{script_dir}/{task.name}-{task.id}.sh'

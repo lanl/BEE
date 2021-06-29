@@ -124,13 +124,6 @@ class ResourceMonitor():
 
     def get(self):
         """Construct resources dictionary for resource monitor."""
-        #resources = [
-        #    {
-        #        'id_': f'{host}:{port}',
-        #        'nodes': task_managers[(host, port, name)]['resource']['nodes']
-        #    }
-        #    for host, port, name in task_managers
-        #]
         # XXX: Just using a simple list of resource names for right now
         resources = [f'{host}:{port}' for host, port, name in task_managers]
 
@@ -270,8 +263,10 @@ def submit_tasks_tm(tasks, allocation):
         # The `extra_requirements` field is a hack until Tasks can hold more
         # requirement data
         # extra_requirements = {}
+        # TODO: Remove this extra_requirements hack
         extra_requirements = {
-            task.id: task_extra_requirements[task.name]
+            # task.id: task_extra_requirements[task.name]
+            task.id: None
             for task in tasks
         }
         extra_requirements = jsonpickle.encode(extra_requirements)
@@ -332,28 +327,22 @@ def resume():
 
 def tasks_to_sched(tasks):
     """Convert gdb tasks to sched tasks."""
-    # TODO: Need to get task dependencies somehow
-    return {
-        task.id: {
-            # 'deps' refers to all tasks that have already run, that this is
-            # task is dependent on
-            'deps': [dep.id for dep in wfi.get_previous_tasks(task)],
-        } for task in tasks
-    }
-    """
-    sched_tasks = []
+    # Get requirements if there are any
+    sched_tasks = {}
     for task in tasks:
-        sched_task = {
-            'workflow_name': 'workflow',
-            'task_name': task.id,
-            'requirements': {
-                'max_runtime': 1,
-                'nodes': 1
-            }
-        }
-        sched_tasks.append(sched_task)
+        task_req = {}
+        # Based on code in src/beeflow/common/crt/crt_drivers.py
+        if task.hints is not None:
+            for hint in task.hints:
+                req_class, key, value = hint
+                # Save affinity requirements
+                if req_class == 'Affinity' and key == 'resource':
+                    task_req['affinity'] = value
+        # 'deps' refers to all tasks that have already run, that this
+        # task is dependent on
+        task_req['deps'] = [dep.id for dep in wfi.get_previous_tasks(task)]
+        sched_tasks[task.id] = task_req
     return sched_tasks
-"""
 
 
 # TODO: Set to a real workflow name
