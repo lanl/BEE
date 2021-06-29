@@ -160,8 +160,7 @@ def submit_jobs():
         task = next(iter(task_dict.values()))
         log.info('task:{}'.format(task))
         log.info('task type:{}'.format(type(task)))
-        log.info('vars(task):{}'.format(vars(task)))
-        log.info('type(vars(task)):{}'.format(type(vars(task))))
+        log.info('task2arg(task):{}'.format(task2arg((task))))
         try:
             log.info('Resolving environment for task {}'.format(task.name))
             proc = resolve_environment(task)

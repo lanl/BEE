@@ -9,8 +9,8 @@ def arg2task(task_arg):
     task = Task(name=task_arg['name'],
                 command=task_arg['command'],
                 workflow_id=task_arg['workflow_id'],
-                requirements=task_arg['requirements'],
-                hints=task_arg['hints'],
+                requirements=vars(task_arg['requirements']),
+                hints=vars(task_arg['hints']),
                 subworkflow=task_arg['subworkflow'],
                 inputs=task_arg['inputs'],
                 outputs=task_arg['outputs'])
