@@ -119,7 +119,7 @@ class SingularityDriver(ContainerRuntimeDriver):
             for hint in task.hints:
                 if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
                     text = ''.join([
-                        'singularity exec ', hint.params["dockerImagaeId"],
+                        'singularity exec ', hint.params["dockerImageId"],
                         ' ', command,
                         ])
                     docker = True
@@ -127,10 +127,17 @@ class SingularityDriver(ContainerRuntimeDriver):
                 text = command
         return text
 
+    def build_text(self, userconfig, task):
+        """Build text for Singularity batch script."""
+        task_args = task2arg(task)
+        text = (f'beeflow --build {userconfig} {task_args}\n'
+                )
+        return text
+
     def image_exists(self, task):
         """Check if image exists."""
         if task.hints is not None:
             for hint in task.hints:
                 if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    return os.access(hint.params["dockerImageID"], os.R_OK)
+                    return os.access(hint.params["dockerImageId"], os.R_OK)
         return True
