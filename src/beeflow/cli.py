@@ -18,7 +18,7 @@ import sys
 import tempfile
 import time
 import platform
-from subprocess import PIPE
+from subprocess import PIPE, DEVNULL
 from configparser import NoOptionError
 import beeflow.common.log as bee_logging
 from beeflow.common.config_driver import BeeConfig
@@ -212,8 +212,7 @@ def StartWorkflowManager(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
-                            userconfig_file])
-    #, stdout=PIPE)
+                            userconfig_file], stdout=DEVNULL, stderr=DEVNULL)
 
 def StartTaskManager(bc, args):
     """Start BEETaskManager. Returns a Popen process object."""
@@ -243,7 +242,8 @@ def StartTaskManager(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/task_manager.py",
-                            userconfig_file], stdout=PIPE, stderr=PIPE)
+                            userconfig_file], stdout=DEVNULL, stderr=DEVNULL)
+
 
 def StartScheduler(bc, args):
     """Start BEEScheduler.
@@ -270,7 +270,7 @@ def StartScheduler(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
-                            '--config-file',userconfig_file])
+                            '--config-file',userconfig_file], stdout=DEVNULL, stderr=DEVNULL)
 
 def StartBuild(args):
     """Start builder.
