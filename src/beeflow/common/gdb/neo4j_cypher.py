@@ -33,14 +33,12 @@ def create_workflow_hint_nodes(tx, hints):
     :param hints: the workflow hints
     :type hints: set of Hint
     """
-    hint_query = ("MATCH (w:Workflow) "
-                  "CREATE (w)-[:HAS_HINT]->(h:Hint) "
-                  "SET h.class = $class_ "
-                  "SET h.key = $key "
-                  "SET h.value = $value")
-
     for hint in hints:
-        tx.run(hint_query, class_=hint.class_, key=hint.key, value=hint.value)
+        hint_query = ("MATCH (w:Workflow) "
+                      "CREATE (w)-[:HAS_HINT]->(h:Hint $params) "
+                      "SET h.class = $class_")
+
+        tx.run(hint_query, params=hint.params, class_=hint.class_)
 
 
 def create_workflow_requirement_nodes(tx, requirements):
@@ -49,14 +47,12 @@ def create_workflow_requirement_nodes(tx, requirements):
     :param requirements: the workflow requirements
     :type requirements: set of Requirement
     """
-    req_query = ("MATCH (w:Workflow) "
-                 "CREATE (w)-[:HAS_REQUIREMENT]->(r:Requirement) "
-                 "SET r.class = $class_ "
-                 "SET r.key = $key "
-                 "SET r.value = $value")
-
     for req in requirements:
-        tx.run(req_query, class_=req.class_, key=req.key, value=req.value)
+        req_query = ("MATCH (w:Workflow) "
+                     "CREATE (w)-[:HAS_REQUIREMENT]->(r:Requirement $params) "
+                     "SET r.class = $class_")
+
+        tx.run(req_query, params=req.params, class_=req.class_)
 
 
 def create_task(tx, task):
@@ -86,14 +82,12 @@ def create_task_hint_nodes(tx, task):
     :param task: the task whose hints to add to the graph
     :type task: Task
     """
-    hint_query = ("MATCH (t:Task {task_id: $task_id}) "
-                  "CREATE (t)-[:HAS_HINT]->(h:Hint) "
-                  "SET h.class = $class_ "
-                  "SET h.key = $key "
-                  "SET h.value = $value")
-
     for hint in task.hints:
-        tx.run(hint_query, task_id=task.id, class_=hint.class_, key=hint.key, value=hint.value)
+        hint_query = ("MATCH (t:Task {task_id: $task_id}) "
+                      "CREATE (t)-[:HAS_HINT]->(h:Hint $params) "
+                      "SET h.class = $class_")
+
+        tx.run(hint_query, task_id=task.id, params=hint.params, class_=hint.class_)
 
 
 def create_task_requirement_nodes(tx, task):
@@ -102,14 +96,12 @@ def create_task_requirement_nodes(tx, task):
     :param task: the task whose requirements to add to the graph
     :type task: Task
     """
-    req_query = ("MATCH (t:Task {task_id: $task_id}) "
-                 "CREATE (t)-[:HAS_REQUIREMENT]->(h:Requirement) "
-                 "SET h.class = $class_ "
-                 "SET h.key = $key "
-                 "SET h.value = $value")
-
     for req in task.requirements:
-        tx.run(req_query, task_id=task.id, class_=req.class_, key=req.key, value=req.value)
+        req_query = ("MATCH (t:Task {task_id: $task_id}) "
+                     "CREATE (t)-[:HAS_REQUIREMENT]->(r:Requirement $params) "
+                     "SET r.class = $class_")
+
+        tx.run(req_query, task_id=task.id, params=req.params, class_=req.class_)
 
 
 def create_task_metadata_node(tx, task):
@@ -305,11 +297,11 @@ def set_task_metadata(tx, task, metadata):
     """
     metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id})"
 
-    for key, val in metadata.items():
-        if isinstance(val, str):
-            metadata_query += f" SET m.{key} = '{val}'"
+    for k, v in metadata.items():
+        if isinstance(v, str):
+            metadata_query += f" SET m.{k} = '{v}'"
         else:
-            metadata_query += f" SET m.{key} = {val}"
+            metadata_query += f" SET m.{k} = {v}"
 
     tx.run(metadata_query, task_id=task.id)
 
