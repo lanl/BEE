@@ -155,7 +155,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
         Returns a tuple of (requirements, hints)
 
-        :rtype: (set of Requirement, set of Hint)
+        :rtype: (list of Requirement, list of Hint)
         """
         with self._driver.session() as session:
             requirements = _reconstruct_requirements(
@@ -263,7 +263,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
         :param task_records: the database records of the tasks
         :type task_records: BoltStatementResult
-        :rtype: list of (BoltStatementResult, set of Hint)
+        :rtype: list of (BoltStatementResult, list of Hint, list of Requirement)
         """
         with self._driver.session() as session:
             trecords = list(task_records)
@@ -277,7 +277,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def _require_tasks_unique(self):
         """Require tasks to have unique names."""
-        self._write_transaction(tx.constrain_workflow_unique)
+        self._write_transaction(tx.constrain_tasks_unique)
 
     def _read_transaction(self, tx_fun, **kwargs):
         """Run a Neo4j read transaction.
@@ -308,10 +308,11 @@ def _reconstruct_requirements(req_records):
 
     :param req_records: the database record of the requirements
     :type req_records: BoltStatementResult
-    :rtype: set of Requirement
+    :rtype: list of Requirement
     """
     recs = [req_record["r"] for req_record in req_records]
-    return {Requirement(rec["class"], rec["key"], rec["value"]) for rec in recs}
+    return [Requirement(rec["class"], {k: v for k, v in rec.items() if k != "class"})
+            for rec in recs]
 
 
 def _reconstruct_hints(hint_records):
@@ -319,10 +320,10 @@ def _reconstruct_hints(hint_records):
 
     :param hint_records: the database record of the hints
     :type hint_records: BoltStatementResult
-    :rtype: set of Hint
+    :rtype: list of Hint
     """
     recs = [hint_record["h"] for hint_record in hint_records]
-    return {Hint(rec["class"], rec["key"], rec["value"]) for rec in recs}
+    return [Hint(rec["class"], {k: v for k, v in rec.items() if k != "class"}) for rec in recs]
 
 
 def _reconstruct_workflow(workflow_record, hints, requirements):
@@ -331,14 +332,15 @@ def _reconstruct_workflow(workflow_record, hints, requirements):
     :param workflow_record: the database record of the workflow
     :type workflow_record: BoltStatementResult
     :param hints: the workflow hints
-    :type hints: set of Hint
+    :type hints: list of Hint
     :param requirements: the workflow requirements
-    :type requirements: set of Requirement
+    :type requirements: list of Requirement
     :rtype: Workflow
     """
     rec = workflow_record["w"]
-    return Workflow(hints=hints, requirements=requirements, inputs=set(rec["inputs"]),
-                    outputs=set(rec["outputs"]), workflow_id=rec["workflow_id"])
+    return Workflow(name=rec["name"], hints=hints, requirements=requirements,
+                    inputs=set(rec["inputs"]), outputs=set(rec["outputs"]),
+                    workflow_id=rec["workflow_id"])
 
 
 def _reconstruct_task(task_record, hints, requirements):
@@ -347,7 +349,9 @@ def _reconstruct_task(task_record, hints, requirements):
     :param task_record: the database record of the task
     :type task_record: BoltStatementResult
     :param hints: the task hints
-    :type hints: set of Hint
+    :type hints: list of Hint
+    :param requirements: the task requirements
+    :type requirements: list of Requirement
     :rtype: Task
     """
     rec = task_record["t"]
@@ -360,8 +364,8 @@ def _reconstruct_task(task_record, hints, requirements):
 def _reconstruct_metadata(metadata_record, keys):
     """Reconstruct a dict containing the job description metadata retrieved from Neo4j.
 
-    :param metadata: the database record of the metadata
-    :type metadata: dict
+    :param metadata_record: the database record of the metadata
+    :type metadata_record: dict
     :param keys: the metadata keys to retrieve from the record
     :type keys: iterable of str
     :rtype: dict
