@@ -162,26 +162,24 @@ class CwlParser:
     def parse_requirements(requirements, as_hints=False):
         """Parse CWL hints/requirements.
 
-        :param requirements: the CWL requirements dictionary
+        :param requirements: the CWL requirements
         :type requirements: list of ordereddict
         :param as_hints: parse as hints instead of requirements
         :type as_hints: bool
         :rtype: set of Hint or set of Requirement or None
         """
-        reqs = set()
+        reqs = []
         if not requirements:
             return reqs
         if as_hints:
             for req in requirements:
-                pairs = ((k, v) for k, v in req.items() if k != "class")
-                for pair in pairs:
-                    reqs.add(Hint(req["class"], pair[0], pair[1]))
+                reqs.append(Hint(req["class"], {k: v for k, v in req.items() if k != "class"}))
         else:
             for req in requirements:
-                pairs = ((k, v) for k, v in req.items() if k != "class")
-                for pair in pairs:
-                    reqs.add(Requirement(req["class"], pair[0], pair[1]))
-
+                reqs.append(Requirement(req.class_, {k: v for k, v in vars(req).items() if k not in ("extension_fields",
+                                                                                                     "loadingOptions",
+                                                                                                     "class_")
+                                                     and v is not None}))
         return reqs
 
 
