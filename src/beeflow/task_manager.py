@@ -86,7 +86,7 @@ check_crt_config(runtime)
 tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
 # Get Task Manager resource information
 # TODO: This may need to be determined dynamically on certain systems
-tm_nodes = bc.userconfig['task_manager'].get('nodes', 1)
+tm_nodes = bc.userconfig['task_manager'].getint('nodes', 1)
 tm_name = bc.userconfig['task_manager'].get('name', 'local_tm')
 
 # Check Workflow manager port, use default if none.
@@ -411,6 +411,8 @@ elif WLS == 'LSF':
 elif WLS == 'Simple':
     worker_class = SimpleWorker
 
+print(workload_args)
+print()
 worker = WorkerInterface(worker_class, **workload_args)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
