@@ -15,6 +15,7 @@ import time
 import os
 import subprocess
 
+import flask
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
@@ -98,11 +99,6 @@ else:
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-presubmit_queue = [] # Code to be run before submission
-submit_queue = []  # tasks ready to be submitted
-job_queue = []  # jobs that are being monitored
-completion_queue = [] # Code to be run after job completion
-
 
 def _wfm():
     """Return the base url for the WFM."""
@@ -118,6 +114,66 @@ def _url():
 def _resource(tag=""):
     """Access the WFM."""
     return _url() + str(tag)
+
+
+def get_hint(task, hint_class, hint_key):
+    """Get a hint for this task (or None if no such hint)."""
+    # Based on code in the container runtime classes
+    if task.hints is not None:
+        for hint in task.hints:
+            req_class, key, value = hint
+            if req_class == hint_class and key == hint_key:
+                return value
+    return None
+
+
+def _write_request_file(fname, resp):
+    """Write a request to a file."""
+    # Write the file (this iterates over the content to handle large files)
+    with open(fname, 'wb') as fp:
+        for chunk in resp.iter_content(chunk_size=8192):
+            fp.write(chunk)
+
+
+def _pull_file(fname):
+    """Try pulling a file."""
+    # If the path already exists, then don't pull anything
+    if os.path.exists(fname):
+        return
+    # TODO: Set the tarball extension in the config file
+    tar_ext = 'tar.bz2'
+    try:
+        # The stream=True argument is required for large files
+        resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{fname}', stream=True)
+        if not resp.ok:
+            # Check if its a tarred directory
+            tarfile = f'{fname}.{tar_ext}'
+            resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{tarfile}', stream=True)
+            if not resp.ok:
+                log.error('Could not pull file {}'.format(fname))
+                return
+            _write_request_file(tarfile, resp)
+            subprocess.run(['tar', '-xvf', tarfile])
+        else:
+            _write_request_file(fname, resp)
+    except requests.exceptions.ConnectionError:
+        log.error('Could not connect to the WFM to pull file {}'.format(fname))
+
+
+def _send_file_or_dir(fname):
+    """Send a file or a directory to the WFM."""
+    if os.path.isdir(fname):
+        # Put the directory in a tarball (cd to the directory, tar it up, then back out)
+        tarball = f'{fname}.tar.bz2'
+        cwd = os.getcwd()
+        os.chdir(os.path.dirname(fname))
+        subprocess.run(['tar', '-cf', tarball, os.path.basename(fname)])
+        os.chdir(cwd)
+        requests.post(f'{_wfm()}/bee_wfm/v1/files/',
+                      files={os.path.basename(tarball): open(tarball, 'rb')})
+    elif os.path.isfile(fname):
+        requests.post(f'{_wfm()}/bee_wfm/v1/files/',
+                      files={os.path.basename(fname): open(fname, 'rb')})
 
 
 def update_task_state(task_id, job_state):
@@ -139,251 +195,95 @@ def update_task_metadata(task_id, metadata):
 
 container_dir = bc.userconfig.get('charliecloud', 'container_dir')
 
-def gen_task_metadata(task, job_id):
-    """Generate dictionary of task metadata for the job submitted.
 
-    Includes:
-       job_id
-       hostname
-       container runtime (when task uses a container)
-       hash of container file (when task uses a container)
-    """
-    info('gen_task_metadata()')
-    metadata = {'job_id': job_id, 'host': hostname}
-    for hint in task.hints:
-        req_class, req_key, req_value = hint
-        if req_class == "DockerRequirement" and req_key == "dockerImageId":
-            metadata['container_runtime'] = container_runtime
-            container_path = os.path.join(container_dir, req_value)
-            with open(container_path, 'rb') as container:
-                c_hash = hashlib.md5()
-                chunk = container.read(8192)
-                while chunk:
-                    c_hash.update(chunk)
-                    chunk = container.read(8192)
-            container_hash = c_hash.hexdigest()
-            metadata['container_hash'] = container_hash
-    return metadata
-
-
-def write_request_file(fname, resp):
-    """Write a request to a file."""
-    # Write the file (this iterates over the content to handle large files)
-    info('write_request_file')
-    with open(fname, 'wb') as fp:
-        for chunk in resp.iter_content(chunk_size=8192):
-            fp.write(chunk)
+def complete_job(task):
+    """Complete the given job/task."""
+    push = get_hint(task, 'Push', 'files')
+    # if 'push' in extra_requirements:
+    if push is not None:
+        # Push files back the WFM
+        # XXX: I use '|' as a separator here
+        push_files = push.split('|')
+        log.info('Pusing files {}'.format(','.join(push_files)))
+        for fname in push_files:
+            # This checks multiple locations for output files, since
+            # stdout results may have been in the cwd of the TM
+            try:
+                # TODO: Check other directories other than just the home directory.
+                home = os.path.expanduser('~/')
+                home_fname = os.path.join(home, fname)
+                if os.path.exists(fname):
+                    # Its in the CWD
+                    _send_file_or_dir(fname)
+                elif os.path.exists(home_fname):
+                    # It's in the home dir
+                    _send_file_or_dir(home_fname)
+            except requests.exceptions.ConnectionError:
+                log.error('Could not connect to the WFM')
 
 
-def pull_file(fname):
-    """Try pulling a file."""
-    info('pull_file()')
-    # If the path already exists, then don't pull anything
-    if os.path.exists(fname):
-        return
-    # TODO: Set the tarball extension in the config file
-    tar_ext = 'tar.bz2'
-    try:
-        # The stream=True argument is required for large files
-        resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{fname}', stream=True)
-        if not resp.ok:
-            # Check if its a tarred directory
-            tarfile = f'{fname}.{tar_ext}'
-            resp = requests.get(f'{_wfm()}/bee_wfm/v1/files/{tarfile}', stream=True)
-            if not resp.ok:
-                log.error('Could not pull file {}'.format(fname))
-                return
-            write_request_file(tarfile, resp)
-            subprocess.run(['tar', '-xvf', tarfile])
-        else:
-            write_request_file(fname, resp)
-    except requests.exceptions.ConnectionError:
-        log.error('Could not connect to the WFM to pull file {}'.format(fname))
-
-
-# TODO: Perhaps this function should be moved somewhere into beeflow/common
-def get_hint(task, hint_class, hint_key):
-    """Helper function for getting a hint from a task."""
-    info('get_hint()')
-    # Based on the container run time code for getting the dockerImageId
-    if task.hints is not None:
-        for hint in task.hints:
-            class_, key, value = hint
-            if class_ == hint_class and key == hint_key:
-                return value
-    return None
-
-
-def presubmit_jobs():
-    """Run job code that needs be done before submission."""
-    info('presubmit_jobs()')
-    while presubmit_queue:
-        task_data = presubmit_queue.pop(0)
-        task = task_data['task']
-        extra_requirements = task_data['extra_requirements']
-        # TODO: Check for extra requirements
-        log.info('Running presubmit code for task {}'.format(task.name))
-        pull_hint = get_hint(task, 'Pull', 'files')
-        # submit_queue
-        cwd = os.getcwd()
-        # if 'pull' in extra_requirements and 'workdir' in extra_requirements:
-        if pull_hint is not None:
-            # XXX: I use '|' as a separator to allow for lists of files to pull
-            pull_files = pull_hint.split('|')
-            #workdir = extra_requirements['workdir']
-            #pull_files = extra_requirements['pull']
-            # XXX: Assume workdir is the user's home directory
-            workdir = os.path.expanduser('~/')
-            # Change to the current working directory of tasks
-            os.chdir(workdir)
-            # Pull any files
-            for file_ in pull_files:
-                log.info('Pulling file {} from the WFM'.format(file_))
-                pull_file(file_)
-            os.chdir(cwd)
-        # Now add it to the submit queue
-        submit_queue.append({task.id: task, 'extra_requirements': extra_requirements})
-
-
-def submit_jobs():
-    """Submit all jobs currently in submit queue to the workload scheduler."""
-    info('submit_jobs()')
-    while len(submit_queue) >= 1:
-        # Single value dictionary
-        task_dict = submit_queue.pop(0)
-        task = next(iter(task_dict.values()))
-        extra_requirements = task_dict['extra_requirements']
-        try:
-            job_id, job_state = worker.submit_task(task)
-            log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
-            # place job in queue to monitor
-            job_queue.append({
-                'task': task,
-                'job_id': job_id,
-                'job_state': job_state,
-                'extra_requirements': extra_requirements,
-            })
-            # Update metadata
-            task_metadata = gen_task_metadata(task, job_id)
-            update_task_metadata(task.id, task_metadata)
-        except Exception as error:
-            # Set job state to failed
-            job_state = 'SUBMIT_FAIL'
-            log.error(f'Task Manager submit task {task.name} failed! \n {error}')
-            log.error(f'{task.name} state: {job_state}')
-        finally:
-            # Send the initial state to WFM
-            update_task_state(task.id, job_state)
-
-
-def send_file_or_dir(fname):
-    """Send a file or a directory to the WFM."""
-    info('send_file_or_dir()')
-    if os.path.isdir(fname):
-        # Put the directory in a tarball (cd to the directory, tar it up, then back out)
-        tarball = f'{fname}.tar.bz2'
-        cwd = os.getcwd()
-        os.chdir(os.path.dirname(fname))
-        subprocess.run(['tar', '-cf', tarball, os.path.basename(fname)])
+def launch_job(task):
+    """Launch the given job."""
+    log.info('launch_job():')
+    # extra_requirements = task_data['extra_requirements']
+    # TODO: Check for extra requirements
+    log.info('Running presubmit code for task {}'.format(task.name))
+    pull_hint = get_hint(task, 'Pull', 'files')
+    # submit_queue
+    cwd = os.getcwd()
+    # if 'pull' in extra_requirements and 'workdir' in extra_requirements:
+    if pull_hint is not None:
+        # XXX: I use '|' as a separator to allow for lists of files to pull
+        pull_files = pull_hint.split('|')
+        # XXX: Assume workdir is the user's home directory
+        workdir = os.path.expanduser('~/')
+        # Change to the current working directory of tasks
+        os.chdir(workdir)
+        # Pull any files
+        for file_ in pull_files:
+            log.info('Pulling file {} from the WFM'.format(file_))
+            _pull_file(file_)
         os.chdir(cwd)
-        requests.post(f'{_wfm()}/bee_wfm/v1/files/',
-                      files={os.path.basename(tarball): open(tarball, 'rb')})
-    elif os.path.isfile(fname):
-        requests.post(f'{_wfm()}/bee_wfm/v1/files/',
-                      files={os.path.basename(fname): open(fname, 'rb')})
+    return worker.submit_task(task)
 
 
-def update_jobs():
-    """Check and update states of jobs in queue, remove completed jobs."""
-    info('update_jobs()')
-    for job in job_queue[:]:
-        task = job['task']
-        job_id = job['job_id']
-        job_state = worker.query_task(job_id)
-
-
-        extra_requirements = job['extra_requirements']
-        log.info('Job has extra requirements {}'.format(extra_requirements))
-        if job_state == 'COMPLETED':
-            # TODO: Run any completion code here
-            push = get_hint(task, 'Push', 'files')
-            # if 'push' in extra_requirements:
-            if push is not None:
-                # Push files back the WFM
-                # push_files = extra_requirements['push']
-                # XXX: I use '|' as a separator here
-                push_files = push.split('|')
-                log.info('Pusing files {}'.format(','.join(push_files)))
-                for fname in push_files:
-                    # This checks multiple locations for output files, since
-                    # stdout results may have been in the cwd of the TM
-                    try:
-                        # TODO: Check other directories other than just the home directory.
-                        home = os.path.expanduser('~/')
-                        home_fname = os.path.join(home, fname)
-                        if os.path.exists(fname):
-                            # Its in the CWD
-                            send_file_or_dir(fname)
-                        elif os.path.exists(home_fname):
-                            # It's in the home dir
-                            send_file_or_dir(home_fname)
-                    except requests.exceptions.ConnectionError:
-                        log.error('Could not connect to the WFM')
-
-
-        if job_state != job['job_state']:
-            log.info(f'{task.name} {job["job_state"]} -> {job_state}')
-            job['job_state'] = job_state
-            update_task_state(task.id, job_state)
-
-        if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
-            # TODO: Maybe removal should be done outside of the loop
-            # Remove from the job queue. Our job is finished
-            job_queue.remove(job)
-            # Add it to the completion queue
-            completion_queue.append(job)
-            log.info(f'Job {job_id} done {task.name}: removed from job status queue')
-
-
-def complete_jobs():
-    """This runs code that needs to be run on job completion."""
-    info('complete_jobs()')
-    while completion_queue:
-        job = completion_queue.pop(0)
-        task = job['task']
-        extra_requirements = job['extra_requirements']
-        log.info('Running completion code for task {}'.format(task.name))
-        """
-        if job['job_state'] == 'COMPLETED':
-            # TODO: Run any completion code here
-            if 'push' in extra_requirements:
-                # Push files back the WFM
-                push_files = extra_requirements['push']
-                for fname in push_files:
-                    # This checks multiple locations for output files, since
-                    # stdout results may have been in the cwd of the TM
-                    try:
-                        # Check for files in the workdir and in the CWD
-                        workdir_name = os.path.join(extra_requirements['workdir'], fname)
-                        cwd_name = os.path.join(os.getcwd(), fname)
-                        if os.path.exists(workdir_name):
-                            send_file_or_dir(workdir_name)
-                        elif os.path.exists(cwd_name):
-                            send_file_or_dir(cwd_name)
-                        else:
-                            log.info('File {} could not be found'.format(fname))
-                    except requests.exceptions.ConnectionError:
-                        log.error('Could not connect to the WFM')
-
-        """
+# A dict from job_id -> {task_id, job_state} (of the currently running tasks/jobs)
+running = {}
+# List of task ids in order to run
+submit_queue = []
+# dict from task_id -> {'task': task, 'allocation': allocation}
+task_info = {}
 
 def process_queues():
     """Look for newly submitted jobs and update status of scheduled jobs."""
-    info('process_queues()')
-    presubmit_jobs()
-    submit_jobs()
-    update_jobs()
-    complete_jobs()
+    log.info('process_queues()')
+    print(running)
+    for job_id in running.copy():
+        task_id = running[job_id]['task_id']
+        old_job_state = running[job_id]['job_state']
+        task = task_info[task_id]['task']
+        job_state = worker.query_task(job_id)
+        running[job_id]['job_state'] = job_state
+        if job_state == 'COMPLETED':
+            log.info('Task %s completed' % (task.name,))
+            complete_job(task)
+            # Remove it from the running dict
+            del running[job_id]
+        # Update the WFM
+        if old_job_state != job_state:
+            update_task_state(task.id, job_state)
+    # Submit new tasks if we have enough nodes
+    while len(running) < tm_nodes and submit_queue:
+        task_id = submit_queue.pop(0)
+        task = task_info[task_id]['task']
+        log.info('Launching new task %s' % (task.name,))
+        job_id, job_state = launch_job(task)
+        running[job_id] = {
+            'task_id': task_id,
+            'job_state': job_state,
+        }
+        # Update the state in the WFM
+        update_task_state(task_id, job_state)
 
 
 last_status_check = None
@@ -399,9 +299,9 @@ def call_wfm():
     if last_status_check is None or last_status_check < (t - 200):
         data = {
             'tm_listen_host': 'localhost',
-            'tm_listen_port': tm_listen_port,
+            'tm_listen_port': int(tm_listen_port),
             'tm_name': tm_name,
-            'resource': {
+            'resource_props': {
                 'nodes': tm_nodes,
                 # TODO: Other resource properties
             },
@@ -418,11 +318,16 @@ def call_wfm():
             log.error('Cannot connect to WFM')
 
 
+# Get the interval at which to ping/call the WFM
+call_wfm_interval = bc.userconfig['task_manager'].get('call_wfm_interval')
+call_wfm_interval = call_wfm_interval if call_wfm_interval is not None else 8
+
+
 if "pytest" not in sys.modules:
     # TODO Decide on the time interval for the scheduler
     scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
     scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
-    scheduler.add_job(func=call_wfm, trigger="interval", seconds=20)
+    scheduler.add_job(func=call_wfm, trigger="interval", seconds=call_wfm_interval)
     scheduler.start()
 
     # This kills the scheduler when the process terminates
@@ -435,23 +340,18 @@ class TaskSubmit(Resource):
 
     def __init__(self):
         """Intialize request."""
-        self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('tasks', type=str, location='json')
-        self.reqparse.add_argument('extra_requirements', type=str, location='json')
 
     def post(self):
         """Receives task from WFM."""
-        info('TaskSubmit.post()')
-        data = self.reqparse.parse_args()
-        tasks = jsonpickle.decode(data['tasks'])
-        extra_requirements = jsonpickle.decode(data['extra_requirements'])
-        for task in tasks:
-            # submit_queue.append({task.id: task, 'extra_requirements': extra_requirements})
-            # log.info(f"Added {task.name} task to the submit queue")
-            presubmit_queue.append({'task': task,
-                                    'extra_requirements': extra_requirements[task.id]})
-            log.info(f"Added {task.name} task to the pre-submission queue")
-            log.info('Task {} has extra requirements: {}'.format(task.name, extra_requirements))
+        log.info('TaskSubmit.post()')
+        data = flask.request.json
+        for task_id in data:
+            # Decode the task
+            data[task_id]['task'] = jsonpickle.decode(data[task_id]['task'])
+        task_info.update(data)
+        # Sort task IDs by ascending time slot and add them to the queue
+        task_ids = sorted((task_id for task_id in data), key=lambda task_id: task_info[task_id]['allocation']['time_slot'])
+        submit_queue.extend(task_ids)
         resp = make_response(jsonify(msg='Tasks Added!', status='ok'), 200)
         return resp
 

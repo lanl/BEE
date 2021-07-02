@@ -27,11 +27,10 @@ class WorkflowProfiler:
             'timestamp': int(time.time()),
         })
 
-    def add_scheduling_results(self, tasks, resource_ids, resources, allocations):
+    def add_scheduling_results(self, tasks, resources, allocations):
         """Add scheduling results (given the set of available resources)."""
         self._scheduling_results.append({
             'tasks': tasks,
-            'resource_ids': resource_ids,
             'resources': resources,
             'allocations': dict(allocations),
             'timestamp': int(time.time()),

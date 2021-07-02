@@ -9,18 +9,20 @@ prev_schedules = {}
 
 def find_best_resource(dep_tasks):
     """Find the best resource, given a set of dependent tasks."""
-    resources = {}
+    resource_counts = {}
     for dep_task in dep_tasks:
         res_name = prev_schedules[dep_task]
-        resources[res_name] = resources[res_name] + 1 if res_name in resources else 1
-    if resources:
-        return min(resources, key=lambda res_name: resources[res_name])
+        resource_counts[res_name] = resource_counts[res_name] + 1 if res_name in resource_counts else 1
+    if resource_counts:
+        return min(resource_counts, key=lambda res_name: resource_counts[res_name])
     return None
 
 
 def schedule_all(tasks, resources, **kwargs):
     """Schedule all tasks onto the resources using the affinity algorithm."""
     schedule = {}
+    # List of resources scheduled for the system
+    scheduled = {resource: [] for resource in resources}
     for task_name in tasks:
         task_reqs = tasks[task_name]
         # Get the list of dependent tasks
@@ -34,10 +36,14 @@ def schedule_all(tasks, resources, **kwargs):
             if 'affinity' in task_reqs and task_reqs['affinity'] in res_names:
                 # TODO: Log this some how
                 res_name = task_reqs['affinity']
+        scheduled[res_name].append(task_name)
+        already_scheduled_count = len(scheduled[res_name])
+        print(resources)
+        nodes = resources[res_name]['nodes']
         # Schedule the task
         schedule[task_name] = {
-            # Time slots are per-resource
-            'time_slot': 0,	# XXX: the time slot should be based on what tasks can run at once and those that should run later
+            # The time slot determines when a task should run
+            'time_slot': int(already_scheduled_count / nodes),
             'resource': res_name,
         }
         # Store the scheduled allocation

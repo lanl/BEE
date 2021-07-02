@@ -20,8 +20,8 @@ import beeflow.common.log as bee_logging
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-# List of all available resources
-resources = []
+# dict of all available resources (should be in Redis)
+resources = {}
 
 
 # TODO: Need to document precisely all the properties that a resource may have
@@ -32,9 +32,7 @@ class ResourcesHandler(Resource):
     def put():
         """Create a list of resources to use for allocation."""
         resources.clear()
-        #resources.extend([resource_allocation.Resource.decode(r)
-        #                  for r in request.json])
-        resources.extend(request.json)
+        resources.update(request.json)
         return 'created %i resource(s)' % len(resources)
 
     @staticmethod
