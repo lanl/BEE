@@ -47,7 +47,7 @@ class WorkflowInterface:
 
         if not existing:
             workflow = Workflow(hints, requirements, inputs, outputs)
-            self.workflow_id = workflow.id
+            self._workflow_id = workflow.id
             # Load the new workflow into the graph database
             self._gdb_interface.initialize_workflow(workflow)
             return workflow
