@@ -297,6 +297,7 @@ def set_task_metadata(tx, task, metadata):
     """
     metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id})"
 
+    # TODO: remove injection vulnerability before release
     for k, v in metadata.items():
         if isinstance(v, str):
             metadata_query += f" SET m.{k} = '{v}'"
