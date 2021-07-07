@@ -54,7 +54,7 @@ steps:
     run: ffmpeg.cwl
     in:
       input_format: input_format
-      # ffmpeg_input: mv_script/stdout
+      ffmpeg_input: mv_script/stdout
       frame_rate: frame_rate
       frame_size: frame_size
       pixel_format: pixel_format
