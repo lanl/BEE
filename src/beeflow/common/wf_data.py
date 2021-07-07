@@ -7,8 +7,7 @@ InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
 # Workflow output parameter class
 OutputParameter = namedtuple("OutputParameter", ["id", "type", "value", "source"])
 # Step input class
-StepInput = namedtuple("StepInput", ["id", "type", "value", "source", "optional", "prefix",
-                                     "position"])
+StepInput = namedtuple("StepInput", ["id", "type", "value", "source", "prefix", "position"])
 # Step output class
 StepOutput = namedtuple("StepOutput", ["id", "type", "value", "glob"])
 
@@ -99,9 +98,9 @@ class Task:
         :param subworkflow: an identifier for the subworkflow to which the task belongs
         :type subworkflow: str
         :param inputs: the task inputs
-        :type inputs: set of str
+        :type inputs: set of StepInput
         :param outputs: the task outputs
-        :type outputs: set of str
+        :type outputs: set of StepOutput
         :param workflow_id: the workflow ID
         :type workflow_id: str
         :param task_id: the task ID

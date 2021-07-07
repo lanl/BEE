@@ -63,6 +63,8 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_workflow_requirement_nodes,
                                       requirements=workflow.requirements)
             session.write_transaction(tx.create_workflow_hint_nodes, hints=workflow.hints)
+            session.write_transaction(tx.create_workflow_input_nodes, inputs=workflow.inputs)
+            session.write_transaction(tx.create_workflow_output_nodes, outputs=workflow.outputs)
 
     def execute_workflow(self):
         """Begin execution of the workflow stored in the Neo4j database."""
@@ -110,6 +112,8 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task, task=task)
             session.write_transaction(tx.create_task_hint_nodes, task=task)
             session.write_transaction(tx.create_task_requirement_nodes, task=task)
+            session.write_transaction(tx.create_task_input_nodes, task=task)
+            session.write_transaction(tx.create_task_output_nodes, task=task)
             session.write_transaction(tx.create_task_metadata_node, task=task)
             session.write_transaction(tx.add_dependencies, task=task)
 

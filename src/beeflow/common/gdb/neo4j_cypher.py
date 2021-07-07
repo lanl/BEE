@@ -18,13 +18,10 @@ def create_workflow_node(tx, workflow):
     """
     workflow_query = ("CREATE (w:Workflow) "
                       "SET w.workflow_id = $workflow_id "
-                      "SET w.name = $name "
-                      "SET w.inputs = $inputs "
-                      "SET w.outputs = $outputs")
+                      "SET w.name = $name")
 
     # Store the workflow name, inputs, and outputs, in a new workflow node
-    tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name,
-           inputs=list(workflow.inputs), outputs=list(workflow.outputs))
+    tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name)
 
 
 def create_workflow_hint_nodes(tx, hints):
@@ -55,6 +52,36 @@ def create_workflow_requirement_nodes(tx, requirements):
         tx.run(req_query, params=req.params, class_=req.class_)
 
 
+def create_workflow_input_nodes(tx, inputs):
+    """Create Input nodes for the workflow.
+
+    :param inputs: the workflow inputs
+    :type inputs: set of InputParameter"""
+    for input_ in inputs:
+        input_query = ("MATCH (w:Workflow) CREATE (w)-[:HAS_INPUT]->(i:Input) "
+                       "SET i.id = $input_id "
+                       "SET i.type = $type "
+                       "SET i.value = $value")
+
+        tx.run(input_query, input_id=input_.id, type=input_.type, value=input_.value)
+
+
+def create_workflow_output_nodes(tx, outputs):
+    """Create Output nodes for the workflow.
+
+    :param outputs: the workflow outputs
+    :type outputs: set of OutputParameter"""
+    for output in outputs:
+        output_query = ("MATCH (w:Workflow) CREATE (w)-[:HAS_OUTPUT]->(o:Output) "
+                        "SET o.id = $output_id "
+                        "SET o.type = $type "
+                        "SET o.value = $value "
+                        "SET o.source = $source")
+
+        tx.run(output_query, output_id=output.id, type=output.type, value=output.value,
+               source=output.source)
+
+
 def create_task(tx, task):
     """Create a Task node in the Neo4j database.
 
@@ -66,14 +93,11 @@ def create_task(tx, task):
                     "SET t.workflow_id = $workflow_id "
                     "SET t.name = $name "
                     "SET t.command = $command "
-                    "SET t.subworkflow = $subworkflow "
-                    "SET t.inputs = $inputs "
-                    "SET t.outputs = $outputs ")
+                    "SET t.subworkflow = $subworkflow")
 
     # Unpack requirements, hints dictionaries into flat list
     tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
-           command=task.command, subworkflow=task.subworkflow, inputs=list(task.inputs),
-           outputs=list(task.outputs))
+           command=task.command, subworkflow=task.subworkflow)
 
 
 def create_task_hint_nodes(tx, task):
@@ -104,6 +128,43 @@ def create_task_requirement_nodes(tx, task):
         tx.run(req_query, task_id=task.id, params=req.params, class_=req.class_)
 
 
+def create_task_input_nodes(tx, task):
+    """Create Input nodes for a task.
+
+    :param task: the task whose inputs to add to the graph
+    :type task: Task"""
+    for input_ in task.inputs:
+        input_query = ("MATCH (t:Task {task_id: $task_id}) "
+                       "CREATE (t)-[:HAS_INPUT]->(i:Input) "
+                       "SET i.id = $input_id "
+                       "SET i.type = $type "
+                       "SET i.value = $value "
+                       "SET i.source = $source "
+                       "SET i.prefix = $prefix "
+                       "SET i.position = $position")
+
+        tx.run(input_query, task_id=task.id, input_id=input_.id, type=input_.type,
+               value=input_.value, source=input_.source, prefix=input_.prefix,
+               position=input_.position)
+
+
+def create_task_output_nodes(tx, task):
+    """Create Output nodes for a task.
+
+    :param task: the task whose outputs to add to the graph
+    :type task: Task"""
+    for output in task.outputs:
+        output_query = ("MATCH (t:Task {task_id: $task_id}) "
+                        "CREATE (t)-[:HAS_OUTPUT]->(o:Output) "
+                        "SET o.id = $output_id "
+                        "SET o.type = $type "
+                        "SET o.value = $value "
+                        "SET o.glob = $glob")
+
+        tx.run(output_query, task_id=task.id, output_id=output.id, type=output.type,
+               value=output.value, glob=output.glob)
+
+
 def create_task_metadata_node(tx, task):
     """Create a task metadata node in the Neo4j database.
 
@@ -124,15 +185,24 @@ def add_dependencies(tx, task):
     :param task: the workflow task
     :type task: Task
     """
-    begins_query = ("MATCH (s:Task {task_id: $task_id}), (w:Workflow) "
-                    "WHERE any(input IN s.inputs WHERE input IN w.inputs) "
+    begins_query = ("MATCH (s:Task {task_id: $task_id})-[:HAS_INPUT]->(i:Input) "
+                    "WITH s, collect(i.source) AS sources "
+                    "MATCH (w:Workflow)-[:HAS_INPUT]->(i:Input) "
+                    "WITH s, w, sources, collect(i.id) AS inputs "
+                    "WHERE any(input IN sources WHERE input IN inputs) "
                     "MERGE (s)-[:BEGINS]->(w)")
-    dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task) "
-                        "WHERE any(input IN s.inputs WHERE input IN t.outputs) "
+    dependency_query = ("MATCH (s:Task {task_id: $task_id})-[:HAS_INPUT]->(i:Input) "
+                        "WITH s, collect(i.source) as sources "
+                        "MATCH (t:Task)-[:HAS_OUTPUT]->(o:Output) "
+                        "WITH s, t, sources, collect(o.id) as outputs "
+                        "WHERE any(input IN sources WHERE input IN outputs) "
                         "MERGE (s)-[:DEPENDS]->(t) "
                         "WITH s "
-                        "MATCH (t:Task) "
-                        "WHERE any(output IN s.outputs WHERE output IN t.inputs) "
+                        "MATCH (s)-[:HAS_OUTPUT]->(o:Output) "
+                        "WITH s, collect(o.id) AS outputs "
+                        "MATCH (t:Task)-[:HAS_INPUT]->(i:Input) "
+                        "WITH s, t, outputs, collect(i.source) as sources "
+                        "WHERE any(output IN outputs WHERE output IN sources) "
                         "MERGE (t)-[:DEPENDS]->(s)")
 
     tx.run(begins_query, task_id=task.id)

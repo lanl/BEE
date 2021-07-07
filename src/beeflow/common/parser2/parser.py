@@ -111,30 +111,17 @@ class CwlParser:
         if step_cwl.class_ != "CommandLineTool":
             raise ValueError(f"{os.path.basename(step.run)} class must be CommandLineTool")
 
-        def resolve_input(input_, type):
-            """Resolve step input from input parameter if possible.
-
-            :param input_: the input to resolve
-            :type input_: StepInput
-            :param type: the input type
-            :type type: str
-            """
-            pass
-
         step_name = os.path.basename(step_cwl.id).split(".")[0]
-        for input_pair in zip(step.in_, step_cwl.inputs):
-            print(input_pair[0].id, input_pair[1].id)
-        for output in step_cwl.outputs:
-            print(output.id)
-        step_hints = self.parse_requirements(step.hints, as_hints=True).union(
-            self.parse_requirements(step_cwl.hints, as_hints=True)
-        )
-        step_requirements = self.parse_requirements(step.requirements).union(
-            self.parse_requirements(step_cwl.requirements)
-        )
+        step_command = step_cwl.baseCommand
+        step_hints = self.parse_requirements(step.hints, as_hints=True)
+        step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
+        step_requirements = self.parse_requirements(step.requirements)
+        step_requirements.extend(self.parse_requirements(step_cwl.requirements))
+        step_inputs = self.parse_step_inputs(step.in_, step_cwl.inputs)
+        step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout)
 
-        return wfi.add_task(step_name, hints=step_hints, requirements=step_requirements,
-                            inputs=step_inputs, outputs=step_outputs)
+        return wfi.add_task(step_name, command=step_command, requirements=step_requirements,
+                            hints=step_hints, inputs=step_inputs, outputs=step_outputs)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
@@ -159,6 +146,83 @@ class CwlParser:
                 raise ValueError(f'Invalid input job parameter type: {type(v)}')
 
     @staticmethod
+    def parse_step_inputs(cwl_in, step_inputs):
+        """Parse step inputs from CWL step input objects.
+
+        :param cwl_in: the step inputs from the Workflow file
+        :type cwl_in: list of WorkflowStepInput
+        :param step_inputs: the step inputs from the CommandLineTool file
+        :type step_inputs: list of CommandInputParameter
+        :rtype: set of StepInput
+        """
+        source_map = {_shortname(input_.id).split("/")[-1]: _shortname(input_.source)
+                      for input_ in cwl_in}
+
+        inputs = set()
+        for step_input in step_inputs:
+            # If the input type is just a str, then the input is required
+            # If it is a list containing 'null' and another type(s) then it is optional
+            if _shortname(step_input.id) not in source_map.keys():
+                if isinstance(step_input.type, str):
+                    raise ValueError(f"required input {_shortname(step_input.id)} not satisfied")
+                else:
+                    continue
+
+            if isinstance(step_input.type, str):
+                input_type = step_input.type
+            else:
+                input_type = step_input.type[1]
+
+            if step_input.inputBinding:
+                inputs.add(StepInput(_shortname(step_input.id), input_type, None,
+                                     source_map[_shortname(step_input.id)],
+                                     step_input.inputBinding.prefix,
+                                     step_input.inputBinding.position))
+            else:
+                inputs.add(StepInput(_shortname(step_input.id), input_type, None,
+                                     source_map[_shortname(step_input.id)], None, None))
+
+        return inputs
+
+    @staticmethod
+    def parse_step_outputs(cwl_out, step_outputs, stdout):
+        """Parse step outputs from CWL step output objects.
+
+        :param cwl_out: the step outputs from the Workflow file
+        :type cwl_out: list of str
+        :param step_outputs: the step outputs from the CommandLineTool file
+        :type step_outputs: list of CommandOutputParameter
+        :param stdout: name of file to which stdout should be redirected
+        :type stdout: str
+        :rtype: set of StepOutput
+        """
+        out_short = list(map(_shortname, cwl_out))
+        short_id = out_short[0].split("/")[0]
+        out_map = {short_id + "/" + _shortname(step_output.id): step_output
+                   for step_output in step_outputs}
+
+        outputs = set()
+        for out in out_short:
+            if out not in out_map.keys():
+                raise ValueError(f"specified step output {out} not produced by CommandLineTool")
+
+            output_type = out_map[out].type
+            glob = None
+            if output_type == "stdout":
+                if not stdout:
+                    raise ValueError((f"stdout capture required for step output {out} "
+                                      "but not specified by CommandLineTool"))
+                # Fill in glob with value of stdout
+                glob = stdout
+            else:
+                if out_map[out].outputBinding:
+                    glob = out_map[out].outputBinding.glob
+
+            outputs.add(StepOutput(out, output_type, None, glob))
+
+        return outputs
+
+    @staticmethod
     def parse_requirements(requirements, as_hints=False):
         """Parse CWL hints/requirements.
 
@@ -166,7 +230,7 @@ class CwlParser:
         :type requirements: list of ordereddict
         :param as_hints: parse as hints instead of requirements
         :type as_hints: bool
-        :rtype: set of Hint or set of Requirement or None
+        :rtype: list of Hint or list of Requirement or None
         """
         reqs = []
         if not requirements:
@@ -176,9 +240,9 @@ class CwlParser:
                 reqs.append(Hint(req["class"], {k: v for k, v in req.items() if k != "class"}))
         else:
             for req in requirements:
-                reqs.append(Requirement(req.class_, {k: v for k, v in vars(req).items() if k not in ("extension_fields",
-                                                                                                     "loadingOptions",
-                                                                                                     "class_")
+                reqs.append(Requirement(req.class_, {k: v for k, v in vars(req).items()
+                                                     if k not in ("extension_fields",
+                                                                  "loadingOptions", "class_")
                                                      and v is not None}))
         return reqs
 
@@ -187,8 +251,7 @@ def _shortname(uri, output_source=False):
     """Shorten a CWL object URI.
 
     e.g., file:///path/to/file#step/name -> step/name,
-    or file:///path/to/file#output/output/source -> output/source
-    if outputSource is True
+    or file:///path/to/file#output/output/source -> output/source if outputSource is True
 
     :param uri: a CWL object URI
     :type uri: str

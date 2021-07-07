@@ -31,9 +31,9 @@ class WorkflowInterface:
         :param name: the workflow name
         :type name: str
         :param inputs: the inputs to the workflow
-        :type inputs: set of str
+        :type inputs: set of InputParameter
         :param outputs: the outputs of the workflow
-        :type outputs: set of str
+        :type outputs: set of OutputParameter
         :param requirements: the workflow requirements
         :type requirements: list of Requirement
         :param hints: the workflow hints (optional requirements)
@@ -111,18 +111,18 @@ class WorkflowInterface:
         :param subworkflow: an identifier for the subworkflow to which the task belongs
         :type subworkflow: str
         :param inputs: the task inputs
-        :type inputs: set of str
+        :type inputs: set of StepInput
         :param outputs: the task outputs
-        :type outputs: set of str
+        :type outputs: set of StepOutput
         :rtype: Task
         """
         # Immutable default arguments
         if command is None:
             command = []
         if requirements is None:
-            requirements = set()
+            requirements = []
         if hints is None:
-            hints = set()
+            hints = []
         if inputs is None:
             inputs = set()
         if outputs is None:
