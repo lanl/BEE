@@ -15,7 +15,18 @@ def arg2task(task_arg):
                     outputs=task_arg['outputs'])
     return(task)
 
-task2arg = lambda task: json.dumps(vars(task))
+def task2arg(task):
+    def handle_set(obj):
+      if isinstance(obj, set):
+        set_list = list(obj)
+        try:
+            set_list = set_list[0]
+            set_dict = {set_list[i]: set_list[i+1] for i in range(0, len(set_list), 2)}
+        except IndexError:
+            set_dict = None
+        return(set_dict)
+    return(json.dumps(vars(task), default=handle_set))
+    
 
 class BuildDriver(ABC):
     """Driver interface between WFM and a generic build system.
