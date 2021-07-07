@@ -21,6 +21,7 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 from beeflow.common.build.build_driver import task2arg
 import beeflow.common.log as bee_logging
+from subprocess import PIPE
 
 sys.excepthook = bee_logging.catch_exception
 

@@ -1,7 +1,7 @@
 """Abstract base class for the handling build systems."""
 
 from abc import ABC, abstractmethod
-from beeflow.common.wf_data import Task
+from beeflow.common.wf_data import Task, Hint, Requirement
 import json
 
 def arg2task(task_arg):
@@ -18,13 +18,7 @@ def arg2task(task_arg):
 def task2arg(task):
     def handle_set(obj):
       if isinstance(obj, set):
-        set_list = list(obj)
-        try:
-            set_list = set_list[0]
-            set_dict = {set_list[i]: set_list[i+1] for i in range(0, len(set_list), 2)}
-        except IndexError:
-            set_dict = None
-        return(set_dict)
+        return(list(obj))
     return(json.dumps(vars(task), default=handle_set))
     
 
