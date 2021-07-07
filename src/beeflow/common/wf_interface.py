@@ -25,17 +25,19 @@ class WorkflowInterface:
         # Store the Workflow ID in the interface to assign it to new task objects
         self._workflow_id = None
 
-    def initialize_workflow(self, inputs, outputs, requirements=None, hints=None):
+    def initialize_workflow(self, name, inputs, outputs, requirements=None, hints=None):
         """Begin construction of a BEE workflow.
 
+        :param name: the workflow name
+        :type name: str
         :param inputs: the inputs to the workflow
         :type inputs: set of str
         :param outputs: the outputs of the workflow
         :type outputs: set of str
         :param requirements: the workflow requirements
-        :type requirements: set of Requirement
+        :type requirements: list of Requirement
         :param hints: the workflow hints (optional requirements)
-        :type hints: set of Hint
+        :type hints: list of Hint
         """
         if requirements is None:
             requirements = set()
@@ -45,8 +47,7 @@ class WorkflowInterface:
         # Connect to the graph database
         self._gdb_interface.connect(**self._gdb_details)
 
-        workflow = Workflow(hints, requirements, inputs, outputs)
-        self._workflow_id = workflow.id
+        workflow = Workflow(name, hints, requirements, inputs, outputs)
         # Load the new workflow into the graph database
         self._gdb_interface.initialize_workflow(workflow)
         return workflow
@@ -72,32 +73,28 @@ class WorkflowInterface:
         self._gdb_interface.cleanup()
 
     @staticmethod
-    def create_requirement(class_, key, value):
+    def create_requirement(class_, params):
         """Create a workflow requirement.
 
         :param class_: the requirement class
         :type class_: str
-        :param key: the requirement key
-        :type key: str
-        :param value: the requirement value
-        :type value: str, bool, or int
+        :param params: the requirement parameters (key-value pairs)
+        :type params: dict
         :rtype: Requirement
         """
-        return Requirement(class_, key, value)
+        return Requirement(class_, params)
 
     @staticmethod
-    def create_hint(class_, key, value):
+    def create_hint(class_, params):
         """Create a workflow hint.
 
         :param class_: the requirement class
         :type class_: str
-        :param key: the requirement key
-        :type key: str
-        :param value: the requirement value
-        :type value: str, bool, or int
+        :param params: the requirement parameters (key-value pairs)
+        :type params: dict
         :rtype: Hint
         """
-        return Hint(class_, key, value)
+        return Hint(class_, params)
 
     def add_task(self, name, command=None, requirements=None, hints=None, subworkflow=None,
                  inputs=None, outputs=None):
@@ -108,15 +105,15 @@ class WorkflowInterface:
         :param command: the command for the task
         :type command: list of str
         :param requirements: the task-specific requirements
-        :type requirements: set of Requirement, or None
+        :type requirements: list of Requirement
         :param hints: the task-specific hints (optional requirements)
-        :type hints: set of Hint, or None
+        :type hints: list of Hint
         :param subworkflow: an identifier for the subworkflow to which the task belongs
-        :type subworkflow: str, or None
+        :type subworkflow: str
         :param inputs: the task inputs
-        :type inputs: set of str, or None
+        :type inputs: set of str
         :param outputs: the task outputs
-        :type outputs: set of str, or None
+        :type outputs: set of str
         :rtype: Task
         """
         # Immutable default arguments
