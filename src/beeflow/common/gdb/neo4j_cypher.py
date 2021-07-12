@@ -245,6 +245,30 @@ def get_task_requirements(tx, task_id):
     return tx.run(reqs_query, task_id=task_id)
 
 
+def get_task_inputs(tx, task_id):
+    """Get task inputs from the Neo4j database by the task's ID.
+
+    :param task_id: the task's ID
+    :type task_id: str
+    :rtype: BoltStatementResult
+    """
+    inputs_query = "MATCH (:Task {task_id: $task_id})-[:HAS_INPUT]->(i:Input) RETURN i"
+
+    return tx.run(inputs_query, task_id=task_id)
+
+
+def get_task_outputs(tx, task_id):
+    """Get task outputs from the Neo4j database by the task's ID.
+
+    :param task_id: the task's ID
+    :type task_id: str
+    :rtype: BoltStatementResult
+    """
+    outputs_query = "MATCH (:Task {task_id: $task_id})-[:HAS_OUTPUT]->(o:Output) RETURN o"
+
+    return tx.run(outputs_query, task_id=task_id)
+
+
 def get_workflow_description(tx):
     """Get the workflow description from the Neo4j database.
 
@@ -283,6 +307,26 @@ def get_workflow_hints(tx):
     hints_query = "MATCH (:Workflow)-[:HAS_HINT]->(h:Hint) RETURN h"
 
     return tx.run(hints_query)
+
+
+def get_workflow_inputs(tx):
+    """Get workflow inputs from the Neo4j database.
+
+    :rtype: BoltStatementResult
+    """
+    inputs_query = "MATCH (:Workflow)-[:HAS_INPUT]->(i:Input) RETURN i"
+
+    return tx.run(inputs_query)
+
+
+def get_workflow_outputs(tx):
+    """Get workflow outputs from the Neo4j database.
+
+    :rtype BoltStatementResult
+    """
+    outputs_query = "MATCH (:Workflow)-[:HAS_OUTPUT]->(o:Output) RETURN o"
+
+    return tx.run(outputs_query)
 
 
 def get_ready_tasks(tx):
