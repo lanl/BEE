@@ -38,6 +38,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         self.assertEqual(gdb_workflow, workflow)
         self.assertEqual(gdb_workflow.id, workflow.id)
+        self.assertIsNotNone(self.wfi._workflow_id)
 
     def test_execute_workflow(self):
         """Test workflow execution initialization (set initial tasks' states to 'READY')."""
@@ -149,6 +150,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(subworkflow, task.subworkflow)
         self.assertSetEqual(inputs, task.inputs)
         self.assertSetEqual(outputs, task.outputs)
+        self.assertEqual(task.workflow_id, self.wfi._workflow_id)
         self.assertIsInstance(task.id, str)
 
         # Graph database assertions
