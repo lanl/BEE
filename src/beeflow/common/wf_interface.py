@@ -20,8 +20,9 @@ class WorkflowInterface:
         :param kwargs: arguments to be passed to the graph database
         """
         self._gdb_interface = GraphDatabaseInterface()
-        # In the future we may need to grab the details from a config file
-        self._gdb_details = kwargs
+        # Connect to the graph database
+        # In the future, we may want to grab args from a config file
+        self._gdb_interface.connect(**kwargs)
         # Store the Workflow ID in the interface to assign it to new task objects
         self._workflow_id = None
 
@@ -43,9 +44,6 @@ class WorkflowInterface:
             requirements = set()
         if hints is None:
             hints = set()
-
-        # Connect to the graph database
-        self._gdb_interface.connect(**self._gdb_details)
 
         workflow = Workflow(name, hints, requirements, inputs, outputs)
         # Load the new workflow into the graph database
