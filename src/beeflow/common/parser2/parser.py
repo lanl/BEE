@@ -193,7 +193,7 @@ class CwlParser:
         :param step_outputs: the step outputs from the CommandLineTool file
         :type step_outputs: list of CommandOutputParameter
         :param stdout: name of file to which stdout should be redirected
-        :type stdout: str
+        :type stdout: str or None
         :rtype: set of StepOutput
         """
         out_short = list(map(_shortname, cwl_out))
