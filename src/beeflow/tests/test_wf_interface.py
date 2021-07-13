@@ -146,7 +146,7 @@ class TestWorkflowInterface(unittest.TestCase):
                         Requirement("NetworkAccess", {"networkAccess": True})]
         hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
                  Hint("NetworkAccess", {"networkAccess": True})]
-        subworkflow = "Test Subworkflow"
+        subworkflow = "test_subworkflow"
         inputs = {StepInput("test_input", "File", "input.txt", "test_input", None, None)}
         outputs = {StepOutput("test_input/test_task_done", "File", "output.txt", "output.txt")}
 
@@ -212,7 +212,7 @@ class TestWorkflowInterface(unittest.TestCase):
                         Requirement("NetworkAccess", {"networkAccess": True})]
         hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
                  Hint("NetworkAccess", {"networkAccess": True})]
-        subworkflow = "Test Subworkflow"
+        subworkflow = "test_subworkflow"
         inputs = {StepInput("input", "File", "input.txt", "test_input", None, None)}
         outputs = {StepOutput("test_task/test_task_done", "File", "output.txt", "output.txt")}
 
