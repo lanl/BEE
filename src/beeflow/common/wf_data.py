@@ -90,7 +90,7 @@ class Task:
         :param name: the task name
         :type name: str
         :param command: the command to run for the task
-        :type command: list of str
+        :type command: str
         :param hints: the task hints (optional requirements)
         :type hints: list of Hint
         :param requirements: the task requirements
