@@ -70,30 +70,6 @@ class WorkflowInterface:
         """Deconstruct a BEE workflow."""
         self._gdb_interface.cleanup()
 
-    @staticmethod
-    def create_requirement(class_, params):
-        """Create a workflow requirement.
-
-        :param class_: the requirement class
-        :type class_: str
-        :param params: the requirement parameters (key-value pairs)
-        :type params: dict
-        :rtype: Requirement
-        """
-        return Requirement(class_, params)
-
-    @staticmethod
-    def create_hint(class_, params):
-        """Create a workflow hint.
-
-        :param class_: the requirement class
-        :type class_: str
-        :param params: the requirement parameters (key-value pairs)
-        :type params: dict
-        :rtype: Hint
-        """
-        return Hint(class_, params)
-
     def add_task(self, name, command=None, requirements=None, hints=None, subworkflow=None,
                  inputs=None, outputs=None):
         """Add a new task to a BEE workflow.
@@ -101,7 +77,7 @@ class WorkflowInterface:
         :param name: the name given to the task
         :type name: str
         :param command: the command for the task
-        :type command: list of str
+        :type command: str
         :param requirements: the task-specific requirements
         :type requirements: list of Requirement
         :param hints: the task-specific hints (optional requirements)
