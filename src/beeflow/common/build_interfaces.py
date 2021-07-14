@@ -63,19 +63,3 @@ while build_op:
         build_op, op_name, op_priority, op_terminal = None, None, None, True
     
 log.info('Out of build instructions. Build operations complete.')
-        
-    
-
-class BuildInterfaceTM:
-    """Interface for managing a build system with WFM.
-
-    Requires an implemented subclass of BuildDriver (uses CharliecloudBuildDriver by default).
-    """
-
-    def __init__(self, build_driver=CharliecloudBuildDriver):
-        """Initialize the build interface with a build driver.
-
-        :param build_driver: the build system driver (CharliecloudBuildDriver by default)
-        :type build_driver: subclass of BuildDriver
-        """
-        print("BuildInterface init:", self, build_driver)

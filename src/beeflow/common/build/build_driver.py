@@ -8,8 +8,9 @@ def arg2task(task_arg):
     task_arg = dict(json.loads(task_arg))
     task = Task(name=task_arg['name'],
                     command=task_arg['command'],
-                    requirements=task_arg['requirements'],
-                    hints=task_arg['hints'],
+                    requirements=dict(task_arg['requirements']),
+                    hints=dict(task_arg['hints']),
+                    workflow_id=task_arg['workflow_id'],
                     subworkflow=task_arg['subworkflow'],
                     inputs=task_arg['inputs'],
                     outputs=task_arg['outputs'])
