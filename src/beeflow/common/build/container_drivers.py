@@ -220,7 +220,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
 
-        # Provably out of excuses. Pull the image.
+        # Out of excuses. Pull the image.
         cmd = (f'ch-image pull {addr} && ch-builder2tar {ch_build_addr} {self.container_archive}'
                )
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
@@ -327,7 +327,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
 
-        # Provably out of excuses. Build the image.
+        # Out of excuses. Build the image.
         log.info('Context directory configured. Beginning build.')
         cmd = (f'ch-image build -t {task_imageid} -f {task_dockerfile} {context_dir}\n'
                f'ch-builder2tar {ch_build_addr} {self.container_archive}'
@@ -425,6 +425,57 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if param_output_directory:
             self.container_output_path = param_output_directory
         return 0
+
+    def copyContainer(self, force=False):
+        """CWL extension, copy an existing container into the build archive.
+
+        If you have a container tarball, and all you need to do is stage it,
+        that is, all you need to do is copy it to a location that BEE knows,
+        use this to put the container into the build archive. 
+        """
+        # Need container_path to know how dockerfile should be named, else fail
+        try:
+            # Try to get Hints
+            hint_container_path = self.task.hints['DockerRequirement']['copyContainer']
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No container_path specified in task hints.
+            hint_container_path = None
+        try:
+            # Try to get Requirements
+            req_container_path = self.task.requirements['DockerRequirement']['copyContainer']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No container_path specified in task reqs.
+            req_container_path = None
+
+        # Prefer requirements over hints
+        if (req_container_path or hint_container_path) and (not hint_container_path):
+            task_container_path = req_container_path
+        elif hint_container_path:
+            task_container_path = hint_container_path
+
+        if not task_container_path:
+            log.error("copyContainer: You must specify the path to an existing container.")
+            return 1
+
+        copy_target = '/'.join([self.container_archive, os.path.basename(task_container_path)])
+        log.info('Build will copy a container to {}'.format(copy_target))
+        # Return if image already exist and force==False.
+        if os.path.exists(copy_target) and not force:
+            log.info('Container by this name exists in archive. Taking no action.')
+            return 0
+        # Force remove any cached images if force==True
+        if os.path.exists(copy_target) and force:
+            try:
+                os.remove(ch_build_target)
+            except FileNotFoundError:
+                pass
+
+        log.info('Copying container.')
+        cmd = (f'cp {task_container_path} {copy_target}\n'
+               )
+        log.info('Executing: {}'.format(cmd))
+        return subprocess.run(cmd, capture_output=True, check=True, shell=True)
+
 
 
 class SingularityBuildDriver(ContainerBuildDriver):

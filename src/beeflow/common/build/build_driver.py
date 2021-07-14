@@ -2,26 +2,11 @@
 
 from abc import ABC, abstractmethod
 from beeflow.common.wf_data import Task, Hint, Requirement
-import json
+import jsonpickle
 
-def arg2task(task_arg):
-    task_arg = dict(json.loads(task_arg))
-    task = Task(name=task_arg['name'],
-                    command=task_arg['command'],
-                    requirements=dict(task_arg['requirements']),
-                    hints=dict(task_arg['hints']),
-                    workflow_id=task_arg['workflow_id'],
-                    subworkflow=task_arg['subworkflow'],
-                    inputs=task_arg['inputs'],
-                    outputs=task_arg['outputs'])
-    return(task)
+arg2task = lambda task_arg: jsonpickle.decode(task_arg)
 
-def task2arg(task):
-    def handle_set(obj):
-      if isinstance(obj, set):
-        return(list(obj))
-    return(json.dumps(vars(task), default=handle_set))
-    
+task2arg = lambda task: jsonpickle.encode(task)    
 
 class BuildDriver(ABC):
     """Driver interface between WFM and a generic build system.
@@ -98,6 +83,15 @@ class BuildDriver(ABC):
         to a specific location inside the Docker container.
         """
 
+    @abstractmethod
+    def copyContainer(self):
+        """CWL extension, copy an existing container into the build archive.
+
+        If you have a container tarball, and all you need to do is stage it,
+        that is, all you need to do is copy it to a location that BEE knows,
+        use this to put the container into the build archive. 
+        """
+
     def resolve_priority(self):
         """Given multiple DockerRequirements, set order of execution.
 
@@ -111,10 +105,11 @@ class BuildDriver(ABC):
         """
         # cwl spec priority list consists of:
         # (bound method, method name, priority, termainal case bool)
-        cwl_spec = [(self.dockerPull,'dockerPull',3, True),
-                    (self.dockerLoad,'dockerLoad',4, True),
-                    (self.dockerFile,'dockerFile',5, True),
-                    (self.dockerImport,'dockerImport',2, True),
+        cwl_spec = [(self.dockerPull,'dockerPull',4, True),
+                    (self.dockerLoad,'dockerLoad',5, True),
+                    (self.dockerFile,'dockerFile',6, True),
+                    (self.dockerImport,'dockerImport',3, True),
+                    (self.copyContainer,'copyContainer',2, True),
                     (self.dockerImageId,'dockerImageId',1, False),
                     (self.dockerOutputDirectory,'dockerOutputDirectory',0, False)
                    ]

@@ -27,8 +27,17 @@ except IndexError:
 
 bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='builder.log')
-task = arg2task(my_args)
+
+try:
+  task = arg2task(my_args)
+  # The build interface treats Hint and Requirement objects as Dicts.
+  task.hints = dict(task.hints)
+  task.requirements = dict(task.requirements)
+except Exception as e:
+  log.info('{}'.format(e))
+
 builder = CharliecloudBuildDriver(task)
+log.info('CharliecloudBuildDriver initialized')
 
 # Deque the next build instruction until empty or reach terminal case
 # ...catch the case where no build instructions are required.

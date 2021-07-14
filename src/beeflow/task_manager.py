@@ -149,9 +149,8 @@ def gen_task_metadata(task, job_id):
 
 def resolve_environment(task):
     """Use build interface to create a valid environment."""
-    log.info('{}'.format(["beeflow","--build",USERCONFIG,'\''+task2arg(task)+'\'']))
-    return subprocess.Popen(["beeflow","--build",USERCONFIG,'\''+task2arg(task)+'\''],
-                           stdout=PIPE, stderr=PIPE, shell=True)
+    return subprocess.Popen(["beeflow","--build",USERCONFIG,task2arg(task)],
+                           stdout=PIPE, stderr=PIPE)
 
 
 def submit_jobs():
@@ -160,9 +159,6 @@ def submit_jobs():
         # Single value dictionary
         task_dict = submit_queue.pop(0)
         task = next(iter(task_dict.values()))
-        log.info('task:{}'.format(task))
-        log.info('task type:{}'.format(type(task)))
-        log.info('task2arg(task):{}'.format(task2arg((task))))
         try:
             log.info('Resolving environment for task {}'.format(task.name))
             proc = resolve_environment(task)
