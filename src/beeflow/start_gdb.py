@@ -76,21 +76,19 @@ def StartGDB(bc, gdb_workdir, reexecute, debug=False):
 
     gdb_config_path = os.path.join(gdb_workdir, "conf")
     os.makedirs(gdb_config_path, exist_ok=True)
-    if not reexecute:
-        gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
+    gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf", gdb_config_path + "/neo4j.conf")
     if debug:
         gdb_log.info(gdb_configfile)
 
-    if not reexecute:
-        cfile = open(gdb_configfile, "rt")
-        data = cfile.read()
-        cfile.close()
-        data = data.replace("#dbms.connector.bolt.listen_address=:7687", "dbms.connector.bolt.listen_address=:" + str(bolt_port))
-        data = data.replace("#dbms.connector.http.listen_address=:7474", "dbms.connector.http.listen_address=:" + str(http_port))
-        data = data.replace("#dbms.connector.https.listen_address=:7473", "dbms.connector.https.listen_address=:" + str(https_port))
-        cfile = open(gdb_configfile, "wt")
-        cfile.write(data)
-        cfile.close()
+    cfile = open(gdb_configfile, "rt")
+    data = cfile.read()
+    cfile.close()
+    data = data.replace("#dbms.connector.bolt.listen_address=:7687", "dbms.connector.bolt.listen_address=:" + str(bolt_port))
+    data = data.replace("#dbms.connector.http.listen_address=:7474", "dbms.connector.http.listen_address=:" + str(http_port))
+    data = data.replace("#dbms.connector.https.listen_address=:7473", "dbms.connector.https.listen_address=:" + str(https_port))
+    cfile = open(gdb_configfile, "wt")
+    cfile.write(data)
+    cfile.close()
 
     gdb_data_path = os.path.join(gdb_workdir, "data")
     os.makedirs(gdb_data_path, exist_ok=True)
