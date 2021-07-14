@@ -61,7 +61,7 @@ def StartGDB(bc, gdb_workdir, reexecute, debug=False):
     try:
         cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
-        gdb_log.error("ch-tar2dir failed")
+        gdb_log.error(f"ch-tar2dir failed: {cp}")
         shutil.rmtree(container_dir)
         if debug:
             gdb_log.error("GraphDB container mount directory " + container_dir + " removed")
