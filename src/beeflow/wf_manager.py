@@ -310,7 +310,7 @@ class JobsList(Resource):
 
              # Launch new container with bindmounted GDB
             script_path = get_script_path()
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'])
+            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             time.sleep(10)
 
             # Initialize the database connection object
