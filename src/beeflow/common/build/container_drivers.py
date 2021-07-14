@@ -133,6 +133,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         bc.modify_section('user', 'builder', {'container_type':'charliecloud'})
         self.task = task
         self.docker_image_id = None
+        self.container_name = None
         dockerRequirements = set() 
         try:
             requirement_DockerRequirements = self.task.requirements['DockerRequirement'].keys()
@@ -476,6 +477,38 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         log.info('Executing: {}'.format(cmd))
         return subprocess.run(cmd, capture_output=True, check=True, shell=True)
 
+    def containerName(self):
+        """CWL extension, need a way to refer to containers human-readable name.
+
+        The CWL spec currently uses dockerImageId to refer to the name of a container
+        but this is explicitly not how Docker defines it. We need a way to name
+        containers in a human readable format.
+        """
+
+        try:
+            # Try to get Hints
+            hint_container_name = self.task.hints['DockerRequirement']['containerName']
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No container_name specified in task hints.
+            hint_container_name = None
+        try:
+            # Try to get Requirements
+            req_container_name = self.task.requirements['DockerRequirement']['containerName']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No container_name specified in task reqs.
+            req_container_name = None
+
+        # Prefer requirements over hints
+        if (req_container_name or hint_container_name) and (not hint_container_name):
+            task_container_name = req_container_name
+        elif hint_container_name:
+            task_container_name = hint_container_name
+
+        if not task_container_name and self.docker_image_id  == None:
+            log.error("containerName: You must specify the containerName or dockerImageId")
+            return 1
+        self.container_name = task_container_name
+        return 0
 
 
 class SingularityBuildDriver(ContainerBuildDriver):

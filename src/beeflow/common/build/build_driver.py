@@ -92,6 +92,15 @@ class BuildDriver(ABC):
         use this to put the container into the build archive. 
         """
 
+    @abstractmethod
+    def containerName(self):
+        """CWL extension, need a way to refer to containers human-readable name.
+
+        The CWL spec currently uses dockerImageId to refer to the name of a container
+        but this is explicitly not how Docker defines it. We need a way to name
+        containers in a human readable format.
+        """
+
     def resolve_priority(self):
         """Given multiple DockerRequirements, set order of execution.
 
@@ -105,12 +114,13 @@ class BuildDriver(ABC):
         """
         # cwl spec priority list consists of:
         # (bound method, method name, priority, termainal case bool)
-        cwl_spec = [(self.dockerPull,'dockerPull',4, True),
-                    (self.dockerLoad,'dockerLoad',5, True),
-                    (self.dockerFile,'dockerFile',6, True),
-                    (self.dockerImport,'dockerImport',3, True),
-                    (self.copyContainer,'copyContainer',2, True),
+        cwl_spec = [(self.dockerPull,'dockerPull',5, True),
+                    (self.dockerLoad,'dockerLoad',6, True),
+                    (self.dockerFile,'dockerFile',7, True),
+                    (self.dockerImport,'dockerImport',4, True),
+                    (self.copyContainer,'copyContainer',3, True),
                     (self.dockerImageId,'dockerImageId',1, False),
+                    (self.containerName,'containerName',2, False),
                     (self.dockerOutputDirectory,'dockerOutputDirectory',0, False)
                    ]
         exec_list = sorted(cwl_spec, key=lambda x:x[2])
