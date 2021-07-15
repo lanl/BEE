@@ -27,10 +27,13 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
+sys.excepthook = bee_logging.catch_exception
+
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
+
 
 if bc.userconfig.has_section('workflow_manager'):
     # Try getting listen port from config if exists, use WM_PORT if it doesnt exist
@@ -600,13 +603,11 @@ api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
 
-
 if __name__ == '__main__':
     # Setup the Scheduler
     setup_scheduler()
-
     log.info(f'wfm_listen_port:{wfm_listen_port}')
-
+    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='wf_manager.log')
 
     # Werkzeug logging

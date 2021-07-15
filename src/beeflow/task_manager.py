@@ -20,6 +20,8 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
+sys.excepthook = bee_logging.catch_exception
+
 if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
@@ -129,10 +131,9 @@ def gen_task_metadata(task, job_id):
     """
     metadata = {'job_id': job_id, 'host': hostname}
     for hint in task.hints:
-        req_class, req_key, req_value = hint
-        if req_class == "DockerRequirement" and req_key == "dockerImageId":
+        if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
             metadata['container_runtime'] = container_runtime
-            container_path = req_value
+            container_path = hint.params["dockerImageId"]
             with open(container_path, 'rb') as container:
                 c_hash = hashlib.md5()
                 chunk = container.read(8192)
