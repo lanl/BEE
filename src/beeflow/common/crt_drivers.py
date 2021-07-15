@@ -70,23 +70,57 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
     def run_text(self, task):
         """Build text for Charliecloud batch script."""
-        if task.hints is not None:
-            docker = False
-            command = ''.join(task.command) + '\n'
-            for hint in task.hints:
-                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    name = self.get_ccname(hint.params["dockerImageId"])
-                    chrun_opts, cc_setup = self.get_cc_options()
-                    image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
-                    text = (f'{cc_setup}\n'
-                            f'mkdir -p {image_mntdir}\n'
-                            f'ch-tar2dir {hint.params["dockerImageId"]} {image_mntdir}\n'
-                            f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
-                            f'rm -rf {image_mntdir}/{name}\n'
-                            )
-                    docker = True
-            if not docker:
-                text = command
+        # Read container archive path from config.
+        try:
+            if bc.userconfig['builder'].get('container_archive'):
+                container_archive = bc.userconfig['builder'].get('container_archive')
+            else:
+                # Set container archive relative to bee_workdir if config does not specify
+                log.warning('Invalid config file. container_archive not found in builder section.')
+                container_archive = '/'.join([bee_workdir,'container_archive'])
+                log.warning(f'Assuming container_archive is {container_archive}')
+        except KeyError:
+            log.warning('Container is missing builder section')
+            log.warning('Setting container archive relative to bee_workdir')
+            container_archive = f'{bee_workdir}/container_archive'
+        finally:
+            self.container_archive = bc.resolve_path(container_archive)
+            os.makedirs(self.container_archive, exist_ok=True)
+            bc.modify_section('user', 'builder', {'container_archive': self.container_archive})
+            log.info(f'Build container archive directory is: {self.container_archive}')
+            log.info("Wrote deployed image root to user BeeConfig file.")
+
+        try:
+            # Try to get Hints
+            hint_containerName = self.task.hints['DockerRequirement']['containerName']
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No container_name specified in task hints.
+            hint_container_name = None
+        try:
+            # Try to get Requirements
+            req_container_name = self.task.requirements['DockerRequirement']['containerName']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No container_name specified in task reqs.
+            req_container_name = None
+
+        # Prefer requirements over hints
+        if (req_container_name or hint_container_name) and (not hint_container_name):
+            task_container_name = req_container_name
+        elif hint_container_name:
+            task_container_name = hint_container_name
+
+        container_path = '/'.join([container_archive,task_container_name]) + '.tar.gz'
+        log.info('Expecting container at {}. Ready to deploy and run.'.format(container_path))
+
+        chrun_opts, cc_setup = self.get_cc_options()
+        image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
+
+        text = (f'{cc_setup}\n'
+                f'mkdir -p {image_mntdir}\n'
+                f'ch-tar2dir {container_path} {image_mntdir}\n'
+                f'ch-run {image_mntdir}/{task_container_name} {chrun_opts} -- {command}'
+                f'rm -rf {image_mntdir}/{task_container_name}\n'
+                )
         return text
 
     def build_text(self, userconfig, task):
