@@ -101,13 +101,16 @@ def _resource(tag=""):
     return _url() + str(tag)
 
 
-def update_task_state(task_id, job_state):
+def update_task_state(task_id, job_state, metadata=None):
     """Informs the workflow manager of the current state of a task."""
+    data = {'task_id': task_id, 'job_state': job_state}
+    if metadata:
+      metadata_json = jsonpickle.encode(metadata)
+      data['metadata'] = metadata_json
     resp = requests.put(_resource("update/"),
-                        json={'task_id': task_id, 'job_state': job_state})
+                        json=data)
     if resp.status_code != 200:
         log.warning("WFM not responding when sending task update.")
-
 
 def update_task_metadata(task_id, metadata):
     """Send workflow manager task metadata."""
@@ -155,7 +158,9 @@ def submit_jobs():
             job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
             # Update metadata
             task_metadata = gen_task_metadata(task, job_id)
-            update_task_metadata(task.id, task_metadata)
+            # Need to 
+            #task_metadata.replace("'", '"')
+            #update_task_metadata(task.id, task_metadata)
         except Exception as error:
             # Set job state to failed
             job_state = 'SUBMIT_FAIL'
@@ -163,7 +168,7 @@ def submit_jobs():
             log.error(f'{task.name} state: {job_state}')
         finally:
             # Send the initial state to WFM
-            update_task_state(task.id, job_state)
+            update_task_state(task.id, job_state, metadata=task_metadata)
 
 
 def update_jobs():
