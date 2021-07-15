@@ -8,6 +8,8 @@ from configparser import NoOptionError
 from beeflow.common.config_driver import BeeConfig
 from beeflow.common.build.build_driver import task2arg, arg2task
 import sys
+from beeflow.cli import log
+import beeflow.common.log as bee_logging
 
 if len(sys.argv) > 2:
     userconfig = sys.argv[1]
@@ -16,6 +18,8 @@ else:
     userconfig = None
     bc = BeeConfig()
 
+bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
 class ContainerRuntimeDriver(ABC):
     """ContainerRuntimeDriver interface for generic container runtime."""
