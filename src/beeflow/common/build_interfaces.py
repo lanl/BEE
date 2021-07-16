@@ -30,7 +30,7 @@ handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='builde
 
 try:
   task = arg2task(my_args)
-  # The build interface treats Hint and Requirement objects as Dicts.
+  # The build driver treats Hint and Requirement objects as Dicts.
   task.hints = dict(task.hints)
   task.requirements = dict(task.requirements)
 except Exception as e:

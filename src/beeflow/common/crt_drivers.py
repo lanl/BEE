@@ -94,15 +94,19 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             log.info(f'Build container archive directory is: {self.container_archive}')
             log.info("Wrote deployed image root to user BeeConfig file.")
 
+        task_container_name = None
+        # The container runtime treats hints and requirements as dicts
+        task.hints = dict(task.hints)
+        task.requirements = dict(task.requirements)
         try:
             # Try to get Hints
-            hint_containerName = self.task.hints['DockerRequirement']['containerName']
+            hint_container_name = task.hints['DockerRequirement']['containerName']
         except (KeyError, TypeError):
             # Task Hints are not mandatory. No container_name specified in task hints.
             hint_container_name = None
         try:
             # Try to get Requirements
-            req_container_name = self.task.requirements['DockerRequirement']['containerName']
+            req_container_name = task.requirements['DockerRequirement']['containerName']
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No container_name specified in task reqs.
             req_container_name = None
@@ -112,6 +116,43 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_container_name = req_container_name
         elif hint_container_name:
             task_container_name = hint_container_name
+
+        if task_container_name == None:
+            log.info('No container name provided. Assuming copyContainer source is runtime target.')
+            task_container_path = None
+            try:
+                # Try to get Hints
+                hint_container_path = task.hints['DockerRequirement']['copyContainer']
+            except (KeyError, TypeError):
+                # Task Hints are not mandatory. No container_path specified in task hints.
+                hint_container_path = None
+            try:
+                # Try to get Requirements
+                req_container_path = task.requirements['DockerRequirement']['copyContainer']
+            except (KeyError, TypeError):
+                # Task Requirements are not mandatory. No container_path specified in task reqs.
+                req_container_path = None
+    
+            # Prefer requirements over hints
+            if (req_container_path or hint_container_path) and (not hint_container_path):
+                task_container_path = req_container_path
+            elif hint_container_path:
+                task_container_path = hint_container_path
+
+            baremetal = False
+            if task_container_path == None:
+                log.warning('No container specified, and cannot be inferred from copyContainer.')
+                log.warning('Maybe you do not need a container, or try adding containerName or copyContainer.')
+                baremetal = True
+            else:
+                # Build container name from container path.
+                task_container_name = os.path.basename(task_container_path).split('.')[0]
+
+                log.info('Moving with the expectation that {} is the runtime container target'.format(task_container_name))
+
+        command = ''.join(task.command) + '\n'
+        if baremetal:
+            return command
 
         container_path = '/'.join([container_archive,task_container_name]) + '.tar.gz'
         log.info('Expecting container at {}. Ready to deploy and run.'.format(container_path))

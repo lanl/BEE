@@ -168,8 +168,8 @@ def submit_jobs():
             # place job in queue to monitor
             job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
             # Update metadata
-            task_metadata = gen_task_metadata(task, job_id)
-            update_task_metadata(task.id, task_metadata)
+            #task_metadata = gen_task_metadata(task, job_id)
+            #update_task_metadata(task.id, task_metadata)
         except Exception as error:
             # Set job state to failed
             job_state = 'SUBMIT_FAIL'
