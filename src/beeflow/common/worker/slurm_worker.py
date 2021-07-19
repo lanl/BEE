@@ -4,6 +4,7 @@ Builds command for submitting batch job.
 """
 
 import os
+import pwd
 import string
 import subprocess
 import json
@@ -15,6 +16,11 @@ from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
+
+
+# XXX: For some reason os.getlogin is not working properly
+os.getlogin = lambda: pwd.getpwuid(os.getuid()).pw_name
+
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist
