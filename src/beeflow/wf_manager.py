@@ -381,38 +381,6 @@ class JobActions(Resource):
         return resp
 
 
-# class RunQueueInterface(run_queue.Interface):
-#     """Interface for running tasks."""
-# 
-#     @staticmethod
-#     def schedule(tasks):
-#         """Schedule a list of tasks and return the profiling information."""
-#         sched_tasks = tasks_to_sched(tasks)
-#         allocation = submit_tasks_scheduler(sched_tasks)
-#         # Store scheduling results
-#         profiler.add_scheduling_results(sched_tasks, rm.resource_ids, rm.get(), allocation)
-#         assert allocation
-#         return allocation
-# 
-#     @staticmethod
-#     def start_time(alloc):
-#         """Return the start time for an allocation."""
-#         # return alloc[0]['start_time'] if alloc else None
-#         # TODO: start_time() should perhaps be changed to time_slot()
-#         print(alloc)
-#         return alloc['time_slot'] if alloc else None
-# 
-#     @staticmethod
-#     def submit(tasks, allocation):
-#         """Submit these tasks to the Task Manager."""
-#         submit_tasks_tm(tasks, allocation)
-# 
-# 
-# rq = run_queue.RunQueue(RunQueueInterface)
-
-# List of tasks already submitted (TODO: Put this in the GDB)
-# submitted = []
-
 class JobUpdate(Resource):
     """Class to interact with an existing job."""
 
@@ -546,35 +514,10 @@ def get_file(fname):
     return send_from_directory(workflow_uploads_dir, fname)
 
 
-#class FilePostManager(Resource):
-#    """File Manager."""
-#
-#    def post(self):
-#        """Post a file."""
-#        log.info('Uploading files.')
-#        for fname in flask.request.files:
-#            file_ = flask.request.files[fname]
-#            path = os.path.join(workflow_uploads_dir, os.path.basename(secure_filename(fname)))
-#            file_.save(path)
-#            log.info('Saving file to {}'.format(path))
-
-
-#class FileGetManager(Resource):
-#
-#    def get(self, fname):
-#        """Get an uploaded file."""
-#        # TODO
-#        log.info('Sending file {}'.format(fname))
-#        return send_from_directory(workflow_uploads_dir, fname)
-
-
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobSubmit, '/bee_wfm/v1/jobs/submit/<string:wf_id>')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
-# api.add_resource(TM, '/bee_wfm/v1/task_managers/')
-# api.add_resource(FilePostManager, '/bee_wfm/v1/files/')
-# api.add_resource(FileGetManager, '/bee_wfm/v1/files/<string:fname>')
 
 
 if __name__ == '__main__':
