@@ -12,7 +12,8 @@ from flask_restful import Resource, Api
 import beeflow.scheduler.algorithms as algorithms
 import beeflow.scheduler.task as task
 import beeflow.scheduler.resource_allocation as resource_allocation
-import beeflow.scheduler.affinity_algorithm as affinity_algorithm
+import beeflow.scheduler.affinity as affinity
+import beeflow.scheduler.random_fcfs as random_fcfs
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
@@ -55,7 +56,11 @@ class WorkflowJobHandler(Resource):
         """
         data = request.json
         tasks = data
-        return affinity_algorithm.schedule_all(tasks, resources)
+        if conf['algorithm'] == 'affinity':
+            return affinity.schedule_all(tasks, resources)
+        elif conf['algorithm'] == 'random_fcfs':
+            return random_fcfs.schedule_all(tasks, resources)
+        return None
 
 
 api.add_resource(ResourcesHandler, '/bee_sched/v1/resources')
@@ -66,35 +71,43 @@ api.add_resource(WorkflowJobHandler,
 # TODO: Remove the below function
 
 
-def load_config():
-    """Load the config data."""
-    parser = argparse.ArgumentParser(description='BEE scheduler')
-    parser.add_argument('conf_file', default=None, help='BEE configuration file')
-    args = parser.parse_args()
+#def load_config():
+#    """Load the config data."""
 
-    if args.conf_file is not None:
-        bc = BeeConfig(userconfig=args.conf_file)
-    else:
-        bc = BeeConfig()
+# Load the configuration
+parser = argparse.ArgumentParser(description='BEE scheduler')
+parser.add_argument('conf_file', default=None, help='BEE configuration file')
+args = parser.parse_args()
 
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='sched.log')
-    # Werkzeug logging
-    werk_log = logging.getLogger('werkzeug')
-    werk_log.setLevel(logging.INFO)
-    werk_log.addHandler(handler)
-    # Flask logging
-    flask_app.logger.addHandler(handler) # noqa
+if args.conf_file is not None:
+    bc = BeeConfig(userconfig=args.conf_file)
+else:
+    bc = BeeConfig()
 
-    listen_port = bc.userconfig.get('scheduler', 'listen_port')
-    return {
-        'workdir': os.path.join(bee_workdir, 'scheduler'),
-        'listen_port': listen_port,
-    }
+bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='sched.log')
+# Werkzeug logging
+werk_log = logging.getLogger('werkzeug')
+werk_log.setLevel(logging.INFO)
+werk_log.addHandler(handler)
+# Flask logging
+flask_app.logger.addHandler(handler) # noqa
 
+listen_port = bc.userconfig.get('scheduler', 'listen_port')
+# Use a default algorithm of affinity
+algorithm = bc.userconfig['scheduler'].get('algorithm', 'affinity')
+conf = {
+    'workdir': os.path.join(bee_workdir, 'scheduler'),
+    'listen_port': listen_port,
+    'algorithm': algorithm,
+}
+log.info('workdir: %s' % (conf['workdir'],))
+log.info('listen_port: %s' % (conf['listen_port'],))
+log.info('algorithm: %s' % (conf['algorithm'],))
 
+# TODO: Maybe this check can be removed here
 if __name__ == '__main__':
-    conf = load_config()
+    # conf = load_config()
 
     # Create the scheduler workdir, if necessary
     os.makedirs(conf['workdir'], exist_ok=True)

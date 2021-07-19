@@ -223,55 +223,6 @@ class JobSubmit(Resource):
         return resp
 
 
-# # Submit tasks to the TM
-# def submit_tasks_tm(tasks, allocation):
-#     """Submit multiple tasks to the task manager."""
-#     # TODO: Keep track of where tasks are scheduled
-#     # allocation[task.id]
-#     """
-#     schedule_tasks = {}
-#     for task in tasks:
-#         alloc = allocation[task.id]
-#         resource_id = alloc[0]['id_']
-#         resource = tuple(resource_id.split(':'))
-#         if resource in schedule_tasks:
-#             schedule_tasks[resource].append(task)
-#         else:
-#             schedule_tasks[resource] = [task]
-# """
-#     schedule_tasks = {}
-#     for task in tasks:
-#         resource_id = allocation[task.id]['resource']
-#         resource = tuple(resource_id.split(':'))
-#         if resource in schedule_tasks:
-#             schedule_tasks[resource].append(task)
-#         else:
-#             schedule_tasks[resource] = [task]
-# 
-#     for host, port in schedule_tasks:
-#         tasks = schedule_tasks[(host, port)]
-#         # Serialize task with json
-#         tasks_json = jsonpickle.encode(tasks)
-#         # Send task_msg to task manager
-#         names = [task.name for task in tasks]
-#         log.info(f"Submitted {names} to Task Manager")
-#         # Submit the Task
-#         # The `extra_requirements` field is a hack until Tasks can hold more
-#         # requirement data
-#         # extra_requirements = {}
-#         # TODO: Remove this extra_requirements hack
-#         extra_requirements = {
-#             # task.id: task_extra_requirements[task.name]
-#             task.id: None
-#             for task in tasks
-#         }
-#         extra_requirements = jsonpickle.encode(extra_requirements)
-#         resp = requests.post(_resource('tm', "submit/", host=host, port=port),
-#                              json={'tasks': tasks_json,
-#                                    'extra_requirements': extra_requirements})
-#         if resp.status_code != 200:
-#             log.info(f"Submit task to TM returned bad status: {resp.status_code}")
-
 def submit_tasks_to_tms(tasks, allocation):
     """Submit tasks to the TMs as allocated/scheduled."""
     tm2tasks = {tm: [task for task in tasks if allocation[task.id]['resource'] == tm] for tm in rm.task_managers}
@@ -279,6 +230,9 @@ def submit_tasks_to_tms(tasks, allocation):
         submit_tasks = tm2tasks[tm]
         # allocs = {task.id: allocation[task.id] for task in submit_tasks}
         task_manager = rm.get_task_manager(tm)
+        if not submit_tasks:
+            # No tasks to submit
+            continue
         log.info('Submitting %s to Task Manager %s' % (','.join(task.name for task in submit_tasks), tm))
         host = task_manager['tm_listen_host']
         port = task_manager['tm_listen_port']
@@ -296,22 +250,6 @@ def submit_tasks_scheduler(sched_tasks):
     if resp.status_code != 200:
         log.info(f"Something bad happened {resp.status_code}")
     return resp.json()
-    #allocation = resp.json()
-    #return {alloc['task_name']: alloc['allocations'] for alloc in allocation}
-
-
-
-#def setup_scheduler():
-#    """Get info from the resource monitor and sends it to the scheduler."""
-#    # Get the info for the current server
-#    nodes = 32
-#
-#    resources = rm.get()
-#    log.info(resources)
-#
-#    log.info(_resource('sched', "resources/"))
-#    resp = requests.put(_resource('sched', "resources"), json=resources)
-#    log.info(resp.json())
 
 
 # Used to tell if the workflow is currently paused
@@ -566,6 +504,7 @@ def post_tm_alive():
     """POST an alive message from TM to let the WFM know about it."""
     log.info('post_tm_alive(): Creating/updating Task Manager information')
     data = flask.request.json
+    print(data)
     props = ('tm_listen_host', 'tm_listen_port', 'tm_name', 'resource_props')
     if not all(p in data for p in props):
         return make_response(jsonify(status='Bad request'), 400)
