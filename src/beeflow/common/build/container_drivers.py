@@ -458,7 +458,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.error("copyContainer: You must specify the path to an existing container.")
             return 1
 
-        copy_target = '/'.join([self.container_archive, os.path.basename(task_container_path)])
+        if self.container_name:
+            copy_target = '/'.join([self.container_archive, self.container_name])
+        else:
+            copy_target = '/'.join([self.container_archive, os.path.basename(task_container_path)])
         log.info('Build will copy a container to {}'.format(copy_target))
         # Return if image already exist and force==False.
         if os.path.exists(copy_target) and not force:

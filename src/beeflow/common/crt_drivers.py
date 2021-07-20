@@ -117,6 +117,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         elif hint_container_name:
             task_container_name = hint_container_name
 
+        baremetal = False
         if task_container_name == None:
             log.info('No container name provided. Assuming copyContainer source is runtime target.')
             task_container_path = None
@@ -139,7 +140,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             elif hint_container_path:
                 task_container_path = hint_container_path
 
-            baremetal = False
             if task_container_path == None:
                 log.warning('No container specified, and cannot be inferred from copyContainer.')
                 log.warning('Maybe you do not need a container, or try adding containerName or copyContainer.')
