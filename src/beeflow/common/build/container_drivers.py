@@ -255,28 +255,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         change to expect a file handle instead of file contents, and use the file 
         handle expectation here.
         """
-        # Need imageid to know how dockerfile should be named, else fail
-        try:
-            # Try to get Hints
-            hint_imageid = self.task.hints['DockerRequirement']['dockerImageId']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No imageid specified in task hints.
-            hint_imageid = None
-        try:
-            # Try to get Requirements
-            req_imageid = self.task.requirements['DockerRequirement']['dockerImageId']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No imageid specified in task reqs.
-            req_imageid = None
-
-        # Prefer requirements over hints
-        if (req_imageid or hint_imageid) and (not hint_imageid):
-            task_imageid = req_imageid
-        elif hint_imageid:
-            task_imageid = hint_imageid
-
-        if not task_imageid:
-            log.error("dockerFile may not be specified without dockerImageId")
+        # containerName is always processed before dockerFile, so safe to assume it exists
+        # otherwise, raise an error.
+        if self.container_name == None:
+            log.error("dockerFile may not be specified without containerName")
             return 1
 
         # Need dockerfile in order to build, else fail
@@ -303,14 +285,14 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.error("dockerFile not specified as task attribute or parameter.")
             return 1
 
-        # Create context directory to use as Dockerfile context, use task ID so user
+        # Create context directory to use as Dockerfile context, use container name so user
         # can prep the directory with COPY sources as needed.
-        context_dir = '/'.join(['/tmp',task_imageid])
+        context_dir = '/'.join(['/tmp',self.container_name])
         log.info('Context directory will be {}.'.format(context_dir))
         os.makedirs(context_dir, exist_ok=True) 
 
         # Determine name for successful build target
-        ch_build_addr = task_imageid.replace('/', '%')
+        ch_build_addr = self.container_name.replace('/', '%')
 
         ch_build_target = '/'.join([self.container_archive, ch_build_addr]) + '.tar.gz'
         log.info('Build will create tar ball at {}'.format(ch_build_target))
@@ -330,7 +312,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # Out of excuses. Build the image.
         log.info('Context directory configured. Beginning build.')
-        cmd = (f'ch-image build -t {task_imageid} -f {task_dockerfile} {context_dir}\n'
+        cmd = (f'ch-image build -t {self.container_name} -f {task_dockerfile} {context_dir}\n'
                f'ch-builder2tar {ch_build_addr} {self.container_archive}'
                )
         log.info('Executing: {}'.format(cmd))
