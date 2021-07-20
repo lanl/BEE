@@ -459,7 +459,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
 
         if self.container_name:
-            copy_target = '/'.join([self.container_archive, self.container_name])
+            copy_target = '/'.join([self.container_archive, self.container_name + '.tar.gz'])
         else:
             copy_target = '/'.join([self.container_archive, os.path.basename(task_container_path)])
         log.info('Build will copy a container to {}'.format(copy_target))
