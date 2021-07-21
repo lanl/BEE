@@ -73,14 +73,14 @@ class Workflow:
 
     def __repr__(self):
         """Construct a workflow's string representation."""
-        return (f"<Workflow id={self.id} name='{self.name}' hints={self.hints} "
+        return (f"<Workflow id={self.id} name={self.name} hints={self.hints} "
                 f"requirements = {self.requirements} inputs={self.inputs} outputs={self.outputs}>")
 
 
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, name, command, hints, requirements, subworkflow, inputs, outputs,
+    def __init__(self, name, base_command, hints, requirements, inputs, outputs, stdout,
                  workflow_id, task_id=None):
         """Store a task description.
 
@@ -89,30 +89,30 @@ class Task:
 
         :param name: the task name
         :type name: str
-        :param command: the command to run for the task
-        :type command: str
+        :param base_command: the base command to run for the task
+        :type base_command: str
         :param hints: the task hints (optional requirements)
         :type hints: list of Hint
         :param requirements: the task requirements
         :type requirements: list of Requirement
-        :param subworkflow: an identifier for the subworkflow to which the task belongs
-        :type subworkflow: str
         :param inputs: the task inputs
         :type inputs: set of StepInput
         :param outputs: the task outputs
         :type outputs: set of StepOutput
+        :param stdout: the name of the file to which to redirect stdout
+        :type stdout: str
         :param workflow_id: the workflow ID
         :type workflow_id: str
         :param task_id: the task ID
         :type task_id: str
         """
         self.name = name
-        self.command = command
+        self.base_command = base_command
         self.hints = hints
         self.requirements = requirements
-        self.subworkflow = subworkflow
         self.inputs = inputs
         self.outputs = outputs
+        self.stdout = stdout
         self.workflow_id = workflow_id
 
         # Task ID as UUID if not given
@@ -129,12 +129,12 @@ class Task:
         :type other: instance of Task
         """
         return bool(self.name == other.name and
-                    self.command == other.command and
+                    self.base_command == other.base_command and
                     sorted(self.hints) == sorted(other.hints) and
                     sorted(self.requirements) == sorted(other.requirements) and
-                    self.subworkflow == other.subworkflow and
                     self.inputs == other.inputs and
-                    self.outputs == other.outputs)
+                    self.outputs == other.outputs and
+                    self.stdout == other.stdout)
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
@@ -146,22 +146,16 @@ class Task:
 
     def __hash__(self):
         """Return the hash value for a task."""
-        return hash((self.name, self.subworkflow))
+        return hash((self.name, self.base_command))
 
     def __repr__(self):
         """Construct a task's string representation."""
-        return (f"<Task id={self.id} name='{self.name}' command={self.command} hints={self.hints} "
-                f"requirements = {self.requirements} subworkflow='{self.subworkflow}' "
-                f"inputs={self.inputs} outputs={self.outputs}>")
-
-    def construct_command(self):
-        """Construct a task's command representation."""
-        return "".join(self.command)
+        return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
+                f"hints={self.hints} requirements = {self.requirements} "
+                f"inputs={self.inputs} outputs={self.outputs} stdout={self.stdout} "
+                f"workflow_id={self.workflow_id}>")
 
     @property
-    def base_command(self):
-        """Return a list of the task base command.
-
-        :rtype: list of strings
-        """
-        return self.command[0]
+    def command(self):
+        """Construct a task's command representation."""
+        # TODO: construct command from inputs

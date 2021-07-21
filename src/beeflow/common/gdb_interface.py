@@ -121,15 +121,6 @@ class GraphDatabaseInterface:
         """
         return self._connection.get_workflow_requirements_and_hints()
 
-    def get_subworkflow_tasks(self, subworkflow):
-        """Return a subworkflow's tasks from the graph database.
-
-        :param subworkflow: the unique identifier of the subworkflow
-        :type subworkflow: str
-        :rtype: set of Task
-        """
-        return self._connection.get_subworkflow_tasks(subworkflow)
-
     def get_ready_tasks(self):
         """Return the tasks in a workflow with state 'READY'.
 

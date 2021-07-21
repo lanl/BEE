@@ -101,15 +101,6 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_subworkflow_tasks(self, subworkflow):
-        """Return subworkflow tasks from the graph database.
-
-        :param subworkflow: the unique identifier of the subworkflow
-        :type subworkflow: str
-        :rtype: set of Task
-        """
-
-    @abstractmethod
     def get_ready_tasks(self):
         """Return tasks with state 'READY' from the graph database.
 

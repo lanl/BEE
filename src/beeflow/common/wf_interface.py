@@ -70,39 +70,37 @@ class WorkflowInterface:
         """Deconstruct a BEE workflow."""
         self._gdb_interface.cleanup()
 
-    def add_task(self, name, command=None, requirements=None, hints=None, subworkflow=None,
-                 inputs=None, outputs=None):
+    def add_task(self, name, base_command, inputs, outputs, requirements=None, hints=None,
+                 stdout=None):
         """Add a new task to a BEE workflow.
 
         :param name: the name given to the task
         :type name: str
-        :param command: the command for the task
-        :type command: str
+        :param base_command: the base command for the task
+        :type base_command: str
         :param requirements: the task-specific requirements
         :type requirements: list of Requirement
         :param hints: the task-specific hints (optional requirements)
         :type hints: list of Hint
-        :param subworkflow: an identifier for the subworkflow to which the task belongs
-        :type subworkflow: str
         :param inputs: the task inputs
         :type inputs: set of StepInput
         :param outputs: the task outputs
         :type outputs: set of StepOutput
+        :param stdout: the name of the file to which to redirect stdout
+        :type stdout: str
         :rtype: Task
         """
         # Immutable default arguments
-        if command is None:
-            command = []
-        if requirements is None:
-            requirements = []
-        if hints is None:
-            hints = []
         if inputs is None:
             inputs = set()
         if outputs is None:
             outputs = set()
+        if requirements is None:
+            requirements = []
+        if hints is None:
+            hints = []
 
-        task = Task(name, command, hints, requirements, subworkflow, inputs, outputs,
+        task = Task(name, base_command, hints, requirements, inputs, outputs, stdout,
                     self._workflow_id)
         # Load the new task into the graph database
         self._gdb_interface.load_task(task)
@@ -146,19 +144,6 @@ class WorkflowInterface:
         workflow = self._gdb_interface.get_workflow_description()
         tasks = self._gdb_interface.get_workflow_tasks()
         return workflow, tasks
-
-    def get_subworkflow(self, subworkflow):
-        """Get a subworkflow by its identifier.
-
-        Returns a tuple of (tasks, requirements, hints).
-
-        :param subworkflow: the unique identifier of the subworkflow
-        :type subworkflow: str
-        :rtype: tuple of (set of Task, set of Requirement, set of Hint)
-        """
-        subworkflow_tasks = self._gdb_interface.get_subworkflow_tasks(subworkflow)
-        requirements, hints = self._gdb_interface.get_workflow_requirements_and_hints()
-        return subworkflow_tasks, requirements, hints
 
     def get_ready_tasks(self):
         """Get ready tasks from a BEE workflow.

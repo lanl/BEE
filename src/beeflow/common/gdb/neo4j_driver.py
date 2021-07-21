@@ -184,17 +184,6 @@ class Neo4jDriver(GraphDatabaseDriver):
 
         return inputs, outputs
 
-    def get_subworkflow_tasks(self, subworkflow):
-        """Return subworkflow tasks from the Neo4j database.
-
-        :param subworkflow: the unique identifier of the subworkflow
-        :type subworkflow: str
-        :rtype: set of Task
-        """
-        task_records = self._read_transaction(tx.get_subworkflow_tasks, subworkflow=subworkflow)
-        tuples = self._get_task_data_tuples(task_records)
-        return {_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples}
-
     def get_ready_tasks(self):
         """Return tasks with state 'READY' from the graph database.
 
@@ -289,13 +278,13 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             trecords = list(task_records)
             hint_records = [session.read_transaction(tx.get_task_hints,
-                            task_id=rec["t"]["task_id"]) for rec in trecords]
+                            task_id=rec["t"]["id"]) for rec in trecords]
             req_records = [session.read_transaction(tx.get_task_requirements,
-                           task_id=rec["t"]["task_id"]) for rec in trecords]
+                           task_id=rec["t"]["id"]) for rec in trecords]
             input_records = [session.read_transaction(tx.get_task_inputs,
-                             task_id=rec["t"]["task_id"]) for rec in trecords]
+                             task_id=rec["t"]["id"]) for rec in trecords]
             output_records = [session.read_transaction(tx.get_task_outputs,
-                              task_id=rec["t"]["task_id"]) for rec in trecords]
+                              task_id=rec["t"]["id"]) for rec in trecords]
 
         hints = [_reconstruct_hints(hint_record) for hint_record in hint_records]
         reqs = [_reconstruct_requirements(req_record) for req_record in req_records]
@@ -417,7 +406,7 @@ def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
     """
     rec = workflow_record["w"]
     return Workflow(name=rec["name"], hints=hints, requirements=requirements, inputs=inputs,
-                    outputs=outputs, workflow_id=rec["workflow_id"])
+                    outputs=outputs, workflow_id=rec["id"])
 
 
 def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
@@ -436,9 +425,9 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
     :rtype: Task
     """
     rec = task_record["t"]
-    return Task(name=rec["name"], command=rec["command"], hints=hints, requirements=requirements,
-                subworkflow=rec["subworkflow"], inputs=inputs, outputs=outputs,
-                workflow_id=rec["workflow_id"], task_id=rec["task_id"])
+    return Task(name=rec["name"], base_command=rec["base_command"], hints=hints,
+                requirements=requirements, inputs=inputs, outputs=outputs, stdout=rec["stdout"],
+                workflow_id=rec["workflow_id"], task_id=rec["id"])
 
 
 def _reconstruct_metadata(metadata_record, keys):
