@@ -141,14 +141,14 @@ class TestWorkflowInterface(unittest.TestCase):
     def test_add_task(self):
         """Test task creation."""
         task_name = "test_task"
-        command = "ls"
+        base_command = "ls"
+        inputs = {StepInput("test_input", "File", "input.txt", "test_input", None, None)}
+        outputs = {StepOutput("test_input/test_task_done", "stdout", "output.txt", "output.txt")}
         requirements = [Requirement("ResourceRequirement", {"ramMin": 1024}),
                         Requirement("NetworkAccess", {"networkAccess": True})]
         hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
                  Hint("NetworkAccess", {"networkAccess": True})]
-        subworkflow = "test_subworkflow"
-        inputs = {StepInput("test_input", "File", "input.txt", "test_input", None, None)}
-        outputs = {StepOutput("test_input/test_task_done", "File", "output.txt", "output.txt")}
+        stdout = "output.txt"
 
         self.wfi.initialize_workflow("test_workflow",
                                      {InputParameter("test_input", "File", "input.txt")},
@@ -156,21 +156,21 @@ class TestWorkflowInterface(unittest.TestCase):
                                                       "test_input/test_task_done")})
         task = self.wfi.add_task(
             name=task_name,
-            command=command,
+            base_command=base_command,
+            inputs=inputs,
+            outputs=outputs,
             requirements=requirements,
             hints=hints,
-            subworkflow=subworkflow,
-            inputs=inputs,
-            outputs=outputs)
+            stdout=stdout)
 
         # Task object assertions
         self.assertEqual(task_name, task.name)
-        self.assertEqual(command, task.command)
-        self.assertCountEqual(requirements, task.requirements)
-        self.assertCountEqual(hints, task.hints)
-        self.assertEqual(subworkflow, task.subworkflow)
+        self.assertEqual(base_command, task.base_command)
         self.assertSetEqual(inputs, task.inputs)
         self.assertSetEqual(outputs, task.outputs)
+        self.assertCountEqual(requirements, task.requirements)
+        self.assertCountEqual(hints, task.hints)
+        self.assertEqual(stdout, task.stdout)
         self.assertIsInstance(task.id, str)
 
         # Graph database assertions
@@ -207,14 +207,14 @@ class TestWorkflowInterface(unittest.TestCase):
     def test_get_task_by_id(self):
         """Test obtaining a task from the graph database by its ID."""
         task_name = "test_task"
-        command = "ls"
+        base_command = "ls"
+        inputs = {StepInput("input", "File", "input.txt", "test_input", None, None)}
+        outputs = {StepOutput("test_task/test_task_done", "stdout", "output.txt", "output.txt")}
         requirements = [Requirement("ResourceRequirement", {"ramMin": 1024}),
                         Requirement("NetworkAccess", {"networkAccess": True})]
         hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
                  Hint("NetworkAccess", {"networkAccess": True})]
-        subworkflow = "test_subworkflow"
-        inputs = {StepInput("input", "File", "input.txt", "test_input", None, None)}
-        outputs = {StepOutput("test_task/test_task_done", "File", "output.txt", "output.txt")}
+        stdout = "output.txt"
 
         self.wfi.initialize_workflow("test_workflow",
                                      {InputParameter("test_input", "File", "input.txt")},
@@ -222,12 +222,12 @@ class TestWorkflowInterface(unittest.TestCase):
                                                       "test_task/test_task_done")})
         task = self.wfi.add_task(
             name=task_name,
-            command=command,
+            base_command=base_command,
+            inputs=inputs,
+            outputs=outputs,
             requirements=requirements,
             hints=hints,
-            subworkflow=subworkflow,
-            inputs=inputs,
-            outputs=outputs)
+            stdout=stdout)
 
         self.assertEqual(task, self.wfi.get_task_by_id(task.id))
 
@@ -246,22 +246,6 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertSetEqual(set(tasks), wf_tasks)
         self.assertCountEqual(requirements, workflow.requirements)
         self.assertCountEqual(hints, workflow.hints)
-
-    def test_get_subworkflow(self):
-        """Test obtaining of a subworkflow."""
-        requirements = [Requirement("ResourceRequirement", {"ramMin": 1024})]
-        hints = [Hint("NetworkAccess", {"networkAccess": True})]
-        self.wfi.initialize_workflow("test_workflow",
-                                     {InputParameter("test_input", "File", "input.txt")},
-                                     {OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")}, requirements, hints)
-        tasks = self._create_test_tasks()
-
-        # Subworkflow assertion
-        (subwf_tasks, subwf_requirements, subwf_hints) = self.wfi.get_subworkflow("compute")
-        self.assertSetEqual(set(tasks[1:4]), subwf_tasks)
-        self.assertCountEqual(requirements, subwf_requirements)
-        self.assertCountEqual(hints, subwf_hints)
 
     def test_get_ready_tasks(self):
         """Test obtaining of ready workflow tasks."""
@@ -295,22 +279,34 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_task_state(self):
         """Test obtaining of task state."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     {InputParameter("test_input", "File", "input.txt")},
-                                     {OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")})
-        task = self.wfi.add_task("test_task")
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            {InputParameter("test_input", "File", "input.txt")},
+            {OutputParameter("test_output", "File", "output.txt", "test_task/output")})
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            {StepInput("test_input", "File", "input.txt", "test_input", None,
+                       None)},
+            {StepOutput("test_task/output", "File", "output.txt",
+                        "output.txt")})
 
         # Should be WAITING because workflow not yet executed
         self.assertEqual("WAITING", self.wfi.get_task_state(task))
 
     def test_set_task_state(self):
         """Test the setting of task state."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     {InputParameter("test_input", "File", "input.txt")},
-                                     {OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")})
-        task = self.wfi.add_task("test_task")
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            {InputParameter("test_input", "File", "input.txt")},
+            {OutputParameter("test_output", "File", "output.txt", "test_task/output")})
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            {StepInput("test_input", "File", "input.txt", "test_input", None,
+                       None)},
+            {StepOutput("test_task/output", "File", "output.txt",
+                        "output.txt")})
 
         self.wfi.set_task_state(task, "RUNNING")
 
@@ -319,11 +315,17 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_task_metadata(self):
         """Test the obtaining of task metadata."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     {InputParameter("test_input", "File", "input.txt")},
-                                     {OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")})
-        task = self.wfi.add_task("test_task")
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            {InputParameter("test_input", "File", "input.txt")},
+            {OutputParameter("test_output", "File", "output.txt", "test_task/output")})
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            {StepInput("test_input", "File", "input.txt", "test_input", None,
+                       None)},
+            {StepOutput("test_task/output", "File", "output.txt",
+                        "output.txt")})
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
@@ -332,11 +334,17 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_set_task_metadata(self):
         """Test the setting of task metadata."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     {InputParameter("test_input", "File", "input.txt")},
-                                     {OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")})
-        task = self.wfi.add_task("test_task")
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            {InputParameter("test_input", "File", "input.txt")},
+            {OutputParameter("test_output", "File", "output.txt", "test_task/output")})
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            {StepInput("test_input", "File", "input.txt", "test_input", None,
+                       None)},
+            {StepOutput("test_task/output", "File", "output.txt",
+                        "output.txt")})
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
         empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
@@ -351,11 +359,17 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_workflow_completed(self):
         """Test determining if a workflow has completed."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     {InputParameter("test_input", "File", "input.txt")},
-                                     {OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")})
-        task = self.wfi.add_task("test_task")
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            {InputParameter("test_input", "File", "input.txt")},
+            {OutputParameter("test_output", "File", "output.txt", "test_task/output")})
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            {StepInput("test_input", "File", "input.txt", "test_input", None,
+                       None)},
+            {StepOutput("test_task/output", "File", "output.txt",
+                        "output.txt")})
 
         # Workflow not completed
         self.assertFalse(self.wfi.workflow_completed())
@@ -400,41 +414,41 @@ class TestWorkflowInterface(unittest.TestCase):
         # Remember that add_task uploads the task to the database as well as returns a Task
         tasks = [
             self.wfi.add_task(
-                "data_prep", command="ls",
-                requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
-                hints=[Hint("ResourceRequirement", {"ramMax": 2048})],
+                "data_prep", base_command="ls",
                 inputs={StepInput("test_input", "File", "input.txt", "test_input", None, None)},
-                outputs={StepOutput("prep/prep_output.txt", "File", "prep_output.txt",
-                                    "prep_output.txt")}),
-            self.wfi.add_task(
-                "compute0", command="touch",
+                outputs={StepOutput("prep/prep_output.txt", "stdout", "prep_output.txt",
+                                    "prep_output.txt")},
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
-                hints=[Hint("ResourceRequirement", {"ramMax": 2048})],
-                subworkflow="compute", inputs={StepInput("input_data", "File", "prep_input.txt",
-                                                         "prep/prep_output.txt", None, None)},
-                outputs={StepOutput("compute0/output", "File", "output.txt", "output.txt")}),
+                hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="prep_output.txt"),
             self.wfi.add_task(
-                "compute1", command="find",
+                "compute0", base_command="touch",
+                inputs={StepInput("input_data", "File", "prep_input.txt", "prep/prep_output.txt",
+                                  None, None)},
+                outputs={StepOutput("compute0/output", "stdout", "output.txt", "output.txt")},
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
-                hints=[Hint("ResourceRequirement", {"ramMax": 2048})],
-                subworkflow="compute", inputs={StepInput("input_data", "File", "prep_input.txt",
-                                                         "prep/prep_output.txt", None, None)},
-                outputs={StepOutput("compute1/output", "File", "output.txt", "output.txt")}),
+                hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="output.txt"),
             self.wfi.add_task(
-                "compute2", command="grep",
+                "compute1", base_command="find",
+                inputs={StepInput("input_data", "File", "prep_input.txt", "prep/prep_output.txt",
+                                  None, None)},
+                outputs={StepOutput("compute1/output", "stdout", "output.txt", "output.txt")},
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
-                hints=[Hint("ResourceRequirement", {"ramMax": 2048})],
-                subworkflow="compute", inputs={StepInput("input_data", "File", "prep_input.txt",
-                                                         "prep/prep_output.txt", None, None)},
-                outputs={StepOutput("compute2/output", "File", "output.txt", "output.txt")}),
+                hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="output.txt"),
             self.wfi.add_task(
-                "visualization", command="python",
+                "compute2", base_command="grep",
+                inputs={StepInput("input_data", "File", "prep_input.txt", "prep/prep_output.txt",
+                                  None, None)},
+                outputs={StepOutput("compute2/output", "stdout", "output.txt", "output.txt")},
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
-                hints=[Hint("ResourceRequirement", {"ramMax": 2048})],
+                hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="output.txt"),
+            self.wfi.add_task(
+                "visualization", base_command="python",
                 inputs={StepInput("input0", "File", "output.txt", "compute0/output", None, 1),
                         StepInput("input1", "File", "output.txt", "compute1/output", None, 2),
                         StepInput("input2", "File", "output.txt", "compute2/output", None, 3)},
-                outputs={StepOutput("viz/output", "File", "viz_output.txt", "viz_output.txt")})
+                outputs={StepOutput("viz/output", "stdout", "viz_output.txt", "viz_output.txt")},
+                requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
+                hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="viz_output.txt")
         ]
         return tasks
 
