@@ -113,15 +113,17 @@ class CwlParser:
 
         step_name = os.path.basename(step_cwl.id).split(".")[0]
         step_command = step_cwl.baseCommand
-        step_hints = self.parse_requirements(step.hints, as_hints=True)
-        step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
-        step_requirements = self.parse_requirements(step.requirements)
-        step_requirements.extend(self.parse_requirements(step_cwl.requirements))
         step_inputs = self.parse_step_inputs(step.in_, step_cwl.inputs)
         step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout)
+        step_requirements = self.parse_requirements(step.requirements)
+        step_requirements.extend(self.parse_requirements(step_cwl.requirements))
+        step_hints = self.parse_requirements(step.hints, as_hints=True)
+        step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
+        step_stdout = step_cwl.stdout
 
-        return wfi.add_task(step_name, command=step_command, requirements=step_requirements,
-                            hints=step_hints, inputs=step_inputs, outputs=step_outputs)
+        return wfi.add_task(step_name, base_command=step_command, inputs=step_inputs,
+                            outputs=step_outputs, requirements=step_requirements, hints=step_hints,
+                            stdout=step_stdout)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
