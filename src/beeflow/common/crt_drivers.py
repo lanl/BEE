@@ -119,7 +119,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         baremetal = False
         if task_container_name == None:
-            log.info('No container name provided. Assuming copyContainer source is runtime target.')
+            log.info('No container name provided. Assuming another DockerRequirement is runtime target.')
+            runtime_target_list = []
+            # Harvest copyContainer if it exists.
             task_container_path = None
             try:
                 # Try to get Hints
@@ -139,15 +141,47 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 task_container_path = req_container_path
             elif hint_container_path:
                 task_container_path = hint_container_path
+            # If comes from copyContainer, harvest name from tarball.
+            if task_container_path:
+                task_container_path = os.path.basename(task_container_path).split('.')[0]
+                runtime_target_list.append(task_container_path)
+                log.info('Found copyContainer tarball, assuming this contains the container name.')
 
-            if task_container_path == None:
-                log.warning('No container specified, and cannot be inferred from copyContainer.')
-                log.warning('Maybe you do not need a container, or try adding containerName or copyContainer.')
+            # Harvest dockerPull if it exists
+            task_addr = None
+            try:
+                # Try to get Hints
+                hint_addr = task.hints['DockerRequirement']['dockerPull']
+            except (KeyError, TypeError):
+                # Task Hints are not mandatory. No dockerPull image specified in task hints.
+                hint_addr = None
+            try:
+                # Try to get Requirements
+                req_addr = task.requirements['DockerRequirement']['dockerPull']
+            except (KeyError, TypeError):
+                # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
+                req_addr = None
+            
+            # Prefer requirements over hints
+            if (req_addr or hint_addr) and (not hint_addr):
+                task_addr = req_addr
+            elif hint_addr:
+                task_addr = hint_addr
+            
+            if task_addr:
+                task_container_path = task_addr.replace('/','%')
+                runtime_target_list.append(task_container_path)
+                log.info('Found dockerPull address, assuming this contains the container name.')
+                if len(runtime_target_list) > 1:
+                    log.error('Too many container runtimes specified! Pick a maximum of one per workflow step.')
+                    return 1
+                
+            if len(runtime_target_list) == 0:
+                log.warning('No containerName specified, and cannot be inferred from other DockerRequirements.')
                 baremetal = True
             else:
                 # Build container name from container path.
-                task_container_name = os.path.basename(task_container_path).split('.')[0]
-
+                task_container_name = runtime_target_list[0]
                 log.info('Moving with the expectation that {} is the runtime container target'.format(task_container_name))
 
         command = ''.join(task.command) + '\n'

@@ -356,11 +356,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
     def dockerImageId(self, param_imageid=None):
         """CWL compliant dockerImageId.
 
-        CWL spec 09-23-2020: The image id that will be used for
-        docker run. May be a human-readable image name or the
-        image identifier hash. May be skipped if dockerPull is
-        specified, in which case the dockerPull image id must be
-        used.
+        A divergence from the CWL spec. Docker image Id is defined by docker as a checksum
+        on a container, not a human-readable name. The Docker image ID must be produced after
+        the container is build, and can not be used to tag the container for that reason.
         """
         # Parameter takes precedence
         if param_imageid:
