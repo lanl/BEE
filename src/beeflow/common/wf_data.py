@@ -90,7 +90,7 @@ class Task:
         :param name: the task name
         :type name: str
         :param base_command: the base command to run for the task
-        :type base_command: str
+        :type base_command: str or list of str
         :param hints: the task hints (optional requirements)
         :type hints: list of Hint
         :param requirements: the task requirements
@@ -146,7 +146,7 @@ class Task:
 
     def __hash__(self):
         """Return the hash value for a task."""
-        return hash((self.name, self.base_command))
+        return hash((self.id, self.workflow_id, self.name))
 
     def __repr__(self):
         """Construct a task's string representation."""
@@ -157,5 +157,34 @@ class Task:
 
     @property
     def command(self):
-        """Construct a task's command representation."""
-        # TODO: construct command from inputs
+        """Construct a task's command as a list.
+
+        :rtype: list of str
+        """
+        positional_inputs = []
+        nonpositional_inputs = []
+        for input_ in self.inputs:
+            if input_.value is None:
+                raise ValueError("trying to construct command for task with missing input value")
+
+            if input_.position is not None:
+                positional_inputs.append(input_)
+            else:
+                nonpositional_inputs.append(input_)
+        positional_inputs.sort(key=lambda i: i.position)
+
+        if isinstance(self.base_command, list):
+            command = self.base_command.copy()
+        else:
+            command = [self.base_command]
+
+        for input_ in positional_inputs:
+            if input_.prefix is not None:
+                command.append(input_.prefix)
+            command.append(input_.value)
+        for input_ in nonpositional_inputs:
+            if input_.prefix is not None:
+                command.append(input_.prefix)
+            command.append(input_.value)
+
+        return command

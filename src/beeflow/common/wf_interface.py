@@ -77,7 +77,7 @@ class WorkflowInterface:
         :param name: the name given to the task
         :type name: str
         :param base_command: the base command for the task
-        :type base_command: str
+        :type base_command: str or list of str
         :param requirements: the task-specific requirements
         :type requirements: list of Requirement
         :param hints: the task-specific hints (optional requirements)
