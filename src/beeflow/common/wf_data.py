@@ -174,7 +174,7 @@ class Task:
         positional_inputs.sort(key=lambda i: i.position)
 
         if isinstance(self.base_command, list):
-            command = self.base_command.copy()
+            command = self.base_command[:]
         else:
             command = [self.base_command]
 
