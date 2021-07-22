@@ -32,11 +32,11 @@ class TestWorkflowInterface(unittest.TestCase):
         requirements = [Requirement("ResourceRequirement", {"ramMin": 1024})]
         hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
                  Hint("NetworkAccess", {"networkAccess": True})]
-        workflow = self.wfi.initialize_workflow("test_workflow",
-                                                {InputParameter("test_input", "File", "input.txt")},
-                                                {OutputParameter("test_output", "File",
-                                                                 "output.txt", "viz/output")},
-                                                requirements, hints)
+        workflow = self.wfi.initialize_workflow(
+            "test_workflow",
+            {InputParameter("test_input", "File", "input.txt")},
+            {OutputParameter("test_output", "File", "output.txt", "viz/output")},
+            requirements, hints)
 
         gdb_workflow, _ = self.wfi.get_workflow()
 
@@ -98,10 +98,10 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_reset_workflow(self):
         """Test workflow execution resetting (set all tasks to 'WAITING', delete metadata)."""
-        workflow = self.wfi.initialize_workflow("test_workflow",
-                                     {InputParameter("test_input", "File", "input.txt")},
-                                     {OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")})
+        workflow = self.wfi.initialize_workflow(
+            "test_workflow",
+             {InputParameter("test_input", "File", "input.txt")},
+             {OutputParameter("test_output", "File", "output.txt", "viz/output")})
         tasks = self._create_test_tasks()
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
