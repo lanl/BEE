@@ -141,8 +141,8 @@ class TestWorkflowInterface(unittest.TestCase):
     def test_add_task(self):
         """Test task creation."""
         task_name = "test_task"
-        base_command = "ls"
-        inputs = {StepInput("test_input", "File", "input.txt", "test_input", None, None)}
+        base_command = ["ls", "-a", "-F"]
+        inputs = {StepInput("test_input", "File", "input.txt", "test_input", "-l", None)}
         outputs = {StepOutput("test_input/test_task_done", "stdout", "output.txt", "output.txt")}
         requirements = [Requirement("ResourceRequirement", {"ramMin": 1024}),
                         Requirement("NetworkAccess", {"networkAccess": True})]
@@ -414,8 +414,8 @@ class TestWorkflowInterface(unittest.TestCase):
         # Remember that add_task uploads the task to the database as well as returns a Task
         tasks = [
             self.wfi.add_task(
-                "data_prep", base_command="ls",
-                inputs={StepInput("test_input", "File", "input.txt", "test_input", None, None)},
+                "data_prep", base_command=["ls", "-a", "-F"],
+                inputs={StepInput("test_input", "File", "input.txt", "test_input", "-l", None)},
                 outputs={StepOutput("prep/prep_output.txt", "stdout", "prep_output.txt",
                                     "prep_output.txt")},
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
@@ -443,9 +443,9 @@ class TestWorkflowInterface(unittest.TestCase):
                 hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="output.txt"),
             self.wfi.add_task(
                 "visualization", base_command="python",
-                inputs={StepInput("input0", "File", "output.txt", "compute0/output", None, 1),
-                        StepInput("input1", "File", "output.txt", "compute1/output", None, 2),
-                        StepInput("input2", "File", "output.txt", "compute2/output", None, 3)},
+                inputs={StepInput("input0", "File", "output.txt", "compute0/output", "-i", 1),
+                        StepInput("input1", "File", "output.txt", "compute1/output", "-i", 2),
+                        StepInput("input2", "File", "output.txt", "compute2/output", "-i", 3)},
                 outputs={StepOutput("viz/output", "stdout", "viz_output.txt", "viz_output.txt")},
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
                 hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="viz_output.txt")
