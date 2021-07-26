@@ -9,12 +9,12 @@
 
 """Parse contents a CWL file.
 
-This script will parse (and build a workflow in the databse) the
+This script will parse (and build a workflow in the database) the
 contents of a CWL file. The CWL file is parsed using parser_v1_0.py
 from the cwl-utils repository. That parser creates Python objects from
 the CWL file (as opposed to other parsing techniques that produce
 Python dictionaries. This graph of Python objects is then traversed
-and loaded into the Neo4j databse.
+and loaded into the Neo4j database.
 
 """
 
@@ -52,7 +52,7 @@ def create_workflow(obj, wfi):
 
     # Use workflow interface (note the passed in reference to a Neo4j
     # instance) to instantiate a workflow.
-    workflow = wfi.initialize_workflow(ins, outs)
+    workflow = wfi.initialize_workflow("Clamr Workflow", ins, outs)
 
     # Now create (and store in the databse) all the workdlow's tasks.
     for i in obj.steps:
@@ -104,13 +104,13 @@ def create_task(obj, wfi, workflow):
     cmd = base
 
     # Get any hints for the task. We only support DockerRequirement for now.
-    thints = set()
+    thints = []
     if obj.run.hints is not None:
         for i in obj.run.hints:
             if "DockerRequirement" in i.values():
                 del i["class"]
-                for key, value in i.items():
-                    thints.add(wfi.create_requirement("DockerRequirement", key, value))
+                thints.append(wfi.create_requirement("DockerRequirement",
+                                                     {key: value for key, value in i.items()}))
 
     print(f"task:  {tname}")
     print(f"  ins:      {ins}")
@@ -120,8 +120,7 @@ def create_task(obj, wfi, workflow):
 
     # Using the BEE workflow interface (note the passed in reference
     # to a Neo4j databse) to load the task nto the database.
-    wfi.add_task(workflow=workflow, name=tname, command=cmd, inputs=ins, 
-            outputs=outs, hints=thints)
+    wfi.add_task(name=tname, command=cmd, inputs=ins, outputs=outs, hints=thints)
 
     
 
@@ -163,8 +162,8 @@ def dump_tasks(tarray, wfi):
         if t.hints is not None:
             print("      hints:")
             for h in t.hints:
-                req_class, key, value = h
-                print(f"        req_class: {req_class}   key: {key}   value: {value}")
+                req_class, params = h
+                print(f"        req_class: {req_class}   params: {params}")
     print("\n-- Tasks: name, dependent tasks")
     for t in tarray:
         print(f"{t.name:<12}", end="")
@@ -180,16 +179,16 @@ def verify_workflow(wfi):
     print(wfi.workflow_loaded())
 
     # Get all the tasks from Neo4j and print them to console.
-    (tasks, requirements, hints) = wfi.get_workflow()
+    (workflow, tasks) = wfi.get_workflow()
     dump_tasks(tasks, wfi)
     
-    # Fake a workflow manager loop.  By convention, bee_init is ID 0,
-    # bee_exit is ID 1. This little hack only works for workflows
+    # Fake a workflow manager loop. This little hack only works for workflows
     # where each task has at most one dependent task. In other words,
     # fan in and fan out workflows are not handled here.
-    tid = 0
+    wfi.execute_workflow()
+    tid = list(wfi.get_ready_tasks())[0].id
     print(f"{wfi.get_task_by_id(tid).name}", end="")
-    while tid != 1:
+    while wfi.get_dependent_tasks(wfi.get_task_by_id(tid)):
         print(" --> ", end="")
         # HACK: doesn't handle set sizes greater than one (i.e. fan
         # in, fan out))
