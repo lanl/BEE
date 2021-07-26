@@ -5,7 +5,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 
 from uuid import uuid4
 from beeflow.common.gdb_interface import GraphDatabaseInterface
-from beeflow.common.wf_data import Workflow, Task, Requirement, Hint
+from beeflow.common.wf_data import Workflow, Task
 
 
 class WorkflowInterface:
@@ -46,6 +46,7 @@ class WorkflowInterface:
             hints = set()
 
         workflow = Workflow(name, hints, requirements, inputs, outputs)
+        self._workflow_id = workflow.id
         # Load the new workflow into the graph database
         self._gdb_interface.initialize_workflow(workflow)
         return workflow
@@ -144,6 +145,15 @@ class WorkflowInterface:
         workflow = self._gdb_interface.get_workflow_description()
         tasks = self._gdb_interface.get_workflow_tasks()
         return workflow, tasks
+
+    def get_workflow_id(self):
+        """Get the BEE workflow ID.
+
+        Returns a uuid4 string as the ID.
+
+        :rtype: str
+        """
+        return self._workflow_id
 
     def get_ready_tasks(self):
         """Get ready tasks from a BEE workflow.

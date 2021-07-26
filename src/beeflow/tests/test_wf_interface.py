@@ -42,6 +42,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         self.assertEqual(gdb_workflow, workflow)
         self.assertEqual(gdb_workflow.id, workflow.id)
+        self.assertIsNotNone(self.wfi._workflow_id)
 
     def test_execute_workflow(self):
         """Test workflow execution initialization (set initial tasks' states to 'READY')."""
@@ -100,8 +101,8 @@ class TestWorkflowInterface(unittest.TestCase):
         """Test workflow execution resetting (set all tasks to 'WAITING', delete metadata)."""
         workflow = self.wfi.initialize_workflow(
             "test_workflow",
-             {InputParameter("test_input", "File", "input.txt")},
-             {OutputParameter("test_output", "File", "output.txt", "viz/output")})
+            {InputParameter("test_input", "File", "input.txt")},
+            {OutputParameter("test_output", "File", "output.txt", "viz/output")})
         tasks = self._create_test_tasks()
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
@@ -171,6 +172,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertCountEqual(requirements, task.requirements)
         self.assertCountEqual(hints, task.hints)
         self.assertEqual(stdout, task.stdout)
+        self.assertEqual(task.workflow_id, self.wfi._workflow_id)
         self.assertIsInstance(task.id, str)
 
         # Graph database assertions
@@ -179,6 +181,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(task.id, gdb_task.id)
 
     def test_initialize_ready_tasks(self):
+        """Test initialization of tasks that are ready to run."""
         self.wfi.initialize_workflow("test_workflow",
                                      {InputParameter("test_input", "File", "input.txt")},
                                      {OutputParameter("test_output", "File", "output.txt",
@@ -194,6 +197,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual("READY", self.wfi.get_task_state(tasks[3]))
 
     def test_finalize_task(self):
+        """Test finalization of completed tasks."""
         self.wfi.initialize_workflow("test_workflow",
                                      {InputParameter("test_input", "File", "input.txt")},
                                      {OutputParameter("test_output", "File", "output.txt",
