@@ -42,7 +42,7 @@ class SimpleWorker(worker.Worker):
         :param task: instance of Task
         :rtype tuple (int, string)
         """
-        script = self.crt.script_text(task)
+        script = self.crt.run_text(task)
         print(script)
         self.tasks[task.id] = subprocess.Popen(['/bin/sh', '-c', script])
         return (task.id, 'PENDING')
