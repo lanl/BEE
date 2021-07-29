@@ -3,7 +3,7 @@
 
 import subprocess
 
-import beeflow.common.worker.worker as worker
+import beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
@@ -20,7 +20,7 @@ except ModuleNotFoundError:
     pass
 
 
-class SimpleWorker(worker.Worker):
+class SimpleWorker(Worker):
     """The Worker interface for no workload manager."""
 
     def __init__(self, container_runtime, **kwargs):
