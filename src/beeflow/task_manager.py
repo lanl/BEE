@@ -252,8 +252,6 @@ class TaskActions(Resource):
 # WorkerInterface needs to be placed here. Don't Move!
 from beeflow.common.worker_interface import WorkerInterface
 import beeflow.common.worker as worker_pkg
-#from beeflow.common.worker.slurm_worker import SlurmWorker
-#from beeflow.common.worker.lsf_worker import LSFWorker
 
 supported_workload_schedulers = {'Slurm', 'LSF'}
 try:
