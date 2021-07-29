@@ -253,14 +253,12 @@ class TaskActions(Resource):
 from beeflow.common.worker_interface import WorkerInterface
 import beeflow.common.worker as worker_pkg
 
-supported_workload_schedulers = {'Slurm', 'LSF'}
 try:
     WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
 except ValueError as error:
     log.error(f'workload scheduler error {error}')
     WLS = None
 worker_class = worker_pkg.find_worker(WLS)
-# if WLS not in supported_workload_schedulers:
 if worker_class is None:
     sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
              f'Please check {bc.userconfig_file} and restart TaskManager.')
