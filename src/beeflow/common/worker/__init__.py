@@ -1,9 +1,9 @@
 """Init file for the worker package."""
 import sys
 
-from .slurm_worker import SlurmWorker
-from .lsf_worker import LSFWorker
-from .simple_worker import SimpleWorker
+from beeflow.common.worker.slurm_worker import SlurmWorker
+from beeflow.common.worker.lsf_worker import LSFWorker
+from beeflow.common.worker.simple_worker import SimpleWorker
 
 
 supported_workload_schedulers = {
