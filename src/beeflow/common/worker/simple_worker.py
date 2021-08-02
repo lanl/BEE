@@ -3,7 +3,7 @@
 
 import subprocess
 
-import beeflow.common.worker.worker import Worker
+from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
