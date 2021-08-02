@@ -251,34 +251,27 @@ class TaskActions(Resource):
 
 # WorkerInterface needs to be placed here. Don't Move!
 from beeflow.common.worker_interface import WorkerInterface
-from beeflow.common.worker.slurm_worker import SlurmWorker
-from beeflow.common.worker.lsf_worker import LSFWorker
+import beeflow.common.worker as worker_pkg
 
-supported_workload_schedulers = {'Slurm', 'LSF'}
 try:
     WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
 except ValueError as error:
     log.error(f'workload scheduler error {error}')
     WLS = None
-if WLS not in supported_workload_schedulers:
+worker_class = worker_pkg.find_worker(WLS)
+if worker_class is None:
     sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
              f'Please check {bc.userconfig_file} and restart TaskManager.')
+# Get the parameters for the worker classes
+worker_kwargs = {
+    'bee_workdir': bc.userconfig.get('DEFAULT', 'bee_workdir'),
+    'container_runtime': bc.userconfig.get('task_manager', 'container_runtime'),
+    'job_template': bc.userconfig.get('task_manager', 'job_template', fallback=None),
+}
+# TODO: Maybe this should be put into a sub class
 if WLS == 'Slurm':
-    worker = WorkerInterface(SlurmWorker,
-                             slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'),
-                             bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
-                             container_runtime=bc.userconfig.get('task_manager',
-                                                                 'container_runtime'),
-                             job_template=bc.userconfig.get('task_manager',
-                                                            'job_template', fallback=None))
-
-elif WLS == 'LSF':
-    worker = WorkerInterface(LSFWorker,
-                             bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
-                             container_runtime=bc.userconfig.get('task_manager',
-                                                                 'container_runtime'),
-                             job_template=bc.userconfig.get('task_manager',
-                                                            'job_template', fallback=None))
+    worker_kwargs['slurm_socket'] = bc.userconfig.get('slurmrestd', 'slurm_socket')
+worker = WorkerInterface(worker_class, **worker_kwargs)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
