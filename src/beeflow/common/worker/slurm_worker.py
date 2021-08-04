@@ -84,7 +84,7 @@ class SlurmWorker(Worker):
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
         workflow_path = f'{self.workdir}/{task.workflow_id}/{task.name}-{task.id}'
-        template_text = '#! /bin/bash\n'
+        template_text = '#! /bin/bash -l\n'
         template_text += f'#SBATCH --job-name={task.name}-{task.id}\n'
         template_text += f'#SBATCH --output={workflow_path}/{task.name}-{task.id}.out\n'
         template_text += f'#SBATCH --error={workflow_path}/{task.name}-{task.id}.err\n'

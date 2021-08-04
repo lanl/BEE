@@ -43,15 +43,9 @@ def check_crt_config(c_runtime):
     if c_runtime == 'Charliecloud':
         if not bc.userconfig.has_section('charliecloud'):
             cc_opts = {'setup': 'module load charliecloud',
-                       'image_mntdir': '/tmp',
                        'chrun_opts': '--cd /home/$USER'
                        }
             bc.modify_section('user', 'charliecloud', cc_opts)
-        else:
-            try:
-                bc.userconfig.get('charliecloud', 'image_mntdir')
-            except configparser.NoOptionError:
-                bc.modify_section('user', 'charliecloud', {'image_mntdir': '/tmp'})
 
 
 # Check task_manager and container_runtime sections of user configuration file
