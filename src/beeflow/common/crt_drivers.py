@@ -198,9 +198,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 f'hostname\n'
                 f'echo ls -altrh /yellow/users/qwofford/.beeflow/container_archive/\n'
                 f'ls -altrh /yellow/users/qwofford/.beeflow/container_archive/\n'
-                f'ls -altrh {container_path}\n'
                 f'mkdir -p {deployed_image_root}\n'
+                f'echo ls -altrh {deployed_image_root}\n'
+                f'ls -altrh {deployed_image_root}\n'
+                f'echo ch-tar2dir {container_path} {deployed_image_root}\n'
                 f'ch-tar2dir {container_path} {deployed_image_root}\n'
+                f'echo ls -altrh {deployed_image_root}\n'
+                f'ls -altrh {deployed_image_root}\n'
                 f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}'
                 f'rm -rf {deployed_image_root}/{task_container_name}\n'
                 )
@@ -213,15 +217,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         text = (f'beeflow --build {userconfig} {task_args}\n'
                 )
         return text
-
-    def image_exists(self, task):
-        """Check if image exists."""
-        if task.hints is not None:
-            for hint in task.hints:
-                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    return os.access(hint.params["dockerImageId"], os.R_OK)
-        return True
-
 
 class SingularityDriver(ContainerRuntimeDriver):
     """The ContainerRuntimeDriver for Singularity as container runtime system.
@@ -251,11 +246,3 @@ class SingularityDriver(ContainerRuntimeDriver):
         text = (f'beeflow --build {userconfig} {task_args}\n'
                 )
         return text
-
-    def image_exists(self, task):
-        """Check if image exists."""
-        if task.hints is not None:
-            for hint in task.hints:
-                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    return os.access(hint.params["dockerImageId"], os.R_OK)
-        return True
