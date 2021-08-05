@@ -40,6 +40,8 @@ class WorkflowInterface:
         :param hints: the workflow hints (optional requirements)
         :type hints: list of Hint
         """
+        if self.workflow_loaded():
+            raise RuntimeError("attempt to re-initialize existing workflow")
         if requirements is None:
             requirements = set()
         if hints is None:
