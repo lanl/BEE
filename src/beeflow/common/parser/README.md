@@ -61,6 +61,7 @@ etc.).
 
 `parser.py` will allow the parsing of a generic CWL workflow with basic support and no JavaScript
 support. The parser will automatically connect to and populate the graph database.
+
 To use as a script:
 
 `python3 parser.py cwl-file cwl-inputs`
