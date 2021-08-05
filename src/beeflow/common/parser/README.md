@@ -64,7 +64,7 @@ support. The parser will automatically connect to and populate the graph databas
 
 To use as a script:
 
-`python3 parser.py cwl-file cwl-inputs`
+`python3 parser.py cwl-file [cwl-inputs]`
 
 where `cwl-file` is the CWL Workflow file and `cwl-inputs` is the YAML or JSON file providing
 job parameter inputs.
