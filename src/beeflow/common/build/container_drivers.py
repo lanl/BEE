@@ -94,7 +94,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 deployed_image_root = bc.resolve_path(deployed_image_root)
             else:
                 log.info('Deployed image root not found.')
-                deployed_image_root = '/'.join(['/var/tmp', os.getlogin(), 'beeflow'])
+                deployed_image_root = '/'.join(['/var/tmp', os.getlogin(), 'beeflow_deployed_containers'])
                 # Make sure conf_file path exists
                 os.makedirs(deployed_image_root, exist_ok=True)
                 # Make sure path is absolute

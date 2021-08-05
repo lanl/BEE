@@ -143,7 +143,7 @@ def gen_task_metadata(task, job_id):
 
 def resolve_environment(task):
     """Use build interface to create a valid environment."""
-    return subprocess.Popen(["beeflow","--build",USERCONFIG,task2arg(task)],
+    return subprocess.run(["beeflow","--build",USERCONFIG,task2arg(task)],
                            stdout=PIPE, stderr=PIPE)
 
 
