@@ -21,25 +21,16 @@ from beeflow.common.wf_data import (InputParameter,
                                     Requirement)
 from beeflow.common.wf_interface import WorkflowInterface
 
-try:
-    bc = BeeConfig()
-    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
-                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
-                            password=bc.userconfig.get('graphdb', 'dbpass'))
-except KeyError:
-    wfi = WorkflowInterface()
-except configparser.NoSectionError:
-    wfi = WorkflowInterface()
 
 # Map CWL types to Python types
 type_map = {
-    'string': str,
-    'int': int,
-    'long': int,
-    'float': float,
-    'double': float,
-    'File': str,
-    'Directory': str,
+    "string": str,
+    "int": int,
+    "long": int,
+    "float": float,
+    "double": float,
+    "File": str,
+    "Directory": str,
 }
 
 
@@ -47,10 +38,25 @@ class CwlParser:
     """Class for parsing CWL files."""
 
     def __init__(self):
-        """Initialize a CWL parser."""
+        """Initialize a CWL parser.
+
+        Forms a connection to the graph database through the workflow interface.
+        """
         self.cwl = None
         self.steps = []
         self.params = None
+        self._wfi = None
+
+        try:
+            bc = BeeConfig()
+            self._wfi = WorkflowInterface(user="neo4j",
+                                          bolt_port=bc.userconfig.get("graphdb", "bolt_port"),
+                                          db_hostname=bc.userconfig.get("graphdb", "hostname"),
+                                          password=bc.userconfig.get("graphdb", "dbpass"))
+        except KeyError:
+            self._wfi = WorkflowInterface()
+        except configparser.NoSectionError:
+            self._wfi = WorkflowInterface()
 
     def parse_workflow(self, cwl, job=None):
         """Parse a CWL Workflow file and load it into the graph database.
@@ -74,18 +80,22 @@ class CwlParser:
             """Resolve workflow input parameter from job file.
 
             :param input_: the workflow input name
-            :type input_: str
+            :type input_: WorkflowInputParameter
             :param type_: the workflow input type
             :type type_: str
             :rtype: str or int or float
             """
-            if not isinstance(self.params[input_], type_map[type_]):
-                raise ValueError(f'Input/param types do not match: {input_}/{self.params[input_]}')
-            return self.params[input_]
+            # Use parsed input parameter for input value if it exists
+            input_id = _shortname(input_.id)
+            if job:
+                if not isinstance(self.params[input_id], type_map[type_]):
+                    raise ValueError("Input/param types do not match: "
+                                     f"{input_id}/{self.params[input_id]}")
+                return self.params[input_id]
 
         workflow_name = os.path.basename(cwl).split(".")[0]
         workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
-                                          resolve_input(_shortname(input_.id), input_.type))
+                                          resolve_input(input_, input_.type))
                            for input_ in self.cwl.inputs}
         workflow_outputs = {OutputParameter(_shortname(output.id), output.type, None,
                                             _shortname(output.outputSource, True))
@@ -93,8 +103,8 @@ class CwlParser:
         workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
 
-        workflow = wfi.initialize_workflow(workflow_name, workflow_inputs, workflow_outputs,
-                                           workflow_requirements, workflow_hints)
+        workflow = self._wfi.initialize_workflow(workflow_name, workflow_inputs, workflow_outputs,
+                                                 workflow_requirements, workflow_hints)
         tasks = [self.parse_step(step) for step in self.cwl.steps]
 
         return workflow, tasks
@@ -106,12 +116,18 @@ class CwlParser:
         :type step: WorkflowStep
         :rtype: Task
         """
-        step_cwl = cwl_parser.load_document(step.run)
+        # Parse CWL file specified by run field, else parse run field as inline CommandLineTool
+        if isinstance(step.run, str):
+            step_cwl = cwl_parser.load_document(step.run)
+            step_id = os.path.basename(step_cwl.id).split(".")[0]
+        else:
+            step_cwl = step.run
+            step_id = _shortname(step.id)
 
         if step_cwl.class_ != "CommandLineTool":
-            raise ValueError(f"{os.path.basename(step.run)} class must be CommandLineTool")
+            raise ValueError(f"Step {step.id} class must be CommandLineTool")
 
-        step_name = os.path.basename(step_cwl.id).split(".")[0]
+        step_name = os.path.basename(step_id).split(".")[0]
         step_command = step_cwl.baseCommand
         step_inputs = self.parse_step_inputs(step.in_, step_cwl.inputs)
         step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout)
@@ -121,9 +137,9 @@ class CwlParser:
         step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
         step_stdout = step_cwl.stdout
 
-        return wfi.add_task(step_name, base_command=step_command, inputs=step_inputs,
-                            outputs=step_outputs, requirements=step_requirements, hints=step_hints,
-                            stdout=step_stdout)
+        return self._wfi.add_task(step_name, base_command=step_command, inputs=step_inputs,
+                                  outputs=step_outputs, requirements=step_requirements,
+                                  hints=step_hints, stdout=step_stdout)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
@@ -132,20 +148,20 @@ class CwlParser:
         :type job: str
         :rtype: dict
         """
-        if job.endswith('.yml'):
+        if job.endswith(".yml"):
             with open(job) as fp:
                 self.params = yaml.full_load(fp)
-        elif job.endswith('.json'):
+        elif job.endswith(".json"):
             with open(job) as fp:
                 self.params = json.load(fp)
         else:
-            raise ValueError('Unsupported input job file extension')
+            raise ValueError("Unsupported input job file extension")
 
         for k, v in self.params.items():
             if not isinstance(k, str):
-                raise ValueError(f'Invalid input job key: {str(k)}')
+                raise ValueError(f"Invalid input job key: {str(k)}")
             if not isinstance(v, (str, int, float)):
-                raise ValueError(f'Invalid input job parameter type: {type(v)}')
+                raise ValueError(f"Invalid input job parameter type: {type(v)}")
 
     @staticmethod
     def parse_step_inputs(cwl_in, step_inputs):
@@ -162,7 +178,7 @@ class CwlParser:
 
         inputs = set()
         for step_input in step_inputs:
-            # If the input type is just a str, then the input is required
+            # If the input type is str, then the input is required
             # If it is a list containing 'null' and another type(s) then it is optional
             if _shortname(step_input.id) not in source_map.keys():
                 if isinstance(step_input.type, str):
@@ -177,12 +193,13 @@ class CwlParser:
 
             if step_input.inputBinding:
                 inputs.add(StepInput(_shortname(step_input.id), input_type, None,
-                                     source_map[_shortname(step_input.id)],
+                                     step_input.default, source_map[_shortname(step_input.id)],
                                      step_input.inputBinding.prefix,
                                      step_input.inputBinding.position))
             else:
                 inputs.add(StepInput(_shortname(step_input.id), input_type, None,
-                                     source_map[_shortname(step_input.id)], None, None))
+                                     step_input.default, source_map[_shortname(step_input.id)],
+                                     None, None))
 
         return inputs
 
@@ -267,8 +284,10 @@ def _shortname(uri, output_source=False):
     return uri.split("#")[-1]
 
 
-def parse_args(args=sys.argv[1:]):
+def parse_args(args=None):
     """Parse arguments."""
+    if args is None:
+        args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
 
     parser.add_argument("wf_file", type=str, help="CWL workflow file")
