@@ -4,7 +4,7 @@
 def constrain_tasks_unique(tx):
     """Constrain tasks to have unique names."""
     unique_task_query = ("CREATE CONSTRAINT ON (t:Task) "
-                         "ASSERT t.name IS UNIQUE")
+                         "ASSERT t.id IS UNIQUE")
 
     tx.run(unique_task_query)
 
@@ -139,13 +139,14 @@ def create_task_input_nodes(tx, task):
                        "SET i.id = $input_id "
                        "SET i.type = $type "
                        "SET i.value = $value "
+                       "SET i.default = $default "
                        "SET i.source = $source "
                        "SET i.prefix = $prefix "
                        "SET i.position = $position")
 
         tx.run(input_query, task_id=task.id, input_id=input_.id, type=input_.type,
-               value=input_.value, source=input_.source, prefix=input_.prefix,
-               position=input_.position)
+               value=input_.value, default=input_.default, source=input_.source,
+               prefix=input_.prefix, position=input_.position)
 
 
 def create_task_output_nodes(tx, task):

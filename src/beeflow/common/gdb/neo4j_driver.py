@@ -374,8 +374,8 @@ def _reconstruct_task_inputs(input_records):
     :rtype: set of StepInput
     """
     recs = [input_record["i"] for input_record in input_records]
-    return {StepInput(rec["id"], rec["type"], rec["value"], rec["source"], rec["prefix"],
-                      rec["position"]) for rec in recs}
+    return {StepInput(rec["id"], rec["type"], rec["value"], rec["default"], rec["source"],
+                      rec["prefix"], rec["position"]) for rec in recs}
 
 
 def _reconstruct_task_outputs(output_records):

@@ -7,7 +7,8 @@ InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
 # Workflow output parameter class
 OutputParameter = namedtuple("OutputParameter", ["id", "type", "value", "source"])
 # Step input class
-StepInput = namedtuple("StepInput", ["id", "type", "value", "source", "prefix", "position"])
+StepInput = namedtuple("StepInput", ["id", "type", "value", "default", "source", "prefix",
+                                     "position"])
 # Step output class
 StepOutput = namedtuple("StepOutput", ["id", "type", "value", "glob"])
 
