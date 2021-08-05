@@ -59,24 +59,21 @@ etc.).
 
 ## Using the CWL Parser
 
+`parser.py` will allow the parsing of a generic CWL workflow with basic support and no JavaScript
+support. To use as a script:
 
-`parse_cwl.py` demonstrates the use of the parser. Run it as follows
-(making sure you have an empty Neo4j databse running):
+`./parser.py cwl-file cwl-inputs`
 
+where `cwl-file` is the CWL Workflow file and `cwl-inputs` is the YAML or JSON file providing
+job parameter inputs.
 
-```sh
-$ ./parse_cwl.py ./grepcount/gc.cwl
+To use as an imported module:
 
-```
+```py
+from beeflow.common.parser import CwlParser
 
-This will load the `gc.cwl` file into the Neo4j databse as a
-workflow. Since the databse is now populated, subsequent reruns of the
-parser will fail--named objects already exist in the database. If you
-want to experment with multiple runs, make sure you empth the databse
-between runs using the followg command in the Neo4j browser.
-
-```sh
-MATCH(n) WITH n LIMIT 10000 DETACH DELETE n
+parser = CwlParser() # Forms a database connection
+parser.parse_workflow(cwl_file, cwl_inputs) # cwl_inputs is optional
 ```
 
 ## References
