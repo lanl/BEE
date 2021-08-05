@@ -195,7 +195,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         deployed_image_root = bc.userconfig.get('builder', 'deployed_image_root')
 
         text = (f'{cc_setup}\n'
-                f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}'
+                f'mkdir -p {deployed_image_root}\n'
+                f'ch-tar2dir {container_path} {deployed_image_root}\n'
+                f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'
                 f'rm -rf {deployed_image_root}/{task_container_name}\n'
                 )
         log.info('run text:\n{}'.format(text))
