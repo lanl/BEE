@@ -291,7 +291,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
 
     parser.add_argument("wf_file", type=str, help="CWL workflow file")
-    parser.add_argument("wf_inputs", type=str, help="Workflow job file")
+    parser.add_argument("wf_inputs", type=str, help="Workflow job file", required=False)
 
     return parser.parse_args(args)
 
