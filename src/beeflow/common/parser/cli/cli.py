@@ -13,6 +13,8 @@ import argparse
 import cmd2
 
 from rich.console import Console
+from rich.columns import Columns
+from rich.padding import Padding
 
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.gdb_interface import GraphDatabaseInterface
@@ -20,7 +22,7 @@ from beeflow.common.wf_data import Workflow, Task, Requirement, Hint
 
 gdb = None
 
-con = Console()
+con = Console(highlight=None)
 
 class NeoApp(cmd2.Cmd):
     """An app to single-step a BEE workflow."""
@@ -102,11 +104,17 @@ class NeoApp(cmd2.Cmd):
         """info subcommand of workflow command"""
         if gdb.initialized():
             wf = gdb.get_workflow_description()
-            con.print(f'Workflow ID/name: {wf.id}/{wf.name}')
-            con.print(f'  hints:        {wf.hints}')
-            con.print(f'  requirements: {wf.requirements}')
-            con.print(f'  inputs:       {wf.inputs}')
-            con.print(f'  outputs:      {wf.outputs}')
+            con.print(f'[orange3]Workflow ID/name[/orange3]: {wf.id}/[pink1]{wf.name}')
+            con.print(f'  hints:')
+            for i in wf.hints:
+                con.print(i)
+            con.print(f'  requirements:')
+            for i in wf.requirements:
+                con.print(i)
+            con.print(f'  inputs:')
+            con.print(Padding(Columns(wf.inputs, width=15, padding=(0,3), equal=True, expand=True), (0,0,0,10), style='blue'))
+            con.print(f'  inputs:')
+            con.print(Padding(Columns(wf.outputs, width=15, padding=(0,3), equal=True, expand=True), (0,0,0,10)), style='blue')
         else:
             con.print('GDB [red]not connected[/red]!')
     parser_workflowinfo.set_defaults(func=workflow_info)
@@ -114,13 +122,24 @@ class NeoApp(cmd2.Cmd):
     # subcommand functions for the task command
     def task_info(self, args):
         """info subcommand of task command"""
+        if not gdb.initialized():
+            con.print('GDB [red]not connected[/red]!')
+            return
         if args.all:
-            self.poutput('dumping all tasks')
-        self.poutput(args)
-        self.perror('bung')
-        self.pwarning('daddy')
-        self.pfeedback('feed me')
-        self.poutput('task info!')
+            tasks = gdb.get_workflow_tasks()
+            for i in tasks:
+                con.print(f'[orange3]Task ID/name[/orange3]: {i.id}/[pink1]{i.name}')
+                con.print(f'  command:   {i.command}')
+                con.print(f'  hints:')
+                for h in i.hints:
+                    con.print(f'          [b]{h.class_}[/b]  {h.key}: {h.value}')
+                con.print('  requirements:')
+                for r in i.requirements:
+                    con.print(f'          [b]{r.class_}[/b]  {r.key}: {r.value}')
+                con.print(f'  inputs:')
+                con.print(Padding(Columns(i.inputs, width=15, padding=(0,3), equal=True, expand=True), (0,0,0,10), style='blue'))
+                con.print(f'  inputs:')
+                con.print(Padding(Columns(i.outputs, width=15, padding=(0,3), equal=True, expand=True), (0,0,0,10)), style='blue')
     def task_set(self, args):
         """info subcommand of task command"""
         self.poutput('task setinfo!')
