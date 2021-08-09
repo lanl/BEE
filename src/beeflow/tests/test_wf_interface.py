@@ -414,6 +414,15 @@ class TestWorkflowInterface(unittest.TestCase):
         # Workflow now loaded
         self.assertTrue(self.wfi.workflow_loaded())
 
+    def test_workflow_id(self):
+        """Test retrieving the workflow ID from the workflow interface."""
+        self.assertEqual(self.wfi.workflow_id, self.wfi._workflow_id)
+
+        # Set workflow_id to None so it's retrieved from database
+        self.wfi._workflow_id = None
+
+        self.assertEqual(self.wfi.workflow_id, self.wfi._workflow_id)
+
     def _create_test_tasks(self):
         """Create test tasks to reduce redundancy."""
         # Remember that add_task uploads the task to the database as well as returns a Task

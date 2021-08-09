@@ -242,3 +242,14 @@ class WorkflowInterface:
         :rtype: bool
         """
         return bool(not self._gdb_interface.empty())
+
+    @property
+    def workflow_id(self):
+        """Retrieve the workflow ID from the workflow interface.
+
+        If workflow ID is not populated, this grabs it from the database."""
+        if self._workflow_id is None and self.workflow_loaded():
+            workflow = self.get_workflow()
+            self._workflow_id = workflow.id
+
+        return self._workflow_id
