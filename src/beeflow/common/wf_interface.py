@@ -67,10 +67,12 @@ class WorkflowInterface:
 
     def reset_workflow(self):
         """Reset the execution state and ID of a BEE workflow."""
-        self._gdb_interface.reset_workflow(str(uuid4()))
+        self._workflow_id = str(uuid4())
+        self._gdb_interface.reset_workflow(self._workflow_id)
 
     def finalize_workflow(self):
         """Deconstruct a BEE workflow."""
+        self._workflow_id = None
         self._gdb_interface.cleanup()
 
     def add_task(self, name, base_command, inputs, outputs, requirements=None, hints=None,
@@ -247,7 +249,10 @@ class WorkflowInterface:
     def workflow_id(self):
         """Retrieve the workflow ID from the workflow interface.
 
-        If workflow ID is not populated, this grabs it from the database."""
+        If workflow ID is not populated, this grabs it from the database.
+
+        If no workflow is loaded, None is returned.
+        """
         if self._workflow_id is None and self.workflow_loaded():
             workflow = self.get_workflow()
             self._workflow_id = workflow.id
