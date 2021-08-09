@@ -61,11 +61,13 @@ class CwlParser:
     def parse_workflow(self, cwl, job=None):
         """Parse a CWL Workflow file and load it into the graph database.
 
+        Returns an instance of the WorkflowInterface.
+
         :param cwl: the CWL file path
         :type cwl: str
         :param job: the input job file (YAML or JSON)
         :type job: str
-        :rtype: tuple of (Workflow, list of Task)
+        :rtype: WorkflowInterface
         """
         self.cwl = cwl_parser.load_document(cwl)
 
@@ -119,7 +121,8 @@ class CwlParser:
         """
         # Parse CWL file specified by run field, else parse run field as inline CommandLineTool
         if isinstance(step.run, str):
-            step_cwl = cwl_parser.load_document(step.run)
+            step_run = f"{os.path.dirname(step.id)}/{step.run}"
+            step_cwl = cwl_parser.load_document(step_run)
             step_id = os.path.basename(step_cwl.id).split(".")[0]
         else:
             step_cwl = step.run
