@@ -103,11 +103,12 @@ class CwlParser:
         workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
 
-        workflow = self._wfi.initialize_workflow(workflow_name, workflow_inputs, workflow_outputs,
+        self._wfi.initialize_workflow(workflow_name, workflow_inputs, workflow_outputs,
                                                  workflow_requirements, workflow_hints)
-        tasks = [self.parse_step(step) for step in self.cwl.steps]
+        for step in self.cwl.steps:
+            self.parse_step(step)
 
-        return workflow, tasks
+        return self._wfi
 
     def parse_step(self, step):
         """Parse a CWL step object.
@@ -137,9 +138,9 @@ class CwlParser:
         step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
         step_stdout = step_cwl.stdout
 
-        return self._wfi.add_task(step_name, base_command=step_command, inputs=step_inputs,
-                                  outputs=step_outputs, requirements=step_requirements,
-                                  hints=step_hints, stdout=step_stdout)
+        self._wfi.add_task(step_name, base_command=step_command, inputs=step_inputs,
+                          outputs=step_outputs, requirements=step_requirements,
+                          hints=step_hints, stdout=step_stdout)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
