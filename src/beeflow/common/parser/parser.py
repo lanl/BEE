@@ -175,12 +175,12 @@ class CwlParser:
         :type cwl_in: list of WorkflowStepInput
         :param step_inputs: the step inputs from the CommandLineTool file
         :type step_inputs: list of CommandInputParameter
-        :rtype: set of StepInput
+        :rtype: list of StepInput
         """
         source_map = {_shortname(input_.id).split("/")[-1]: _shortname(input_.source)
                       for input_ in cwl_in}
 
-        inputs = set()
+        inputs = []
         for step_input in step_inputs:
             # If the input type is str, then the input is required
             # If it is a list containing 'null' and another type(s) then it is optional
@@ -196,14 +196,14 @@ class CwlParser:
                 input_type = step_input.type[1]
 
             if step_input.inputBinding:
-                inputs.add(StepInput(_shortname(step_input.id), input_type, None,
-                                     step_input.default, source_map[_shortname(step_input.id)],
-                                     step_input.inputBinding.prefix,
-                                     step_input.inputBinding.position))
+                inputs.append(StepInput(_shortname(step_input.id), input_type, None,
+                                        step_input.default, source_map[_shortname(step_input.id)],
+                                        step_input.inputBinding.prefix,
+                                        step_input.inputBinding.position))
             else:
-                inputs.add(StepInput(_shortname(step_input.id), input_type, None,
-                                     step_input.default, source_map[_shortname(step_input.id)],
-                                     None, None))
+                inputs.append(StepInput(_shortname(step_input.id), input_type, None,
+                                        step_input.default, source_map[_shortname(step_input.id)],
+                                        None, None))
 
         return inputs
 
@@ -217,14 +217,14 @@ class CwlParser:
         :type step_outputs: list of CommandOutputParameter
         :param stdout: name of file to which stdout should be redirected
         :type stdout: str or None
-        :rtype: set of StepOutput
+        :rtype: list of StepOutput
         """
         out_short = list(map(_shortname, cwl_out))
         short_id = out_short[0].split("/")[0]
         out_map = {short_id + "/" + _shortname(step_output.id): step_output
                    for step_output in step_outputs}
 
-        outputs = set()
+        outputs = []
         for out in out_short:
             if out not in out_map.keys():
                 raise ValueError(f"specified step output {out} not produced by CommandLineTool")
@@ -241,7 +241,7 @@ class CwlParser:
                 if out_map[out].outputBinding:
                     glob = out_map[out].outputBinding.glob
 
-            outputs.add(StepOutput(out, output_type, None, glob))
+            outputs.append(StepOutput(out, output_type, None, glob))
 
         return outputs
 
