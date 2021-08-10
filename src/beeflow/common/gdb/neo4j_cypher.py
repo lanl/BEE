@@ -20,7 +20,7 @@ def create_workflow_node(tx, workflow):
                       "SET w.id = $workflow_id "
                       "SET w.name = $name")
 
-    # Store the workflow name, inputs, and outputs, in a new workflow node
+    # Store the workflow ID and name in a new workflow node
     tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name)
 
 
@@ -28,7 +28,7 @@ def create_workflow_hint_nodes(tx, hints):
     """Create Hint nodes for the workflow.
 
     :param hints: the workflow hints
-    :type hints: set of Hint
+    :type hints: list of Hint
     """
     for hint in hints:
         hint_query = ("MATCH (w:Workflow) "
@@ -42,7 +42,7 @@ def create_workflow_requirement_nodes(tx, requirements):
     """Create Requirement nodes for the workflow.
 
     :param requirements: the workflow requirements
-    :type requirements: set of Requirement
+    :type requirements: list of Requirement
     """
     for req in requirements:
         req_query = ("MATCH (w:Workflow) "
@@ -56,7 +56,7 @@ def create_workflow_input_nodes(tx, inputs):
     """Create Input nodes for the workflow.
 
     :param inputs: the workflow inputs
-    :type inputs: set of InputParameter"""
+    :type inputs: list of InputParameter"""
     for input_ in inputs:
         input_query = ("MATCH (w:Workflow) CREATE (w)-[:HAS_INPUT]->(i:Input) "
                        "SET i.id = $input_id "
@@ -70,7 +70,7 @@ def create_workflow_output_nodes(tx, outputs):
     """Create Output nodes for the workflow.
 
     :param outputs: the workflow outputs
-    :type outputs: set of OutputParameter"""
+    :type outputs: list of OutputParameter"""
     for output in outputs:
         output_query = ("MATCH (w:Workflow) CREATE (w)-[:HAS_OUTPUT]->(o:Output) "
                         "SET o.id = $output_id "
@@ -410,6 +410,22 @@ def set_task_metadata(tx, task, metadata):
     tx.run(metadata_query, task_id=task.id)
 
 
+def set_task_output(tx, task, output_id, value):
+    """Set a task's output value.
+
+    :param task: the task whose output to set
+    :type task: Task
+    :param output_id: the ID of the output to set
+    :type output_id: str
+    :param value: the value of the output
+    :type value: str
+    """
+    output_query = ("MATCH (:Task {id: $task_id})-[:HAS_OUTPUT]->(o:Output {id: $output_id}) "
+                    "SET o.value = $value")
+
+    tx.run(output_query, task_id=task.id, output_id=output_id, value=value)
+
+
 def set_init_tasks_to_ready(tx):
     """Set the initial workflow tasks' states to 'READY'."""
     init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task)-[:BEGINS]->(:Workflow) "
@@ -417,6 +433,28 @@ def set_init_tasks_to_ready(tx):
                         "SET m.state = 'READY'")
 
     tx.run(init_ready_query)
+
+
+def set_init_task_inputs_from_source(tx):
+    """Set the initial workflow tasks' inputs from workfow inputs."""
+    task_inputs_query = ("MATCH (i:Input)<-[:HAS_INPUT]-(:Task)-[:BEGINS]->(:Workflow)"
+                         "-[:HAS_INPUT]->(wi:Input) "
+                         "WHERE i.source = wi.id AND wi.value IS NOT NULL "
+                         "SET i.value = wi.value")
+    
+    tx.run(task_inputs_query)
+
+
+def set_task_inputs_from_source(tx, task):
+    """Set workflow tasks' inputs from task outputs.
+
+    :param task: the task whose outputs to set"""
+    task_inputs_query = ("MATCH (i:Input)<-[:HAS_INPUT]-(:Task)-[:DEPENDS]->(t:Task {id: $task_id})"
+                         "-[:HAS_OUTPUT]->(o:Output) "
+                         "WHERE i.source = o.id AND o.value IS NOT NULL "
+                         "SET i.value = o.value")
+
+    tx.run(task_inputs_query, task_id=task.id)
 
 
 def set_running_tasks_to_paused(tx):
@@ -437,11 +475,10 @@ def set_paused_tasks_to_running(tx):
 
 def set_runnable_tasks_to_ready(tx):
     """Set task states to 'READY' if all dependencies have state 'COMPLETED'."""
-    set_runnable_ready_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task)<-[:DESCRIBES]-(m:Metadata) "
-                                "WITH t, collect(m) AS mlist "
-                                "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
-                                "MATCH (m:Metadata)-[:DESCRIBES]->(t) "
+    set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task)-[:HAS_INPUT]->(i:Input) "
+                                "WITH m, t, collect(i) AS ilist "
                                 "WHERE m.state = 'WAITING' "
+                                "AND all(i IN ilist WHERE i.value IS NOT NULL) "
                                 "SET m.state = 'READY'")
 
     tx.run(set_runnable_ready_query)

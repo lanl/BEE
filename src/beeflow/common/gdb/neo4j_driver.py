@@ -70,6 +70,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     def execute_workflow(self):
         """Begin execution of the workflow stored in the Neo4j database."""
         self._write_transaction(tx.set_init_tasks_to_ready)
+        self._write_transaction(tx.set_init_task_inputs_from_source)
 
     def pause_workflow(self):
         """Pause execution of a running workflow in Neo4j.
@@ -126,6 +127,15 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_runnable_tasks_to_ready)
 
+    def finalize_task(self, task):
+        """Set task state to 'COMPLETED' and set inputs from source.
+        
+        :param task: the task to finalize
+        :type task: Task
+        """
+        self._write_transaction(tx.set_task_state, task=task, state="COMPLETED")
+        self._write_transaction(tx.set_task_inputs_from_source, task=task)
+
     def get_task_by_id(self, task_id):
         """Return a reconstructed task from the Neo4j database.
 
@@ -151,11 +161,11 @@ class Neo4jDriver(GraphDatabaseDriver):
     def get_workflow_tasks(self):
         """Return all workflow task records from the Neo4j database.
 
-        :rtype: set of Task
+        :rtype: list of Task
         """
         task_records = self._read_transaction(tx.get_workflow_tasks)
         tuples = self._get_task_data_tuples(task_records)
-        return {_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples}
+        return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
 
     def get_workflow_requirements_and_hints(self):
         """Return all workflow requirements and hints from the Neo4j database.
@@ -175,7 +185,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
         Returns a tuple of (inputs, outputs).
 
-        :rtype (set of InputParameter, set of OutputParameter)
+        :rtype (list of InputParameter, list of OutputParameter)
         """
         with self._driver.session() as session:
             inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs))
@@ -187,22 +197,22 @@ class Neo4jDriver(GraphDatabaseDriver):
     def get_ready_tasks(self):
         """Return tasks with state 'READY' from the graph database.
 
-        :rtype: set of Task
+        :rtype: list of Task
         """
         task_records = self._read_transaction(tx.get_ready_tasks)
         tuples = self._get_task_data_tuples(task_records)
-        return {_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples}
+        return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
 
     def get_dependent_tasks(self, task):
         """Return the dependent tasks of a specified workflow task.
 
         :param task: the task whose dependents to retrieve
         :type task: Task
-        :rtype: set of Task
+        :rtype: list of Task
         """
         task_records = self._read_transaction(tx.get_dependent_tasks, task=task)
         tuples = self._get_task_data_tuples(task_records)
-        return {_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples}
+        return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
 
     def get_task_state(self, task):
         """Return the state of a task in the Neo4j workflow.
@@ -244,6 +254,18 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type metadata: dict
         """
         self._write_transaction(tx.set_task_metadata, task=task, metadata=metadata)
+
+    def set_task_output(self, task, output_id, value):
+        """Set the value of a task output.
+
+        :param task: the task whose output to set
+        :type task: Task
+        :param output_id: the ID of the output
+        :type output_id: str
+        :param value: the output value to set
+        :type value: str
+        """
+        self._write_transaction(tx.set_task_output, task=task, output_id=output_id, value=value)
 
     def workflow_completed(self):
         """Determine if a workflow in the Neo4j database has completed.
@@ -349,10 +371,10 @@ def _reconstruct_workflow_inputs(input_records):
 
     :param input_records: the database record of the inputs
     :type input_records: BoltStatementResult
-    :rtype: set of InputParameter
+    :rtype: list of InputParameter
     """
     recs = [input_record["i"] for input_record in input_records]
-    return {InputParameter(rec["id"], rec["type"], rec["value"]) for rec in recs}
+    return [InputParameter(rec["id"], rec["type"], rec["value"]) for rec in recs]
 
 
 def _reconstruct_workflow_outputs(output_records):
@@ -360,10 +382,10 @@ def _reconstruct_workflow_outputs(output_records):
 
     :param output_records: the database record of the inputs
     :type output_records: BoltStatementResult
-    :rtype: set of OutputParameter
+    :rtype: list of OutputParameter
     """
     recs = [output_record["o"] for output_record in output_records]
-    return {OutputParameter(rec["id"], rec["type"], rec["value"], rec["source"]) for rec in recs}
+    return [OutputParameter(rec["id"], rec["type"], rec["value"], rec["source"]) for rec in recs]
 
 
 def _reconstruct_task_inputs(input_records):
@@ -371,11 +393,11 @@ def _reconstruct_task_inputs(input_records):
 
     :param input_records: the database record of the hints
     :type input_records: BoltStatementResult
-    :rtype: set of StepInput
+    :rtype: list of StepInput
     """
     recs = [input_record["i"] for input_record in input_records]
-    return {StepInput(rec["id"], rec["type"], rec["value"], rec["default"], rec["source"],
-                      rec["prefix"], rec["position"]) for rec in recs}
+    return [StepInput(rec["id"], rec["type"], rec["value"], rec["default"], rec["source"],
+                      rec["prefix"], rec["position"]) for rec in recs]
 
 
 def _reconstruct_task_outputs(output_records):
@@ -383,10 +405,10 @@ def _reconstruct_task_outputs(output_records):
 
     :param output_records: the database record of the hints
     :type output_records: BoltStatementResult
-    :rtype: set of StepOutput
+    :rtype: list of StepOutput
     """
     recs = [output_record["o"] for output_record in output_records]
-    return {StepOutput(rec["id"], rec["type"], rec["value"], rec["glob"]) for rec in recs}
+    return [StepOutput(rec["id"], rec["type"], rec["value"], rec["glob"]) for rec in recs]
 
 
 def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs):
@@ -399,9 +421,9 @@ def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
     :param requirements: the workflow requirements
     :type requirements: list of Requirement
     :param inputs: the workflow inputs
-    :type inputs: set of InputParameter
+    :type inputs: list of InputParameter
     :param outputs: the workflow outputs
-    :type outputs: set of OutputParameter
+    :type outputs: list of OutputParameter
     :rtype: Workflow
     """
     rec = workflow_record["w"]
@@ -419,9 +441,9 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
     :param requirements: the task requirements
     :type requirements: list of Requirement
     :param inputs: the task inputs
-    :type inputs: set of StepInput
+    :type inputs: list of StepInput
     :param outputs: the task outputs
-    :type outputs: set of StepOutput
+    :type outputs: list of StepOutput
     :rtype: Task
     """
     rec = task_record["t"]

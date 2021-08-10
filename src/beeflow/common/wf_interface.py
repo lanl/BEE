@@ -32,9 +32,9 @@ class WorkflowInterface:
         :param name: the workflow name
         :type name: str
         :param inputs: the inputs to the workflow
-        :type inputs: set of InputParameter
+        :type inputs: list of InputParameter
         :param outputs: the outputs of the workflow
-        :type outputs: set of OutputParameter
+        :type outputs: list of OutputParameter
         :param requirements: the workflow requirements
         :type requirements: list of Requirement
         :param hints: the workflow hints (optional requirements)
@@ -43,9 +43,9 @@ class WorkflowInterface:
         if self.workflow_loaded():
             raise RuntimeError("attempt to re-initialize existing workflow")
         if requirements is None:
-            requirements = set()
+            requirements = []
         if hints is None:
-            hints = set()
+            hints = []
 
         workflow = Workflow(name, hints, requirements, inputs, outputs)
         self._workflow_id = workflow.id
@@ -88,18 +88,18 @@ class WorkflowInterface:
         :param hints: the task-specific hints (optional requirements)
         :type hints: list of Hint
         :param inputs: the task inputs
-        :type inputs: set of StepInput
+        :type inputs: list of StepInput
         :param outputs: the task outputs
-        :type outputs: set of StepOutput
+        :type outputs: list of StepOutput
         :param stdout: the name of the file to which to redirect stdout
         :type stdout: str
         :rtype: Task
         """
         # Immutable default arguments
         if inputs is None:
-            inputs = set()
+            inputs = []
         if outputs is None:
-            outputs = set()
+            outputs = []
         if requirements is None:
             requirements = []
         if hints is None:
@@ -120,11 +120,11 @@ class WorkflowInterface:
 
         This method also automatically deduces what tasks are now
         runnable, updating their states to ready and returning a
-        set of the runnable tasks.
+        list of the runnable tasks.
 
         :param task: the task to finalize
         :type task: Task
-        :rtype: set of Task
+        :rtype: list of Task
         """
         self._gdb_interface.finalize_task(task)
         self._gdb_interface.initialize_ready_tasks()
@@ -144,7 +144,7 @@ class WorkflowInterface:
 
         Returns a tuple of (workflow_description, tasks)
 
-        :rtype: tuple of (Workflow, set of Task)
+        :rtype: tuple of (Workflow, list of Task)
         """
         workflow = self._gdb_interface.get_workflow_description()
         tasks = self._gdb_interface.get_workflow_tasks()
@@ -162,7 +162,7 @@ class WorkflowInterface:
     def get_ready_tasks(self):
         """Get ready tasks from a BEE workflow.
 
-        :rtype: set of Task
+        :rtype: list of Task
         """
         return self._gdb_interface.get_ready_tasks()
 
@@ -171,7 +171,7 @@ class WorkflowInterface:
 
         :param task: the task whose dependents to retrieve
         :type task: Task
-        :rtype: set of Task
+        :rtype: list of Task
         """
         return self._gdb_interface.get_dependent_tasks(task)
 
@@ -220,6 +220,18 @@ class WorkflowInterface:
         :type metadata: dict
         """
         self._gdb_interface.set_task_metadata(task, metadata)
+
+    def set_task_output(self, task, output_id, value):
+        """Set the value of a task output.
+
+        :param task: the task whose output to set
+        :type task: Task
+        :param output_id: the ID of the output
+        :type output_id: str
+        :param value: the output value to set
+        :type value: str
+        """
+        self._gdb_interface.set_task_output(task, output_id, value)
 
     def workflow_completed(self):
         """Return true if all of a workflow's tasks have completed, else false.

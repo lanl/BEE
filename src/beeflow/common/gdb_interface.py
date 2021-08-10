@@ -87,7 +87,7 @@ class GraphDatabaseInterface:
         :param task: the task to finalize
         :type task: Task
         """
-        self._connection.set_task_state(task, "COMPLETED")
+        self._connection.finalize_task(task)
 
     def get_task_by_id(self, task_id):
         """Return a workflow Task given its ID.
@@ -108,7 +108,7 @@ class GraphDatabaseInterface:
     def get_workflow_tasks(self):
         """Return a workflow's tasks from the graph database.
 
-        :rtype: set of Task
+        :rtype: list of Task
         """
         return self._connection.get_workflow_tasks()
 
@@ -117,14 +117,14 @@ class GraphDatabaseInterface:
 
         The returned tuple format is (requirements, hints).
 
-        :rtype: (set of Requirement, set of Hint)
+        :rtype: (list of Requirement, list of Hint)
         """
         return self._connection.get_workflow_requirements_and_hints()
 
     def get_ready_tasks(self):
         """Return the tasks in a workflow with state 'READY'.
 
-        :rtype: set of Task
+        :rtype: list of Task
         """
         return self._connection.get_ready_tasks()
 
@@ -133,7 +133,7 @@ class GraphDatabaseInterface:
 
         :param task: the task whose dependents to retrieve
         :type task: Task
-        :rtype: set of Task
+        :rtype: list of Task
         """
         return self._connection.get_dependent_tasks(task)
 
@@ -179,6 +179,18 @@ class GraphDatabaseInterface:
         :type metadata: dict
         """
         self._connection.set_task_metadata(task, metadata)
+
+    def set_task_output(self, task, output_id, value):
+        """Set the value of a task output.
+
+        :param task: the task whose output to set
+        :type task: Task
+        :param output_id: the ID of the output
+        :type output_id: str
+        :param value: the output value to set
+        :type value: str
+        """
+        self._connection.set_task_output(task, output_id, value)
 
     def workflow_completed(self):
         """Return true if all tasks in a workflow have state 'COMPLETED', else false.
