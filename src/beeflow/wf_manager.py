@@ -21,9 +21,9 @@ from flask_restful import Resource, Api, reqparse
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
-import beeflow.common.parser.parse_clamr as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
+from beeflow.common.parser import CwlParser
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
@@ -104,12 +104,13 @@ def _resource(component, tag=""):
 
 
 # Instantiate the workflow interface
-try:
-    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
-                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
-                            password=bc.userconfig.get('graphdb', 'dbpass'))
-except (KeyError, configparser.NoSectionError) as e:
-    wfi = WorkflowInterface()
+wfi = None
+#try:
+#    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
+#                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
+#                            password=bc.userconfig.get('graphdb', 'dbpass'))
+#except (KeyError, configparser.NoSectionError) as e:
+#    wfi = WorkflowInterface()
 
 
 class ResourceMonitor():
@@ -191,9 +192,11 @@ class JobsList(Resource):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('wf_name', type=FileStorage, required=False,
                                    location='files')
-        self.reqparse.add_argument('filename', type=FileStorage, required=False,
+        self.reqparse.add_argument('wf_filename', type=FileStorage, required=False,
                                    location='files')
         self.reqparse.add_argument('workflow', type=FileStorage, required=False,
+                                   location='files')
+        self.reqparse.add_argument('yaml', type=FileStorage, required=False,
                                    location='files')
         self.reqparse.add_argument('workflow_archive', type=FileStorage, required=False,
                                    location='files')
@@ -212,7 +215,6 @@ class JobsList(Resource):
                 wf_path = os.path.join(workflows_dir, w) 
                 status_path = os.path.join(wf_path, 'bee_wf_status')
                 name_path = os.path.join(wf_path, 'bee_wf_name')
-                wf_id = w
                 status = pathlib.Path(status_path).read_text()
                 name = pathlib.Path(name_path).read_text()
                 job_list.append([name, wf_id, status])
@@ -221,6 +223,7 @@ class JobsList(Resource):
         return resp
 
     def post(self):
+        global wfi
         """Get a workflow or give file not found error."""
         data = self.reqparse.parse_args()
 
@@ -229,8 +232,10 @@ class JobsList(Resource):
             return resp
         # Workflow file
         cwl_file = data['workflow']
-        filename = data['filename'].read().decode()
+        wf_filename = data['wf_filename'].read().decode()
         job_name = data['wf_name'].read().decode()
+        # None if not sent
+        yaml_file = data['yaml']
 
         if cwl_file:
             # We have to bind mount a new GDB with charliecloud.
@@ -244,24 +249,31 @@ class JobsList(Resource):
             # Need to wait a moment for the GDB
             time.sleep(10)
 
-            # Save the workflow temporarily to this folder 
-            temp_path = os.path.join(flask_app.config['UPLOAD_FOLDER'], filename)
-            cwl_file.save(temp_path)
+            if wfi:
+                if wfi.workflow_initialized() and wfi.workflow_loaded():
+                    # Clear the workflow if we've already run one
+                    wfi.finalize_workflow()
 
-            # Parse the workflow and add it to the database
-            top = cwl.load_document(temp_path)
-            # Remove the workflow file
+            # Save the workflow temporarily to this folder for the parser
+            temp_wf_path = os.path.join(flask_app.config['UPLOAD_FOLDER'], wf_filename)
+            cwl_file.save(temp_wf_path)
 
-            if wfi.workflow_initialized() and wfi.workflow_loaded():
-                # Clear the workflow if we've already run one
-                wfi.finalize_workflow()
-            parser.create_workflow(top, wfi)
+            parser = CwlParser()
+            # Optional YAML file
+            if yaml_file != None:
+                yaml_filename = data['yaml_filename'].read().decode()
+                temp_yaml_path = os.path.join(flask_app.config['UPLOAD_FOLDER'], yaml_filename)
+                yaml_file.save(temp_yaml_path)
+                # parse_workflow returns a tuple of wfi, tasks. Ignore tasks.
+                wfi = parser.parse_workflow(temp_wf_path, temp_yaml_path)
+            else:
+                wfi = parser.parse_workflow(temp_wf_path)
 
             # Save the workflow to the workflow_id dir
             wf_id = wfi.get_workflow_id()
             workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
             os.makedirs(workflow_dir)
-            workflow_path = os.path.join(workflow_dir, filename)
+            workflow_path = os.path.join(workflow_dir, wf_filename)
             cwl_file.save(workflow_path)
 
             # Create status file
@@ -289,7 +301,7 @@ class JobsList(Resource):
             return resp
 
         workflow_archive = data['workflow_archive']
-        filename = data['filename'].read().decode()
+        filename = data['wf_filename'].read().decode()
         job_name = data['wf_name'].read().decode()
 
         if workflow_archive:
@@ -304,7 +316,7 @@ class JobsList(Resource):
             kill_gdb()
             remove_gdb()
 
-            ## Copy GDB to gdb_workdir
+            # Copy GDB to gdb_workdir
             archive_dir = filename.split('.')[0]
             gdb_path = os.path.join(tmp_path, archive_dir, 'gdb')
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')

@@ -41,12 +41,18 @@ def _resource(tag=""):
 
 # Submit a job to the workflow manager
 # This creates a workflow on the wfm and returns an ID 
-def submit_workflow(wf_name, workflow_path):
+def submit_workflow(wf_name, workflow_path, yaml_path=None):
+
     files = {
                 'wf_name': wf_name.encode(),
-                'filename': os.path.basename(workflow_path).encode(),
+                'wf_filename': os.path.basename(workflow_path).encode(),
                 'workflow': open(workflow_path, 'rb')
             }
+
+    if yaml_path:
+        files['yaml'] = open(yaml_path, 'rb'),
+        files['yaml_filename'] = os.path.basename(workflow_path).encode()
+
     resp = requests.post(_url(), files=files)
     if resp.status_code != requests.codes.created:
         print(f"Returned {resp.status_code}")
@@ -172,9 +178,16 @@ if __name__ == '__main__':
             # TODO needs error handling
             print("What will be the name of the job?")
             wf_name = safe_input(str)
-            print("What is the workflow path?")
+            print("what is the workflow path?")
             workflow_path = safe_input(Path)
-            wf_id = submit_workflow(wf_name, workflow_path)
+            print("Does it have a yaml file? y/n")
+            has_yaml = safe_input(str)
+            if has_yaml[0].lower() == "y":
+                print("what is the yaml path?")
+                yaml_path = safe_input(Path)
+                wf_id = submit_workflow(wf_name, workflow_path, yaml_path)
+            else:
+                wf_id = submit_workflow(wf_name, workflow_path)
             print(f"Job submitted! Your workflow id is {wf_id}.")
         elif int(choice) == 1:
             list_workflows()
