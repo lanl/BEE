@@ -10,6 +10,27 @@ Also included is a sample CWL parser that also uses
 for now), parses it into python objects, and loads the Neo4j databse
 with a workflow using the BEE workflow interface.
 
+## Using the CWL Parser
+
+`parser.py` will allow the parsing of a generic CWL workflow with basic support and no JavaScript
+support. The parser will automatically connect to and populate the graph database.
+
+To use as a script:
+
+`python3 parser.py cwl_file [-i cwl_inputs]`
+
+where `cwl_file` is the CWL Workflow file and `cwl_inputs` is a YAML or JSON file providing
+job parameter inputs.
+
+To use as an imported module:
+
+```py
+from beeflow.common.parser import CwlParser
+
+parser = CwlParser() # Initializes parser and forms a database connection
+parser.parse_workflow(cwl_file, cwl_inputs) # cwl_inputs is optional
+```
+
 ## Install Dependency
 
 > **NOTE:** You don't need to do this is you're in a BEE development
@@ -56,27 +77,6 @@ CLASSES
 
 All the usual Python exploration tools are useful as well (e.g. `vars`, `dir`,
 etc.).
-
-## Using the CWL Parser
-
-`parser.py` will allow the parsing of a generic CWL workflow with basic support and no JavaScript
-support. The parser will automatically connect to and populate the graph database.
-
-To use as a script:
-
-`python3 parser.py cwl-file [cwl-inputs]`
-
-where `cwl-file` is the CWL Workflow file and `cwl-inputs` is the YAML or JSON file providing
-job parameter inputs.
-
-To use as an imported module:
-
-```py
-from beeflow.common.parser import CwlParser
-
-parser = CwlParser() # Initializes parser and forms a database connection
-parser.parse_workflow(cwl_file, cwl_inputs) # cwl_inputs is optional
-```
 
 ## References
 
