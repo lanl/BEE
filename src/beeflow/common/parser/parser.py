@@ -295,7 +295,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
 
     parser.add_argument("wf_file", type=str, help="CWL workflow file")
-    parser.add_argument("wf_inputs", type=str, help="Workflow job file", required=False)
+    parser.add_argument("-i", "--inputs", type=str, help="Workflow job inputs file", required=False)
 
     return parser.parse_args(args)
 
@@ -303,7 +303,7 @@ def parse_args(args=None):
 def main():
     parser = CwlParser()
     args = parse_args()
-    workflow, tasks = parser.parse_workflow(args.wf_file, args.wf_inputs)
+    parser.parse_workflow(args.wf_file, args.input)
 
 
 if __name__ == "__main__":
