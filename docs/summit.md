@@ -12,25 +12,3 @@ In  ~/.config/beeflow/bee.conf (or wherever your configuration file is)
     Fix path of neo4j container  
     Remove or Replace 'setup' in the 'charliecloud' section.  
 
-### Running all components from BEEStart
-```
-bin/BEEStart
-cd beeflow/client
-./client.py ( using the cf-summit.cwl)
-```
-
-### Run gdb from BEEStart and task_manager and wfm manually for messages
-```
-bin/BEEStart --gdb
-```
-Then in separate screens using screen or tmux from BEE_Private
-```
-beeflow/task_manager/task_manager.py /.config/beeflow/bee.conf
-```
-
-```
-beeflow/server/server.py /.config/beeflow/bee.conf
-```
-Now start client and submit the worflow cf-summit.cwl
-
-
