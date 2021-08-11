@@ -303,7 +303,7 @@ def parse_args(args=None):
 def main():
     parser = CwlParser()
     args = parse_args()
-    parser.parse_workflow(args.wf_file, args.input)
+    parser.parse_workflow(args.wf_file, args.inputs)
 
 
 if __name__ == "__main__":
