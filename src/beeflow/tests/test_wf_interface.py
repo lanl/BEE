@@ -245,6 +245,16 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertCountEqual(requirements, workflow.requirements)
         self.assertCountEqual(hints, workflow.hints)
 
+    def test_get_workflow_outputs(self):
+        """Test obtaining the outputs of a workflow."""
+        workflow = self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt",
+                             "test_task/test_task_done")])
+
+        self.assertListEqual(workflow.outputs, self.wfi.get_workflow_outputs())
+
     def test_get_ready_tasks(self):
         """Test obtaining of ready workflow tasks."""
         self.wfi.initialize_workflow("test_workflow",
