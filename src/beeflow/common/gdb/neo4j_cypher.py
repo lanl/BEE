@@ -442,12 +442,9 @@ def set_init_task_inputs(tx):
                          "WHERE i.source = wi.id AND wi.value IS NOT NULL "
                          "SET i.value = wi.value")
     # Set any values to defaults if necessary
-    defaults_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)<-[:DEPENDS]-"
-                      "(t:Task)-[:BEGINS]->(:Workflow) "
-                      "WITH m, t "
-                      "MATCH (t)-[:HAS_INPUT]->(i:Input) "
-                      "WITH i, collect(m) AS mlist "
-                      "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
+    defaults_query = ("MATCH (i:Input)<-[:HAS_INPUT]-(t:Task)-[:BEGINS]->(:Workflow)"
+                      "-[:HAS_INPUT]->(wi:Input) "
+                      "WHERE i.source = wi.id "
                       "AND i.value IS NULL AND i.default IS NOT NULL "
                       "SET i.value = i.default")
 
@@ -455,8 +452,10 @@ def set_init_task_inputs(tx):
     tx.run(defaults_query)
 
 
-def set_task_inputs(tx, task):
-    """Set workflow tasks' inputs from task outputs or defaults if necessary.
+def copy_task_outputs(tx, task):
+    """Use task outputs to set dependent task inputs or workflow outputs.
+
+    Sets dependent task inputs to default value if necessary.
 
     :param task: the task whose outputs to set
     :type task: Task
@@ -474,9 +473,15 @@ def set_task_inputs(tx, task):
                       "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
                       "AND i.value IS NULL AND i.default IS NOT NULL "
                       "SET i.value = i.default")
+    workflow_output_query = ("MATCH (:Workflow)-[:HAS_OUTPUT]->(wo:Output) "
+                             "WITH wo "
+                             "MATCH (t:Task {id: $task_id})-[:HAS_OUTPUT]->(o:Output) "
+                             "WHERE wo.source = o.id "
+                             "SET wo.value = o.value")
 
     tx.run(task_inputs_query, task_id=task.id)
     tx.run(defaults_query, task_id=task.id)
+    tx.run(workflow_output_query, task_id=task.id)
 
 
 def set_running_tasks_to_paused(tx):

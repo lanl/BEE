@@ -134,7 +134,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type task: Task
         """
         self._write_transaction(tx.set_task_state, task=task, state="COMPLETED")
-        self._write_transaction(tx.set_task_inputs, task=task)
+        self._write_transaction(tx.copy_task_outputs, task=task)
 
     def get_task_by_id(self, task_id):
         """Return a reconstructed task from the Neo4j database.

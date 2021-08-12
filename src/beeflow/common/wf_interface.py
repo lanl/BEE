@@ -146,14 +146,13 @@ class WorkflowInterface:
         tasks = self._gdb_interface.get_workflow_tasks()
         return workflow, tasks
 
-    def get_workflow_id(self):
-        """Get the BEE workflow ID.
+    def get_workflow_outputs(self):
+        """Get the outputs from a BEE workflow.
 
-        Returns a uuid4 string as the ID.
-
-        :rtype: str
+        :rtype: list of OutputParameter
         """
-        return self._workflow_id
+        workflow = self._gdb_interface.get_workflow_description()
+        return workflow.outputs
 
     def get_ready_tasks(self):
         """Get ready tasks from a BEE workflow.
