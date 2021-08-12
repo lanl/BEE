@@ -58,11 +58,12 @@ class Workflow:
         :param other: the workflow with which to test equality
         :type other: instance of Workflow
         """
+        id_sort = lambda i: i.id
         return bool(self.name == other.name and
                     sorted(self.hints) == sorted(other.hints) and
                     sorted(self.requirements) == sorted(other.requirements) and
-                    self.inputs == other.inputs and
-                    self.outputs == other.outputs)
+                    sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort) and
+                    sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort))
 
     def __ne__(self, other):
         """Test the inequality of two workflows.
@@ -129,12 +130,13 @@ class Task:
         :param other: the task with which to test equality
         :type other: instance of Task
         """
+        id_sort = lambda i: i.id
         return bool(self.name == other.name and
                     self.base_command == other.base_command and
                     sorted(self.hints) == sorted(other.hints) and
                     sorted(self.requirements) == sorted(other.requirements) and
-                    self.inputs == other.inputs and
-                    self.outputs == other.outputs and
+                    sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort) and
+                    sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort) and
                     self.stdout == other.stdout)
 
     def __ne__(self, other):
