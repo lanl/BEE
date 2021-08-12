@@ -69,8 +69,8 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def execute_workflow(self):
         """Begin execution of the workflow stored in the Neo4j database."""
+        self._write_transaction(tx.set_init_task_inputs)
         self._write_transaction(tx.set_init_tasks_to_ready)
-        self._write_transaction(tx.set_init_task_inputs_from_source)
 
     def pause_workflow(self):
         """Pause execution of a running workflow in Neo4j.
@@ -134,7 +134,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type task: Task
         """
         self._write_transaction(tx.set_task_state, task=task, state="COMPLETED")
-        self._write_transaction(tx.set_task_inputs_from_source, task=task)
+        self._write_transaction(tx.set_task_inputs, task=task)
 
     def get_task_by_id(self, task_id):
         """Return a reconstructed task from the Neo4j database.

@@ -111,10 +111,6 @@ class WorkflowInterface:
         self._gdb_interface.load_task(task)
         return task
 
-    def initialize_ready_tasks(self):
-        """Initialize runnable tasks in a BEE workflow to ready."""
-        self._gdb_interface.initialize_ready_tasks()
-
     def finalize_task(self, task):
         """Mark a BEE workflow task as completed.
 

@@ -435,26 +435,48 @@ def set_init_tasks_to_ready(tx):
     tx.run(init_ready_query)
 
 
-def set_init_task_inputs_from_source(tx):
-    """Set the initial workflow tasks' inputs from workfow inputs."""
+def set_init_task_inputs(tx):
+    """Set the initial workflow tasks' inputs from workfow inputs or defaults if necessary."""
     task_inputs_query = ("MATCH (i:Input)<-[:HAS_INPUT]-(:Task)-[:BEGINS]->(:Workflow)"
                          "-[:HAS_INPUT]->(wi:Input) "
                          "WHERE i.source = wi.id AND wi.value IS NOT NULL "
                          "SET i.value = wi.value")
-    
+    # Set any values to defaults if necessary
+    defaults_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)<-[:DEPENDS]-"
+                      "(t:Task)-[:BEGINS]->(:Workflow) "
+                      "WITH m, t "
+                      "MATCH (t)-[:HAS_INPUT]->(i:Input) "
+                      "WITH i, collect(m) AS mlist "
+                      "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
+                      "AND i.value IS NULL AND i.default IS NOT NULL "
+                      "SET i.value = i.default")
+
     tx.run(task_inputs_query)
+    tx.run(defaults_query)
 
 
-def set_task_inputs_from_source(tx, task):
-    """Set workflow tasks' inputs from task outputs.
+def set_task_inputs(tx, task):
+    """Set workflow tasks' inputs from task outputs or defaults if necessary.
 
-    :param task: the task whose outputs to set"""
-    task_inputs_query = ("MATCH (i:Input)<-[:HAS_INPUT]-(:Task)-[:DEPENDS]->(t:Task {id: $task_id})"
-                         "-[:HAS_OUTPUT]->(o:Output) "
+    :param task: the task whose outputs to set
+    :type task: Task
+    """
+    task_inputs_query = ("MATCH (i:Input)<-[:HAS_INPUT]-(:Task)-[:DEPENDS]->"
+                         "(t:Task {id: $task_id})-[:HAS_OUTPUT]->(o:Output) "
                          "WHERE i.source = o.id AND o.value IS NOT NULL "
                          "SET i.value = o.value")
+    # Set any values to defaults if necessary
+    defaults_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)<-[:DEPENDS]-"
+                      "(t:Task)-[:DEPENDS]->(:Task {id: $task_id}) "
+                      "WITH m, t "
+                      "MATCH (t)-[:HAS_INPUT]->(i:Input) "
+                      "WITH i, collect(m) AS mlist "
+                      "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
+                      "AND i.value IS NULL AND i.default IS NOT NULL "
+                      "SET i.value = i.default")
 
     tx.run(task_inputs_query, task_id=task.id)
+    tx.run(defaults_query, task_id=task.id)
 
 
 def set_running_tasks_to_paused(tx):
@@ -474,8 +496,9 @@ def set_paused_tasks_to_running(tx):
 
 
 def set_runnable_tasks_to_ready(tx):
-    """Set task states to 'READY' if all dependencies have state 'COMPLETED'."""
-    set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task)-[:HAS_INPUT]->(i:Input) "
+    """Set task states to 'READY' if all required inputs have values."""
+    set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->"
+                                "(t:Task)-[:HAS_INPUT]->(i:Input) "
                                 "WITH m, t, collect(i) AS ilist "
                                 "WHERE m.state = 'WAITING' "
                                 "AND all(i IN ilist WHERE i.value IS NOT NULL) "
