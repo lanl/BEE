@@ -140,3 +140,5 @@ class LSFWorker(Worker):
         subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"
         return job_state
+# Ignore R1732: Warnign about using open without "with' context. Seems like personal preference.
+# pylama:ignore=R1732
