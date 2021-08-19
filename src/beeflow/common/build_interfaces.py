@@ -9,14 +9,13 @@ components of the gdb_interface as required.
 # from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
 # from beeflow.common.build.container_drivers import CharliecloudBuildDriver,
 #                                                    SingularityBuildDriver
+import sys
+from subprocess import CalledProcessError
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 from beeflow.common.build.build_driver import arg2task
-import json
-import sys
-from subprocess import CalledProcessError
 
 try:
     userconfig = sys.argv[1]
@@ -29,12 +28,12 @@ bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='builder.log')
 
 try:
-  task = arg2task(my_args)
-  # The build driver treats Hint and Requirement objects as Dicts.
-  task.hints = dict(task.hints)
-  task.requirements = dict(task.requirements)
+    task = arg2task(my_args)
+    # The build driver treats Hint and Requirement objects as Dicts.
+    task.hints = dict(task.hints)
+    task.requirements = dict(task.requirements)
 except Exception as e:
-  log.info('{}'.format(e))
+    log.info('{}'.format(e))
 
 builder = CharliecloudBuildDriver(task)
 log.info('CharliecloudBuildDriver initialized')
@@ -53,15 +52,15 @@ while build_op:
         return_obj = build_op()
         # Return objects will be successful subprocess or return code.
         try:
-            return_code = return_obj.returncode
+            RETURN_CODE = return_obj.returncode
         except AttributeError:
-            return_code = int(return_obj)
+            RETURN_CODE = int(return_obj)
     except CalledProcessError:
-        return_code = 1
-        log.warning('There was a problem executing {}, check relevant log for detail.'\
+        RETURN_CODE = 1
+        log.warning('There was a problem executing {}, check relevant log for detail.'
                     .format(op_name))
     # Case 1: Not the last operation spec'd, but is a terminal operation.
-    if op_terminal and return_code==0:
+    if op_terminal and RETURN_CODE == 0:
         log.info('Reached terminal build case')
         build_op, op_name, op_priority, op_terminal = None, None, None, True
         continue
@@ -70,5 +69,9 @@ while build_op:
         build_op, op_name, op_priority, op_terminal = builder.exec_list.pop(0)
     except IndexError:
         build_op, op_name, op_priority, op_terminal = None, None, None, True
-    
 log.info('Out of build instructions. Build operations complete.')
+
+# Ignore W0707: Re-raising with from keyword does not aid in readability or functionality
+# Ignore W0703: Catching generic exception isn't a problem if we just want a descriptive report
+# Ignore: W1202: fstring variable sub in logging as a pre-processing step is not causing problems.
+# pylama:ignore=W0707,W0703,W1202
