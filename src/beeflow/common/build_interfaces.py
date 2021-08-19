@@ -25,7 +25,7 @@ except IndexError:
     raise IndexError('build_interface must execute with 2 arguments.')
 
 bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
-handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='builder.log')
+handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='build_interface.log')
 
 try:
     task = arg2task(my_args)
