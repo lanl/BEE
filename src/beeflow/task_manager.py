@@ -3,15 +3,15 @@
 Submits, cancels and monitors states of tasks.
 Communicates status to the Work Flow Manager, through RESTful API.
 """
-import configparser
 import atexit
 import sys
 import logging
 import hashlib
 import socket
+import subprocess
+from subprocess import PIPE
 import jsonpickle
 import requests
-import subprocess
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -21,7 +21,6 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 from beeflow.common.build.build_driver import task2arg
 import beeflow.common.log as bee_logging
-from subprocess import PIPE
 
 sys.excepthook = bee_logging.catch_exception
 
@@ -90,7 +89,7 @@ job_queue = []  # jobs that are being monitored
 
 
 def _url():
-    """Return the url to the WFM."""
+    """Return  the url to the WFM."""
     workflow_manager = 'bee_wfm/v1/jobs/'
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
 
@@ -104,12 +103,13 @@ def update_task_state(task_id, job_state, metadata=None):
     """Informs the workflow manager of the current state of a task."""
     data = {'task_id': task_id, 'job_state': job_state}
     if metadata:
-      metadata_json = jsonpickle.encode(metadata)
-      data['metadata'] = metadata_json
+        metadata_json = jsonpickle.encode(metadata)
+        data['metadata'] = metadata_json
     resp = requests.put(_resource("update/"),
                         json=data)
     if resp.status_code != 200:
         log.warning("WFM not responding when sending task update.")
+
 
 def update_task_metadata(task_id, metadata):
     """Send workflow manager task metadata."""
@@ -146,8 +146,8 @@ def gen_task_metadata(task, job_id):
 
 def resolve_environment(task):
     """Use build interface to create a valid environment."""
-    return subprocess.run(["beeflow","--build",USERCONFIG,task2arg(task)],
-                           stdout=PIPE, stderr=PIPE)
+    return subprocess.run(["beeflow", "--build", USERCONFIG, task2arg(task)],
+                          stdout=PIPE, stderr=PIPE, check=False)
 
 
 def submit_jobs():
@@ -158,7 +158,7 @@ def submit_jobs():
         task = next(iter(task_dict.values()))
         try:
             log.info('Resolving environment for task {}'.format(task.name))
-            proc = resolve_environment(task)
+            _ = resolve_environment(task)
             log.info('Environment preparation complete for task {}'.format(task.name))
             job_id, job_state = worker.submit_task(task)
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
@@ -166,13 +166,13 @@ def submit_jobs():
             job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
             # Update metadata
             task_metadata = gen_task_metadata(task, job_id)
-            # Need to 
-            #task_metadata.replace("'", '"')
-            #update_task_metadata(task.id, task_metadata)
-        except Exception as error:
+            # Need to
+            # task_metadata.replace("'", '"')
+            # update_task_metadata(task.id, task_metadata)
+        except Exception as err:
             # Set job state to failed
             job_state = 'SUBMIT_FAIL'
-            log.error(f'Task Manager submit task {task.name} failed! \n {error}')
+            log.error(f'Task Manager submit task {task.name} failed! \n {err}')
             log.error(f'{task.name} state: {job_state}')
         finally:
             # Send the initial state to WFM
@@ -247,8 +247,8 @@ class TaskActions(Resource):
             log.info(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
-            except Exception as error:
-                log.error(error)
+            except Exception as err:
+                log.error(err)
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
         job_queue.clear()
@@ -304,4 +304,7 @@ if __name__ == '__main__':
 # Ignore TODO comments
 # Ignoring "modules loaded below top of file" warning per Pat's comment
 # Ignoring flask.logger.AddHandler not found because logging is working...
-# pylama:ignore=W0511,E402,C0413,E1101
+# Ignoring W1202: https://github.com/PyCQA/pylint/issues/2395
+# Ignoring W0703: Catching general exception is ok in our case.
+# Ignoring C0206: Iterating with .items() is not important for readability or functionality
+# pylama:ignore=W0511,E402,C0413,E1101,W1202,W0703,C0206
