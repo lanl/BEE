@@ -165,7 +165,7 @@ def submit_jobs():
             # place job in queue to monitor
             job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
             # Update metadata
-            task_metadata = gen_task_metadata(task, job_id)
+            # task_metadata = gen_task_metadata(task, job_id)
             # Need to
             # task_metadata.replace("'", '"')
             # update_task_metadata(task.id, task_metadata)
@@ -176,7 +176,8 @@ def submit_jobs():
             log.error(f'{task.name} state: {job_state}')
         finally:
             # Send the initial state to WFM
-            update_task_state(task.id, job_state, metadata=task_metadata)
+            # update_task_state(task.id, job_state, metadata=task_metadata)
+            pass
 
 
 def update_jobs():
