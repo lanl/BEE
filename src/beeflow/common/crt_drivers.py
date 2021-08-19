@@ -5,21 +5,22 @@ Builds text for job to run task in a Container
 from abc import ABC, abstractmethod
 import os
 from configparser import NoOptionError
-from beeflow.common.config_driver import BeeConfig
-from beeflow.common.build.build_driver import task2arg, arg2task
 import sys
+from beeflow.common.config_driver import BeeConfig
+from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
 if len(sys.argv) > 2:
-    userconfig = sys.argv[1]
-    bc = BeeConfig(userconfig=userconfig)
+    USERCONFIG = sys.argv[1]
+    bc = BeeConfig(userconfig=USERCONFIG)
 else:
-    userconfig = None
+    USERCONFIG = None
     bc = BeeConfig()
 
 bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
+
 
 class ContainerRuntimeDriver(ABC):
     """ContainerRuntimeDriver interface for generic container runtime."""
@@ -33,13 +34,12 @@ class ContainerRuntimeDriver(ABC):
         """
 
     @abstractmethod
-    def build_text(self, task):
+    def build_text(self, userconfig, task):
         """Create text for builder pre-run using the container runtime.
 
         :param task: instance of Task
         :rtype string
         """
-
 
 
 class CharliecloudDriver(ContainerRuntimeDriver):
@@ -81,7 +81,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             else:
                 # Set container archive relative to bee_workdir if config does not specify
                 log.warning('Invalid config file. container_archive not found in builder section.')
-                container_archive = '/'.join([bee_workdir,'container_archive'])
+                container_archive = '/'.join([bee_workdir, 'container_archive'])
                 log.warning(f'Assuming container_archive is {container_archive}')
         except KeyError:
             log.warning('Container is missing builder section')
@@ -118,8 +118,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_container_name = hint_container_name
 
         baremetal = False
-        if task_container_name == None:
-            log.info('No container name provided. Assuming another DockerRequirement is runtime target.')
+        if task_container_name is None:
+            log.info('No container name provided.')
+            log.info('Assuming another DockerRequirement is runtime target.')
             runtime_target_list = []
             # Harvest copyContainer if it exists.
             task_container_path = None
@@ -135,7 +136,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             except (KeyError, TypeError):
                 # Task Requirements are not mandatory. No container_path specified in task reqs.
                 req_container_path = None
-    
+
             # Prefer requirements over hints
             if (req_container_path or hint_container_path) and (not hint_container_path):
                 task_container_path = req_container_path
@@ -161,34 +162,36 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             except (KeyError, TypeError):
                 # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
                 req_addr = None
-            
+
             # Prefer requirements over hints
             if (req_addr or hint_addr) and (not hint_addr):
                 task_addr = req_addr
             elif hint_addr:
                 task_addr = hint_addr
-            
+
             if task_addr:
-                task_container_path = task_addr.replace('/','%')
+                task_container_path = task_addr.replace('/', '%')
                 runtime_target_list.append(task_container_path)
                 log.info('Found dockerPull address, assuming this contains the container name.')
                 if len(runtime_target_list) > 1:
-                    log.error('Too many container runtimes specified! Pick a maximum of one per workflow step.')
+                    log.error('Too many container runtimes specified!')
+                    log.error('Pick a maximum of one per workflow step.')
                     return 1
-                
             if len(runtime_target_list) == 0:
-                log.warning('No containerName specified, and cannot be inferred from other DockerRequirements.')
+                log.warning('No containerName specified.')
+                log.warning('Cannot be inferred from other DockerRequirements.')
                 baremetal = True
             else:
                 # Build container name from container path.
                 task_container_name = runtime_target_list[0]
-                log.info('Moving with the expectation that {} is the runtime container target'.format(task_container_name))
+                log.info('Moving with the expectation that {} is the runtime container target'.
+                         format(task_container_name))
 
         command = ''.join(task.command) + '\n'
         if baremetal:
             return command
 
-        container_path = '/'.join([container_archive,task_container_name]) + '.tar.gz'
+        container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
         log.info('Expecting container at {}. Ready to deploy and run.'.format(container_path))
 
         chrun_opts, cc_setup = self.get_cc_options()
@@ -209,6 +212,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         text = (f'beeflow --build {userconfig} {task_args}\n'
                 )
         return text
+
 
 class SingularityDriver(ContainerRuntimeDriver):
     """The ContainerRuntimeDriver for Singularity as container runtime system.
@@ -238,3 +242,8 @@ class SingularityDriver(ContainerRuntimeDriver):
         text = (f'beeflow --build {userconfig} {task_args}\n'
                 )
         return text
+# Ignore R0915: Too many statements is a personal preference. We exceed the default.
+# Ignore W0201: Setting an attribute (ex self.blah) outside of __init__. Should fix this
+#               eventually.
+# Ignore W1202: Using fstring log formatting is not currently causing us problems.
+# pylama:ignore=R0915,W0201,W1202
