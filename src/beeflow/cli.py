@@ -90,8 +90,9 @@ def start_task_manager(bc, args):
         # Add section (writes to config file)
         bc.modify_section('user', 'task_manager', tm_dict)
     finally:
-        tm_dict = {'job_template': args.job_template}
-        bc.modify_section('user', 'task_manager', tm_dict)
+        if args.job_template:
+            tm_dict = {'job_template': args.job_template}
+            bc.modify_section('user', 'task_manager', tm_dict)
     if args.config_only:
         return None
 
