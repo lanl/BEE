@@ -222,7 +222,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Out of excuses. Pull the image.
         cmd = (f'ch-image pull {addr} && ch-builder2tar {ch_build_addr} {self.container_archive}'
                )
-        return subprocess.run(cmd, capture_output=True, check=True, shell=True)
+        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              check=True, shell=True)
 
     def dockerLoad(self):
         """CWL compliant dockerLoad.
@@ -314,7 +315,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                f'ch-builder2tar {ch_build_addr} {self.container_archive}'
                )
         log.info('Executing: {}'.format(cmd))
-        return subprocess.run(cmd, capture_output=True, check=True, shell=True)
+        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              check=True, shell=True)
 
     def dockerImport(self, param_import=None):
         """CWL compliant dockerImport.
@@ -349,7 +351,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # Pull the image.
         cmd = (f'ch-tar2dir {import_input_path} {self.deployed_image_root}/')
-        return subprocess.run(cmd, capture_output=True, check=True, shell=True)
+        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              check=True, shell=True)
 
     def dockerImageId(self, param_imageid=None):
         """CWL compliant dockerImageId.
@@ -456,7 +459,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         cmd = (f'cp {task_container_path} {copy_target}\n'
                )
         log.info('Executing: {}'.format(cmd))
-        return subprocess.run(cmd, capture_output=True, check=True, shell=True)
+        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              check=True, shell=True)
 
     def containerName(self):
         """CWL extension, need a way to refer to containers human-readable name.
