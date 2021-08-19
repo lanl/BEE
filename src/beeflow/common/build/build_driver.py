@@ -48,7 +48,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerPull(self, addr):
+    def dockerPull(self, addr, force):
         """CWL compliant dockerPull.
 
         CWL spec 09-23-2020: Specify a Docker image to
@@ -65,7 +65,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerFile(self):
+    def dockerFile(self, task_dockerfile, force):
         """CWL compliant dockerFile.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
@@ -73,7 +73,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerImport(self):
+    def dockerImport(self, param_import):
         """CWL compliant dockerImport.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
@@ -81,7 +81,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerImageId(self):
+    def dockerImageId(self, param_imageid):
         """CWL compliant dockerImageId.
 
         CWL spec 09-23-2020: The image id that will be used for
@@ -92,7 +92,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerOutputDirectory(self):
+    def dockerOutputDirectory(self, param_output_directory):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
@@ -100,7 +100,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def copyContainer(self):
+    def copyContainer(self, force):
         """CWL extension, copy an existing container into the build archive.
 
         If you have a container tarball, and all you need to do is stage it,

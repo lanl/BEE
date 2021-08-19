@@ -3,13 +3,11 @@
 All container-based build systems belong here.
 """
 
-from abc import ABC
 import os
-import tempfile
 import shutil
 import subprocess
-from beeflow.common.config_driver import BeeConfig
 import sys
+from beeflow.common.config_driver import BeeConfig
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
 from beeflow.common.build.build_driver import BuildDriver
@@ -63,8 +61,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
             bee_workdir = '~/.beeflow'
         finally:
-            handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
-                                           logfile='CharliecloudBuildDriver.log')
+            _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
+                                     logfile='CharliecloudBuildDriver.log')
         # Store build container archive pased on config file or relative to bee_workdir if not set.
         try:
             if bc.userconfig['builder'].get('container_archive'):
@@ -72,7 +70,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             else:
                 # Set container archive relative to bee_workdir if config does not specify
                 log.warning('Invalid config file. container_archive not found in builder section.')
-                container_archive = '/'.join([bee_workdir,'container_archive'])
+                container_archive = '/'.join([bee_workdir, 'container_archive'])
                 log.warning(f'Assuming container_archive is {container_archive}')
         except KeyError:
             log.warning('Container is missing builder section')
@@ -94,7 +92,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 deployed_image_root = bc.resolve_path(deployed_image_root)
             else:
                 log.info('Deployed image root not found.')
-                deployed_image_root = '/'.join(['/var/tmp', os.getlogin(), 'beeflow_deployed_containers'])
+                deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
+                                               'beeflow_deployed_containers'])
                 # Make sure conf_file path exists
                 os.makedirs(deployed_image_root, exist_ok=True)
                 # Make sure path is absolute
@@ -102,7 +101,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 log.info(f'Assuming deployed image root is {deployed_image_root}')
         except KeyError:
             log.info('Config file is missing builder section.')
-            deployed_image_root = '/'.join(['/var/tmp', os.getlogin(), 'beeflow_deployed_containers'])
+            deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
+                                           'beeflow_deployed_containers'])
             # Make sure conf_file path exists
             os.makedirs(deployed_image_root, exist_ok=True)
             # Make sure path is absolute
@@ -130,19 +130,18 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             self.container_output_path = container_output_path
             log.info(f'Container-relative output path is: {self.container_output_path}')
         # record that a Charliecloud builder was used
-        bc.modify_section('user', 'builder', {'container_type':'charliecloud'})
+        bc.modify_section('user', 'builder', {'container_type': 'charliecloud'})
         self.task = task
         self.docker_image_id = None
         self.container_name = None
-        dockerRequirements = set() 
+        dockerRequirements = set()
         try:
             requirement_DockerRequirements = self.task.requirements['DockerRequirement'].keys()
             dockerRequirements = dockerRequirements.union(requirement_DockerRequirements)
-            log.info('task {} requirement DockerRequirements: {}'.\
+            log.info('task {} requirement DockerRequirements: {}'.
                      format(self.task.id, set(requirement_DockerRequirements)))
         except (TypeError, KeyError):
             log.info('task {} requirements has no DockerRequirements'.format(self.task.id))
-            pass
         try:
             hint_DockerRequirements = self.task.hints['DockerRequirement'].keys()
             dockerRequirements = dockerRequirements.union(hint_DockerRequirements)
@@ -150,7 +149,6 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                                                                   set(hint_DockerRequirements)))
         except (TypeError, KeyError):
             log.info('task {} hints has no DockerRequirements'.format(self.task.id))
-            pass
         log.info('task {} union DockerRequirements consist of: {}'.format(self.task.id,
                                                                           dockerRequirements))
         exec_superset = self.resolve_priority()
@@ -247,17 +245,17 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
         return 0
 
-    def dockerFile(self, task_imageid=None, task_dockerfile=None, force=False):
+    def dockerFile(self, task_dockerfile=None, force=False):
         """CWL compliant dockerFile.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build. We have discussed implementing CWL
-        change to expect a file handle instead of file contents, and use the file 
+        change to expect a file handle instead of file contents, and use the file
         handle expectation here.
         """
         # containerName is always processed before dockerFile, so safe to assume it exists
         # otherwise, raise an error.
-        if self.container_name == None:
+        if self.container_name is None:
             log.error("dockerFile may not be specified without containerName")
             return 1
 
@@ -287,9 +285,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # Create context directory to use as Dockerfile context, use container name so user
         # can prep the directory with COPY sources as needed.
-        context_dir = '/'.join(['/tmp',self.container_name])
+        context_dir = '/'.join(['/tmp', self.container_name])
         log.info('Context directory will be {}.'.format(context_dir))
-        os.makedirs(context_dir, exist_ok=True) 
+        os.makedirs(context_dir, exist_ok=True)
 
         # Determine name for successful build target
         ch_build_addr = self.container_name.replace('/', '%')
@@ -412,7 +410,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         If you have a container tarball, and all you need to do is stage it,
         that is, all you need to do is copy it to a location that BEE knows,
-        use this to put the container into the build archive. 
+        use this to put the container into the build archive.
         """
         # Need container_path to know how dockerfile should be named, else fail
         try:
@@ -450,7 +448,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Force remove any cached images if force==True
         if os.path.exists(copy_target) and force:
             try:
-                os.remove(ch_build_target)
+                os.remove(copy_target)
             except FileNotFoundError:
                 pass
 
@@ -467,7 +465,6 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         but this is explicitly not how Docker defines it. We need a way to name
         containers in a human readable format.
         """
-
         try:
             # Try to get Hints
             hint_container_name = self.task.hints['DockerRequirement']['containerName']
@@ -487,7 +484,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         elif hint_container_name:
             task_container_name = hint_container_name
 
-        if not task_container_name and self.docker_image_id  == None:
+        if not task_container_name and self.docker_image_id is None:
             log.error("containerName: You must specify the containerName or dockerImageId")
             return 1
         self.container_name = task_container_name
@@ -515,7 +512,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         :type kwargs: set of build system parameters
         """
 
-    def dockerPull(self):
+    def dockerPull(self, addr=None, force=False):
         """CWL compliant dockerPull.
 
         CWL spec 09-23-2020: Specify a Docker image to
@@ -530,21 +527,21 @@ class SingularityBuildDriver(ContainerBuildDriver):
         download a Docker image using docker load.
         """
 
-    def dockerFile(self):
+    def dockerFile(self, task_dockerfile=None, force=False):
         """CWL compliant dockerFile.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build.
         """
 
-    def dockerImport(self):
+    def dockerImport(self, param_import=None):
         """CWL compliant dockerImport.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
         gunzip a Docker images using docker import.
         """
 
-    def dockerImageId(self):
+    def dockerImageId(self, param_imageid=None):
         """CWL compliant dockerImageId.
 
         CWL spec 09-23-2020: The image id that will be used for
@@ -554,7 +551,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         used.
         """
 
-    def dockerOutputDirectory(self):
+    def dockerOutputDirectory(self, param_output_directory=None):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
@@ -562,4 +559,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         """
 # Ignore snake_case requirement to enable CWL compliant names. (C0103)
 # Ignore "too many statements". Some of these methods are long, and that's ok (R0915)
-# pylama:ignore=C0103,R0915
+# Ignore W0231: linter doesn't know about abstract classes, it's ok to now call the parent __init__
+# Ignore W1202: Using fstrings does not cause us any issues in logging currently, improves
+#               readibility as is
+# pylama:ignore=C0103,R0915,W0231,W1202
