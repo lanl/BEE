@@ -34,7 +34,7 @@ steps:
       baseCommand: grep
       hints:
         DockerRequirement:
-          dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
+          copyContainer: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
       pattern: pattern
       infile: infile
@@ -54,7 +54,7 @@ steps:
       baseCommand: "wc -l"
       hints:
         DockerRequirement:
-          dockerImageId: "/usr/projects/beedev/toss-tiny-3-5.tar"
+          copyContainer: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
       infile: grep/outfile
     out: [outfile]
