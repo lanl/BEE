@@ -112,9 +112,11 @@ class NeoApp(cmd2.Cmd):
             for i in wf.requirements:
                 con.print(i)
             con.print(f'  inputs:')
-            con.print(Padding(Columns(wf.inputs, width=15, padding=(0,3), equal=True, expand=True), (0,0,0,10), style='blue'))
-            con.print(f'  inputs:')
-            con.print(Padding(Columns(wf.outputs, width=15, padding=(0,3), equal=True, expand=True), (0,0,0,10)), style='blue')
+            for i in wf.inputs:
+                con.print(f'          [b]{i.id}[/b]  {i.type}: {i.value}')
+            con.print(f'  outputs:')
+            for o in wf.outputs:
+                con.print(f'          [b]{o.id}[/b]  {o.type}: {o.value}, [green]source[/green]\[{o.source}]')
         else:
             con.print('GDB [red]not connected[/red]!')
     parser_workflowinfo.set_defaults(func=workflow_info)
@@ -127,19 +129,28 @@ class NeoApp(cmd2.Cmd):
             return
         if args.all:
             tasks = gdb.get_workflow_tasks()
-            for i in tasks:
-                con.print(f'[orange3]Task ID/name[/orange3]: {i.id}/[pink1]{i.name}')
-                con.print(f'  command:   {i.command}')
+            for t in tasks:
+                con.print(f'[yellow2]Task ID/name[/yellow2]: {t.id}/[pink1]{t.name}')
+                con.print(f'  base_command:   {t.base_command}')
                 con.print(f'  hints:')
-                for h in i.hints:
-                    con.print(f'          [b]{h.class_}[/b]  {h.key}: {h.value}')
+                for h in t.hints:
+                    con.print(f'          [b]{h.class_}[/b]:')
+                    for k in h.params.keys():
+                        con.print(f'            {k}: {h.params[k]}')
                 con.print('  requirements:')
-                for r in i.requirements:
-                    con.print(f'          [b]{r.class_}[/b]  {r.key}: {r.value}')
+                for r in t.requirements:
+                    con.print(f'          [b]{r.class_}[/b]:')
+                    for k in r.params.keys():
+                        con.print(f'            {k}: {r.params[k]}')
                 con.print(f'  inputs:')
-                con.print(Padding(Columns(i.inputs, width=15, padding=(0,3), equal=True, expand=True), (0,0,0,10), style='blue'))
-                con.print(f'  inputs:')
-                con.print(Padding(Columns(i.outputs, width=15, padding=(0,3), equal=True, expand=True), (0,0,0,10)), style='blue')
+                for i in t.inputs:
+                    con.print(f'          [b]{i.id}[/b]  {i.type}: {i.value}, default: {i.default}, prefix: {i.prefix}, '
+                                        f'position: {i.position}, [green]source[/green]\[{i.source}]')
+                con.print(f'  outputs:')
+                for o in t.outputs:
+                    con.print(f'          [b]{o.id}[/b]  {o.type}: {o.value}, [cyan3]glob[/cyan3]: {o.glob}')
+                con.print(f'  stdout:  {t.stdout}')
+                con.print(f'  workflow_id:  [orange3]{t.workflow_id}[/orange3]')
     def task_set(self, args):
         """info subcommand of task command"""
         self.poutput('task setinfo!')
