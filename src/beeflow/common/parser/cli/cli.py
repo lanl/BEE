@@ -13,8 +13,9 @@ import argparse
 import cmd2
 
 from rich.console import Console
-from rich.columns import Columns
+from rich.table import Table
 from rich.padding import Padding
+from rich import box
 
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.gdb_interface import GraphDatabaseInterface
@@ -70,6 +71,7 @@ class NeoApp(cmd2.Cmd):
     parser_taskset.add_argument('y', type=float, help='float')
     parser_taskset.add_argument('prop', type=str, help='property to set')
 
+
     ###################################################
     # subcommand functions for the db command
     def db_info(self, args):
@@ -98,6 +100,7 @@ class NeoApp(cmd2.Cmd):
     parser_dbconnect.set_defaults(func=db_connect)
     parser_dbdisconnect.set_defaults(func=db_disconnect)
 
+
     ###################################################
     # subcommand functions for the workflow command
     def workflow_info(self, args):
@@ -112,14 +115,24 @@ class NeoApp(cmd2.Cmd):
             for i in wf.requirements:
                 con.print(i)
             con.print(f'  inputs:')
+            iTable = Table(box=box.SIMPLE)
+            iTable.add_column("id", justify="left", style="cyan", no_wrap=True)
+            iTable.add_column("type/value", justify="left")
             for i in wf.inputs:
-                con.print(f'          [b]{i.id}[/b]  {i.type}: {i.value}')
+                iTable.add_row(i.id, f'{i.type}/{i.value}')
+            con.print(Padding(iTable, (0,0,0,10)))
             con.print(f'  outputs:')
+            oTable = Table(box=box.SIMPLE)
+            oTable.add_column("id", justify="left", style="cyan", no_wrap=True)
+            oTable.add_column("type/value", justify="left")
+            oTable.add_column("source", justify="left", style="green")
             for o in wf.outputs:
-                con.print(f'          [b]{o.id}[/b]  {o.type}: {o.value}, [green]source[/green]\[{o.source}]')
+                oTable.add_row(o.id, f'{o.type}/{o.value}', o.source)
+            con.print(Padding(oTable, (0,0,0,10)))
         else:
             con.print('GDB [red]not connected[/red]!')
     parser_workflowinfo.set_defaults(func=workflow_info)
+
 
     # subcommand functions for the task command
     def task_info(self, args):
@@ -143,12 +156,24 @@ class NeoApp(cmd2.Cmd):
                     for k in r.params.keys():
                         con.print(f'            {k}: {r.params[k]}')
                 con.print(f'  inputs:')
+                iTable = Table(box=box.SIMPLE)
+                iTable.add_column("id", justify="left", style="cyan")
+                iTable.add_column("type/value", justify="left")
+                iTable.add_column("default", justify="left")
+                iTable.add_column("prefix", justify="right")
+                iTable.add_column("position", justify="right")
+                iTable.add_column("source", justify="left", style="green")
                 for i in t.inputs:
-                    con.print(f'          [b]{i.id}[/b]  {i.type}: {i.value}, default: {i.default}, prefix: {i.prefix}, '
-                                        f'position: {i.position}, [green]source[/green]\[{i.source}]')
+                    iTable.add_row(i.id, f'{i.type}/{i.value}', i.default, i.prefix, str(i.position), i.source)
+                con.print(Padding(iTable, (0,0,0,10)))
                 con.print(f'  outputs:')
+                oTable = Table(box=box.SIMPLE)
+                oTable.add_column("id", justify="left", style="cyan")
+                oTable.add_column("type/value", justify="left")
+                oTable.add_column("glob", justify="left", style="cyan3")
                 for o in t.outputs:
-                    con.print(f'          [b]{o.id}[/b]  {o.type}: {o.value}, [cyan3]glob[/cyan3]: {o.glob}')
+                    oTable.add_row(o.id, f'{o.type}/{o.value}', o.glob)      
+                con.print(Padding(oTable, (0,0,0,10)))      
                 con.print(f'  stdout:  {t.stdout}')
                 con.print(f'  workflow_id:  [orange3]{t.workflow_id}[/orange3]')
     def task_set(self, args):
