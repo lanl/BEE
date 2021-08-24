@@ -224,7 +224,7 @@ class WorkflowInterface:
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
-        :type value: str
+        :type value: str or int or float
         """
         self._gdb_interface.set_task_output(task, output_id, value)
 

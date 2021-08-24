@@ -78,7 +78,7 @@ class GraphDatabaseInterface:
         self._connection.load_task(task)
 
     def initialize_ready_tasks(self):
-        """Mark runnable tasks in a workflow to ready."""
+        """Set runnable tasks in a workflow to ready."""
         self._connection.initialize_ready_tasks()
 
     def finalize_task(self, task):
@@ -185,7 +185,7 @@ class GraphDatabaseInterface:
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
-        :type value: str
+        :type value: str or int or float
         """
         self._connection.set_task_output(task, output_id, value)
 

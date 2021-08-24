@@ -262,7 +262,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
-        :type value: str
+        :type value: str or int or float
         """
         self._write_transaction(tx.set_task_output, task=task, output_id=output_id, value=value)
 

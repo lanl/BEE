@@ -14,6 +14,8 @@ class GraphDatabaseDriver(ABC):
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow in the graph database.
 
+        Should create the Workflow, Requirement, and Hint nodes in the graph database.
+
         :param workflow: the workflow description
         :type workflow: Workflow
         """
@@ -41,7 +43,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def reset_workflow(self, new_id):
-        """Reset the execution state of a workflow.
+        """Reset the execution state of a stored workflow.
 
         Set all task states to 'WAITING'.
         Change the workflow ID of the Workflow and Task nodes to new_id.
@@ -72,7 +74,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_task_by_id(self, task_id):
-        """Return a workflow task record from the graph database.
+        """Return a reconstructed Task object from the graph database by its ID.
 
         :param task_id: a task's ID
         :type task_id: str
@@ -87,7 +89,7 @@ class GraphDatabaseDriver(ABC):
         """
     @abstractmethod
     def get_workflow_tasks(self):
-        """Return a list of all workflow task records from the graph database.
+        """Return a list of all workflow tasks from the graph database.
 
         :rtype: list of Task
         """
@@ -103,7 +105,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_workflow_inputs_and_outputs(self):
-        """Return all workflow inputs and outputs from the Neo4j database.
+        """Return all workflow inputs and outputs from the graph database.
 
         Returns a tuple of (inputs, outputs).
 
@@ -128,7 +130,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_task_state(self, task):
-        """Return the state of a task in the graph database workflow.
+        """Return the state of a task in the graph database.
 
         :param task: the task whose status to retrieve
         :type task: Task
@@ -137,7 +139,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def set_task_state(self, task, state):
-        """Set the state of a task in the graph database workflow.
+        """Set the state of a task in the graph database.
 
         :param task: the task whose state to set
         :type task: Task
@@ -147,7 +149,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_task_metadata(self, task, keys):
-        """Return the metadata of a task in the graph database workflow.
+        """Return the metadata of a task in the graph database.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
@@ -158,7 +160,7 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def set_task_metadata(self, task, metadata):
-        """Set the metadata of a task in the graph database workflow.
+        """Set the metadata of a task in the graph database.
 
         :param task: the task whose metadata to set
         :type task: Task
@@ -175,7 +177,7 @@ class GraphDatabaseDriver(ABC):
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
-        :type value: str
+        :type value: str or int or float
         """
 
     @abstractmethod
