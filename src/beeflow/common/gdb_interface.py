@@ -129,7 +129,7 @@ class GraphDatabaseInterface:
         return self._connection.get_ready_tasks()
 
     def get_dependent_tasks(self, task):
-        """Return the dependents of a task in a graph database workflow.
+        """Return the dependents of a task in a workflow.
 
         :param task: the task whose dependents to retrieve
         :type task: Task
@@ -169,9 +169,6 @@ class GraphDatabaseInterface:
 
     def set_task_metadata(self, task, metadata):
         """Set the job description metadata of a task.
-
-        This method should not be used to update task state.
-        set_task_state() should instead be used.
 
         :param task: the task whose metadata to set
         :type task: Task
