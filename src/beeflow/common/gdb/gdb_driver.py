@@ -44,7 +44,7 @@ class GraphDatabaseDriver(ABC):
         """Reset the execution state of a workflow.
 
         Set all task states to 'WAITING'.
-        Change the workflow ID of the Workflow and Task nodes with new_id.
+        Change the workflow ID of the Workflow and Task nodes to new_id.
         Delete all task metadata except for task state.
 
         :param new_id: the new workflow ID
@@ -67,8 +67,7 @@ class GraphDatabaseDriver(ABC):
     def initialize_ready_tasks(self):
         """Set runnable tasks to state 'READY'.
 
-        Runnable tasks are tasks with all dependency tasks'
-        states set to 'COMPLETED'.
+        Runnable tasks are tasks with all input dependencies fulfilled.
         """
 
     @abstractmethod
@@ -90,7 +89,7 @@ class GraphDatabaseDriver(ABC):
     def get_workflow_tasks(self):
         """Return a list of all workflow task records from the graph database.
 
-        :rtype: set of Task
+        :rtype: list of Task
         """
 
     @abstractmethod
@@ -115,7 +114,7 @@ class GraphDatabaseDriver(ABC):
     def get_ready_tasks(self):
         """Return tasks with state 'READY' from the graph database.
 
-        :rtype: set of Task
+        :rtype: list of Task
         """
 
     @abstractmethod
@@ -124,7 +123,7 @@ class GraphDatabaseDriver(ABC):
 
         :param task: the task whose dependents to retrieve
         :type task: Task
-        :rtype: set of Task
+        :rtype: list of Task
         """
 
     @abstractmethod
