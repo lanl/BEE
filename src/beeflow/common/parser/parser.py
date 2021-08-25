@@ -150,6 +150,8 @@ class CwlParser:
     def parse_job(self, job):
         """Parse a CWL input job file.
 
+        Input parameters are stored in the params attribute.
+
         :param job: the path of the input job file (YAML or JSON)
         :type job: str
         """
