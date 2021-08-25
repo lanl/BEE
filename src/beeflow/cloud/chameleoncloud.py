@@ -16,17 +16,12 @@ class ChameleoncloudProvider(provider.Provider):
         # TODO: Chameleon set up
 
     # def create_node(self):
-    def create_node(self, node_name, startup_script, ext_ip=False):
-        """Create a node."""
+    def create_from_tempalte(self, template_file):
+        """Create from a template file."""
         raise RuntimeError('create_node() is not implemented for Chameleoncloud')
-
-    def wait(self):
-        """Wait for complete setup."""
-        raise RuntimeError('wait() is not implemented implemented for Chameleoncloud')
 
     def get_ext_ip_addr(self, node_name):
         """Get the external IP address of the node, if it has one."""
-        # TODO: Get the external IP address from the Chameleon API
         if self._stack_name is not None:
             stack = self._api.get_stack(self._stack_name)
             if stack is None:
