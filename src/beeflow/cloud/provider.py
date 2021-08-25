@@ -10,8 +10,8 @@ class Provider(abc.ABC):
         """Cloud Provider default constructor."""
 
     @abc.abstractmethod
-    def create_node(self, node_name, startup_script, ext_ip=False):
-        """Create a node."""
+    def create_from_template(self, template_file):
+        """Create the cloud from a template."""
 
     @abc.abstractmethod
     def wait(self):
@@ -37,7 +37,6 @@ class MockProvider(Provider):
 
     def wait(self):
         """Wait for complete setup."""
-        # TODO
 
     def get_ext_ip_addr(self, node_name):
         """Get the external IP address of the node, if it has one."""

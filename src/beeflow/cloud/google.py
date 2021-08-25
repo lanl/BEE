@@ -86,6 +86,10 @@ class GoogleProvider(provider.Provider):
 
         self._nodes[node_name] = instance
 
+    def create_from_template(self, template_file):
+        """Create from a template file."""
+        # TODO: Launch from a template file
+
     def wait(self):
         """Wait for complete setup."""
         # Wait for two minutes -- this is arbitrary and should probably be user configurable
