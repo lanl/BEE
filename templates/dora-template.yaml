@@ -42,20 +42,14 @@ resources:
       key_name: { get_param: key_name }
       networks:
         - port: { get_resource: server_port }
-      #user_data: |
-      #  #!/bin/sh
-      #  # Proxy setup (for some reason DNS isn't working properly)
-      #  echo "Acquire::http::Proxy \"http://192.12.184.19:8080\";" >> /etc/apt/apt.conf
-      #  export http_proxy=http://192.12.184.19:8080
-      #  export DEBIAN_FRONTEND=noninteractive
-      #  apt-get update
-      #  apt-get -y install gcc make curl git
-      #  curl -O -L https://github.com/hpc/charliecloud/releases/download/v0.24/charliecloud-0.24.tar.gz
-      #  tar -xvf charliecloud-0.24.tar.gz
-      #  cd charliecloud-0.24
-      #  ./configure --prefix=/usr
-      #  make
-      #  make install
+      user_data: |
+        #!/bin/sh
+        echo "#!/bin/sh" >> /bee/tm
+        echo "cd /bee/BEE_Private" >> /bee/tm
+        echo ". ./venv/bin/activate" >> /bee/tm
+        # TODO: May need to start Redis here eventually
+        echo "exec python -m beeflow.task_manager ~/.config/beeflow/bee.conf"
+        chmod 755 /bee/tm
   server_port:
     type: OS::Neutron::Port
     properties:
