@@ -1,0 +1,72 @@
+heat_template_version: 2013-05-23
+
+description: >
+  Template based on https://github.com/openstack/heat-templates/blob/master/hot/servers_in_new_neutron_net.yaml
+
+parameters:
+  key_name:
+    type: string
+    description: Key name
+  public_net:
+    type: string
+    description: Public network name
+resources:
+  private_net:
+    type: OS::Neutron::Net
+    properties:
+      name: bee-net
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_net }
+      cidr: '10.93.78.0/24'
+      gateway_ip: '10.93.78.1'
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: public_net }
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+  server:
+    type: OS::Nova::Server
+    properties:
+      name: bee-server
+      # Custom snapshot with everything preinstalled
+      # image: 'bee-server-snapshot'
+      image: 'bee-default'
+      flavor: 'm1.small'
+      key_name: { get_param: key_name }
+      networks:
+        - port: { get_resource: server_port }
+      #user_data: |
+      #  #!/bin/sh
+      #  # Proxy setup (for some reason DNS isn't working properly)
+      #  echo "Acquire::http::Proxy \"http://192.12.184.19:8080\";" >> /etc/apt/apt.conf
+      #  export http_proxy=http://192.12.184.19:8080
+      #  export DEBIAN_FRONTEND=noninteractive
+      #  apt-get update
+      #  apt-get -y install gcc make curl git
+      #  curl -O -L https://github.com/hpc/charliecloud/releases/download/v0.24/charliecloud-0.24.tar.gz
+      #  tar -xvf charliecloud-0.24.tar.gz
+      #  cd charliecloud-0.24
+      #  ./configure --prefix=/usr
+      #  make
+      #  make install
+  server_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: private_net }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet }
+  server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { get_param: public_net }
+      port_id: { get_resource: server_port }
+outputs:
+  server_public_ip:
+    value: { get_attr: [server_floating_ip, floating_ip_address] }

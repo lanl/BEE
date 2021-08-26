@@ -10,12 +10,12 @@ class OpenstackProvider(provider.Provider):
         """OpenStack provider constructor."""
         self._cloud = openstack.connect()
         self._stack_name = stack_name
+        self._kwargs = kwargs
 
     def create_from_template(self, template_file):
         """Create from a template file."""
-        # TODO
         self.create_stack(self._stack_name, template_file=template_file,
-                          wait=True)
+                          wait=True, **self._kwargs)
 
     def get_ext_ip_addr(self, node_name):
         """Get external IP address of Task Manager node."""

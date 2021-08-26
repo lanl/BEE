@@ -10,10 +10,10 @@ from beeflow.cloud.constants import *
 
 
 providers = {
-    'Google': google.GoogleProvider,
-    'Chameleoncloud': chameleoncloud.ChameleoncloudProvider,
-    'OpenStack': openstack.OpenstackProvider,
-    'Mock': provider.MockProvider,  # Provider to be used for testing
+    'google': google.GoogleProvider,
+    'chameleoncloud': chameleoncloud.ChameleoncloudProvider,
+    'openstack': openstack.OpenstackProvider,
+    'mock': provider.MockProvider,  # Provider to be used for testing
 }
 
 

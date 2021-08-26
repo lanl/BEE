@@ -22,21 +22,8 @@ class CloudLauncherError(Exception):
         self.msg = msg
 
 
-#def setup(provider, template_file):
-#    """Setup the cloud cluster.
-#
-#    Returns the IP address of the cluster head node and the directory of the
-#    BEE source code on the head node.
-#    :rtype tuple (str, str)
-#    """
-#    print('Creating from template...')
-#    provider.create_from_template(template_file)
-#    print('Waiting for setup completion...')
-#    provider.wait()
-
-
-def launch_tm(provider, private_key_file, bee_user, bee_srcdir, env_cmd,
-              tm_listen_port, wfm_listen_port):
+def launch_tm(provider, private_key_file, bee_user, env_cmd, tm_listen_port,
+              wfm_listen_port):
     """Start the Task Manager on the remote head node."""
     print('Launching the Remote Task Manager')
     ip_addr = provider.get_ext_ip_addr()
@@ -98,9 +85,10 @@ if __name__ == '__main__':
     private_key_file = bc.userconfig['cloud'].get('private_key_file',
                                                   os.path.join(bee_workdir, 'bee_key'))
     bee_user = bc.userconfig['cloud'].get('bee_user', cloud.BEE_USER)
-    bee_dir = bc.userconfig['cloud'].get('bee_dir', None)
+    # bee_dir = bc.userconfig['cloud'].get('bee_dir', None)
     env_cmd = bc.userconfig['cloud'].get('env_cmd', None)
     name = bc.userconfig['cloud'].get('name', None)
+    template_file = bc.userconfig['cloud'].get('template_file')
 
     # Get the cloud provider configuration
     provider = bc.userconfig['cloud'].get('provider', None)
@@ -114,10 +102,11 @@ if __name__ == '__main__':
     provider = cloud.get_provider(provider, **kwargs)
 
     if args.setup_cloud:
-        # setup(provider=provider, name=name)
+        print('Creating cloud from template...')
         provider.create_from_template(template_file)
+        print('Setup complete')
     if args.tm:
         launch_tm(provider=provider, private_key_file=private_key_file,
-                  bee_user=bee_user, bee_srcdir=bee_srcdir, env_cmd=env_cmd,
+                  bee_user=bee_user, env_cmd=env_cmd,
                   wfm_listen_port=wfm_listen_port,
                   tm_listen_port=tm_listen_port)
