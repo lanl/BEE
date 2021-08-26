@@ -181,7 +181,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             req_addr = None
 
         # Prefer requirements over hints
-        if (req_addr or hint_addr) and (not hint_addr):
+        if req_addr:
             task_addr = req_addr
         elif hint_addr:
             task_addr = hint_addr
@@ -275,7 +275,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             req_dockerfile = None
 
         # Prefer requirements over hints
-        if (req_dockerfile or hint_dockerfile) and (not hint_dockerfile):
+        if req_dockerfile:
             task_dockerfile = req_dockerfile
         elif hint_dockerfile:
             task_dockerfile = hint_dockerfile
@@ -342,7 +342,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 # Task Requirements are not mandatory. No import specified in task reqs.
                 req_import = None
             # Prefer requirements over hints
-            if (req_import or hint_import) and (not hint_import):
+            if req_import:
                 task_import = req_import
             elif hint_import:
                 task_import = hint_import
@@ -384,7 +384,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # Prefer requirements over hints
         task_imageid = None
-        if (req_imageid or hint_imageid) and (not hint_imageid):
+        if req_imageid:
             task_imageid = req_imageid
         elif hint_imageid:
             task_imageid = hint_imageid
@@ -430,7 +430,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             req_container_path = None
 
         # Prefer requirements over hints
-        if (req_container_path or hint_container_path) and (not hint_container_path):
+        if req_container_path:
             task_container_path = req_container_path
         elif hint_container_path:
             task_container_path = hint_container_path
@@ -483,7 +483,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             req_container_name = None
 
         # Prefer requirements over hints
-        if (req_container_name or hint_container_name) and (not hint_container_name):
+        if req_container_name:
             task_container_name = req_container_name
         elif hint_container_name:
             task_container_name = hint_container_name
