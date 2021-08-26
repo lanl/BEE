@@ -22,11 +22,11 @@ class CloudLauncherError(Exception):
         self.msg = msg
 
 
-def launch_tm(provider, private_key_file, bee_user, launch_cmd, tm_listen_port,
-              wfm_listen_port):
+def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
+              tm_listen_port, wfm_listen_port):
     """Start the Task Manager on the remote head node."""
     print('Launching the Remote Task Manager')
-    ip_addr = provider.get_ext_ip_addr()
+    ip_addr = provider.get_ext_ip_addr(head_node)
 
     # Now start the Task Manager
     tm_proc = subprocess.Popen([
@@ -82,13 +82,13 @@ if __name__ == '__main__':
     wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port')
     tm_listen_port = bc.userconfig['cloud'].get('tm_listen_port')
 
-    # head_node = bc.userconfig['cloud'].get('head_node', 'bee-head-node')
     private_key_file = bc.userconfig['cloud'].get('private_key_file',
                                                   os.path.join(bee_workdir, 'bee_key'))
     bee_user = bc.userconfig['cloud'].get('bee_user', cloud.BEE_USER)
     # bee_dir = bc.userconfig['cloud'].get('bee_dir', None)
     launch_cmd = bc.userconfig['cloud'].get('tm_launch_cmd', None)
     name = bc.userconfig['cloud'].get('name', None)
+    head_node = bc.userconfig['cloud'].get('head_node', 'bee-head-node')
     template_file = bc.userconfig['cloud'].get('template_file')
 
     # Get the cloud provider configuration
@@ -108,6 +108,6 @@ if __name__ == '__main__':
         print('Setup complete')
     if args.tm:
         launch_tm(provider=provider, private_key_file=private_key_file,
-                  bee_user=bee_user, launch_cmd=launch_cmd,
+                  bee_user=bee_user, launch_cmd=launch_cmd, head_node=head_node,
                   wfm_listen_port=wfm_listen_port,
                   tm_listen_port=tm_listen_port)
