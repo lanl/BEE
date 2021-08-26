@@ -22,7 +22,7 @@ class CloudLauncherError(Exception):
         self.msg = msg
 
 
-def launch_tm(provider, private_key_file, bee_user, env_cmd, tm_listen_port,
+def launch_tm(provider, private_key_file, bee_user, launch_cmd, tm_listen_port,
               wfm_listen_port):
     """Start the Task Manager on the remote head node."""
     print('Launching the Remote Task Manager')
@@ -35,7 +35,8 @@ def launch_tm(provider, private_key_file, bee_user, env_cmd, tm_listen_port,
         '-o', 'StrictHostKeyChecking=no',
         '-o', 'ConnectTimeout=8',
         f'{bee_user}@{ip_addr}',
-        f'{env_cmd}; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
+        # f'{env_cmd}; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
+        launch_cmd,
     ])
     time.sleep(10)
     if tm_proc.poll() is not None:
@@ -79,14 +80,14 @@ if __name__ == '__main__':
 
     # Get the component ports for forwarding connections
     wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port')
-    tm_listen_port = bc.userconfig['task_manager'].get('listen_port')
+    tm_listen_port = bc.userconfig['cloud'].get('tm_listen_port')
 
     # head_node = bc.userconfig['cloud'].get('head_node', 'bee-head-node')
     private_key_file = bc.userconfig['cloud'].get('private_key_file',
                                                   os.path.join(bee_workdir, 'bee_key'))
     bee_user = bc.userconfig['cloud'].get('bee_user', cloud.BEE_USER)
     # bee_dir = bc.userconfig['cloud'].get('bee_dir', None)
-    env_cmd = bc.userconfig['cloud'].get('env_cmd', None)
+    launch_cmd = bc.userconfig['cloud'].get('tm_launch_cmd', None)
     name = bc.userconfig['cloud'].get('name', None)
     template_file = bc.userconfig['cloud'].get('template_file')
 
@@ -107,6 +108,6 @@ if __name__ == '__main__':
         print('Setup complete')
     if args.tm:
         launch_tm(provider=provider, private_key_file=private_key_file,
-                  bee_user=bee_user, env_cmd=env_cmd,
+                  bee_user=bee_user, launch_cmd=launch_cmd,
                   wfm_listen_port=wfm_listen_port,
                   tm_listen_port=tm_listen_port)
