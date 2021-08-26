@@ -3,8 +3,7 @@ import base64
 import googleapiclient.discovery
 import time
 
-import beeflow.cloud.provider as provider
-import beeflow.cloud.constants as constants
+from beeflow.cloud import provider
 
 
 PREFIX = 'googlenode'

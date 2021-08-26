@@ -14,10 +14,6 @@ class Provider(abc.ABC):
         """Create the cloud from a template."""
 
     @abc.abstractmethod
-    def wait(self):
-        """Wait for complete setup."""
-
-    @abc.abstractmethod
     def get_ext_ip_addr(self, node_name):
         """Get the external IP address of the node, if it has one."""
 

@@ -1,12 +1,9 @@
 
-import beeflow.cloud.google as google
-import beeflow.cloud.chameleoncloud as chameleoncloud
-import beeflow.cloud.openstack as openstack
-import beeflow.cloud.provider as provider
-
-from beeflow.cloud.cloud import CloudError
-#from beeflow.cloud.cloud_info import CloudInfo
-from beeflow.cloud.constants import *
+from beeflow.cloud import chameleoncloud
+from beeflow.cloud import openstack
+from beeflow.cloud import provider
+from beeflow.cloud import google
+from beeflow.cloud.constants import BEE_USER
 
 
 providers = {

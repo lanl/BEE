@@ -1,6 +1,6 @@
 """OpenStack provider module."""
 import openstack
-import beeflow.cloud.provider as provider
+from beeflow.cloud import provider
 
 
 class OpenstackProvider(provider.Provider):

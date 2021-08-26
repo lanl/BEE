@@ -69,7 +69,6 @@ if __name__ == '__main__':
     parser.add_argument('config_file', help='bee.conf file')
     parser.add_argument('--setup-cloud', action='store_true', help='set up the remote cloud')
     parser.add_argument('--tm', action='store_true', help='start the TM')
-    parser.add_argument('--name', type=str, help='unique name of stack or set of cloud instances', required=True)
     args = parser.parse_args()
 
     # Get configuration information
