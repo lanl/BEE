@@ -14,12 +14,18 @@ import beeflow.cloud as cloud
 from beeflow.common.config_driver import BeeConfig
 
 
-class CloudLauncherError(Exception):
-    """Cloud launcher error class."""
-
-    def __init__(self, msg):
-        """Cloud launcher error constructor."""
-        self.msg = msg
+def run(private_key_file, bee_user, ip_addr, cmd):
+    """Run a command on the remote host."""
+    cp = subprocess.run([
+        'ssh',
+        '-i', private_key_file,
+        '-o', 'StrictHostKeyChecking=no',
+        '-o', 'ConnectTimeout=8',
+        f'{bee_user}@{ip_addr}',
+        # f'{env_cmd}; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
+        cmd,
+    ])
+    return cp.returncode
 
 
 def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
@@ -27,23 +33,24 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
     """Start the Task Manager on the remote head node."""
     print('Launching the Remote Task Manager')
     ip_addr = provider.get_ext_ip_addr(head_node)
+    tm_proc = None
 
-    # Now start the Task Manager
-    tm_proc = subprocess.Popen([
-        'ssh',
-        '-i', private_key_file,
-        '-o', 'StrictHostKeyChecking=no',
-        '-o', 'ConnectTimeout=8',
-        f'{bee_user}@{ip_addr}',
-        # f'{env_cmd}; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
-        launch_cmd,
-    ])
-    time.sleep(10)
-    if tm_proc.poll() is not None:
-        raise RuntimeError('Failed to launch the Remote Task Manager')
-
-    # Set up the connection
     try:
+        # Now start the Task Manager
+        tm_proc = subprocess.Popen([
+            'ssh',
+            '-i', private_key_file,
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'ConnectTimeout=8',
+            f'{bee_user}@{ip_addr}',
+            # f'{env_cmd}; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
+            launch_cmd,
+        ])
+        time.sleep(10)
+        if tm_proc.poll() is not None:
+            raise RuntimeError('Failed to launch the Remote Task Manager')
+
+        # Set up the connection
         tun_proc = subprocess.run([
             'ssh',
             f'{bee_user}@{ip_addr}',
@@ -58,9 +65,13 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
             # Required in order to allow port forwarding
             '-o', 'UserKnownHostsFile=/dev/null',
         ])
+    except KeyboardInterrupt:
+        print('Got keyboard interrupt, quitting')
     finally:
-        print('Killing the task manager')
-        tm_proc.kill()
+        if tm_proc is not None:
+            print('Killing the task manager')
+            # TODO: This could be done better using a pidfile
+            run(private_key_file, bee_user, ip_addr, 'pkill python')
 
 
 if __name__ == '__main__':
