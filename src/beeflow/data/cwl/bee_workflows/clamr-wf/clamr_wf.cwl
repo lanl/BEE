@@ -42,8 +42,10 @@ steps:
     out: [stdout, outdir, time_log]
     hints:
         DockerRequirement:
-            dockerImport: clamr_img.tar.gz
-            dockerImageId: clamr
+            # TODO Sort this out
+            #dockerImport: clamr_img.tar.gz
+            #dockerImageId: clamr
+            dockerImageId: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
   mv_script:
     run: mv_script.cwl
     in:
