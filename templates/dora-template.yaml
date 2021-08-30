@@ -10,6 +10,21 @@ parameters:
   public_net:
     type: string
     description: Public network name
+  github_pat:
+    type: string
+    description: GitHub PAT credential for cloning BEE
+  https_proxy:
+    type: string
+    description: HTTPS proxy url
+  http_proxy:
+    type: string
+    description: HTTP proxy url
+  no_proxy:
+    type: string
+    description: no proxy urls to set in environment
+  nameservers:
+    type: string
+    description: list of nameservers separated by commas
 resources:
   private_net:
     type: OS::Neutron::Net
@@ -41,31 +56,37 @@ resources:
       key_name: { get_param: key_name }
       networks:
         - port: { get_resource: server_port }
-      user_data: |
-        #!/bin/sh
-        # Add a TM exec script
-        echo "#!/bin/sh" >> /bee/tm
-        echo "cd /bee/BEE_Private" >> /bee/tm
-        echo ". ./venv/bin/activate" >> /bee/tm
-        # TODO: May need to start Redis here eventually
-        echo "exec python -m beeflow.task_manager ~/.config/beeflow/bee.conf"
-        chmod 755 /bee/tm
-        # Create the config file. This adds just enough info for the TM to run
-        # TODO: This could be perhaps created as a separate user_data entry
-        mkdir -p /home/bee/.config/beeflow
-        conf=/home/bee/.config/beeflow/bee.conf
-        echo "[DEFAULT]" >> $conf
-        echo "bee_workdir = /home/bee/.beeflow" >> $conf
-        echo "workload_scheduler = Simple" >> $conf
-        echo "[task_manager]" >> $conf
-        echo "listen_port = 7777" >> $conf
-        echo "container_runtime = Charliecloud" >> $conf
-        echo "[charliecloud]" >> $conf
-        echo "setup = module load charliecloud" >> $conf
-        echo "image_mntdir = /tmp" >> $conf
-        echo "chrun_opts = --cd /home/$USER" >> $conf
-        echo "container_dir = /home/bee" >> $conf
-        chown -R bee:bee /home/bee/.config
+      user_data:
+        str_replace:
+          template: { get_file: dora-setup.sh }
+          params:
+            $GITHUB_PAT: { get_param: github_pat }
+            $USER: debian
+      #user_data: |
+      #  #!/bin/sh
+      #  # Add a TM exec script
+      #  echo "#!/bin/sh" >> /bee/tm
+      #  echo "cd /bee/BEE_Private" >> /bee/tm
+      #  echo ". ./venv/bin/activate" >> /bee/tm
+      #  # TODO: May need to start Redis here eventually
+      #  echo "exec python -m beeflow.task_manager ~/.config/beeflow/bee.conf" >> /bee/tm
+      #  chmod 755 /bee/tm
+      #  # Create the config file. This adds just enough info for the TM to run
+      #  # TODO: This could be perhaps created as a separate user_data entry
+      #  mkdir -p /home/bee/.config/beeflow
+      #  conf=/home/bee/.config/beeflow/bee.conf
+      #  echo "[DEFAULT]" >> $conf
+      #  echo "bee_workdir = /home/bee/.beeflow" >> $conf
+      #  echo "workload_scheduler = Simple" >> $conf
+      #  echo "[task_manager]" >> $conf
+      #  echo "listen_port = 7777" >> $conf
+      #  echo "container_runtime = Charliecloud" >> $conf
+      #  echo "[charliecloud]" >> $conf
+      #  echo "setup = module load charliecloud" >> $conf
+      #  echo "image_mntdir = /tmp" >> $conf
+      #  echo "chrun_opts = --cd /home/$USER" >> $conf
+      #  echo "container_dir = /home/bee" >> $conf
+      #  chown -R bee:bee /home/bee/.config
   server_port:
     type: OS::Neutron::Port
     properties:

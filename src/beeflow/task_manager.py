@@ -24,7 +24,7 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
-if len(sys.argv) > 2:
+if len(sys.argv) == 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()

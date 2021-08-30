@@ -2,12 +2,9 @@
 """BEE Cloud Installer Script."""
 
 import argparse
-import base64
-import configparser
 import os
 import subprocess
 import sys
-import tempfile
 import time
 
 import beeflow.cloud as cloud
@@ -108,13 +105,18 @@ if __name__ == '__main__':
     provider_config = f'cloud.{provider.lower()}'
     if not bc.userconfig.has_section(provider_config):
         raise cloud.CloudError('Missing provider configuration file')
-    # Now get the provider interface
+    # Get the keyword arguments for the provider class
     kwargs = dict(bc.userconfig[provider_config])
+    # Remove defaults (we have to be careful here not to use keys that will be
+    # in the DEFAULT section -- this should probably be documented)
+    kwargs = {key: kwargs[key] for key in kwargs if key not in bc.userconfig.defaults()}
+    # Now get the provider interface
     provider = cloud.get_provider(provider, **kwargs)
 
     if args.setup_cloud:
         print('Creating cloud from template...')
         provider.create_from_template(template_file)
+        time.sleep(20)
         print('Setup complete')
     if args.tm:
         launch_tm(provider=provider, private_key_file=private_key_file,
