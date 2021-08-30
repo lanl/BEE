@@ -122,8 +122,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     def initialize_ready_tasks(self):
         """Set runnable tasks to state 'READY'.
 
-        Runnable tasks are tasks with all dependency tasks'
-        states set to 'COMPLETED'.
+        Runnable tasks are tasks with all input dependencies fulfilled.
         """
         self._write_transaction(tx.set_runnable_tasks_to_ready)
 
@@ -263,7 +262,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
-        :type value: str
+        :type value: str or int or float
         """
         self._write_transaction(tx.set_task_output, task=task, output_id=output_id, value=value)
 

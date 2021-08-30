@@ -38,7 +38,7 @@ class CwlParser:
     """Class for parsing CWL files."""
 
     def __init__(self):
-        """Initialize a CWL parser.
+        """Initialize the CWL parser interface.
 
         Forms a connection to the graph database through the workflow interface.
         """
@@ -115,9 +115,11 @@ class CwlParser:
     def parse_step(self, step):
         """Parse a CWL step object.
 
+        Calling this to parse a CommandLineTool file without a corresponding
+        Workflow file will fail.
+
         :param step: the CWL step object
         :type step: WorkflowStep
-        :rtype: Task
         """
         # Parse CWL file specified by run field, else parse run field as inline CommandLineTool
         if isinstance(step.run, str):
@@ -148,9 +150,10 @@ class CwlParser:
     def parse_job(self, job):
         """Parse a CWL input job file.
 
+        Input parameters are stored in the params attribute.
+
         :param job: the path of the input job file (YAML or JSON)
         :type job: str
-        :rtype: dict
         """
         if job.endswith(".yml"):
             with open(job) as fp:
@@ -250,7 +253,7 @@ class CwlParser:
         """Parse CWL hints/requirements.
 
         :param requirements: the CWL requirements
-        :type requirements: list of ordereddict
+        :type requirements: list of ordereddict or any cwl_utils Requirement class
         :param as_hints: parse as hints instead of requirements
         :type as_hints: bool
         :rtype: list of Hint or list of Requirement or None

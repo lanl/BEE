@@ -78,7 +78,7 @@ class GraphDatabaseInterface:
         self._connection.load_task(task)
 
     def initialize_ready_tasks(self):
-        """Mark runnable tasks in a workflow to ready."""
+        """Set runnable tasks in a workflow to ready."""
         self._connection.initialize_ready_tasks()
 
     def finalize_task(self, task):
@@ -129,7 +129,7 @@ class GraphDatabaseInterface:
         return self._connection.get_ready_tasks()
 
     def get_dependent_tasks(self, task):
-        """Return the dependents of a task in a graph database workflow.
+        """Return the dependents of a task in a workflow.
 
         :param task: the task whose dependents to retrieve
         :type task: Task
@@ -170,9 +170,6 @@ class GraphDatabaseInterface:
     def set_task_metadata(self, task, metadata):
         """Set the job description metadata of a task.
 
-        This method should not be used to update task state.
-        set_task_state() should instead be used.
-
         :param task: the task whose metadata to set
         :type task: Task
         :param metadata: the job description metadata
@@ -188,7 +185,7 @@ class GraphDatabaseInterface:
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
-        :type value: str
+        :type value: str or int or float
         """
         self._connection.set_task_output(task, output_id, value)
 

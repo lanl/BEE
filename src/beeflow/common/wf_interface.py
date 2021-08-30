@@ -207,7 +207,7 @@ class WorkflowInterface:
         """Set the job description metadata of a task in a BEE workflow.
 
         This method should not be used to update task state.
-        finalize_task() should instead be used.
+        set_task_state() or finalize_task() should instead be used.
 
         :param task: the task whose metadata to set
         :type task: Task
@@ -224,7 +224,7 @@ class WorkflowInterface:
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
-        :type value: str
+        :type value: str or int or float
         """
         self._gdb_interface.set_task_output(task, output_id, value)
 
@@ -259,6 +259,7 @@ class WorkflowInterface:
         If workflow ID is not populated, this grabs it from the database.
 
         If no workflow is loaded, None is returned.
+        :rtype: str
         """
         if self._workflow_id is None and self.workflow_loaded():
             workflow = self.get_workflow()
