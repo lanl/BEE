@@ -129,8 +129,7 @@ def create_task(obj, wfi, workflow):
 def get_wf_inputs(objarray):
     wf_inputs = set()
     for i in objarray:
-        if i.type == "File":
-            wf_inputs.add(i.id.split("#")[1])
+        wf_inputs.add(i.id.split("#")[1])
     return wf_inputs
 
 
