@@ -4,6 +4,7 @@ import os
 import logging
 import requests
 import sys
+import subprocess
 import platform
 import jsonpickle
 from pathlib import Path
@@ -39,19 +40,51 @@ def _url():
 def _resource(tag=""): 
     return _url() + str(tag)
 
+def safe_input(type):
+    while True:
+        try:
+            answer = input("$ ")
+            # Cast it to the specified type
+            answer = type(answer)
+            break
+        except ValueError:
+            print(f"Error {answer} is not a valid option")
+    return answer
+
+# Package Workflow
+def package_workflow():
+    print("What's the directory you want to package: ")  
+    package_dir = safe_input(Path) 
+    if os.path.isdir(package_dir):
+        # Just use tar with subprocess. Python's tar library is not performant. 
+        return_code = subprocess.run(['tar', 'czf', f'{package_dir}.tgz' , package_dir]).returncode
+        if return_code != 0:
+            print("Package failed")
+        else:
+            print(f"Package {package_dir}.tgz created successfully")
+    else:
+        print(f"{package_dir} is not a valid directory.")
+
 # Submit a job to the workflow manager
 # This creates a workflow on the wfm and returns an ID 
-def submit_workflow(wf_name, workflow_path, yaml_path=None):
+def submit_workflow(wf_name, workflow_path, main_cwl, yaml=None):
 
-    files = {
-                'wf_name': wf_name.encode(),
-                'wf_filename': os.path.basename(workflow_path).encode(),
-                'workflow': open(workflow_path, 'rb')
-            }
+    if yaml:
+        files = {
+                    'wf_name': wf_name.encode(),
+                    'wf_filename': os.path.basename(workflow_path).encode(),
+                    'workflow': open(workflow_path, 'rb'),
+                    'main_cwl': main_cwl,
+                    'yaml': yaml
+                }
+    else:
+        files = {
+                    'wf_name': wf_name.encode(),
+                    'wf_filename': os.path.basename(workflow_path).encode(),
+                    'workflow': open(workflow_path, 'rb'),
+                    'main_cwl': main_cwl
+                }
 
-    if yaml_path:
-        files['yaml'] = open(yaml_path, 'rb'),
-        files['yaml_filename'] = os.path.basename(workflow_path).encode()
 
     resp = requests.post(_url(), files=files)
     if resp.status_code != requests.codes.created:
@@ -77,7 +110,6 @@ def query_workflow(wf_id):
     if resp.status_code != requests.codes.okay:
         raise ApiError("GET /jobs {}".format(resp.status_code, wf_id))
     task_status = resp.json()['msg']
-    print("STATUS\n" + task_status)
     logging.info('Query job: ' + resp.text)
 
 # Sends a request to the server to delete the resource 
@@ -143,6 +175,7 @@ def list_workflows():
         print("There are currently no jobs.")
 
 menu_items = [
+    { "Package Workflow": package_workflow },
     { "Submit Workflow": submit_workflow },
     { "List Workflows": list_workflows },
     { "Start Workflow": start_workflow },
@@ -155,16 +188,6 @@ menu_items = [
     { "Exit": exit }
 ]
 
-def safe_input(type):
-    while True:
-        try:
-            answer = input("$ ")
-            # Cast it to the specified type
-            answer = type(answer)
-            break
-        except ValueError:
-            print(f"Error {answer} is not a valid option")
-    return answer
 
 if __name__ == '__main__':
     # Start the CLI loop 
@@ -175,21 +198,29 @@ if __name__ == '__main__':
     try:
         if int(choice) < 0: raise ValueError
         if int(choice) == 0:
+            package_workflow()
+        elif int(choice) == 1:
             # TODO needs error handling
-            print("What will be the name of the job?")
+            print("Workflow name: ")
             wf_name = safe_input(str)
-            print("what is the workflow path?")
+            print("Workflow tarball path:")
             workflow_path = safe_input(Path)
-            print("Does it have a yaml file? y/n")
+            print("Main cwl file: ")
+            main_cwl = safe_input(str)
+            print("Does the job have a yaml file (y/n):")
             has_yaml = safe_input(str)
             if has_yaml[0].lower() == "y":
-                print("what is the yaml path?")
-                yaml_path = safe_input(Path)
-                wf_id = submit_workflow(wf_name, workflow_path, yaml_path)
+                print("Yaml file: ")
+                yaml = safe_input(str)
+                print("Submitting")
+                try:
+                    wf_id = submit_workflow(wf_name, workflow_path, main_cwl, yaml)
+                except Exception as e:
+                    print(f'Exception {e}')
             else:
-                wf_id = submit_workflow(wf_name, workflow_path)
+                wf_id = submit_workflow(wf_name, workflow_path, main_cwl)
             print(f"Job submitted! Your workflow id is {wf_id}.")
-        elif int(choice) == 1:
+        elif int(choice) == 2:
             list_workflows()
         elif int(choice) < 7:
             print("What is the workflow id?")

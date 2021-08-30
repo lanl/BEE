@@ -72,7 +72,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         """Build text for Charliecloud batch script."""
         if task.hints is not None:
             docker = False
-            command = ''.join(task.command) + '\n'
+            # Make sure all commands are strings
+            cmd_tasks = list(map(str, task.command))
+            command = ''.join(cmd_tasks) + '\n'
             for hint in task.hints:
                 if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
                     name = self.get_ccname(hint.params["dockerImageId"])
@@ -115,7 +117,9 @@ class SingularityDriver(ContainerRuntimeDriver):
         """Build text for Singularity batch script."""
         if task.hints is not None:
             docker = False
-            command = ''.join(task.command) + '\n'
+            # Make sure all commands are strings
+            cmd_tasks = list(map(str, task.command))
+            command = ''.join(cmd_tasks) + '\n'
             for hint in task.hints:
                 if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
                     text = ''.join([

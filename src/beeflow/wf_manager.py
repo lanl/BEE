@@ -137,7 +137,7 @@ def validate_wf_id(func):
     """Validate tempoary hard coded workflow id."""
     def wrapper(*args, **kwargs):
         wf_id = kwargs['wf_id']
-        current_wf_id = wfi.get_workflow_id()
+        current_wf_id = wfi.workflow_id
         if wf_id != current_wf_id:
             log.info(f'Wrong workflow id. Set to {wf_id}, but should be {current_wf_id}')
             resp = make_response(jsonify(status='wf_id not found'), 404)
@@ -198,6 +198,8 @@ class JobsList(Resource):
                                    location='files')
         self.reqparse.add_argument('yaml', type=FileStorage, required=False,
                                    location='files')
+        self.reqparse.add_argument('main_cwl', type=FileStorage, required=False,
+                                   location='files')
         self.reqparse.add_argument('workflow_archive', type=FileStorage, required=False,
                                    location='files')
         self.reqparse.add_argument('wf_id', type=FileStorage, required=False,
@@ -231,13 +233,14 @@ class JobsList(Resource):
             resp = make_response(jsonify(msg='No file found', status='error'), 400)
             return resp
         # Workflow file
-        cwl_file = data['workflow']
+        wf_tarball = data['workflow']
         wf_filename = data['wf_filename'].read().decode()
+        main_cwl = data['main_cwl'].read().decode()
         job_name = data['wf_name'].read().decode()
         # None if not sent
         yaml_file = data['yaml']
 
-        if cwl_file:
+        if wf_tarball:
             # We have to bind mount a new GDB with charliecloud.
             kill_gdb()
             # Remove the old gdb
@@ -255,26 +258,36 @@ class JobsList(Resource):
                     wfi.finalize_workflow()
 
             # Save the workflow temporarily to this folder for the parser
-            temp_wf_path = os.path.join(flask_app.config['UPLOAD_FOLDER'], wf_filename)
-            cwl_file.save(temp_wf_path)
+            #
+            temp_dir = tempfile.mkdtemp()
+            temp_tarball_path = os.path.join(temp_dir, wf_filename)
+            wf_tarball.save(temp_tarball_path)
+            # Archive tarballs must be tgz 
+            extension = '.tgz'
+            wf_dirname = wf_filename[:len(extension)]
+            subprocess.run(['tar', 'xf', f'{wf_filename}', '--strip-components', '1'], cwd=temp_dir)
 
             parser = CwlParser()
-            # Optional YAML file
+            temp_cwl_path = os.path.join(temp_dir, main_cwl)
             if yaml_file != None:
-                yaml_filename = data['yaml_filename'].read().decode()
-                temp_yaml_path = os.path.join(flask_app.config['UPLOAD_FOLDER'], yaml_filename)
-                yaml_file.save(temp_yaml_path)
-                # parse_workflow returns a tuple of wfi, tasks. Ignore tasks.
-                wfi = parser.parse_workflow(temp_wf_path, temp_yaml_path)
+                yaml_file = yaml_file.read().decode()
+                temp_yaml_path = os.path.join(temp_dir, yaml_file)
+                wfi = parser.parse_workflow(temp_cwl_path, temp_yaml_path)
             else:
-                wfi = parser.parse_workflow(temp_wf_path)
+                wfi = parser.parse_workflow(temp_cwl_path)
 
             # Save the workflow to the workflow_id dir
-            wf_id = wfi.get_workflow_id()
+            wf_id = wfi.workflow_id
             workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
             os.makedirs(workflow_dir)
-            workflow_path = os.path.join(workflow_dir, wf_filename)
-            cwl_file.save(workflow_path)
+            #workflow_path = os.path.join(workflow_dir, wf_filename)
+            #wf_tarball.save(workflow_path)
+
+            # Copy workflow files to archive
+            for f in os.listdir(temp_dir):
+                f_path = os.path.join(temp_dir, f)
+                if os.path.isfile(f_path):
+                    shutil.copy(f_path, workflow_dir)
 
             # Create status file
             status_path = os.path.join(workflow_dir, 'bee_wf_status')
@@ -472,7 +485,7 @@ class JobActions(Resource):
         # Submit tasks to TM
         submit_tasks_tm(tasks)
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
-        wf_id = wfi.get_workflow_id()
+        wf_id = wfi.workflow_id
         workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
         status_path = os.path.join(workflow_dir, 'bee_wf_status')
         with open(status_path, 'w') as status:
