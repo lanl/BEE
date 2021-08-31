@@ -13,6 +13,9 @@ parameters:
   github_pat:
     type: string
     description: GitHub PAT credential for cloning BEE
+  git_branch:
+    type: string
+    description: git branch to checkout
   https_proxy:
     type: string
     description: HTTPS proxy url
@@ -25,6 +28,12 @@ parameters:
   nameservers:
     type: string
     description: list of nameservers separated by commas
+  wfm_listen_port:
+    type: string
+    description: WFM listen port
+  tm_listen_port:
+    type: string
+    description: TM listen port
 resources:
   private_net:
     type: OS::Neutron::Net
@@ -51,7 +60,7 @@ resources:
     properties:
       name: bee-server
       # Custom snapshot with everything preinstalled
-      image: 'bee-default'
+      image: 'debian-10-openstack-amd64'
       flavor: 'm1.small'
       key_name: { get_param: key_name }
       networks:
@@ -59,34 +68,18 @@ resources:
       user_data:
         str_replace:
           template: { get_file: dora-setup.sh }
+          # Parameters added as input above need also be added here for
+          # replacement
           params:
             $GITHUB_PAT: { get_param: github_pat }
             $USER: debian
-      #user_data: |
-      #  #!/bin/sh
-      #  # Add a TM exec script
-      #  echo "#!/bin/sh" >> /bee/tm
-      #  echo "cd /bee/BEE_Private" >> /bee/tm
-      #  echo ". ./venv/bin/activate" >> /bee/tm
-      #  # TODO: May need to start Redis here eventually
-      #  echo "exec python -m beeflow.task_manager ~/.config/beeflow/bee.conf" >> /bee/tm
-      #  chmod 755 /bee/tm
-      #  # Create the config file. This adds just enough info for the TM to run
-      #  # TODO: This could be perhaps created as a separate user_data entry
-      #  mkdir -p /home/bee/.config/beeflow
-      #  conf=/home/bee/.config/beeflow/bee.conf
-      #  echo "[DEFAULT]" >> $conf
-      #  echo "bee_workdir = /home/bee/.beeflow" >> $conf
-      #  echo "workload_scheduler = Simple" >> $conf
-      #  echo "[task_manager]" >> $conf
-      #  echo "listen_port = 7777" >> $conf
-      #  echo "container_runtime = Charliecloud" >> $conf
-      #  echo "[charliecloud]" >> $conf
-      #  echo "setup = module load charliecloud" >> $conf
-      #  echo "image_mntdir = /tmp" >> $conf
-      #  echo "chrun_opts = --cd /home/$USER" >> $conf
-      #  echo "container_dir = /home/bee" >> $conf
-      #  chown -R bee:bee /home/bee/.config
+            $GIT_BRANCH: { get_param: git_branch }
+            $HTTPS_PROXY: { get_param: https_proxy }
+            $HTTP_PROXY: { get_param: http_proxy }
+            $NO_PROXY: { get_param: no_proxy }
+            $NAMESERVERS: { get_param: nameservers }
+            $WFM_LISTEN_PORT: { get_param: wfm_listen_port }
+            $TM_LISTEN_PORT: { get_param: tm_listen_port }
   server_port:
     type: OS::Neutron::Port
     properties:

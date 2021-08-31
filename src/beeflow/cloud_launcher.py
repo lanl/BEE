@@ -25,6 +25,29 @@ def run(private_key_file, bee_user, ip_addr, cmd):
     return cp.returncode
 
 
+def scp(bee_user, ip_addr, priv_key_file, src, dst):
+    """SCP a file in src to dst on the remote machine."""
+    cp = subprocess.run([
+        'scp',
+        '-i', priv_key_file,
+        '-o', 'StrictHostKeyChecking=no',
+        src,
+        f'{bee_user}@{ip_addr}:{dst}',
+    ])
+    if cp.returncode != 0:
+        raise RuntimeError(f'Could not copy file "{src}" to "{dst}" on the remote machine')
+
+
+def copy_files_to_instance(provider, bee_user, private_key_file, head_node,
+                           copy_files):
+    """Copy files over to the instance."""
+    ip_addr = provider.get_ext_ip_addr(head_node)
+    # `copy_files` is in the format src0:dst0,src1:dst1,...,srcn:dstn
+    copy_files = [tuple(pair.split(':')) for pair in copy_files.split(',')]
+    for src, dst in copy_files:
+        scp(bee_user, ip_addr, private_key_file, src, dst)
+
+
 def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
               tm_listen_port, wfm_listen_port):
     """Start the Task Manager on the remote head node."""
@@ -76,6 +99,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='BEE Cloud Installer')
     parser.add_argument('config_file', help='bee.conf file')
     parser.add_argument('--setup-cloud', action='store_true', help='set up the remote cloud')
+    parser.add_argument('--copy', action='store_true', help='copy over files in the config')
     parser.add_argument('--tm', action='store_true', help='start the TM')
     args = parser.parse_args()
 
@@ -97,6 +121,7 @@ if __name__ == '__main__':
     name = bc.userconfig['cloud'].get('name', None)
     head_node = bc.userconfig['cloud'].get('head_node', 'bee-head-node')
     template_file = bc.userconfig['cloud'].get('template_file')
+    copy_files = bc.userconfig['cloud'].get('copy_files', None)
 
     # Get the cloud provider configuration
     provider = bc.userconfig['cloud'].get('provider', None)
@@ -118,6 +143,10 @@ if __name__ == '__main__':
         provider.create_from_template(template_file)
         time.sleep(20)
         print('Setup complete')
+    if args.copy and copy_files is not None:
+        copy_files_to_instance(provider=provider, bee_user=bee_user,
+                               private_key_file=private_key_file,
+                               head_node=head_node, copy_files=copy_files)
     if args.tm:
         launch_tm(provider=provider, private_key_file=private_key_file,
                   bee_user=bee_user, launch_cmd=launch_cmd, head_node=head_node,
