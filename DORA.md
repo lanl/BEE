@@ -9,7 +9,6 @@ Most of the configuration for the cloud launcher script will be under the `[clou
    created -- cloud-user for RHEL and debian for debian images)
 * `tm_listen_port`: listening port of the remote TM
 * `wfm_listen_port`: listening port of the local WFM
-* `name`: unique name/identifier used for the cloud set up (this refers to the stack name for OpenStack)
 * `head_node`: name of the head node where the TM will be launched
 * `template_file`: path to the template file to launch the cloud setup from
 * `provider`: name of provider (`google`, `openstack`, `chameleoncloud`)
@@ -22,7 +21,6 @@ private_key_file = /home/jtronge/key
 bee_user = debian
 tm_listen_port = 7777
 tm_launch_cmd = /bee/tm
-name = bee-conf-stack
 head_node = bee-server
 template_file = /home/jtronge/BEE_Private/templates/dora-template.yaml
 provider = openstack
@@ -56,6 +54,11 @@ For the `templates/dora-template.yaml` here are the required parameters:
 ...
 
 ## Running BEE
+
+To launch the workflow manager manually you'll need to make sure that
+`$no_proxy` includes localhost, since this is how the WFM contacts the TM.
+
+no_proxy=localhost,$no_proxy python -m beeflow.wf_manager ~/.config/beeflow/bee.conf
 
 To launch a workflow you can run
 `./src/beeflow/client/client_cli.py --workflow-path [PATH TO WORKFLOW]`, or use

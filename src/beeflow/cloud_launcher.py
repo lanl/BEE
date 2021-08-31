@@ -41,11 +41,13 @@ def scp(bee_user, ip_addr, priv_key_file, src, dst):
 def copy_files_to_instance(provider, bee_user, private_key_file, head_node,
                            copy_files):
     """Copy files over to the instance."""
+    print('Starting file copy step')
     ip_addr = provider.get_ext_ip_addr(head_node)
     # `copy_files` is in the format src0:dst0,src1:dst1,...,srcn:dstn
     copy_files = [tuple(pair.split(':')) for pair in copy_files.split(',')]
     for src, dst in copy_files:
         scp(bee_user, ip_addr, private_key_file, src, dst)
+    print('Finished')
 
 
 def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
@@ -118,7 +120,6 @@ if __name__ == '__main__':
     bee_user = bc.userconfig['cloud'].get('bee_user', cloud.BEE_USER)
     # bee_dir = bc.userconfig['cloud'].get('bee_dir', None)
     launch_cmd = bc.userconfig['cloud'].get('tm_launch_cmd', None)
-    name = bc.userconfig['cloud'].get('name', None)
     head_node = bc.userconfig['cloud'].get('head_node', 'bee-head-node')
     template_file = bc.userconfig['cloud'].get('template_file')
     copy_files = bc.userconfig['cloud'].get('copy_files', None)

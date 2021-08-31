@@ -5,6 +5,17 @@ import os
 import platform
 
 
+# Based on the singleton example from PEP 318
+def singleton(class_):
+    instances = {}
+    def getinstance(*pargs, **kwargs):
+        if class_ not in instances:
+            instances[class_] = class_(*pargs, **kwargs)
+        return instances[class_]
+    return getinstance
+
+
+@singleton
 class BeeConfig:
     r"""Class to manage and store all BEE configuration.
 
