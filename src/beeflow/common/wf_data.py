@@ -184,10 +184,10 @@ class Task:
         for input_ in positional_inputs:
             if input_.prefix is not None:
                 command.append(input_.prefix)
-            command.append(input_.value)
+            command.append(str(input_.value))
         for input_ in nonpositional_inputs:
             if input_.prefix is not None:
                 command.append(input_.prefix)
-            command.append(input_.value)
+            command.append(str(input_.value))
 
         return command
