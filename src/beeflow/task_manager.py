@@ -38,7 +38,6 @@ def info(msg):
 
 def check_crt_config(c_runtime):
     """Check container runtime configurations."""
-    info('check_crt_config()')
     supported_runtimes = ['Charliecloud', 'Singularity']
     if c_runtime not in supported_runtimes:
         sys.exit(f'Container runtime, {runtime}, not supported.\n' +
@@ -179,7 +178,6 @@ def _send_file_or_dir(fname):
 
 def update_task_state(task_id, job_state):
     """Informs the workflow manager of the current state of a task."""
-    info('update_task_state()')
     resp = requests.put(_resource("update/"),
                         json={'task_id': task_id, 'job_state': job_state})
     if resp.status_code != 200:
@@ -188,7 +186,6 @@ def update_task_state(task_id, job_state):
 
 def update_task_metadata(task_id, metadata):
     """Send workflow manager task metadata."""
-    info('update_task_metadata()')
     log.info(f'Update task metadata for {task_id}:\n {metadata}')
     # resp = requests.put(_resource("update/"), json=metadata)
     # if resp.status_code != 200:
@@ -257,8 +254,6 @@ task_info = {}
 
 def process_queues():
     """Look for newly submitted jobs and update status of scheduled jobs."""
-    log.info('process_queues()')
-    print(running)
     for job_id in running.copy():
         task_id = running[job_id]['task_id']
         old_job_state = running[job_id]['job_state']
@@ -272,6 +267,7 @@ def process_queues():
             del running[job_id]
         # Update the WFM
         if old_job_state != job_state:
+            log.info('Task %s: %s -> %s' % (task.name, old_job_state, job_state))
             update_task_state(task.id, job_state)
     # Submit new tasks if we have enough nodes
     while len(running) < tm_nodes and submit_queue:
