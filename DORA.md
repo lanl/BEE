@@ -1,5 +1,12 @@
 # Launching BEE on Dora/OpenStack
 
+## Install
+
+When installing BEE with poetry, you'll need to make sure that the
+`cloud_extras` packages are installed. To do this run
+
+`poetry install -E cloud_extras`
+
 ## Configuration
 
 Most of the configuration for the cloud launcher script will be under the
