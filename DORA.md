@@ -70,7 +70,9 @@ creation.
 
 ## Launch Script
 
-To set up the actual stack from the template file, you can run:
+The cloud launcher script assumes that the openstack environment variables are
+already properly set by running the typical rc script. Once that is done,
+to set up the actual stack from the template file, you can run:
 
 `python -m beeflow.cloud_launcher --setup-cloud [CONFIG FILE]`
 
