@@ -12,12 +12,10 @@ class ChameleoncloudProvider(provider.Provider):
         """Chameleoncloud provider constructor."""
         self._stack_name = stack_name
         self._api = openstack.connect()
-        # TODO: Chameleon set up
 
-    # def create_node(self):
-    def create_from_tempalte(self, template_file):
+    def create_from_template(self, template_file):
         """Create from a template file."""
-        raise RuntimeError('create_node() is not implemented for Chameleoncloud')
+        raise RuntimeError('create_from_template() is not implemented for Chameleoncloud. Use the Horizon interface instead')
 
     def get_ext_ip_addr(self, node_name):
         """Get the external IP address of the node, if it has one."""

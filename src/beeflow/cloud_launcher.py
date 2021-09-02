@@ -19,7 +19,6 @@ def run(private_key_file, bee_user, ip_addr, cmd):
         '-o', 'StrictHostKeyChecking=no',
         '-o', 'ConnectTimeout=8',
         f'{bee_user}@{ip_addr}',
-        # f'{env_cmd}; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
         cmd,
     ])
     return cp.returncode
@@ -65,7 +64,6 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
             '-o', 'StrictHostKeyChecking=no',
             '-o', 'ConnectTimeout=8',
             f'{bee_user}@{ip_addr}',
-            # f'{env_cmd}; python -m beeflow.task_manager ~/.config/beeflow/bee.conf',
             launch_cmd,
         ])
         time.sleep(10)
