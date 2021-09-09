@@ -197,14 +197,14 @@ def add_dependencies(tx, task):
                         "MATCH (t:Task)<-[:OUTPUT_OF]-(o:Output) "
                         "WITH s, t, sources, collect(o.id) as outputs "
                         "WHERE any(input IN sources WHERE input IN outputs) "
-                        "MERGE (s)-[:DEPENDS]->(t) "
+                        "MERGE (s)-[:DEPENDS_ON]->(t) "
                         "WITH s "
                         "MATCH (s)<-[:OUTPUT_OF]-(o:Output) "
                         "WITH s, collect(o.id) AS outputs "
                         "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
                         "WITH s, t, outputs, collect(i.source) as sources "
                         "WHERE any(output IN outputs WHERE output IN sources) "
-                        "MERGE (t)-[:DEPENDS]->(s)")
+                        "MERGE (t)-[:DEPENDS_ON]->(s)")
 
     tx.run(begins_query, task_id=task.id)
     tx.run(dependency_query, task_id=task.id)
@@ -347,7 +347,7 @@ def get_dependent_tasks(tx, task):
     :type task: Task
     :rtype: BoltStatementResult
     """
-    dependents_query = "MATCH (t:Task)-[:DEPENDS]->(:Task {id: $task_id}) RETURN t"
+    dependents_query = "MATCH (t:Task)-[:DEPENDS_ON]->(:Task {id: $task_id}) RETURN t"
 
     return tx.run(dependents_query, task_id=task.id)
 
@@ -429,7 +429,7 @@ def set_task_output(tx, task, output_id, value):
 def set_init_tasks_to_ready(tx):
     """Set the initial workflow tasks' states to 'READY'."""
     init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task)-[:BEGINS]->(:Workflow) "
-                        "WHERE NOT (t)-[:DEPENDS]->(:Task) "
+                        "WHERE NOT (t)-[:DEPENDS_ON]->(:Task) "
                         "SET m.state = 'READY'")
 
     tx.run(init_ready_query)
@@ -460,13 +460,13 @@ def copy_task_outputs(tx, task):
     :param task: the task whose outputs to set
     :type task: Task
     """
-    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:DEPENDS]->"
+    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:DEPENDS_ON]->"
                          "(t:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
                          "WHERE i.source = o.id AND o.value IS NOT NULL "
                          "SET i.value = o.value")
     # Set any values to defaults if necessary
-    defaults_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)<-[:DEPENDS]-"
-                      "(t:Task)-[:DEPENDS]->(:Task {id: $task_id}) "
+    defaults_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)<-[:DEPENDS_ON]-"
+                      "(t:Task)-[:DEPENDS_ON]->(:Task {id: $task_id}) "
                       "WITH m, t "
                       "MATCH (t)<-[:INPUT_OF]-(i:Input) "
                       "WITH i, collect(m) AS mlist "
