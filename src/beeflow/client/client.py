@@ -54,10 +54,18 @@ def safe_input(type):
 # Package Workflow
 def package_workflow():
     print("What's the directory you want to package: ")  
-    package_dir = safe_input(Path) 
+    package_dir = safe_input(str) 
     if os.path.isdir(package_dir):
         # Just use tar with subprocess. Python's tar library is not performant. 
-        return_code = subprocess.run(['tar', 'czf', f'{package_dir}.tgz' , package_dir]).returncode
+        # Need to remove trailing slashes
+        package_dir = package_dir.rstrip('/')
+        if package_dir.find('/') == -1:
+            return_code = subprocess.run(['tar', 'czf', f'{package_dir}.tgz' , package_dir]).returncode
+        else:
+            tar_dir = os.path.basename(os.path.normpath(package_dir))
+            tarball = tar_dir + '.tgz'
+            parent_dir = package_dir[:-len(tar_dir) - 1]
+            return_code = subprocess.run(['tar', '-C', parent_dir, '-czf', tarball, tar_dir]).returncode
         if return_code != 0:
             print("Package failed")
         else:
