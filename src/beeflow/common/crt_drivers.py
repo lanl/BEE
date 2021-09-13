@@ -74,7 +74,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             docker = False
             # Make sure all commands are strings
             cmd_tasks = list(map(str, task.command))
-            command = ''.join(cmd_tasks) + '\n'
+            command = ' '.join(cmd_tasks) + '\n'
             for hint in task.hints:
                 if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
                     name = self.get_ccname(hint.params["dockerImageId"])
@@ -119,7 +119,7 @@ class SingularityDriver(ContainerRuntimeDriver):
             docker = False
             # Make sure all commands are strings
             cmd_tasks = list(map(str, task.command))
-            command = ''.join(cmd_tasks) + '\n'
+            command = ' '.join(cmd_tasks) + '\n'
             for hint in task.hints:
                 if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
                     text = ''.join([
