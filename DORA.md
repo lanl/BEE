@@ -68,6 +68,11 @@ Some of these values make the config slightly redundant (like the
 passing the complete key-value pairs of the provider section on template
 creation.
 
+Also, for OpenStack on Dora, the BEE image is based on a Debian 10 openstack
+image which can be downloaded [here](http://cloud.debian.org/images/cloud/OpenStack/current-10/).
+The [debian-10-openstack-amd64.qcow2](http://cloud.debian.org/images/cloud/OpenStack/current-10/debian-10-openstack-amd64.qcow2)
+image should work with the template.
+
 ## Launch Script
 
 The cloud launcher script assumes that the openstack environment variables are
