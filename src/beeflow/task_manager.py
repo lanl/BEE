@@ -303,13 +303,14 @@ def call_wfm():
                 # TODO: Other resource properties
             },
         }
-        log.info('Posting TM info to the WFM')
+        log.info('Connecting to the WFM')
         # POST TM info to the Workflow Manager
         try:
             resp = requests.post(f'{_wfm()}/bee_wfm/v1/task_managers/', json=data)
             if not resp.ok:
                 log.error('WFM not responding')
             else:
+                log.info('Connection successful')
                 last_status_check = t
         except requests.exceptions.ConnectionError:
             log.error('Cannot connect to WFM')
