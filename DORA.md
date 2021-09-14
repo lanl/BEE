@@ -85,6 +85,12 @@ To facilitate moving data onto the instances, I've included a `--copy` option
 that copies files listed in the `copy_files` parameter of the config. I've been
 using this to copy over pre-built containers to the instances.
 
+After doing a couple test runs, I've noticed that the BEE install step
+sometimes takes longer than expected. After the `--setup-cloud` option has run
+and returned, `poetry install` will likely still be running on the instance.
+So, before running the Task Manager, you may have to wait for 5-10 minutes at
+a minimum.
+
 ## Running BEE
 
 First the GDB and the scheduler will need to be started as usual with
