@@ -1,0 +1,16 @@
+{
+    "clamr": {
+        "push": [
+            "/home/bee/graphics_output"
+        ]
+    },
+    "ffmpeg": {
+        "workdir": "/home/bee",
+        "pull": [
+            "graphics_output"
+        ],
+        "push": [
+            "/home/bee/CLAMR_movie.mp4"
+        ]
+    }
+}
