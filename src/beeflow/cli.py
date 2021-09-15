@@ -174,7 +174,7 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
     parser.add_argument("--job-template", help="specify path of job template.")
     parser.add_argument("--workload-scheduler", help="specify workload scheduler")
-    parser.add_argument("--build", metavar="TASK_ARGS", nargs=2,
+    parser.add_argument("--build", metavar=("CONF_FILE", "TASK_ARGS"), nargs=2,
                         help="build a container based on a task specification")
     parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
     parser.add_argument("--sleep-time", default=4, type=int,
