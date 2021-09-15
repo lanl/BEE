@@ -322,7 +322,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """CWL compliant dockerImport.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
-        gunzip a Docker images using docker import.
+        gunzip a Docker images using docker import. The param_import
+        may be used to override DockerReuirement specs.
         """
         # If parameter import is specified, use that, otherwise look at task.
         if param_import:
@@ -360,6 +361,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         A divergence from the CWL spec. Docker image Id is defined by docker as a checksum
         on a container, not a human-readable name. The Docker image ID must be produced after
         the container is build, and can not be used to tag the container for that reason.
+        The param_imageid may be used to override DockerRequirement specs.
         """
         # Parameter takes precedence
         if param_imageid:
@@ -401,7 +403,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
-        to a specific location inside the Docker container.
+        to a specific location inside the Docker container. The
+        param_output_directory may be used to override DockerRequirement
+        specs.
         """
         # Allow parameter over-ride.
         if param_output_directory:
@@ -542,7 +546,8 @@ class SingularityBuildDriver(ContainerBuildDriver):
         """CWL compliant dockerImport.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
-        gunzip a Docker images using docker import.
+        gunzip a Docker images using docker import. The param_import
+        may be used to override DockerRequirement specs.
         """
 
     def dockerImageId(self, param_imageid=None):
@@ -552,14 +557,17 @@ class SingularityBuildDriver(ContainerBuildDriver):
         docker run. May be a human-readable image name or the
         image identifier hash. May be skipped if dockerPull is
         specified, in which case the dockerPull image id must be
-        used.
+        used. The param_imageid may be used to override DockerRequirement
+        specs.
         """
 
     def dockerOutputDirectory(self, param_output_directory=None):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
-        to a specific location inside the Docker container.
+        to a specific location inside the Docker container. The
+        param_output_directory may be used to override DockerRequirement
+        specs.
         """
 # Ignore snake_case requirement to enable CWL compliant names. (C0103)
 # Ignore "too many statements". Some of these methods are long, and that's ok (R0915)
