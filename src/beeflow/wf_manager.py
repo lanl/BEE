@@ -581,6 +581,11 @@ class JobUpdate(Resource):
                 wfi.set_task_metadata(task, metadata)
 
         if job_state == "COMPLETED" or job_state == "FAILED":
+            for output in task.outputs:
+                if output.glob != None:
+                    wfi.set_task_output(task, output.id, output.glob)
+                else:
+                    wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
             # TODO Replace this with Steven's pause task functions
             if WORKFLOW_PAUSED:
