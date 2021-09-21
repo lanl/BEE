@@ -1,0 +1,27 @@
+SYSTEM = Ti
+ICHARG=1
+IBRION=-1
+# IBRION=2
+# ISMEAR=-1; SIGMA=0.1
+# NBANDS = 24
+ISMEAR=1; SIGMA=0.027
+# NSW=0 # ionic steps taken
+# NSW=55 # ionic steps taken
+# NELM = 12
+# ENCUT = 400
+PREC=accurate
+# ISIF=2   # relax ions
+# ISIF=3   # relax all
+# ISIF=7   # relax volume
+# NEDOS=3001
+# EDIFF=1e-8
+IALGO=38
+# ISPIN=2
+# MAGMOM= 1 1.1 1.5 1.4 1.2 1.3
+# RWIGS = 1.323 
+# LORBIT = 1
+NCORE = 4
+KPAR = 4
+NSIM = 4
+LREAL=.TRUE.
+# LREAL=.FALSE.

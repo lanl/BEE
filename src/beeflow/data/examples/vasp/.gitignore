@@ -1,0 +1,10 @@
+*.tar*
+charliecloud
+vasp.5.4.4
+TestCu/*
+TestTi/*
+
+!*/INCAR
+!*/KPOINTS
+!*/POSCAR
+!*/POTCAR
