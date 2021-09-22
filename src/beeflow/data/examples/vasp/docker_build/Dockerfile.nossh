@@ -1,0 +1,55 @@
+#  Dockerfile for VASP application
+
+# On Galton:
+#  docker build --build-arg http_proxy="http://proxyout.lanl.gov:8080" \
+#               --build-arg https_proxy="https://proxyout.lanl.gov:8080" \
+#               . -t losalamosal/vasp
+
+FROM debian:buster
+
+ENV USER vasp
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    HOME=/home/${USER}
+    
+RUN adduser --disabled-password --gecos "" ${USER} && \
+    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    
+# Some of these may have been installed by base image but are listed
+# here for completeness.
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        make build-essential python rsync \
+        libopenmpi-dev libopenmpi3 openmpi-bin openmpi-common \
+        libblas-dev liblapack-dev libscalapack-mpi-dev libfftw3-dev \
+        file flex g++ gcc gfortran less libdb5.3-dev wget git bash && \
+    apt-get clean && apt-get purge && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# The link explains why this bit of code is here
+# https://stackoverflow.com/questions/36292317/why-set-visible-now-in-etc-profile
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+
+# Build VASP
+COPY ./makefile.include ${HOME}
+COPY ./vasp.5.4.4.tar.gz ${HOME}
+COPY ./symbol.inc-5.4.4.patch ${HOME}
+WORKDIR ${HOME}
+RUN zcat vasp.5.4.4.tar.gz | tar xf -
+COPY ./makefile.include vasp.5.4.4
+WORKDIR ${HOME}/vasp.5.4.4
+RUN patch -p0 < ${HOME}/symbol.inc-5.4.4.patch
+# Install Scalapack and dependencies
+WORKDIR ${HOME}
+RUN wget http://www.netlib.org/scalapack/scalapack_installer.tgz
+RUN tar xzf scalapack_installer.tgz
+WORKDIR ${HOME}/scalapack_installer
+RUN ./setup.py --downall --mpirun='/usr/local/bin/mpirun --allow-run-as-root'
+# VASP makefiles error if concurrent compiles are used
+# RUN make -j$(getconf _NPROCESSORS_ONLN) std gam ncl
+WORKDIR ${HOME}/vasp.5.4.4
+RUN make -j1 std gam ncl
+# RUN rm vasp.5.4.4.tar.gz
+# RUN rm -Rf vasp.5.4.4/src
+
+CMD []
