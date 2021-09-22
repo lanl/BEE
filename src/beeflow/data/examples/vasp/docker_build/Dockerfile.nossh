@@ -19,7 +19,7 @@ RUN adduser --disabled-password --gecos "" ${USER} && \
 # here for completeness.
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
-        make build-essential python rsync \
+        openssh-server make build-essential python rsync \
         libopenmpi-dev libopenmpi3 openmpi-bin openmpi-common \
         libblas-dev liblapack-dev libscalapack-mpi-dev libfftw3-dev \
         file flex g++ gcc gfortran less libdb5.3-dev wget git bash && \
