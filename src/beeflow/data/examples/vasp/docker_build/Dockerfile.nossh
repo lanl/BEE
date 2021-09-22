@@ -5,7 +5,7 @@
 #               --build-arg https_proxy="https://proxyout.lanl.gov:8080" \
 #               . -t losalamosal/vasp
 
-FROM debian:buster
+FROM debian:stretch
 
 ENV USER vasp
 
@@ -20,7 +20,7 @@ RUN adduser --disabled-password --gecos "" ${USER} && \
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
         openssh-server make build-essential python rsync \
-        libopenmpi-dev libopenmpi3 openmpi-bin openmpi-common \
+        libopenmpi-dev libopenmpi2 openmpi-bin openmpi-common \
         libblas-dev liblapack-dev libscalapack-mpi-dev libfftw3-dev \
         file flex g++ gcc gfortran less libdb5.3-dev wget git bash && \
     apt-get clean && apt-get purge && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
