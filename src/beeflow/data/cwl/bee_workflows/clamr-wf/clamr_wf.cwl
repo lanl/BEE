@@ -3,8 +3,13 @@
 class: Workflow
 cwlVersion: v1.0
 
+# Main 3 components of workflow are inputs, outputs, and steps
+
 inputs:
+# All inputs go here for each step. No way to break them up.
+# We should talk to the CWL people about that. 
 ##### CLAMR inputs #####
+# takes ID:Typeo syntax
   grid_resolution: int
   max_levels: int
   time_steps: int
@@ -20,9 +25,14 @@ inputs:
   output_filename: string
 
 outputs:
+# Outputs for all the steps
+# Check where we copy these probably at CWD
+# Files need to exist at end of workflow, but we aren't currently checking
+# We have function to get workflow_outputs
+# TODO add step to workflow_manager to confirm that each of these outputs exist
   clamr_stdout:
     type: File
-    outputSource: clamr/stdout
+    outputSource: clamr/clamr-stdout
   clamr_time_log:
     type: File
     outputSource: clamr/time_log
@@ -47,19 +57,25 @@ steps:
             #dockerImport: clamr_img.tar.gz
             #dockerImageId: clamr
             dockerImageId: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
+
 #  mv_script:
 #    run: mv_script.cwl
 #    in:
 #      script_input: clamr/outdir
+#    # Get value from stdout json
 #    out: [stdout]
 
   ffmpeg:
     run: ffmpeg.cwl
     in:
       input_format: input_format
+      # input syntax is name: <step>/dependent_object
       ffmpeg_input: mv_script/stdout
       frame_rate: frame_rate
       frame_size: frame_size
       pixel_format: pixel_format
+      # Setting output file with file_name
+      # output_filename set in wf inputs
       output_file: output_filename
+    # Multiple outputs can be in array
     out: [movie]

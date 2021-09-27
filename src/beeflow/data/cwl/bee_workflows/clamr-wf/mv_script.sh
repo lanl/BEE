@@ -8,4 +8,6 @@ CLAMR_BASEDIR=$(basename "$1")
 CLAMR_TMPDIR=$(mktemp -d clamr.XXXXX -p /tmp)
 
 mv "$CLAMR_OUTDIR" "$CLAMR_TMPDIR"
+# Outputs JSON string
+# Creating a json string with the key "stdout"
 echo "{\"stdout\": \"${CLAMR_TMPDIR}/${CLAMR_BASEDIR}/graph%05d.png\"}"
