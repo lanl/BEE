@@ -8,7 +8,7 @@ import tempfile
 import beeflow.cloud as cloud
 
 
-PROVIDER = 'Mock'
+PROVIDER = 'mock'
 
 # TODO: Modify tests for template files
 

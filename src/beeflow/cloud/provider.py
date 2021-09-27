@@ -23,19 +23,10 @@ class MockProvider(Provider):
 
     def __init__(self, **kwargs):
         """Mock provider constructor."""
-        self._nodes = {}
 
-    def create_node(self, node_name, startup_script, ext_ip=False):
+    def create_from_template(self, template_file):
         """Create a node."""
-        self._nodes[node_name] = {
-            'ext_ip': ext_ip,
-        }
-
-    def wait(self):
-        """Wait for complete setup."""
 
     def get_ext_ip_addr(self, node_name):
         """Get the external IP address of the node, if it has one."""
-        if self._nodes[node_name]['ext_ip']:
-            return '100.100.100.100'
-        return None
+        return '100.100.100.100'
