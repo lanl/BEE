@@ -39,4 +39,5 @@ outputs:
   movie:
     type: File
     outputBinding:
-      glob: $(inputs.output_file)
+      #glob: $(inputs.output_file)
+      glob: CLAMR_movie.mp4

@@ -16,3 +16,4 @@ frame_rate: 12
 frame_size: 800x800
 pixel_format: yuv420p
 output_filename: CLAMR_movie.mp4
+ffmpeg_input: graphics_output/graph%05d.png

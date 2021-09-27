@@ -11,6 +11,7 @@ inputs:
   steps_between_outputs: int
   steps_between_graphics: int
   graphics_type: string
+  ffmpeg_input: string 
 ##### FFMPEG inputs #####
   input_format: string
   frame_rate: int
@@ -46,11 +47,11 @@ steps:
             #dockerImport: clamr_img.tar.gz
             #dockerImageId: clamr
             dockerImageId: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
-  mv_script:
-    run: mv_script.cwl
-    in:
-      script_input: clamr/outdir
-    out: [stdout]
+#  mv_script:
+#    run: mv_script.cwl
+#    in:
+#      script_input: clamr/outdir
+#    out: [stdout]
 
   ffmpeg:
     run: ffmpeg.cwl
