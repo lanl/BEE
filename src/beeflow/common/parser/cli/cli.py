@@ -22,6 +22,7 @@ from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.wf_data import Workflow, Task, Requirement, Hint
 
 gdb = None
+wfi = None
 
 con = Console(highlight=None)
 
@@ -88,6 +89,8 @@ class NeoApp(cmd2.Cmd):
         else:
             gdb.connect()
             con.print('GDB [green]connected[/green]')
+            # START HERE WHEN YOU GET BACK TO WORKING ON THIS, THEN Task.command()
+            gdb.execute_workflow()
 
     def db_disconnect(self, args):
         """disconnect subcommand of db command"""
@@ -125,7 +128,7 @@ class NeoApp(cmd2.Cmd):
             oTable = Table(box=box.SIMPLE)
             oTable.add_column("id", justify="left", style="cyan", no_wrap=True)
             oTable.add_column("type/value", justify="left")
-            oTable.add_column("source", justify="left", style="green")
+            oTable.add_column("source", justify="left", style="green3")
             for o in wf.outputs:
                 oTable.add_row(o.id, f'{o.type}/{o.value}', o.source)
             con.print(Padding(oTable, (0,0,0,10)))
@@ -143,8 +146,11 @@ class NeoApp(cmd2.Cmd):
         if args.all:
             tasks = gdb.get_workflow_tasks()
             for t in tasks:
-                con.print(f'[yellow2]Task ID/name[/yellow2]: {t.id}/[pink1]{t.name}')
+                con.print(f'\n\n[yellow2]Task ID/name[/yellow2]: {t.id}/[pink1]{t.name}')
+                con.print(f'  state: [red1]{gdb.get_task_state(t)}[/red1]')
                 con.print(f'  base_command:   {t.base_command}')
+                if (gdb.get_task_state(t) == 'READY'):
+                    con.print(f'  command:   [dark_orange3]{" ".join(str(s) for s in t.command)}[/dark_orange3]')
                 con.print(f'  hints:')
                 for h in t.hints:
                     con.print(f'          [b]{h.class_}[/b]:')
@@ -156,18 +162,18 @@ class NeoApp(cmd2.Cmd):
                     for k in r.params.keys():
                         con.print(f'            {k}: {r.params[k]}')
                 con.print(f'  inputs:')
-                iTable = Table(box=box.SIMPLE)
+                iTable = Table(box=box.SIMPLE, show_edge=False)
                 iTable.add_column("id", justify="left", style="cyan")
                 iTable.add_column("type/value", justify="left")
                 iTable.add_column("default", justify="left")
                 iTable.add_column("prefix", justify="right")
                 iTable.add_column("position", justify="right")
-                iTable.add_column("source", justify="left", style="green")
+                iTable.add_column("source", justify="left", style="green3")
                 for i in t.inputs:
                     iTable.add_row(i.id, f'{i.type}/{i.value}', i.default, i.prefix, str(i.position), i.source)
                 con.print(Padding(iTable, (0,0,0,10)))
                 con.print(f'  outputs:')
-                oTable = Table(box=box.SIMPLE)
+                oTable = Table(box=box.SIMPLE, show_edge=False)
                 oTable.add_column("id", justify="left", style="cyan")
                 oTable.add_column("type/value", justify="left")
                 oTable.add_column("glob", justify="left", style="cyan3")
@@ -176,6 +182,8 @@ class NeoApp(cmd2.Cmd):
                 con.print(Padding(oTable, (0,0,0,10)))      
                 con.print(f'  stdout:  {t.stdout}')
                 con.print(f'  workflow_id:  [orange3]{t.workflow_id}[/orange3]')
+
+
     def task_set(self, args):
         """info subcommand of task command"""
         self.poutput('task setinfo!')
