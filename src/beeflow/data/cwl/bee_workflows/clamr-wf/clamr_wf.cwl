@@ -9,7 +9,7 @@ inputs:
 # All inputs go here for each step. No way to break them up.
 # We should talk to the CWL people about that. 
 ##### CLAMR inputs #####
-# takes ID:Typeo syntax
+# takes ID:Type syntax
   grid_resolution: int
   max_levels: int
   time_steps: int
