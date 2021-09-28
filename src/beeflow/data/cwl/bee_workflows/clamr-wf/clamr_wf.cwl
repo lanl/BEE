@@ -16,7 +16,6 @@ inputs:
   steps_between_outputs: int
   steps_between_graphics: int
   graphics_type: string
-  ffmpeg_input: string 
 ##### FFMPEG inputs #####
   input_format: string
   frame_rate: int
@@ -32,7 +31,7 @@ outputs:
 # TODO add step to workflow_manager to confirm that each of these outputs exist
   clamr_stdout:
     type: File
-    outputSource: clamr/clamr-stdout
+    outputSource: clamr/clamr_stdout
   clamr_time_log:
     type: File
     outputSource: clamr/time_log
@@ -50,7 +49,7 @@ steps:
       output_steps: steps_between_outputs
       graphic_steps: steps_between_graphics
       graphics_type: graphics_type
-    out: [stdout, outdir, time_log]
+    out: [clamr_stdout, outdir, time_log]
     hints:
         DockerRequirement:
             # TODO Sort this out
@@ -58,19 +57,12 @@ steps:
             #dockerImageId: clamr
             dockerImageId: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
 
-#  mv_script:
-#    run: mv_script.cwl
-#    in:
-#      script_input: clamr/outdir
-#    # Get value from stdout json
-#    out: [stdout]
-
   ffmpeg:
     run: ffmpeg.cwl
     in:
       input_format: input_format
       # input syntax is name: <step>/dependent_object
-      ffmpeg_input: mv_script/stdout
+      ffmpeg_input: clamr/outdir
       frame_rate: frame_rate
       frame_size: frame_size
       pixel_format: pixel_format
@@ -79,3 +71,5 @@ steps:
       output_file: output_filename
     # Multiple outputs can be in array
     out: [movie]
+    requirements:
+        InlineJavascriptRequirement: {}

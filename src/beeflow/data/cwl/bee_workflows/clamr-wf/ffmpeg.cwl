@@ -11,10 +11,11 @@ inputs:
       prefix: -f
       position: 1
   ffmpeg_input:
-    type: string
+    type: Directory
     inputBinding:
       prefix: -i
       position: 2
+      valueFrom: $(self.path + "/graph%05d.png")
   frame_rate:
     type: int?
     inputBinding:
@@ -39,5 +40,5 @@ outputs:
   movie:
     type: File
     outputBinding:
-      #glob: $(inputs.output_file)
-      glob: CLAMR_movie.mp4
+      glob: $(inputs.output_file)
+      # glob: CLAMR_movie.mp4

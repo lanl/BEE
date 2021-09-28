@@ -61,7 +61,7 @@ inputs:
   
 outputs:
   # Captures stdout. Name is arbitrary.
-  clamr-stdout:
+  clamr_stdout:
     # type is syntactic sugar to just grab the output file defined above
     # stdout:
     #     type: File
