@@ -264,7 +264,7 @@ class GraphDatabaseInterface:
             # Match any of the following patterns: self.path, inputs.foo, or "foo"
             # in an expression of the form $(A + B) in the valueFrom field
             expr_pattern = r'\$\((self\.path|inputs\.\w+|".+") \+ (self\.path|inputs\.\w+|".+")\)'
-            match = re.match(expr_pattern, step_input.value_from)
+            match = re.fullmatch(expr_pattern, step_input.value_from)
             if match:
                 values = []
                 for m in match.groups():
