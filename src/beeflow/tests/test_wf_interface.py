@@ -144,7 +144,7 @@ class TestWorkflowInterface(unittest.TestCase):
         task_name = "test_task"
         base_command = ["ls", "-a", "-F"]
         inputs = [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", "-l",
-                            None)]
+                            None, None)]
         outputs = [StepOutput("test_input/test_task_done", "stdout", "output.txt", "output.txt")]
         requirements = [Requirement("ResourceRequirement", {"ramMin": 1024}),
                         Requirement("NetworkAccess", {"networkAccess": True})]
@@ -194,11 +194,11 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Manually set expected task input values for comparison
         tasks[1].inputs = [StepInput("input_data", "File", "prep_output.txt", None,
-                                     "prep/prep_output", None, None)]
+                                     "prep/prep_output", None, None, None)]
         tasks[2].inputs = [StepInput("input_data", "File", "prep_output.txt", None,
-                                     "prep/prep_output", None, None)]
+                                     "prep/prep_output", None, None, None)]
         tasks[3].inputs = [StepInput("input_data", "File", "prep_output.txt", None,
-                                     "prep/prep_output", None, None)]
+                                     "prep/prep_output", None, None, None)]
 
         self.assertCountEqual(tasks[1:4], ready_tasks)
 
@@ -206,7 +206,8 @@ class TestWorkflowInterface(unittest.TestCase):
         """Test obtaining a task from the graph database by its ID."""
         task_name = "test_task"
         base_command = "ls"
-        inputs = [StepInput("input", "File", "input.txt", "default.txt", "test_input", None, None)]
+        inputs = [StepInput("input", "File", "input.txt", "default.txt", "test_input", None, None,
+                            None)]
         outputs = [StepOutput("test_task/test_task_done", "stdout", "output.txt", "output.txt")]
         requirements = [Requirement("ResourceRequirement", {"ramMin": 1024}),
                         Requirement("NetworkAccess", {"networkAccess": True})]
@@ -295,7 +296,7 @@ class TestWorkflowInterface(unittest.TestCase):
             "test_task",
             "ls",
             [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None)],
+                       None, None)],
             [StepOutput("test_task/output", "File", "output.txt",
                         "output.txt")])
 
@@ -312,7 +313,7 @@ class TestWorkflowInterface(unittest.TestCase):
             "test_task",
             "ls",
             [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None)],
+                       None, None)],
             [StepOutput("test_task/output", "File", "output.txt",
                         "output.txt")])
 
@@ -331,7 +332,7 @@ class TestWorkflowInterface(unittest.TestCase):
             "test_task",
             "ls",
             [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None)],
+                       None, None)],
             [StepOutput("test_task/output", "File", "output.txt",
                         "output.txt")])
         metadata = {"cluster": "fog", "crt": "charliecloud",
@@ -350,7 +351,7 @@ class TestWorkflowInterface(unittest.TestCase):
             "test_task",
             "ls",
             [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None)],
+                       None, None)],
             [StepOutput("test_task/output", "File", "output.txt",
                         "output.txt")])
         metadata = {"cluster": "fog", "crt": "charliecloud",
@@ -375,7 +376,7 @@ class TestWorkflowInterface(unittest.TestCase):
             "test_task",
             "ls",
             [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None)],
+                       None, None)],
             [StepOutput("test_task/output", "File", "output.txt",
                         "output.txt")])
 
@@ -432,36 +433,37 @@ class TestWorkflowInterface(unittest.TestCase):
         tasks = [
             self.wfi.add_task(
                 "data_prep", base_command=["ls", "-a", "-F"],
-                inputs=[StepInput("test_input", "File", None, None, "test_input", "-l", None)],
+                inputs=[StepInput("test_input", "File", None, None, "test_input", "-l", None,
+                                  None)],
                 outputs=[StepOutput("prep/prep_output", "stdout", None, "prep_output.txt")],
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
                 hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="prep_output.txt"),
             self.wfi.add_task(
                 "compute0", base_command="touch",
                 inputs=[StepInput("input_data", "File", None, None, "prep/prep_output", None,
-                                  None)],
+                                  None, None)],
                 outputs=[StepOutput("compute0/output", "stdout", None, "output0.txt")],
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
                 hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="output0.txt"),
             self.wfi.add_task(
                 "compute1", base_command="find",
                 inputs=[StepInput("input_data", "File", None, None, "prep/prep_output", None,
-                                  None)],
+                                  None, None)],
                 outputs=[StepOutput("compute1/output", "stdout", None, "output1.txt")],
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
                 hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="output1.txt"),
             self.wfi.add_task(
                 "compute2", base_command="grep",
                 inputs=[StepInput("input_data", "File", None, None, "prep/prep_output", None,
-                                  None)],
+                                  None, None)],
                 outputs=[StepOutput("compute2/output", "stdout", None, "output2.txt")],
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
                 hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="output2.txt"),
             self.wfi.add_task(
                 "visualization", base_command="python",
-                inputs=[StepInput("input0", "File", None, None, "compute0/output", "-i", 1),
-                        StepInput("input1", "File", None, None, "compute1/output", "-i", 2),
-                        StepInput("input2", "File", None, None, "compute2/output", "-i", 3)],
+                inputs=[StepInput("input0", "File", None, None, "compute0/output", "-i", 1, None),
+                        StepInput("input1", "File", None, None, "compute1/output", "-i", 2, None),
+                        StepInput("input2", "File", None, None, "compute2/output", "-i", 3, None)],
                 outputs=[StepOutput("viz/output", "stdout", "viz_output.txt", "viz_output.txt")],
                 requirements=[Requirement("NetworkAccess", {"networkAccess": True})],
                 hints=[Hint("ResourceRequirement", {"ramMax": 2048})], stdout="viz_output.txt")

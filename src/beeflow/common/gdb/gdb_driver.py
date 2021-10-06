@@ -169,6 +169,39 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_task_input(self, task, input_id):
+        """Get a task input object.
+
+        :param task: the task whose input to retrieve
+        :type task: Task
+        :param input_id: the ID of the input
+        :type input_id: str
+        :rtype: StepInput
+        """
+
+    @abstractmethod
+    def set_task_input(self, task, input_id, value):
+        """Set the value of a task input.
+
+        :param task: the task whose input to set
+        :type task: Task
+        :param input_id: the ID of the input
+        :type input_id: str
+        :param value: str or int or float
+        """
+
+    @abstractmethod
+    def get_task_output(self, task, output_id):
+        """Get a task output object.
+
+        :param task: the task whose output to retrieve
+        :type task: Task
+        :param output_id: the ID of the output
+        :type output_id: str
+        :rtype: StepOutput
+        """
+
+    @abstractmethod
     def set_task_output(self, task, output_id, value):
         """Set the value of a task output.
 
@@ -178,6 +211,18 @@ class GraphDatabaseDriver(ABC):
         :type output_id: str
         :param value: the output value to set
         :type value: str or int or float
+        """
+
+    @abstractmethod
+    def set_task_output_glob(self, task, output_id, glob):
+        """Set the glob of a task output.
+
+        :param task: the task whose output to set
+        :type task: Task
+        :param output_id: the ID of the output
+        :type output_id: str
+        :param glob: the output glob to set
+        :type glob: str
         """
 
     @abstractmethod

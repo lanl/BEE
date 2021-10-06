@@ -8,7 +8,7 @@ InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
 OutputParameter = namedtuple("OutputParameter", ["id", "type", "value", "source"])
 # Step input class
 StepInput = namedtuple("StepInput", ["id", "type", "value", "default", "source", "prefix",
-                                     "position"])
+                                     "position", "value_from"])
 # Step output class
 StepOutput = namedtuple("StepOutput", ["id", "type", "value", "glob"])
 

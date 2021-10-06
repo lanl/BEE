@@ -142,11 +142,12 @@ def create_task_input_nodes(tx, task):
                        "SET i.default = $default "
                        "SET i.source = $source "
                        "SET i.prefix = $prefix "
-                       "SET i.position = $position")
+                       "SET i.position = $position "
+                       "SET i.value_from = $value_from")
 
         tx.run(input_query, task_id=task.id, input_id=input_.id, type=input_.type,
                value=input_.value, default=input_.default, source=input_.source,
-               prefix=input_.prefix, position=input_.position)
+               prefix=input_.prefix, position=input_.position, value_from=input_.value_from)
 
 
 def create_task_output_nodes(tx, task):
@@ -410,6 +411,51 @@ def set_task_metadata(tx, task, metadata):
     tx.run(metadata_query, task_id=task.id)
 
 
+def get_task_input(tx, task, input_id):
+    """Get a task input object.
+
+    :param task: the task whose input to retrieve
+    :type task: Task
+    :param input_id: the ID of the input
+    :type input_id: str
+    :rtype: StepInput
+    """
+    input_query = ("MATCH (t:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
+                   "RETURN i")
+
+    return tx.run(input_query, task_id=task.id, input_id=input_id).single()
+
+
+def set_task_input(tx, task, input_id, value):
+    """Set the value of a task input.
+
+    :param task: the task whose input to set
+    :type task: Task
+    :param input_id: the ID of the input
+    :type input_id: str
+    :param value: str or int or float
+    """
+    input_query = ("MATCH (t:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
+                   "SET i.value = $value")
+
+    tx.run(input_query, task_id=task.id, input_id=input_id, value=value)
+
+
+def get_task_output(tx, task, output_id):
+    """Get a task output object.
+
+    :param task: the task whose output to retrieve
+    :type task: Task
+    :param output_id: the ID of the output
+    :type output_id: str
+    :rtype: StepOutput
+    """
+    output_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
+                    "RETURN o")
+
+    return tx.run(output_query, task_id=task.id, output_id=output_id).single()
+
+
 def set_task_output(tx, task, output_id, value):
     """Set a task's output value.
 
@@ -424,6 +470,22 @@ def set_task_output(tx, task, output_id, value):
                     "SET o.value = $value")
 
     tx.run(output_query, task_id=task.id, output_id=output_id, value=value)
+
+
+def set_task_output_glob(tx, task, output_id, glob):
+    """Set a task's output value.
+
+    :param task: the task whose output to set
+    :type task: Task
+    :param output_id: the ID of the output to set
+    :type output_id: str
+    :param glob: the glob of the output
+    :type glob: str
+    """
+    output_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
+                    "SET o.glob = $glob")
+
+    tx.run(output_query, task_id=task.id, output_id=output_id, glob=glob)
 
 
 def set_init_tasks_to_ready(tx):

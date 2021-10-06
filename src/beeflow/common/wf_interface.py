@@ -216,6 +216,39 @@ class WorkflowInterface:
         """
         self._gdb_interface.set_task_metadata(task, metadata)
 
+    def get_task_input(self, task, input_id):
+        """Get a task input object.
+
+        :param task: the task whose input to retrieve
+        :type task: Task
+        :param input_id: the ID of the input
+        :type input_id: str
+        :rtype: StepInput
+        """
+        return self._gdb_interface.get_task_input(task, input_id)
+
+    def set_task_input(self, task, input_id, value):
+        """Set the value of a task input.
+
+        :param task: the task whose input to set
+        :type task: Task
+        :param input_id: the ID of the input
+        :type input_id: str
+        :param value: str or int or float
+        """
+        self._gdb_interface.set_task_input(task, input_id, value)
+
+    def get_task_output(self, task, output_id):
+        """Get a task output object.
+
+        :param task: the task whose output to retrieve
+        :type task: Task
+        :param output_id: the ID of the output
+        :type output_id: str
+        :rtype: StepOutput
+        """
+        return self._gdb_interface.get_task_output(task, output_id)
+
     def set_task_output(self, task, output_id, value):
         """Set the value of a task output.
 
@@ -227,6 +260,23 @@ class WorkflowInterface:
         :type value: str or int or float
         """
         self._gdb_interface.set_task_output(task, output_id, value)
+
+    def evaluate_expression(self, task, id, output=False):
+        """Evaluate a task input/output expression.
+
+        Expression can be either a string concatenation in a StepInput
+        valueFrom field or a parameter substitution in a StepOutput
+        glob field. The only special variable supported in valueFrom is
+        self.path.
+
+        :param task: the task whose expression to evaluate
+        :type task: Task
+        :param id: the id of the step input/output
+        :type id: str
+        :param output: true if output glob expression being evaluated, else false
+        :type output: bool
+        """
+        self._gdb_interface.evaluate_expression(task, id, output)
 
     def workflow_completed(self):
         """Return true if all of a workflow's tasks have completed, else false.

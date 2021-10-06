@@ -202,7 +202,8 @@ class CwlParser:
                 inputs.append(StepInput(_shortname(step_input.id), input_type, None,
                                         step_input.default, source_map[_shortname(step_input.id)],
                                         step_input.inputBinding.prefix,
-                                        step_input.inputBinding.position))
+                                        step_input.inputBinding.position,
+                                        step_input.inputBinding.valueFrom))
             else:
                 inputs.append(StepInput(_shortname(step_input.id), input_type, None,
                                         step_input.default, source_map[_shortname(step_input.id)],

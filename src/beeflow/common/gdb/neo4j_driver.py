@@ -254,6 +254,41 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_task_metadata, task=task, metadata=metadata)
 
+    def get_task_input(self, task, input_id):
+        """Get a task input object.
+
+        :param task: the task whose input to retrieve
+        :type task: Task
+        :param input_id: the ID of the input
+        :type input_id: str
+        :rtype: StepInput
+        """
+        input_record = self._read_transaction(tx.get_task_input, task=task, input_id=input_id)
+        return _reconstruct_task_input(input_record["i"])
+
+    def set_task_input(self, task, input_id, value):
+        """Set the value of a task input.
+
+        :param task: the task whose input to set
+        :type task: Task
+        :param input_id: the ID of the input
+        :type input_id: str
+        :param value: str or int or float
+        """
+        self._write_transaction(tx.set_task_input, task=task, input_id=input_id, value=value)
+
+    def get_task_output(self, task, output_id):
+        """Get a task output object.
+
+        :param task: the task whose output to retrieve
+        :type task: Task
+        :param output_id: the ID of the output
+        :type output_id: str
+        :rtype: StepOutput
+        """
+        output_record = self._read_transaction(tx.get_task_output, task=task, output_id=output_id)
+        return _reconstruct_task_output(output_record["o"])
+
     def set_task_output(self, task, output_id, value):
         """Set the value of a task output.
 
@@ -265,6 +300,18 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type value: str or int or float
         """
         self._write_transaction(tx.set_task_output, task=task, output_id=output_id, value=value)
+
+    def set_task_output_glob(self, task, output_id, glob):
+        """Set the glob of a task output.
+
+        :param task: the task whose output to set
+        :type task: Task
+        :param output_id: the ID of the output
+        :type output_id: str
+        :param glob: the output glob to set
+        :type glob: str
+        """
+        self._write_transaction(tx.set_task_output_glob, task=task, output_id=output_id, glob=glob)
 
     def workflow_completed(self):
         """Determine if a workflow in the Neo4j database has completed.
@@ -377,9 +424,9 @@ def _reconstruct_workflow_inputs(input_records):
 
 
 def _reconstruct_workflow_outputs(output_records):
-    """Reconstruct workflow inputs by their records retrieved from Neo4j.
+    """Reconstruct workflow outputs by their records retrieved from Neo4j.
 
-    :param output_records: the database record of the inputs
+    :param output_records: the database record of the outputs
     :type output_records: BoltStatementResult
     :rtype: list of OutputParameter
     """
@@ -390,24 +437,44 @@ def _reconstruct_workflow_outputs(output_records):
 def _reconstruct_task_inputs(input_records):
     """Reconstruct task inputs by their records retrieved from Neo4j.
 
-    :param input_records: the database record of the hints
+    :param input_records: the database record of the inputs
     :type input_records: BoltStatementResult
     :rtype: list of StepInput
     """
     recs = [input_record["i"] for input_record in input_records]
-    return [StepInput(rec["id"], rec["type"], rec["value"], rec["default"], rec["source"],
-                      rec["prefix"], rec["position"]) for rec in recs]
+    return [_reconstruct_task_input(rec) for rec in recs]
+
+
+def _reconstruct_task_input(rec):
+    """Reconstruct a task input by its record retrieved from Neo4j.
+
+    :param rec: the database record of the input
+    :type rec: BoltStatementResult
+    :rtype: StepInput
+    """
+    return StepInput(rec["id"], rec["type"], rec["value"], rec["default"], rec["source"],
+                     rec["prefix"], rec["position"], rec["value_from"])
 
 
 def _reconstruct_task_outputs(output_records):
     """Reconstruct task outputs by their records retrieved from Neo4j.
 
-    :param output_records: the database record of the hints
+    :param output_records: the database record of the outputs
     :type output_records: BoltStatementResult
     :rtype: list of StepOutput
     """
     recs = [output_record["o"] for output_record in output_records]
-    return [StepOutput(rec["id"], rec["type"], rec["value"], rec["glob"]) for rec in recs]
+    return [_reconstruct_task_output(rec) for rec in recs]
+
+
+def _reconstruct_task_output(rec):
+    """Reconstruct a task output by its record retrieved from Neo4j.
+
+    :param rec: the database record of the output
+    :type rec: BoltStatementResult
+    :rtype: StepOutput
+    """
+    return StepOutput(rec["id"], rec["type"], rec["value"], rec["glob"])
 
 
 def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs):
