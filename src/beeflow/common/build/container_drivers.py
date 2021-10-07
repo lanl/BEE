@@ -286,9 +286,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # Create context directory to use as Dockerfile context, use container name so user
         # can prep the directory with COPY sources as needed.
-        context_dir = '/'.join(['/tmp', self.container_name])
+        context_dir = os.path.expanduser('~')
         log.info('Context directory will be {}.'.format(context_dir))
-        os.makedirs(context_dir, exist_ok=True)
 
         # Determine name for successful build target
         ch_build_addr = self.container_name.replace('/', '%')
