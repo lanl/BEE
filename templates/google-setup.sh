@@ -76,7 +76,7 @@ EOF
 
 # Add the bee user
 useradd -m -s /bin/bash $USER
-echo $USER:$PASSWORD | chpasswd
+echo "$USER:$PASSWORD" | chpasswd
 echo "%$USER ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/bee
 mkdir -p /home/$USER/.ssh
 echo $PUBKEY | base64 -d > /home/$USER/.ssh/authorized_keys

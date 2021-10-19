@@ -1,7 +1,14 @@
 # machine_type = 'n1-standard-1'
 
 SRC_IMAGE = 'https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/family/debian-10'
-# DISK_SIZE_GB = 10
+
+def load_startup_script(startup_script, kwargs):
+    """Load in a startup script and replace parameters."""
+    with open(startup_script) as fp:
+        contents = fp.read()
+        for key in kwargs:
+            contents = contents.replace(f'${key.upper()}', str(kwargs[key]))
+        return contents
 
 
 # TODO: Some of these arguments, like machine_type should be set by default in this template
@@ -13,10 +20,8 @@ def setup(template_api, node_name, startup_script=None,
 
     # Read in the startup_script if there is one
     if startup_script is not None:
-        with open(startup_script) as fp:
-            contents = fp.read()
-        for key in kwargs:
-            contents = contents.replace(f'${key.upper()}', kwargs[key])
+        contents = load_startup_script(startup_script, kwargs)
+        print(contents)
         items.append({'key': 'startup-script', 'value': contents})
 
     # TODO: Internal IP addressing/internal network
