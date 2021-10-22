@@ -101,6 +101,8 @@ if __name__ == '__main__':
     parser.add_argument('--setup-cloud', action='store_true', help='set up the remote cloud')
     parser.add_argument('--copy', action='store_true', help='copy over files in the config')
     parser.add_argument('--tm', action='store_true', help='start the TM')
+    parser.add_argument('--fake', action='store_true',
+                        help='when given along with the --setup-cloud, run all templating code, but do not actually make any API calls')
     args = parser.parse_args()
 
     # Get configuration information
@@ -109,7 +111,7 @@ if __name__ == '__main__':
     else:
         bc = BeeConfig(workload_scheduler='Simple')
     # Load the provider config file
-    cfg = yaml.load(open(args.provider_config))
+    cfg = yaml.load(open(args.provider_config), Loader=yaml.Loader)
     bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 
     # Get the component ports for forwarding connections
@@ -127,7 +129,7 @@ if __name__ == '__main__':
     # Add in the default parameters
     kwargs.update({'beeflow_{}'.format(name): cfg[name] for name in cfg if name != 'provider_parameters'})
     # Get the cloud provider configuration
-    provider = cloud.get_provider(provider, **kwargs)
+    provider = cloud.get_provider(provider, fake=args.fake, **kwargs)
 
     if args.setup_cloud:
         print('Creating cloud from template...')

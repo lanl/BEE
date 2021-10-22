@@ -90,8 +90,8 @@ apt-get install -y git curl vim tmux screen gcc make openmpi-bin libopenmpi-dev 
 # Enable user namespaces
 /sbin/sysctl kernel.unprivileged_userns_clone=1
 
-install_charliecloud https://github.com/hpc/charliecloud/releases/download/v0.24/charliecloud-0.24.tar.gz
+install_charliecloud https://github.com/hpc/charliecloud/releases/download/v0.25/charliecloud-0.25.tar.gz
 install_bee $GITHUB_PAT /bee /bee/bee.conf $GIT_BRANCH
-gen_conf /bee/bee.conf $WFM_LISTEN_PORT $TM_LISTEN_PORT
+gen_conf /bee/bee.conf $BEEFLOW_WFM_LISTEN_PORT $BEEFLOW_TM_LISTEN_PORT
 
 chown -R $USER:$USER /bee

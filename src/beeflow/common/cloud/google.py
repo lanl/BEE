@@ -9,31 +9,45 @@ from beeflow.common.cloud import provider
 class TemplateAPI:
     """Template API class to be used by a template."""
 
-    def __init__(self, api, project, zone):
+    def __init__(self, api, project, zone, fake):
         """Template API class constructor."""
         self.project = project
         self.zone = zone
 
         self._api = api
+        self._fake = fake
 
     def create_node(self, config):
         """Create a node from a config definition."""
-        def create_node(config):
-            """Create a node based on a configuration."""
+        if self._fake:
+            return
         call = self._api.instances().insert(project=self.project,
                                             zone=self.zone, body=config)
         res = call.execute()
+
+    def get_ext_ip_addr(self, node_name):
+        """Get the external IP of this node (or None if no IP)."""
+        if self._fake:
+            return '1.1.1.1'
+        res = self._api.instances().get(instance=node_name,
+                                        project=self.project,
+                                        zone=self.zone).execute()
+        try:
+            return res['networkInterfaces'][0]['accessConfigs'][0]['natIP']
+        except (IndexError, KeyError):
+            return None
 
 
 class GoogleProvider(provider.Provider):
     """Google provider class."""
 
-    def __init__(self, project, zone, **kwargs):
+    def __init__(self, project, zone, fake=False, **kwargs):
         """Google provider constructor."""
         # Set defaults here for now
         self._project = project
         self._zone = zone
         self._kwargs = kwargs
+        self._fake = fake
         self._api = googleapiclient.discovery.build('compute', 'v1')
 
     def create_from_template(self, template_file, **kwargs):
@@ -45,7 +59,7 @@ class GoogleProvider(provider.Provider):
         spec.loader.exec_module(mod)
 
         # Call the user template module, passing it a template api object
-        template_api = TemplateAPI(self._api, self._project, self._zone)
+        template_api = TemplateAPI(self._api, self._project, self._zone, self._fake)
         mod.setup(template_api=template_api, **self._kwargs)
 
         # Call the user module, passing it the create_node function
