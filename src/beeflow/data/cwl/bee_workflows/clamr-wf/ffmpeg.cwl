@@ -3,7 +3,7 @@
 class: CommandLineTool
 cwlVersion: v1.0
 
-baseCommand: ffmpeg
+baseCommand: ffmpeg -y
 inputs:
   input_format:
     type: string?
