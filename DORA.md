@@ -9,10 +9,11 @@ When installing BEE with poetry, you'll need to make sure that the
 
 ## Configuration
 
-Most of the configuration for the cloud launcher script will be under the
-`[cloud]` section in the bee.conf. Here are the required parameters. These are
-not necessarily unique to Dora, but can also apply to GCE and other clouds if
-supported in the future.
+Initially, cloud configuration was stored in the bee.conf file under a `[cloud]`
+section. This creates some configuration issues when working with multiple
+configuration files, so instead I've redesigned the cloud launcher to work with
+a YAML configuration file that is specific to the cloud platform being used.
+Below are a list of the main configuration options that are required.
 
 * `private_key_file`: path to the private key file used for the head instance
 * `bee_user`: user to be created on head instance (most likely the default user
@@ -28,23 +29,25 @@ supported in the future.
 As an example here is the current configuration that I'm using on my account:
 
 ```
-[cloud]
-private_key_file = /home/jtronge/key
-bee_user = debian
-tm_listen_port = 7777
-tm_launch_cmd = /bee/tm
-head_node = bee-server
-template_file = /home/jtronge/BEE_Private/templates/dora-template.yaml
-provider = openstack
+private_key_file: /home/jtronge/key
+bee_user: debian
+tm_listen_port: 7777
+tm_launch_cmd: /bee/tm
+head_node: bee-server
+template_file: /home/jtronge/BEE_Private/templates/dora-template.yaml
+provider: openstack
+...lines omitted...
 ```
 
-### Provider Specific Configuration
+### Template Specific Configuration
 
-In order to launch stacks with different templates and providers, there is an
-extra section which corresponds to a given provider. The section is named
-`[cloud.{provider}]` where provider is the provider name in lowercase. The
-contents of the section vary depending on the provider class and the template
-being used.
+To provide support for various templates and providers, an extra parameter
+`provider_parameters` should be included in the YAML config file. This is a
+dictionary object of parameters that will be passed to the template file upon
+cloud setup. These parameters will vary based upon what each template file
+requires. Note that the main configuration options, as listed in the section
+above, will be passed to the template file as well, but prefixed with `beeflow_`
+to avoid clashes with template specific parameters.
 
 For the `templates/dora-template.yaml` here are the required parameters:
 
@@ -57,16 +60,6 @@ For the `templates/dora-template.yaml` here are the required parameters:
 * `https_proxy`: HTTPS proxy env value (same as do-sn1)
 * `http_proxy`: HTTP proxy env value (same as do-sn1)
 * `no_proxy`: no proxy value (same as do-sn1)
-* `wfm_listen_port`: listen port of the current WFM
-* `tm_listen_port`: listen port of the remote TM
-* `copy_files`: a list of `src_file:dest_dir` pairs separated by commas. I use
-  this to easily copy containers over to the instance
-    * Ex. `copy_files = /home/jtronge/heat-transfer.tar.gz:/home/debian,/home/jtronge/clamr.tar.gz:/home/debian`
-
-Some of these values make the config slightly redundant (like the
-`wfm_listen_port` value), but it makes it easier to launch the template by just
-passing the complete key-value pairs of the provider section on template
-creation.
 
 Also, for OpenStack on Dora, the BEE image is based on a Debian 10 openstack
 image which can be downloaded [here](http://cloud.debian.org/images/cloud/OpenStack/current-10/).
@@ -76,10 +69,10 @@ image should work with the template.
 ## Launch Script
 
 The cloud launcher script assumes that the openstack environment variables are
-already properly set by running the typical rc script. Once that is done,
+already properly set by running the project rc script. Once that is done,
 to set up the actual stack from the template file, you can run:
 
-`python -m beeflow.cloud_launcher --setup-cloud [CONFIG FILE]`
+`beeflow-cloud --setup-cloud [CLOUD YAML CONFIG]`
 
 To facilitate moving data onto the instances, I've included a `--copy` option
 that copies files listed in the `copy_files` parameter of the config. I've been
@@ -104,7 +97,7 @@ includes localhost, since this is how the WFM contacts the TM.
 To launch the Task Manager, I've included an option in my cloud launcher script
 which starts it and then sets up an SSH tunnel to the local machine. Run this:
 
-`python -m beeflow.cloud_launcher --tm [CONFIG FILE]`
+`beeflow-cloud --tm [CLOUD YAML CONFIG]`
 
 This will show the debug output of the TM on the remote system and should also
 show the output of running individual steps.

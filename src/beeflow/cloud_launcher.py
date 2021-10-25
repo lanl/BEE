@@ -93,7 +93,8 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
             run(private_key_file, bee_user, ip_addr, 'pkill python')
 
 
-if __name__ == '__main__':
+def main():
+    """Cloud launcher entry point."""
     # Argument parsing
     parser = argparse.ArgumentParser(description='BEE Cloud Installer')
     parser.add_argument('provider_config', help='provider config yaml file')
@@ -145,3 +146,7 @@ if __name__ == '__main__':
                   bee_user=bee_user, launch_cmd=launch_cmd, head_node=head_node,
                   wfm_listen_port=wfm_listen_port,
                   tm_listen_port=tm_listen_port)
+
+
+if __name__ == '__main__':
+    main()
