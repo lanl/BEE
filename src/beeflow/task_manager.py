@@ -177,7 +177,7 @@ def submit_jobs():
         finally:
             # Send the initial state to WFM
             # update_task_state(task.id, job_state, metadata=task_metadata)
-            pass
+            update_task_state(task.id, job_state)
 
 
 def update_jobs():
