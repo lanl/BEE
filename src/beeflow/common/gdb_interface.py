@@ -238,6 +238,8 @@ class GraphDatabaseInterface:
         :param output: true if output glob expression being evaluated, else false
         :type output: bool
         """
+        # Get ground-truth task from database before doing anything
+        task =  self._connection.get_task_by_id(task.id)
         input_pairs = {input.id: input.value for input in task.inputs}
         if output:
             step_output = self._connection.get_task_output(task, id)

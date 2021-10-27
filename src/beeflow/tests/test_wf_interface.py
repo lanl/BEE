@@ -295,10 +295,9 @@ class TestWorkflowInterface(unittest.TestCase):
         task = self.wfi.add_task(
             "test_task",
             "ls",
-            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None, None)],
-            [StepOutput("test_task/output", "File", "output.txt",
-                        "output.txt")])
+            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None, None,
+                       None)],
+            [StepOutput("test_task/output", "File", "output.txt", "output.txt")])
 
         # Should be WAITING because workflow not yet executed
         self.assertEqual("WAITING", self.wfi.get_task_state(task))
@@ -312,10 +311,9 @@ class TestWorkflowInterface(unittest.TestCase):
         task = self.wfi.add_task(
             "test_task",
             "ls",
-            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None, None)],
-            [StepOutput("test_task/output", "File", "output.txt",
-                        "output.txt")])
+            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None, None,
+                       None)],
+            [StepOutput("test_task/output", "File", "output.txt", "output.txt")])
 
         self.wfi.set_task_state(task, "RUNNING")
 
@@ -331,10 +329,9 @@ class TestWorkflowInterface(unittest.TestCase):
         task = self.wfi.add_task(
             "test_task",
             "ls",
-            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None, None)],
-            [StepOutput("test_task/output", "File", "output.txt",
-                        "output.txt")])
+            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None, None,
+                       None)],
+            [StepOutput("test_task/output", "File", "output.txt", "output.txt")])
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
@@ -350,10 +347,9 @@ class TestWorkflowInterface(unittest.TestCase):
         task = self.wfi.add_task(
             "test_task",
             "ls",
-            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
-                       None, None)],
-            [StepOutput("test_task/output", "File", "output.txt",
-                        "output.txt")])
+            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None, None,
+                       None)],
+            [StepOutput("test_task/output", "File", "output.txt", "output.txt")])
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
         empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
@@ -365,6 +361,87 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Metadata should now be populated
         self.assertDictEqual(metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+
+    def test_get_task_input(self):
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/output")])
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None, None,
+                       None)],
+            [StepOutput("test_task/output", "File", "output.txt", "output.txt")])
+
+        self.assertEqual(task.inputs[0], self.wfi.get_task_input(task, "test_input"))
+
+    def test_set_task_input(self):
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/output")])
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            [StepInput("test_input", "File", None, "default.txt", "test_input", None, None, None)],
+            [StepOutput("test_task/output", "File", "output.txt", "output.txt")])
+
+        test_input = StepInput("test_input", "File", "input.txt", "default.txt", "test_input",
+                               None, None, None)
+        self.wfi.set_task_input(task, "test_input", "input.txt")
+        self.assertEqual(test_input, self.wfi.get_task_input(task, "test_input"))
+
+    def test_get_task_output(self):
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/output")])
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None, None,
+                       None)],
+            [StepOutput("test_task/output", "File", "output.txt", "output.txt")])
+
+        self.assertEqual(task.outputs[0], self.wfi.get_task_output(task, "test_task/output"))
+
+    def test_set_task_output(self):
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/output")])
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None,
+                       None, None)],
+            [StepOutput("test_task/output", "File", None, "output.txt")])
+
+        test_output = StepOutput("test_task/output", "File", "output.txt", "output.txt")
+        self.wfi.set_task_output(task, "test_task/output", "output.txt")
+        self.assertEqual(test_output, self.wfi.get_task_output(task, "test_task/output"))
+
+    def test_evaluate_expression(self):
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/output")])
+        task = self.wfi.add_task(
+            "test_task",
+            "ls",
+            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None, None,
+                       '$("test_" + inputs.test_input)')],
+            [StepOutput("test_task/output", "File", None, "$(inputs.test_input).bak")])
+
+        test_input = StepInput("test_input", "File", "test_input.txt", "default.txt", "test_input",
+                               None, None, '$("test_" + inputs.test_input)')
+        self.wfi.evaluate_expression(task, "test_input")
+        self.assertEqual(test_input, self.wfi.get_task_input(task, "test_input"))
+
+        test_output = StepOutput("test_task/output", "File", None, "test_input.txt.bak")
+        self.wfi.evaluate_expression(task, "test_task/output", output=True)
+        self.assertEqual(test_output, self.wfi.get_task_output(task, "test_task/output"))
 
     def test_workflow_completed(self):
         """Test determining if a workflow has completed."""

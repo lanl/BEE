@@ -31,9 +31,9 @@ class Workflow:
         :param requirements: the workflow requirements
         :type requirements: list of Requirements
         :param inputs: the workflow inputs
-        :type inputs: set of strings
+        :type inputs: list of InputParameter
         :param outputs: the workflow outputs
-        :type outputs: set of strings
+        :type outputs: list of OutputParameter
         :param workflow_id: the workflow ID
         :type workflow_id: str
         """
@@ -98,9 +98,9 @@ class Task:
         :param requirements: the task requirements
         :type requirements: list of Requirement
         :param inputs: the task inputs
-        :type inputs: set of StepInput
+        :type inputs: list of StepInput
         :param outputs: the task outputs
-        :type outputs: set of StepOutput
+        :type outputs: list of StepOutput
         :param stdout: the name of the file to which to redirect stdout
         :type stdout: str
         :param workflow_id: the workflow ID
