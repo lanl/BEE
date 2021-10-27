@@ -29,7 +29,7 @@ steps:
       baseCommand: "/clamr/CLAMR-master/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png"
       hints:
         DockerRequirement:
-          dockerImageId: "/projects/beedev/clamr-toss.tar.gz"
+          copyContainer: "/projects/beedev/clamr-toss.tar.gz"
     in:
       infile: infile
     out: [outfile]

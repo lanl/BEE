@@ -166,4 +166,3 @@ class Task:
         :rtype: list of strings
         """
         return self.command[0]
-
