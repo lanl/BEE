@@ -1,6 +1,7 @@
 """OpenStack provider module."""
 import openstack
 from beeflow.common.cloud import provider
+from beeflow.common.cloud.cloud import CloudError
 
 
 class OpenstackProvider(provider.Provider):
@@ -14,6 +15,8 @@ class OpenstackProvider(provider.Provider):
     def get_ext_ip_addr(self, node_name):
         """Get external IP address of Task Manager node."""
         node = self._cloud.get_server(node_name)
+        if node is None:
+            raise CloudError('Cannot retrieve node/IP information. Is `node_name` set correctly?')
         return node.accessIPv4
 
     def setup_cloud(self, config):

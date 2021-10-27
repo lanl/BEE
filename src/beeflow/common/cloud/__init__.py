@@ -4,6 +4,7 @@ from beeflow.common.cloud import openstack
 from beeflow.common.cloud import provider
 from beeflow.common.cloud import google
 from beeflow.common.cloud.constants import BEE_USER
+from beeflow.common.cloud.cloud import CloudError
 
 
 providers = {
