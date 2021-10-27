@@ -125,7 +125,6 @@ def main():
     launch_cmd = cfg['tm_launch_cmd']
     head_node = cfg['head_node']
     template_file = cfg['template_file']
-
     copy_files = cfg['copy_files']
     provider = cfg['provider']
     provider = cloud.get_provider(provider, **cfg)
