@@ -2,33 +2,24 @@
 import googleapiclient.discovery
 import time
 import importlib.util
+import yaml
 
 from beeflow.common.cloud import provider
 
 
-class TemplateAPI:
-    """Template API class to be used by a template."""
+class GoogleProvider(provider.Provider):
+    """Google provider class."""
 
-    def __init__(self, api, project, zone, fake):
-        """Template API class constructor."""
-        self.project = project
+    def __init__(self, project, zone, **kwargs):
+        """Google provider constructor."""
+        self.params = kwargs
         self.zone = zone
-
-        self._api = api
-        self._fake = fake
-
-    def create_node(self, config):
-        """Create a node from a config definition."""
-        if self._fake:
-            return
-        call = self._api.instances().insert(project=self.project,
-                                            zone=self.zone, body=config)
-        res = call.execute()
+        self.project = project
+        # Set defaults here for now
+        self._api = googleapiclient.discovery.build('compute', 'v1')
 
     def get_ext_ip_addr(self, node_name):
         """Get the external IP of this node (or None if no IP)."""
-        if self._fake:
-            return '1.1.1.1'
         res = self._api.instances().get(instance=node_name,
                                         project=self.project,
                                         zone=self.zone).execute()
@@ -37,45 +28,15 @@ class TemplateAPI:
         except (IndexError, KeyError):
             return None
 
-
-class GoogleProvider(provider.Provider):
-    """Google provider class."""
-
-    def __init__(self, project, zone, fake=False, **kwargs):
-        """Google provider constructor."""
-        # Set defaults here for now
-        self._project = project
-        self._zone = zone
-        self._kwargs = kwargs
-        self._fake = fake
-        self._api = googleapiclient.discovery.build('compute', 'v1')
-
-    def create_from_template(self, template_file, **kwargs):
-        """Create from a template file."""
-        # TODO: Launch from a template file
-        spec = importlib.util.spec_from_file_location('bee_template',
-                                                      template_file)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-
-        # Call the user template module, passing it a template api object
-        template_api = TemplateAPI(self._api, self._project, self._zone, self._fake)
-        mod.setup(template_api=template_api, **self._kwargs)
-
-        # Call the user module, passing it the create_node function
-        # mod.setup(create_node=create_node, zone=self._zone, **self._kwargs)
-
-        ## Call the user module, creating a single node template
-        #config = mod.create_node_config(zone=self._zone, **self._kwargs)
-        # Wait for two minutes -- this is arbitrary and should probably be user configurable
-        time.sleep(100)
-
-    def get_ext_ip_addr(self, node_name):
-        """Get the external IP of this node (or None if no IP)."""
-        res = self._api.instances().get(instance=node_name,
-                                        project=self._project,
-                                        zone=self._zone).execute()
-        try:
-            return res['networkInterfaces'][0]['accessConfigs'][0]['natIP']
-        except (IndexError, KeyError):
-            return None
+    def setup_cloud(self, config):
+        """Setup the cloud based on the config information."""
+        # Load the YAML data
+        config = yaml.load(config, Loader=yaml.Loader)
+        # This just creates instances one-by-one. There may be a better API call
+        # to just create everything at once.
+        for instance in config['instances']:
+            call = self._api.instances().insert(project=self.project,
+                                                zone=self.zone, body=instance)
+            res = call.execute()
+            print(res)
+            time.sleep(2)

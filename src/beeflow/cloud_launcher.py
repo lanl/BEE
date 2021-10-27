@@ -5,6 +5,8 @@ import subprocess
 import sys
 import time
 import yaml
+import importlib
+import jinja2
 
 import beeflow.common.cloud as cloud
 from beeflow.common.config_driver import BeeConfig
@@ -102,8 +104,8 @@ def main():
     parser.add_argument('--setup-cloud', action='store_true', help='set up the remote cloud')
     parser.add_argument('--copy', action='store_true', help='copy over files in the config')
     parser.add_argument('--tm', action='store_true', help='start the TM')
-    parser.add_argument('--fake', action='store_true',
-                        help='when given along with the --setup-cloud, run all templating code, but do not actually make any API calls')
+    parser.add_argument('--debug', action='store_true',
+                        help='debug the cloud template, don\'t make any API calls')
     args = parser.parse_args()
 
     # Get configuration information
@@ -123,18 +125,21 @@ def main():
     launch_cmd = cfg['tm_launch_cmd']
     head_node = cfg['head_node']
     template_file = cfg['template_file']
-    copy_files = cfg['copy_files']
 
+    copy_files = cfg['copy_files']
     provider = cfg['provider']
-    kwargs = cfg['provider_parameters']
-    # Add in the default parameters
-    kwargs.update({'beeflow_{}'.format(name): cfg[name] for name in cfg if name != 'provider_parameters'})
-    # Get the cloud provider configuration
-    provider = cloud.get_provider(provider, fake=args.fake, **kwargs)
+    provider = cloud.get_provider(provider, **cfg)
 
     if args.setup_cloud:
         print('Creating cloud from template...')
-        provider.create_from_template(template_file)
+        with open(template_file) as fp:
+            tmpl = jinja2.Template(fp.read())
+        tmpl_data = tmpl.render(**cfg)
+        if args.debug:
+            # Display the template
+            sys.stdout.write(tmpl_data)
+            sys.exit()
+        provider.setup_cloud(tmpl_data)
         time.sleep(20)
         print('Setup complete')
     if args.copy and copy_files is not None:
