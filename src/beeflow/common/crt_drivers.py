@@ -11,7 +11,7 @@ from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
-if len(sys.argv) > 2:
+if len(sys.argv) >= 2:
     USERCONFIG = sys.argv[1]
     bc = BeeConfig(userconfig=USERCONFIG)
 else:
