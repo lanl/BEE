@@ -524,6 +524,8 @@ class JobActions(Resource):
         return resp
 
 
+archive = bc.userconfig.get('DEFAULT','use_archive')
+
 
 class JobUpdate(Resource):
     """Class to interact with an existing job."""
@@ -565,7 +567,6 @@ class JobUpdate(Resource):
                 if wfi.workflow_completed():
                     log.info("Workflow Completed")
 
-                    archive = bc.userconfig.get('DEFAULT','use_archive')
                     if archive and not reexecute:
                         gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
                         wf_id = wfi.get_workflow_id()
