@@ -213,8 +213,8 @@ class JobsList(Resource):
         job_list = []
         if os.path.isdir(workflows_dir):
             workflows = next(os.walk(workflows_dir))[1]
-            for w in workflows:
-                wf_path = os.path.join(workflows_dir, w) 
+            for wf_id in workflows:
+                wf_path = os.path.join(workflows_dir, wf_id) 
                 status_path = os.path.join(wf_path, 'bee_wf_status')
                 name_path = os.path.join(wf_path, 'bee_wf_name')
                 status = pathlib.Path(status_path).read_text()
