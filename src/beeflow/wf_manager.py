@@ -345,11 +345,11 @@ class JobsList(Resource):
             wfi.initialize_workflow(inputs=None, outputs=None, existing=True)
             # Reset the workflow state and generate a new workflow ID
             wfi.reset_workflow()
-            wf_id = wfi.get_workflow_id()
+            wf_id = wfi.workflow_id
             reexecute = True
 
             # Save the workflow to the workflow_id dir
-            wf_id = wfi.get_workflow_id()
+            wf_id = wfi.workflow_id
             workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
             os.makedirs(workflow_dir)
 
@@ -512,7 +512,7 @@ class JobActions(Resource):
         resp = requests.delete(_resource('tm'))
         if resp.status_code != 200:
             log.info(f"Delete from task manager returned bad status: {resp.status_code}")
-        wf_id = wfi.get_workflow_id()
+        wf_id = wfi.workflow_id
         workflows_dir = os.path.join(bee_workdir, 'workflows')
         status_path = os.path.join(workflow_dir, 'bee_wf_status')
         with open(status_path, 'w') as status:
@@ -598,7 +598,7 @@ class JobUpdate(Resource):
                     archive = bc.userconfig.get('DEFAULT','use_archive')
                     if archive and not reexecute:
                         gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
-                        wf_id = wfi.get_workflow_id()
+                        wf_id = wfi.workflow_id
                         workflows_dir = os.path.join(bee_workdir, 'workflows')
                         workflow_dir = os.path.join(workflows_dir, wf_id)
                         # Archive GDB
