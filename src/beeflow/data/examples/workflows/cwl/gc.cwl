@@ -4,51 +4,57 @@ class: Workflow
 cwlVersion: v1.0
 
 inputs:
+  pattern: string
   infile: File
 
 outputs:
-  clamr_dir:
+  grep_file:
     type: File
-    outputSource: clamr/outfile
-  ffmpeg_movie:
+    outputSource: grep/outfile
+  count_file:
     type: File
-    outputSource: ffmpeg/outfile
+    outputSource: wc/outfile
 
 steps:
-  clamr:
+  grep:
     run:
       class: CommandLineTool
       inputs:
+        pattern:
+          type: string
+          default: "integer"
+          inputBinding: {position: 0}
         infile:
           type: File
           default: lorem.txt
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
-      stdout: graphics_output
-      baseCommand: "/CLAMR/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png"
+      stdout: grepout.txt
+      baseCommand: grep
       hints:
         DockerRequirement:
-          copyContainer: "/ccs/proj/csc420/BEE/clamr-ppc64le.tar.gz"
+          copyContainer: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
+      pattern: pattern
       infile: infile
     out: [outfile]
 
-  ffmpeg:
+  wc:
     run:
       class: CommandLineTool
       inputs:
         infile:
           type: File
-          default: graphics_output
+          default: grepout.txt
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
-      stdout: CLAMR_movie.mp4
-      baseCommand: "ffmpeg -f image2 -i /home/$USER/graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p /home/$USER/CLAMR_movie.mp4"
+      stdout: counts.txt
+      baseCommand: "wc -l"
       hints:
         DockerRequirement:
-          copyContainer: "/ccs/proj/csc420/BEE/clamr-ppc64le.tar.gz"
+          copyContainer: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
-      infile: clamr/outfile
+      infile: grep/outfile
     out: [outfile]

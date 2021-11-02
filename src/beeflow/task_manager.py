@@ -3,12 +3,13 @@
 Submits, cancels and monitors states of tasks.
 Communicates status to the Work Flow Manager, through RESTful API.
 """
-import configparser
 import atexit
 import sys
 import logging
 import hashlib
 import socket
+import subprocess
+from subprocess import PIPE
 import jsonpickle
 import requests
 
@@ -18,6 +19,7 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
+from beeflow.common.build.build_driver import task2arg
 import beeflow.common.log as bee_logging
 
 sys.excepthook = bee_logging.catch_exception
@@ -26,6 +28,8 @@ if len(sys.argv) > 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
+
+USERCONFIG = bc.userconfig_file
 
 
 def check_crt_config(c_runtime):
@@ -38,15 +42,9 @@ def check_crt_config(c_runtime):
     if c_runtime == 'Charliecloud':
         if not bc.userconfig.has_section('charliecloud'):
             cc_opts = {'setup': 'module load charliecloud',
-                       'image_mntdir': '/tmp',
                        'chrun_opts': '--cd /home/$USER'
                        }
             bc.modify_section('user', 'charliecloud', cc_opts)
-        else:
-            try:
-                bc.userconfig.get('charliecloud', 'image_mntdir')
-            except configparser.NoOptionError:
-                bc.modify_section('user', 'charliecloud', {'image_mntdir': '/tmp'})
 
 
 # Check task_manager and container_runtime sections of user configuration file
@@ -91,7 +89,7 @@ job_queue = []  # jobs that are being monitored
 
 
 def _url():
-    """Return the url to the WFM."""
+    """Return  the url to the WFM."""
     workflow_manager = 'bee_wfm/v1/jobs/'
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
 
@@ -105,12 +103,13 @@ def update_task_state(task_id, job_state, metadata=None):
     """Informs the workflow manager of the current state of a task."""
     data = {'task_id': task_id, 'job_state': job_state}
     if metadata:
-      metadata_json = jsonpickle.encode(metadata)
-      data['metadata'] = metadata_json
+        metadata_json = jsonpickle.encode(metadata)
+        data['metadata'] = metadata_json
     resp = requests.put(_resource("update/"),
                         json=data)
     if resp.status_code != 200:
         log.warning("WFM not responding when sending task update.")
+
 
 def update_task_metadata(task_id, metadata):
     """Send workflow manager task metadata."""
@@ -145,6 +144,12 @@ def gen_task_metadata(task, job_id):
     return metadata
 
 
+def resolve_environment(task):
+    """Use build interface to create a valid environment."""
+    return subprocess.run(["beeflow", "--build", USERCONFIG, task2arg(task)],
+                          stdout=PIPE, stderr=PIPE, check=False)
+
+
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
     while len(submit_queue) >= 1:
@@ -152,23 +157,27 @@ def submit_jobs():
         task_dict = submit_queue.pop(0)
         task = next(iter(task_dict.values()))
         try:
+            log.info('Resolving environment for task {}'.format(task.name))
+            _ = resolve_environment(task)
+            log.info('Environment preparation complete for task {}'.format(task.name))
             job_id, job_state = worker.submit_task(task)
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
             job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
             # Update metadata
-            task_metadata = gen_task_metadata(task, job_id)
-            # Need to 
-            #task_metadata.replace("'", '"')
-            #update_task_metadata(task.id, task_metadata)
-        except Exception as error:
+            # task_metadata = gen_task_metadata(task, job_id)
+            # Need to
+            # task_metadata.replace("'", '"')
+            # update_task_metadata(task.id, task_metadata)
+        except Exception as err:
             # Set job state to failed
             job_state = 'SUBMIT_FAIL'
-            log.error(f'Task Manager submit task {task.name} failed! \n {error}')
+            log.error(f'Task Manager submit task {task.name} failed! \n {err}')
             log.error(f'{task.name} state: {job_state}')
         finally:
             # Send the initial state to WFM
-            update_task_state(task.id, job_state, metadata=task_metadata)
+            # update_task_state(task.id, job_state, metadata=task_metadata)
+            update_task_state(task.id, job_state)
 
 
 def update_jobs():
@@ -239,8 +248,8 @@ class TaskActions(Resource):
             log.info(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
-            except Exception as error:
-                log.error(error)
+            except Exception as err:
+                log.error(err)
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
         job_queue.clear()
@@ -251,34 +260,27 @@ class TaskActions(Resource):
 
 # WorkerInterface needs to be placed here. Don't Move!
 from beeflow.common.worker_interface import WorkerInterface
-from beeflow.common.worker.slurm_worker import SlurmWorker
-from beeflow.common.worker.lsf_worker import LSFWorker
+import beeflow.common.worker as worker_pkg
 
-supported_workload_schedulers = {'Slurm', 'LSF'}
 try:
     WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
 except ValueError as error:
     log.error(f'workload scheduler error {error}')
     WLS = None
-if WLS not in supported_workload_schedulers:
+worker_class = worker_pkg.find_worker(WLS)
+if worker_class is None:
     sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
              f'Please check {bc.userconfig_file} and restart TaskManager.')
+# Get the parameters for the worker classes
+worker_kwargs = {
+    'bee_workdir': bc.userconfig.get('DEFAULT', 'bee_workdir'),
+    'container_runtime': bc.userconfig.get('task_manager', 'container_runtime'),
+    'job_template': bc.userconfig.get('task_manager', 'job_template', fallback=None),
+}
+# TODO: Maybe this should be put into a sub class
 if WLS == 'Slurm':
-    worker = WorkerInterface(SlurmWorker,
-                             slurm_socket=bc.userconfig.get('slurmrestd', 'slurm_socket'),
-                             bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
-                             container_runtime=bc.userconfig.get('task_manager',
-                                                                 'container_runtime'),
-                             job_template=bc.userconfig.get('task_manager',
-                                                            'job_template', fallback=None))
-
-elif WLS == 'LSF':
-    worker = WorkerInterface(LSFWorker,
-                             bee_workdir=bc.userconfig.get('DEFAULT', 'bee_workdir'),
-                             container_runtime=bc.userconfig.get('task_manager',
-                                                                 'container_runtime'),
-                             job_template=bc.userconfig.get('task_manager',
-                                                            'job_template', fallback=None))
+    worker_kwargs['slurm_socket'] = bc.userconfig.get('slurmrestd', 'slurm_socket')
+worker = WorkerInterface(worker_class, **worker_kwargs)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
@@ -303,4 +305,7 @@ if __name__ == '__main__':
 # Ignore TODO comments
 # Ignoring "modules loaded below top of file" warning per Pat's comment
 # Ignoring flask.logger.AddHandler not found because logging is working...
-# pylama:ignore=W0511,E402,C0413,E1101
+# Ignoring W1202: https://github.com/PyCQA/pylint/issues/2395
+# Ignoring W0703: Catching general exception is ok in our case.
+# Ignoring C0206: Iterating with .items() is not important for readability or functionality
+# pylama:ignore=W0511,E402,C0413,E1101,W1202,W0703,C0206

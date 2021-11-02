@@ -14,25 +14,27 @@ import os
 import subprocess
 import sys
 import time
-import platform
-from subprocess import PIPE, DEVNULL
+from subprocess import PIPE
 from configparser import NoOptionError
 import beeflow.common.log as bee_logging
 from beeflow.common.config_driver import BeeConfig
 
 log = bee_logging.setup_logging(level='DEBUG')
-restd_log = bee_logging.setup_logging(level='DEBUG') 
+restd_log = bee_logging.setup_logging(level='DEBUG')
+
 
 def get_script_path():
+    """Construct a path to beeflow script install tree."""
     return os.path.dirname(os.path.realpath(__file__))
 
-# Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
-def StartSlurmRestD(bc, args):
-    """Start BEESlurmRestD. Returns a Popen process object."""
 
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
-    restd_handler = bee_logging.save_log(bee_workdir=bee_workdir, log=restd_log, logfile='restd.log')
-    slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log']) 
+# Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
+def start_slurm_restd(bc, args):
+    """Start BEESlurmRestD. Returns a Popen process object."""
+    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+    _ = bee_logging.save_log(bee_workdir=bee_workdir, log=restd_log,
+                             logfile='restd.log')
+    slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
     # Load gdb config from config file if exists
     try:
         bc.userconfig['slurmrestd']
@@ -41,18 +43,18 @@ def StartSlurmRestD(bc, args):
             'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(os.getlogin(), 100 + bc.offset),
         }
         # Add section (writes to config file)
-        bc.modify_section('user','slurmrestd',restd_dict)
+        bc.modify_section('user', 'slurmrestd', restd_dict)
     if args.config_only:
         return None
-    slurm_socket = bc.userconfig.get('slurmrestd','slurm_socket')
-    subprocess.Popen(['rm','-f',slurm_socket])
+    slurm_socket = bc.userconfig.get('slurmrestd', 'slurm_socket')
+    subprocess.Popen(['rm', '-f', slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
     return subprocess.Popen([f"slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
                             stdout=PIPE, stderr=PIPE, shell=True)
 
-def StartWorkflowManager(bc, args):
-    """Start BEEWorkflowManager. Returns a Popen process object."""
 
+def start_workflow_manager(bc, args):
+    """Start BEEWorkflowManager. Returns a Popen process object."""
     # Load gdb config from config file if exists
     try:
         bc.userconfig['workflow_manager']
@@ -61,7 +63,7 @@ def StartWorkflowManager(bc, args):
             'listen_port': bc.default_wfm_port,
         }
         # Add section (writes to config file)
-        bc.modify_section('user','workflow_manager',wfm_dict)
+        bc.modify_section('user', 'workflow_manager', wfm_dict)
     if args.config_only:
         return None
 
@@ -72,26 +74,25 @@ def StartWorkflowManager(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
-                             userconfig_file], stdout=PIPE, stderr=PIPE)
+                            userconfig_file], stdout=PIPE, stderr=PIPE)
 
-def StartTaskManager(bc, args):
+
+def start_task_manager(bc, args):
     """Start BEETaskManager. Returns a Popen process object."""
     # Load gdb config from config file if exists
     try:
         bc.userconfig['task_manager']
     except KeyError:
-        if args.job_template:
-            job_template = args.job_template
         tm_dict = {
             'listen_port': bc.default_tm_port,
             'container_runtime': 'Charliecloud'
         }
         # Add section (writes to config file)
-        bc.modify_section('user','task_manager',tm_dict)
+        bc.modify_section('user', 'task_manager', tm_dict)
     finally:
         if args.job_template:
-            tm_dict= {'job_template': args.job_template}
-            bc.modify_section('user','task_manager',tm_dict)
+            tm_dict = {'job_template': args.job_template}
+            bc.modify_section('user', 'task_manager', tm_dict)
     if args.config_only:
         return None
 
@@ -102,9 +103,10 @@ def StartTaskManager(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/task_manager.py",
-                             userconfig_file], stdout=PIPE, stderr=PIPE)
+                            userconfig_file], stdout=PIPE, stderr=PIPE)
 
-def StartScheduler(bc, args):
+
+def start_scheduler(bc, args):
     """Start BEEScheduler.
 
     Start BEEScheduler and return the process object.
@@ -118,7 +120,7 @@ def StartScheduler(bc, args):
             'listen_port': bc.default_sched_port
         }
         # Add section (writes to config file)
-        bc.modify_section('user','scheduler',sched_dict)
+        bc.modify_section('user', 'scheduler', sched_dict)
 
     if args.config_only:
         return None
@@ -128,11 +130,12 @@ def StartScheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", get_script_path() +  "/scheduler/scheduler.py",
-                            '--config-file',userconfig_file],
+    return subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
+                            '--config-file', userconfig_file],
                             stdout=PIPE, stderr=PIPE)
 
-def StartBuild(args):
+
+def start_build(args):
     """Start builder.
 
     Start build tool with task described as Dict.
@@ -140,18 +143,21 @@ def StartBuild(args):
     """
     print('args.build:', args.build)
     userconfig_file = args.build[0]
-    build_args = args.build[1] 
+    build_args = args.build[1]
     print(["python", "-m", "beeflow.common.build_interfaces",
-                            userconfig_file, build_args],)
-    return subprocess.Popen(["python", "-m", "beeflow.common.build_interfaces",
-                            userconfig_file, build_args],
-                            stdout=PIPE, stderr=PIPE)
+          userconfig_file, build_args],)
+    return subprocess.run(["python", "-m", "beeflow.common.build_interfaces",
+                          userconfig_file, build_args], check=False,
+                          stdout=PIPE, stderr=PIPE)
+
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
-    os.makedirs(bc.userconfig.get('DEFAULT','bee_workdir'), exist_ok=True)
-    with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
+    os.makedirs(bc.userconfig.get('DEFAULT', 'bee_workdir'), exist_ok=True)
+    with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT', 'bee_workdir')),
+                             pid_file), 'w') as fp:
         fp.write(str(proc.pid))
+
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
@@ -168,17 +174,19 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
     parser.add_argument("--job-template", help="specify path of job template.")
     parser.add_argument("--workload-scheduler", help="specify workload scheduler")
-    parser.add_argument("--build", metavar="TASK_ARGS", nargs=2,
-                       help="build a container based on a task specification")
+    parser.add_argument("--build", metavar=("CONF_FILE", "TASK_ARGS"), nargs=2,
+                        help="build a container based on a task specification")
     parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
     parser.add_argument("--sleep-time", default=4, type=int,
                         help="amount of time to sleep before checking processes")
     return parser.parse_args(args)
 
+
 def main():
+    """Execute beeflow components in logical sequence."""
     args = parse_args()
     start_all = not any([args.wfm, args.tm, args.restd, args.sched]) or all([args.wfm, args.tm, args.restd, args.sched])
-    if args.debug and not (sum([args.wfm, args.tm,  args.restd, args.sched]) == 1):
+    if args.debug and not sum([args.wfm, args.tm,  args.restd, args.sched]) == 1:
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
         return 1
@@ -195,38 +203,38 @@ def main():
     bc = BeeConfig(**config_params)
     # If workdir argument exists, over-write
     if args.bee_workdir:
-        bc.modify_section('user', 'DEFAULT', {'bee_workdir':bc.resolve_path(args.bee_workdir)} )
+        bc.modify_section('user', 'DEFAULT', {'bee_workdir': bc.resolve_path(args.bee_workdir)})
     # If workload_scheduler argument exists, over-write
     if args.workload_scheduler:
-        bc.modify_section('user', 'task_manager', {'workload_scheduler':args.workload_scheduler} )
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+        bc.modify_section('user', 'task_manager', {'workload_scheduler': args.workload_scheduler})
+    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
     # Setup logging based on args.debug
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='beeflow.log')
+    _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='beeflow.log')
     if log is None:
         # Something went wrong
         return 1
 
     if args.build:
-        proc = StartBuild(args)
+        proc = start_build(args)
         if proc is None:
             log.error('Builder failed to initialize. Exiting.')
             return 1
         create_pid_file(proc, 'builder.pid', bc)
         log.info('Loading Builder...')
-        return(0)
+        return 0
     if args.config_only:
         return 0
     # Start all processes
-    wait_list = [] # List of processes to wait for
+    wait_list = []  # List of processes to wait for
     # Only start slurmrestd if workload_scheduler is Slurm (default)
     try:
-        workload_scheduler = bc.userconfig.get('DEFAULT','workload_scheduler')
+        workload_scheduler = bc.userconfig.get('DEFAULT', 'workload_scheduler')
     except NoOptionError:
         workload_scheduler = 'Slurm'
-        bc.modify_section('user', 'DEFAULT', {'workload_scheduler':workload_scheduler} )
+        bc.modify_section('user', 'DEFAULT', {'workload_scheduler': workload_scheduler})
     if workload_scheduler == 'Slurm':
         if args.restd or start_all:
-            proc = StartSlurmRestD(bc, args)
+            proc = start_slurm_restd(bc, args)
             if not args.config_only:
                 if proc is None:
                     log.error('slurmrestd failed to start. Exiting.')
@@ -234,7 +242,7 @@ def main():
                 # Don't append the graph database to list of processes to wait for
                 log.info('Starting slurmrestd based on userconfig file.')
     if args.sched or start_all:
-        proc = StartScheduler(bc, args)
+        proc = start_scheduler(bc, args)
         if not args.config_only:
             if proc is None:
                 log.error('Scheduler failed to start. Exiting.')
@@ -244,7 +252,7 @@ def main():
             wait_list.append(('Scheduler', proc))
             log.info('Loading Scheduler')
     if args.wfm or start_all:
-        proc = StartWorkflowManager(bc, args)
+        proc = start_workflow_manager(bc, args)
         if not args.config_only:
             if proc is None:
                 log.error('Workflow Manager failed to start. Exiting.')
@@ -253,7 +261,7 @@ def main():
             wait_list.append(('Workflow Manager', proc))
             log.info('Loading Workflow Manager')
     if args.tm or start_all:
-        proc = StartTaskManager(bc, args)
+        proc = start_task_manager(bc, args)
         if not args.config_only:
             if proc is None:
                 log.error('Task Manager failed to start. Exiting.')
@@ -281,5 +289,15 @@ def main():
 
     return 0
 
+
 if __name__ == "__main__":
     sys.exit(main())
+# Ignoring C0103: bc is a common object in  beeflow. ignoring the snake case naming convention break
+# Ignoring W1202: fstring logging isn't causing us problems at the moment, and improves readability
+# Ignoring R1732: Should be using "with" context with Popen...but really we need to s/Popen/run/.
+#                 deferring this warning until we use the appropriate subprocess method.
+# Ignoring W0102: Dangerous default for args. Fix is beyond the scope of my PR. Deferring for now.
+# Ignoring E501,C0301: Long help string text is more readable than breaking stirngs up, perhaps.
+# Ignoring R091[1,5]: "Too many statements" is realted to code complexity. Distributed systems are
+#                     complex. Perhaps we should just accept the complexity.
+# pylama:ignore=C0103,W1202,R1732,W0102,E501,C0301,R0911,R0915

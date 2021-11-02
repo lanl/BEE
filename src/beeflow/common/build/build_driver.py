@@ -1,21 +1,28 @@
 """Abstract base class for the handling build systems."""
 
 from abc import ABC, abstractmethod
-from beeflow.common.wf_data import Task
-import json
+import jsonpickle
+
 
 def arg2task(task_arg):
-    task_arg = dict(json.loads(task_arg))
-    task = Task(name=task_arg['name'],
-                    command=task_arg['command'],
-                    requirements=task_arg['requirements'],
-                    hints=task_arg['hints'],
-                    subworkflow=task_arg['subworkflow'],
-                    inputs=task_arg['inputs'],
-                    outputs=task_arg['outputs'])
-    return(task)
+    """Convert JSON encoded task to Task object.
 
-task2arg = lambda task: json.dumps(vars(task))
+    The build driver will expect a Task object, and the build
+    interface starts with a JSON representation of the Task object.
+    """
+    return jsonpickle.decode(task_arg)
+
+
+def task2arg(task):
+    """Convert Task object to JSON encoded string.
+
+    The build interface needs to pass Task data on the command line,
+    because each compute node needs to understand the Task description.
+    JSON format is a convenient way to describe the Task object at the
+    command line.
+    """
+    return jsonpickle.encode(task)
+
 
 class BuildDriver(ABC):
     """Driver interface between WFM and a generic build system.
@@ -41,7 +48,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerPull(self, addr):
+    def dockerPull(self, addr, force):
         """CWL compliant dockerPull.
 
         CWL spec 09-23-2020: Specify a Docker image to
@@ -58,7 +65,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerFile(self):
+    def dockerFile(self, task_dockerfile, force):
         """CWL compliant dockerFile.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
@@ -66,7 +73,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerImport(self):
+    def dockerImport(self, param_import):
         """CWL compliant dockerImport.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
@@ -74,7 +81,7 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerImageId(self):
+    def dockerImageId(self, param_imageid):
         """CWL compliant dockerImageId.
 
         CWL spec 09-23-2020: The image id that will be used for
@@ -85,11 +92,29 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def dockerOutputDirectory(self):
+    def dockerOutputDirectory(self, param_output_directory):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container.
+        """
+
+    @abstractmethod
+    def copyContainer(self, force):
+        """CWL extension, copy an existing container into the build archive.
+
+        If you have a container tarball, and all you need to do is stage it,
+        that is, all you need to do is copy it to a location that BEE knows,
+        use this to put the container into the build archive.
+        """
+
+    @abstractmethod
+    def containerName(self):
+        """CWL extension, need a way to refer to containers human-readable name.
+
+        The CWL spec currently uses dockerImageId to refer to the name of a container
+        but this is explicitly not how Docker defines it. We need a way to name
+        containers in a human readable format.
         """
 
     def resolve_priority(self):
@@ -101,18 +126,19 @@ class BuildDriver(ABC):
         fast, cached container specs over slower specs. For example,
         if both a docker pull and a docker file are supported, the
         build interface will try to pull first, and only on pull
-        failure will the builder build the docker file. 
+        failure will the builder build the docker file.
         """
         # cwl spec priority list consists of:
         # (bound method, method name, priority, termainal case bool)
-        cwl_spec = [(self.dockerPull,'dockerPull',3, True),
-                    (self.dockerLoad,'dockerLoad',4, True),
-                    (self.dockerFile,'dockerFile',5, True),
-                    (self.dockerImport,'dockerImport',2, True),
-                    (self.dockerImageId,'dockerImageId',1, False),
-                    (self.dockerOutputDirectory,'dockerOutputDirectory',0, False)
-                   ]
-        exec_list = sorted(cwl_spec, key=lambda x:x[2])
-        return(exec_list)
+        cwl_spec = [(self.dockerPull, 'dockerPull', 5, True),
+                    (self.dockerLoad, 'dockerLoad', 6, True),
+                    (self.dockerFile, 'dockerFile', 7, True),
+                    (self.dockerImport, 'dockerImport', 4, True),
+                    (self.copyContainer, 'copyContainer', 3, True),
+                    (self.dockerImageId, 'dockerImageId', 1, False),
+                    (self.containerName, 'containerName', 2, False),
+                    (self.dockerOutputDirectory, 'dockerOutputDirectory', 0, False)]
+        exec_list = sorted(cwl_spec, key=lambda x: x[2])
+        return exec_list
 # Ignore snake_case requirement to enable CWL compliant names.
 # pylama:ignore=C0103

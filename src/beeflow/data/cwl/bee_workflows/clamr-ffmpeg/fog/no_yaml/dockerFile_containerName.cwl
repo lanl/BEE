@@ -21,7 +21,7 @@ steps:
       inputs:
         infile:
           type: File
-          default: lorem.txt
+          default: src/beeflow/data/cwl/bee_workflows/grep-wordcount/lorem.txt
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
@@ -29,7 +29,8 @@ steps:
       baseCommand: "/CLAMR/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png"
       hints:
         DockerRequirement:
-          copyContainer: "/ccs/proj/csc420/BEE/clamr-ppc64le.tar.gz"
+          dockerFile: "src/beeflow/data/dockerfiles/Dockerfile.clamr-lanl-x86_64"
+          containerName: "foo2"
     in:
       infile: infile
     out: [outfile]
@@ -45,10 +46,8 @@ steps:
       outputs:
         outfile: stdout
       stdout: CLAMR_movie.mp4
-      baseCommand: "ffmpeg -f image2 -i /home/$USER/graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p /home/$USER/CLAMR_movie.mp4"
+      baseCommand: "ffmpeg -f image2 -i $HOME/graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p $HOME/CLAMR_movie.mp4"
       hints:
-        DockerRequirement:
-          copyContainer: "/ccs/proj/csc420/BEE/clamr-ppc64le.tar.gz"
     in:
       infile: clamr/outfile
     out: [outfile]
