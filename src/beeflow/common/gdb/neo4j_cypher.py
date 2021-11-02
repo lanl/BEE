@@ -472,6 +472,22 @@ def set_task_output(tx, task, output_id, value):
     tx.run(output_query, task_id=task.id, output_id=output_id, value=value)
 
 
+def set_task_input_type(tx, task, input_id, type_):
+    """Set the type of a task input.
+
+    :param task: the task whose input type to set
+    :type task: Task
+    :param input_id: the ID of the input
+    :type input_id: str
+    :param type_: the input type to set
+    :param type_: str
+    """
+    type_query = ("MATCH (:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
+                  "SET i.type = $type_")
+
+    tx.run(type_query, task_id=task.id, input_id=input_id, type_=type_)
+
+
 def set_task_output_glob(tx, task, output_id, glob):
     """Set a task's output value.
 
@@ -482,10 +498,10 @@ def set_task_output_glob(tx, task, output_id, glob):
     :param glob: the glob of the output
     :type glob: str
     """
-    output_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
-                    "SET o.glob = $glob")
+    glob_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
+                  "SET o.glob = $glob")
 
-    tx.run(output_query, task_id=task.id, output_id=output_id, glob=glob)
+    tx.run(glob_query, task_id=task.id, output_id=output_id, glob=glob)
 
 
 def set_init_tasks_to_ready(tx):
