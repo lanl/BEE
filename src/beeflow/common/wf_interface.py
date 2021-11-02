@@ -5,7 +5,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 
 from uuid import uuid4
 from beeflow.common.gdb_interface import GraphDatabaseInterface
-from beeflow.common.wf_data import Workflow, Task
+from beeflow.common.wf_data import Workflow, Task, Requirement, Hint
 
 
 class WorkflowInterface:
@@ -20,38 +20,41 @@ class WorkflowInterface:
         :param kwargs: arguments to be passed to the graph database
         """
         self._gdb_interface = GraphDatabaseInterface()
-        # Connect to the graph database
-        # In the future, we may want to grab args from a config file
-        self._gdb_interface.connect(**kwargs)
+        # In the future we may need to grab the details from a config file
+        self._gdb_details = kwargs
         # Store the Workflow ID in the interface to assign it to new task objects
         self._workflow_id = None
 
-    def initialize_workflow(self, name, inputs, outputs, requirements=None, hints=None):
+
+    def initialize_workflow(self, name, inputs, outputs, requirements=None, hints=None, existing=False):
         """Begin construction of a BEE workflow.
 
         :param name: the workflow name
         :type name: str
         :param inputs: the inputs to the workflow
-        :type inputs: list of InputParameter
+        :type inputs: set of str
         :param outputs: the outputs of the workflow
-        :type outputs: list of OutputParameter
+        :type outputs: set of str
         :param requirements: the workflow requirements
         :type requirements: list of Requirement
         :param hints: the workflow hints (optional requirements)
         :type hints: list of Hint
         """
-        if self.workflow_loaded():
-            raise RuntimeError("attempt to re-initialize existing workflow")
         if requirements is None:
-            requirements = []
+            requirements = set()
         if hints is None:
-            hints = []
+            hints = set()
 
-        workflow = Workflow(name, hints, requirements, inputs, outputs)
-        self._workflow_id = workflow.id
-        # Load the new workflow into the graph database
-        self._gdb_interface.initialize_workflow(workflow)
-        return workflow
+        # Connect to the graph database
+        self._gdb_interface.connect(**self._gdb_details)
+
+        if not existing:
+            workflow = Workflow(name, hints, requirements, inputs, outputs)
+            self._workflow_id = workflow.id
+            # Load the new workflow into the graph database
+            self._gdb_interface.initialize_workflow(workflow)
+            return workflow
+        return
 
     def execute_workflow(self):
         """Begin execution of a BEE workflow."""
@@ -67,60 +70,88 @@ class WorkflowInterface:
 
     def reset_workflow(self):
         """Reset the execution state and ID of a BEE workflow."""
-        self._workflow_id = str(uuid4())
-        self._gdb_interface.reset_workflow(self._workflow_id)
+        self._gdb_interface.reset_workflow(str(uuid4()))
 
     def finalize_workflow(self):
         """Deconstruct a BEE workflow."""
-        self._workflow_id = None
         self._gdb_interface.cleanup()
 
-    def add_task(self, name, base_command, inputs, outputs, requirements=None, hints=None,
-                 stdout=None):
+    @staticmethod
+    def create_requirement(class_, params):
+        """Create a workflow requirement.
+
+        :param class_: the requirement class
+        :type class_: str
+        :param params: the requirement parameters (key-value pairs)
+        :type params: dict
+        :rtype: Requirement
+        """
+        return Requirement(class_, params)
+
+    @staticmethod
+    def create_hint(class_, params):
+        """Create a workflow hint.
+
+        :param class_: the requirement class
+        :type class_: str
+        :param params: the requirement parameters (key-value pairs)
+        :type params: dict
+        :rtype: Hint
+        """
+        return Hint(class_, params)
+
+    def add_task(self, name, command=None, requirements=None, hints=None, subworkflow=None,
+                 inputs=None, outputs=None):
         """Add a new task to a BEE workflow.
 
         :param name: the name given to the task
         :type name: str
-        :param base_command: the base command for the task
-        :type base_command: str or list of str
+        :param command: the command for the task
+        :type command: list of str
         :param requirements: the task-specific requirements
         :type requirements: list of Requirement
         :param hints: the task-specific hints (optional requirements)
         :type hints: list of Hint
+        :param subworkflow: an identifier for the subworkflow to which the task belongs
+        :type subworkflow: str
         :param inputs: the task inputs
-        :type inputs: list of StepInput
+        :type inputs: set of str
         :param outputs: the task outputs
-        :type outputs: list of StepOutput
-        :param stdout: the name of the file to which to redirect stdout
-        :type stdout: str
+        :type outputs: set of str
         :rtype: Task
         """
         # Immutable default arguments
-        if inputs is None:
-            inputs = []
-        if outputs is None:
-            outputs = []
+        if command is None:
+            command = []
         if requirements is None:
-            requirements = []
+            requirements = set()
         if hints is None:
-            hints = []
+            hints = set()
+        if inputs is None:
+            inputs = set()
+        if outputs is None:
+            outputs = set()
 
-        task = Task(name, base_command, hints, requirements, inputs, outputs, stdout,
+        task = Task(name, command, hints, requirements, subworkflow, inputs, outputs,
                     self._workflow_id)
         # Load the new task into the graph database
         self._gdb_interface.load_task(task)
         return task
+
+    def initialize_ready_tasks(self):
+        """Initialize runnable tasks in a BEE workflow to ready."""
+        self._gdb_interface.initialize_ready_tasks()
 
     def finalize_task(self, task):
         """Mark a BEE workflow task as completed.
 
         This method also automatically deduces what tasks are now
         runnable, updating their states to ready and returning a
-        list of the runnable tasks.
+        set of the runnable tasks.
 
         :param task: the task to finalize
         :type task: Task
-        :rtype: list of Task
+        :rtype: set of Task
         """
         self._gdb_interface.finalize_task(task)
         self._gdb_interface.initialize_ready_tasks()
@@ -140,24 +171,39 @@ class WorkflowInterface:
 
         Returns a tuple of (workflow_description, tasks)
 
-        :rtype: tuple of (Workflow, list of Task)
+        :rtype: tuple of (Workflow, set of Task)
         """
         workflow = self._gdb_interface.get_workflow_description()
         tasks = self._gdb_interface.get_workflow_tasks()
         return workflow, tasks
 
-    def get_workflow_outputs(self):
-        """Get the outputs from a BEE workflow.
+    def get_workflow_id(self):
+        """Get a BEE workflow ID
 
-        :rtype: list of OutputParameter
+        Returns a uuid4 string with the id
+
+        :rtype: str
         """
-        workflow = self._gdb_interface.get_workflow_description()
-        return workflow.outputs
+        workflow_id = self._gdb_interface.get_workflow_description().id
+        return workflow_id
+
+    def get_subworkflow(self, subworkflow):
+        """Get a subworkflow by its identifier.
+
+        Returns a tuple of (tasks, requirements, hints).
+
+        :param subworkflow: the unique identifier of the subworkflow
+        :type subworkflow: str
+        :rtype: tuple of (set of Task, set of Requirement, set of Hint)
+        """
+        subworkflow_tasks = self._gdb_interface.get_subworkflow_tasks(subworkflow)
+        requirements, hints = self._gdb_interface.get_workflow_requirements_and_hints()
+        return subworkflow_tasks, requirements, hints
 
     def get_ready_tasks(self):
         """Get ready tasks from a BEE workflow.
 
-        :rtype: list of Task
+        :rtype: set of Task
         """
         return self._gdb_interface.get_ready_tasks()
 
@@ -166,7 +212,7 @@ class WorkflowInterface:
 
         :param task: the task whose dependents to retrieve
         :type task: Task
-        :rtype: list of Task
+        :rtype: set of Task
         """
         return self._gdb_interface.get_dependent_tasks(task)
 
@@ -207,7 +253,7 @@ class WorkflowInterface:
         """Set the job description metadata of a task in a BEE workflow.
 
         This method should not be used to update task state.
-        set_task_state() or finalize_task() should instead be used.
+        finalize_task() should instead be used.
 
         :param task: the task whose metadata to set
         :type task: Task
@@ -215,68 +261,6 @@ class WorkflowInterface:
         :type metadata: dict
         """
         self._gdb_interface.set_task_metadata(task, metadata)
-
-    def get_task_input(self, task, input_id):
-        """Get a task input object.
-
-        :param task: the task whose input to retrieve
-        :type task: Task
-        :param input_id: the ID of the input
-        :type input_id: str
-        :rtype: StepInput
-        """
-        return self._gdb_interface.get_task_input(task, input_id)
-
-    def set_task_input(self, task, input_id, value):
-        """Set the value of a task input.
-
-        :param task: the task whose input to set
-        :type task: Task
-        :param input_id: the ID of the input
-        :type input_id: str
-        :param value: str or int or float
-        """
-        self._gdb_interface.set_task_input(task, input_id, value)
-
-    def get_task_output(self, task, output_id):
-        """Get a task output object.
-
-        :param task: the task whose output to retrieve
-        :type task: Task
-        :param output_id: the ID of the output
-        :type output_id: str
-        :rtype: StepOutput
-        """
-        return self._gdb_interface.get_task_output(task, output_id)
-
-    def set_task_output(self, task, output_id, value):
-        """Set the value of a task output.
-
-        :param task: the task whose output to set
-        :type task: Task
-        :param output_id: the ID of the output
-        :type output_id: str
-        :param value: the output value to set
-        :type value: str or int or float
-        """
-        self._gdb_interface.set_task_output(task, output_id, value)
-
-    def evaluate_expression(self, task, id, output=False):
-        """Evaluate a task input/output expression.
-
-        Expression can be either a string concatenation in a StepInput
-        valueFrom field or a parameter substitution in a StepOutput
-        glob field. The only special variable supported in valueFrom is
-        self.path.
-
-        :param task: the task whose expression to evaluate
-        :type task: Task
-        :param id: the id of the step input/output
-        :type id: str
-        :param output: true if output glob expression being evaluated, else false
-        :type output: bool
-        """
-        self._gdb_interface.evaluate_expression(task, id, output)
 
     def workflow_completed(self):
         """Return true if all of a workflow's tasks have completed, else false.
@@ -301,18 +285,3 @@ class WorkflowInterface:
         :rtype: bool
         """
         return bool(not self._gdb_interface.empty())
-
-    @property
-    def workflow_id(self):
-        """Retrieve the workflow ID from the workflow interface.
-
-        If workflow ID is not populated, this grabs it from the database.
-
-        If no workflow is loaded, None is returned.
-        :rtype: str
-        """
-        if self._workflow_id is None and self.workflow_loaded():
-            workflow = self.get_workflow()
-            self._workflow_id = workflow.id
-
-        return self._workflow_id

@@ -74,25 +74,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
     def run_text(self, task):
         """Build text for Charliecloud batch script."""
-        if task.hints is not None:
-            docker = False
-            # Make sure all commands are strings
-            cmd_tasks = list(map(str, task.command))
-            command = ' '.join(cmd_tasks) + '\n'
-            for hint in task.hints:
-                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    name = self.get_ccname(hint.params["dockerImageId"])
-                    chrun_opts, cc_setup = self.get_cc_options()
-                    image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
-                    text = (f'{cc_setup}\n'
-                            f'mkdir -p {image_mntdir}\n'
-                            f'ch-tar2dir {hint.params["dockerImageId"]} {image_mntdir}\n'
-                            f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
-                            f'rm -rf {image_mntdir}/{name}\n'
-                            )
-                    docker = True
-            if not docker:
-                text = command
         # Read container archive path from config.
         try:
             if bc.userconfig['builder'].get('container_archive'):
@@ -223,7 +204,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 f'rm -rf {deployed_image_root}/{task_container_name}\n'
                 )
         log.info('run text:\n{}'.format(text))
->>>>>>> develop
         return text
 
     def build_text(self, userconfig, task):
@@ -244,9 +224,7 @@ class SingularityDriver(ContainerRuntimeDriver):
         """Build text for Singularity batch script."""
         if task.hints is not None:
             docker = False
-            # Make sure all commands are strings
-            cmd_tasks = list(map(str, task.command))
-            command = ' '.join(cmd_tasks) + '\n'
+            command = ''.join(task.command) + '\n'
             for hint in task.hints:
                 if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
                     text = ''.join([
