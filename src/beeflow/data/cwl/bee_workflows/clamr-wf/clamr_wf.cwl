@@ -54,8 +54,8 @@ steps:
         DockerRequirement:
             # TODO Sort this out
             #dockerImport: clamr_img.tar.gz
-            #dockerImageId: clamr
-            dockerImageId: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
+            #copyContainer: clamr
+            copyContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
 
   ffmpeg:
     run: ffmpeg.cwl
