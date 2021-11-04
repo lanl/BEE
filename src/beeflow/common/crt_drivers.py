@@ -206,7 +206,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 log.info('Moving with the expectation that {} is the runtime container target'.
                          format(task_container_name))
 
-        command = ''.join(task.command) + '\n'
+        command = ' '.join(task.command) + '\n'
         if baremetal:
             return command
 
@@ -223,7 +223,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 f'rm -rf {deployed_image_root}/{task_container_name}\n'
                 )
         log.info('run text:\n{}'.format(text))
->>>>>>> develop
         return text
 
     def build_text(self, userconfig, task):
