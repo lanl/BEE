@@ -6,3 +6,5 @@ This workflow executes the `CLAMR` AMR simulation and then runs `ffmpeg` to prod
 Systems with valid CLAMR workflows include
 * Fog (LANL system)
 * Summit (ORNL system)
+* Darwin (LANL system)
+* Case (LANL desktop with singularity)
