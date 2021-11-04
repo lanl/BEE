@@ -280,6 +280,7 @@ class GraphDatabaseInterface:
                     else:
                         # Pattern "foo" (strip quotes)
                         values.append(m[1:-1])
+                self._connection.set_task_input_type(task, id, "string")
                 self._connection.set_task_input(task, id, values[0] + values[1])
             else:
                 raise ValueError(f"unable to evaluate expression {step_input.value_from}")
