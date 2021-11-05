@@ -2,6 +2,7 @@
 
 This workflow executes the `CLAMR` AMR simulation and then runs `ffmpeg`, represented in a single CWL file.
 
+
 ## Container registry interactions
 
 Any workflow which interacts with the container registry may need to authenticate. In the case of Docker and Dockerhub, traditionally users execute `docker login` from the command line before attempting to interact with the container registry. With Charliecloud, the environment variables `CH_USERNAME` and `CH_PASSWORD` are used for the username/password combinations Dockerhub requires. In cases where Charliecloud interacts with a Gitlab container registry, tokens are used instead of passwords. A description about how to use Gitlab tokens follows.
@@ -16,3 +17,5 @@ Files:
 * copyContainer_containerName.cwl - A workflow which demonstrates the ability to copy a container tarball from some mount point to the BEE container archive.
 * dockerFile_containerName.cwl - A workflow which demonstrates the ability to build a container from a Dockerfile and store that container in the BEE container archive. See the note above about container registry interactions.
 * dockerPull.cwl - A workflow which demonstrates the ability to pull a container from a container registry and store that container in the BEE container archive. See the note above about container registry interactions.
+
+Note: The ls command was added to use the output from the first step for the 2nd step.
