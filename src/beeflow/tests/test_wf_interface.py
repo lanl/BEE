@@ -434,8 +434,8 @@ class TestWorkflowInterface(unittest.TestCase):
                        '$("test_" + inputs.test_input)')],
             [StepOutput("test_task/output", "File", None, "$(inputs.test_input).bak")])
 
-        test_input = StepInput("test_input", "File", "test_input.txt", "default.txt", "test_input",
-                               None, None, '$("test_" + inputs.test_input)')
+        test_input = StepInput("test_input", "string", "test_input.txt", "default.txt",
+                               "test_input", None, None, '$("test_" + inputs.test_input)')
         self.wfi.evaluate_expression(task, "test_input")
         self.assertEqual(test_input, self.wfi.get_task_input(task, "test_input"))
 

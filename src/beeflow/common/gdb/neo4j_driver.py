@@ -301,6 +301,18 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_task_output, task=task, output_id=output_id, value=value)
 
+    def set_task_input_type(self, task, input_id, type_):
+        """Set the type of a task input.
+
+        :param task: the task whose input type to set
+        :type task: Task
+        :param input_id: the ID of the input
+        :type input_id: str
+        :param type_: the input type to set
+        :param type_: str
+        """
+        self._write_transaction(tx.set_task_input_type, task=task, input_id=input_id, type_=type_)
+
     def set_task_output_glob(self, task, output_id, glob):
         """Set the glob of a task output.
 

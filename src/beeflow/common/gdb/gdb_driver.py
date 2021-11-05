@@ -214,10 +214,22 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def set_task_input_type(self, task, input_id, type_):
+        """Set the type of a task input.
+
+        :param task: the task whose input type to set
+        :type task: Task
+        :param input_id: the ID of the input
+        :type input_id: str
+        :param type_: the input type to set
+        :param type_: str
+        """
+
+    @abstractmethod
     def set_task_output_glob(self, task, output_id, glob):
         """Set the glob of a task output.
 
-        :param task: the task whose output to set
+        :param task: the task whose output glob to set
         :type task: Task
         :param output_id: the ID of the output
         :type output_id: str

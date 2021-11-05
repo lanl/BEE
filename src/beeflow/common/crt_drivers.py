@@ -206,7 +206,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 log.info('Moving with the expectation that {} is the runtime container target'.
                          format(task_container_name))
 
-        command = ''.join(task.command) + '\n'
+        command = ' '.join(task.command) + '\n'
         if baremetal:
             return command
 
