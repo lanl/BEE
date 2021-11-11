@@ -21,11 +21,11 @@ steps:
       inputs:
         infile:
           type: File
-          default: lorem.txt
+          default: ""
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
-      stdout: graphics_output
+      stdout: $HOME/graphics_output
       baseCommand: "/clamr/CLAMR-master/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png"
       hints:
         DockerRequirement:
@@ -40,12 +40,11 @@ steps:
       inputs:
         infile:
           type: File
-          default: graphics_output
           inputBinding: {position: 1}
       outputs:
         outfile: stdout
       stdout: CLAMR_movie.mp4
-      baseCommand: "ffmpeg -f image2 -i graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p CLAMR_movie.mp4"
+      baseCommand: "ffmpeg -y -f image2 -i $HOME/graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p $HOME/CLAMR_movie.mp4 && ls -ld"
     in:
       infile: clamr/outfile
     out: [outfile]

@@ -5,7 +5,7 @@ cwlVersion: v1.0
 
 baseCommand: /clamr/CLAMR-master/clamr_cpuonly
 # This is the stdout field which makes all stdout be captured in this file
-# stderr is not currently implemneted but it is also a thing
+# stderr is not currently implemented but it is also a thing
 stdout: clamr_stdout.txt
 # Arguments to the command
 inputs:
