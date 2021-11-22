@@ -24,6 +24,23 @@ class TestWorkflowInterface(unittest.TestCase):
         if self.wfi.workflow_initialized() and self.wfi.workflow_loaded():
             self.wfi.finalize_workflow()
 
+    def test_reconnect(self):
+        """Test workflow reconnection."""
+        workflow = self.wfi.initialize_workflow("test_workflow",
+                                                [InputParameter("test_input", "File", "input.txt")],
+                                                [OutputParameter("test_output", "File",
+                                                                 "output.txt", "viz/output")])
+
+        # Destroy connection object
+        self.wfi._gdb_interface._connection = None
+        # Re-establish connection
+        self.wfi.reconnect()
+
+        self.assertTrue(self.wfi.workflow_loaded())
+        gdb_workflow = self.wfi.get_workflow()[0]
+        self.assertEqual(workflow, gdb_workflow)
+        self.assertEqual(self.wfi._workflow_id, gdb_workflow.id)
+
     def test_initialize_workflow(self):
         """Test workflow initialization.
 
