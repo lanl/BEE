@@ -12,4 +12,4 @@ CLAMR workflows for various systems:
 * Darwin (LANL system) slurm-charliecloud/cf-darwin.cwl
 * Case (LANL desktop with singularity) slurm/singularity/cf-singularity.cwl
 
-There are also examples using the build interface in the slurm-charliecloud directory.
+There are also examples using various functions of the build interface in the slurm-charliecloud directory.

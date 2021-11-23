@@ -1,6 +1,6 @@
-# CLAMR-FFMPEG WORKFLOW (Fog)
+# CLAMR-FFMPEG WORKFLOW
 
-This workflow executes the `CLAMR` AMR simulation and then runs `ffmpeg`, represented in a single CWL file.
+These workflows execute the `CLAMR` AMR simulation and then runs `ffmpeg`, represented in a single CWL file.
 
 
 ## Container registry interactions
