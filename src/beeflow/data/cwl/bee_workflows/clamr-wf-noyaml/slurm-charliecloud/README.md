@@ -7,10 +7,9 @@ Files:
 * cf-darwin.cwl - clamr CWL file that runs on the LANL darwin cluster.
 * cf-no-owrite.cwl - clamr CWL file no overwrite, ffmpeg to fails if movie file exists, useful to test FAILED step.
 * copyContainer_containerName.cwl - A workflow which demonstrates the ability to copy a container tarball from some mount point to the BEE container archive.
-* dockerFile_containerName.cwl - A workflow which demonstrates the ability to build a container from a Dockerfile and store that container in the BEE container archive. See the note above about container registry interactions.
+* dockerFile_containerName.cwl - A workflow which demonstrates the ability to build a container from a Dockerfile and store that container in the BEE container archive.
 * dockerPull.cwl - A workflow which demonstrates the ability to pull a container from a container registry and store that container in the BEE container archive. 
 
-Note: The ls command was added to use the output from the first step for the 2nd step.
 
 ## Container registry interactions
 
