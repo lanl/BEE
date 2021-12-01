@@ -25,6 +25,16 @@ class WorkflowInterface:
         self._gdb_interface.connect(**kwargs)
         # Store the Workflow ID in the interface to assign it to new task objects
         self._workflow_id = None
+        # Store the GDB credentials for reconnection if necessary
+        self._kwargs = kwargs
+
+    def reconnect(self):
+        """Reconnect to the graph database using stored credentials."""
+        self._gdb_interface.connect(**self._kwargs)
+        if self.workflow_loaded():
+            self._workflow_id = None
+            # This property automatically sets self._workflow_id when invoked
+            self.workflow_id
 
     def initialize_workflow(self, name, inputs, outputs, requirements=None, hints=None):
         """Begin construction of a BEE workflow.
@@ -39,6 +49,7 @@ class WorkflowInterface:
         :type requirements: list of Requirement
         :param hints: the workflow hints (optional requirements)
         :type hints: list of Hint
+        :rtype: Workflow
         """
         if self.workflow_loaded():
             raise RuntimeError("attempt to re-initialize existing workflow")
@@ -312,7 +323,7 @@ class WorkflowInterface:
         :rtype: str
         """
         if self._workflow_id is None and self.workflow_loaded():
-            workflow = self.get_workflow()
+            workflow = self.get_workflow()[0]
             self._workflow_id = workflow.id
 
         return self._workflow_id
