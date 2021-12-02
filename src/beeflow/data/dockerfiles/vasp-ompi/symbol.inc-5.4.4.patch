@@ -1,0 +1,10 @@
+--- src/symbol.inc	2019-03-15 12:51:58.185422113 -0600
++++ src/symbol_new.inc	2019-03-15 12:51:45.632954261 -0600
+@@ -420,3 +420,7 @@
+ #include "cuda_macros.inc"
+ #include "cuda_profiling.inc"
+ #endif
++! routines replaced in LAPACK >=3.6 
++#ifdef LAPACK36
++#define DGEGV DGGEV
++#endif
