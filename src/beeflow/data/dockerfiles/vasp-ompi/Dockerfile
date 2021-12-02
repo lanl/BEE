@@ -9,7 +9,7 @@
 #           [--force] \
 #           . -t vasp:5.4.4
 
-FROM ch-base-deb9ompi
+FROM deb9ompi
 MAINTAINER Steven Anaya <sanaya@lanl.gov>
 
 ENV USER vasp
