@@ -24,6 +24,7 @@ from werkzeug.datastructures import FileStorage
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
 from beeflow.common.parser import CwlParser
+from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
@@ -105,6 +106,8 @@ def _resource(component, tag=""):
 
 # Instantiate the workflow interface
 wfi = None
+# Instantiate the workflow profiler
+wf_profiler = None
 #try:
 #    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
 #                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
@@ -226,6 +229,7 @@ class JobsList(Resource):
 
     def post(self):
         global wfi
+        global wf_profiler
         """Get a workflow or give file not found error."""
         data = self.reqparse.parse_args()
 
@@ -275,6 +279,11 @@ class JobsList(Resource):
                 wfi = parser.parse_workflow(temp_cwl_path, temp_yaml_path)
             else:
                 wfi = parser.parse_workflow(temp_cwl_path)
+
+            # Initialize up the workflow profiling code
+            fname = '{}.json'.format(job_name)
+            output_path = os.path.join(bee_workdir, fname)
+            wf_profiler = WorkflowProfiler(job_name, output_path)
 
             # Save the workflow to the workflow_id dir
             wf_id = wfi.workflow_id
@@ -576,6 +585,7 @@ class JobUpdate(Resource):
 
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
+        wf_profiler.add_state_change(task, job_state)
 
         if 'metadata' in data:
             if data['metadata'] != None:
@@ -596,6 +606,9 @@ class JobUpdate(Resource):
             else:
                 if wfi.workflow_completed():
                     log.info("Workflow Completed")
+
+                    # Save the profile
+                    wf_profiler.save()
 
                     if archive and not reexecute:
                         gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
