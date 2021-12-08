@@ -35,7 +35,7 @@ The BEE project supports launching applications using the [Charliecloud](https:/
 We use a custom Slurm built for the BEE project on Darwin, built against the Darwin admin maintained configs in `/etc/slurm/`. In order to use the Slurm rest interface on Darwin, you must set up and use this custom Slurm build:
 
 ```
-export MODULEPATH=$MODULEPATH:/projects/beedev/modulefiles
+module use /projects/beedev/modulefiles
 module load slurmrestd
 ```
 
