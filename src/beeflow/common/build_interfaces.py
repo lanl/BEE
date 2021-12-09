@@ -40,7 +40,7 @@ def build_main(bc, task):
                 RETURN_CODE = return_obj.returncode
             except AttributeError:
                 RETURN_CODE = int(return_obj)
-    except CalledProcessError:
+        except CalledProcessError:
             RETURN_CODE = 1
             log.warning('There was a problem executing {}, check relevant log for detail.'
                         .format(op_name))
