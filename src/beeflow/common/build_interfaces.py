@@ -21,6 +21,7 @@ from beeflow.common.build.build_driver import arg2task
 def build_main(bc, task):
     """Main build code."""
     # The build driver treats Hint and Requirement objects as Dicts.
+    task = task.copy()
     task.hints = dict(task.hints)
     task.requirements = dict(task.requirements)
     builder = CharliecloudBuildDriver(task)
