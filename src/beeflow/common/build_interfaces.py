@@ -20,6 +20,9 @@ from beeflow.common.build.build_driver import arg2task
 
 def build_main(bc, task):
     """Main build code."""
+    # The build driver treats Hint and Requirement objects as Dicts.
+    task.hints = dict(task.hints)
+    task.requirements = dict(task.requirements)
     builder = CharliecloudBuildDriver(task)
     log.info('CharliecloudBuildDriver initialized')
 
@@ -70,9 +73,6 @@ if __name__ == '__main__':
 
     try:
         task = arg2task(my_args)
-        # The build driver treats Hint and Requirement objects as Dicts.
-        task.hints = dict(task.hints)
-        task.requirements = dict(task.requirements)
     except Exception as e:
         log.info('{}'.format(e))
 

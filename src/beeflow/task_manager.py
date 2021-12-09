@@ -17,19 +17,23 @@ import threading
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
+
+# This must be imported before calling other parts of BEE
+if len(sys.argv) >= 2:
+    bc = BeeConfig(userconfig=sys.argv[1])
+else:
+    bc = BeeConfig()
+
+
+from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.cli import log
 from beeflow.common.build.build_driver import task2arg
 from beeflow.common.build_interfaces import build_main
 import beeflow.common.log as bee_logging
 
-sys.excepthook = bee_logging.catch_exception
 
-if len(sys.argv) >= 2:
-    bc = BeeConfig(userconfig=sys.argv[1])
-else:
-    bc = BeeConfig()
+sys.excepthook = bee_logging.catch_exception
 
 USERCONFIG = bc.userconfig_file
 

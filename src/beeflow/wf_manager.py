@@ -15,6 +15,15 @@ import tarfile
 import getpass
 import subprocess
 import cwl_utils.parser.cwl_v1_0 as cwl
+
+from beeflow.common.config_driver import BeeConfig
+
+# The bc object must be created before importing other parts of BEE
+if len(sys.argv) > 2:
+    bc = BeeConfig(userconfig=sys.argv[1])
+else:
+    bc = BeeConfig()
+
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -22,7 +31,6 @@ from flask_restful import Resource, Api, reqparse
 from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
 from beeflow.common.wf_interface import WorkflowInterface
-from beeflow.common.config_driver import BeeConfig
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.start_gdb import StartGDB
@@ -30,11 +38,6 @@ from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
 sys.excepthook = bee_logging.catch_exception
-
-if len(sys.argv) > 2:
-    bc = BeeConfig(userconfig=sys.argv[1])
-else:
-    bc = BeeConfig()
 
 
 if bc.userconfig.has_section('workflow_manager'):
