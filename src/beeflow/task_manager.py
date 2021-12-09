@@ -12,6 +12,7 @@ import subprocess
 from subprocess import PIPE
 import jsonpickle
 import requests
+import threading
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -20,6 +21,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 from beeflow.common.build.build_driver import task2arg
+from beeflow.common.build_interfaces import build_main
 import beeflow.common.log as bee_logging
 
 sys.excepthook = bee_logging.catch_exception
@@ -146,8 +148,10 @@ def gen_task_metadata(task, job_id):
 
 def resolve_environment(task):
     """Use build interface to create a valid environment."""
-    return subprocess.run(["beeflow", "--build", USERCONFIG, task2arg(task)],
-                          stdout=PIPE, stderr=PIPE, check=False)
+    # return subprocess.run(["beeflow", "--build", USERCONFIG, task2arg(task)],
+    #                      stdout=PIPE, stderr=PIPE, check=False)
+    # TODO: Could use a thread for this
+    build_main(bc, task)
 
 
 def submit_jobs():
