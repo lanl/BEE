@@ -5,7 +5,19 @@ import os
 import platform
 
 
-class BeeConfig:
+def BeeConfig(*pargs, **kwargs):
+    """Wrapper around _BeeConfig class to make the class act as a singleton."""
+    if _BeeConfig.instance is None:
+        _BeeConfig.instance = _BeeConfig(*pargs, **kwargs)
+    return _BeeConfig.instance
+
+
+# I'm renaming this to _BeeConfig as a hack to make sure that other code doesn't
+# instantiate it directly. Instead other code should call the BeeConfig() method
+# above as if it were the original constructor. This wrapper function ensures that
+# the class is only instantiated once, like a singleton. There may be a better,
+# more Pythonic way to do this, but this seems to work OK for now.
+class _BeeConfig:
     r"""Class to manage and store all BEE configuration.
 
     BeeConfig.sysconfig is a ConfigParser object of system configurations.
@@ -22,6 +34,9 @@ class BeeConfig:
       sysconfig_file = NOT SUPPORTED. Should be windows registry.
       userconfig_file = '%APPDATA%\beeflow\bee.conf'
     """
+
+    # _BeeConfig instance
+    instance = None
 
     def __init__(self, **kwargs):
         """Initialize BeeConfig class.

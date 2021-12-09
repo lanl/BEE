@@ -25,6 +25,7 @@ from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_profiler import WorkflowProfiler
+from beeflow.start_gdb import StartGDB
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
@@ -252,7 +253,7 @@ class JobsList(Resource):
             # Start a new GDB 
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
             script_path = get_script_path()
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            gdb_proc = StartGDB(bc, gdb_workdir)
             # Need to wait a moment for the GDB
             time.sleep(10)
 
@@ -347,7 +348,7 @@ class JobsList(Resource):
 
              # Launch new container with bindmounted GDB
             script_path = get_script_path()
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            gdb_proc = StartGDB(bc, gdb_workdir, reexecute=True)
             time.sleep(10)
 
             # Initialize the database connection object
