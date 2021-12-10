@@ -88,13 +88,34 @@ class SlurmWorker(Worker):
         template_text += f'#SBATCH --job-name={task.name}-{task.id}\n'
         template_text += f'#SBATCH --output={workflow_path}/{task.name}-{task.id}.out\n'
         template_text += f'#SBATCH --error={workflow_path}/{task.name}-{task.id}.err\n'
+        hints = dict(task.hints)
+        # Add MPI requirements
+        try:
+            nodes = hints['beeflow:MPIRequirement']['nodes']
+            template_text += f'#SBATCH -N {nodes}\n'
+        except (KeyError, TypeError):
+            pass
+        try:
+            ntasks = hints['beeflow:MPIRequirement']['ntasks']
+            template_text += f'#SBATCH -n {ntasks}\n'
+        except (KeyError, TypeError):
+            pass
         template_text += self.template_text
         template = string.Template(template_text)
         job_text = template.substitute({'WorkflowID': task.workflow_id,
                                         'name': task.name,
                                         'id': task.id}
                                        )
-        crt_text = self.crt.run_text(task)
+        # crt_text = self.crt.run_text(task)
+        crt_text = []
+        commands = self.crt.run_text(task)
+        for cmd in commands:
+            if cmd.block is not None:
+                crt_text.append(cmd.block)
+                crt_text.append('\n')
+            else:
+                crt_text.append('srun {}\n'.format(' '.join(cmd.argv)))
+        crt_text = ''.join(crt_text)
         job_text += crt_text
         return job_text
 

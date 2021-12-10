@@ -22,15 +22,26 @@ bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
 
+class Command:
+    """Command class to be returned by run_text()."""
+
+    def __init__(self, argv=None, block=None):
+        """Command constructor."""
+        # Argument list for a command (see run_text() below)
+        self.argv = argv
+        # For a block of shell text/environment setup code
+        self.block = block
+
+
 class ContainerRuntimeDriver(ABC):
     """ContainerRuntimeDriver interface for generic container runtime."""
 
     @abstractmethod
     def run_text(self, task):
-        """Create text for job using the container runtime.
+        """Create commands for job using the container runtime.
 
         :param task: instance of Task
-        :rtype string
+        :rtype list of instance of Command
         """
 
     @abstractmethod
@@ -216,14 +227,15 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         chrun_opts, cc_setup = self.get_cc_options()
         deployed_image_root = bc.userconfig.get('builder', 'deployed_image_root')
 
-        text = (f'{cc_setup}\n'
-                f'mkdir -p {deployed_image_root}\n'
-                f'ch-tar2dir {container_path} {deployed_image_root}\n'
-                f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'
-                f'rm -rf {deployed_image_root}/{task_container_name}\n'
-                )
-        log.info('run text:\n{}'.format(text))
-        return text
+        commands = [
+            Command(block=f'{cc_setup}\n'),
+            Command(argv=f'mkdir -p {deployed_image_root}\n'.split()),
+            Command(argv=f'ch-tar2dir {container_path} {deployed_image_root}\n'.split()),
+            Command(argv=f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()),
+            Command(argv=f'rm -rf {deployed_image_root}/{task_container_name}\n'.split()),
+        ]
+        log.info('run text:\n{}'.format(commands))
+        return commands
 
     def build_text(self, userconfig, task):
         """Build text for Charliecloud batch script."""
