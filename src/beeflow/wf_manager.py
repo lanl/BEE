@@ -647,6 +647,16 @@ class JobUpdate(Resource):
         return resp
 
 
+
+@flask_app.route('/bee_wfm/v1/status/<string:wf_id>')
+def status(wf_id):
+    """Report various workflow status info and metrics."""
+    wf = {
+        'complete': wfi.workflow_completed(),
+    }
+    return make_response(jsonify(**wf), 200)
+
+
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
