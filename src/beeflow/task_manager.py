@@ -266,6 +266,15 @@ class TaskActions(Resource):
         return resp
 
 
+# This could probably be in a Resource class, but since its only one route
+# it seems to be fine right here
+@flask_app.route('/status')
+def get_status():
+    """Report the current status of the Task Manager."""
+    # TODO: Report statistics about jobs, perhaps current system load, etc.
+    return make_response(jsonify(status='up'), 200)
+
+
 # WorkerInterface needs to be placed here. Don't Move!
 from beeflow.common.worker_interface import WorkerInterface
 import beeflow.common.worker as worker_pkg
