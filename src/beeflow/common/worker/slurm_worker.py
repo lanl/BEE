@@ -10,6 +10,7 @@ import json
 import urllib
 import requests_unixsocket
 import requests
+import getpass
 
 from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
@@ -33,8 +34,10 @@ class SlurmWorker(Worker):
 
     def __init__(self, bee_workdir, **kwargs):
         """Create a new Slurm Worker object."""
-        # Pull slurm socket configs from kwargs
-        self.slurm_socket = kwargs.get('slurm_socket', f'/tmp/slurm_{os.getlogin()}.sock')
+        # Pull slurm socket configs from kwargs (Uses getpass.getuser() instead
+        # of os.getlogin() because of an issue with using getlogin() without a
+        # controlling terminal)
+        self.slurm_socket = kwargs.get('slurm_socket', f'/tmp/slurm_{getpass.getuser()}.sock')
         self.session = requests_unixsocket.Session()
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.

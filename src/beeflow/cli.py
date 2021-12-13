@@ -14,6 +14,7 @@ import os
 import subprocess
 import sys
 import time
+import getpass
 from subprocess import PIPE
 from configparser import NoOptionError
 import beeflow.common.log as bee_logging
@@ -40,7 +41,7 @@ def start_slurm_restd(bc, args):
         bc.userconfig['slurmrestd']
     except KeyError:
         restd_dict = {
-            'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(os.getlogin(), 100 + bc.offset),
+            'slurm_socket': '/tmp/slurm_{}_{}.sock'.format(getpass.getuser(), 100 + bc.offset),
         }
         # Add section (writes to config file)
         bc.modify_section('user', 'slurmrestd', restd_dict)

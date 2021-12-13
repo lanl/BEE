@@ -7,6 +7,7 @@ import time
 import yaml
 import importlib
 import jinja2
+import requests
 
 import beeflow.common.cloud as cloud
 from beeflow.common.config_driver import BeeConfig
@@ -125,18 +126,19 @@ def connect(provider, private_key_file, bee_user, launch_cmd, head_node,
     # Keep trying to get a status from the Task Manager (this could probably be
     # done better with some sort of backoff algorithm)
     for i in range(max_retries):
+        print('Trying to connect to the TM')
         time.sleep(interval)
         try:
             resp = requests.get(url)
             status = resp.json()
-            print('Connected to the task manager with status "{}"'.format(status))
+            print('Connected to the TM with status "{}"'.format(status))
             return
         except requests.ConnectionError:
             pass
     # If we get here, then set up might be taking longer than interval *
     # max_retries or the set up failed somehow
     tun_proc.kill()
-    sys.exit('Connection attempt to the task manager failed')
+    sys.exit('Connection attempt to the TM failed')
 
 
 def main():
