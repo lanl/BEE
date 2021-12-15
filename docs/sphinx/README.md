@@ -1,5 +1,5 @@
 # BEE Documentation Generation with Sphinx
-The `doc-src` directory contains the source for generating BEE documentation.
+The `sphinx` directory contains the source for generating BEE documentation.
 
 BEE documentation is generated using [Sphinx](http://www.sphinx-doc.org/en/master/).
 API documentation may be automatically generated using docstrings.
@@ -18,16 +18,16 @@ Otherwise, run the command `pip install Sphinx sphinx-rtd-theme`.
 
 ## Generate the Documentation
 
-To generate HTML documentation, simply run the command `make html` inside the `doc-src` directory.
-The generated documentation is stored in the untracked `doc-src/_build/html` directory.
+To generate HTML documentation, simply run the command `make html` inside the `sphinx` directory.
+The generated documentation is stored in the untracked `sphinx/_build/html` directory.
 
 Sphinx is also capable of generating documentation in other formats, such as LaTeX (`latex`, or `latexpdf` for PDF),
 JSON (`json`), Pickle (`pickle`), plain text (`text`), and manual pages (`man`).
-For a full list of documentation types, run the command `make` inside the `doc-src` directory.
+For a full list of documentation types, run the command `make` inside the `sphinx` directory.
 
 ## Adding Documentation
 
-To create a new index for the table of contents, create a reST file with an appropriate name in the `doc-src` directory.
+To create a new index for the table of contents, create a reST file with an appropriate name in the `sphinx` directory.
 
 To add the new index to the table of contents, append the name of the index, without the `.rst` extension to the `toctree`
 section of `index.rst`, indented with *precisely 3 spaces*. For example, if a file is created with the name `foo.rst`,

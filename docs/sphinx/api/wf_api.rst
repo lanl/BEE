@@ -8,7 +8,7 @@ Workflow Interface
 
 Graph Database Interface
 ========================
-.. automodule:: beeflow.common.gdb.gdb_interface
+.. automodule:: beeflow.common.gdb_interface
    :members:
 
 Graph Database Driver
@@ -28,6 +28,6 @@ Neo4j Cypher Module
 
 Workflow Data Structures
 ========================
-.. automodule:: beeflow.common.data.wf_data
+.. automodule:: beeflow.common.wf_data
    :members:
    :special-members:
