@@ -25,7 +25,7 @@ class ContainerRuntimeDriver(ABC):
         """Create text for job using the container runtime.
 
         :param task: instance of Task
-        :rtype string
+        :rtype: string
         """
 
     @abstractmethod
@@ -33,7 +33,7 @@ class ContainerRuntimeDriver(ABC):
         """Create text for builder pre-run using the container runtime.
 
         :param task: instance of Task
-        :rtype string
+        :rtype: string
         """
 
 
