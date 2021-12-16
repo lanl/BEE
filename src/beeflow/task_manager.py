@@ -11,8 +11,11 @@ import socket
 import subprocess
 from subprocess import PIPE
 import jsonpickle
+import json
 import requests
 import threading
+import glob
+import os
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -105,12 +108,13 @@ def _resource(tag=""):
     return _url() + str(tag)
 
 
-def update_task_state(task_id, job_state, metadata=None):
+def update_task_state(task_id, job_state, **kwargs):
     """Informs the workflow manager of the current state of a task."""
     data = {'task_id': task_id, 'job_state': job_state}
-    if metadata:
-        metadata_json = jsonpickle.encode(metadata)
-        data['metadata'] = metadata_json
+    if 'metadata' in kwargs:
+        metadata_json = jsonpickle.encode(kwargs['metadata'])
+        kwargs['metadata'] = metadata_json
+    data.update(kwargs)
     resp = requests.put(_resource("update/"),
                         json=data)
     if resp.status_code != 200:
@@ -188,6 +192,24 @@ def submit_jobs():
             update_task_state(task.id, job_state)
 
 
+def collect_output(task):
+    """Collect output for a task, if there is any."""
+    hints = dict(task.hints)
+    # These files are meant to be small text files (so not large binary blobs)
+    try:
+        file_globs = hints['beeflow:CollectRequirement']['files'].split(',')
+        data = {}
+        for g in file_globs:
+            files = glob.glob(os.path.expandvars(g))
+            for file_ in files:
+                name = os.path.basename(file_)
+                with open(file_) as fp:
+                    data[name] = fp.read()
+        return json.dumps(data)
+    except (KeyError, TypeError):
+        return {}
+
+
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
     for job in job_queue:
@@ -198,7 +220,8 @@ def update_jobs():
         if job_state != job['job_state']:
             log.info(f'{task.name} {job["job_state"]} -> {job_state}')
             job['job_state'] = job_state
-            update_task_state(task.id, job_state)
+            output = collect_output(task)
+            update_task_state(task.id, job_state, output=output)
 
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished

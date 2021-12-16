@@ -42,8 +42,17 @@ class SimpleWorker(Worker):
         :param task: instance of Task
         :rtype tuple (int, string)
         """
-        script = self.crt.run_text(task)
-        print(script)
+        # Build the script from the generated commands
+        crt_text = []
+        commands = self.crt.run_text(task)
+        for cmd in commands:
+            if cmd.block is not None:
+                crt_text.append(cmd.block)
+                crt_text.append('\n')
+            else:
+                crt_text.append('{}\n'.format(' '.join(cmd.argv)))
+        script = ''.join(crt_text)
+        # print(script)
         self.tasks[task.id] = subprocess.Popen(['/bin/sh', '-c', script])
         return (task.id, 'PENDING')
 

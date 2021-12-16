@@ -5,6 +5,7 @@ import logging
 import signal
 import configparser
 import jsonpickle
+import json
 import requests
 import pathlib
 import types
@@ -577,6 +578,7 @@ class JobUpdate(Resource):
                                    required=True)
         self.reqparse.add_argument('metadata', type=str, location='json',
                                    required=False)
+        self.reqparse.add_argument('output', location='json', required=False)
 
     def put(self):
         """Update the state of a task from the task manager."""
@@ -595,6 +597,13 @@ class JobUpdate(Resource):
             if data['metadata'] != None:
                 metadata = jsonpickle.decode(data['metadata'])
                 wfi.set_task_metadata(task, metadata)
+
+        # Get output from the task
+        if 'output' in data and data['output'] is not None:
+            fname = f'{wfi.workflow_id}_{task.id}_{int(time.time())}.json'
+            task_output_path = os.path.join(bee_workdir, fname)
+            with open(task_output_path, 'w') as fp:
+                json.dump(json.loads(data['output']), fp, indent=4)
 
         if job_state == "COMPLETED" or job_state == "FAILED":
             for output in task.outputs:
