@@ -103,6 +103,11 @@ class SlurmWorker(Worker):
             template_text += f'#SBATCH -n {ntasks}\n'
         except (KeyError, TypeError):
             pass
+        try:
+            nodelist = hints['beeflow:MPIRequirement']['nodelist']
+            template_text += f'#SBATCH -w {nodelist}\n'
+        except (KeyError, TypeError):
+            pass
         template_text += self.template_text
         template = string.Template(template_text)
         job_text = template.substitute({'WorkflowID': task.workflow_id,
