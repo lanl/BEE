@@ -104,8 +104,8 @@ class SlurmWorker(Worker):
         except (KeyError, TypeError):
             pass
         try:
-            nodelist = hints['beeflow:MPIRequirement']['nodelist']
-            template_text += f'#SBATCH -w {nodelist}\n'
+            cpus_per_task = hints['beeflow:MPIRequirement']['cpus_per_task']
+            template_text += f'#SBATCH --cpus-per-task {cpus_per_task}\n'
         except (KeyError, TypeError):
             pass
         template_text += self.template_text
