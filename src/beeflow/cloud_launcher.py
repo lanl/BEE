@@ -98,7 +98,7 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
 
 def connect(provider, private_key_file, bee_user, launch_cmd, head_node,
             tm_listen_port, wfm_listen_port):
-    """Connect to an only running TM."""
+    """Connect to an already running TM."""
     ip_addr = provider.get_ext_ip_addr(head_node)
     tun_proc = subprocess.Popen([
         'ssh',
