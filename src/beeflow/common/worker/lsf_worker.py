@@ -86,6 +86,7 @@ class LSFWorker(Worker):
         template_text = '#! /bin/bash\n'
         template_text += f'#BSUB -J {task.name}-{task.id}\n'
         template_text += f'#BSUB -o {workflow_path}/{task.name}-{task.id}.out\n'
+        # TODO: Add MPI arguments
         template_text += f'#BSUB -e {workflow_path}/{task.name}-{task.id}.err\n'
         template_text += self.template_text
         template = string.Template(template_text)
@@ -93,8 +94,16 @@ class LSFWorker(Worker):
                                         'name': task.name,
                                         'id': task.id}
                                        )
-        crt_text = self.crt.run_text(task)
-        job_text += crt_text
+        crt_text = []
+        commands = self.crt.run_text(task)
+        for cmd in commands:
+            if cmd.block is not None:
+                crt_text.append(cmd.block)
+                crt_text.append('\n')
+            else:
+                crt_text.append('{}\n'.format(' '.join(cmd.argv)))
+        script = ''.join(crt_text)
+        job_text += script
         return job_text
 
     def write_script(self, task):
