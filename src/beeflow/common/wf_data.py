@@ -5,12 +5,12 @@ from uuid import uuid4
 # Workflow input parameter class
 InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
 # Workflow output parameter class
-OutputParameter = namedtuple("OutputParameter", ["id", "source", "type", "value"])
+OutputParameter = namedtuple("OutputParameter", ["id", "type", "value", "source"])
 # Step input class
-StepInput = namedtuple("StepInput", ["id", "source", "type", "value", "optional", "prefix",
-                                     "position"])
+StepInput = namedtuple("StepInput", ["id", "type", "value", "default", "source", "prefix",
+                                     "position", "value_from"])
 # Step output class
-StepOutput = namedtuple("StepOutput", ["id", "glob", "type", "value"])
+StepOutput = namedtuple("StepOutput", ["id", "type", "value", "glob"])
 
 # CWL requirement class
 Requirement = namedtuple("Requirement", ["class_", "params"])
@@ -31,9 +31,9 @@ class Workflow:
         :param requirements: the workflow requirements
         :type requirements: list of Requirements
         :param inputs: the workflow inputs
-        :type inputs: set of strings
+        :type inputs: list of InputParameter
         :param outputs: the workflow outputs
-        :type outputs: set of strings
+        :type outputs: list of OutputParameter
         :param workflow_id: the workflow ID
         :type workflow_id: str
         """
@@ -58,11 +58,12 @@ class Workflow:
         :param other: the workflow with which to test equality
         :type other: instance of Workflow
         """
+        id_sort = lambda i: i.id
         return bool(self.name == other.name and
                     sorted(self.hints) == sorted(other.hints) and
                     sorted(self.requirements) == sorted(other.requirements) and
-                    self.inputs == other.inputs and
-                    self.outputs == other.outputs)
+                    sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort) and
+                    sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort))
 
     def __ne__(self, other):
         """Test the inequality of two workflows.
@@ -74,14 +75,14 @@ class Workflow:
 
     def __repr__(self):
         """Construct a workflow's string representation."""
-        return (f"<Workflow id={self.id} name='{self.name}' hints={self.hints} "
+        return (f"<Workflow id={self.id} name={self.name} hints={self.hints} "
                 f"requirements = {self.requirements} inputs={self.inputs} outputs={self.outputs}>")
 
 
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, name, command, hints, requirements, subworkflow, inputs, outputs,
+    def __init__(self, name, base_command, hints, requirements, inputs, outputs, stdout,
                  workflow_id, task_id=None):
         """Store a task description.
 
@@ -90,30 +91,30 @@ class Task:
 
         :param name: the task name
         :type name: str
-        :param command: the command to run for the task
-        :type command: list of str
+        :param base_command: the base command to run for the task
+        :type base_command: str or list of str
         :param hints: the task hints (optional requirements)
         :type hints: list of Hint
         :param requirements: the task requirements
         :type requirements: list of Requirement
-        :param subworkflow: an identifier for the subworkflow to which the task belongs
-        :type subworkflow: str
         :param inputs: the task inputs
-        :type inputs: set of str
+        :type inputs: list of StepInput
         :param outputs: the task outputs
-        :type outputs: set of str
+        :type outputs: list of StepOutput
+        :param stdout: the name of the file to which to redirect stdout
+        :type stdout: str
         :param workflow_id: the workflow ID
         :type workflow_id: str
         :param task_id: the task ID
         :type task_id: str
         """
         self.name = name
-        self.command = command
+        self.base_command = base_command
         self.hints = hints
         self.requirements = requirements
-        self.subworkflow = subworkflow
         self.inputs = inputs
         self.outputs = outputs
+        self.stdout = stdout
         self.workflow_id = workflow_id
 
         # Task ID as UUID if not given
@@ -129,13 +130,14 @@ class Task:
         :param other: the task with which to test equality
         :type other: instance of Task
         """
+        id_sort = lambda i: i.id
         return bool(self.name == other.name and
-                    self.command == other.command and
+                    self.base_command == other.base_command and
                     sorted(self.hints) == sorted(other.hints) and
                     sorted(self.requirements) == sorted(other.requirements) and
-                    self.subworkflow == other.subworkflow and
-                    self.inputs == other.inputs and
-                    self.outputs == other.outputs)
+                    sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort) and
+                    sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort) and
+                    self.stdout == other.stdout)
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
@@ -147,23 +149,45 @@ class Task:
 
     def __hash__(self):
         """Return the hash value for a task."""
-        return hash((self.name, self.subworkflow))
+        return hash((self.id, self.workflow_id, self.name))
 
     def __repr__(self):
         """Construct a task's string representation."""
-        return (f"<Task id={self.id} name='{self.name}' command={self.command} hints={self.hints} "
-                f"requirements = {self.requirements} subworkflow='{self.subworkflow}' "
-                f"inputs={self.inputs} outputs={self.outputs}>")
-
-    def construct_command(self):
-        """Construct a task's command representation."""
-        return "".join(self.command)
+        return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
+                f"hints={self.hints} requirements = {self.requirements} "
+                f"inputs={self.inputs} outputs={self.outputs} stdout={self.stdout} "
+                f"workflow_id={self.workflow_id}>")
 
     @property
-    def base_command(self):
-        """Return a list of the task base command.
+    def command(self):
+        """Construct a task's command as a list.
 
-        :rtype: list of strings
+        :rtype: list of str
         """
-        return self.command[0]
+        positional_inputs = []
+        nonpositional_inputs = []
+        for input_ in self.inputs:
+            if input_.value is None:
+                raise ValueError("trying to construct command for task with missing input value")
 
+            if input_.position is not None:
+                positional_inputs.append(input_)
+            else:
+                nonpositional_inputs.append(input_)
+        positional_inputs.sort(key=lambda i: i.position)
+
+        if isinstance(self.base_command, list):
+            command = self.base_command[:]
+        else:
+            command = [self.base_command]
+
+        for input_ in positional_inputs:
+            if input_.prefix is not None:
+                command.append(input_.prefix)
+            command.append(str(input_.value))
+        for input_ in nonpositional_inputs:
+            if input_.prefix is not None:
+                command.append(input_.prefix)
+            command.append(str(input_.value))
+
+        return command

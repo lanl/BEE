@@ -4,7 +4,7 @@
 def constrain_tasks_unique(tx):
     """Constrain tasks to have unique names."""
     unique_task_query = ("CREATE CONSTRAINT ON (t:Task) "
-                         "ASSERT t.name IS UNIQUE")
+                         "ASSERT t.id IS UNIQUE")
 
     tx.run(unique_task_query)
 
@@ -17,25 +17,22 @@ def create_workflow_node(tx, workflow):
     :type workflow: Workflow
     """
     workflow_query = ("CREATE (w:Workflow) "
-                      "SET w.workflow_id = $workflow_id "
-                      "SET w.name = $name "
-                      "SET w.inputs = $inputs "
-                      "SET w.outputs = $outputs")
+                      "SET w.id = $workflow_id "
+                      "SET w.name = $name")
 
-    # Store the workflow name, inputs, and outputs, in a new workflow node
-    tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name,
-           inputs=list(workflow.inputs), outputs=list(workflow.outputs))
+    # Store the workflow ID and name in a new workflow node
+    tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name)
 
 
 def create_workflow_hint_nodes(tx, hints):
     """Create Hint nodes for the workflow.
 
     :param hints: the workflow hints
-    :type hints: set of Hint
+    :type hints: list of Hint
     """
     for hint in hints:
         hint_query = ("MATCH (w:Workflow) "
-                      "CREATE (w)-[:HAS_HINT]->(h:Hint $params) "
+                      "CREATE (w)<-[:HINT_OF]-(h:Hint $params) "
                       "SET h.class = $class_")
 
         tx.run(hint_query, params=hint.params, class_=hint.class_)
@@ -45,14 +42,44 @@ def create_workflow_requirement_nodes(tx, requirements):
     """Create Requirement nodes for the workflow.
 
     :param requirements: the workflow requirements
-    :type requirements: set of Requirement
+    :type requirements: list of Requirement
     """
     for req in requirements:
         req_query = ("MATCH (w:Workflow) "
-                     "CREATE (w)-[:HAS_REQUIREMENT]->(r:Requirement $params) "
+                     "CREATE (w)<-[:REQUIREMENT_OF]-(r:Requirement $params) "
                      "SET r.class = $class_")
 
         tx.run(req_query, params=req.params, class_=req.class_)
+
+
+def create_workflow_input_nodes(tx, inputs):
+    """Create Input nodes for the workflow.
+
+    :param inputs: the workflow inputs
+    :type inputs: list of InputParameter"""
+    for input_ in inputs:
+        input_query = ("MATCH (w:Workflow) CREATE (w)<-[:INPUT_OF]-(i:Input) "
+                       "SET i.id = $input_id "
+                       "SET i.type = $type "
+                       "SET i.value = $value")
+
+        tx.run(input_query, input_id=input_.id, type=input_.type, value=input_.value)
+
+
+def create_workflow_output_nodes(tx, outputs):
+    """Create Output nodes for the workflow.
+
+    :param outputs: the workflow outputs
+    :type outputs: list of OutputParameter"""
+    for output in outputs:
+        output_query = ("MATCH (w:Workflow) CREATE (w)<-[:OUTPUT_OF]-(o:Output) "
+                        "SET o.id = $output_id "
+                        "SET o.type = $type "
+                        "SET o.value = $value "
+                        "SET o.source = $source")
+
+        tx.run(output_query, output_id=output.id, type=output.type, value=output.value,
+               source=output.source)
 
 
 def create_task(tx, task):
@@ -62,18 +89,15 @@ def create_task(tx, task):
     :type task: Task
     """
     create_query = ("CREATE (t:Task) "
-                    "SET t.task_id = $task_id "
+                    "SET t.id = $task_id "
                     "SET t.workflow_id = $workflow_id "
                     "SET t.name = $name "
-                    "SET t.command = $command "
-                    "SET t.subworkflow = $subworkflow "
-                    "SET t.inputs = $inputs "
-                    "SET t.outputs = $outputs ")
+                    "SET t.base_command = $base_command "
+                    "SET t.stdout = $stdout")
 
     # Unpack requirements, hints dictionaries into flat list
     tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
-           command=task.command, subworkflow=task.subworkflow, inputs=list(task.inputs),
-           outputs=list(task.outputs))
+           base_command=task.base_command, stdout=task.stdout)
 
 
 def create_task_hint_nodes(tx, task):
@@ -83,8 +107,8 @@ def create_task_hint_nodes(tx, task):
     :type task: Task
     """
     for hint in task.hints:
-        hint_query = ("MATCH (t:Task {task_id: $task_id}) "
-                      "CREATE (t)-[:HAS_HINT]->(h:Hint $params) "
+        hint_query = ("MATCH (t:Task {id: $task_id}) "
+                      "CREATE (t)<-[:HINT_OF]-(h:Hint $params) "
                       "SET h.class = $class_")
 
         tx.run(hint_query, task_id=task.id, params=hint.params, class_=hint.class_)
@@ -97,11 +121,50 @@ def create_task_requirement_nodes(tx, task):
     :type task: Task
     """
     for req in task.requirements:
-        req_query = ("MATCH (t:Task {task_id: $task_id}) "
-                     "CREATE (t)-[:HAS_REQUIREMENT]->(r:Requirement $params) "
+        req_query = ("MATCH (t:Task {id: $task_id}) "
+                     "CREATE (t)<-[:REQUIREMENT_OF]-(r:Requirement $params) "
                      "SET r.class = $class_")
 
         tx.run(req_query, task_id=task.id, params=req.params, class_=req.class_)
+
+
+def create_task_input_nodes(tx, task):
+    """Create Input nodes for a task.
+
+    :param task: the task whose inputs to add to the graph
+    :type task: Task"""
+    for input_ in task.inputs:
+        input_query = ("MATCH (t:Task {id: $task_id}) "
+                       "CREATE (t)<-[:INPUT_OF]-(i:Input) "
+                       "SET i.id = $input_id "
+                       "SET i.type = $type "
+                       "SET i.value = $value "
+                       "SET i.default = $default "
+                       "SET i.source = $source "
+                       "SET i.prefix = $prefix "
+                       "SET i.position = $position "
+                       "SET i.value_from = $value_from")
+
+        tx.run(input_query, task_id=task.id, input_id=input_.id, type=input_.type,
+               value=input_.value, default=input_.default, source=input_.source,
+               prefix=input_.prefix, position=input_.position, value_from=input_.value_from)
+
+
+def create_task_output_nodes(tx, task):
+    """Create Output nodes for a task.
+
+    :param task: the task whose outputs to add to the graph
+    :type task: Task"""
+    for output in task.outputs:
+        output_query = ("MATCH (t:Task {id: $task_id}) "
+                        "CREATE (t)<-[:OUTPUT_OF]-(o:Output) "
+                        "SET o.id = $output_id "
+                        "SET o.type = $type "
+                        "SET o.value = $value "
+                        "SET o.glob = $glob")
+
+        tx.run(output_query, task_id=task.id, output_id=output.id, type=output.type,
+               value=output.value, glob=output.glob)
 
 
 def create_task_metadata_node(tx, task):
@@ -112,7 +175,7 @@ def create_task_metadata_node(tx, task):
     :param task: the task for which to create a metadata node
     :type task: Task
     """
-    metadata_query = ("MATCH (t:Task {task_id: $task_id}) "
+    metadata_query = ("MATCH (t:Task {id: $task_id}) "
                       "CREATE (m:Metadata {state: 'WAITING'})-[:DESCRIBES]->(t)")
 
     tx.run(metadata_query, task_id=task.id)
@@ -124,16 +187,25 @@ def add_dependencies(tx, task):
     :param task: the workflow task
     :type task: Task
     """
-    begins_query = ("MATCH (s:Task {task_id: $task_id}), (w:Workflow) "
-                    "WHERE any(input IN s.inputs WHERE input IN w.inputs) "
+    begins_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
+                    "WITH s, collect(i.source) AS sources "
+                    "MATCH (w:Workflow)<-[:INPUT_OF]-(i:Input) "
+                    "WITH s, w, sources, collect(i.id) AS inputs "
+                    "WHERE any(input IN sources WHERE input IN inputs) "
                     "MERGE (s)-[:BEGINS]->(w)")
-    dependency_query = ("MATCH (s:Task {task_id: $task_id}), (t:Task) "
-                        "WHERE any(input IN s.inputs WHERE input IN t.outputs) "
-                        "MERGE (s)-[:DEPENDS]->(t) "
+    dependency_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
+                        "WITH s, collect(i.source) as sources "
+                        "MATCH (t:Task)<-[:OUTPUT_OF]-(o:Output) "
+                        "WITH s, t, sources, collect(o.id) as outputs "
+                        "WHERE any(input IN sources WHERE input IN outputs) "
+                        "MERGE (s)-[:DEPENDS_ON]->(t) "
                         "WITH s "
-                        "MATCH (t:Task) "
-                        "WHERE any(output IN s.outputs WHERE output IN t.inputs) "
-                        "MERGE (t)-[:DEPENDS]->(s)")
+                        "MATCH (s)<-[:OUTPUT_OF]-(o:Output) "
+                        "WITH s, collect(o.id) AS outputs "
+                        "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
+                        "WITH s, t, outputs, collect(i.source) as sources "
+                        "WHERE any(output IN outputs WHERE output IN sources) "
+                        "MERGE (t)-[:DEPENDS_ON]->(s)")
 
     tx.run(begins_query, task_id=task.id)
     tx.run(dependency_query, task_id=task.id)
@@ -146,7 +218,7 @@ def get_task_by_id(tx, task_id):
     :type task_id: str
     :rtype: BoltStatementResult
     """
-    task_query = "MATCH (t:Task {task_id: $task_id}) RETURN t"
+    task_query = "MATCH (t:Task {id: $task_id}) RETURN t"
 
     return tx.run(task_query, task_id=task_id).single()
 
@@ -158,7 +230,7 @@ def get_task_hints(tx, task_id):
     :type task_id: str
     :rtype: BoltStatementResult
     """
-    hints_query = "MATCH (:Task {task_id: $task_id})-[:HAS_HINT]->(h:Hint) RETURN h"
+    hints_query = "MATCH (:Task {id: $task_id})<-[:HINT_OF]-(h:Hint) RETURN h"
 
     return tx.run(hints_query, task_id=task_id)
 
@@ -170,9 +242,33 @@ def get_task_requirements(tx, task_id):
     :type task_id: str
     :rtype: BoltStatementResult
     """
-    reqs_query = "MATCH (:Task {task_id: $task_id})-[:HAS_REQUIREMENT]->(r:Requirement) RETURN r"
+    reqs_query = "MATCH (:Task {id: $task_id})<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
 
     return tx.run(reqs_query, task_id=task_id)
+
+
+def get_task_inputs(tx, task_id):
+    """Get task inputs from the Neo4j database by the task's ID.
+
+    :param task_id: the task's ID
+    :type task_id: str
+    :rtype: BoltStatementResult
+    """
+    inputs_query = "MATCH (:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) RETURN i"
+
+    return tx.run(inputs_query, task_id=task_id)
+
+
+def get_task_outputs(tx, task_id):
+    """Get task outputs from the Neo4j database by the task's ID.
+
+    :param task_id: the task's ID
+    :type task_id: str
+    :rtype: BoltStatementResult
+    """
+    outputs_query = "MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) RETURN o"
+
+    return tx.run(outputs_query, task_id=task_id)
 
 
 def get_workflow_description(tx):
@@ -200,7 +296,7 @@ def get_workflow_requirements(tx):
 
     :rtype: BoltStatementResult
     """
-    requirements_query = "MATCH (:Workflow)-[:HAS_REQUIREMENT]->(r:Requirement) RETURN r"
+    requirements_query = "MATCH (:Workflow)<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
 
     return tx.run(requirements_query)
 
@@ -210,9 +306,29 @@ def get_workflow_hints(tx):
 
     :rtype: BoltStatementResult
     """
-    hints_query = "MATCH (:Workflow)-[:HAS_HINT]->(h:Hint) RETURN h"
+    hints_query = "MATCH (:Workflow)<-[:HINT_OF]-(h:Hint) RETURN h"
 
     return tx.run(hints_query)
+
+
+def get_workflow_inputs(tx):
+    """Get workflow inputs from the Neo4j database.
+
+    :rtype: BoltStatementResult
+    """
+    inputs_query = "MATCH (:Workflow)<-[:INPUT_OF]-(i:Input) RETURN i"
+
+    return tx.run(inputs_query)
+
+
+def get_workflow_outputs(tx):
+    """Get workflow outputs from the Neo4j database.
+
+    :rtype BoltStatementResult
+    """
+    outputs_query = "MATCH (:Workflow)<-[:OUTPUT_OF]-(o:Output) RETURN o"
+
+    return tx.run(outputs_query)
 
 
 def get_ready_tasks(tx):
@@ -225,18 +341,6 @@ def get_ready_tasks(tx):
     return tx.run(get_ready_query)
 
 
-def get_subworkflow_tasks(tx, subworkflow):
-    """Get subworkflow tasks from the Neo4j database with the specified identifier.
-
-    :param subworkflow: the unique identifier of the subworkflow
-    :type subworkflow: str
-    :rtype: BoltStatementResult
-    """
-    subworkflow_query = "MATCH (t:Task {subworkflow: $subworkflow}) RETURN t"
-
-    return tx.run(subworkflow_query, subworkflow=subworkflow)
-
-
 def get_dependent_tasks(tx, task):
     """Get the tasks that depend on a specified task.
 
@@ -244,7 +348,7 @@ def get_dependent_tasks(tx, task):
     :type task: Task
     :rtype: BoltStatementResult
     """
-    dependents_query = "MATCH (t:Task)-[:DEPENDS]->(:Task {task_id: $task_id}) RETURN t"
+    dependents_query = "MATCH (t:Task)-[:DEPENDS_ON]->(:Task {id: $task_id}) RETURN t"
 
     return tx.run(dependents_query, task_id=task.id)
 
@@ -256,7 +360,7 @@ def get_task_state(tx, task):
     :type task: Task
     :rtype: str
     """
-    state_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id}) RETURN m.state"
+    state_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) RETURN m.state"
 
     return tx.run(state_query, task_id=task.id).single().value()
 
@@ -269,7 +373,7 @@ def set_task_state(tx, task, state):
     :param state: the new task state
     :type state: str
     """
-    state_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id}) "
+    state_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) "
                    "SET m.state = $state")
 
     tx.run(state_query, task_id=task.id, state=state)
@@ -282,7 +386,7 @@ def get_task_metadata(tx, task):
     :type task: Task
     :rtype: BoltStatementResult
     """
-    metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id}) RETURN m"
+    metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) RETURN m"
 
     return tx.run(metadata_query, task_id=task.id).single()
 
@@ -295,8 +399,9 @@ def set_task_metadata(tx, task, metadata):
     :param metadata: the task metadata
     :type metadata: dict
     """
-    metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {task_id: $task_id})"
+    metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id})"
 
+    # TODO: remove injection vulnerability before release
     for k, v in metadata.items():
         if isinstance(v, str):
             metadata_query += f" SET m.{k} = '{v}'"
@@ -306,13 +411,155 @@ def set_task_metadata(tx, task, metadata):
     tx.run(metadata_query, task_id=task.id)
 
 
+def get_task_input(tx, task, input_id):
+    """Get a task input object.
+
+    :param task: the task whose input to retrieve
+    :type task: Task
+    :param input_id: the ID of the input
+    :type input_id: str
+    :rtype: StepInput
+    """
+    input_query = ("MATCH (t:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
+                   "RETURN i")
+
+    return tx.run(input_query, task_id=task.id, input_id=input_id).single()
+
+
+def set_task_input(tx, task, input_id, value):
+    """Set the value of a task input.
+
+    :param task: the task whose input to set
+    :type task: Task
+    :param input_id: the ID of the input
+    :type input_id: str
+    :param value: str or int or float
+    """
+    input_query = ("MATCH (t:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
+                   "SET i.value = $value")
+
+    tx.run(input_query, task_id=task.id, input_id=input_id, value=value)
+
+
+def get_task_output(tx, task, output_id):
+    """Get a task output object.
+
+    :param task: the task whose output to retrieve
+    :type task: Task
+    :param output_id: the ID of the output
+    :type output_id: str
+    :rtype: StepOutput
+    """
+    output_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
+                    "RETURN o")
+
+    return tx.run(output_query, task_id=task.id, output_id=output_id).single()
+
+
+def set_task_output(tx, task, output_id, value):
+    """Set a task's output value.
+
+    :param task: the task whose output to set
+    :type task: Task
+    :param output_id: the ID of the output to set
+    :type output_id: str
+    :param value: the value of the output
+    :type value: str
+    """
+    output_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
+                    "SET o.value = $value")
+
+    tx.run(output_query, task_id=task.id, output_id=output_id, value=value)
+
+
+def set_task_input_type(tx, task, input_id, type_):
+    """Set the type of a task input.
+
+    :param task: the task whose input type to set
+    :type task: Task
+    :param input_id: the ID of the input
+    :type input_id: str
+    :param type_: the input type to set
+    :param type_: str
+    """
+    type_query = ("MATCH (:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
+                  "SET i.type = $type_")
+
+    tx.run(type_query, task_id=task.id, input_id=input_id, type_=type_)
+
+
+def set_task_output_glob(tx, task, output_id, glob):
+    """Set a task's output value.
+
+    :param task: the task whose output to set
+    :type task: Task
+    :param output_id: the ID of the output to set
+    :type output_id: str
+    :param glob: the glob of the output
+    :type glob: str
+    """
+    glob_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
+                  "SET o.glob = $glob")
+
+    tx.run(glob_query, task_id=task.id, output_id=output_id, glob=glob)
+
+
 def set_init_tasks_to_ready(tx):
     """Set the initial workflow tasks' states to 'READY'."""
     init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task)-[:BEGINS]->(:Workflow) "
-                        "WHERE NOT (t)-[:DEPENDS]->(:Task) "
+                        "WHERE NOT (t)-[:DEPENDS_ON]->(:Task) "
                         "SET m.state = 'READY'")
 
     tx.run(init_ready_query)
+
+
+def set_init_task_inputs(tx):
+    """Set the initial workflow tasks' inputs from workfow inputs or defaults if necessary."""
+    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:BEGINS]->(:Workflow)"
+                         "<-[:INPUT_OF]-(wi:Input) "
+                         "WHERE i.source = wi.id AND wi.value IS NOT NULL "
+                         "SET i.value = wi.value")
+    # Set any values to defaults if necessary
+    defaults_query = ("MATCH (i:Input)-[:INPUT_OF]->(t:Task)-[:BEGINS]->(:Workflow)"
+                      "<-[:INPUT_OF]-(wi:Input) "
+                      "WHERE i.source = wi.id "
+                      "AND i.value IS NULL AND i.default IS NOT NULL "
+                      "SET i.value = i.default")
+
+    tx.run(task_inputs_query)
+    tx.run(defaults_query)
+
+
+def copy_task_outputs(tx, task):
+    """Use task outputs to set dependent task inputs or workflow outputs.
+
+    Sets dependent task inputs to default value if necessary.
+
+    :param task: the task whose outputs to set
+    :type task: Task
+    """
+    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:DEPENDS_ON]->"
+                         "(t:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
+                         "WHERE i.source = o.id AND o.value IS NOT NULL "
+                         "SET i.value = o.value")
+    # Set any values to defaults if necessary
+    defaults_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)<-[:DEPENDS_ON]-"
+                      "(t:Task)-[:DEPENDS_ON]->(:Task {id: $task_id}) "
+                      "WITH m, t "
+                      "MATCH (t)<-[:INPUT_OF]-(i:Input) "
+                      "WITH i, collect(m) AS mlist "
+                      "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
+                      "AND i.value IS NULL AND i.default IS NOT NULL "
+                      "SET i.value = i.default")
+    workflow_output_query = ("MATCH (:Workflow)<-[:OUTPUT_OF]-(wo:Output) "
+                             "WITH wo "
+                             "MATCH (t:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
+                             "WHERE wo.source = o.id "
+                             "SET wo.value = o.value")
+
+    tx.run(task_inputs_query, task_id=task.id)
+    tx.run(defaults_query, task_id=task.id)
+    tx.run(workflow_output_query, task_id=task.id)
 
 
 def set_running_tasks_to_paused(tx):
@@ -332,12 +579,12 @@ def set_paused_tasks_to_running(tx):
 
 
 def set_runnable_tasks_to_ready(tx):
-    """Set task states to 'READY' if all dependencies have state 'COMPLETED'."""
-    set_runnable_ready_query = ("MATCH (t:Task)-[:DEPENDS]->(s:Task)<-[:DESCRIBES]-(m:Metadata) "
-                                "WITH t, collect(m) AS mlist "
-                                "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
-                                "MATCH (m:Metadata)-[:DESCRIBES]->(t) "
+    """Set task states to 'READY' if all required inputs have values."""
+    set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->"
+                                "(t:Task)<-[:INPUT_OF]-(i:Input) "
+                                "WITH m, t, collect(i) AS ilist "
                                 "WHERE m.state = 'WAITING' "
+                                "AND all(i IN ilist WHERE i.value IS NOT NULL) "
                                 "SET m.state = 'READY'")
 
     tx.run(set_runnable_ready_query)
@@ -360,7 +607,7 @@ def reset_workflow_id(tx, new_id):
     :type new_id: str
     """
     reset_workflow_id_query = ("MATCH (w:Workflow), (t:Task) "
-                               "SET w.workflow_id = $new_id "
+                               "SET w.id = $new_id "
                                "SET t.workflow_id = $new_id")
 
     tx.run(reset_workflow_id_query, new_id=new_id)

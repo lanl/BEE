@@ -21,9 +21,9 @@ from flask_restful import Resource, Api, reqparse
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
-import beeflow.common.parser.parse_clamr as parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
+from beeflow.common.parser import CwlParser
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
@@ -104,12 +104,13 @@ def _resource(component, tag=""):
 
 
 # Instantiate the workflow interface
-try:
-    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
-                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
-                            password=bc.userconfig.get('graphdb', 'dbpass'))
-except (KeyError, configparser.NoSectionError) as e:
-    wfi = WorkflowInterface()
+wfi = None
+#try:
+#    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
+#                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
+#                            password=bc.userconfig.get('graphdb', 'dbpass'))
+#except (KeyError, configparser.NoSectionError) as e:
+#    wfi = WorkflowInterface()
 
 
 class ResourceMonitor():
@@ -136,7 +137,7 @@ def validate_wf_id(func):
     """Validate tempoary hard coded workflow id."""
     def wrapper(*args, **kwargs):
         wf_id = kwargs['wf_id']
-        current_wf_id = wfi.get_workflow_id()
+        current_wf_id = wfi.workflow_id
         if wf_id != current_wf_id:
             log.info(f'Wrong workflow id. Set to {wf_id}, but should be {current_wf_id}')
             resp = make_response(jsonify(status='wf_id not found'), 404)
@@ -191,9 +192,13 @@ class JobsList(Resource):
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('wf_name', type=FileStorage, required=False,
                                    location='files')
-        self.reqparse.add_argument('filename', type=FileStorage, required=False,
+        self.reqparse.add_argument('wf_filename', type=FileStorage, required=False,
                                    location='files')
         self.reqparse.add_argument('workflow', type=FileStorage, required=False,
+                                   location='files')
+        self.reqparse.add_argument('yaml', type=FileStorage, required=False,
+                                   location='files')
+        self.reqparse.add_argument('main_cwl', type=FileStorage, required=False,
                                    location='files')
         self.reqparse.add_argument('workflow_archive', type=FileStorage, required=False,
                                    location='files')
@@ -208,11 +213,10 @@ class JobsList(Resource):
         job_list = []
         if os.path.isdir(workflows_dir):
             workflows = next(os.walk(workflows_dir))[1]
-            for w in workflows:
-                wf_path = os.path.join(workflows_dir, w) 
+            for wf_id in workflows:
+                wf_path = os.path.join(workflows_dir, wf_id) 
                 status_path = os.path.join(wf_path, 'bee_wf_status')
                 name_path = os.path.join(wf_path, 'bee_wf_name')
-                wf_id = w
                 status = pathlib.Path(status_path).read_text()
                 name = pathlib.Path(name_path).read_text()
                 job_list.append([name, wf_id, status])
@@ -221,6 +225,7 @@ class JobsList(Resource):
         return resp
 
     def post(self):
+        global wfi
         """Get a workflow or give file not found error."""
         data = self.reqparse.parse_args()
 
@@ -228,11 +233,14 @@ class JobsList(Resource):
             resp = make_response(jsonify(msg='No file found', status='error'), 400)
             return resp
         # Workflow file
-        cwl_file = data['workflow']
-        filename = data['filename'].read().decode()
+        wf_tarball = data['workflow']
+        wf_filename = data['wf_filename'].read().decode()
+        main_cwl = data['main_cwl'].read().decode()
         job_name = data['wf_name'].read().decode()
+        # None if not sent
+        yaml_file = data['yaml']
 
-        if cwl_file:
+        if wf_tarball:
             # We have to bind mount a new GDB with charliecloud.
             kill_gdb()
             # Remove the old gdb
@@ -244,25 +252,42 @@ class JobsList(Resource):
             # Need to wait a moment for the GDB
             time.sleep(10)
 
-            # Save the workflow temporarily to this folder 
-            temp_path = os.path.join(flask_app.config['UPLOAD_FOLDER'], filename)
-            cwl_file.save(temp_path)
+            if wfi:
+                if wfi.workflow_initialized() and wfi.workflow_loaded():
+                    # Clear the workflow if we've already run one
+                    wfi.finalize_workflow()
 
-            # Parse the workflow and add it to the database
-            top = cwl.load_document(temp_path)
-            # Remove the workflow file
+            # Save the workflow temporarily to this folder for the parser
+            #
+            temp_dir = tempfile.mkdtemp()
+            temp_tarball_path = os.path.join(temp_dir, wf_filename)
+            wf_tarball.save(temp_tarball_path)
+            # Archive tarballs must be tgz 
+            extension = '.tgz'
+            wf_dirname = wf_filename[:len(extension)]
+            subprocess.run(['tar', 'xf', f'{wf_filename}', '--strip-components', '1'], cwd=temp_dir)
 
-            if wfi.workflow_initialized() and wfi.workflow_loaded():
-                # Clear the workflow if we've already run one
-                wfi.finalize_workflow()
-            parser.create_workflow(top, wfi)
+            parser = CwlParser()
+            temp_cwl_path = os.path.join(temp_dir, main_cwl)
+            if yaml_file != None:
+                yaml_file = yaml_file.read().decode()
+                temp_yaml_path = os.path.join(temp_dir, yaml_file)
+                wfi = parser.parse_workflow(temp_cwl_path, temp_yaml_path)
+            else:
+                wfi = parser.parse_workflow(temp_cwl_path)
 
             # Save the workflow to the workflow_id dir
-            wf_id = wfi.get_workflow_id()
+            wf_id = wfi.workflow_id
             workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
             os.makedirs(workflow_dir)
-            workflow_path = os.path.join(workflow_dir, filename)
-            cwl_file.save(workflow_path)
+            #workflow_path = os.path.join(workflow_dir, wf_filename)
+            #wf_tarball.save(workflow_path)
+
+            # Copy workflow files to archive
+            for f in os.listdir(temp_dir):
+                f_path = os.path.join(temp_dir, f)
+                if os.path.isfile(f_path):
+                    shutil.copy(f_path, workflow_dir)
 
             # Create status file
             status_path = os.path.join(workflow_dir, 'bee_wf_status')
@@ -289,7 +314,7 @@ class JobsList(Resource):
             return resp
 
         workflow_archive = data['workflow_archive']
-        filename = data['filename'].read().decode()
+        filename = data['wf_filename'].read().decode()
         job_name = data['wf_name'].read().decode()
 
         if workflow_archive:
@@ -304,7 +329,7 @@ class JobsList(Resource):
             kill_gdb()
             remove_gdb()
 
-            ## Copy GDB to gdb_workdir
+            # Copy GDB to gdb_workdir
             archive_dir = filename.split('.')[0]
             gdb_path = os.path.join(tmp_path, archive_dir, 'gdb')
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
@@ -320,11 +345,11 @@ class JobsList(Resource):
             wfi.initialize_workflow(inputs=None, outputs=None, existing=True)
             # Reset the workflow state and generate a new workflow ID
             wfi.reset_workflow()
-            wf_id = wfi.get_workflow_id()
+            wf_id = wfi.workflow_id
             reexecute = True
 
             # Save the workflow to the workflow_id dir
-            wf_id = wfi.get_workflow_id()
+            wf_id = wfi.workflow_id
             workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
             os.makedirs(workflow_dir)
 
@@ -460,7 +485,7 @@ class JobActions(Resource):
         # Submit tasks to TM
         submit_tasks_tm(tasks)
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
-        wf_id = wfi.get_workflow_id()
+        wf_id = wfi.workflow_id
         workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
         status_path = os.path.join(workflow_dir, 'bee_wf_status')
         with open(status_path, 'w') as status:
@@ -487,7 +512,7 @@ class JobActions(Resource):
         resp = requests.delete(_resource('tm'))
         if resp.status_code != 200:
             log.info(f"Delete from task manager returned bad status: {resp.status_code}")
-        wf_id = wfi.get_workflow_id()
+        wf_id = wfi.workflow_id
         workflows_dir = os.path.join(bee_workdir, 'workflows')
         status_path = os.path.join(workflow_dir, 'bee_wf_status')
         with open(status_path, 'w') as status:
@@ -524,6 +549,8 @@ class JobActions(Resource):
         return resp
 
 
+archive = bc.userconfig.get('DEFAULT','use_archive')
+
 
 class JobUpdate(Resource):
     """Class to interact with an existing job."""
@@ -556,6 +583,11 @@ class JobUpdate(Resource):
                 wfi.set_task_metadata(task, metadata)
 
         if job_state == "COMPLETED" or job_state == "FAILED":
+            for output in task.outputs:
+                if output.glob != None:
+                    wfi.set_task_output(task, output.id, output.glob)
+                else:
+                    wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
             # TODO Replace this with Steven's pause task functions
             if WORKFLOW_PAUSED:
@@ -565,10 +597,9 @@ class JobUpdate(Resource):
                 if wfi.workflow_completed():
                     log.info("Workflow Completed")
 
-                    archive = bc.userconfig.get('DEFAULT','use_archive')
                     if archive and not reexecute:
                         gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
-                        wf_id = wfi.get_workflow_id()
+                        wf_id = wfi.workflow_id
                         workflows_dir = os.path.join(bee_workdir, 'workflows')
                         workflow_dir = os.path.join(workflows_dir, wf_id)
                         # Archive GDB

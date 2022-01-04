@@ -35,7 +35,7 @@ The BEE project supports launching applications using the [Charliecloud](https:/
 We use a custom Slurm built for the BEE project on Darwin, built against the Darwin admin maintained configs in `/etc/slurm/`. In order to use the Slurm rest interface on Darwin, you must set up and use this custom Slurm build:
 
 ```
-export MODULEPATH=$MODULEPATH:/projects/beedev/modulefiles
+module use /projects/beedev/modulefiles
 module load slurmrestd
 ```
 
@@ -66,7 +66,10 @@ This software has been approved for open source release and has been assigned **
 
 # Publications
 
-- [BeeFlow: A Workflow Management System for In Situ Processing across HPC and Cloud Systems](https://ieeexplore.ieee.org/abstract/document/8416366/)
+- [BeeFlow: A Workflow Management System for In Situ Processing across HPC and Cloud Systems, ICDCS, 2018](https://ieeexplore.ieee.org/abstract/document/8416366/)
+- [Build and execution environment (BEE): an encapsulated environment enabling HPC applications running everywhere, IEEE BigData, 2018](https://ieeexplore.ieee.org/document/8622572)
+- BeeSwarm: Enabling Parallel Scaling Performance Measurement in Continuous Integration for HPC Applications, ASE, 2021
+- BEE Orchestrator: Running Complex Scientific Workflows on Multiple Systems, HiPC, 2021
 
 
 # Copyright
