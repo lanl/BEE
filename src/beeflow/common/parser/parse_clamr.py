@@ -21,7 +21,7 @@ and loaded into the Neo4j database.
 import sys
 import argparse
 import uuid
-import cwl_utils.parser_v1_0 as cwl
+import cwl_utils.parser.cwl_v1_0 as cwl
 from beeflow.common.wf_interface import WorkflowInterface
 
 
