@@ -22,7 +22,7 @@ techniques that produce Python dictionaries.
 import sys
 import argparse
 import uuid
-import cwl_utils.parser_v1_0 as cwl
+import cwl_utils.parser.cwl_v1_0 as cwl
 
 
 class CWLCommandLineTool:
