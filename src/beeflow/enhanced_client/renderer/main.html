@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" content="HTML,CSS,JavaScript">
+    <title>Bee Client</title>
+    <link type="text/css" rel="stylesheet" href="main.css">
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  </head>
+  <body>
+
+    <div class="header">
+      <h1 class="title">Bee Client</h1>
+    </div>
+
+    <div class="centerSection" id="addWorkflow">
+      <h1 class="is-size-2">Add Workflow</h1>
+      <form id="add-workflow_form">
+        <div class="field">
+          <label class="label is-size-4">Workflow Name</label>
+          <div class="control">
+            <input class="input" type="text" id="add-wf_name" placeholder="Workflow">
+          </div>
+        </div>	
+        <div class="field">
+          <label class="label is-size-4">Main CWL File</label>
+          <div class="control">
+            <input class="input" type="text" id="add-wf_cwl" placeholder="cwl file">
+          </div>
+        </div>	
+
+        <div class="select is-multiple">
+          <label class="label is-size-4">Run Locations</label>
+          <select multiple size="3" id="add-wf_locations">
+            <option value="Fog">Fog</option>
+            <option value="Darwin">Darwin</option>
+            <option value="Grizzly">Grizzly</option>
+          </select>
+        </div>
+
+        <div class="file is-medium">
+          <label class="file-label">
+            <input class="file-input" type="file" id="add-wf_directory" name="resume" webkitdirectory>
+            <span class="file-cta">
+              <span class="file-icon">
+                <i class="fa fa-upload"></i>
+              </span>
+              <span class="file-label">
+                Upload Workflow
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div class="field is-grouped">
+          <div class="control">
+            <button class="button is-link" id="add-wf_submit" type="button">Submit</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="centerSection" id="deleteWorkflow">
+      <h1 class="is-size-2">Delete Workflow</h1>
+      <div class="field">
+        <label class="label is-size-4">Workflow ID</label>
+        <div class="control">
+          <input class="input" type="text" placeholder="Workflow">
+        </div>
+      </div>	
+      <div class="file is-medium">
+        <label class="file-label">
+          <input class="file-input" type="file" name="resume">
+          <span class="file-cta">
+            <span class="file-icon">
+              <i class="fa fa-trash"></i>
+            </span>
+            <span class="file-label">
+              Delete Workflow
+            </span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="centerSection" id="archiveWorkflow">
+      <h1 class="is-size-2">Archive Workflow</h1>
+      <div class="field">
+        <label class="label is-size-4">Workflow Name</label>
+        <div class="control">
+          <input class="input" type="text" placeholder="Workflow">
+        </div>
+      </div>	
+      <div class="file is-medium">
+        <label class="file-label">
+          <input class="file-input" type="file" name="resume">
+          <span class="file-cta">
+            <span class="file-icon">
+              <i class="fa fa-upload"></i>
+            </span>
+            <span class="file-label">
+              Archive
+            </span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="centerSection" id="settings">
+      <h1 class="is-size-2">Settings</h1>
+      <div class="field">
+        <label class="label is-size-4">Username</label>
+        <div class="control">
+          <input class="input" type="text" placeholder="Workflow">
+        </div>
+      </div>	
+      <div class="field">
+        <label class="label is-size-4">Add Run Location</label>
+        <div class="control">
+          <input class="input" type="text" placeholder="cwl file">
+        </div>
+      </div>	
+      <div class="select is-multiple">
+        <label class="label is-size-4">Modify Run Locations</label>
+        <select multiple size="3">
+          <option value="Fog">Fog</option>
+          <option value="Darwin">Darwin</option>
+          <option value="Grizzly">Grizzly</option>
+        </select>
+      </div>
+
+
+      <div class="file is-medium">
+        <label class="file-label">
+          <input class="file-input" type="file" name="resume">
+          <span class="file-cta">
+            <span class="file-icon">
+              <i class="fa fa-upload"></i>
+            </span>
+            <span class="file-label">
+              Upload Workflow
+            </span>
+          </span>
+        </label>
+      </div>
+    </div>
+    <div id="welcomeMessage">
+      <article class="message is-large">
+        <div class="message-header">
+          <p>Welcome</p>
+        </div>
+        <div class="message-body">
+          Welcome to the BEE client. You currently have no active or completed workflows. 
+          Use the add workflow button to start a new workflow.
+        </div>
+      </article>
+    </div>
+
+    <div class="centerSection" id="currentWorkflow">
+      <h1 class="is-size-2"><span id="current-wf_name">Clamr WF</span></h1>
+      <p>Status: <span id="current-wf_status">Running</span></p>
+      <p>Location: <span id="current-wf_location">Fog</span></p>
+      <img src="dag.png" alt="Workflow DAG">
+      <p>
+      <button class="button is-danger is-outlined">
+        <span>Stop</span>
+        <span class="icon is-small">
+          <i class="fa fa-ban"> </i>
+        </span>
+      </button>
+      <button class="button is-danger is-outlined">
+        <span>Pause</span>
+        <span class="icon is-small">
+          <i class="fa fa-pause"></i>
+        </span>
+      </button>
+      </p>
+      <br>
+
+      <div>
+        <span class = "is-size-5">
+          Workflow Progress 
+        </span>
+        <br>
+        <progress class = "progress is-large" value="0" max = "100">50%</progress>
+      </div>
+    </div>
+
+
+
+    <div>
+      <div class="field">
+        <p class="control has-icons-left has-icons-right">
+        <input class="input" type="email" placeholder="Search Workflows">
+        <span class="icon is-small is-left">
+          <i class="fa fa-search"></i>
+        </span>
+        </p>
+      </div>
+
+      <aside class="menu">
+        <p class="is-size-3 menu-label">
+        Workflows
+        </p>
+        <ul class="menu-list" id="workflowList"> 
+          <!--
+            <li class="is-size-1"><a class="is-active">Clamr</a></li>
+            <li class="is-size-1"><a>Vassp</a></li>
+            <li class="is-size-1"><a>Flag</a></li>
+          -->
+        </ul>
+      </aside>
+    </div>
+
+    <div class="menu">
+      <ul class="menu-list">
+        <li>
+          <a id=add-wf_button>
+            <i class="fa fa-plus-circle fa-5x colored_icon"></i>
+            <br>
+            <p> Add Workflow </p>
+          </a>
+        </li>
+        <li>
+          <a id="delete-wf_button">
+            <i class="fa fa-trash fa-5x colored_icon"></i>
+            <br>
+            <p> Delete Workflow </p>
+          </a>
+        </li>
+        <li>
+          <a id="archive-wf_button">
+            <i class="fa fa-save fa-5x colored_icon"></i>
+            <br>
+            <p> Archive Workflow </p>
+          </a>
+        </li>
+        <li>
+          <a id="settings-button">
+            <i class="fa fa-wrench fa-5x colored_icon"></i>
+            <br>
+            <p> Settings </p>
+          </a>
+        </li>
+    </div>
+    <script type="text/javascript">
+      // You can also require other files to run in this process
+      require('./app')
+    </script>
+
+  </body>
+</html>

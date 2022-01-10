@@ -1,0 +1,31 @@
+{
+  "name": "master-electron",
+  "version": "1.0.0",
+  "description": "Master Electron Course Code",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "watch": "nodemon --exec electron .",
+    "reset": "git reset --hard"
+  },
+  "repository": "https://github.com/stackacademytv/master-electron",
+  "keywords": [
+    "Electron",
+    "Master Electron",
+    "demo"
+  ],
+  "author": "GitHub, Stackacademytv",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "electron": "^16.0.5",
+    "nodemon": "^2.0.0",
+    "tailwindcss": "^2.2.19"
+  },
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "better-sqlite3": "^7.4.5",
+    "bootstrap": "^5.1.3",
+    "colors": "^1.4.0",
+    "sqlite3": "^4.2.0"
+  }
+}
