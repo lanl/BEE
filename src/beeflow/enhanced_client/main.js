@@ -17,11 +17,10 @@ function createWindow () {
     // TODO Change width and height so it's proportionl to the screen size
     width: 1400, height: 1000,
     webPreferences: {
-      // --- !! IMPORTANT !! ---
-      // Disable 'contextIsolation' to allow 'nodeIntegration'
-      // 'contextIsolation' defaults to "true" as from Electron v12
+      // App needs to be modified so these can be changed to true and false
       contextIsolation: false,
       nodeIntegration: true
+      //preload: "/Users/l312315/BEE_Private/src/beeflow/enhanced_client/preload.js"
     }
   })
 
@@ -42,7 +41,7 @@ function createWindow () {
 // Create app window when ready
 app.on('ready', createWindow)
 
-// Close applicaition when all windows are closed unless on macOS 
+// Close application when all windows are closed unless on macOS 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
@@ -51,3 +50,11 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (mainWindow === null) createWindow()
 })
+
+// Will be used to recieve database update messages from renderer when
+// nodeIntegration is disabled
+// ipcMain.handle('db-add', async (event, arg) => {
+//     //  Add data to DB
+//     await awaitableProcess();
+//     return "Added";
+// })
