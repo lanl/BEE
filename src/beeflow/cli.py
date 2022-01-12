@@ -54,7 +54,7 @@ def start_slurm_restd(bc, args):
                             stdout=PIPE, stderr=PIPE, shell=True)
 
 
-def start_workflow_manager(bc, args):
+def start_workflow_manager(bc, args, cli_log):
     """Start BEEWorkflowManager. Returns a Popen process object."""
     # Load gdb config from config file if exists
     try:
@@ -75,10 +75,10 @@ def start_workflow_manager(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
-                            userconfig_file], stdout=PIPE, stderr=PIPE)
+                            userconfig_file], stdout=cli_log, stderr=cli_log)
 
 
-def start_task_manager(bc, args):
+def start_task_manager(bc, args, cli_log):
     """Start BEETaskManager. Returns a Popen process object."""
     # Load gdb config from config file if exists
     try:
@@ -104,10 +104,10 @@ def start_task_manager(bc, args):
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/task_manager.py",
-                            userconfig_file], stdout=PIPE, stderr=PIPE)
+                            userconfig_file], stdout=cli_log, stderr=cli_log)
 
 
-def start_scheduler(bc, args):
+def start_scheduler(bc, args, cli_log):
     """Start BEEScheduler.
 
     Start BEEScheduler and return the process object.
@@ -133,10 +133,10 @@ def start_scheduler(bc, args):
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     return subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
                             '--config-file', userconfig_file],
-                            stdout=PIPE, stderr=PIPE)
+                            stdout=cli_log, stderr=cli_log)
 
 
-def start_build(args):
+def start_build(args, cli_log):
     """Start builder.
 
     Start build tool with task described as Dict.
@@ -149,7 +149,7 @@ def start_build(args):
           userconfig_file, build_args],)
     return subprocess.run(["python", "-m", "beeflow.common.build_interfaces",
                           userconfig_file, build_args], check=False,
-                          stdout=PIPE, stderr=PIPE)
+                          stdout=cli_log, stderr=cli_log)
 
 
 def create_pid_file(proc, pid_file, bc):
@@ -215,8 +215,14 @@ def main():
         # Something went wrong
         return 1
 
+    # Set up a CLI log to log output from the subprocesses
+    if args.debug:
+        cli_log = sys.stdout
+    else:
+        cli_log_fname = os.path.join(os.path.join(bee_workdir, 'logs'), 'cli.log')
+        cli_log = open(cli_log_fname, 'w')
     if args.build:
-        proc = start_build(args)
+        proc = start_build(args, cli_log)
         if proc is None:
             log.error('Builder failed to initialize. Exiting.')
             return 1
@@ -243,7 +249,7 @@ def main():
                 # Don't append the graph database to list of processes to wait for
                 log.info('Starting slurmrestd based on userconfig file.')
     if args.sched or start_all:
-        proc = start_scheduler(bc, args)
+        proc = start_scheduler(bc, args, cli_log)
         if not args.config_only:
             if proc is None:
                 log.error('Scheduler failed to start. Exiting.')
@@ -253,7 +259,7 @@ def main():
             wait_list.append(('Scheduler', proc))
             log.info('Loading Scheduler')
     if args.wfm or start_all:
-        proc = start_workflow_manager(bc, args)
+        proc = start_workflow_manager(bc, args, cli_log)
         if not args.config_only:
             if proc is None:
                 log.error('Workflow Manager failed to start. Exiting.')
@@ -262,7 +268,7 @@ def main():
             wait_list.append(('Workflow Manager', proc))
             log.info('Loading Workflow Manager')
     if args.tm or start_all:
-        proc = start_task_manager(bc, args)
+        proc = start_task_manager(bc, args, cli_log)
         if not args.config_only:
             if proc is None:
                 log.error('Task Manager failed to start. Exiting.')

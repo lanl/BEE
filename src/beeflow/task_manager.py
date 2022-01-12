@@ -341,7 +341,7 @@ if __name__ == '__main__':
 
     # Flask logging
     flask_app.logger.addHandler(handler)
-    flask_app.run(debug=True, port=str(tm_listen_port))
+    flask_app.run(debug=False, port=str(tm_listen_port))
 # Ignore TODO comments
 # Ignoring "modules loaded below top of file" warning per Pat's comment
 # Ignoring flask.logger.AddHandler not found because logging is working...
