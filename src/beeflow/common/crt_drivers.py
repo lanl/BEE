@@ -217,9 +217,8 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 log.info('Moving with the expectation that {} is the runtime container target'.
                          format(task_container_name))
 
-        command = ' '.join(task.command) + '\n'
         if baremetal:
-            return command
+            return [Command(argv=task.command)]
 
         container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
         log.info('Expecting container at {}. Ready to deploy and run.'.format(container_path))
