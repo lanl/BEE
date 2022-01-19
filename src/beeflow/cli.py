@@ -48,9 +48,11 @@ def start_slurm_restd(bc, args):
     if args.config_only:
         return None
     slurm_socket = bc.userconfig.get('slurmrestd', 'slurm_socket')
+    slurm_args = bc.userconfig['slurmrestd'].get('slurm_args')
+    slurm_args = slurm_args if slurm_args is not None else ''
     subprocess.Popen(['rm', '-f', slurm_socket])
     log.info("Attempting to open socket: {}".format(slurm_socket))
-    return subprocess.Popen([f"slurmrestd unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
+    return subprocess.Popen([f"slurmrestd {slurm_args} unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
                             stdout=PIPE, stderr=PIPE, shell=True)
 
 
