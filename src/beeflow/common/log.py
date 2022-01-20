@@ -72,11 +72,11 @@ class BeeLogger(logging.Logger):
         """ Log a messagewith severity 'STEP_INFO'.
 
         :param msg: Message to be logged
-        :type msg: String
-        :param *args: List of non-key worded, variable length args.
-        :type *args: list
-        :param **kwargs: Key-worded, variable length args.
-        :type **kwargs: dict
+        :type msg: string
+        :param \*args: List of non-key worded, variable length args.
+        :type \*args: list
+        :param \**kwargs: Key-worded, variable length args.
+        :type \**kwargs: dict
         """
         if self.isEnabledFor(STEP_INFO):
             self._log(STEP_INFO, msg, args, **kwargs)

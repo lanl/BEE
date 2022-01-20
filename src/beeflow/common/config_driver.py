@@ -6,22 +6,29 @@ import platform
 
 
 class BeeConfig:
-    r"""Class to manage and store all BEE configuration.
+    """Class to manage and store all BEE configuration.
 
     BeeConfig.sysconfig is a ConfigParser object of system configurations.
     BeeConfig.userconfig is a ConfigParser object of user configurations.
 
     Configuration file locations by supported platform:
+
     Linux:
       sysconfig_file = '/etc/beeflow/bee.conf'
+
       userconfig_file = '~/.config/beeflow/bee.conf'
+
     MacOS:
       sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
+
       userconfig_file = '~/Library/Application Support/beeflow/bee.conf'
+
     Windows:
       sysconfig_file = NOT SUPPORTED. Should be windows registry.
+
       userconfig_file = '%APPDATA%\beeflow\bee.conf'
     """
+
 
     def __init__(self, **kwargs):
         """Initialize BeeConfig class.
