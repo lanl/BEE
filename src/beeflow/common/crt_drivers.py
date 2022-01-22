@@ -11,17 +11,15 @@ from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
-if __name__ == '__main__':
-    if len(sys.argv) >= 2:
-        USERCONFIG = sys.argv[1]
-        bc = BeeConfig(userconfig=USERCONFIG)
-    else:
-        USERCONFIG = None
-        bc = BeeConfig()
+if len(sys.argv) >= 2:
+    USERCONFIG = sys.argv[1]
+    bc = BeeConfig(userconfig=USERCONFIG)
+else:
+    USERCONFIG = None
+    bc = BeeConfig()
 
-    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
-
+bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
 class ContainerRuntimeDriver(ABC):
     """ContainerRuntimeDriver interface for generic container runtime."""

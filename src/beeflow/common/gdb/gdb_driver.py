@@ -109,7 +109,7 @@ class GraphDatabaseDriver(ABC):
 
         Returns a tuple of (inputs, outputs).
 
-        :rtype (list of InputParameter, list of OutputParameter)
+        :rtype: (list of InputParameter, list of OutputParameter)
         """
 
     @abstractmethod

@@ -324,7 +324,7 @@ def get_workflow_inputs(tx):
 def get_workflow_outputs(tx):
     """Get workflow outputs from the Neo4j database.
 
-    :rtype BoltStatementResult
+    :rtype: BoltStatementResult
     """
     outputs_query = "MATCH (:Workflow)<-[:OUTPUT_OF]-(o:Output) RETURN o"
 
