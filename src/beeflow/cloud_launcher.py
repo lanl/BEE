@@ -97,7 +97,7 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
 
 
 def connect(provider, private_key_file, bee_user, launch_cmd, head_node,
-            tm_listen_port, wfm_listen_port):
+            tm_listen_port, wfm_listen_port, max_retries):
     """Connect to an already running TM."""
     ip_addr = provider.get_ext_ip_addr(head_node)
     tun_proc = subprocess.Popen([
@@ -122,7 +122,6 @@ def connect(provider, private_key_file, bee_user, launch_cmd, head_node,
     # Now continue until we can ping the Task Manager
     url = f'http://localhost:{tm_listen_port}/status'
     interval = 5
-    max_retries = 128
     # Keep trying to get a status from the Task Manager (this could probably be
     # done better with some sort of backoff algorithm)
     for i in range(max_retries):
@@ -153,6 +152,8 @@ def main():
     parser.add_argument('--connect', action='store_true', help='connect to an already running TM')
     parser.add_argument('--debug', action='store_true',
                         help='debug the cloud template, don\'t make any API calls')
+    parser.add_argument('--max-retries', default=124, type=int,
+                        help='max number of retry attempts when used with the `--connect` option')
     args = parser.parse_args()
 
     # Get configuration information
@@ -200,7 +201,8 @@ def main():
     if args.connect:
         connect(provider=provider, private_key_file=private_key_file,
                 bee_user=bee_user, launch_cmd=launch_cmd, head_node=head_node,
-                wfm_listen_port=wfm_listen_port, tm_listen_port=tm_listen_port)
+                wfm_listen_port=wfm_listen_port, tm_listen_port=tm_listen_port,
+                max_retries=args.max_retries)
 
 
 if __name__ == '__main__':
