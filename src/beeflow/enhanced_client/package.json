@@ -21,6 +21,7 @@
     "electron": "^16.0.5"
   },
   "dependencies": {
+    "axios": "^0.25.0",
     "better-sqlite3": "^7.4.5",
     "bulma": "^0.9.3",
     "electron-builder": "^22.14.5",
