@@ -3,9 +3,10 @@ const {ipcRenderer} = require('electron')
 //var components = require('./components.js')
 var display = require('./display.js')
 var workflows = require('./workflows.js')
-//var database = require('./database.js')
+var database = require('./database.js')
 
-// Load up data from database
+// Start up data from database
+database.init()
 
 // Initialize component objects and set listeners 
 display.addComponent('welcomeMessage')
@@ -19,8 +20,26 @@ display.addComponent('settings', 'settings-button')
 display.initContent()
 
 // Load workflows from gdb
-workflows.loadWorkflows()
-//database.initialize()
+workflows.initialize('workflowList')
+//workflows.add_workflow('clamr', 'oww', 'fog', 'pathu');
+//workflows.add_workflow('vasp', 'oww', 'fog', 'pathu');
+//database.delete_wf(42)
+//database.add_wf(42)
+//wfs = database.get_wfs()
+//console.log(wfs)
+//database.add_task(14, 43, 'Fog', 'ls')
+//tasks = database.get_tasks(42)
+////console.log(tasks)
+//database.add_task(13, 42, 'Fog', 'ls')
+//database.add_task(14, 42, 'Fog', 'ls')
+//tasks = database.get_tasks(42)
+//console.log(tasks)
+//database.delete_wf(42)
+// database.add_wf(42)
+// const wf = database.get_wf(42)
+// 
+// console.log(wf)
+// database.add_task(13, 42, 'Fog', 'cat')
 
 
 // This will be enabled when we set nodeIntegration and contextIsolation to false/true

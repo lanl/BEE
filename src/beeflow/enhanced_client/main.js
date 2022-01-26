@@ -1,6 +1,7 @@
 // Modules
 const {app, BrowserWindow, ipcMain} = require('electron')
-//const  lib = require('lib')
+
+app.allowRendererProcessReuse = true
 
 // Used to handle error in MacOS systems
 if (app.getGPUFeatureStatus().gpu_compositing.includes("disabled")) {
@@ -9,7 +10,7 @@ if (app.getGPUFeatureStatus().gpu_compositing.includes("disabled")) {
 
 // Need global reference to window object so it doesn't 
 // get garbage collected and close the window
-let mainWindow
+let mainWindow;
 
 // Creates the main application window
 function createWindow () {
@@ -20,16 +21,13 @@ function createWindow () {
       // App needs to be modified so these can be changed to true and false
       contextIsolation: false,
       nodeIntegration: true
-      //preload: "/Users/l312315/BEE_Private/src/beeflow/enhanced_client/preload.js"
     }
   })
 
   // Load main.html into the new BrowserWindow
   mainWindow.loadFile('renderer/main.html')
 
-  //let wc = mainWindow.webContents
-
-  // Open DevTools - Remove for PRODUCTION!
+  // Open DevTools
   mainWindow.webContents.openDevTools();
 
   // Listen for window being closed

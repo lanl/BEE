@@ -28,7 +28,15 @@
             <input class="input" type="text" id="add-wf_cwl" placeholder="cwl file">
           </div>
         </div>	
+        <div class="field">
+          <label class="label is-size-4">YAML File</label>
+          <div class="control">
+            <input class="input" type="text" id="add-wf_yaml" placeholder="yaml file">
+          </div>
+        </div>	
 
+        
+        <!--
         <div class="select is-multiple">
           <label class="label is-size-4">Run Locations</label>
           <select multiple size="3" id="add-wf_locations">
@@ -37,10 +45,13 @@
             <option value="Grizzly">Grizzly</option>
           </select>
         </div>
+        !-->
 
         <div class="file is-medium">
           <label class="file-label">
-            <input class="file-input" type="file" id="add-wf_directory" name="resume" webkitdirectory>
+            <input class="is-size-4" type="file" id="add-wf_directory" name="filename">
+            <!--<input class="file-input" type="file" id="add-wf_directory" name="resume" webkitdirectory>!-->
+            <!--
             <span class="file-cta">
               <span class="file-icon">
                 <i class="fa fa-upload"></i>
@@ -49,6 +60,7 @@
                 Upload Workflow
               </span>
             </span>
+            !-->
           </label>
         </div>
 
@@ -243,10 +255,6 @@
           </a>
         </li>
     </div>
-    // <script type="text/javascript">
-    //   // You can also require other files to run in this process
-    //   require('./app')
-    // </script>
     <script src="./app.js"></script>
 
   </body>
