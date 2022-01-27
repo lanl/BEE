@@ -101,6 +101,7 @@ class LSFWorker(Worker):
                 crt_text.append(cmd.block)
                 crt_text.append('\n')
             else:
+                # TODO: Check for one_per_node option
                 crt_text.append('{}\n'.format(' '.join(cmd.argv)))
         script = ''.join(crt_text)
         job_text += script

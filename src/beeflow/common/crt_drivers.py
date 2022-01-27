@@ -25,12 +25,14 @@ handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_dr
 class Command:
     """Command class to be returned by run_text()."""
 
-    def __init__(self, argv=None, block=None):
+    def __init__(self, argv=None, block=None, one_per_node=False):
         """Command constructor."""
         # Argument list for a command (see run_text() below)
         self.argv = argv
         # For a block of shell text/environment setup code
         self.block = block
+        # Should this command be run one per node (i.e. a ch-tar2dir command, etc.)
+        self.one_per_node = one_per_node
 
 
 class ContainerRuntimeDriver(ABC):
@@ -228,10 +230,10 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         commands = [
             Command(block=f'{cc_setup}\n'),
-            Command(argv=f'mkdir -p {deployed_image_root}\n'.split()),
-            Command(argv=f'ch-tar2dir {container_path} {deployed_image_root}\n'.split()),
+            Command(argv=f'mkdir -p {deployed_image_root}\n'.split(), one_per_node=True),
+            Command(argv=f'ch-tar2dir {container_path} {deployed_image_root}\n'.split(), one_per_node=True),
             Command(argv=f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()),
-            Command(argv=f'rm -rf {deployed_image_root}/{task_container_name}\n'.split()),
+            Command(argv=f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(), one_per_node=True),
         ]
         log.info('run text:\n{}'.format(commands))
         return commands

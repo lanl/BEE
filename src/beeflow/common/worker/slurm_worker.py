@@ -122,7 +122,10 @@ class SlurmWorker(Worker):
                 crt_text.append(cmd.block)
                 crt_text.append('\n')
             else:
-                crt_text.append('srun {}\n'.format(' '.join(cmd.argv)))
+                srun_opts = ''
+                if cmd.one_per_node:
+                    srun_opts = '--ntasks-per-node=1'
+                crt_text.append('srun {} {}\n'.format(srun_opts, ' '.join(cmd.argv)))
         crt_text = ''.join(crt_text)
         job_text += crt_text
         return job_text
