@@ -235,7 +235,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             Command(argv=f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()),
             Command(argv=f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(), one_per_node=True),
         ]
-        log.info('run text:\n{}'.format(commands))
         return commands
 
     def build_text(self, userconfig, task):
