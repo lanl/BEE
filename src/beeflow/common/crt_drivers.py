@@ -87,6 +87,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
     def run_text(self, task):
         """Build text for Charliecloud batch script."""
+        # TODO: I think this first block of code can be removed
         if task.hints is not None:
             docker = False
             # Make sure all commands are strings
@@ -231,7 +232,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         commands = [
             Command(block=f'{cc_setup}\n'),
             Command(argv=f'mkdir -p {deployed_image_root}\n'.split(), one_per_node=True),
-            Command(argv=f'ch-convert -i tar -o dir {container_path} {deployed_image_root}\n'.split(), one_per_node=True),
+            Command(argv=f'ch-tar2dir {container_path} {deployed_image_root}\n'.split(), one_per_node=True),
             Command(argv=f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()),
             Command(argv=f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(), one_per_node=True),
         ]
@@ -269,7 +270,7 @@ class SingularityDriver(ContainerRuntimeDriver):
                     Command(argv=argv),
                 ]
             except (KeyError, TypeError):
-                break
+                pass
         return cmds
 
     def build_text(self, userconfig, task):

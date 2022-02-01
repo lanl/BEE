@@ -18,7 +18,8 @@ steps:
     out: [nw_stdout]
     hints:
       DockerRequirement:
-        # This is an x86 container
-        dockerPull: "jtronge/nwchem:test-tce-ccsd"
+        # This is an x86 container (it's about ~1200MB so it will take a while to pull)
+        dockerPull: "jtronge/nwchem:05aafc87223af82f58865d8b0f924dabd1adacbc"
       beeflow:MPIRequirement:
+        nodes: 1
         ntasks: 2
