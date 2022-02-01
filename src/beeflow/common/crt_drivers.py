@@ -231,7 +231,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         commands = [
             Command(block=f'{cc_setup}\n'),
             Command(argv=f'mkdir -p {deployed_image_root}\n'.split(), one_per_node=True),
-            Command(argv=f'ch-tar2dir {container_path} {deployed_image_root}\n'.split(), one_per_node=True),
+            Command(argv=f'ch-convert -i tar -o dir {container_path} {deployed_image_root}\n'.split(), one_per_node=True),
             Command(argv=f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()),
             Command(argv=f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(), one_per_node=True),
         ]
@@ -253,21 +253,24 @@ class SingularityDriver(ContainerRuntimeDriver):
 
     def run_text(self, task):
         """Build text for Singularity batch script."""
+        # Make sure all commands are strings
+        cmd_tasks = list(map(str, task.command))
+        cmds = [
+            Command(argv=cmd_tasks),
+        ]
         if task.hints is not None:
-            docker = False
-            # Make sure all commands are strings
-            cmd_tasks = list(map(str, task.command))
-            command = ' '.join(cmd_tasks) + '\n'
-            for hint in task.hints:
-                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    text = ''.join([
-                        'singularity exec ', hint.params["dockerImageId"],
-                        ' ', command,
-                        ])
-                    docker = True
-            if not docker:
-                text = command
-        return text
+            hints = dict(task.hints)
+            # I'm not sure if this should check for copyContainer here or not
+            try:
+                img = hints['DockerRequirement']['dockerImageId']
+                argv = ['singularity', 'exec', img]
+                argv.extend(cmd_tasks)
+                cmds = [
+                    Command(argv=argv),
+                ]
+            except (KeyError, TypeError):
+                break
+        return cmds
 
     def build_text(self, userconfig, task):
         """Build text for Singularity batch script."""
