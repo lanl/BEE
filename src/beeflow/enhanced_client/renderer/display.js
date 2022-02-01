@@ -10,9 +10,67 @@ buttons = new Map()
 currentContent = null
 
 const wf = require('./workflows.js')
+const config = require('./config.js')
+
+// Add extra buttons unrelated to a component
+// Setup start button
+function startButton(button_id) {
+	button = document.getElementById(button_id);
+	// Create a click method listener for the button
+	button.addEventListener('click', e => {	
+		wf.start_workflow();
+        document.getElementById('start-wf_button').style.display = "none";
+        document.getElementById('pause-wf_button').style.display = "inline";
+	})
+}
+
+// Setup pause button
+function downloadButton(button_id) {
+	button = document.getElementById(button_id);
+	// Create a click method listener for the button
+	button.addEventListener('click', e => {	
+        // Breaks seperations of concerns add to button map and lookup
+        console.log('Downloading')
+		wf.download_current_archive();
+	})
+}
+
+
+// Setup pause button
+function pauseButton(button_id) {
+	button = document.getElementById(button_id);
+	// Create a click method listener for the button
+	button.addEventListener('click', e => {	
+        // Breaks seperations of concerns add to button map and lookup
+		wf.pause_workflow();
+        document.getElementById('pause-wf_button').style.display = "none";
+        document.getElementById('resume-wf_button').style.display = "inline";
+	})
+}
+
+// Add extra buttons unrelated to a component
+// Setup start button
+function resumeButton(button_id) {
+	button = document.getElementById(button_id);
+	// Create a click method listener for the button
+	button.addEventListener('click', e => {	
+		wf.resume_workflow();
+        document.getElementById('resume-wf_button').style.display = "none";
+        document.getElementById('pause-wf_button').style.display = "inline";
+	})
+}
+
+
+function updateButton(button_id) {
+	button = document.getElementById(button_id);
+	// Create a click method listener for the button
+	button.addEventListener('click', e => {	
+		wf.update_current_workflow();
+	})
+}
 
 class Component {
-    constructor(content_id, button_id, form_id) {
+    constructor(content_id, button_id, form_button_id) {
         this.content_id = content_id;
         this.element = document.getElementById(content_id);
         // Add to components map
@@ -27,10 +85,10 @@ class Component {
             this.setupButtonListener();
         }
         // Setup form if we have one
-        if (form_id !== null) {
-            this.form_id = form_id;
+        if (form_button_id !== null) {
+            this.form_button_id = form_button_id;
             // Get for button element then attach a listener to it
-            this.form = document.getElementById(this.form_id);
+            this.form = document.getElementById(this.form_button_id);
             this.setupFormListener();
         }
     }
@@ -99,150 +157,138 @@ class Component {
 
 
 class AddWorkflow extends Component {
-    constructor(content_id, button_id, form_id) {
-        super(content_id, button_id, form_id);
+    constructor(content_id, button_id, form_button_id) {
+        super(content_id, button_id, form_button_id);
     }
 
     // Gets the workflow directory path 
-    get_actual_path(full_path, rel_path) {
-        let parent_dir = rel_path.split('/')[0];
-        let stopping_point = full_path.indexOf(rel_path) + parent_dir.length;
-        let actual_path = full_path.slice(0, stopping_point);
-        return actual_path;
-    }
+    //get_actual_path(full_path, rel_path) {
+    //    let parent_dir = rel_path.split('/')[0];
+    //    let stopping_point = full_path.indexOf(rel_path) + parent_dir.length;
+    //    let actual_path = full_path.slice(0, stopping_point);
+    //    return actual_path;
+    //}
 
     setupFormListener() {
-        // wf.add_workflow()
-        this.form.addEventListener('click', e => {
+        this.form.addEventListener('click', async e => {
+            // Need to add checking for valid values
             // Get all the form contents then pass to add workflow function
             let name = document.getElementById('add-wf_name').value;
-            let cwl = document.getElementById('add-wf_cwl').value;
+            let main_cwl = document.getElementById('add-wf_cwl').value;
             let yaml = document.getElementById('add-wf_yaml').value;
             let tarball_path = document.getElementById('add-wf_tar').files[0].path;
-            //let inputs = [name, cwl, yaml, tarball]
-            //let empty = false
-            //let i;
-            //for (i = 0; i < inputs.length; i++) {
-            //    if (inputs[i].value.length < 1) {
-            //       empty = true;
-            //       break;
-            //    }
-            //}
-            //if (empty) {
-            //    alert('Need to fill all fields');
-            //    return;
-            //}
-
-            // //let locations = document.getElementById('add-wf_locations').value;
-            // // Get the directory 
-            // let directory = document.getElementById('add-wf_directory').files[0];
-            // if (directory == undefined) {
-            //     empty = true;
-            // }
-
-            // console.log(directory)
-            // let full_path = directory.path;
-            // let rel_path = directory.webkitRelativePath;
-            // let actual_path = this.get_actual_path(full_path, rel_path);
-            wf.add_workflow(name, cwl, yaml, tarball_path);
+            wf.add_workflow(name, main_cwl, yaml, tarball_path);
             // Reset the form
             document.getElementById('add-workflow_form').reset();
-            //this.form.reset();
+            document.getElementById('start-wf_button').style.display = "inline";
+            document.getElementById('pause-wf_button').style.display = "none";
+            document.getElementById('resume-wf_button').style.display = "none";
+            hideWelcome();
             this.toggle_content();
+            this.toggle_button()
         })
     }
 }
-
-class DeleteWorkflow extends Component {
-    constructor(content_id, button_id, form_id) {
-        super(content_id, button_id, form_id);
-    }
-
-    setupFormListener() {
-        // wf.add_workflow()
-        this.form.addEventListener('click', e => {
-            // Get all the form contents then pass to add workflow function
-            let wf_id = document.getElementById('add-wf_name').value;
-            wf.delete_workflow(wf_id)
-        })
-    }
-
-}
-
-class ArchiveWorkflow extends Component {
-    constructor(content_id, button_id, form_id) {
-        super(content_id, button_id, form_id);
-    }
-
-    setupFormListener() {
-        // wf.add_workflow()
-        this.form.addEventListener('click', e => {
-            // Get all the form contents then pass to add workflow function
-            let wf_name = document.getElementById('add-wf_name').value;
-            let wf_cwl = document.getElementById('add-wf_cwl').value;
-            let wf_locations = document.getElementById('add-wf_locations').value;
-            let wf_directory = document.getElementById('add-wf_directory').files[0];
-            let full_path = wf_directory.path;
-            let rel_path = wf_directory.webkitRelativePath
-            let actualPath = this.get_actual_path(full_path, rel_path)
-            wf.add_workflow(wf_name, cwl_file, locations, actual_path)
-            console.log(wf_name, wf_cwl, wf_locations, actualPath)
-        })
-    }
-
-}
-
 
 class Settings extends Component {
-    constructor(content_id, button_id, form_id) {
-        super(content_id, button_id, form_id);
+    constructor(content_id, button_id, form_button_id) {
+        super(content_id, button_id, form_button_id);
     }
 
     setupFormListener() {
-        // wf.add_workflow()
         this.form.addEventListener('click', e => {
-            // Get all the form contents then pass to add workflow function
-            // Getting the form contents requires hardcoding the ids of the 
-            // form elements in here which I'm not very happy with since it 
-            // breaks seperation of concerns
-            let wf_name = document.getElementById('add-wf_name').value;
-            let wf_cwl = document.getElementById('add-wf_cwl').value;
-            let wf_locations = document.getElementById('add-wf_locations').value;
-            let wf_directory = document.getElementById('add-wf_directory').files[0];
-            let full_path = wf_directory.path;
-            let rel_path = wf_directory.webkitRelativePath
-            let actualPath = this.get_actual_path(full_path, rel_path)
-            wf.add_workflow(wf_name, cwl_file, locations, actual_path)
-            //console.log(wf_name, wf_cwl, wf_locations, actualPath)
+            let moniker = document.getElementById('settings-moniker').value;
+            let bolt_port = document.getElementById('settings-bolt_port').value;
+            let wfm_port = document.getElementById('settings-wfm_port').value;
+            config.init(moniker, bolt_port, wfm_port); 
+            this.toggle_content();
+            this.toggle_button();
         })
     }
 
 }
+
+
+class DeleteWorkflow extends Component {
+    constructor(content_id, button_id, form_button_id) {
+        super(content_id, button_id, form_button_id);
+    };
+
+    setupFormListener() {
+        this.form.addEventListener('click', e => {
+            let wf_id = document.getElementById('delete-wf_id').value;
+            wf.delete_workflow(wf_id);
+            showWelcome();
+            document.getElementById('delete-workflow_form').reset();
+            this.toggle_content();
+            this.toggle_button();
+            document.getElementById('start-wf_button').style.display = "inline";
+            document.getElementById('pause-wf_button').style.display = "none";
+            document.getElementById('resume-wf_button').style.display = "none";
+        })
+    }
+
+}
+
+class ReexecuteWorkflow extends Component {
+    constructor(content_id, button_id, form_button_id) {
+        super(content_id, button_id, form_button_id);
+    }
+
+    setupFormListener() {
+        // wf.add_workflow()
+        this.form.addEventListener('click', async e => {
+            // Get all the form contents then pass to add workflow function
+            let name = document.getElementById('reexecute-wf_name').value;
+            let tarball_path = document.getElementById('reexecute-wf_tar').files[0].path;
+            wf.reexecute_workflow(name, tarball_path)
+            document.getElementById('reexecute-workflow_form').reset();
+            hideWelcome();
+            document.getElementById('start-wf_button').style.display = "inline";
+            document.getElementById('pause-wf_button').style.display = "none";
+            document.getElementById('resume-wf_button').style.display = "none";
+            this.toggle_content();
+            this.toggle_button()
+        })
+    }
+
+}
+
+
 
 function initContent() {
     currentContent = components.get("welcomeMessage")
 }
 
 // Component factory 
-function addComponent(content_id, button_id = null, form_id = null) {
+function addComponent(content_id, button_id = null, form_button_id = null) {
     switch(content_id) {
         case 'addWorkflow':
-            component = new AddWorkflow(content_id, button_id, form_id)
+            component = new AddWorkflow(content_id, button_id, form_button_id)
             break
         case 'deleteWorkflow':
-            component = new DeleteWorkflow(content_id, button_id, form_id)
+            component = new DeleteWorkflow(content_id, button_id, form_button_id)
             break;
-        case 'archiveWorkflow':
-            component = new ArchiveWorkflow(content_id, button_id, form_id)
+        case 'reexecuteWorkflow':
+            component = new ReexecuteWorkflow(content_id, button_id, form_button_id)
             break; 
         case 'settings':
-            component = new Settings(content_id, button_id, form_id)
+            component = new Settings(content_id, button_id, form_button_id)
             break;
         default:
             // welcomeMessage and currentWorkflow just use Component
-            component = new Component(content_id, button_id, form_id)
+            component = new Component(content_id, button_id, form_button_id)
     }
 }
 
+function hideWelcome() {
+    currentContent = document.getElementById('currentWorkflow')
+}
 
-module.exports = { Component, addComponent, initContent }
+function showWelcome() {
+    currentContent = document.getElementById('welcomeMessage')
+}
+
+
+module.exports = { Component, addComponent, startButton, downloadButton, pauseButton, hideWelcome, 
+                   resumeButton, updateButton, initContent, hideWelcome, showWelcome }

@@ -1,33 +1,32 @@
 {
-  "name": "master-electron",
+  "name": "BEEClient",
+  "description": "Graphical client for the BEE workflow manager.",
   "version": "1.0.0",
-  "description": "Master Electron Course Code",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "watch": "nodemon --exec electron .",
     "reset": "git reset --hard",
-    "postinstall": "electron-builder install-app-deps"
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
-  "repository": "https://github.com/stackacademytv/master-electron",
+  "repository": "https://github.com/lanl/BEE_Private",
   "keywords": [
-    "Electron",
-    "Master Electron",
-    "demo"
+    "Workflows"
   ],
-  "author": "GitHub, Stackacademytv",
-  "license": "CC0-1.0",
+  "author": "BEE Team",
   "devDependencies": {
-    "electron": "^16.0.5"
+    "electron": "^16.0.5",
+    "electron-builder": "^22.14.5",
+    "electron-rebuild": "^3.2.7"
   },
   "dependencies": {
     "axios": "^0.25.0",
     "better-sqlite3": "^7.4.5",
     "bulma": "^0.9.3",
-    "electron-builder": "^22.14.5",
-    "electron-rebuild": "^3.2.6",
-    "node-sqlite": "^0.0.2-security",
-    "sqlite3": "^4.2.0",
+    "form-data": "^4.0.0",
+    "neo4j-driver": "^4.4.1",
+    "neovis.js": "^2.0.0-alpha.9",
     "tunnel-ssh": "^4.1.6"
   }
 }

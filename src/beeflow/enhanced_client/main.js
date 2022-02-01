@@ -20,7 +20,9 @@ function createWindow () {
     webPreferences: {
       // App needs to be modified so these can be changed to true and false
       contextIsolation: false,
-      nodeIntegration: true
+      nodeIntegration: true,
+      webSecurity: false,
+      experimentalFeatures: true
     }
   })
 

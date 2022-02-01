@@ -1,0 +1,31 @@
+parser: babel-eslint
+env:
+  browser: true
+  es6: true
+  "jest/globals": true
+extends:
+  - 'eslint:recommended'
+  - 'plugin:jest/recommended'
+globals:
+  Atomics: readonly
+  SharedArrayBuffer: readonly
+parserOptions:
+  ecmaVersion: 2018
+  sourceType: module
+plugins:
+  - jest
+rules:
+  indent:
+    - error
+    - tab
+  quotes:
+    - error
+    - single
+  semi:
+    - error
+    - always
+  no-console:
+    - error
+  no-prototype-builtins: off
+  jest/no-mocks-import:
+    - error

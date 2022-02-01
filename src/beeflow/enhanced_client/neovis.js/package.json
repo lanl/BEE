@@ -1,0 +1,78 @@
+{
+  "name": "neovis.js",
+  "version": "1.6.0",
+  "description": "Graph visualizations powered by vis.js with data from Neo4j.",
+  "main": "./dist/neovis.js",
+  "module": "./dist/neovis-without-dependencies.js",
+  "types": "./index.d.ts",
+  "directories": {
+    "doc": "doc",
+    "example": "examples",
+    "test": "`__tests__"
+  },
+  "scripts": {
+    "test": "jest __tests__/neovis.tests.js",
+    "eslint": "eslint .",
+    "prepublishOnly": "npm run build",
+    "clean": "rimraf ./dist",
+    "build": "run-s clean build:prod",
+    "build-dev": "run-s clean build:dev",
+    "build:prod": "run-p build:prod:*",
+    "build:prod:with-dependencies": "cross-env BUILD_WITH_DEPENDENCIES=true webpack --mode=production",
+    "build:prod:without-dependencies": "webpack --mode=production",
+    "build:dev": "run-p build:dev:*",
+    "build:dev:with-dependencies": "cross-env BUILD_WITH_DEPENDENCIES=true webpack --mode=development",
+    "build:dev:without-dependencies": "webpack --mode=development"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neo4j-contrib/neovis.js.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/neo4j-contrib/neovis.js/issues"
+  },
+  "homepage": "https://github.com/neo4j-contrib/neovis.js#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.4",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/plugin-transform-runtime": "^7.8.3",
+    "@babel/preset-env": "^7.8.4",
+    "babel-eslint": "^10.0.3",
+    "babel-loader": "^8.0.6",
+    "cross-env": "^7.0.0",
+    "css-loader": "^3.4.2",
+    "eslint": "^6.8.0",
+    "eslint-plugin-jest": "^23.6.0",
+    "file-loader": "^5.0.2",
+    "jest": "^26.6.2",
+    "jest-canvas-mock": "^2.2.0",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.1",
+    "style-loader": "^1.1.3",
+    "url-loader": "^3.0.0",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
+  },
+  "dependencies": {
+    "@babel/runtime-corejs3": "^7.8.4",
+    "neo4j-driver": "^4.1.0",
+    "vis-data": "^7.0.0",
+    "vis-network": "^7.3.5"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js",
+      "\\.(css|less)$": "<rootDir>/__mocks__/styleMock.js"
+    },
+    "setupFiles": [
+      "jest-canvas-mock"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules[/\\\\](?!vis-network)"
+    ]
+  }
+}

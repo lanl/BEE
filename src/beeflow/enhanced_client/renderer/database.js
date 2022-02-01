@@ -13,6 +13,7 @@ function init() {
                 id INTEGER PRIMARY KEY,
                 -- Set workflow ID to unique.
                 wf_id INTEGER UNIQUE,
+                name TEXT,
                 completed BOOLEAN,
                 archived BOOLEAN,
                 percentage_complete FLOAT,
@@ -25,9 +26,10 @@ function init() {
 				wf_id INTEGER NOT NULL,
 				task_id INTEGER UNIQUE,
 				completed BOOLEAN,
-				location TEXT,
+				resource TEXT,
 				status TEXT,
-				description TEXT,
+                name TEXT,
+				base_command TEXT,
 				FOREIGN KEY (wf_id)
 					REFERENCES workflows (wf_id)
 						ON DELETE CASCADE
@@ -37,25 +39,36 @@ function init() {
     const config_stmt = db.prepare(`
 			CREATE TABLE IF NOT EXISTS config (
 				id INTEGER PRIMARY KEY,
-				wf_id INTEGER NOT NULL
+                moniker TEXT,
+                resource TEXT,
+                bolt_port INTEGER,
+                wfm_port INTEGER
           );`);
 
     const wf_info = workflow_stmt.run();
     const task_info = task_stmt.run();
+    const config_info = config_stmt.run();
 }
 
 // Add a WF
-function add_wf(wf_id) {
+function add_wf(wf_id, name) {
     let completed = 'False';
     let archived = 'False';
     let percentage_complete = 0;
     let status = 'Pending';
     const stmt = db.prepare(`INSERT INTO workflows (wf_id, completed, archived, 
-									percentage_complete, status)
-               						VALUES(?, ?, ?, ?, ?)`);
+									percentage_complete, status, name)
+               						VALUES(?, ?, ?, ?, ?, ?)`);
 	const info = stmt.run(wf_id, completed, archived, 
-								percentage_complete, status);
+								percentage_complete, status, name);
 }
+
+function add_config(moniker, resource, bolt_port, wfm_port) {
+    const stmt = db.prepare(`INSERT INTO config (moniker, resource, bolt_port, wfm_port)
+                            VALUES(?, ?, ?, ?)`);
+    const info = stmt.run(moniker, resource, bolt_port, wfm_port);
+}
+
 
 // Get a parituclar wf 
 function get_wf(wf_id) {
@@ -67,15 +80,22 @@ function get_wf(wf_id) {
 // Get all workflows in the system
 function get_workflows() {
     const stmt = db.prepare('SELECT * FROM workflows');
-    const wf = stmt.all()
-    return wf 
+    const wf = stmt.all();
+    return wf; 
 }
 
 // Get all tasks associated with a wf_id
 function get_tasks(wf_id) {
-    const stmt = db.prepare('SELECT * FROM tasks WHERE wf_id=?')
-    const tasks = stmt.all(wf_id)
-    return tasks 
+    const stmt = db.prepare('SELECT * FROM tasks WHERE wf_id=?');
+    const tasks = stmt.all(wf_id);
+    return tasks; 
+}
+
+function update_task_state(task_id, wf_id, status) {
+    const stmt = db.prepare(`UPDATE tasks
+                             SET status=?
+                             WHERE task_id=? AND wf_id=? VALUES(?, ?, ?)`);
+    const task_info = stmt.run(status, task_id, wf_id);
 }
 
 
@@ -84,13 +104,12 @@ function delete_wf(wf_id) {
     const info = stmt.run(42);
 }
 
-function add_task(task_id, wf_id, location, description) {
-    const completed = 'False'
-    const status = 'Pending'
+function add_task(task_id, wf_id, name, resource, base_command, status) {
+    const completed = 'False';
     const stmt = db.prepare(`INSERT INTO tasks (wf_id, task_id, completed, 
-            location, status, description) VALUES(?, ?, ?, ?, ?, ?)`);
-    const task_info  = stmt.run(wf_id, task_id, completed, location, description, status);
-    console.log(task_info)
+            resource, base_command, status, name) VALUES(?, ?, ?, ?, ?, ?, ?)`);
+    const task_info  = stmt.run(wf_id, task_id, completed, resource, base_command, status, name);
+    console.log(task_info);
 }
 
 function delete_task(wf_id, task_id) {
@@ -107,4 +126,5 @@ function close() {
     });
 }
 
-module.exports = { init, add_wf, get_wf, get_workflows, get_tasks, delete_wf, add_task, delete_task }
+module.exports = { init, add_wf, get_wf, get_workflows, get_tasks, delete_wf, 
+                   add_config, add_task, delete_task }

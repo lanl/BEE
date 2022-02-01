@@ -1,0 +1,8 @@
+node_modules
+img
+examples
+doc
+dist
+webpack.config.js
+*.ts
+babel.config.js

@@ -58,7 +58,7 @@ centerSection, workflowList, menu, div{
 }
 
 
-#archiveWorkflow {
+#reexecuteWorkflow {
     display: none;
 }
 
@@ -67,3 +67,23 @@ centerSection, workflowList, menu, div{
     display: none;
 }
 
+#viz {
+    width: 100%;
+    height: 350px;
+}
+
+#pause-wf_button {
+    display: none;
+}
+
+#download-archive_button {
+    display: none;
+}
+
+#resume-wf_button {
+    display: none;
+}
+
+#add-warning {
+    display: none;
+}
