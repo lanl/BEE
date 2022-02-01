@@ -1,28 +1,102 @@
-/*
- *
- *
- *
- */ 
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3')
+//const sql = require('sqlite3')
 const fs = require('fs')
 
-function initialize() {
+let db = null
+
+function init() {
     // If the DB doesn't exist create it
-    // Check is synchronous this might be bad
-    if (fs.existsSync('app.db')) {
-        console.log('Database exists')
-    }
-    else {
-       console.log('Database does not exist')
-       let db = new sqlite3.Database('app.db', sqlite3.OPEN_READWRITE, (err) => {
-           if (err) {
-               console.error(err.message);
-           }
-       });
-    }
+    db = new Database('data/app.db', { verbose: console.log });
+    // Create tables if they don't exist
+    const workflow_stmt = db.prepare(`
+            CREATE TABLE IF NOT EXISTS workflows (
+                id INTEGER PRIMARY KEY,
+                -- Set workflow ID to unique.
+                wf_id INTEGER UNIQUE,
+                completed BOOLEAN,
+                archived BOOLEAN,
+                percentage_complete FLOAT,
+                status TEST NOT NULL
+            );`);
+    
+    const task_stmt = db.prepare(`
+			CREATE TABLE IF NOT EXISTS tasks (
+				id INTEGER PRIMARY KEY,
+				wf_id INTEGER NOT NULL,
+				task_id INTEGER UNIQUE,
+				completed BOOLEAN,
+				location TEXT,
+				status TEXT,
+				description TEXT,
+				FOREIGN KEY (wf_id)
+					REFERENCES workflows (wf_id)
+						ON DELETE CASCADE
+						ON UPDATE NO ACTION
+			);`);
+
+    const config_stmt = db.prepare(`
+			CREATE TABLE IF NOT EXISTS config (
+				id INTEGER PRIMARY KEY,
+				wf_id INTEGER NOT NULL
+          );`);
+
+    const wf_info = workflow_stmt.run();
+    const task_info = task_stmt.run();
 }
 
-//initialize()
+// Add a WF
+function add_wf(wf_id) {
+    let completed = 'False';
+    let archived = 'False';
+    let percentage_complete = 0;
+    let status = 'Pending';
+    const stmt = db.prepare(`INSERT INTO workflows (wf_id, completed, archived, 
+									percentage_complete, status)
+               						VALUES(?, ?, ?, ?, ?)`);
+	const info = stmt.run(wf_id, completed, archived, 
+								percentage_complete, status);
+}
+
+// Get a parituclar wf 
+function get_wf(wf_id) {
+    const stmt = db.prepare('SELECT * FROM workflows WHERE wf_id=?');
+    const wf = stmt.get(42);
+    return wf;
+}
+
+// Get all workflows in the system
+function get_workflows() {
+    const stmt = db.prepare('SELECT * FROM workflows');
+    const wf = stmt.all()
+    return wf 
+}
+
+// Get all tasks associated with a wf_id
+function get_tasks(wf_id) {
+    const stmt = db.prepare('SELECT * FROM tasks WHERE wf_id=?')
+    const tasks = stmt.all(wf_id)
+    return tasks 
+}
+
+
+function delete_wf(wf_id) {
+    let stmt = db.prepare('DELETE FROM workflows WHERE wf_id=?');
+    const info = stmt.run(42);
+}
+
+function add_task(task_id, wf_id, location, description) {
+    const completed = 'False'
+    const status = 'Pending'
+    const stmt = db.prepare(`INSERT INTO tasks (wf_id, task_id, completed, 
+            location, status, description) VALUES(?, ?, ?, ?, ?, ?)`);
+    const task_info  = stmt.run(wf_id, task_id, completed, location, description, status);
+    console.log(task_info)
+}
+
+function delete_task(wf_id, task_id) {
+    let sql = `DELETE FROM  workflows
+               WHERE task_id=task`;
+}
 
 function close() {
     db.close((err) => {
@@ -33,43 +107,4 @@ function close() {
     });
 }
 
-function add_wf(wf_id) {
-        let completed = 'False';
-        let archived = 'False';
-        let percentage_complete = 0;
-        let status = 'Pending';
-        let sql = `INSERT INTO workflows (wf_id, completed, archived, percentage_complete, status)
-                   VALUES(?, ?, ?, ?, ?)`;
-        let entries = [wf_id, completed, archived, percentage_complete, status];
-
-        db.run(sql, entries, (err) => {
-            if (err) {
-                // Need to create diaolgue for user
-                return console.error(err.message);
-            }
-            console.log(`Added workflow!`);
-        });
-}
-
-function delete_wf() {
-    
-}
-
-function add_task(wf_id, location, description) {
-        var completed = 'False'
-        var status = 'Pending'
-        let sql = `INSERT INTO tasks (wf_id, completed, location, description, status)
-                VALUES(?, ?, ?, ?, ?)`
-        let entries = [wf_id, completed, location, description, status];
-        db.run(sql, entries, (err) => { 
-             if (err) {
-                // Need to create diaolgue for user
-                return console.error(err.message)
-            }
-            console.log(`Added task!`);
-        });
-}
-
-function delete_task(wf_id, task_id) {
-
-}
+module.exports = { init, add_wf, get_wf, get_workflows, get_tasks, delete_wf, add_task, delete_task }
