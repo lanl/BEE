@@ -316,6 +316,8 @@ worker_kwargs = {
     'bee_workdir': bc.userconfig.get('DEFAULT', 'bee_workdir'),
     'container_runtime': bc.userconfig.get('task_manager', 'container_runtime'),
     'job_template': bc.userconfig.get('task_manager', 'job_template', fallback=None),
+    # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
+    'runner_opts': bc.userconfig.get('task_manager', 'runner_opts', fallback=None),
 }
 # TODO: Maybe this should be put into a sub class
 if WLS == 'Slurm':

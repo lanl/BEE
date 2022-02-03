@@ -23,3 +23,4 @@ steps:
       beeflow:MPIRequirement:
         nodes: 1
         ntasks: 2
+        version: pmix_v3

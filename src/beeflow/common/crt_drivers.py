@@ -233,7 +233,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             Command(block=f'{cc_setup}\n'),
             Command(argv=f'mkdir -p {deployed_image_root}\n'.split(), one_per_node=True),
             Command(argv=f'ch-tar2dir {container_path} {deployed_image_root}\n'.split(), one_per_node=True),
-            Command(argv=f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()),
+            Command(argv=f'ch-run --join {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()),
             Command(argv=f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(), one_per_node=True),
         ]
         return commands

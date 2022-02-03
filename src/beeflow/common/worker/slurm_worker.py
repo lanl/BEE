@@ -83,6 +83,8 @@ class SlurmWorker(Worker):
                 log.warning('Proceeding with Caution!')
         else:
             log.info('No template for jobs.')
+        # Check for extra runner options
+        self.runner_opts = kwargs['runner_opts'] if 'runner_opts' in kwargs else ''
 
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
@@ -114,7 +116,22 @@ class SlurmWorker(Worker):
                                         'name': task.name,
                                         'id': task.id}
                                        )
-        # crt_text = self.crt.run_text(task)
+        # Determine environment requirements
+        env = []
+        if 'beeflow:Environment' in hints:
+            for key in hints['beeflow:Environment']:
+                env.append('export {}="{}"\n'.format(key, hints['beeflow:Environment'][key]))
+        job_text += ''.join(env)
+        # Determine runner options
+        runner_opts = []
+        if self.runner_opts is not None:
+            runner_opts.append(self.runner_opts)
+        try:
+            mpi_version = hints['beeflow:MPIRequirement']['version']
+            runner_opts.append('--mpi={}'.format(mpi_version))
+        except (KeyError, TypeError):
+            pass
+        runner_opts = ' '.join(runner_opts)
         crt_text = []
         commands = self.crt.run_text(task)
         for cmd in commands:
@@ -125,7 +142,7 @@ class SlurmWorker(Worker):
                 srun_opts = ''
                 if cmd.one_per_node:
                     srun_opts = '--ntasks-per-node=1'
-                crt_text.append('srun {} {}\n'.format(srun_opts, ' '.join(cmd.argv)))
+                crt_text.append('srun {} {} {}\n'.format(runner_opts, srun_opts, ' '.join(cmd.argv)))
         crt_text = ''.join(crt_text)
         job_text += crt_text
         return job_text
