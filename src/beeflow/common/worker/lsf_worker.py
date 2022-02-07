@@ -79,6 +79,8 @@ class LSFWorker(Worker):
                            'PSUSP': 'PAUSED',
                            'USUSP': 'PAUSED',
                            'SSUSP': 'PAUSED'}
+        # Check for extra runner options
+        self.runner_opts = kwargs['runner_opts'] if 'runner_opts' in kwargs else ''
 
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
@@ -94,6 +96,19 @@ class LSFWorker(Worker):
                                         'name': task.name,
                                         'id': task.id}
                                        )
+        # Convert the hints into a dict
+        hints = dict(task.hints)
+        # Add MPI requirements
+        try:
+            nodes = hints['beeflow:MPIRequirement']['nodes']
+            template_text += f'#BSUB -nnodes {nodes}\n'
+        except (KeyError, TypeError):
+            pass
+        # Determine runner options
+        runner_opts = []
+        if self.runner_opts is not None:
+            runner_opts.append(self.runner_opts)
+        runner_opts = ' '.join(runner_opts)
         crt_text = []
         commands = self.crt.run_text(task)
         for cmd in commands:
@@ -102,7 +117,9 @@ class LSFWorker(Worker):
                 crt_text.append('\n')
             else:
                 # TODO: Check for one_per_node option
-                crt_text.append('{}\n'.format(' '.join(cmd.argv)))
+                if cmd.one_per_node:
+                    jsrun_opts = '-a 1'
+                crt_text.append('jsrun {} {} {}\n'.format(runner_opts, jsrun_opts, ' '.join(cmd.argv)))
         script = ''.join(crt_text)
         job_text += script
         return job_text
