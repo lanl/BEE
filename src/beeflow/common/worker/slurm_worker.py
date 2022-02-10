@@ -101,6 +101,11 @@ class SlurmWorker(Worker):
         except (KeyError, TypeError):
             pass
         try:
+            tasks_per_node = hints['beeflow:MPIRequirement']['ntasks_per_node']
+            template_text += f'#SBATCH --ntasks-per-node {tasks_per_node}\n'
+        except (KeyError, TypeError):
+            pass
+        try:
             ntasks = hints['beeflow:MPIRequirement']['ntasks']
             template_text += f'#SBATCH -n {ntasks}\n'
         except (KeyError, TypeError):
