@@ -13,6 +13,7 @@ from subprocess import PIPE
 import jsonpickle
 import requests
 
+import os
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
@@ -20,6 +21,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 from beeflow.common.build.build_driver import task2arg
+from beeflow.common.redis_client import RedisClient
 import beeflow.common.log as bee_logging
 
 sys.excepthook = bee_logging.catch_exception
@@ -152,10 +154,12 @@ def resolve_environment(task):
 
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
-    while len(submit_queue) >= 1:
+    client = RedisClient()
+    while client.llen("submit_queue") >= 1:
         # Single value dictionary
-        task_dict = submit_queue.pop(0)
-        task = next(iter(task_dict.values()))
+        task = client.lpop("submit_queue")
+        #task_dict = submit_queue.pop(0)
+        #task = next(iter(task_dict.values()))
         try:
             log.info('Resolving environment for task {}'.format(task.name))
             _ = resolve_environment(task)
@@ -163,7 +167,8 @@ def submit_jobs():
             job_id, job_state = worker.submit_task(task)
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
-            job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
+            client.hset("job_queue", job_id, {'task': task, 'job_state': job_state})
+            #job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
             # Update metadata
             # task_metadata = gen_task_metadata(task, job_id)
             # Need to
@@ -181,25 +186,30 @@ def submit_jobs():
 
 
 def update_jobs():
+    client = RedisClient()
+    job_queue = client.hgetall("job_queue")
     """Check and update states of jobs in queue, remove completed jobs."""
-    for job in job_queue:
+    for job_id, job in job_queue.items():
         task = job['task']
-        job_id = job['job_id']
+        #job_id = job['job_id']
         job_state = worker.query_task(job_id)
 
         if job_state != job['job_state']:
             log.info(f'{task.name} {job["job_state"]} -> {job_state}')
-            job['job_state'] = job_state
+            client.hupdate("job_queue", job_id, "job_state", job_state)
+            #job['job_state'] = job_state
             update_task_state(task.id, job_state)
 
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
-            job_queue.remove(job)
+            #job_queue.remove(job)
+            client.hremove("job_queue", job_id)
             log.info(f'Job {job_id} done {task.name}: removed from job status queue')
 
 
 def process_queues():
     """Look for newly submitted jobs and update status of scheduled jobs."""
+    client = RedisClient()
     submit_jobs()
     update_jobs()
 
@@ -227,8 +237,10 @@ class TaskSubmit(Resource):
         """Receives task from WFM."""
         data = self.reqparse.parse_args()
         tasks = jsonpickle.decode(data['tasks'])
+        client = RedisClient()
         for task in tasks:
-            submit_queue.append({task.id: task})
+            #submit_queue.append({task.id: task})
+            client.lpush("submit_queue", task)
             log.info(f"Added {task.name} task to the submit queue")
         resp = make_response(jsonify(msg='Tasks Added!', status='ok'), 200)
         return resp
@@ -241,7 +253,9 @@ class TaskActions(Resource):
     def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
         cancel_msg = ""
-        for job in job_queue:
+        client = RedisClient()
+        job_queue = client.hgetall("job_queue")
+        for job_id, job in job_queue.items():
             task_id = list(job.keys())[0]
             job_id = job[task_id]['job_id']
             name = job[task_id]['name']
@@ -252,8 +266,10 @@ class TaskActions(Resource):
                 log.error(err)
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
-        job_queue.clear()
-        submit_queue.clear()
+        #job_queue.clear()
+        #submit_queue.clear()
+        client.delete("job_queue")
+        client.delete("submit_queue")
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
 

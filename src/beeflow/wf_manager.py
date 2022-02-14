@@ -23,6 +23,7 @@ from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
+from beeflow.common.redis_client import RedisClient
 from beeflow.common.parser import CwlParser
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
@@ -133,17 +134,17 @@ class ResourceMonitor():
 rm = ResourceMonitor()
 
 
-def validate_wf_id(func):
-    """Validate tempoary hard coded workflow id."""
-    def wrapper(*args, **kwargs):
-        wf_id = kwargs['wf_id']
-        current_wf_id = wfi.workflow_id
-        if wf_id != current_wf_id:
-            log.info(f'Wrong workflow id. Set to {wf_id}, but should be {current_wf_id}')
-            resp = make_response(jsonify(status='wf_id not found'), 404)
-            return resp
-        return func(*args, **kwargs)
-    return wrapper
+#def validate_wf_id(func):
+#    """Validate tempoary hard coded workflow id."""
+#    def wrapper(*args, **kwargs):
+#        wf_id = kwargs['wf_id']
+#        current_wf_id = wfi.workflow_id
+#        if wf_id != current_wf_id:
+#            log.info(f'Wrong workflow id. Set to {wf_id}, but should be {current_wf_id}')
+#            resp = make_response(jsonify(status='wf_id not found'), 404)
+#            return resp
+#        return func(*args, **kwargs)
+#    return wrapper
 
 def process_running(pid):
     """Check if the process with pid is running"""
@@ -180,6 +181,24 @@ def remove_gdb():
         time.sleep(2)
         shutil.rmtree(old_gdb_workdir)
         time.sleep(2)
+
+def storeWF_ID(wf_id):
+    client = RedisClient()
+    client.sset('wf_id', wf_id)
+
+def getWF_ID():
+    client = RedisClient()
+    wf_id = client.sget('wf_id')
+    return wf_id
+
+
+def getWFI():
+    bc = BeeConfig()
+    wf_id = getWF_ID()
+    wfi = WorkflowInterface(wf_id=wf_id, user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
+                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
+                            password=bc.userconfig.get('graphdb', 'dbpass'))
+    return wfi
 
 
 # Client registers with the workflow manager.
@@ -225,7 +244,6 @@ class JobsList(Resource):
         return resp
 
     def post(self):
-        global wfi
         """Get a workflow or give file not found error."""
         data = self.reqparse.parse_args()
 
@@ -250,12 +268,12 @@ class JobsList(Resource):
             script_path = get_script_path()
             subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # Need to wait a moment for the GDB
-            time.sleep(10)
+            time.sleep(30)
 
-            if wfi:
-                if wfi.workflow_initialized() and wfi.workflow_loaded():
-                    # Clear the workflow if we've already run one
-                    wfi.finalize_workflow()
+            #if wfi:
+            #    if wfi.workflow_initialized() and wfi.workflow_loaded():
+            #        # Clear the workflow if we've already run one
+            #        wfi.finalize_workflow()
 
             # Save the workflow temporarily to this folder for the parser
             #
@@ -278,6 +296,7 @@ class JobsList(Resource):
 
             # Save the workflow to the workflow_id dir
             wf_id = wfi.workflow_id
+            storeWF_ID(wf_id)
             workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
             os.makedirs(workflow_dir)
             #workflow_path = os.path.join(workflow_dir, wf_filename)
@@ -299,6 +318,7 @@ class JobsList(Resource):
             with open(name_path, 'w') as name:
                 name.write(job_name)
             resp = make_response(jsonify(msg='Workflow uploaded', status='ok', wf_id=wf_id), 201)
+            client = RedisClient()
             return resp
         else:
             resp = make_response(jsonify(msg='File corrupted', status='error'), 400)
@@ -462,6 +482,7 @@ def tasks_to_sched(tasks):
     return sched_tasks
 
 
+
 # This class is where we act on existing jobs
 class JobActions(Resource):
     """Class to handle job actions."""
@@ -472,16 +493,16 @@ class JobActions(Resource):
         self.reqparse.add_argument('option', type=str, location='json')
 
     @staticmethod
-    @validate_wf_id
     def post(wf_id):
         """Start job. Send tasks to the task manager."""
         # Get dependent tasks that branch off of bee_init and send to the scheduler
+        wfi = getWFI()
         wfi.execute_workflow()
-        tasks = wfi.get_ready_tasks()
+        tasks = [wfi.get_ready_tasks()[0]]
         # Convert to a scheduler task object
-        sched_tasks = tasks_to_sched(tasks)
+        #sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
-        allocation = submit_tasks_scheduler(sched_tasks)
+        #allocation = submit_tasks_scheduler(sched_tasks)
         # Submit tasks to TM
         submit_tasks_tm(tasks)
         resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
@@ -493,7 +514,6 @@ class JobActions(Resource):
         return "Started Workflow"
 
     @staticmethod
-    @validate_wf_id
     def get(wf_id):
         """Check the database for the current status of all the tasks."""
         (_, tasks) = wfi.get_workflow()
@@ -506,7 +526,6 @@ class JobActions(Resource):
         return resp
 
     @staticmethod
-    @validate_wf_id
     def delete(wf_id):
         """Send a request to the task manager to cancel any ongoing tasks."""
         resp = requests.delete(_resource('tm'))
@@ -525,7 +544,6 @@ class JobActions(Resource):
         resp = make_response(jsonify(status='cancelled'), 202)
         return resp
 
-    @validate_wf_id
     def patch(self, wf_id):
         """Pause or resume workflow."""
         global WORKFLOW_PAUSED
@@ -573,7 +591,8 @@ class JobUpdate(Resource):
         task_id = data['task_id']
         job_state = data['job_state']
 
-
+        client = RedisClient()
+        wfi = getWFI()
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
 
