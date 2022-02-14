@@ -106,9 +106,18 @@ class LSFWorker(Worker):
             pass
         # Determine runner options
         runner_opts = []
+        runner_opts.extend(['--rs_per_host', '1'])
         if self.runner_opts is not None:
             runner_opts.append(self.runner_opts)
         runner_opts = ' '.join(runner_opts)
+        # Determine MPI options
+        mpi_opts = []
+        try:
+            tasks_per_node = hints['beeflow:MPIRequirement']['ntasks_per_node']
+            mpi_opts.extend(['--tasks_per_rs', str(tasks_per_node)])
+        except (KeyError, TypeError):
+            pass
+        mpi_opts = ' '.join(mpi_opts)
         crt_text = []
         commands = self.crt.run_text(task)
         for cmd in commands:
@@ -116,9 +125,7 @@ class LSFWorker(Worker):
                 crt_text.append(cmd.block)
                 crt_text.append('\n')
             else:
-                # TODO: Check for one_per_node option
-                if cmd.one_per_node:
-                    jsrun_opts = '-a 1'
+                jsrun_opts = '' if cmd.one_per_node else mpi_opts
                 crt_text.append('jsrun {} {} {}\n'.format(runner_opts, jsrun_opts, ' '.join(cmd.argv)))
         script = ''.join(crt_text)
         job_text += script
