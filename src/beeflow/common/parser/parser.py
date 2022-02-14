@@ -11,7 +11,7 @@ import argparse
 import json
 import os
 import yaml
-import cwl_utils.parser_v1_2 as cwl_parser
+import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from beeflow.common.config_driver import BeeConfig
 from beeflow.common.wf_data import (InputParameter,
                                     OutputParameter,

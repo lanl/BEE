@@ -14,7 +14,7 @@ import time
 import tarfile
 import getpass
 import subprocess
-import cwl_utils.parser_v1_0 as cwl
+import cwl_utils.parser.cwl_v1_0 as cwl
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse

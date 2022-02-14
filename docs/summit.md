@@ -4,6 +4,7 @@
 cd BEE_Private
 mkdir -p ~/.beeflow/worker
 cp BEE_Private/examples/job_templates/lsf-job.template ~/.beeflow/worker
+cp BEE_Private/src/beeflow/data/job_templates/lsf-job.template ~/.beeflow/worker
 
 bin/BEEStart --config-only --workload-scheduler LSF --job-template ~/.beeflow/worker/lsf-job.template
 ```
