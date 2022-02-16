@@ -17,42 +17,7 @@ outputs:
 
 steps:
   comd:
-    run:
-      class: CommandLineTool
-      baseCommand: [/CoMD/bin/CoMD-mpi, -e]
-      stdout: comd_stdout.txt
-      inputs:
-        i:
-          type: int
-          inputBinding:
-            prefix: -i
-        j:
-          type: int
-          inputBinding:
-            prefix: -j
-        k:
-          type: int
-          inputBinding:
-            prefix: -k
-        x:
-          type: int
-          inputBinding:
-            prefix: -x
-        y:
-          type: int
-          inputBinding:
-            prefix: -y
-        z:
-          type: int
-          inputBinding:
-            prefix: -z
-        pot_dir:
-          type: string
-          inputBinding:
-            prefix: --potDir
-      outputs:
-        comd_stdout:
-          type: stdout
+    run: comd_bin.cwl
     in:
       i: i
       j: j
@@ -64,8 +29,8 @@ steps:
     out: [comd_stdout]
     hints:
       DockerRequirement:
-        dockerPull: "jtronge/comd:latest"
-        # copyContainer: "...path to comd tarball..."
+        # dockerPull: "jtronge/comd:latest"
+        copyContainer: "/home/jaket/comd.tar.gz"
       beeflow:MPIRequirement:
         nodes: 8
         ntasks: 8
