@@ -104,16 +104,6 @@ def _resource(component, tag=""):
     return url
 
 
-# Instantiate the workflow interface
-wfi = None
-#try:
-#    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
-#                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
-#                            password=bc.userconfig.get('graphdb', 'dbpass'))
-#except (KeyError, configparser.NoSectionError) as e:
-#    wfi = WorkflowInterface()
-
-
 class ResourceMonitor():
     """Class def to interact with resource monitor."""
 
@@ -318,7 +308,7 @@ class JobsList(Resource):
             with open(name_path, 'w') as name:
                 name.write(job_name)
             resp = make_response(jsonify(msg='Workflow uploaded', status='ok', wf_id=wf_id), 201)
-            client = RedisClient()
+            log.info(f'Received new workflow {wf_id}')
             return resp
         else:
             resp = make_response(jsonify(msg='File corrupted', status='error'), 400)
@@ -668,5 +658,4 @@ if __name__ == '__main__':
     # Flask logging
     # Putting this off for another issue so noqa to appease the lama
     flask_app.logger.addHandler(handler) #noqa
-    flask_app.run(debug=True, port=str(wfm_listen_port))
-
+    flask_app.run(debug=False, port=str(wfm_listen_port))
