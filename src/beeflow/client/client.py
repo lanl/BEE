@@ -93,6 +93,7 @@ def submit_workflow(wf_name, workflow_path, main_cwl, yaml=None):
                     'main_cwl': main_cwl
                 }
 
+    print(_url())
 
     resp = requests.post(_url(), files=files)
     if resp.status_code != requests.codes.created:

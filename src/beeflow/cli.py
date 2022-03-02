@@ -13,7 +13,11 @@ import argparse
 import os
 import subprocess
 import sys
+import shutil
+import getpass
 import time
+import string
+import tempfile
 from subprocess import PIPE
 from configparser import NoOptionError
 import beeflow.common.log as bee_logging
@@ -21,6 +25,8 @@ from beeflow.common.config_driver import BeeConfig
 
 log = bee_logging.setup_logging(level='DEBUG')
 restd_log = bee_logging.setup_logging(level='DEBUG')
+nginx_log = bee_logging.setup_logging(level='DEBUG')
+redis_log = bee_logging.setup_logging(level='DEBUG')
 
 
 def get_script_path():
@@ -73,8 +79,16 @@ def start_workflow_manager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
+    use_wsgi = bc.userconfig.get('DEFAULT', 'use_wsgi')
+    if use_wsgi == "True":
+        proc = subprocess.Popen(['uwsgi', '--ini', 
+            get_script_path() + '/data/uwsgi_configs/wf_manager.ini'])
+            #get_script_path() + '/data/uwsgi_configs/wf_manager.ini'],
+            #                stdout=PIPE, stderr=PIPE)
+    else:
+        proc = subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
                             userconfig_file], stdout=PIPE, stderr=PIPE)
+    return proc
 
 
 def start_task_manager(bc, args):
@@ -102,8 +116,109 @@ def start_task_manager(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", get_script_path() + "/task_manager.py",
+    use_wsgi = bc.userconfig.get('DEFAULT', 'use_wsgi')
+    if use_wsgi == "True":
+        proc = subprocess.Popen(['uwsgi', '--ini', 
+            get_script_path() + '/data/uwsgi_configs/task_manager.ini'])
+            #get_script_path() + '/data/uwsgi_configs/task_manager.ini'],
+            #                stdout=PIPE, stderr=PIPE)
+    else:
+        proc = subprocess.Popen(["python", get_script_path() + "/task_manager.py",
                             userconfig_file], stdout=PIPE, stderr=PIPE)
+    return proc
+
+
+def start_nginx(bc, args):
+    """Start the nginx server. Returns a Popen process object."""
+    #nginx_handler = bee_logging.save_log(bc, nginx_log, logfile='nginx_launch.log')
+    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+    _ = bee_logging.save_log(bee_workdir=bee_workdir, log=nginx_log,
+                             logfile='nginx.log')
+    try:
+        bc.userconfig['nginx']
+    except KeyError:
+        nginx_dict = {
+            'nginx_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
+            'nginx_image_mntdir': '/tmp',
+        }
+        # Add section (writes to config file)
+        bc.modify_section('user','graphdb',graphdb_dict)
+    
+    if args.config_only:
+        return None
+
+    if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
+        nginx_log.error("ch-tar2dir or ch-run not found. Charliecloud required for nginx container.")
+        return None
+
+    # Setup subprocess output
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+    wfm_port = bc.userconfig['workflow_manager']['listen_port']
+    tm_port = bc.userconfig['task_manager']['listen_port']
+    sched_port  = bc.userconfig['scheduler']['listen_port']
+    options = { 'wfm_listen_port': wfm_port, 'tm_listen_port': tm_port,
+                'sched_listen_port': sched_port, 'user': getpass.getuser()}
+    tm_port = bc.userconfig['task_manager']['listen_port']
+    nginx_img     = bc.userconfig.get('nginx','nginx_image')
+    nginx_img_mntdir = bc.userconfig.get('nginx','nginx_image_mntdir')
+
+    # Create nginx configuration directory if it doesn't exist
+    nginx_config_dir = bee_workdir + '/nginx_config'
+    print(nginx_config_dir)
+    os.makedirs(nginx_config_dir, exist_ok=True)
+    os.makedirs(nginx_config_dir + '/log', exist_ok=True)
+    os.makedirs(nginx_config_dir + '/run', exist_ok=True)
+    os.makedirs(nginx_config_dir + '/config', exist_ok=True)
+
+    # Create Nginx config based on config template
+    with open(get_script_path() + '/data/nginx_config_template/bee.conf.in', 'r') as f_in:
+        input_config = string.Template(f_in.read())
+        output_config = input_config.substitute(options)
+        with open(nginx_config_dir + '/config/bee.conf', 'w') as f_out:
+            f_out.write(output_config)
+
+    # Container directory if we don't already have one
+    container_dir = nginx_img_mntdir + "/nginx_" + getpass.getuser()
+    container_path = container_dir + '/nginx_new'
+    print(container_dir)
+    if not os.path.isdir(container_dir):
+        os.makedirs(container_dir, exist_ok=True)
+        try:
+            print('Creating image')
+            cp = subprocess.run(["ch-tar2dir", str(nginx_img), 
+                str(container_dir)], stdout=stdout, stderr=stderr, check=True)
+            print(container_dir)
+        except subprocess.CalledProcessError as cp:
+            nginx_log.error("ch-tar2dir failed")
+            shutil.rmtree(container_dir)
+            if args.debug:
+                nginx_log.error("Nginx container mount directory " + container_dir + " removed")
+            return None
+
+        
+    if args.debug:
+        nginx_log.info("Nginx container mount directory " + container_dir + " created")
+
+    try:
+        proc = subprocess.Popen([
+            "ch-run",
+            "-b", 
+            nginx_config_dir + "/log:/var/log/nginx",
+            "-b", 
+            nginx_config_dir + "/run:/run",
+            "-b", 
+            nginx_config_dir + "/config:/etc/nginx/conf.d",
+            container_path,
+            "--",
+            "service",
+            "nginx",
+            "start"
+        ], stdout=stdout, stderr=stderr)
+    except FileNotFoundError as e:
+        gdb_log.error("nginx failed to start.")
+        return None
 
 
 def start_scheduler(bc, args):
@@ -130,9 +245,17 @@ def start_scheduler(bc, args):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
-                            '--config-file', userconfig_file],
+
+    use_wsgi = bc.userconfig.get('DEFAULT', 'use_wsgi')
+    if use_wsgi == "True":
+        proc = subprocess.Popen(['uwsgi', '--ini', 
+            get_script_path() + '/data/uwsgi_configs/scheduler.ini'],
                             stdout=PIPE, stderr=PIPE)
+    else:
+        proc = subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
+                            userconfig_file], stdout=PIPE, stderr=PIPE)
+
+    return proc
 
 
 def start_build(args):
@@ -151,6 +274,53 @@ def start_build(args):
                           stdout=PIPE, stderr=PIPE)
 
 
+def start_redis(bc, args):
+    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+    redis_img = bc.userconfig.get('redis','redis_image')
+    redis_img_mntdir = bc.userconfig.get('redis','redis_image_mntdir')
+    redis_port = bc.userconfig['redis']['listen_port']
+    _ = bee_logging.save_log(bee_workdir=bee_workdir, log=nginx_log,
+                             logfile='redis.log')
+
+    # Setup subprocess output
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+
+    container_dir = redis_img_mntdir + "/redis_" + getpass.getuser()
+    container_path = container_dir + '/redis'
+    #container_path = container_dir + '/nginx_new'
+    print(container_dir)
+    print(redis_img)
+    if not os.path.isdir(container_dir):
+        os.makedirs(container_dir, exist_ok=True)
+        try:
+            print('Creating image')
+            cp = subprocess.run(["ch-tar2dir", str(redis_img), 
+                str(container_dir)],  check=True)
+            print(container_dir)
+        except subprocess.CalledProcessError as cp:
+            redis_log.error("ch-tar2dir failed")
+            shutil.rmtree(container_dir)
+            if args.debug:
+                redis_log.error("Nginx container mount directory " + container_dir + " removed")
+            return None
+
+    try:
+        proc = subprocess.Popen([
+            "ch-run",
+            container_path,
+            "--",
+            "redis-server",
+            "--port",
+            redis_port
+        ], stdout=stdout, stderr=stderr)
+    except FileNotFoundError as e:
+        gdb_log.error("nginx failed to start.")
+        return None
+
+
+    
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
     os.makedirs(bc.userconfig.get('DEFAULT', 'bee_workdir'), exist_ok=True)
@@ -168,6 +338,8 @@ def parse_args(args=sys.argv[1:]):
                         help="enable debugging output\nIf debug is specified all output will go to the console.\nOnly one BEE service may be launched by beeflow if debug is requested.")
     parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
     parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
+    parser.add_argument("--nginx", action="store_true", help="start NginX")
+    parser.add_argument("--redis", action="store_true", help="start Redis")
     parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
     parser.add_argument("--sched", action="store_true", help="start the BEEScheduler")
     parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
@@ -185,7 +357,7 @@ def parse_args(args=sys.argv[1:]):
 def main():
     """Execute beeflow components in logical sequence."""
     args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.restd, args.sched]) or all([args.wfm, args.tm, args.restd, args.sched])
+    start_all = not any([args.wfm, args.nginx, args.redis, args.tm, args.restd, args.sched]) or all([args.wfm, args.nginx, args.redis, args.tm, args.restd, args.sched])
     if args.debug and not sum([args.wfm, args.tm,  args.restd, args.sched]) == 1:
         print("DEBUG requested, exactly one service must be specified",
               file=sys.stderr)
@@ -232,6 +404,18 @@ def main():
     except NoOptionError:
         workload_scheduler = 'Slurm'
         bc.modify_section('user', 'DEFAULT', {'workload_scheduler': workload_scheduler})
+    if args.nginx or start_all:
+        proc = start_nginx(bc, args)
+        #if not args.config_only:
+            #if proc is None:
+            #    log.error('NGINX failed to start. Exiting.')
+            #    return 1
+            #create_pid_file(proc, 'nginx.pid', bc)
+            #wait_list.append(('NGINX', proc))
+            #log.info('Loading NGINX')
+    if args.redis or start_all:
+        proc = start_redis(bc, args)
+
     if workload_scheduler == 'Slurm':
         if args.restd or start_all:
             proc = start_slurm_restd(bc, args)
@@ -269,6 +453,7 @@ def main():
             create_pid_file(proc, 'tm.pid', bc)
             wait_list.append(('Task Manager', proc))
             log.info('Loading Task Manager')
+
     if args.config_only:
         return 0
 

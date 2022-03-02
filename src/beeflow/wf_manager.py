@@ -494,14 +494,17 @@ class JobActions(Resource):
         # Submit all dependent tasks to the scheduler
         #allocation = submit_tasks_scheduler(sched_tasks)
         # Submit tasks to TM
+        print('Submitted to tm')
         submit_tasks_tm(tasks)
-        resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
         wf_id = wfi.workflow_id
         workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
         status_path = os.path.join(workflow_dir, 'bee_wf_status')
+        print('wrote status')
         with open(status_path, 'w') as status:
             status.write('Running')
-        return "Started Workflow"
+        print('sending response')
+        resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
+        return resp
 
     @staticmethod
     def get(wf_id):
@@ -631,7 +634,7 @@ class JobUpdate(Resource):
                 else:
                     if tasks:
                         sched_tasks = tasks_to_sched(tasks)
-                        submit_tasks_scheduler(sched_tasks)
+                        #submit_tasks_scheduler(sched_tasks)
                         submit_tasks_tm(tasks)
 
 

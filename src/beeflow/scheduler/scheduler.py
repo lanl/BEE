@@ -18,61 +18,6 @@ import beeflow.common.log as bee_logging
 
 sys.excepthook = bee_logging.catch_exception
 
-flask_app = Flask(__name__)
-api = Api(flask_app)
-
-# List of all available resources
-resources = []
-
-class ResourcesHandler(Resource):
-    """Resources handler.
-
-    """
-
-    @staticmethod
-    def put():
-        """Create a list of resources to use for allocation.
-
-        """
-        resources.clear()
-        resources.extend([resource_allocation.Resource.decode(r)
-                          for r in request.json])
-        return 'created %i resource(s)' % len(resources)
-
-    @staticmethod
-    def get():
-        """Get a list of all resources.
-
-        """
-        return [r.encode() for r in resources]
-
-
-class WorkflowJobHandler(Resource):
-    """Handle scheduling of workflow jobs.
-
-    Schedule jobs for a specific workflow with the current resources.
-    """
-
-    @staticmethod
-    def put(workflow_name):
-        """Schedule a list of independent tasks.
-
-        Schedules a new list of independent tasks with available resources.
-        """
-        data = request.json
-        tasks = [task.Task.decode(t) for t in data]
-        # Pick the scheduling algorithm
-        algorithm = algorithms.choose(tasks, **vars(flask_app.sched_conf))
-        # algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
-        #                              mars_model=Config.conf.mars_model)
-        algorithm.schedule_all(tasks, resources)
-        return [t.encode() for t in tasks]
-
-
-api.add_resource(ResourcesHandler, '/bee_sched/v1/resources')
-api.add_resource(WorkflowJobHandler,
-                 '/bee_sched/v1/workflows/<string:workflow_name>/jobs')
-
 # Default config values
 SCHEDULER_PORT = 5100
 # TODO: Use MODEL_FILE when interacting with MARS scheduling
@@ -80,7 +25,6 @@ MODEL_FILE = 'model'
 ALLOC_LOGFILE = 'schedule_trace.txt'
 MARS_CNT = 4
 DEFAULT_ALGORITHM = 'fcfs'
-
 
 def load_config_values():
     """Load the config, if necessary, and return config values.
@@ -173,6 +117,82 @@ def load_config_values():
     log.info(f'\tworkdir = {conf.workdir}')
     log.info(']')
     return conf, bc
+
+flask_app = Flask(__name__)
+api = Api(flask_app)
+CONF, bc = load_config_values()
+bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='scheduler.log')
+flask_app.sched_conf = CONF
+# Load algorithm data
+algorithms.load(**vars(CONF))
+
+# Create the scheduler workdir, if necessary
+os.makedirs(CONF.workdir, exist_ok=True)
+
+# Werkzeug logging
+werk_log = logging.getLogger('werkzeug')
+werk_log.setLevel(logging.INFO)
+werk_log.addHandler(handler)
+
+# Flask logging
+flask_app.logger.addHandler(handler) # noqa
+
+
+# List of all available resources
+resources = []
+
+class ResourcesHandler(Resource):
+    """Resources handler.
+
+    """
+
+    @staticmethod
+    def put():
+        """Create a list of resources to use for allocation.
+
+        """
+        resources.clear()
+        resources.extend([resource_allocation.Resource.decode(r)
+                          for r in request.json])
+        return 'created %i resource(s)' % len(resources)
+
+    @staticmethod
+    def get():
+        """Get a list of all resources.
+
+        """
+        return [r.encode() for r in resources]
+
+
+class WorkflowJobHandler(Resource):
+    """Handle scheduling of workflow jobs.
+
+    Schedule jobs for a specific workflow with the current resources.
+    """
+
+    @staticmethod
+    def put(workflow_name):
+        """Schedule a list of independent tasks.
+
+        Schedules a new list of independent tasks with available resources.
+        """
+        data = request.json
+        tasks = [task.Task.decode(t) for t in data]
+        # Pick the scheduling algorithm
+        algorithm = algorithms.choose(tasks, **vars(flask_app.sched_conf))
+        # algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
+        #                              mars_model=Config.conf.mars_model)
+        algorithm.schedule_all(tasks, resources)
+        return [t.encode() for t in tasks]
+
+
+api.add_resource(ResourcesHandler, '/bee_sched/v1/resources')
+api.add_resource(WorkflowJobHandler,
+                 '/bee_sched/v1/workflows/<string:workflow_name>/jobs')
+
+
+
 
 
 if __name__ == '__main__':

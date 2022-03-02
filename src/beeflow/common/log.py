@@ -141,6 +141,7 @@ def save_log(bee_workdir, log, logfile):
     """
     global __module_log__
 
+    print(bee_workdir)
     logdir = os.path.join(bee_workdir, 'logs')
     # Make the logdir if it doesn't exist already
     os.makedirs(logdir, exist_ok=True)
