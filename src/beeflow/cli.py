@@ -413,8 +413,8 @@ def main():
             #create_pid_file(proc, 'nginx.pid', bc)
             #wait_list.append(('NGINX', proc))
             #log.info('Loading NGINX')
-    if args.redis or start_all:
-        proc = start_redis(bc, args)
+    #if args.redis or start_all:
+    #    proc = start_redis(bc, args)
 
     if workload_scheduler == 'Slurm':
         if args.restd or start_all:

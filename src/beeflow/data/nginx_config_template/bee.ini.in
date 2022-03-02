@@ -1,0 +1,29 @@
+server {
+    server_name wf_manager.*;
+    listen ${wfm_listen_port};
+
+    location /bee_wfm/v1/jobs {
+        include uwsgi_params;
+        uwsgi_pass unix:/tmp/${user}_wf_manager.sock;
+    }
+}
+
+server {
+    server_name task_manager.*;
+    listen ${tm_listen_port};
+
+    location /bee_tm/v1/task {
+        include uwsgi_params;
+        uwsgi_pass unix:/tmp/${user}_task_manager.sock;
+    }
+}
+
+server {
+    server_name scheduler.*;
+    listen ${sched_listen_port};
+
+    location /bee_sched/v1/ {
+        include uwsgi_params;
+        uwsgi_pass unix:/tmp/${user}_scheduler.sock;
+    }
+}
