@@ -84,7 +84,6 @@ def check_short_id_collision():
         print("There are currently no jobs.")
 
 # Match user-provided short workflow ID to full workflow IDs
-# If more than one matched, 
 def match_short_id(wf_id):
     matched_ids = []
     resp = requests.get(_url())
@@ -301,7 +300,7 @@ if __name__ == '__main__':
                     print(f'Exception {e}')
             else:
                 wf_id = submit_workflow(wf_name, workflow_path, main_cwl)
-            print(f"Job submitted! Your workflow id is {_short_id(wf_id)}.")
+            print(f"Job submitted! Your workflow id is {wf_id}.")
         elif int(choice) == 2:
             list_workflows()
         elif int(choice) < 7:
@@ -322,7 +321,7 @@ if __name__ == '__main__':
             print("What will be the name of the job?")
             wf_name = safe_input(str)
             wf_id = reexecute_workflow(archive_path, wf_name)
-            print(f"Job submitted! Your workflow id is {_short_id(wf_id)}.")
+            print(f"Job submitted! Your workflow id is {wf_id}.")
 
     except (ValueError, IndexError):
         pass
