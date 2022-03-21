@@ -54,7 +54,7 @@ class Workflow:
         
         :rtype: str
         """
-        return f"{self.name}-{uuid4().hex}"
+        return uuid4().hex
 
     def __eq__(self, other):
         """Test the equality of two workflows.
