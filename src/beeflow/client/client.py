@@ -56,6 +56,7 @@ def safe_input(type):
             # Cast it to the specified type
             answer = type(answer)
             break
+            # Put logs in main bee_workdir log directory /logs
         except ValueError:
             print(f"Error {answer} is not a valid option")
     return answer
@@ -63,6 +64,7 @@ def safe_input(type):
 # Check short workflow IDs for colliions, increase short ID
 # length if any detected
 def check_short_id_collision():
+    global short_id_len
     resp = requests.get(_url())
     if resp.status_code != requests.codes.okay:
         print(f"Returned {resp.status_code}")
@@ -168,7 +170,7 @@ def submit_workflow(wf_name, workflow_path, main_cwl, yaml=None):
 def start_workflow(wf_id):
     matched_id = match_short_id(wf_id)
     if matched_id:
-        resp = requests.post(_resource(wf_id), json={'wf_id': matched_id})
+        resp = requests.post(_resource(matched_id), json={'wf_id': matched_id})
         if resp.status_code != requests.codes.okay:
             raise ApiError("PUT /jobs{}".format(resp.status_code, matched_id))
         logging.info('Start job: ' + resp.text)
@@ -300,14 +302,14 @@ if __name__ == '__main__':
                     print(f'Exception {e}')
             else:
                 wf_id = submit_workflow(wf_name, workflow_path, main_cwl)
-            print(f"Job submitted! Your workflow id is {wf_id}.")
+            print(f"Job submitted! Your workflow id is {_short_id(wf_id)}.")
         elif int(choice) == 2:
             list_workflows()
-        elif int(choice) < 7:
+        elif int(choice) < 8:
             print("What is the workflow id?")
             wf_id = safe_input(str)
             list(menu_items[int(choice)].values())[0](wf_id)
-        elif int(choice) == 7:
+        elif int(choice) == 8:
             print("What is the workflow id?")
             wf_id = safe_input(str)
             print("Where do you want to save it?")
@@ -315,13 +317,13 @@ if __name__ == '__main__':
             archive_file, archive_filename = copy_workflow(wf_id, archive_path)
             with open(os.path.join(archive_path, archive_filename), 'wb') as a:
                 a.write(archive_file)
-        elif int(choice) == 8:
+        elif int(choice) == 9:
             print("What is the archive path?")
             archive_path = safe_input(Path)
             print("What will be the name of the job?")
             wf_name = safe_input(str)
             wf_id = reexecute_workflow(archive_path, wf_name)
-            print(f"Job submitted! Your workflow id is {wf_id}.")
+            print(f"Job submitted! Your workflow id is {_short_id(wf_id)}.")
 
     except (ValueError, IndexError):
         pass

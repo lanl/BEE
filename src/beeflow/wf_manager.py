@@ -513,7 +513,7 @@ class JobActions(Resource):
         if resp.status_code != 200:
             log.info(f"Delete from task manager returned bad status: {resp.status_code}")
         wf_id = wfi.workflow_id
-        workflows_dir = os.path.join(bee_workdir, 'workflows')
+        workflow_dir = os.path.join(bee_workdir, 'workflows')
         status_path = os.path.join(workflow_dir, 'bee_wf_status')
         with open(status_path, 'w') as status:
             status.write('Cancelled')
