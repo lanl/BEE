@@ -80,6 +80,8 @@ UPLOAD_FOLDER = os.path.join(bee_workdir, 'current_workflow')
 # Create the upload folder if it doesn't exist
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+# gdb sleep time
+gdb_sleep_time = bc.userconfig['graphdb'].getint('sleep_time', 10)
 
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -259,7 +261,8 @@ class JobsList(Resource):
             script_path = get_script_path()
             gdb_proc = StartGDB(bc, gdb_workdir)
             # Need to wait a moment for the GDB
-            time.sleep(10)
+            log.info('waiting {}s for GDB to come up'.format(gdb_sleep_time))
+            time.sleep(gdb_sleep_time)
 
             if wfi:
                 if wfi.workflow_initialized() and wfi.workflow_loaded():
@@ -353,7 +356,8 @@ class JobsList(Resource):
              # Launch new container with bindmounted GDB
             script_path = get_script_path()
             gdb_proc = StartGDB(bc, gdb_workdir, reexecute=True)
-            time.sleep(10)
+            log.info('waiting {}s for GDB to come up'.format(gdb_sleep_time))
+            time.sleep(gdb_sleep_time)
 
             # Initialize the database connection object
             wfi.initialize_workflow(inputs=None, outputs=None, existing=True)

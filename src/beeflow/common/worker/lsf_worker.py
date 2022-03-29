@@ -6,6 +6,7 @@ Builds command for submitting batch job.
 import os
 import string
 import subprocess
+import jinja2
 
 from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
@@ -70,6 +71,7 @@ class LSFWorker(Worker):
 
         else:
             log.info('No template for jobs.')
+        self.template = jinja2.Template(self.template_text)
 
         # Table of LSF states for translation to BEE states
         self.bee_states = {'PEND': 'PENDING',
@@ -120,15 +122,17 @@ class LSFWorker(Worker):
         mpi_opts = ' '.join(mpi_opts)
         crt_text = []
         commands = self.crt.run_text(task)
-        for cmd in commands:
-            if cmd.block is not None:
-                crt_text.append(cmd.block)
-                crt_text.append('\n')
-            else:
-                jsrun_opts = '' if cmd.one_per_node else mpi_opts
-                crt_text.append('jsrun {} {} {}\n'.format(runner_opts, jsrun_opts, ' '.join(cmd.argv)))
-        script = ''.join(crt_text)
-        job_text += script
+        info = hints['bee:MPIRequirement'] if 'bee:MPIRequirement' in hints else {}
+        job_text = self.template.render(task=task, commands=commands, info=info)
+        #for cmd in commands:
+        #    if cmd.block is not None:
+        #        crt_text.append(cmd.block)
+        #        crt_text.append('\n')
+        #    else:
+        #        jsrun_opts = '' if cmd.one_per_node else mpi_opts
+        #        crt_text.append('jsrun {} {} {}\n'.format(runner_opts, jsrun_opts, ' '.join(cmd.argv)))
+        #script = ''.join(crt_text)
+        #job_text += script
         return job_text
 
     def write_script(self, task):
