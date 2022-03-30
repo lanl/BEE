@@ -133,7 +133,8 @@ def start_nginx(bc, args):
     #nginx_handler = bee_logging.save_log(bc, nginx_log, logfile='nginx_launch.log')
     bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
     _ = bee_logging.save_log(bee_workdir=bee_workdir, log=nginx_log,
-                             logfile='nginx.log')
+                             logfile='nginx_start.log')
+    # Think about logfile name. Logging charliecloud not nginx itself
     try:
         bc.userconfig['nginx']
     except KeyError:
@@ -205,6 +206,8 @@ def start_nginx(bc, args):
         proc = subprocess.Popen([
             "ch-run",
             "-b", 
+            # Put logs in main bee_workdir log directory /logs
+            # Add nginx_logs directory to main logs directory
             nginx_config_dir + "/log:/var/log/nginx",
             "-b", 
             nginx_config_dir + "/run:/run",
@@ -289,16 +292,15 @@ def start_redis(bc, args):
 
     container_dir = redis_img_mntdir + "/redis_" + getpass.getuser()
     container_path = container_dir + '/redis'
-    #container_path = container_dir + '/nginx_new'
-    print(container_dir)
-    print(redis_img)
+    data_dir = container_dir + '/data'
     if not os.path.isdir(container_dir):
+        print('wut')
         os.makedirs(container_dir, exist_ok=True)
+        os.makedirs(data_dir, exist_ok=True)
         try:
-            print('Creating image')
             cp = subprocess.run(["ch-tar2dir", str(redis_img), 
-                str(container_dir)],  check=True)
-            print(container_dir)
+                str(container_dir)], check=True)
+            shutil.copyfile(get_script_path() + '/data/redis_config/redis.conf', data_dir + '/redis.conf')
         except subprocess.CalledProcessError as cp:
             redis_log.error("ch-tar2dir failed")
             shutil.rmtree(container_dir)
@@ -307,14 +309,18 @@ def start_redis(bc, args):
             return None
 
     try:
+        print(f'Data {data_dir}')
         proc = subprocess.Popen([
             "ch-run",
             container_path,
+            "-b", 
+            data_dir + ":/etc/redis/",
             "--",
             "redis-server",
-            "--port",
+            "/etc/redis/redis.conf",
+            "--port", 
             redis_port
-        ], stdout=stdout, stderr=stderr)
+        ], stdout=subprocess.DEVNULL, stderr=stderr)
     except FileNotFoundError as e:
         gdb_log.error("nginx failed to start.")
         return None
