@@ -18,6 +18,12 @@ except IndexError:
 # Set Workflow manager ports, attempt to prevent collisions
 WM_PORT = 5000
 
+# Length of a shortened workflow ID
+short_id_len = 6
+
+# Maximum length of a workflow ID
+MAX_ID_LEN = 32
+
 if platform.system() == 'Windows':
     # Get parent's pid to offset ports. uid method better but not available in Windows
     WM_PORT += os.getppid() % 100
@@ -37,6 +43,9 @@ def _url():
         wfm_listen_port = WM_PORT
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
 
+def _short_id(wf_id):
+    return wf_id[:short_id_len]
+
 def _resource(tag=""): 
     return _url() + str(tag)
 
@@ -47,9 +56,59 @@ def safe_input(type):
             # Cast it to the specified type
             answer = type(answer)
             break
+            # Put logs in main bee_workdir log directory /logs
         except ValueError:
             print(f"Error {answer} is not a valid option")
     return answer
+
+# Check short workflow IDs for colliions, increase short ID
+# length if any detected
+def check_short_id_collision():
+    global short_id_len
+    resp = requests.get(_url())
+    if resp.status_code != requests.codes.okay:
+        print(f"Returned {resp.status_code}")
+        raise ApiError("GET /jobs".format(resp.status_code))
+
+    job_list = jsonpickle.decode(resp.json()['job_list'])
+    if job_list:
+        while short_id_len < MAX_ID_LEN:
+            id_list = [_short_id(job[1]) for job in job_list]
+            id_list_set = set(id_list)
+            # Collision if set shorter than list
+            if len(id_list_set) < len(id_list):
+                short_id_len += 1
+            else:
+                break
+        else:
+            raise RuntimeError("collision detected between two full workflow IDs")
+    else:
+        print("There are currently no jobs.")
+
+# Match user-provided short workflow ID to full workflow IDs
+def match_short_id(wf_id):
+    matched_ids = []
+    resp = requests.get(_url())
+    if resp.status_code != requests.codes.okay:
+        print(f"Returned {resp.status_code}")
+        raise ApiError("GET /jobs".format(resp.status_code))
+
+    job_list = jsonpickle.decode(resp.json()['job_list'])
+    if job_list:
+        for job in job_list:
+            if job[1].startswith(wf_id):
+                matched_ids.append(job[1])
+        if len(matched_ids) > 1:
+            logging.info(f"user-provided workflow ID {wf_id} matched multiple stored workflow IDs")
+            print("provided workflow ID ambiguous")
+        elif not matched_ids:
+            logging.info(f"user-provided workflow ID {wf_id} did not match any stored workflow ID")
+            print("provided workflow ID does not match any submitted workflows")
+        else:
+            logging.info(f"user-provided workflow ID {wf_id} matched stored workflow ID {matched_ids[0]}")
+            return matched_ids[0]
+    else:
+        print("There are currently no jobs.")
 
 # Package Workflow
 def package_workflow():
@@ -101,56 +160,70 @@ def submit_workflow(wf_name, workflow_path, main_cwl, yaml=None):
 
     logging.info("Submit job: " + resp.text)
 
+    check_short_id_collision()
+
     wf_id = resp.json()['wf_id']
     logging.info("wf_id is " + str(wf_id))
     return wf_id
 
 # Start workflow on server
 def start_workflow(wf_id):
-    resp = requests.post(_resource(wf_id), json={'wf_id': wf_id})
-    if resp.status_code != requests.codes.okay:
-        raise ApiError("PUT /jobs{}".format(resp.status_code, wf_id))
-    logging.info('Start job: ' + resp.text)
+    matched_id = match_short_id(wf_id)
+    if matched_id:
+        resp = requests.post(_resource(matched_id), json={'wf_id': matched_id})
+        if resp.status_code != requests.codes.okay:
+            raise ApiError("PUT /jobs{}".format(resp.status_code, matched_id))
+        logging.info('Start job: ' + resp.text)
 
 # Query the current status of a job
 def query_workflow(wf_id):
-    resp = requests.get(_resource(wf_id), json={'wf_id': wf_id})
-    if resp.status_code != requests.codes.okay:
-        raise ApiError("GET /jobs {}".format(resp.status_code, wf_id))
-    task_status = resp.json()['msg']
-    logging.info('Query job: ' + resp.text)
+    matched_id = match_short_id(wf_id)
+    if matched_id:
+        resp = requests.get(_resource(matched_id), json={'wf_id': matched_id})
+        if resp.status_code != requests.codes.okay:
+            raise ApiError("GET /jobs {}".format(resp.status_code, matched_id))
+        task_status = resp.json()['msg']
+        logging.info('Query job: ' + resp.text)
 
 # Sends a request to the server to delete the resource 
 def cancel_workflow(wf_id):
-    resp = requests.delete(_resource(wf_id), json={'wf_id': wf_id})
-    # Returns okay if the resource has been deleted
-    # Non-blocking so it returns accepted 
-    if resp.status_code != requests.codes.accepted:
-        raise ApiError("DELETE /jobs{}".format(resp.status_code, wf_id))
-    logging.info('Cancel job: ' + resp.text)
+    matched_id = match_short_id(wf_id)
+    if matched_id:
+        resp = requests.delete(_resource(matched_id), json={'wf_id': matched_id})
+        # Returns okay if the resource has been deleted
+        # Non-blocking so it returns accepted 
+        if resp.status_code != requests.codes.accepted:
+            raise ApiError("DELETE /jobs{}".format(resp.status_code, matched_id))
+        logging.info('Cancel job: ' + resp.text)
 
 # Pause the execution of a job
 def pause_workflow(wf_id):
-    resp = requests.patch(_resource(wf_id), json={'wf_id': wf_id, 'option' : 'pause' })
-    if resp.status_code != requests.codes.okay:
-        raise ApiError("PAUSE /jobs{}".format(resp.status_code, wf_id))
-    logging.info('Pause job: ' + resp.text)
+    matched_id = match_short_id(wf_id)
+    if matched_id:
+        resp = requests.patch(_resource(wf_id), json={'wf_id': matched_id, 'option' : 'pause' })
+        if resp.status_code != requests.codes.okay:
+            raise ApiError("PAUSE /jobs{}".format(resp.status_code, matched_id))
+        logging.info('Pause job: ' + resp.text)
 
 # Resume the execution of a job
 def resume_workflow(wf_id):
-    resp = requests.patch(_resource(wf_id), json={'wf_id': wf_id, 'option' : 'resume' })
-    if resp.status_code != requests.codes.okay:
-        raise ApiError("RESUME /jobs{}".format(resp.status_code, wf_id))
-    logging.info('Resume job: ' + resp.text)
+    matched_id = match_short_id(wf_id)
+    if matched_id:
+        resp = requests.patch(_resource(matched_id), json={'wf_id': matched_id, 'option' : 'resume' })
+        if resp.status_code != requests.codes.okay:
+            raise ApiError("RESUME /jobs{}".format(resp.status_code, matched_id))
+        logging.info('Resume job: ' + resp.text)
 
 
 def copy_workflow(wf_id, archive_path):
-    resp = requests.patch(_url(), files={'wf_id': wf_id.encode()})
-    if resp.status_code != requests.codes.okay:
-        raise ApiError("COPY /jobs{}".format(resp.status_code, wf_id))
-    archive_file = jsonpickle.decode(resp.json()['archive_file'])
-    archive_filename = resp.json()['archive_filename']
-    return archive_file, archive_filename
+    matched_id = match_short_id(wf_id)
+    if matched_id:
+        resp = requests.patch(_url(), files={'wf_id': matched_id.encode()})
+        if resp.status_code != requests.codes.okay:
+            raise ApiError("COPY /jobs{}".format(resp.status_code, matched_id))
+        archive_file = jsonpickle.decode(resp.json()['archive_file'])
+        archive_filename = resp.json()['archive_filename']
+        return archive_file, archive_filename
 
 def reexecute_workflow(archive_path, wf_name):
     files = {
@@ -163,6 +236,8 @@ def reexecute_workflow(archive_path, wf_name):
         raise ApiError("REEXECUTE /jobs{}".format(resp.status_code))
 
     logging.info("ReExecute Workflow: " + resp.text)
+
+    check_short_id_collision()
 
     wf_id = resp.json()['wf_id']
     return wf_id
@@ -177,8 +252,8 @@ def list_workflows():
     job_list = jsonpickle.decode(resp.json()['job_list'])
     if job_list:
         print(f"Name\tID\t\t\t\t\tStatus")
-        for i in job_list:
-            print(f"{i[0]}\t{i[1]}\t{i[2]}")
+        for name, wf_id, status in job_list:
+            print(f"{name}\t{_short_id(wf_id)}\t{status}")
     else:
         print("There are currently no jobs.")
 
@@ -227,14 +302,14 @@ if __name__ == '__main__':
                     print(f'Exception {e}')
             else:
                 wf_id = submit_workflow(wf_name, workflow_path, main_cwl)
-            print(f"Job submitted! Your workflow id is {wf_id}.")
+            print(f"Job submitted! Your workflow id is {_short_id(wf_id)}.")
         elif int(choice) == 2:
             list_workflows()
-        elif int(choice) < 7:
+        elif int(choice) < 8:
             print("What is the workflow id?")
             wf_id = safe_input(str)
             list(menu_items[int(choice)].values())[0](wf_id)
-        elif int(choice) == 7:
+        elif int(choice) == 8:
             print("What is the workflow id?")
             wf_id = safe_input(str)
             print("Where do you want to save it?")
@@ -242,13 +317,13 @@ if __name__ == '__main__':
             archive_file, archive_filename = copy_workflow(wf_id, archive_path)
             with open(os.path.join(archive_path, archive_filename), 'wb') as a:
                 a.write(archive_file)
-        elif int(choice) == 8:
+        elif int(choice) == 9:
             print("What is the archive path?")
             archive_path = safe_input(Path)
             print("What will be the name of the job?")
             wf_name = safe_input(str)
             wf_id = reexecute_workflow(archive_path, wf_name)
-            print(f"Job submitted! Your workflow id is {wf_id}.")
+            print(f"Job submitted! Your workflow id is {_short_id(wf_id)}.")
 
     except (ValueError, IndexError):
         pass

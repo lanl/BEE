@@ -43,11 +43,18 @@ class Workflow:
         self.inputs = inputs
         self.outputs = outputs
 
-        # Workflow ID as UUID if not given
+        # Init Workflow ID as name-UUID if not given
         if workflow_id:
             self.id = workflow_id
         else:
-            self.id = str(uuid4())
+            self.id = self.generate_workflow_id()
+    
+    def generate_workflow_id(self):
+        """Generate a unique workflow ID.
+        
+        :rtype: str
+        """
+        return uuid4().hex
 
     def __eq__(self, other):
         """Test the equality of two workflows.
