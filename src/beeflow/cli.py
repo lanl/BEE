@@ -139,7 +139,7 @@ def start_nginx(bc, args):
         bc.userconfig['nginx']
     except KeyError:
         nginx_dict = {
-            'nginx_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
+            'nginx_image': '/usr/projects/beedev/nginx_new.tgz',
             'nginx_image_mntdir': '/tmp',
         }
         # Add section (writes to config file)
@@ -167,7 +167,6 @@ def start_nginx(bc, args):
 
     # Create nginx configuration directory if it doesn't exist
     nginx_config_dir = bee_workdir + '/nginx_config'
-    print(nginx_config_dir)
     os.makedirs(nginx_config_dir, exist_ok=True)
     os.makedirs(nginx_config_dir + '/log', exist_ok=True)
     os.makedirs(nginx_config_dir + '/run', exist_ok=True)
@@ -183,14 +182,12 @@ def start_nginx(bc, args):
     # Container directory if we don't already have one
     container_dir = nginx_img_mntdir + "/nginx_" + getpass.getuser()
     container_path = container_dir + '/nginx_new'
-    print(container_dir)
     if not os.path.isdir(container_dir):
         os.makedirs(container_dir, exist_ok=True)
         try:
             print('Creating image')
             cp = subprocess.run(["ch-tar2dir", str(nginx_img), 
                 str(container_dir)], stdout=stdout, stderr=stderr, check=True)
-            print(container_dir)
         except subprocess.CalledProcessError as cp:
             nginx_log.error("ch-tar2dir failed")
             shutil.rmtree(container_dir)
@@ -203,6 +200,10 @@ def start_nginx(bc, args):
         nginx_log.info("Nginx container mount directory " + container_dir + " created")
 
     try:
+        # Kill all previous nginx processes 
+        subprocess.run(['pkill', 'nginx'])
+        # Kill all previous uwsgi instances
+        subprocess.run(['pkill', 'uwsgi'])
         proc = subprocess.Popen([
             "ch-run",
             "-b", 
@@ -294,7 +295,6 @@ def start_redis(bc, args):
     container_path = container_dir + '/redis'
     data_dir = container_dir + '/data'
     if not os.path.isdir(container_dir):
-        print('wut')
         os.makedirs(container_dir, exist_ok=True)
         os.makedirs(data_dir, exist_ok=True)
         try:
@@ -309,7 +309,6 @@ def start_redis(bc, args):
             return None
 
     try:
-        print(f'Data {data_dir}')
         proc = subprocess.Popen([
             "ch-run",
             container_path,
@@ -392,6 +391,8 @@ def main():
         # Something went wrong
         return 1
 
+
+    use_wsgi = bc.userconfig.get('DEFAULT', 'use_wsgi')
     if args.build:
         proc = start_build(args)
         if proc is None:
@@ -433,7 +434,7 @@ def main():
                 log.info('Starting slurmrestd based on userconfig file.')
     if args.sched or start_all:
         proc = start_scheduler(bc, args)
-        if not args.config_only:
+        if not args.config_only and not use_wsgi:
             if proc is None:
                 log.error('Scheduler failed to start. Exiting.')
                 print('Scheduler failed to start. Exiting.', file=sys.stderr)
@@ -443,7 +444,7 @@ def main():
             log.info('Loading Scheduler')
     if args.wfm or start_all:
         proc = start_workflow_manager(bc, args)
-        if not args.config_only:
+        if not args.config_only and not use_wsgi:
             if proc is None:
                 log.error('Workflow Manager failed to start. Exiting.')
                 return 1
@@ -452,7 +453,7 @@ def main():
             log.info('Loading Workflow Manager')
     if args.tm or start_all:
         proc = start_task_manager(bc, args)
-        if not args.config_only:
+        if not args.config_only and not use_wsgi:
             if proc is None:
                 log.error('Task Manager failed to start. Exiting.')
                 return 1

@@ -509,6 +509,7 @@ class JobActions(Resource):
     @staticmethod
     def get(wf_id):
         """Check the database for the current status of all the tasks."""
+        wfi = getWFI()
         (_, tasks) = wfi.get_workflow()
         task_status = ""
         for task in tasks:
