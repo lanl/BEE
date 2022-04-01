@@ -288,9 +288,11 @@ class JobsList(Resource):
             else:
                 wfi = parser.parse_workflow(temp_cwl_path)
 
-            # Initialize up the workflow profiling code
+            # Initialize the workflow profiling code
             fname = '{}.json'.format(job_name)
-            output_path = os.path.join(bee_workdir, fname)
+            profile_dir = os.path.join(bee_workdir, 'profiles')
+            os.makedirs(profile_dir, exist_ok=True)
+            output_path = os.path.join(profile_dir, fname)
             wf_profiler = WorkflowProfiler(job_name, output_path)
 
             # Save the workflow to the workflow_id dir

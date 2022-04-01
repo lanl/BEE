@@ -1,10 +1,83 @@
 """Abstract base class for worker, the workload manager."""
 
 from abc import ABC, abstractmethod
+from beeflow.cli import log
+import jinja2
+from beeflow.common.crt_interface import ContainerRuntimeInterface
+
+
+# Import all implemented container runtime drivers now
+# No error if they don't exist
+try:
+    from beeflow.common.crt_drivers import CharliecloudDriver
+except ModuleNotFoundError:
+    pass
+try:
+    from beeflow.common.crt_drivers import SingularityDriver
+except ModuleNotFoundError:
+    pass
 
 
 class Worker(ABC):
     """Worker interface for a generic workload manager."""
+
+    def __init__(self, bee_workdir, **kwargs):
+        # Load appropriate container runtime driver, based on configs in kwargs
+        try:
+            self.tm_crt = kwargs['container_runtime']
+        except KeyError:
+            log.warning("No container runtime specified in config, proceeding with caution.")
+            self.tm_crt = None
+            crt_driver = None
+        finally:
+            if self.tm_crt == 'Charliecloud':
+                crt_driver = CharliecloudDriver
+            elif self.tm_crt == 'Singularity':
+                crt_driver = SingularityDriver
+            self.crt = ContainerRuntimeInterface(crt_driver)
+
+        # Get BEE workdir from config file
+        self.workdir = bee_workdir
+
+        # Get template for job
+        self.template_text = ''
+        self.job_template = kwargs['job_template']
+        if self.job_template:
+            try:
+                template_file = open(self.job_template, 'r')
+                self.template_text = template_file.read()
+                template_file.close()
+                log.info(f'Jobs will use template: {self.job_template}')
+            except ValueError as error:
+                log.warning(f'Cannot open job template {self.job_template}, {error}')
+                log.warning('Proceeding with Caution!')
+            except FileNotFoundError:
+                log.warning(f'Cannot find job template {self.job_template}')
+                log.warning('Proceeding with Caution!')
+            except PermissionError:
+                log.warning(f'Permission error job template {self.job_template}')
+                log.warning('Proceeding with Caution!')
+        else:
+            raise RuntimeError('No job_template found for the worker class')
+            # log.info('No template for jobs.')
+        self.template = jinja2.Template(self.template_text)
+
+    def build_text(self, task):
+        """Build text for task script; use template if it exists."""
+        workflow_path = f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
+        commands = self.crt.run_text(task)
+        requirements = dict(task.requirements)
+        hints = dict(task.hints)
+        job_text = self.template.render(
+            workflow_path=workflow_path,
+            task_name=task.name,
+            task_id=task.id,
+            workflow_id=task.workflow_id,
+            commands=commands,
+            requirements=requirements,
+            hints=hints,
+        )
+        return job_text
 
     @abstractmethod
     def submit_task(self, task):

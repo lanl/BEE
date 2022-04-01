@@ -22,19 +22,6 @@ bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
 
-class Command:
-    """Command class to be returned by run_text()."""
-
-    def __init__(self, argv=None, block=None, one_per_node=False):
-        """Command constructor."""
-        # Argument list for a command (see run_text() below)
-        self.argv = argv
-        # For a block of shell text/environment setup code
-        self.block = block
-        # Should this command be run one per node (i.e. a ch-tar2dir command, etc.)
-        self.one_per_node = one_per_node
-
-
 class ContainerRuntimeDriver(ABC):
     """ContainerRuntimeDriver interface for generic container runtime."""
 
@@ -43,7 +30,7 @@ class ContainerRuntimeDriver(ABC):
         """Create commands for job using the container runtime.
 
         :param task: instance of Task
-        :rtype list of instance of Command
+        :rtype list of list of str
         """
 
     @abstractmethod
@@ -87,26 +74,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
     def run_text(self, task):
         """Build text for Charliecloud batch script."""
-        # TODO: I think this first block of code can be removed
-        if task.hints is not None:
-            docker = False
-            # Make sure all commands are strings
-            cmd_tasks = list(map(str, task.command))
-            command = ' '.join(cmd_tasks) + '\n'
-            for hint in task.hints:
-                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    name = self.get_ccname(hint.params["dockerImageId"])
-                    chrun_opts, cc_setup = self.get_cc_options()
-                    image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
-                    text = (f'{cc_setup}\n'
-                            f'mkdir -p {image_mntdir}\n'
-                            f'ch-tar2dir {hint.params["dockerImageId"]} {image_mntdir}\n'
-                            f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
-                            f'rm -rf {image_mntdir}/{name}\n'
-                            )
-                    docker = True
-            if not docker:
-                text = command
         # Read container archive path from config.
         try:
             if bc.userconfig['builder'].get('container_archive'):
@@ -221,7 +188,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                          format(task_container_name))
 
         if baremetal:
-            return [Command(argv=task.command)]
+            return [task.command]
 
         container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
         log.info('Expecting container at {}. Ready to deploy and run.'.format(container_path))
@@ -229,13 +196,15 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         chrun_opts, cc_setup = self.get_cc_options()
         deployed_image_root = bc.userconfig.get('builder', 'deployed_image_root')
 
-        commands = [
-            Command(block=f'{cc_setup}\n'),
-            Command(argv=f'mkdir -p {deployed_image_root}\n'.split(), one_per_node=True),
-            Command(argv=f'ch-tar2dir {container_path} {deployed_image_root}\n'.split(), one_per_node=True),
-            Command(argv=f'ch-run --join {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()),
-            Command(argv=f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(), one_per_node=True),
-        ]
+        command = ' '.join(task.command)
+        cc_setup = cc_setup.split()
+        commands = [cc_setup] if cc_setup else []
+        commands.extend([
+            f'mkdir -p {deployed_image_root}\n'.split(),
+            f'ch-tar2dir {container_path} {deployed_image_root}\n'.split(),
+            'ch-run --join {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split(),
+            f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(),
+        ])
         return commands
 
     def build_text(self, userconfig, task):
@@ -257,7 +226,7 @@ class SingularityDriver(ContainerRuntimeDriver):
         # Make sure all commands are strings
         cmd_tasks = list(map(str, task.command))
         cmds = [
-            Command(argv=cmd_tasks),
+            cmd_tasks,
         ]
         if task.hints is not None:
             hints = dict(task.hints)
@@ -267,7 +236,7 @@ class SingularityDriver(ContainerRuntimeDriver):
                 argv = ['singularity', 'exec', img]
                 argv.extend(cmd_tasks)
                 cmds = [
-                    Command(argv=argv),
+                    argv,
                 ]
             except (KeyError, TypeError):
                 pass
