@@ -201,9 +201,9 @@ def start_nginx(bc, args):
 
     try:
         # Kill all previous nginx processes 
-        subprocess.run(['pkill', 'nginx'])
+        subprocess.run(['pkill', '-u', os.getlogin(), 'nginx'])
         # Kill all previous uwsgi instances
-        subprocess.run(['pkill', 'uwsgi'])
+        subprocess.run(['pkill', '-u', os.getlogin(), 'uwsgi'])
         proc = subprocess.Popen([
             "ch-run",
             "-b", 
