@@ -202,7 +202,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         commands.extend([
             f'mkdir -p {deployed_image_root}\n'.split(),
             f'ch-tar2dir {container_path} {deployed_image_root}\n'.split(),
-            'ch-run --join {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split(),
+            f'ch-run --join {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split(),
             f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(),
         ])
         return commands
