@@ -3,7 +3,6 @@
 Delegates its work to a GraphDatabaseInterface instance.
 """
 
-from uuid import uuid4
 from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.wf_data import Workflow, Task
 
@@ -78,7 +77,8 @@ class WorkflowInterface:
 
     def reset_workflow(self):
         """Reset the execution state and ID of a BEE workflow."""
-        self._workflow_id = str(uuid4())
+        workflow, _ = self.get_workflow()
+        self._workflow_id = workflow.generate_workflow_id()
         self._gdb_interface.reset_workflow(self._workflow_id)
 
     def finalize_workflow(self):
@@ -323,7 +323,7 @@ class WorkflowInterface:
         :rtype: str
         """
         if self._workflow_id is None and self.workflow_loaded():
-            workflow = self.get_workflow()[0]
+            workflow, _ = self.get_workflow()
             self._workflow_id = workflow.id
 
         return self._workflow_id
