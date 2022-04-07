@@ -156,9 +156,6 @@ def gen_task_metadata(task, job_id):
 
 def resolve_environment(task):
     """Use build interface to create a valid environment."""
-    # return subprocess.run(["beeflow", "--build", USERCONFIG, task2arg(task)],
-    #                      stdout=PIPE, stderr=PIPE, check=False)
-    # TODO: Could use a thread for this
     build_main(bc, task)
 
 
@@ -192,24 +189,6 @@ def submit_jobs():
             update_task_state(task.id, job_state)
 
 
-def collect_output(task):
-    """Collect output for a task, if there is any."""
-    hints = dict(task.hints)
-    # These files are meant to be small text files (so not large binary blobs)
-    try:
-        file_globs = hints['beeflow:CollectRequirement']['files'].split(',')
-        data = {}
-        for g in file_globs:
-            files = glob.glob(os.path.expandvars(g))
-            for file_ in files:
-                name = os.path.basename(file_)
-                with open(file_) as fp:
-                    data[name] = fp.read()
-        return json.dumps(data)
-    except (KeyError, TypeError):
-        return {}
-
-
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
     for job in job_queue:
@@ -220,8 +199,7 @@ def update_jobs():
         if job_state != job['job_state']:
             log.info(f'{task.name} {job["job_state"]} -> {job_state}')
             job['job_state'] = job_state
-            output = collect_output(task)
-            update_task_state(task.id, job_state, output=output)
+            update_task_state(task.id, job_state, output={})
 
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
