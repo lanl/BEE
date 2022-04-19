@@ -5,6 +5,9 @@
 {% if 'beeflow:MPIRequirement' in hints and 'nodes' in hints['beeflow:MPIRequirement'] %}
 #SBATCH -N {{ hints['beeflow:MPIRequirement']['nodes'] }}
 {% endif %}
+{% if 'beeflow:MPIRequirement' in hints and 'ntasks' in hints['beeflow:MPIRequirement'] %}
+#SBATCH -n {{ hints['beeflow:MPIRequirement']['ntasks'] }}
+{% endif %}
 
 {% for cmd in commands %}
 srun {{ cmd|join(' ') }}
