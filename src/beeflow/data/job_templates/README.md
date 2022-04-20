@@ -1,11 +1,11 @@
 # Job templates
 
-BEE uses HPC resource scheduler templates to execute tasks on HPC resources. This directory is a home for templates of supported system schedulers. Add the location of your template to the bee.conf file in the TaskManager section.
+BEE uses HPC resource scheduler templates to execute tasks on HPC resources. This directory is a home for templates of supported system schedulers. Add the absolute path to your template to the bee.conf file in the TaskManager section.
 Example:
 ```
 [task_manager]
 ...
-job_template = $HOME/.config/beeflow/submit.jinja
+job_template = <home dir>/.config/beeflow/submit.jinja
 ```
 
 ## Jinja2 Templating
