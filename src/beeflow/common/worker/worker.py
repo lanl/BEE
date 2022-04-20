@@ -40,27 +40,27 @@ class Worker(ABC):
         self.workdir = bee_workdir
 
         # Get template for job
-        self.template_text = ''
         self.job_template = kwargs['job_template']
         if self.job_template:
+            # Make sure that the file exists and is readable
             try:
-                template_file = open(self.job_template, 'r')
-                self.template_text = template_file.read()
-                template_file.close()
+                with open(self.job_template, 'r') as template_file:
+                    template_file.read()
                 log.info(f'Jobs will use template: {self.job_template}')
             except ValueError as error:
-                log.warning(f'Cannot open job template {self.job_template}, {error}')
-                log.warning('Proceeding with Caution!')
+                raise RuntimeError(f'Cannot open job template {self.job_template}, {error}')
             except FileNotFoundError:
-                log.warning(f'Cannot find job template {self.job_template}')
-                log.warning('Proceeding with Caution!')
+                raise RuntimeError(f'Cannot find job template {self.job_template}')
             except PermissionError:
-                log.warning(f'Permission error job template {self.job_template}')
-                log.warning('Proceeding with Caution!')
+                raise RuntimeError(f'Permission error job template {self.job_template}')
         else:
             raise RuntimeError('No job_template found for the worker class')
-            # log.info('No template for jobs.')
-        self.template = jinja2.Template(self.template_text)
+
+    @property
+    def template(self):
+        """Load the template file."""
+        with open(self.job_template) as fp:
+            return jinja2.Template(fp.read())
 
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
