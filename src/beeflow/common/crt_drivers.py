@@ -175,9 +175,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 runtime_target_list.append(task_container_path)
                 log.info('Found dockerPull address, assuming this contains the container name.')
                 if len(runtime_target_list) > 1:
-                    log.error('Too many container runtimes specified!')
-                    log.error('Pick a maximum of one per workflow step.')
-                    return 1
+                    raise RuntimeError(
+                        'Too many container runtimes specified! Pick a maximum of one per workflow step.'
+                    )
             if len(runtime_target_list) == 0:
                 log.warning('No containerName specified.')
                 log.warning('Cannot be inferred from other DockerRequirements.')
@@ -189,7 +189,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                          format(task_container_name))
 
         if baremetal:
-            return [task.command]
+            return [], [str(arg) for arg in task.command], []
 
         container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
         log.info('Expecting container at {}. Ready to deploy and run.'.format(container_path))
