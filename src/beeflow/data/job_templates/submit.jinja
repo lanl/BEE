@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name={{task_name}}-{{task_id}}
-#SBATCH --output={{workflow_path}}/{{task_name}}-{{task_id}}.out
-#SBATCH --error={{workflow_path}}/{{task_name}}-{{task_id}}.err
+#SBATCH --output={{task_save_path}}/{{task_name}}-{{task_id}}.out
+#SBATCH --error={{task_save_path}}/{{task_name}}-{{task_id}}.err
 {% if 'beeflow:MPIRequirement' in hints and 'nodes' in hints['beeflow:MPIRequirement'] %}
 #SBATCH -N {{ hints['beeflow:MPIRequirement']['nodes'] }}
 {% endif %}
@@ -9,6 +9,15 @@
 #SBATCH -n {{ hints['beeflow:MPIRequirement']['ntasks'] }}
 {% endif %}
 
-{% for cmd in commands %}
+# pre commands
+{% for cmd in pre_commands %}
+srun {{ cmd|join(' ') }}
+{% endfor %}
+
+# main command
+srun {{ main_command|join(' ') }}
+
+# post commands
+{% for cmd in post_commands %}
 srun {{ cmd|join(' ') }}
 {% endfor %}

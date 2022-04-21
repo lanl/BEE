@@ -29,8 +29,9 @@ class ContainerRuntimeDriver(ABC):
     def run_text(self, task):
         """Create commands for job using the container runtime.
 
+        Returns a tuple (pre-commands, main-command, post-commands).
         :param task: instance of Task
-        :rtype list of list of str
+        :rtype tuple of (list of list of str, list of str, list of list of str)
         """
 
     @abstractmethod
@@ -198,14 +199,16 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         command = ' '.join(task.command)
         cc_setup = cc_setup.split()
-        commands = [cc_setup] if cc_setup else []
-        commands.extend([
+        pre_commands = [cc_setup] if cc_setup else []
+        pre_commands.extend([
             f'mkdir -p {deployed_image_root}\n'.split(),
             f'ch-tar2dir {container_path} {deployed_image_root}\n'.split(),
-            f'ch-run --join {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split(),
-            f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(),
         ])
-        return commands
+        main_command = f'ch-run --join {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()
+        post_commands = [
+            f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(),
+        ]
+        return pre_commands, main_command, post_commands
 
     def build_text(self, userconfig, task):
         """Build text for Charliecloud batch script."""
@@ -225,9 +228,7 @@ class SingularityDriver(ContainerRuntimeDriver):
         """Build text for Singularity batch script."""
         # Make sure all commands are strings
         cmd_tasks = list(map(str, task.command))
-        cmds = [
-            cmd_tasks,
-        ]
+        main_command = cmd_tasks
         if task.hints is not None:
             hints = dict(task.hints)
             # I'm not sure if this should check for copyContainer here or not
@@ -235,12 +236,10 @@ class SingularityDriver(ContainerRuntimeDriver):
                 img = hints['DockerRequirement']['dockerImageId']
                 argv = ['singularity', 'exec', img]
                 argv.extend(cmd_tasks)
-                cmds = [
-                    argv,
-                ]
+                main_command = argv
             except (KeyError, TypeError):
                 pass
-        return cmds
+        return [], main_command, []
 
     def build_text(self, userconfig, task):
         """Build text for Singularity batch script."""

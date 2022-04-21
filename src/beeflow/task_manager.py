@@ -16,6 +16,7 @@ import requests
 import threading
 import glob
 import os
+import traceback
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
@@ -183,6 +184,8 @@ def submit_jobs():
             job_state = 'SUBMIT_FAIL'
             log.error(f'Task Manager submit task {task.name} failed! \n {err}')
             log.error(f'{task.name} state: {job_state}')
+            # Log the traceback information as well
+            log.error(traceback.format_exc())
         finally:
             # Send the initial state to WFM
             # update_task_state(task.id, job_state, metadata=task_metadata)
@@ -259,6 +262,7 @@ class TaskActions(Resource):
                 job_state = worker.cancel_task(job_id)
             except Exception as err:
                 log.error(err)
+                log.error(traceback.format_exc())
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
         job_queue.clear()

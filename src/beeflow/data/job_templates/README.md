@@ -16,11 +16,13 @@ here which should work for Slurm.
 
 Currently the template is passed a number of variables which I'll try to
 document here:
-* `workflow_path` - path for stored workflow info as a string
+* `task_save_path` - path for stored task info as a string
 * `task_name` - task name sring
 * `task_id` - task ID string
 * `workflow_id` - workflow ID string
-* `commands` - list of list of string
+* `pre_commands` - initial commands to run before the main command
+* `command` - main command to run
+* `post_commands` - commands to run after the main command
 * `requirements` - requirements as a dict
 * `hints` - hints as a dict
 These should be used to determine exactly what options should be generated in

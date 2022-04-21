@@ -1,8 +1,9 @@
 """Abstract base class for worker, the workload manager."""
 
 from abc import ABC, abstractmethod
-from beeflow.cli import log
+import os
 import jinja2
+from beeflow.cli import log
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 
 
@@ -25,16 +26,15 @@ class Worker(ABC):
         # Load appropriate container runtime driver, based on configs in kwargs
         try:
             self.tm_crt = kwargs['container_runtime']
-        except KeyError:
-            log.warning("No container runtime specified in config, proceeding with caution.")
-            self.tm_crt = None
-            crt_driver = None
-        finally:
             if self.tm_crt == 'Charliecloud':
                 crt_driver = CharliecloudDriver
             elif self.tm_crt == 'Singularity':
                 crt_driver = SingularityDriver
             self.crt = ContainerRuntimeInterface(crt_driver)
+        except KeyError:
+            log.warning("No container runtime specified in config, proceeding with caution.")
+            self.tm_crt = None
+            crt_driver = None
 
         # Get BEE workdir from config file
         self.workdir = bee_workdir
@@ -62,18 +62,31 @@ class Worker(ABC):
         with open(self.job_template) as fp:
             return jinja2.Template(fp.read())
 
+    def task_save_path(self, task):
+        """Return the task save path used for storing submission scripts output logs."""
+        return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
+
+    def prepare(self, task):
+        """Prepare for the task; create the task save directory, etc."""
+        task_save_path = self.task_save_path(task)
+        os.makedirs(task_save_path, exist_ok=True)
+
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
-        workflow_path = f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
-        commands = self.crt.run_text(task)
+        # workflow_path = f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
+        task_save_path = self.task_save_path(task)
+        pre_commands, main_command, post_commands = self.crt.run_text(task)
         requirements = dict(task.requirements)
         hints = dict(task.hints)
+        print(main_command)
         job_text = self.template.render(
-            workflow_path=workflow_path,
+            task_save_path=task_save_path,
             task_name=task.name,
             task_id=task.id,
             workflow_id=task.workflow_id,
-            commands=commands,
+            pre_commands=pre_commands,
+            main_command=main_command,
+            post_commands=post_commands,
             requirements=requirements,
             hints=hints,
         )

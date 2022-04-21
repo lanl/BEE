@@ -34,10 +34,8 @@ class LSFWorker(Worker):
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
-        script_dir = f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
-        os.makedirs(script_dir, exist_ok=True)
         task_text = self.build_text(task)
-        task_script = f'{script_dir}/{task.name}-{task.id}.sh'
+        task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
         script_f = open(task_script, 'w')
         script_f.write(task_text)
         script_f.close()
