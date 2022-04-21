@@ -350,7 +350,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             import_input_path = task_import
 
         # Pull the image.
-        cmd = (f'ch-tar2dir {import_input_path} {self.deployed_image_root}/')
+        cmd = (f'ch-convert {import_input_path} {self.deployed_image_root}/{import_input_path}')
+        log.info(f'Docker import: Assuming container name is {import_input_path}. Is this correct?')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
