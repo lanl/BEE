@@ -104,6 +104,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  requirements={},
                  hints=None,
                  workflow_id=42,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -120,15 +121,18 @@ task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
                  hints=None,
                  workflow_id=42,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.dockerImport()
-# >>> CompletedProcess(args='ch-convert /usr/projects/beedev/neo4j-3-5-17-ch.tar.gz /var/tmp/qwofford/beeflow/neo4j-3-5-17-ch', returncode=0, stdout=b'/var/tmp/qwofford/beeflow//neo4j-3-5-17-ch unpacked ok\n', stderr=b'replacing existing image /var/tmp/qwofford/beeflow//neo4j-3-5-17-ch\n')
+# >>> CompletedProcess(args='ch-convert /usr/projects/beedev/neo4j-3-5-17-ch.tar.gz /var/tmp/qwofford/beeflow/neo4j-3-5-17-ch', returncode=0, 
+=b'/var/tmp/qwofford/beeflow//neo4j-3-5-17-ch unpacked ok\n', stderr=b'replacing existing image /var/tmp/qwofford/beeflow//neo4j-3-5-17-ch\n')
 task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
                  requirements=None,
                  workflow_id=42,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -143,6 +147,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
                  requirements=None,
                  workflow_id=42,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -165,6 +170,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerLoad':'bogus path'}},
                  requirements=None,
                  workflow_id=42,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -176,6 +182,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerLoad':'bogus path'}},
                  hints=None,
                  workflow_id=42,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -194,12 +201,13 @@ task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'containerName':'my_containerName'}},
                  requirements=None,
                  workflow_id=42,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.containerName()
 # >>> 'my_containerName'
-a.containerName(param_containerName='another_containerName')
+:q"
 # >>> 'another_containerName'
 a.containerName()
 # >>> 'my_containerName'
@@ -207,12 +215,13 @@ task = Task(name='hi',base_command=['hi','hello'],
                  hints=None,
                  requirements=None,
                  workflow_id=42,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.containerName()
 # >>> 1
-a.containerName(param_containerName='another_containerName')
+a.containerName('another_containerName')
 # >>> 'another_containerName'
 a.containerName()
 # >>> 'another_containerName'
