@@ -12,6 +12,7 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 from beeflow.common.build.build_driver import BuildDriver
 import beeflow.common.log as bee_logging
+from beeflow.common.crt_drivers import CharliecloudDriver as crt_driver
 
 
 class ContainerBuildDriver(BuildDriver):
@@ -351,11 +352,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             import_input_path = task_import
 
         # Pull the image.
-        dir_name,ext = os.path.splitext(os.path.basename(import_input_path))
-        while ext:
-             dir_name,ext = os.path.splitext(dir_name)
-
-        cmd = (f'ch-convert {import_input_path} {self.deployed_image_root}/{dir_name}')
+        file_name = crt_driver.get_ccname(import_input_path)
+        cmd = (f'ch-convert {import_input_path} {self.deployed_image_root}/{file_name}')
         log.info(f'Docker import: Assuming container name is {import_input_path}. Is this correct?')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
