@@ -1,9 +1,9 @@
 # Build functionality for BEE
 
-The BEE system should launch containerized jobs, and resolve the container runtime environment (RTE) using a combination of CWL hints/requirements and BeeConfig parameters. The steps leading up to the creation of an RTE will be referred to as "build" steps. All build functionality is defined in this directory, but may depend on other components (such as container runtimes) 
+The BEE system should launch containerized jobs, and resolve the container runtime environment (RTE) using a combination of CWL hints/requirements and BeeConfig parameters. The steps leading up to the creation of an RTE will be referred to as "build" steps. All build functionality is defined in this directory, but may depend on other components (such as container runtimes)
 
 ## Extending build functionality
-BEE supports build extensions by offering interfaces and templates for those who wish to utilize build functionality not currently supported in BEE. The BEE build system consists of three major parts:  
+BEE supports build extensions by offering interfaces and templates for those who wish to utilize build functionality not currently supported in BEE. The BEE build system consists of three major parts:
 
 
 * ***build_interfaces.py:*** A collection of build interfaces which define interactions between build objects and the components they interact with (eg- task manager, worker, workflow manager, ...)
@@ -15,7 +15,7 @@ BEE supports build extensions by offering interfaces and templates for those who
 
 All BEE components will access build drivers through an interface, and all build interfaces are defined in `../build_interfaces.py`.
 
-**Static methods:** Static methods implement methods associated with build operations but which are not directly to the build interface object and the specific RTE it provides. Static methods do not require that a build interface object exists in order to run.  
+**Static methods:** Static methods implement methods associated with build operations but which are not directly to the build interface object and the specific RTE it provides. Static methods do not require that a build interface object exists in order to run.
 
 ### BuildInterfaceTM
 The BuildInterfaceTM class is defined in `build_interface.py`. This class defines methods which are useful to interactions with the task manager.
@@ -51,8 +51,8 @@ task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerPull':'git.lanl.gov:5050/qwofford/containerhub/lstopo'}},
                  hints=None,
                  workflow_id=42,
-                 task_id=1,
                  stdout="output.txt",
+                 task_id=1,
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -63,6 +63,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  requirements={},
                  hints=None,
                  workflow_id=42,
+                 stdout="output.txt",
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -73,6 +74,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  hints=None,
                  requirements=None,
                  workflow_id=42,
+                 stdout="output.txt",
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -87,9 +89,9 @@ from beeflow.common.wf_data import Task
 task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerFile':'src/beeflow/data/dockerfiles/Dockerfile.builder_demo',
                                                     'containerName':'my_fun_container:sillytag'}},
-                 stdout="output.txt",
                  hints=None,
                  workflow_id=42,
+                 stdout="output.txt",
                  inputs={},
                  outputs={})
 b = CharliecloudBuildDriver(task)
@@ -207,7 +209,7 @@ task = Task(name='hi',base_command=['hi','hello'],
 a = CharliecloudBuildDriver(task)
 a.containerName()
 # >>> 'my_containerName'
-:q"
+a.containerName(param_containerName='another_containerName')
 # >>> 'another_containerName'
 a.containerName()
 # >>> 'my_containerName'
