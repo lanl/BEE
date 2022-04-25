@@ -86,7 +86,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                     image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
                     text = (f'{cc_setup}\n'
                             f'mkdir -p {image_mntdir}\n'
-                            f'ch-tar2dir {hint.params["dockerImageId"]} {image_mntdir}\n'
+                            f'ch-convert -i tar -o dir {hint.params["dockerImageId"]} {image_mntdir}/{name}\n'
                             f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
                             f'rm -rf {image_mntdir}/{name}\n'
                             )
@@ -218,7 +218,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         text = (f'{cc_setup}\n'
                 f'mkdir -p {deployed_image_root}\n'
-                f'ch-tar2dir {container_path} {deployed_image_root}\n'
+                f'ch-convert -i tar -o dir {container_path} {deployed_image_root}/{task_container_name}\n'
                 f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'
                 f'rm -rf {deployed_image_root}/{task_container_name}\n'
                 )
