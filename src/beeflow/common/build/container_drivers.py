@@ -7,12 +7,12 @@ import os
 import shutil
 import subprocess
 import sys
-import getpass
 from beeflow.common.config_driver import BeeConfig
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
 from beeflow.common.build.build_driver import BuildDriver
 import beeflow.common.log as bee_logging
+from beeflow.common.crt_drivers import CharliecloudDriver as crt_driver
 
 
 class ContainerBuildDriver(BuildDriver):
@@ -93,7 +93,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 deployed_image_root = bc.resolve_path(deployed_image_root)
             else:
                 log.info('Deployed image root not found.')
-                deployed_image_root = '/'.join(['/var/tmp', getpass.getuser(),
+                deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
                                                'beeflow_deployed_containers'])
                 # Make sure conf_file path exists
                 os.makedirs(deployed_image_root, exist_ok=True)
@@ -102,7 +102,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 log.info(f'Assuming deployed image root is {deployed_image_root}')
         except KeyError:
             log.info('Config file is missing builder section.')
-            deployed_image_root = '/'.join(['/var/tmp', getpass.getuser(),
+            deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
                                            'beeflow_deployed_containers'])
             # Make sure conf_file path exists
             os.makedirs(deployed_image_root, exist_ok=True)
@@ -216,12 +216,13 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+getpass.getuser()+'/ch-image/'+ch_build_addr)
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-image/'+ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Out of excuses. Pull the image.
-        cmd = (f'ch-image pull {addr} && ch-builder2tar -b ch-image {ch_build_addr} {self.container_archive}'
+        cmd = (f'ch-image pull {addr}\n'
+               f'ch-convert -i ch-image -o tar {ch_build_addr} {self.container_archive}/{ch_build_addr}.tar.gz'
                )
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
@@ -305,14 +306,14 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+getpass.getuser()+'/ch-image/'+ch_build_addr)
+                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-image/'+ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Out of excuses. Build the image.
         log.info('Context directory configured. Beginning build.')
         cmd = (f'ch-image build -t {self.container_name} -f {task_dockerfile} {context_dir}\n'
-               f'ch-builder2tar -b ch-image {ch_build_addr} {self.container_archive}'
+               f'ch-convert -i ch-image -o tar {ch_build_addr} {self.container_archive}/{ch_build_addr}.tar.gz'
                )
         log.info('Executing: {}'.format(cmd))
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -351,7 +352,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             import_input_path = task_import
 
         # Pull the image.
-        cmd = (f'ch-tar2dir {import_input_path} {self.deployed_image_root}/')
+        file_name = crt_driver.get_ccname(import_input_path)
+        cmd = (f'ch-convert {import_input_path} {self.deployed_image_root}/{file_name}')
+        log.info(f'Docker import: Assuming container name is {import_input_path}. Is this correct?')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
