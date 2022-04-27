@@ -12,6 +12,7 @@ from beeflow.common.config_driver import BeeConfig
 from beeflow.cli import log
 from beeflow.common.build.build_driver import BuildDriver
 import beeflow.common.log as bee_logging
+from beeflow.common.crt_drivers import CharliecloudDriver as crt_driver
 
 
 class ContainerBuildDriver(BuildDriver):
@@ -220,7 +221,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 pass
 
         # Out of excuses. Pull the image.
-        cmd = (f'ch-image pull {addr} && ch-builder2tar {ch_build_addr} {self.container_archive}'
+        cmd = (f'ch-image pull {addr}\n'
+               f'ch-convert -i ch-image -o tar {ch_build_addr} {self.container_archive}/{ch_build_addr}.tar.gz'
                )
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
@@ -311,7 +313,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Out of excuses. Build the image.
         log.info('Context directory configured. Beginning build.')
         cmd = (f'ch-image build -t {self.container_name} -f {task_dockerfile} {context_dir}\n'
-               f'ch-builder2tar {ch_build_addr} {self.container_archive}'
+               f'ch-convert -i ch-image -o tar {ch_build_addr} {self.container_archive}/{ch_build_addr}.tar.gz'
                )
         log.info('Executing: {}'.format(cmd))
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -350,7 +352,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             import_input_path = task_import
 
         # Pull the image.
-        cmd = (f'ch-tar2dir {import_input_path} {self.deployed_image_root}/')
+        file_name = crt_driver.get_ccname(import_input_path)
+        cmd = (f'ch-convert {import_input_path} {self.deployed_image_root}/{file_name}')
+        log.info(f'Docker import: Assuming container name is {import_input_path}. Is this correct?')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
