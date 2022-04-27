@@ -20,6 +20,8 @@ DEFAULT_BOLT_PORT = "7687"
 DEFAULT_USER = "neo4j"
 DEFAULT_PASSWORD = "password"
 
+class Neo4JNotRunning(Exception):
+    pass
 
 class Neo4jDriver(GraphDatabaseDriver):
     """The driver for a Neo4j Database.
@@ -49,7 +51,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             # Require tasks to have unique names
             self._require_tasks_unique()
         except ServiceUnavailable:
-            print("Neo4j database unavailable. Is it running?")
+            raise Neo4JNotRunning("Neo4j database is unvailable")
 
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow stored in Neo4j.

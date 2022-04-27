@@ -27,6 +27,8 @@ from beeflow.common.parser import CwlParser
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
+from beeflow.common.gdb.neo4j_driver import Neo4JNotRunning
+
 sys.excepthook = bee_logging.catch_exception
 
 if len(sys.argv) > 2:
@@ -34,6 +36,7 @@ if len(sys.argv) > 2:
 else:
     bc = BeeConfig()
 
+# Load up container runtime
 
 if bc.userconfig.has_section('workflow_manager'):
     # Try getting listen port from config if exists, use WM_PORT if it doesnt exist
@@ -134,16 +137,17 @@ rm = ResourceMonitor()
 
 
 def validate_wf_id(func):
-    """Validate tempoary hard coded workflow id."""
-    def wrapper(*args, **kwargs):
-        wf_id = kwargs['wf_id']
-        current_wf_id = wfi.workflow_id
-        if wf_id != current_wf_id:
-            log.info(f'Wrong workflow id. Set to {wf_id}, but should be {current_wf_id}')
-            resp = make_response(jsonify(status='wf_id not found'), 404)
-            return resp
-        return func(*args, **kwargs)
-    return wrapper
+    if wfi != None:
+        """Validate workflow id."""
+        def wrapper(*args, **kwargs):
+            wf_id = kwargs['wf_id']
+            current_wf_id = wfi.workflow_id
+            if wf_id != current_wf_id:
+                log.info(f'Wrong workflow id. Set to {wf_id}, but should be {current_wf_id}')
+                resp = make_response(jsonify(status='wf_id not found'), 404)
+                return resp
+            return func(*args, **kwargs)
+        return wrapper
 
 def process_running(pid):
     """Check if the process with pid is running"""
@@ -248,6 +252,7 @@ class JobsList(Resource):
             # Start a new GDB 
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
             script_path = get_script_path()
+
             subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # Need to wait a moment for the GDB
             time.sleep(10)
@@ -258,7 +263,7 @@ class JobsList(Resource):
                     wfi.finalize_workflow()
 
             # Save the workflow temporarily to this folder for the parser
-            #
+
             temp_dir = tempfile.mkdtemp()
             temp_tarball_path = os.path.join(temp_dir, wf_filename)
             wf_tarball.save(temp_tarball_path)
@@ -267,14 +272,37 @@ class JobsList(Resource):
             wf_dirname = wf_filename[:len(extension)]
             subprocess.run(['tar', 'xf', f'{wf_filename}', '--strip-components', '1'], cwd=temp_dir)
 
-            parser = CwlParser()
+            try:
+                parser = CwlParser()
+            except Neo4JNotRunning: 
+                container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
+                container_msg = "Neo4j DB is not running. Please make sure " \
+                                f"{container_runtime} is installed and available."
+                logging.error(container_msg)
+                resp = make_response(jsonify(msg=container_msg, status='error'), 418)
+                return resp
+
             temp_cwl_path = os.path.join(temp_dir, main_cwl)
+            parse_msg = "Unable to parse workflow."
+                        "Please check workflow manager."
             if yaml_file != None:
                 yaml_file = yaml_file.read().decode()
                 temp_yaml_path = os.path.join(temp_dir, yaml_file)
-                wfi = parser.parse_workflow(temp_cwl_path, temp_yaml_path)
+                try:
+                    wfi = parser.parse_workflow(temp_cwl_path, temp_yaml_path)
+                except AttributeError:
+                    log.error('Unable to parse')
+                    resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
+                    return resp
+                
             else:
-                wfi = parser.parse_workflow(temp_cwl_path)
+                try:
+                    wfi = parser.parse_workflow(temp_cwl_path)
+                except AttributeError:
+                    log.error('Unable to parse')
+                    resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
+                    return resp
+
 
             # Save the workflow to the workflow_id dir
             wf_id = wfi.workflow_id
@@ -388,7 +416,11 @@ def submit_tasks_tm(tasks):
     # Send task_msg to task manager
     names = [task.name for task in tasks]
     log.info(f"Submitted {names} to Task Manager")
-    resp = requests.post(_resource('tm', "submit/"), json={'tasks': tasks_json})
+    try:
+        resp = requests.post(_resource('tm', "submit/"), json={'tasks': tasks_json})
+    except requests.exceptions.ConnectionError:
+        log.error('Unable to connect to task manager to submit tasks.')
+
     if resp.status_code != 200:
         log.info(f"Submit task to TM returned bad status: {resp.status_code}")
 
@@ -398,7 +430,11 @@ def submit_tasks_scheduler(sched_tasks):
     """Submit a list of tasks to the scheduler."""
     tasks_json = jsonpickle.encode(sched_tasks)
     # The workflow name will eventually be added to the wfi workflow object
-    resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
+    try: 
+        resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
+    except requests.exceptions.ConnectionError:
+        log.error('Unable to connect to scheduler to submit tasks.')
+
     if resp.status_code != 200:
         log.info(f"Something bad happened {resp.status_code}")
     return resp.json()
@@ -420,7 +456,11 @@ def setup_scheduler():
     ]
 
     log.info(_resource('sched', "resources/"))
-    resp = requests.put(_resource('sched', "resources"), json=resources)
+
+    try:
+        resp = requests.put(_resource('sched', "resources"), json=resources)
+    except requests.exceptions.ConnectionError:
+        log.error('Unable to connect to scheduler. Using FIFO scheduling.')
 
 
 # Used to tell if the workflow is currently paused
@@ -493,28 +533,42 @@ class JobActions(Resource):
         return "Started Workflow"
 
     @staticmethod
-    @validate_wf_id
+    #@validate_wf_id
     def get(wf_id):
         """Check the database for the current status of all the tasks."""
-        (_, tasks) = wfi.get_workflow()
-        task_status = ""
-        for task in tasks:
-            if task.name != "bee_init" and task.name != "bee_exit":
-                task_status += f"{task.name}--{wfi.get_task_state(task)}\n"
-        log.info("Returned query")
-        resp = make_response(jsonify(msg=task_status, status='ok'), 200)
+        if wfi != None:
+            (_, tasks) = wfi.get_workflow()
+            tasks_status = ""
+            for task in tasks:
+                tasks_status += f"{task.name}--{wfi.get_task_state(task)}"
+                if task != tasks[len(tasks) - 1]:
+                    tasks_status += '\n'
+            log.info("Returned query")
+            workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
+            status_path = os.path.join(workflow_dir, 'bee_wf_status')
+            with open(status_path, 'r') as status:
+                wf_status = status.readline()
+            resp = make_response(jsonify(msg=tasks_status, wf_status=wf_status, status='ok'), 200)
+        else:
+            log.info(f"Bad query for wf {wf_id}.")
+            wf_status = 'No workflow with that ID is currently loaded'
+            tasks_status = 'Unavailable'
+            resp = make_response(jsonify(tasks_status=tasks_status, wf_status=wf_status, status='not found'), 404)
         return resp
 
     @staticmethod
-    @validate_wf_id
+    #@validate_wf_id
     def delete(wf_id):
         """Send a request to the task manager to cancel any ongoing tasks."""
-        resp = requests.delete(_resource('tm'))
+        try: 
+            resp = requests.delete(_resource('tm'))
+        except requests.exceptions.ConnectionError:
+            log.error('Unable to connect to task manager to delete.')
         if resp.status_code != 200:
             log.info(f"Delete from task manager returned bad status: {resp.status_code}")
         wf_id = wfi.workflow_id
         workflows_dir = os.path.join(bee_workdir, 'workflows')
-        status_path = os.path.join(workflow_dir, 'bee_wf_status')
+        status_path = os.path.join(workflows_dir, 'bee_wf_status')
         with open(status_path, 'w') as status:
             status.write('Cancelled')
 
