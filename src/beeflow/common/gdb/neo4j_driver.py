@@ -51,7 +51,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             # Require tasks to have unique names
             self._require_tasks_unique()
         except ServiceUnavailable:
-            raise Neo4JNotRunning("Neo4j database is unvailable")
+            raise Neo4JNotRunning("Neo4j database is unavailable")
 
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow stored in Neo4j.
