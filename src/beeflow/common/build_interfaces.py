@@ -21,10 +21,10 @@ from beeflow.common.build.build_driver import arg2task
 def build_main(bc, task):
     """Main build code."""
     # The build driver treats Hint and Requirement objects as Dicts.
-    task = task.copy()
-    task.hints = dict(task.hints)
-    task.requirements = dict(task.requirements)
-    builder = CharliecloudBuildDriver(task)
+    local_task = task.copy()
+    local_task.hints = dict(local_task.hints)
+    local_task.requirements = dict(local_task.requirements)
+    builder = CharliecloudBuildDriver(local_task)
     log.info('CharliecloudBuildDriver initialized')
 
     # Deque the next build instruction until empty or reach terminal case
@@ -73,11 +73,11 @@ if __name__ == '__main__':
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='build_interface.log')
 
     try:
-        task = arg2task(my_args)
+        local_task = arg2task(my_args)
     except Exception as e:
         log.info('{}'.format(e))
 
-    build_main(bc, task)
+    build_main(bc, local_task)
 
 # Ignore W0707: Re-raising with from keyword does not aid in readability or functionality
 # Ignore W0703: Catching generic exception isn't a problem if we just want a descriptive report

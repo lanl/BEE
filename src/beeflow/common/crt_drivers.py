@@ -231,9 +231,8 @@ class SingularityDriver(ContainerRuntimeDriver):
         main_command = cmd_tasks
         if task.hints is not None:
             hints = dict(task.hints)
-            # I'm not sure if this should check for copyContainer here or not
             try:
-                img = hints['DockerRequirement']['dockerImageId']
+                img = hints['DockerRequirement']['copyContainer']
                 argv = ['singularity', 'exec', img]
                 argv.extend(cmd_tasks)
                 main_command = argv
