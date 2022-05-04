@@ -113,7 +113,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             req_container_name = None
 
         # Prefer requirements over hints
-        if (req_container_name or hint_container_name) and (not hint_container_name):
+        if req_container_name:
             task_container_name = req_container_name
         elif hint_container_name:
             task_container_name = hint_container_name
@@ -139,7 +139,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 req_container_path = None
 
             # Prefer requirements over hints
-            if (req_container_path or hint_container_path) and (not hint_container_path):
+            if req_container_path:
                 task_container_path = req_container_path
             elif hint_container_path:
                 task_container_path = hint_container_path
@@ -165,7 +165,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 req_addr = None
 
             # Prefer requirements over hints
-            if (req_addr or hint_addr) and (not hint_addr):
+            if req_addr or hint_addr:
                 task_addr = req_addr
             elif hint_addr:
                 task_addr = hint_addr
