@@ -130,6 +130,14 @@ class Task:
         else:
             self.id = str(uuid4())
 
+    def copy(self):
+        """Make a copy of this task."""
+        return Task(name=self.name, base_command=self.base_command,
+                    hints=self.hints, requirements=self.requirements,
+                    inputs=self.inputs, outputs=self.outputs,
+                    stdout=self.stdout, workflow_id=self.workflow_id,
+                    task_id=self.id)
+
     def __eq__(self, other):
         """Test the equality of two tasks.
 

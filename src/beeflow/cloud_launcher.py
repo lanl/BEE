@@ -7,6 +7,7 @@ import time
 import yaml
 import importlib
 import jinja2
+import requests
 
 import beeflow.common.cloud as cloud
 from beeflow.common.config_driver import BeeConfig
@@ -95,6 +96,50 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
             run(private_key_file, bee_user, ip_addr, 'pkill python')
 
 
+def connect(provider, private_key_file, bee_user, launch_cmd, head_node,
+            tm_listen_port, wfm_listen_port, max_retries):
+    """Connect to an already running TM."""
+    ip_addr = provider.get_ext_ip_addr(head_node)
+    tun_proc = subprocess.Popen([
+        'ssh',
+        f'{bee_user}@{ip_addr}',
+        '-i', private_key_file,
+        # The TM is listening on the remote machine
+        '-L', f'{tm_listen_port}:localhost:{tm_listen_port}',
+        # The WFM is listening on this machine
+        '-R', f'{wfm_listen_port}:localhost:{wfm_listen_port}',
+        '-N',
+        '-o', 'ExitOnForwardFailure=yes',
+        '-o', 'StrictHostKeyChecking=no',
+        # Required in order to allow port forwarding
+        '-o', 'UserKnownHostsFile=/dev/null',
+    ])
+    time.sleep(3)
+    rc = tun_proc.poll()
+    # Ensure the SSH process is still running
+    if rc is not None:
+        sys.exit('Tunnel set up failed with error: {}'.format(rc))
+    # Now continue until we can ping the Task Manager
+    url = f'http://localhost:{tm_listen_port}/status'
+    interval = 5
+    # Keep trying to get a status from the Task Manager (this could probably be
+    # done better with some sort of backoff algorithm)
+    for i in range(max_retries):
+        print('Trying to connect to the TM')
+        time.sleep(interval)
+        try:
+            resp = requests.get(url)
+            status = resp.json()
+            print('Connected to the TM with status "{}"'.format(status))
+            return
+        except requests.ConnectionError:
+            pass
+    # If we get here, then set up might be taking longer than interval *
+    # max_retries or the set up failed somehow
+    tun_proc.kill()
+    sys.exit('Connection attempt to the TM failed')
+
+
 def main():
     """Cloud launcher entry point."""
     # Argument parsing
@@ -104,8 +149,11 @@ def main():
     parser.add_argument('--setup-cloud', action='store_true', help='set up the remote cloud')
     parser.add_argument('--copy', action='store_true', help='copy over files in the config')
     parser.add_argument('--tm', action='store_true', help='start the TM')
+    parser.add_argument('--connect', action='store_true', help='connect to an already running TM')
     parser.add_argument('--debug', action='store_true',
                         help='debug the cloud template, don\'t make any API calls')
+    parser.add_argument('--max-retries', default=124, type=int,
+                        help='max number of retry attempts when used with the `--connect` option')
     args = parser.parse_args()
 
     # Get configuration information
@@ -150,6 +198,11 @@ def main():
                   bee_user=bee_user, launch_cmd=launch_cmd, head_node=head_node,
                   wfm_listen_port=wfm_listen_port,
                   tm_listen_port=tm_listen_port)
+    if args.connect:
+        connect(provider=provider, private_key_file=private_key_file,
+                bee_user=bee_user, launch_cmd=launch_cmd, head_node=head_node,
+                wfm_listen_port=wfm_listen_port, tm_listen_port=tm_listen_port,
+                max_retries=args.max_retries)
 
 
 if __name__ == '__main__':

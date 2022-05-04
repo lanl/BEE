@@ -17,7 +17,7 @@ def create_pid_file(proc, pid_file, bc):
     with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 
-def StartGDB(bc, gdb_workdir, reexecute, debug=False):
+def StartGDB(bc, gdb_workdir, reexecute=False, debug=False):
     """Start the graph database. Returns a Popen process object."""
     bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
     gdb_handler = bee_logging.save_log(bee_workdir=bee_workdir, log=gdb_log, logfile='gdb_launch.log')
@@ -155,16 +155,17 @@ def StartGDB(bc, gdb_workdir, reexecute, debug=False):
 gdb_log = bee_logging.setup_logging(level='DEBUG')
 bc = BeeConfig()
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--gdb_workdir', type=str, required=True)
-parser.add_argument('--reexecute', action='store_true')
-args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gdb_workdir', type=str, required=True)
+    parser.add_argument('--reexecute', action='store_true')
+    args = parser.parse_args()
 
-gdb_workdir = args.gdb_workdir
-reexecute = args.reexecute
+    gdb_workdir = args.gdb_workdir
+    reexecute = args.reexecute
 
-proc = StartGDB(bc, gdb_workdir, reexecute)
+    proc = StartGDB(bc, gdb_workdir, reexecute)
 
-if proc is None:
-    gdb_log.error('Graph Database failed to start. Exiting.')
-    exit()
+    if proc is None:
+        gdb_log.error('Graph Database failed to start. Exiting.')
+        exit()

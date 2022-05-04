@@ -3,7 +3,7 @@
 class: CommandLineTool
 cwlVersion: v1.0
 
-baseCommand: /CLAMR/clamr_cpuonly
+baseCommand: /clamr/CLAMR-master/clamr_cpuonly
 # This is the stdout field which makes all stdout be captured in this file
 # stderr is not currently implemented but it is also a thing
 stdout: clamr_stdout.txt
@@ -76,7 +76,7 @@ outputs:
     outputBinding:
       # Glob can be either a constant string or have a wildcard 
       # TODO verify CWLs glob support
-      glob: $HOME/graphics_output/graph%05d.png
+      glob: graphics_output/graph%05d.png
   time_log:
     type: File
     outputBinding:

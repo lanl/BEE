@@ -29,6 +29,9 @@ class WorkerInterface:
         :param task: instance of Task
         :rtype tuple (int, string)
         """
+        # First prepare for the task (create necessary directories, etc.)
+        self._worker.prepare(task)
+        # Then submit it to the worker
         return self._worker.submit_task(task)
 
     def cancel_task(self, job_id):
