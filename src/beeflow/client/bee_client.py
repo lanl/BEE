@@ -63,7 +63,7 @@ def check_short_id_collision():
     global short_id_len
     resp = requests.get(_url())
     if resp.status_code != requests.codes.okay:
-        raise ApiError("Checking for ID collision failed: {resp.status_code}")
+        error_exit("Checking for ID collision failed: {resp.status_code}")
 
     job_list = jsonpickle.decode(resp.json()['job_list'])
     if job_list:
@@ -84,9 +84,14 @@ def check_short_id_collision():
 # Match user-provided short workflow ID to full workflow IDs
 def match_short_id(wf_id):
     matched_ids = []
-    resp = requests.get(_url())
+
+    try:
+        resp = requests.get(_url())
+    except requests.exceptions.ConnectionError:
+        error_exit('Could not reach WF Manager.')
+
     if resp.status_code != requests.codes.okay:
-        print(f"Returned {resp.status_code}")
+        error_exit(f'Could not match ID: {wf_id}. Code {resp.status_code}')
         # raise ApiError("GET /jobs".format(resp.status_code))
 
     job_list = jsonpickle.decode(resp.json()['job_list'])
@@ -100,7 +105,7 @@ def match_short_id(wf_id):
         elif not matched_ids:
             logging.info(f"user-provided workflow ID {wf_id} did not match any"
                          "stored workflow ID")
-            error_exit("Provided workflow ID does not match any submitted " 
+            error_exit("Provided workflow ID does not match any submitted "
                        "workflows")
         else:
             logging.info(f"user-provided workflow ID {wf_id} matched stored"
@@ -116,10 +121,10 @@ app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGr
 
 @app.command()
 def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
-        wf_path: Path = typer.Argument(..., help='Path to the workflow tarball'), 
-        main_cwl: str = typer.Argument(..., help='filename of main CWL file'), 
-        yaml: str = typer.Argument(..., help='filename of YAML file'), 
-        ):
+           wf_path: Path = typer.Argument(..., help='Path to the workflow tarball'),
+           main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
+           yaml: str = typer.Argument(..., help='filename of YAML file'),
+           ):
     """
     Submit a new workflow
     """
@@ -133,7 +138,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         'wf_filename': os.path.basename(wf_path).encode(),
         'workflow': wf_tarball,
         'main_cwl': main_cwl,
-        'yaml': None
+        'yaml': yaml
     }
 
     try:
@@ -155,19 +160,17 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """
     Start a workflow with a workflow ID
     """
-    exit(0)
-    matched_id = match_short_id(wf_id)
-    if matched_id:
-        try:
-            resp = requests.post(_resource(matched_id), json={'wf_id': matched_id})
-        except requests.exceptions.ConnectionError:
-            error_exit('Could not reach WF Manager.')
+    long_wf_id = wf_id
+    try:
+        resp = requests.post(_resource(long_wf_id))
+    except requests.exceptions.ConnectionError:
+        error_exit('Could not reach WF Manager.')
 
-        if resp.status_code != requests.codes.okay:
-            raise ApiError(f"Starting {matched_id} failed. "
-                           "Returned {resp.status_code}")
-        logging.info('Start job: ' + resp.text)
-        typer.echo("Started job!")
+    if resp.status_code != requests.codes.okay:
+        raise error_exit(f"Starting {long_wf_id} failed."
+                         f" Returned {resp.status_code}")
+
+    typer.echo("Started job!")
 
 
 @app.command()
@@ -201,7 +204,7 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     Get the status of a workflow
     """
     # wf_id is a tuple with the short version and long version
-    long_wf_id = wf_id[1]
+    long_wf_id = wf_id
     try:
         resp = requests.get(_resource(long_wf_id))
     except requests.exceptions.ConnectionError:
@@ -209,8 +212,6 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     if resp.status_code != requests.codes.okay:
         # raise ApiError("Query failed".format(resp.status_code, matched_id))
         pass
-    # TODO Check this task_status = resp.json()['msg']
-    #logging.info('Query job: ' + resp.text)
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
     if tasks_status == 'Unavailable':
@@ -225,9 +226,9 @@ def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """
     Pause a workflow (Running jobs will finish)
     """
-    long_wf_id = wf_id[1]
+    long_wf_id = wf_id
     try:
-        resp = requests.patch(_resource(wf_id), json={'option': 'pause'})
+        resp = requests.patch(_resource(long_wf_id), json={'option': 'pause'})
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.okay:
@@ -241,10 +242,10 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """
     Resume a paused workflow
     """
-    long_wf_id = wf_id[1]
+    long_wf_id = wf_id
     try:
-        resp = requests.patch(_resource(matched_id),
-                              json={'wf_id': matched_id, 'option': 'resume'})
+        resp = requests.patch(_resource(long_wf_id),
+                              json={'wf_id': long_wf_id, 'option': 'resume'})
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.okay:
@@ -258,8 +259,9 @@ def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """
     Cancel a workflow
     """
+    long_wf_id = wf_id
     try:
-        resp = requests.delete(_resource(matched_id), json={'wf_id': matched_id})
+        resp = requests.delete(_resource(long_wf_id))
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     # Returns okay if the resource has been deleted
@@ -267,8 +269,7 @@ def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
     if resp.status_code != requests.codes.accepted:
         # raise ApiError("DELETE /jobs{}".format(resp.status_code, matched_id))
         pass
-    #logging.info('Cancel job: ' + resp.text)
-    typer.secho(f"Workflow cancelled!", fg=typer.colors.GREEN)
+    typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
 
 
 @app.command()
@@ -276,9 +277,9 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """
     Copy an archived workflow
     """
-    long_wf_id = wf_id[1]
+    long_wf_id = wf_id
     try:
-        resp = requests.patch(_url(), files={'wf_id': matched_id.encode()})
+        resp = requests.patch(_url(), files={'wf_id': long_wf_id})
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
@@ -291,7 +292,7 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 
 @app.command()
-def reexecute(wf_name: str = typer.Argument(...), 
+def reexecute(wf_name: str = typer.Argument(...),
               archive_path: Path = typer.Argument(...)):
     """
     Reexecute an archived workflow
@@ -307,7 +308,7 @@ def reexecute(wf_name: str = typer.Argument(...),
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.created:
-        raise ApiError("REEXECUTE /jobs{}".format(resp.status_code))
+        raise error_exit("REEXECUTE /jobs{}".format(resp.status_code))
 
     logging.info("ReExecute Workflow: " + resp.text)
 
@@ -317,6 +318,7 @@ def reexecute(wf_name: str = typer.Argument(...),
 
 def main():
     app()
+
 
 if __name__ == "__main__":
     app()
