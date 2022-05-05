@@ -3,25 +3,21 @@ import os
 import sys
 import logging
 import signal
-import configparser
 import jsonpickle
 import requests
 import pathlib
-import types
 import tempfile
 import shutil
 import time
-import tarfile
 import getpass
 import subprocess
-import cwl_utils.parser.cwl_v1_0 as cwl
+
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
-from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.config_driver import BeeConfig
 from beeflow.common.parser import CwlParser
 from beeflow.cli import log
@@ -72,7 +68,7 @@ else:
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 UPLOAD_FOLDER = os.path.join(bee_workdir, 'current_workflow')
 # Create the upload folder if it doesn't exist
 if not os.path.exists(UPLOAD_FOLDER):
@@ -82,8 +78,10 @@ flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 reexecute = False
 
+
 def get_script_path():
     return os.path.dirname(os.path.realpath(__file__))
+
 
 def tm_url():
     """Get Task Manager url."""
@@ -108,11 +106,11 @@ def _resource(component, tag=""):
 
 # Instantiate the workflow interface
 wfi = None
-#try:
+# try:
 #    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
 #                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
 #                            password=bc.userconfig.get('graphdb', 'dbpass'))
-#except (KeyError, configparser.NoSectionError) as e:
+# except (KeyError, configparser.NoSectionError) as e:
 #    wfi = WorkflowInterface()
 
 
@@ -127,27 +125,15 @@ class ResourceMonitor():
     def get(self):
         """Construct data dictionary for resource monitor."""
         data = {
-                'hostname': self.hostname,
-                'nodes': self.nodes
-                }
+            'hostname': self.hostname,
+            'nodes': self.nodes
+        }
 
         return data
 
+
 rm = ResourceMonitor()
 
-
-def validate_wf_id(func):
-    if wfi != None:
-        """Validate workflow id."""
-        def wrapper(*args, **kwargs):
-            wf_id = kwargs['wf_id']
-            current_wf_id = wfi.workflow_id
-            if wf_id != current_wf_id:
-                log.info(f'Wrong workflow id. Set to {wf_id}, but should be {current_wf_id}')
-                resp = make_response(jsonify(status='wf_id not found'), 404)
-                return resp
-            return func(*args, **kwargs)
-        return wrapper
 
 def process_running(pid):
     """Check if the process with pid is running"""
@@ -158,6 +144,7 @@ def process_running(pid):
     else:
         return True
 
+
 def kill_process(pid):
     """Kill the process with pid"""
     try:
@@ -165,14 +152,17 @@ def kill_process(pid):
     except OSError:
         log.info('Process already killed')
 
+
 def kill_gdb():
     """Kill the current GDB process."""
     # TODO TERRIBLE Kludge until we can figure out a better way to get the PID
     user = getpass.getuser()
-    ps = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True, stdout=subprocess.PIPE)
+    ps = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True,
+                        stdout=subprocess.PIPE)
     if ps.stdout.decode() != '':
         gdb_pid = int(ps.stdout.decode().split()[1])
         kill_process(gdb_pid)
+
 
 def remove_gdb():
     """Remove the current GDB bind mount directory"""
@@ -218,7 +208,7 @@ class JobsList(Resource):
         if os.path.isdir(workflows_dir):
             workflows = next(os.walk(workflows_dir))[1]
             for wf_id in workflows:
-                wf_path = os.path.join(workflows_dir, wf_id) 
+                wf_path = os.path.join(workflows_dir, wf_id)
                 status_path = os.path.join(wf_path, 'bee_wf_status')
                 name_path = os.path.join(wf_path, 'bee_wf_name')
                 status = pathlib.Path(status_path).read_text()
@@ -228,7 +218,8 @@ class JobsList(Resource):
         resp = make_response(jsonify(job_list=jsonpickle.encode(job_list)), 200)
         return resp
 
-    def post(self):
+    # TODO PyLama pointed out this function is too complex it should be broken up
+    def post(self):  # NOQA
         global wfi
         """Get a workflow or give file not found error."""
         data = self.reqparse.parse_args()
@@ -249,11 +240,12 @@ class JobsList(Resource):
             kill_gdb()
             # Remove the old gdb
             remove_gdb()
-            # Start a new GDB 
+            # Start a new GDB
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
             script_path = get_script_path()
 
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # Need to wait a moment for the GDB
             time.sleep(10)
 
@@ -267,25 +259,22 @@ class JobsList(Resource):
             temp_dir = tempfile.mkdtemp()
             temp_tarball_path = os.path.join(temp_dir, wf_filename)
             wf_tarball.save(temp_tarball_path)
-            # Archive tarballs must be tgz 
-            extension = '.tgz'
-            wf_dirname = wf_filename[:len(extension)]
+            # Archive tarballs must be tgz
             subprocess.run(['tar', 'xf', f'{wf_filename}', '--strip-components', '1'], cwd=temp_dir)
 
             try:
                 parser = CwlParser()
-            except Neo4JNotRunning: 
+            except Neo4JNotRunning:
                 container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
                 container_msg = "Neo4j DB is not running. Please make sure " \
                                 f"{container_runtime} is installed and available."
                 logging.error(container_msg)
                 resp = make_response(jsonify(msg=container_msg, status='error'), 418)
                 return resp
-
             temp_cwl_path = os.path.join(temp_dir, main_cwl)
-            parse_msg = "Unable to parse workflow."
+            parse_msg = "Unable to parse workflow." \
                         "Please check workflow manager."
-            if yaml_file != None:
+            if yaml_file is not None:
                 yaml_file = yaml_file.read().decode()
                 temp_yaml_path = os.path.join(temp_dir, yaml_file)
                 try:
@@ -294,22 +283,20 @@ class JobsList(Resource):
                     log.error('Unable to parse')
                     resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
                     return resp
-                
             else:
                 try:
                     wfi = parser.parse_workflow(temp_cwl_path)
                 except AttributeError:
-                    log.error('Unable to parse')
                     resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
                     return resp
 
-
             # Save the workflow to the workflow_id dir
             wf_id = wfi.workflow_id
+            log.info(f'New workflow {wf_id}')
             workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
             os.makedirs(workflow_dir)
-            #workflow_path = os.path.join(workflow_dir, wf_filename)
-            #wf_tarball.save(workflow_path)
+            # workflow_path = os.path.join(workflow_dir, wf_filename)
+            # wf_tarball.save(workflow_path)
 
             # Copy workflow files to archive
             for f in os.listdir(temp_dir):
@@ -322,7 +309,7 @@ class JobsList(Resource):
             with open(status_path, 'w') as status:
                 status.write('Pending')
 
-            # Create wf name file 
+            # Create wf name file
             name_path = os.path.join(workflow_dir, 'bee_wf_name')
             with open(name_path, 'w') as name:
                 name.write(job_name)
@@ -331,7 +318,6 @@ class JobsList(Resource):
         else:
             resp = make_response(jsonify(msg='File corrupted', status='error'), 400)
             return resp
-
 
     def put(self):
         """ReExecute a workflow"""
@@ -362,11 +348,12 @@ class JobsList(Resource):
             gdb_path = os.path.join(tmp_path, archive_dir, 'gdb')
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
 
-            shutil.copytree(gdb_path, gdb_workdir) 
+            shutil.copytree(gdb_path, gdb_workdir)
 
-             # Launch new container with bindmounted GDB
+            # Launch new container with bindmounted GDB
             script_path = get_script_path()
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir, '--reexecute'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir,
+                           '--reexecute'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             time.sleep(10)
 
             # Initialize the database connection object
@@ -374,7 +361,6 @@ class JobsList(Resource):
             # Reset the workflow state and generate a new workflow ID
             wfi.reset_workflow()
             wf_id = wfi.workflow_id
-            reexecute = True
 
             # Save the workflow to the workflow_id dir
             wf_id = wfi.workflow_id
@@ -386,7 +372,7 @@ class JobsList(Resource):
             with open(status_path, 'w') as status:
                 status.write('Pending')
 
-            # Create wf name file 
+            # Create wf name file
             name_path = os.path.join(workflow_dir, 'bee_wf_name')
             with open(name_path, 'w') as name:
                 name.write(job_name)
@@ -401,10 +387,10 @@ class JobsList(Resource):
         wf_id = data['wf_id'].read().decode()
         archive_path = os.path.join(bee_workdir, 'archives', wf_id + '.tgz')
         with open(archive_path, 'rb') as a:
-           archive_file = jsonpickle.encode(a.read())
+            archive_file = jsonpickle.encode(a.read())
         archive_filename = os.path.basename(archive_path)
-        resp = make_response(jsonify(archive_file=archive_file, 
-            archive_filename=archive_filename), 200)
+        resp = make_response(jsonify(archive_file=archive_file,
+                             archive_filename=archive_filename), 200)
         return resp
 
 
@@ -420,6 +406,7 @@ def submit_tasks_tm(tasks):
         resp = requests.post(_resource('tm', "submit/"), json={'tasks': tasks_json})
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to task manager to submit tasks.')
+        return
 
     if resp.status_code != 200:
         log.info(f"Submit task to TM returned bad status: {resp.status_code}")
@@ -428,12 +415,12 @@ def submit_tasks_tm(tasks):
 # Submit a list of tasks to the Scheduler
 def submit_tasks_scheduler(sched_tasks):
     """Submit a list of tasks to the scheduler."""
-    tasks_json = jsonpickle.encode(sched_tasks)
     # The workflow name will eventually be added to the wfi workflow object
-    try: 
+    try:
         resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to scheduler to submit tasks.')
+        return
 
     if resp.status_code != 200:
         log.info(f"Something bad happened {resp.status_code}")
@@ -443,10 +430,7 @@ def submit_tasks_scheduler(sched_tasks):
 def setup_scheduler():
     """Get info from the resource monitor and sends it to the scheduler."""
     # Get the info for the current server
-    nodes = 32
-
     data = rm.get()
-    log.info(data)
 
     resources = [
         {
@@ -461,6 +445,8 @@ def setup_scheduler():
         resp = requests.put(_resource('sched', "resources"), json=resources)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to scheduler. Using FIFO scheduling.')
+    if resp != requests.codes.okay:
+        log.info('Scheduler setup did not work')
 
 
 # Used to tell if the workflow is currently paused
@@ -512,7 +498,6 @@ class JobActions(Resource):
         self.reqparse.add_argument('option', type=str, location='json')
 
     @staticmethod
-    @validate_wf_id
     def post(wf_id):
         """Start job. Send tasks to the task manager."""
         # Get dependent tasks that branch off of bee_init and send to the scheduler
@@ -521,22 +506,23 @@ class JobActions(Resource):
         # Convert to a scheduler task object
         sched_tasks = tasks_to_sched(tasks)
         # Submit all dependent tasks to the scheduler
-        allocation = submit_tasks_scheduler(sched_tasks)
+        allocation = submit_tasks_scheduler(sched_tasks)  # NOQA
+
         # Submit tasks to TM
         submit_tasks_tm(tasks)
-        resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
         wf_id = wfi.workflow_id
         workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
         status_path = os.path.join(workflow_dir, 'bee_wf_status')
         with open(status_path, 'w') as status:
             status.write('Running')
-        return "Started Workflow"
+
+        resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
+        return resp
 
     @staticmethod
-    #@validate_wf_id
     def get(wf_id):
         """Check the database for the current status of all the tasks."""
-        if wfi != None:
+        if wfi is not None:
             (_, tasks) = wfi.get_workflow()
             tasks_status = ""
             for task in tasks:
@@ -548,25 +534,25 @@ class JobActions(Resource):
             status_path = os.path.join(workflow_dir, 'bee_wf_status')
             with open(status_path, 'r') as status:
                 wf_status = status.readline()
-            resp = make_response(jsonify(msg=tasks_status, wf_status=wf_status, status='ok'), 200)
+            resp = make_response(jsonify(tasks_status=tasks_status,
+                                 wf_status=wf_status, status='ok'), 200)
         else:
             log.info(f"Bad query for wf {wf_id}.")
             wf_status = 'No workflow with that ID is currently loaded'
             tasks_status = 'Unavailable'
-            resp = make_response(jsonify(tasks_status=tasks_status, wf_status=wf_status, status='not found'), 404)
+            resp = make_response(jsonify(tasks_status=tasks_status,
+                                 wf_status=wf_status, status='not found'), 404)
         return resp
 
     @staticmethod
-    #@validate_wf_id
     def delete(wf_id):
         """Send a request to the task manager to cancel any ongoing tasks."""
-        try: 
+        try:
             resp = requests.delete(_resource('tm'))
         except requests.exceptions.ConnectionError:
             log.error('Unable to connect to task manager to delete.')
         if resp.status_code != 200:
             log.info(f"Delete from task manager returned bad status: {resp.status_code}")
-        wf_id = wfi.workflow_id
         workflows_dir = os.path.join(bee_workdir, 'workflows')
         status_path = os.path.join(workflows_dir, 'bee_wf_status')
         with open(status_path, 'w') as status:
@@ -579,7 +565,6 @@ class JobActions(Resource):
         resp = make_response(jsonify(status='cancelled'), 202)
         return resp
 
-    @validate_wf_id
     def patch(self, wf_id):
         """Pause or resume workflow."""
         global WORKFLOW_PAUSED
@@ -603,7 +588,7 @@ class JobActions(Resource):
         return resp
 
 
-archive = bc.userconfig.get('DEFAULT','use_archive')
+archive = bc.userconfig.get('DEFAULT', 'use_archive')
 
 
 class JobUpdate(Resource):
@@ -621,24 +606,22 @@ class JobUpdate(Resource):
 
     def put(self):
         """Update the state of a task from the task manager."""
-        global reexecute 
+        global reexecute
         # Figure out how to find the task in the databse and change it's state
         data = self.reqparse.parse_args()
         task_id = data['task_id']
         job_state = data['job_state']
-
-
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
 
         if 'metadata' in data:
-            if data['metadata'] != None:
+            if data['metadata'] is not None:
                 metadata = jsonpickle.decode(data['metadata'])
                 wfi.set_task_metadata(task, metadata)
 
         if job_state == "COMPLETED" or job_state == "FAILED":
             for output in task.outputs:
-                if output.glob != None:
+                if output.glob is not None:
                     wfi.set_task_output(task, output.id, output.glob)
                 else:
                     wfi.set_task_output(task, output.id, "temp")
@@ -660,13 +643,13 @@ class JobUpdate(Resource):
                         shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
                         # Archive Config
                         shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
-                                workflow_dir + '/' + 'bee.conf')
+                                        workflow_dir + '/' + 'bee.conf')
                         status_path = os.path.join(workflow_dir, 'bee_wf_status')
                         with open(status_path, 'w') as status:
                             status.write('Archived')
                         archive_dir = os.path.join(bee_workdir, 'archives')
                         os.makedirs(archive_dir, exist_ok=True)
-                        #archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
+                        # archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
                         archive_path = f'../archives/{wf_id}.tgz'
                         # We use tar directly since tarfile is apparently very slow
                         subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
@@ -678,7 +661,6 @@ class JobUpdate(Resource):
                         sched_tasks = tasks_to_sched(tasks)
                         submit_tasks_scheduler(sched_tasks)
                         submit_tasks_tm(tasks)
-
 
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
@@ -692,7 +674,7 @@ if __name__ == '__main__':
     # Setup the Scheduler
     setup_scheduler()
     log.info(f'wfm_listen_port:{wfm_listen_port}')
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='wf_manager.log')
 
     # Werkzeug logging
@@ -704,4 +686,3 @@ if __name__ == '__main__':
     # Putting this off for another issue so noqa to appease the lama
     flask_app.logger.addHandler(handler) #noqa
     flask_app.run(debug=True, port=str(wfm_listen_port))
-
