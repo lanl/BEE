@@ -200,7 +200,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.info('No image specified and no image required, nothing to do.')
             return 0
 
-        # DetermVine name for successful build target
+        # Determine name for successful build target
         ch_build_addr = addr.replace('/', '%')
 
         ch_build_target = '/'.join([self.container_archive, ch_build_addr]) + '.tar.gz'
@@ -449,7 +449,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if self.container_name:
             copy_target = '/'.join([self.container_archive, self.container_name + '.tar.gz'])
         else:
-            copy_target = '/'.join([self.container_archive, os.path.basename(task_container_path)])
+            copy_target = '/'.join([self.container_archive,
+                                    crt_driver.get_ccname(task_container_path) + '.tar.gz'])
         log.info('Build will copy a container to {}'.format(copy_target))
         # Return if image already exist and force==False.
         if os.path.exists(copy_target) and not force:
