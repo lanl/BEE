@@ -3,7 +3,7 @@
 class: CommandLineTool
 cwlVersion: v1.0
 
-baseCommand: /CLAMR/clamr_cpuonly
+baseCommand: /clamr/CLAMR-master/clamr_cpuonly
 # This is the stdout field which makes all stdout be captured in this file
 # stderr is not currently implemented but it is also a thing
 stdout: clamr_stdout.txt
