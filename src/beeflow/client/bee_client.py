@@ -153,6 +153,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     wf_id = resp.json()['wf_id']
     typer.secho("Workflow submitted! Your workflow id is "
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
+    logging.info('Sumit workflow: ' + resp.text)
 
 
 @app.command()
@@ -170,7 +171,8 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
         raise error_exit(f"Starting {long_wf_id} failed."
                          f" Returned {resp.status_code}")
 
-    typer.echo("Started job!")
+    typer.echo("Started Workflow!")
+    logging.info('Started workflow ' + resp.text)
 
 
 @app.command()
@@ -184,8 +186,7 @@ def list():
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.okay:
-        print(f"Returned {resp.status_code}")
-        # raise ApiError("GET /jobs".format(resp.status_code))
+        error_exit('WF Manager did not return workflow list')
 
     logging.info("List Jobs: " + resp.text)
     job_list = jsonpickle.decode(resp.json()['job_list'])
@@ -196,6 +197,8 @@ def list():
             typer.echo(f"{name}\t{_short_id(wf_id)}\t{status}")
     else:
         typer.echo("There are currently no workflows.")
+
+    logging.info('List workflows: ' + resp.text)
 
 
 @app.command()
@@ -209,9 +212,10 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         resp = requests.get(_resource(long_wf_id))
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
+
     if resp.status_code != requests.codes.okay:
-        # raise ApiError("Query failed".format(resp.status_code, matched_id))
-        pass
+        error_exit('Could sucessfully query workflow manager')
+
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
     if tasks_status == 'Unavailable':
@@ -220,11 +224,13 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         typer.echo(wf_status)
         typer.echo(tasks_status)
 
+    logging.info('Query workflow: ' + resp.text)
+
 
 @app.command()
 def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """
-    Pause a workflow (Running jobs will finish)
+    Pause a workflow (Running tasks will finish)
     """
     long_wf_id = wf_id
     try:
@@ -232,9 +238,8 @@ def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.okay:
-        # raise ApiError("PAUSE /jobs{}".format(resp.status_code, matched_id))
-        pass
-    logging.info('Pause job: ' + resp.text)
+        error_exit('WF Manager could not pause workflow.')
+    logging.info('Pause workflow: ' + resp.text)
 
 
 @app.command()
@@ -249,9 +254,8 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.okay:
-        # raise ApiError("RESUME /jobs{}".format(resp.status_code, matched_id))
-        pass
-    logging.info('Resume job: ' + resp.text)
+        error_exit('WF Manager could not resume workflow.')
+    logging.info('Resume workflow: ' + resp.text)
 
 
 @app.command()
@@ -264,12 +268,10 @@ def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
         resp = requests.delete(_resource(long_wf_id))
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
-    # Returns okay if the resource has been deleted
-    # Non-blocking so it returns accepted
     if resp.status_code != requests.codes.accepted:
-        # raise ApiError("DELETE /jobs{}".format(resp.status_code, matched_id))
-        pass
+        error_exit('WF Manager could not cancel workflow.')
     typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
+    logging.info('Cancel workflow: ' + resp.text)
 
 
 @app.command()
@@ -284,10 +286,10 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.okay:
-        # raise ApiError("COPY /jobs{}".format(resp.status_code, matched_id))
-        pass
+        error_exit('WF Manager could not copy workflow.')
     archive_file = jsonpickle.decode(resp.json()['archive_file'])
     archive_filename = resp.json()['archive_filename']
+    logging.info('Copy workflow: ' + resp.text)
     return archive_file, archive_filename
 
 
@@ -308,7 +310,7 @@ def reexecute(wf_name: str = typer.Argument(...),
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.created:
-        raise error_exit("REEXECUTE /jobs{}".format(resp.status_code))
+        error_exit('WF Manager could not reexecute workflow.')
 
     logging.info("ReExecute Workflow: " + resp.text)
 
