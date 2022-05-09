@@ -175,7 +175,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 log.info('Found dockerPull address, assuming this contains the container name.')
                 if len(runtime_target_list) > 1:
                     raise RuntimeError(
-                        'Too many container runtimes specified! Pick a maximum of one per workflow step.'
+                        'Too many container runtimes specified! Pick one per workflow step.'
                     )
             if len(runtime_target_list) == 0:
                 log.warning('No containerName specified.')
@@ -184,14 +184,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             else:
                 # Build container name from container path.
                 task_container_name = runtime_target_list[0]
-                log.info('Moving with the expectation that {} is the runtime container target'.
-                         format(task_container_name))
+                log.info(f'Moving with expectation: {task_container_name} is the container target')
 
         if baremetal:
             return [], [str(arg) for arg in task.command], []
 
         container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
-        log.info('Expecting container at {}. Ready to deploy and run.'.format(container_path))
+        log.info(f'Expecting container at {container_path}. Ready to deploy and run.')
 
         chrun_opts, cc_setup = self.get_cc_options()
         deployed_image_root = bc.userconfig.get('builder', 'deployed_image_root')
@@ -199,13 +198,14 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         command = ' '.join(task.command)
         cc_setup = cc_setup.split()
         pre_commands = [cc_setup] if cc_setup else []
+        deployed_path = deployed_image_root + '/' + task_container_name
         pre_commands.extend([
             f'mkdir -p {deployed_image_root}\n'.split(),
-            f'ch-convert -i tar -o dir {container_path} {deployed_image_root}/{task_container_name}\n'.split()
+            f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split()
         ])
-        main_command = f'ch-run --join {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'.split()
+        main_command = f'ch-run --join {deployed_path} {chrun_opts} -- {command}\n'.split()
         post_commands = [
-            f'rm -rf {deployed_image_root}/{task_container_name}\n'.split(),
+            f'rm -rf {deployed_path}\n'.split(),
         ]
         return pre_commands, main_command, post_commands
 
