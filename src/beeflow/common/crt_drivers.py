@@ -163,9 +163,8 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             except (KeyError, TypeError):
                 # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
                 req_addr = None
-
             # Prefer requirements over hints
-            if req_addr or hint_addr:
+            if req_addr:
                 task_addr = req_addr
             elif hint_addr:
                 task_addr = hint_addr
