@@ -139,24 +139,22 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         try:
             requirement_DockerRequirements = self.task.requirements['DockerRequirement'].keys()
             dockerRequirements = dockerRequirements.union(requirement_DockerRequirements)
-            log.info('task {} requirement DockerRequirements: {}'.
-                     format(self.task.id, set(requirement_DockerRequirements)))
+            req_string = (f'{set(requirement_DockerRequirements)}')
+            log.info(f'task {self.task.id} requirement DockerRequirements: {req_string}')
         except (TypeError, KeyError):
-            log.info('task {} requirements has no DockerRequirements'.format(self.task.id))
+            log.info(f'task {self.task.name} {self.task.id} no DockerRequirements in requirement')
         try:
             hint_DockerRequirements = self.task.hints['DockerRequirement'].keys()
             dockerRequirements = dockerRequirements.union(hint_DockerRequirements)
-            log.info('task {} hint DockerRequirements: {}'.format(self.task.id,
-                                                                  set(hint_DockerRequirements)))
+            hint_str = (f'{set(hint_DockerRequirements)}')
+            log.info(f'task {self.task.name} {self.task.id} hint DockerRequirements: {hint_str}')
         except (TypeError, KeyError):
-            log.info('task {} hints has no DockerRequirements'.format(self.task.id))
-        log.info('task {} union DockerRequirements consist of: {}'.format(self.task.id,
-                                                                          dockerRequirements))
+            log.info(f'task {self.task.name} {self.task.id} hints has no DockerRequirements')
+        log.info(f'task {self.task.id} union DockerRequirements : {dockerRequirements}')
         exec_superset = self.resolve_priority()
         self.exec_list = [i for i in exec_superset if i[1] in dockerRequirements]
         log_exec_list = [i[1] for i in self.exec_list]
-        log.info('task {} DockerRequirement execution order will be: {}'.format(self.task.id,
-                                                                                log_exec_list))
+        log.info(f'task {self.task.id} DockerRequirement execution order will be: {log_exec_list}')
         log.info('Execution order pre-empts hint/requirement status.')
 
     def dockerPull(self, addr=None, force=False):
@@ -200,7 +198,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.info('No image specified and no image required, nothing to do.')
             return 0
 
-        # DetermVine name for successful build target
+        # Determine name for successful build target
         ch_build_addr = addr.replace('/', '%')
 
         ch_build_target = '/'.join([self.container_archive, ch_build_addr]) + '.tar.gz'
@@ -216,13 +214,14 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-image/'+ch_build_addr)
+                shutil.rmtree('/var/tmp/' + os.getlogin() + '/ch-image/' + ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Out of excuses. Pull the image.
         cmd = (f'ch-image pull {addr}\n'
-               f'ch-convert -i ch-image -o tar {ch_build_addr} {self.container_archive}/{ch_build_addr}.tar.gz'
+               f'ch-convert -i ch-image -o tar {ch_build_addr}'
+               f' {self.container_archive}/{ch_build_addr}.tar.gz'
                )
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
@@ -289,13 +288,13 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Create context directory to use as Dockerfile context, use container name so user
         # can prep the directory with COPY sources as needed.
         context_dir = os.path.expanduser('~')
-        log.info('Context directory will be {}.'.format(context_dir))
+        log.info(f'Context directory will be {context_dir}')
 
         # Determine name for successful build target
         ch_build_addr = self.container_name.replace('/', '%')
 
         ch_build_target = '/'.join([self.container_archive, ch_build_addr]) + '.tar.gz'
-        log.info('Build will create tar ball at {}'.format(ch_build_target))
+        log.info(f'Build will create tar ball at {ch_build_target}')
         # Return if image already exist and force==False.
         if os.path.exists(ch_build_target) and not force:
             return 0
@@ -306,16 +305,17 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-image/'+ch_build_addr)
+                shutil.rmtree('/var/tmp/' + os.getlogin() + '/ch-image/' + ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Out of excuses. Build the image.
         log.info('Context directory configured. Beginning build.')
         cmd = (f'ch-image build -t {self.container_name} -f {task_dockerfile} {context_dir}\n'
-               f'ch-convert -i ch-image -o tar {ch_build_addr} {self.container_archive}/{ch_build_addr}.tar.gz'
+               f'ch-convert -i ch-image -o tar {ch_build_addr} '
+               f'{self.container_archive}/{ch_build_addr}.tar.gz'
                )
-        log.info('Executing: {}'.format(cmd))
+        log.info(f'Executing: {cmd}')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
@@ -354,7 +354,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Pull the image.
         file_name = crt_driver.get_ccname(import_input_path)
         cmd = (f'ch-convert {import_input_path} {self.deployed_image_root}/{file_name}')
-        log.info(f'Docker import: Assuming container name is {import_input_path}. Is this correct?')
+        log.info(f'Docker import: Assuming container name is {import_input_path}. Correct?')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
@@ -449,8 +449,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if self.container_name:
             copy_target = '/'.join([self.container_archive, self.container_name + '.tar.gz'])
         else:
-            copy_target = '/'.join([self.container_archive, os.path.basename(task_container_path)])
-        log.info('Build will copy a container to {}'.format(copy_target))
+            copy_target = '/'.join([self.container_archive,
+                                    crt_driver.get_ccname(task_container_path) + '.tar.gz'])
+        log.info(f'Build will copy a container to {copy_target}')
         # Return if image already exist and force==False.
         if os.path.exists(copy_target) and not force:
             log.info('Container by this name exists in archive. Taking no action.')
@@ -465,7 +466,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         log.info('Copying container.')
         cmd = (f'cp {task_container_path} {copy_target}\n'
                )
-        log.info('Executing: {}'.format(cmd))
+        log.info(f'Executing: {cmd}')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
