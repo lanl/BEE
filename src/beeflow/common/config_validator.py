@@ -123,7 +123,7 @@ class ConfigSection:
 class ConfigOption:
     """Config option/validation class."""
 
-    def __init__(self, info, type=str, required=False, default=None, choices=None):
+    def __init__(self, info, validator=str, required=False, default=None, choices=None):
         self.required = required
         self.info = info
         if choices is not None and not required and default not in choices:
@@ -132,7 +132,7 @@ class ConfigOption:
             )
         self.default = default
         self.choices = choices
-        self._type = type
+        self._validator = validator
 
     def validate(self, value):
         """Validate the value and return it."""
@@ -140,4 +140,4 @@ class ConfigOption:
             if value not in self.choices:
                 raise ValueError("value must be one of {}; found '{}'".format(self.choices, value))
             return value
-        return self._type(value)
+        return self._validator(value)

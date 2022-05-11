@@ -18,8 +18,8 @@ def test_two():
     validator = ConfigValidator(description='test case of two')
     validator.section('section0', info='some info')
     validator.section('section1', info='some more info')
-    validator.option('section0', 'key0', type=str, info='some config opt')
-    validator.option('section1', 'key0', type=int, info='some config opt')
+    validator.option('section0', 'key0', validator=str, info='some config opt')
+    validator.option('section1', 'key0', validator=int, info='some config opt')
 
     assert validator.validate(conf) == valid_conf
     with pytest.raises(ValueError):

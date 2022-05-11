@@ -135,6 +135,18 @@ class BeeConfig:
         os.chdir(tmp)
         return absolute_path
 
+
+# Specialized validation functions
+
+def validate_dir(path):
+    """Check that the path exists and is a directory."""
+    if not os.path.exists(path):
+        raise ValueError('path "{}" does not exist'.format(path))
+    if not os.path.isdir(path):
+        raise ValueError('path "{}" is not a directory'.format(path))
+    return path
+
+
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
 # singleton class above.
@@ -155,18 +167,18 @@ DEFAULT_SCHED_PORT = 5100 + OFFSET
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
-VALIDATOR.option('DEFAULT', 'bee_workdir', required=True, info='main BEE workdir')
+VALIDATOR.option('DEFAULT', 'bee_workdir', required=True, info='main BEE workdir', validator=validate_dir)
 VALIDATOR.option('DEFAULT', 'workload_scheduler', required=True, choices=('Slurm', 'LSF', 'Simple'),
                  info='backend workload scheduler to interact with ')
-VALIDATOR.option('DEFAULT', 'use_archive', default=False, type=bool,
+VALIDATOR.option('DEFAULT', 'use_archive', default=False, validator=bool,
                  info='use the BEE archiving functinality')
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
-VALIDATOR.option('workflow_manager', 'listen_port', default=DEFAULT_WFM_PORT, type=int,
+VALIDATOR.option('workflow_manager', 'listen_port', default=DEFAULT_WFM_PORT, validator=int,
                  info='workflow manager port')
 # Task manager
 VALIDATOR.section('task_manager', info='Task manager configuration and config of container to use.')
-VALIDATOR.option('task_manager', 'listen_port', default=DEFAULT_TM_PORT, type=int,
+VALIDATOR.option('task_manager', 'listen_port', default=DEFAULT_TM_PORT, validator=int,
                  info='task manager listen port')
 VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
                  choices=('Charliecloud', 'Singularity'),
@@ -187,16 +199,16 @@ VALIDATOR.option('charliecloud', 'container_dir', required=True,
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost', info='hostname of database')
 VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
-VALIDATOR.option('graphdb', 'bolt_port', default=DEFAULT_BOLT_PORT, type=int,
+VALIDATOR.option('graphdb', 'bolt_port', default=DEFAULT_BOLT_PORT, validator=int,
                  info='port used for the BOLT API')
-VALIDATOR.option('graphdb', 'http_port', default=DEFAULT_HTTP_PORT, type=int,
+VALIDATOR.option('graphdb', 'http_port', default=DEFAULT_HTTP_PORT, validator=int,
                  info='HTTP port used for the graph database')
 VALIDATOR.option('graphdb', 'https_port', default=DEFAULT_HTTPS_PORT,
                  info='HTTPS port used for the graph database')
 VALIDATOR.option('graphdb', 'gdb_image', required=True, info='graph database container image file')
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', default='/tmp',
                  info='graph database image mount directory')
-VALIDATOR.option('graphdb', 'sleep_time', type=int,
+VALIDATOR.option('graphdb', 'sleep_time', validator=int,
                  info='how long to wait for the graph database to come up (this can take a while, '
                       'depending on the system)')
 # Builder
@@ -217,7 +229,7 @@ VALIDATOR.option('slurmrestd', 'slurm_args', default='-s openapi/v0.0.35',
                  info='arguments for the slurmrestd binary')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
-VALIDATOR.option('scheduler', 'listen_port', default=DEFAULT_SCHED_PORT, type=int,
+VALIDATOR.option('scheduler', 'listen_port', default=DEFAULT_SCHED_PORT, validator=int,
                  info='scheduler port')
 
 
@@ -250,13 +262,69 @@ def info(validator):
         print()
 
 
+def new_conf(fname, validator):
+    """Create a new bee configuration based on user input."""
+    print('Creating a new config: "{}".'.format(fname))
+    print()
+    print_wrap('This will walk you through creating a new configuration for BEE. '
+               'Note that you will only be required to enter values for required '
+               'options. Please take a look at the other options and their '
+               'defaults before running BEE.')
+    print()
+    print('Please enter values for the following options:')
+    sections = {}
+    for sec_name, section in validator.sections:
+        sections[sec_name] = {}
+        printed = False
+        for opt_name, option in validator.options(sec_name):
+            if not option.required:
+                continue
+            # Print the section name if it has a required option and it hasn't
+            # already been printed.
+            if not printed:
+                print('[{}]'.format(sec_name))
+                printed = True
+            value = None
+            # input and then validate the value
+            while value is None:
+                print('#', option.info)
+                value = input('{} = '.format(opt_name))
+                try:
+                    option.validate(value)
+                except ValueError as ve:
+                    print(ve)
+                    value = None
+            sections[sec_name][opt_name] = value
+    print()
+    print('The following configuration options were chosen:')
+    for sec_name in sections:
+        for opt_name in sections[sec_name]:
+            print('{}::{} = {}'.format(sec_name, opt_name, sections[sec_name][opt_name]))
+    ans = input('Are these correct? [y/n] ')
+    if ans.lower() != 'y':
+        print('Quitting without saving')
+        return
+    with open(fname, 'w') as fp:
+        for sec_name in sections:
+            if not sections[sec_name]:
+                continue
+            print('[{}]'.format(sec_name), file=fp)
+            for opt_name in sections[sec_name]:
+                print('{} = {}'.format(opt_name, sections[sec_name][opt_name]), file=fp)
+    print('Saved config to "{}"'.format(fname))
+    print()
+    print_wrap('Before running BEE, make sure to check that other default options are compatible with your system.')
+
+
 def main():
     """Entry point for config validation and help."""
     parser = argparse.ArgumentParser(description='BEE configuration helper and validator')
-    parser.add_argument('--validate', '-v', type=str,
+    parser.add_argument('--validate', '-v', validator=str,
                         help='validate a configuration file')
     parser.add_argument('--info', '-i', action='store_true',
                         help='print general info for each configuration')
+    parser.add_argument('--new', '-n', validator=str, default=None,
+                        help='create a new bee conf file')
     args = parser.parse_args()
     # Load and validate the bee.conf
     if args.validate:
@@ -264,6 +332,8 @@ def main():
         BeeConfig.init(args.validate)
     if args.info:
         info(VALIDATOR)
+    if args.new is not None:
+        new_conf(args.new, VALIDATOR)
 
 
 if __name__ == '__main__':
