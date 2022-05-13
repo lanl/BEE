@@ -3,8 +3,10 @@
 from configparser import ConfigParser
 import os
 import sys
+import pkgutil
 import platform
 import argparse
+import shutil
 import textwrap
 
 from beeflow.common.config_validator import ConfigValidator
@@ -136,15 +138,61 @@ class BeeConfig:
         return absolute_path
 
 
-# Specialized validation functions
+def check_yes(msg):
+    """Check for a y/n answer."""
+    res = input(f'{msg} [y/n] ')
+    return res.lower() == 'y'
+
+# Specialized functions for validation and config initialization
+
+def validate_path(path):
+    """Check that the path exists."""
+    path = os.path.expanduser(path)
+    if not os.path.exists(path):
+        raise ValueError(f'path "{path}" does not exist')
+    return path
+
 
 def validate_dir(path):
     """Check that the path exists and is a directory."""
-    if not os.path.exists(path):
-        raise ValueError('path "{}" does not exist'.format(path))
+    path = validate_path(path)
     if not os.path.isdir(path):
-        raise ValueError('path "{}" is not a directory'.format(path))
+        raise ValueError('path "{path}" is not a directory')
     return path
+
+
+def validate_file(path):
+    """Check that the path exists and is a file."""
+    path = validate_path(path)
+    if not os.path.isfile(path):
+        raise ValueError(f'path "{path}" is not a file')
+    return path
+
+
+def check_choice(msg, opts):
+    """Ask the user to pick from opts."""
+    while True:
+        value = input(f'{msg} ({",".join(opts)})')
+        if value in opts:
+            return value
+        print(f'ERROR: invalid option: {value}')
+
+
+def job_template_init(path):
+    """Job template init function."""
+    if not check_yes(f'Do you want to write a default job template to "{path}"?'):
+        return
+    template = check_choice('What template should be generated?', ('Slurm', 'LSF', 'Simple'))
+    template_files = {
+        'Slurm': '/'.join(['data', 'slurm-submit.jinja']),
+        'LSF': None,
+        'Simple': None,
+    }
+    pkg_name = __package__.split('.')[0]
+    data = pkgutil.get_data(pkg_name, template_files[template])
+    # shutil.copy(template_file[template], path)
+    with open(path, 'w') as fp:
+        fp.write(data)
 
 
 # Below is the definition of all bee config options, defaults and requirements.
@@ -184,7 +232,9 @@ VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
                  choices=('Charliecloud', 'Singularity'),
                  info='container runtime to use for configuration')
 VALIDATOR.option('task_manager', 'job_template', required=True,
-                 info='job template to use for generating submission scripts')
+                 info='job template to use for generating submission scripts',
+                 validator=validate_file,
+                 attrs={'init': job_template_init})
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
 HOME_DIR = os.path.expanduser('~/')
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
@@ -247,83 +297,102 @@ def info(validator):
     print_wrap(validator.description)
     print()
     for sec_name, section in validator.sections:
-        print('## {}'.format(sec_name))
+        print(f'## {sec_name}')
         if section.depends_on is not None:
             print()
             print_wrap('*only required if %s::%s == "%s"*' % section.depends_on)
         print()
-        print_wrap('{}'.format(section.info))
+        print_wrap(f'{section.info}')
         print()
         for opt_name, option in validator.options(sec_name):
             required_text = '*required* ' if option.required else ''
-            print_wrap('* {} - {}{}'.format(opt_name, required_text, option.info), '  ')
+            print_wrap(f'* {opt_name} - {required_text}{option.info}', '  ')
             if option.choices is not None:
-                print('\t* allowed values: {}'.format(option.choices))
+                print(f'\t* allowed values: {",".join(option.choices)}')
         print()
 
 
-def new_conf(fname, validator):
-    """Create a new bee configuration based on user input."""
-    print('Creating a new config: "{}".'.format(fname))
-    print()
-    print_wrap('This will walk you through creating a new configuration for BEE. '
-               'Note that you will only be required to enter values for required '
-               'options. Please take a look at the other options and their '
-               'defaults before running BEE.')
-    print()
-    print('Please enter values for the following options:')
-    sections = {}
-    for sec_name, section in validator.sections:
-        sections[sec_name] = {}
-        printed = False
-        for opt_name, option in validator.options(sec_name):
-            if not option.required:
-                continue
-            # Print the section name if it has a required option and it hasn't
-            # already been printed.
-            if not printed:
-                print('[{}]'.format(sec_name))
-                printed = True
-            value = None
-            # input and then validate the value
-            while value is None:
-                print('#', option.info)
-                value = input('{} = '.format(opt_name))
-                try:
-                    option.validate(value)
-                except ValueError as ve:
-                    print(ve)
-                    value = None
-            sections[sec_name][opt_name] = value
-    print()
-    print('The following configuration options were chosen:')
-    for sec_name in sections:
-        for opt_name in sections[sec_name]:
-            print('{}::{} = {}'.format(sec_name, opt_name, sections[sec_name][opt_name]))
-    ans = input('Are these correct? [y/n] ')
-    if ans.lower() != 'y':
-        print('Quitting without saving')
-        return
-    with open(fname, 'w') as fp:
-        for sec_name in sections:
-            if not sections[sec_name]:
-                continue
-            print('[{}]'.format(sec_name), file=fp)
-            for opt_name in sections[sec_name]:
-                print('{} = {}'.format(opt_name, sections[sec_name][opt_name]), file=fp)
-    print('Saved config to "{}"'.format(fname))
-    print()
-    print_wrap('Before running BEE, make sure to check that other default options are compatible with your system.')
+class ConfigGenerator:
+    """Config generator class."""
+
+    def __init__(self, fname, validator):
+        self.fname = fname
+        self.validator = validator
+        self.sections = {}
+
+    def choose_values(self):
+        """Choose configuration values based on user input."""
+        print(f'Creating a new config: "{self.fname}".')
+        print()
+        print_wrap('This will walk you through creating a new configuration for BEE. '
+                   'Note that you will only be required to enter values for required '
+                   'options. Please take a look at the other options and their '
+                   'defaults before running BEE.')
+        print()
+        print('Please enter values for the following options:')
+        # Let the user choose values for each required attribute
+        for sec_name, section in self.validator.sections:
+            self.sections[sec_name] = {}
+            printed = False
+            for opt_name, option in self.validator.options(sec_name):
+                if not option.required:
+                    continue
+                init_fn = None
+                # Check for an init function
+                if option.attrs is not None and 'init' in option.attrs:
+                    init_fn = option.attrs['init']
+                # Print the section name if it has a required option and it hasn't
+                # already been printed.
+                if not printed:
+                    print('[{}]'.format(sec_name))
+                    printed = True
+                value = None
+                # Input and then validate the value
+                while value is None:
+                    print('#', option.info)
+                    value = input(f'{opt_name} = ')
+                    # Call the init function if there is one
+                    if init_fn is not None:
+                        init_fn(value)
+                    try:
+                        option.validate(value)
+                    except ValueError as ve:
+                        print('ERROR:', ve)
+                        value = None
+                self.sections[sec_name][opt_name] = value
+        return self
+
+    def save(self):
+        """Save the config to a file."""
+        print()
+        print('The following configuration options were chosen:')
+        for sec_name in self.sections:
+            for opt_name in self.sections[sec_name]:
+                print('{}::{} = {}'.format(sec_name, opt_name, self.sections[sec_name][opt_name]))
+        ans = input('Are these correct? [y/n] ')
+        if ans.lower() != 'y':
+            print('Quitting without saving')
+            return
+        with open(self.fname, 'w') as fp:
+            for sec_name in self.sections:
+                if not self.sections[sec_name]:
+                    continue
+                print('[{}]'.format(sec_name), file=fp)
+                for opt_name in self.sections[sec_name]:
+                    print(f'{opt_name} = {self.sections[sec_name][opt_name]}', file=fp)
+        print(f'Saved config to "{self.fname}"')
+        print()
+        print_wrap('Before running BEE, make sure to check that other default options are compatible with your system.')
 
 
 def main():
     """Entry point for config validation and help."""
     parser = argparse.ArgumentParser(description='BEE configuration helper and validator')
-    parser.add_argument('--validate', '-v', validator=str,
+    parser.add_argument('--validate', '-v', type=str,
                         help='validate a configuration file')
     parser.add_argument('--info', '-i', action='store_true',
                         help='print general info for each configuration')
-    parser.add_argument('--new', '-n', validator=str, default=None,
+    parser.add_argument('--new', '-n', type=str, default=None,
                         help='create a new bee conf file')
     args = parser.parse_args()
     # Load and validate the bee.conf
@@ -333,7 +402,7 @@ def main():
     if args.info:
         info(VALIDATOR)
     if args.new is not None:
-        new_conf(args.new, VALIDATOR)
+        ConfigGenerator(args.new, VALIDATOR).choose_values().save()
 
 
 if __name__ == '__main__':

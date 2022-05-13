@@ -105,3 +105,14 @@ def test_missing_section():
 
     with pytest.raises(ConfigError):
         validator.option('some-section', 'option', info='defining an option, but the section is not defined')
+
+
+def test_option_attr():
+    validator = ConfigValidator(description='option with attribute')
+
+    validator.section('abc', info='some section')
+    validator.option('abc', 'test', info='some option with attributes', attrs={'key': 1})
+
+    opt_name, option = validator.options('abc')[0]
+    assert opt_name == 'test'
+    assert option.attrs == {'key': 1}

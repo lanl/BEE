@@ -1,5 +1,4 @@
 """Configuration validation."""
-import textwrap
 
 
 class ConfigError(Exception):
@@ -123,7 +122,7 @@ class ConfigSection:
 class ConfigOption:
     """Config option/validation class."""
 
-    def __init__(self, info, validator=str, required=False, default=None, choices=None):
+    def __init__(self, info, validator=str, required=False, default=None, choices=None, attrs=None):
         self.required = required
         self.info = info
         if choices is not None and not required and default not in choices:
@@ -132,6 +131,8 @@ class ConfigOption:
             )
         self.default = default
         self.choices = choices
+        # attrs is designed to hold any extra attribute that could be useful
+        self.attrs = attrs
         self._validator = validator
 
     def validate(self, value):
