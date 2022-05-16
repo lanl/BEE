@@ -4,6 +4,7 @@ import sys
 import logging
 import signal
 import jsonpickle
+import json
 import requests
 import pathlib
 import tempfile
@@ -11,6 +12,15 @@ import shutil
 import time
 import getpass
 import subprocess
+import cwl_utils.parser.cwl_v1_0 as cwl
+
+from beeflow.common.config_driver import BeeConfig
+
+# The bc object must be created before importing other parts of BEE
+if len(sys.argv) > 2:
+    bc = BeeConfig(userconfig=sys.argv[1])
+else:
+    bc = BeeConfig()
 
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
@@ -18,8 +28,10 @@ from flask_restful import Resource, Api, reqparse
 # Interacting with the rm, tm, and scheduler
 from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.parser import CwlParser
+from beeflow.common.wf_profiler import WorkflowProfiler
+from beeflow.start_gdb import StartGDB
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
@@ -27,12 +39,6 @@ from beeflow.common.gdb.neo4j_driver import Neo4JNotRunning
 
 sys.excepthook = bee_logging.catch_exception
 
-if len(sys.argv) > 2:
-    bc = BeeConfig(userconfig=sys.argv[1])
-else:
-    bc = BeeConfig()
-
-# Load up container runtime
 
 if bc.userconfig.has_section('workflow_manager'):
     # Try getting listen port from config if exists, use WM_PORT if it doesnt exist
@@ -73,6 +79,8 @@ UPLOAD_FOLDER = os.path.join(bee_workdir, 'current_workflow')
 # Create the upload folder if it doesn't exist
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+# gdb sleep time
+gdb_sleep_time = bc.userconfig['graphdb'].getint('sleep_time', 10)
 
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -106,7 +114,9 @@ def _resource(component, tag=""):
 
 # Instantiate the workflow interface
 wfi = None
-# try:
+# Instantiate the workflow profiler
+wf_profiler = None
+#try:
 #    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
 #                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
 #                            password=bc.userconfig.get('graphdb', 'dbpass'))
@@ -221,6 +231,7 @@ class JobsList(Resource):
     # TODO PyLama pointed out this function is too complex it should be broken up
     def post(self):  # NOQA
         global wfi
+        global wf_profiler
         """Get a workflow or give file not found error."""
         data = self.reqparse.parse_args()
 
@@ -243,11 +254,10 @@ class JobsList(Resource):
             # Start a new GDB
             gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
             script_path = get_script_path()
-
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            gdb_proc = StartGDB(bc, gdb_workdir)
             # Need to wait a moment for the GDB
-            time.sleep(10)
+            log.info('waiting {}s for GDB to come up'.format(gdb_sleep_time))
+            time.sleep(gdb_sleep_time)
 
             if wfi:
                 if wfi.workflow_initialized() and wfi.workflow_loaded():
@@ -289,6 +299,13 @@ class JobsList(Resource):
                 except AttributeError:
                     resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
                     return resp
+
+            # Initialize the workflow profiling code
+            fname = '{}.json'.format(job_name)
+            profile_dir = os.path.join(bee_workdir, 'profiles')
+            os.makedirs(profile_dir, exist_ok=True)
+            output_path = os.path.join(profile_dir, fname)
+            wf_profiler = WorkflowProfiler(job_name, output_path)
 
             # Save the workflow to the workflow_id dir
             wf_id = wfi.workflow_id
@@ -352,9 +369,9 @@ class JobsList(Resource):
 
             # Launch new container with bindmounted GDB
             script_path = get_script_path()
-            subprocess.run([f'{script_path}/start_gdb.py', '--gdb_workdir', gdb_workdir,
-                           '--reexecute'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            time.sleep(10)
+            gdb_proc = StartGDB(bc, gdb_workdir, reexecute=True)
+            log.info('waiting {}s for GDB to come up'.format(gdb_sleep_time))
+            time.sleep(gdb_sleep_time)
 
             # Initialize the database connection object
             wfi.initialize_workflow(inputs=None, outputs=None, existing=True)
@@ -603,6 +620,7 @@ class JobUpdate(Resource):
                                    required=True)
         self.reqparse.add_argument('metadata', type=str, location='json',
                                    required=False)
+        self.reqparse.add_argument('output', location='json', required=False)
 
     def put(self):
         """Update the state of a task from the task manager."""
@@ -613,11 +631,19 @@ class JobUpdate(Resource):
         job_state = data['job_state']
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
+        wf_profiler.add_state_change(task, job_state)
 
         if 'metadata' in data:
             if data['metadata'] is not None:
                 metadata = jsonpickle.decode(data['metadata'])
                 wfi.set_task_metadata(task, metadata)
+
+        # Get output from the task
+        if 'output' in data and data['output'] is not None:
+            fname = f'{wfi.workflow_id}_{task.id}_{int(time.time())}.json'
+            task_output_path = os.path.join(bee_workdir, fname)
+            with open(task_output_path, 'w') as fp:
+                json.dump(json.loads(data['output']), fp, indent=4)
 
         if job_state == "COMPLETED" or job_state == "FAILED":
             for output in task.outputs:
@@ -633,6 +659,9 @@ class JobUpdate(Resource):
             else:
                 if wfi.workflow_completed():
                     log.info("Workflow Completed")
+
+                    # Save the profile
+                    wf_profiler.save()
 
                     if archive and not reexecute:
                         gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
@@ -666,6 +695,16 @@ class JobUpdate(Resource):
         return resp
 
 
+
+@flask_app.route('/bee_wfm/v1/status/<string:wf_id>')
+def status(wf_id):
+    """Report various workflow status info and metrics."""
+    wf = {
+        'complete': wfi.workflow_completed(),
+    }
+    return make_response(jsonify(**wf), 200)
+
+
 api.add_resource(JobsList, '/bee_wfm/v1/jobs/')
 api.add_resource(JobActions, '/bee_wfm/v1/jobs/<string:wf_id>')
 api.add_resource(JobUpdate, '/bee_wfm/v1/jobs/update/')
@@ -685,4 +724,5 @@ if __name__ == '__main__':
     # Flask logging
     # Putting this off for another issue so noqa to appease the lama
     flask_app.logger.addHandler(handler) #noqa
-    flask_app.run(debug=True, port=str(wfm_listen_port))
+    flask_app.run(debug=False, port=str(wfm_listen_port))
+

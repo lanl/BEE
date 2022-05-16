@@ -1,0 +1,15 @@
+FROM openmpi-3.1.5
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get -y update && \
+    apt-get -y install git cmake gcc g++ gfortran
+
+WORKDIR /
+
+# Build the MPI version
+ARG REPO=https://github.com/ECP-copa/CoMD.git
+RUN git clone $REPO && \
+    cd CoMD && \
+    cp src-mpi/Makefile.vanilla src-mpi/Makefile && \
+    make -C src-mpi
+

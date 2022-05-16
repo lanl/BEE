@@ -11,23 +11,33 @@ import socket
 import subprocess
 from subprocess import PIPE
 import jsonpickle
+import json
 import requests
+import threading
+import glob
+import os
+import traceback
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig
-from beeflow.cli import log
-from beeflow.common.build.build_driver import task2arg
-import beeflow.common.log as bee_logging
 
-sys.excepthook = bee_logging.catch_exception
-
+# This must be imported before calling other parts of BEE
 if len(sys.argv) >= 2:
     bc = BeeConfig(userconfig=sys.argv[1])
 else:
     bc = BeeConfig()
+
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from beeflow.cli import log
+from beeflow.common.build.build_driver import task2arg
+from beeflow.common.build_interfaces import build_main
+import beeflow.common.log as bee_logging
+
+
+sys.excepthook = bee_logging.catch_exception
 
 USERCONFIG = bc.userconfig_file
 
@@ -99,12 +109,13 @@ def _resource(tag=""):
     return _url() + str(tag)
 
 
-def update_task_state(task_id, job_state, metadata=None):
+def update_task_state(task_id, job_state, **kwargs):
     """Informs the workflow manager of the current state of a task."""
     data = {'task_id': task_id, 'job_state': job_state}
-    if metadata:
-        metadata_json = jsonpickle.encode(metadata)
-        data['metadata'] = metadata_json
+    if 'metadata' in kwargs:
+        metadata_json = jsonpickle.encode(kwargs['metadata'])
+        kwargs['metadata'] = metadata_json
+    data.update(kwargs)
     resp = requests.put(_resource("update/"),
                         json=data)
     if resp.status_code != 200:
@@ -146,8 +157,7 @@ def gen_task_metadata(task, job_id):
 
 def resolve_environment(task):
     """Use build interface to create a valid environment."""
-    return subprocess.run(["beeflow", "--build", USERCONFIG, task2arg(task)],
-                          stdout=PIPE, stderr=PIPE, check=False)
+    build_main(bc, task)
 
 
 def submit_jobs():
@@ -174,6 +184,8 @@ def submit_jobs():
             job_state = 'SUBMIT_FAIL'
             log.error(f'Task Manager submit task {task.name} failed! \n {err}')
             log.error(f'{task.name} state: {job_state}')
+            # Log the traceback information as well
+            log.error(traceback.format_exc())
         finally:
             # Send the initial state to WFM
             # update_task_state(task.id, job_state, metadata=task_metadata)
@@ -190,7 +202,7 @@ def update_jobs():
         if job_state != job['job_state']:
             log.info(f'{task.name} {job["job_state"]} -> {job_state}')
             job['job_state'] = job_state
-            update_task_state(task.id, job_state)
+            update_task_state(task.id, job_state, output={})
 
         if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
             # Remove from the job queue. Our job is finished
@@ -250,12 +262,22 @@ class TaskActions(Resource):
                 job_state = worker.cancel_task(job_id)
             except Exception as err:
                 log.error(err)
+                log.error(traceback.format_exc())
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
         job_queue.clear()
         submit_queue.clear()
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
+
+
+# This could probably be in a Resource class, but since its only one route
+# it seems to be fine right here
+@flask_app.route('/status')
+def get_status():
+    """Report the current status of the Task Manager."""
+    # TODO: Report statistics about jobs, perhaps current system load, etc.
+    return make_response(jsonify(status='up'), 200)
 
 
 # WorkerInterface needs to be placed here. Don't Move!
@@ -276,6 +298,8 @@ worker_kwargs = {
     'bee_workdir': bc.userconfig.get('DEFAULT', 'bee_workdir'),
     'container_runtime': bc.userconfig.get('task_manager', 'container_runtime'),
     'job_template': bc.userconfig.get('task_manager', 'job_template', fallback=None),
+    # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
+    'runner_opts': bc.userconfig.get('task_manager', 'runner_opts', fallback=None),
 }
 # TODO: Maybe this should be put into a sub class
 if WLS == 'Slurm':
@@ -301,7 +325,7 @@ if __name__ == '__main__':
 
     # Flask logging
     flask_app.logger.addHandler(handler)
-    flask_app.run(debug=True, port=str(tm_listen_port))
+    flask_app.run(debug=False, port=str(tm_listen_port))
 # Ignore TODO comments
 # Ignoring "modules loaded below top of file" warning per Pat's comment
 # Ignoring flask.logger.AddHandler not found because logging is working...

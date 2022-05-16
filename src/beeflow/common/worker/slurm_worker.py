@@ -10,22 +10,11 @@ import json
 import urllib
 import requests_unixsocket
 import requests
+import getpass
 
 from beeflow.common.worker.worker import Worker
-from beeflow.common.crt_interface import ContainerRuntimeInterface
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
-
-# Import all implemented container runtime drivers now
-# No error if they don't exist
-try:
-    from beeflow.common.crt_drivers import CharliecloudDriver
-except ModuleNotFoundError:
-    pass
-try:
-    from beeflow.common.crt_drivers import SingularityDriver
-except ModuleNotFoundError:
-    pass
 
 
 class SlurmWorker(Worker):
@@ -33,77 +22,22 @@ class SlurmWorker(Worker):
 
     def __init__(self, bee_workdir, **kwargs):
         """Create a new Slurm Worker object."""
-        # Pull slurm socket configs from kwargs
-        self.slurm_socket = kwargs.get('slurm_socket', f'/tmp/slurm_{os.getlogin()}.sock')
+        super().__init__(bee_workdir, **kwargs)
+        # Pull slurm socket configs from kwargs (Uses getpass.getuser() instead
+        # of os.getlogin() because of an issue with using getlogin() without a
+        # controlling terminal)
+        self.slurm_socket = kwargs.get('slurm_socket', f'/tmp/slurm_{getpass.getuser()}.sock')
         self.session = requests_unixsocket.Session()
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
-
         # Setup logger
         bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='SlurmWorker.log')
 
-        # Load appropriate container runtime driver, based on configs in kwargs
-        try:
-            self.tm_crt = kwargs['container_runtime']
-        except KeyError:
-            log.warning("No container runtime specified in config, proceeding with caution.")
-            self.tm_crt = None
-            crt_driver = None
-        finally:
-            if self.tm_crt == 'Charliecloud':
-                crt_driver = CharliecloudDriver
-            elif self.tm_crt == 'Singularity':
-                crt_driver = SingularityDriver
-            self.crt = ContainerRuntimeInterface(crt_driver)
-
-        # Get BEE workdir from config file
-        self.workdir = bee_workdir
-
-        # Get template for job, if option in configuration
-        self.template_text = ''
-        self.job_template = kwargs['job_template']
-        if self.job_template:
-            try:
-                template_file = open(self.job_template, 'r')
-                self.template_text = template_file.read()
-                template_file.close()
-                log.info(f'Jobs will use template: {self.job_template}')
-            except ValueError as error:
-                log.warning(f'Cannot open job template {self.job_template}, {error}')
-                log.warning('Proceeding with Caution!')
-            except FileNotFoundError:
-                log.warning(f'Cannot find job template {self.job_template}')
-                log.warning('Proceeding with Caution!')
-            except PermissionError:
-                log.warning(f'Permission error job template {self.job_template}')
-                log.warning('Proceeding with Caution!')
-        else:
-            log.info('No template for jobs.')
-
-    def build_text(self, task):
-        """Build text for task script; use template if it exists."""
-        workflow_path = f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
-        template_text = '#! /bin/bash\n'
-        template_text += f'#SBATCH --job-name={task.name}-{task.id}\n'
-        template_text += f'#SBATCH --output={workflow_path}/{task.name}-{task.id}.out\n'
-        template_text += f'#SBATCH --error={workflow_path}/{task.name}-{task.id}.err\n'
-        template_text += self.template_text
-        template = string.Template(template_text)
-        job_text = template.substitute({'WorkflowID': task.workflow_id,
-                                        'name': task.name,
-                                        'id': task.id}
-                                       )
-        crt_text = self.crt.run_text(task)
-        job_text += crt_text
-        return job_text
-
     def write_script(self, task):
         """Build task script; returns filename of script."""
-        script_dir = f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
-        os.makedirs(script_dir, exist_ok=True)
         task_text = self.build_text(task)
-        task_script = f'{script_dir}/{task.name}-{task.id}.sh'
+        task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
         script_f = open(task_script, 'w')
         script_f.write(task_text)
         script_f.close()
