@@ -5,6 +5,6 @@ calmr_job.yml - yaml file for values used by the cwl files.
 clamr.cwl - cwl file for the clamr step.
 ffmpeg.cwl - cwl file for the ffmpeg step.
 
-The values in these files run on fog a LANL cluster, using the container runtime Charliecloud. Fog uses slurm as the workload scheduler.
+The values in these files run on Chicoma a LANL cluster on the turquoise network, using the container runtime Charliecloud. Chicoma uses slurm as the workload scheduler.
 
 
