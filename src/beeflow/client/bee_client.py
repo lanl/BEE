@@ -294,13 +294,13 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 
 @app.command()
-def reexecute(wf_name: str = typer.Argument(...),
-              archive_path: Path = typer.Argument(...)):
+def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
+              archive_path: Path = typer.Argument(...), help='Path to archive'):
     """
     Reexecute an archived workflow
     """
     files = {
-        'filename': os.path.basename(archive_path).encode(),
+        'wf_filename': os.path.basename(archive_path).encode(),
         'workflow_archive': open(archive_path, 'rb'),
         'wf_name': wf_name.encode()
     }

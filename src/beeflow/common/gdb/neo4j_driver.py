@@ -73,20 +73,23 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Begin execution of the workflow stored in the Neo4j database."""
         self._write_transaction(tx.set_init_task_inputs)
         self._write_transaction(tx.set_init_tasks_to_ready)
+        self._write_transaction(tx.set_workflow_state, state='RUNNING')
 
     def pause_workflow(self):
         """Pause execution of a running workflow in Neo4j.
 
         Sets tasks with state 'RUNNING' to 'PAUSED'.
         """
-        self._write_transaction(tx.set_running_tasks_to_paused)
+        with self._driver.session() as session:
+            session.write_transaction(tx.set_workflow_state, state='PAUSED')
 
     def resume_workflow(self):
         """Resume execution of a paused workflow in Neo4j.
 
-        Sets tasks with state 'PAUSED' to 'RUNNING'.
+        Sets workflow state to 'PAUSED'
         """
-        self._write_transaction(tx.set_paused_tasks_to_running)
+        with self._driver.session() as session:
+            session.write_transaction(tx.set_workflow_state, state='RESUME')
 
     def reset_workflow(self, new_id):
         """Reset the execution state of an entire workflow.
@@ -158,6 +161,24 @@ class Neo4jDriver(GraphDatabaseDriver):
         requirements, hints = self.get_workflow_requirements_and_hints()
         inputs, outputs = self.get_workflow_inputs_and_outputs()
         return _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
+
+    def get_workflow_state(self):
+        """Return the current workflow state from the Neo4j database.
+        
+        :rtype: str
+        """
+
+        with self._driver.session() as session:
+           state = self._read_transaction(tx.get_workflow_state) 
+        return state
+
+    def set_workflow_state(self, state):
+        """Set the state of the workflow. 
+         
+        :param state: the new state of the workflow
+        :type stae: str
+        """
+        self._set_workflow_state(state)
 
     def get_workflow_tasks(self):
         """Return all workflow task records from the Neo4j database.

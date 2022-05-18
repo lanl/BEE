@@ -299,6 +299,7 @@ class JobsList(Resource):
                 except AttributeError:
                     resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
                     return resp
+            state = wfi.get_workflow_state()
 
             # Initialize the workflow profiling code
             fname = '{}.json'.format(job_name)
@@ -466,29 +467,6 @@ def setup_scheduler():
         log.info('Scheduler setup did not work')
 
 
-# Used to tell if the workflow is currently paused
-# Will eventually be moved to a Workflow class
-WORKFLOW_PAUSED = False
-SAVED_TASK = None
-
-
-# Save a task when we pause
-def save_task(task):
-    """Save a task."""
-    global SAVED_TASK
-    log.info(f"Saving {task.name}")
-    SAVED_TASK = task
-
-
-def resume():
-    """Resume a saved task."""
-    global SAVED_TASK
-    if SAVED_TASK is not None:
-        submit_tasks_tm(SAVED_TASK)
-    # Clear out the saved task
-    SAVED_TASK = None
-
-
 def tasks_to_sched(tasks):
     """Convert gdb tasks to sched tasks."""
     sched_tasks = []
@@ -516,9 +494,10 @@ class JobActions(Resource):
 
     @staticmethod
     def post(wf_id):
-        """Start job. Send tasks to the task manager."""
+        """Start workflow. Send ready tasks to the task manager."""
         # Get dependent tasks that branch off of bee_init and send to the scheduler
         wfi.execute_workflow()
+        state = wfi.get_workflow_state()
         tasks = wfi.get_ready_tasks()
         # Convert to a scheduler task object
         sched_tasks = tasks_to_sched(tasks)
@@ -584,25 +563,52 @@ class JobActions(Resource):
 
     def patch(self, wf_id):
         """Pause or resume workflow."""
-        global WORKFLOW_PAUSED
         # Stop sending jobs to the task manager
         data = self.reqparse.parse_args()
         option = data['option']
+        workflow_state = wfi.get_workflow_state()
+        if workflow_state == 'PAUSED' and option == 'pause':
+            resp_msg = 'Workflow already paused'
+            log.info(resp_msg)
+            resp = make_response(jsonify(status=resp_msg), 200)
+            return resp
+        elif workflow_state == 'RUNNING' and option == 'resume':
+            resp_msg = 'Workflow already running'
+            log.info(resp_msg)
+            resp = make_response(jsonify(status=resp_msg), 200)
+            return resp
+        elif workflow_state == 'SUBMITTED':
+            if option == 'pause':
+                resp_msg = 'Workflow has not been started yet. Cannot Pause.'
+            elif option == 'resume':
+                resp_msg = 'Workflow has not been started yet. Cannot Resume.'
+            log.info(resp_msg)
+            resp = make_response(jsonify(status=resp_msg), 200)
+            return resp
+        elif workflow_state == 'COMPLETED':
+            log.info('Workflow Completed. Cannot Pause.')
+            resp = make_response(jsonify(status='Can only pause running workflows'), 200)
+            return resp
+
         if option == 'pause':
-            WORKFLOW_PAUSED = True
+            wfi.pause_workflow()
             log.info("Workflow Paused")
             resp = make_response(jsonify(status='Workflow Paused'), 200)
-            return resp
-        if option == 'resume':
-            if WORKFLOW_PAUSED:
-                WORKFLOW_PAUSED = False
-                resume()
+        elif option == 'resume':
+            wfi.resume_workflow()
+            tasks = wfi.get_ready_tasks()
+            sched_tasks = tasks_to_sched(tasks)
+            submit_tasks_scheduler(sched_tasks)
+            submit_tasks_tm(tasks)
+
             log.info("Workflow Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)
             return resp
-        log.error("Invalid option")
-        resp = make_response(jsonify(status='Invalid option for pause/resume'), 400)
-        return resp
+        else:
+            resp = make_response(jsonify(status='Pause/Resume recieved invalid option'), 200)
+            log.error("Invalid option")
+            resp = make_response(jsonify(status='Invalid option for pause/resume'), 400)
+            return resp
 
 
 archive = bc.userconfig.get('DEFAULT', 'use_archive')
@@ -625,7 +631,6 @@ class JobUpdate(Resource):
     def put(self):
         """Update the state of a task from the task manager."""
         global reexecute
-        # Figure out how to find the task in the databse and change it's state
         data = self.reqparse.parse_args()
         task_id = data['task_id']
         job_state = data['job_state']
@@ -652,44 +657,40 @@ class JobUpdate(Resource):
                 else:
                     wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
-            # TODO Replace this with Steven's pause task functions
-            if WORKFLOW_PAUSED:
-                # If we've paused the workflow save the task until we resume
-                save_task(task)
-            else:
-                if wfi.workflow_completed():
-                    log.info("Workflow Completed")
 
-                    # Save the profile
-                    wf_profiler.save()
+            if wfi.workflow_completed():
+                log.info("Workflow Completed")
 
-                    if archive and not reexecute:
-                        gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
-                        wf_id = wfi.workflow_id
-                        workflows_dir = os.path.join(bee_workdir, 'workflows')
-                        workflow_dir = os.path.join(workflows_dir, wf_id)
-                        # Archive GDB
-                        shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
-                        # Archive Config
-                        shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
-                                        workflow_dir + '/' + 'bee.conf')
-                        status_path = os.path.join(workflow_dir, 'bee_wf_status')
-                        with open(status_path, 'w') as status:
-                            status.write('Archived')
-                        archive_dir = os.path.join(bee_workdir, 'archives')
-                        os.makedirs(archive_dir, exist_ok=True)
-                        # archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
-                        archive_path = f'../archives/{wf_id}.tgz'
-                        # We use tar directly since tarfile is apparently very slow
-                        subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
-                    else:
-                        reexecute = False
+                # Save the profile
+                wf_profiler.save()
 
+                if archive and not reexecute:
+                    gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
+                    wf_id = wfi.workflow_id
+                    workflows_dir = os.path.join(bee_workdir, 'workflows')
+                    workflow_dir = os.path.join(workflows_dir, wf_id)
+                    # Archive GDB
+                    shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
+                    # Archive Config
+                    shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
+                                    workflow_dir + '/' + 'bee.conf')
+                    status_path = os.path.join(workflow_dir, 'bee_wf_status')
+                    with open(status_path, 'w') as status:
+                        status.write('Archived')
+                    archive_dir = os.path.join(bee_workdir, 'archives')
+                    os.makedirs(archive_dir, exist_ok=True)
+                    # archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
+                    archive_path = f'../archives/{wf_id}.tgz'
+                    # We use tar directly since tarfile is apparently very slow
+                    subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
                 else:
-                    if tasks:
-                        sched_tasks = tasks_to_sched(tasks)
-                        submit_tasks_scheduler(sched_tasks)
-                        submit_tasks_tm(tasks)
+                    reexecute = False
+
+                #else:
+                if tasks:
+                    sched_tasks = tasks_to_sched(tasks)
+                    submit_tasks_scheduler(sched_tasks)
+                    submit_tasks_tm(tasks)
 
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
