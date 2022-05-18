@@ -13,3 +13,5 @@ The VASP Dockerfile requires the following files to build successfully:
   - `keys/config`
   - `keys/id_rsa`
   - `keys/id_rsa.pub`
+
+Dockerfile.clamr-ffmpeg works on Chicoma and has ffmpeg in the container
