@@ -11,7 +11,7 @@
 
 # pre commands
 {% for cmd in pre_commands %}
-srun {{ cmd|join(' ') }}
+{{ cmd|join(' ') }}
 {% endfor %}
 
 # main command
