@@ -121,6 +121,34 @@ class WorkflowInterface:
         # Load the new task into the graph database
         self._gdb_interface.load_task(task)
         return task
+    
+    def restart_task(self, task, checkpoint_file):
+        """Restart a failed BEE workflow task.
+        
+        The task must have a beeflow:CheckpointRequirement hint. If there are no
+        remaining retry attemps (num_tries = 0) then the graph database is
+        unmodified and this method returns None.
+
+        :param task: the task to restart
+        :type task: Task
+        :rtype: Task or None
+        """
+        new_task = task.copy(new_id=True)
+        for hint in new_task.hints:
+            if hint.class_ == "beeflow:CheckpointRequirement":
+                if hint["num_tries"] > 0:
+                    hint.params["num_tries"] -= 1
+                    hint.params["bee_checkpoint_file__"] = checkpoint_file
+                    break
+                else:
+                    return None
+        else:
+            raise ValueError("invalid task for checkpoint restart")
+
+        metadata = self.get_task_metadata(new_task)
+        self._gdb_interface.restart_task(task, new_task)
+        self.set_task_metadata(new_task, metadata)
+        return new_task
 
     def finalize_task(self, task):
         """Mark a BEE workflow task as completed.
@@ -203,16 +231,14 @@ class WorkflowInterface:
         """
         self._gdb_interface.set_task_state(task, state)
 
-    def get_task_metadata(self, task, keys):
+    def get_task_metadata(self, task):
         """Get the job description metadata of a task in a BEE workflow.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
-        :param keys: the metadata keys whose values to retrieve
-        :type keys: iterable of str
         :rtype: dict
         """
-        return self._gdb_interface.get_task_metadata(task, keys)
+        return self._gdb_interface.get_task_metadata(task)
 
     def set_task_metadata(self, task, metadata):
         """Set the job description metadata of a task in a BEE workflow.

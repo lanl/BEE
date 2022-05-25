@@ -126,6 +126,26 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_runnable_tasks_to_ready)
 
+    def restart_task(self, old_task, new_task):
+        """Restart a failed task.
+        
+        Create a Task node for new_task with 'RESTARTED_FROM' relationship to the
+        Task node of old_task.
+
+        :param old_task: the failed task
+        :type old_task: Task
+        :param new_task: the new (restarted) task
+        :type new_task: Task
+        """
+        with self._driver.session() as session:
+            session.write_transaction(tx.create_task, task=new_task)
+            session.write_transaction(tx.create_task_hint_nodes, task=new_task)
+            session.write_transaction(tx.create_task_requirement_nodes, task=new_task)
+            session.write_transaction(tx.create_task_input_nodes, task=new_task)
+            session.write_transaction(tx.create_task_output_nodes, task=new_task)
+            session.write_transaction(tx.create_task_metadata_node, task=new_task)
+            session.write_transaction(tx.add_dependencies, task=new_task, restarted_task=True)
+
     def finalize_task(self, task):
         """Set task state to 'COMPLETED' and set inputs from source.
         
@@ -232,17 +252,15 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_task_state, task=task, state=state)
 
-    def get_task_metadata(self, task, keys):
+    def get_task_metadata(self, task):
         """Return the metadata of a task in the Neo4j workflow.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
-        :param keys: the metadata keys whose values to retrieve
-        :type keys: iterable of str
         :rtype: dict
         """
         metadata_record = self._read_transaction(tx.get_task_metadata, task=task)
-        return _reconstruct_metadata(metadata_record, keys)
+        return _reconstruct_metadata(metadata_record)
 
     def set_task_metadata(self, task, metadata):
         """Set the metadata of a task in the Neo4j workflow.
@@ -534,10 +552,10 @@ def _reconstruct_metadata(metadata_record, keys):
     """Reconstruct a dict containing the job description metadata retrieved from Neo4j.
 
     :param metadata_record: the database record of the metadata
-    :type metadata_record: dict
+    :type metadata_record: BoltStatementResult
     :param keys: the metadata keys to retrieve from the record
     :type keys: iterable of str
     :rtype: dict
     """
     rec = metadata_record["m"]
-    return {key: rec[key] for key in keys}
+    return {key: val for key, val in rec.items()}

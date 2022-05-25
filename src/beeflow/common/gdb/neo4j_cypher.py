@@ -1,5 +1,7 @@
 """Neo4j/Cypher transaction functions used by the Neo4jDriver class."""
 
+from re import fullmatch
+
 
 def constrain_tasks_unique(tx):
     """Constrain tasks to have unique names."""
@@ -181,34 +183,54 @@ def create_task_metadata_node(tx, task):
     tx.run(metadata_query, task_id=task.id)
 
 
-def add_dependencies(tx, task):
+def add_dependencies(tx, task, old_task=None, restarted_task=False):
     """Create dependencies between tasks.
 
     :param task: the workflow task
     :type task: Task
+    :param old_task: the failed task, ignored if not used with restarted_task=True
+    :type old_task: Task
+    :param restarted_task: restarted from failed task, only create dependencies for outputs
+    :type restarted_task: bool
     """
-    begins_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
-                    "WITH s, collect(i.source) AS sources "
-                    "MATCH (w:Workflow)<-[:INPUT_OF]-(i:Input) "
-                    "WITH s, w, sources, collect(i.id) AS inputs "
-                    "WHERE any(input IN sources WHERE input IN inputs) "
-                    "MERGE (s)-[:BEGINS]->(w)")
-    dependency_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
-                        "WITH s, collect(i.source) as sources "
-                        "MATCH (t:Task)<-[:OUTPUT_OF]-(o:Output) "
-                        "WITH s, t, sources, collect(o.id) as outputs "
-                        "WHERE any(input IN sources WHERE input IN outputs) "
-                        "MERGE (s)-[:DEPENDS_ON]->(t) "
-                        "WITH s "
-                        "MATCH (s)<-[:OUTPUT_OF]-(o:Output) "
-                        "WITH s, collect(o.id) AS outputs "
-                        "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
-                        "WITH s, t, outputs, collect(i.source) as sources "
-                        "WHERE any(output IN outputs WHERE output IN sources) "
-                        "MERGE (t)-[:DEPENDS_ON]->(s)")
+    if restarted_task:
+        delete_dependencies_query = ("MATCH (:Task {id: $task_id})<-[r:DEPENDS_ON]-(:Task) "
+                                     "DETACH DELETE r")
+        restarted_query = ("MATCH (s:Task {id: $old_task_id}), (t:Task {id: $new_task_id}) "
+                           "MERGE (s)<-[:RESTARTED_FROM]-(t)")
+        dependency_query = ("MATCH (s:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
+                            "WITH s, collect(o.id) AS outputs "
+                            "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
+                            "WITH s, t, outputs, collect(i.source) as sources "
+                            "WHERE any(output IN outputs WHERE output IN sources) "
+                            "MERGE (t)-[:DEPENDS_ON]->(s)")
 
-    tx.run(begins_query, task_id=task.id)
-    tx.run(dependency_query, task_id=task.id)
+        tx.run(delete_dependencies_query, task_id=old_task.id)
+        tx.run(restarted_query, old_task_id=old_task.id, new_task_id=task.id)
+        tx.run(dependency_query, task_id=task.id)
+    else:
+        begins_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
+                        "WITH s, collect(i.source) AS sources "
+                        "MATCH (w:Workflow)<-[:INPUT_OF]-(i:Input) "
+                        "WITH s, w, sources, collect(i.id) AS inputs "
+                        "WHERE any(input IN sources WHERE input IN inputs) "
+                        "MERGE (s)-[:BEGINS]->(w)")
+        dependency_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
+                            "WITH s, collect(i.source) as sources "
+                            "MATCH (t:Task)<-[:OUTPUT_OF]-(o:Output) "
+                            "WITH s, t, sources, collect(o.id) as outputs "
+                            "WHERE any(input IN sources WHERE input IN outputs) "
+                            "MERGE (s)-[:DEPENDS_ON]->(t) "
+                            "WITH s "
+                            "MATCH (s)<-[:OUTPUT_OF]-(o:Output) "
+                            "WITH s, collect(o.id) AS outputs "
+                            "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
+                            "WITH s, t, outputs, collect(i.source) as sources "
+                            "WHERE any(output IN outputs WHERE output IN sources) "
+                            "MERGE (t)-[:DEPENDS_ON]->(s)")
+
+        tx.run(begins_query, task_id=task.id)
+        tx.run(dependency_query, task_id=task.id)
 
 
 def get_task_by_id(tx, task_id):
@@ -399,16 +421,12 @@ def set_task_metadata(tx, task, metadata):
     :param metadata: the task metadata
     :type metadata: dict
     """
-    metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id})"
-
-    # TODO: remove injection vulnerability before release
     for k, v in metadata.items():
-        if isinstance(v, str):
-            metadata_query += f" SET m.{k} = '{v}'"
-        else:
-            metadata_query += f" SET m.{k} = {v}"
+        if fullmatch(r"[A-Za-z_][0-9A-Za-z_]*", k) is None:
+            raise ValueError(f"invalid metadata key: {k}")
+        metadata_query = f"MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) SET m.{k} = $value"
 
-    tx.run(metadata_query, task_id=task.id)
+        tx.run(metadata_query, task_id=task.id, value=v)
 
 
 def get_task_input(tx, task, input_id):
