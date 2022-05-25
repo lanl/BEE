@@ -5,6 +5,9 @@
   "steps_between_outputs": 10,
   "steps_between_graphics": 25,
   "graphics_type": "png",
+  "checkpoint_disk_interval": 5,
+
+
   "input_format": "image2",
   "frame_rate": 12,
   "frame_size": "800x800",

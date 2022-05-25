@@ -16,6 +16,7 @@ inputs:
   steps_between_outputs: int
   steps_between_graphics: int
   graphics_type: string
+  checkpoint_disk_interval: int
 ##### FFMPEG inputs #####
   input_format: string
   frame_rate: int
@@ -49,7 +50,8 @@ steps:
       output_steps: steps_between_outputs
       graphic_steps: steps_between_graphics
       graphics_type: graphics_type
-    out: [clamr_stdout, outdir, time_log]
+      checkpoint_disk_interval: checkpoint_disk_interval
+    out: [clamr_stdout, outdir, checkpoint_dir, time_log]
     hints:
         DockerRequirement:
             # TODO Sort this out
