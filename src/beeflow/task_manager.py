@@ -8,20 +8,17 @@ import sys
 import logging
 import hashlib
 import socket
-import subprocess
-from subprocess import PIPE
-import jsonpickle
-import json
-import requests
-import threading
-import glob
 import os
 import re
 import string
 import traceback
+import requests
+import jsonpickle
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
+
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from beeflow.common.config_driver import BeeConfig
 
@@ -32,9 +29,7 @@ else:
     bc = BeeConfig()
 
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.cli import log
-from beeflow.common.build.build_driver import task2arg
 from beeflow.common.build_interfaces import build_main
 import beeflow.common.log as bee_logging
 
@@ -169,9 +164,9 @@ def submit_jobs():
         task_dict = submit_queue.pop(0)
         task = next(iter(task_dict.values()))
         try:
-            log.info('Resolving environment for task {}'.format(task.name))
-            _ = resolve_environment(task)
-            log.info('Environment preparation complete for task {}'.format(task.name))
+            log.info(f'Resolving environment for task {task.name}')
+            resolve_environment(task)
+            log.info(f'Environment preparation complete for task {task.name}')
             job_id, job_state = worker.submit_task(task)
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
@@ -193,22 +188,21 @@ def submit_jobs():
             # update_task_state(task.id, job_state, metadata=task_metadata)
             update_task_state(task.id, job_state)
 
-import os
-import re
-
 
 def get_checkpoints(file_regex, file_path):
-    """Retrieve List of Checkpoint files"""
+    """Retrieve List of Checkpoint files."""
     checkpoints = []
     regex = re.compile(file_regex)
-    for root, dir, checkpoint_files in os.walk(file_path):
+    for _, _, checkpoint_files in os.walk(file_path):
+
         for checkpoint_file in checkpoint_files:
             if regex.match(checkpoint_file):
                 checkpoints.append(checkpoint_file)
     return checkpoints
 
+
 def get_task_checkpoint(task):
-    """Harvest task checkpoint"""
+    """Harvest task checkpoint."""
     task_checkpoint = None
     try:
         # Try to get Hints
@@ -229,8 +223,9 @@ def get_task_checkpoint(task):
         task_checkpoint = hint_checkpoint
     return task_checkpoint
 
+
 def get_restart_file(task_checkpoint):
-    """Find latest checkpoint file"""
+    """Find latest checkpoint file."""
     checkpoint_file = ""
     try:
         file_regex = task_checkpoint['file_regex']
@@ -250,7 +245,8 @@ def get_restart_file(task_checkpoint):
         checkpoints.sort(key=os.path.getmtime)
         checkpoint_file = checkpoints[-1]
         log.info(f'Checkpoint file is {checkpoint_file}')
-    return(os.path.basename(checkpoint_file))
+    return os.path.basename(checkpoint_file)
+
 
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
@@ -264,7 +260,7 @@ def update_jobs():
             job['job_state'] = job_state
             update_task_state(task.id, job_state, output={})
 
-        if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT' ):
+        if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
             # Harvest CheckpointRequirment regex and path if it exists.
             task_checkpoint = get_task_checkpoint(task)
             if task_checkpoint:
