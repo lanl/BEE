@@ -16,6 +16,8 @@ import requests
 import threading
 import glob
 import os
+import re
+import string
 import traceback
 
 from flask import Flask, jsonify, make_response
@@ -191,6 +193,64 @@ def submit_jobs():
             # update_task_state(task.id, job_state, metadata=task_metadata)
             update_task_state(task.id, job_state)
 
+import os
+import re
+
+
+def get_checkpoints(file_regex, file_path):
+    """Retrieve List of Checkpoint files"""
+    checkpoints = []
+    regex = re.compile(file_regex)
+    for root, dir, checkpoint_files in os.walk(file_path):
+        for checkpoint_file in checkpoint_files:
+            if regex.match(checkpoint_file):
+                checkpoints.append(checkpoint_file)
+    return checkpoints
+
+def get_task_checkpoint(task):
+    """Harvest task checkpoint"""
+    task_checkpoint = None
+    try:
+        # Try to get Hints
+        hint_checkpoint = task.hints['beeflow:CheckpointRequirement']
+    except (KeyError, TypeError):
+        # Task Hints are not mandatory. No task checkpoint hint specified.
+        hint_checkpoint = None
+    try:
+        # Try to get Requirements
+        req_checkpoint = task.requirements['beeflow:CheckpointRequirement']
+    except (KeyError, TypeError):
+        # Task Requirements are not mandatory. No task checkpoint requirement specified.
+        req_checkpoint = None
+    # Prefer requirements over hints
+    if req_checkpoint:
+        task_checkpoint = req_checkpoint
+    elif hint_checkpoint:
+        task_checkpoint = hint_checkpoint
+    return task_checkpoint
+
+def get_restart_file(task_checkpoint):
+    """Find latest checkpoint file"""
+    checkpoint_file = ""
+    try:
+        file_regex = task_checkpoint['file_regex']
+    except (KeyError, TypeError):
+        file_regex = ""
+    try:
+        file_path = task_checkpoint['file_path']
+    except (KeyError, TypeError):
+        file_path = ""
+    if file_path != "":
+        # Replace environment variables
+        if "$" in file_path:
+            file_path = string.Template(file_path).substitute(os.environ)
+        checkpoints = get_checkpoints(file_regex, file_path)
+        # Find latest checkpoint file
+        checkpoints = [f'{file_path}/{file_name}' for file_name in checkpoints]
+        checkpoints.sort(key=os.path.getmtime)
+        checkpoint_file = checkpoints[-1]
+        log.info(f'Checkpoint file is {checkpoint_file}')
+    return(os.path.basename(checkpoint_file))
 
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
@@ -204,7 +264,16 @@ def update_jobs():
             job['job_state'] = job_state
             update_task_state(task.id, job_state, output={})
 
-        if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
+        if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT' ):
+            # Harvest CheckpointRequirment regex and path if it exists.
+            task_checkpoint = get_task_checkpoint(task)
+            if task_checkpoint:
+                checkpoint_file = get_restart_file(task_checkpoint)
+                metadata = {'checkpoint_filename': checkpoint_file, 'restart': True}
+                log.info(f'Restart: {task.name} metadata: {metadata}')
+
+        if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
+
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
             log.info(f'Job {job_id} done {task.name}: removed from job status queue')
