@@ -549,7 +549,7 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
                 workflow_id=rec["workflow_id"], task_id=rec["id"])
 
 
-def _reconstruct_metadata(metadata_record, keys):
+def _reconstruct_metadata(metadata_record):
     """Reconstruct a dict containing the job description metadata retrieved from Neo4j.
 
     :param metadata_record: the database record of the metadata
