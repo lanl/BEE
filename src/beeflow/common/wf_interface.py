@@ -133,8 +133,7 @@ class WorkflowInterface:
         :type task: Task
         :rtype: Task or None
         """
-        new_task = task.copy(new_id=True)
-        for hint in new_task.hints:
+        for hint in task.hints:
             if hint.class_ == "beeflow:CheckpointRequirement":
                 if hint.params["num_tries"] > 0:
                     hint.params["num_tries"] -= 1
@@ -145,6 +144,7 @@ class WorkflowInterface:
         else:
             raise ValueError("invalid task for checkpoint restart")
 
+        new_task = task.copy(new_id=True)
         metadata = self.get_task_metadata(task)
         self._gdb_interface.restart_task(task, new_task)
         self.set_task_metadata(new_task, metadata)
