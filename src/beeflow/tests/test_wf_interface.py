@@ -123,7 +123,6 @@ class TestWorkflowInterface(unittest.TestCase):
         tasks = self._create_test_tasks()
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
-        empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
 
         # Set tasks' metadata, set state to COMPLETED
         for task in tasks:
@@ -135,7 +134,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # States should be reset, metadata should be deleted
         for task in tasks:
-            self.assertDictEqual(empty_metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+            self.assertDictEqual(dict(), self.wfi.get_task_metadata(task))
             self.assertEqual("WAITING", self.wfi.get_task_state(task))
 
         # Workflow ID should be reset
@@ -376,7 +375,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.wfi.set_task_metadata(task, metadata)
 
         # Metadata should now be populated
-        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task))
 
     def test_get_task_input(self):
         self.wfi.initialize_workflow(
