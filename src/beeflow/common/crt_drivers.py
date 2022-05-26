@@ -6,17 +6,17 @@ from abc import ABC, abstractmethod
 import os
 from configparser import NoOptionError
 import sys
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
 if len(sys.argv) >= 2:
     USERCONFIG = sys.argv[1]
-    bc = BeeConfig(userconfig=USERCONFIG)
+    bc.init(userconfig=USERCONFIG)
 else:
     USERCONFIG = None
-    bc = BeeConfig()
+    bc.init()
 
 bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')

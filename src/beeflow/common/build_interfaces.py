@@ -12,7 +12,7 @@ components of the gdb_interface as required.
 import sys
 from subprocess import CalledProcessError
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 from beeflow.common.build.build_driver import arg2task
@@ -64,12 +64,12 @@ def build_main(bc, task):
 if __name__ == '__main__':
     try:
         userconfig = sys.argv[1]
-        bc = BeeConfig(userconfig=userconfig)
+        bc.init(userconfig=userconfig)
         my_args = sys.argv[2]
     except IndexError:
         raise IndexError('build_interface must execute with 2 arguments.')
 
-    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='build_interface.log')
 
     try:
