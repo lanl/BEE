@@ -97,11 +97,11 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         task_container_name = None
         # The container runtime treats hints and requirements as dicts
-        task.hints = dict(task.hints)
+        hints = dict(task.hints)
         task.requirements = dict(task.requirements)
         try:
             # Try to get Hints
-            hint_container_name = task.hints['DockerRequirement']['containerName']
+            hint_container_name = hints['DockerRequirement']['containerName']
         except (KeyError, TypeError):
             # Task Hints are not mandatory. No container_name specified in task hints.
             hint_container_name = None
@@ -127,7 +127,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_container_path = None
             try:
                 # Try to get Hints
-                hint_container_path = task.hints['DockerRequirement']['copyContainer']
+                hint_container_path = hints['DockerRequirement']['copyContainer']
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No container_path specified in task hints.
                 hint_container_path = None
@@ -153,7 +153,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_addr = None
             try:
                 # Try to get Hints
-                hint_addr = task.hints['DockerRequirement']['dockerPull']
+                hint_addr = hints['DockerRequirement']['dockerPull']
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No dockerPull image specified in task hints.
                 hint_addr = None
