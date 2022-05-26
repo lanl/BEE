@@ -63,8 +63,10 @@ class Workflow:
         Currently, the code is boilerplate. We do not support multiple workflows.
 
         :param other: the workflow with which to test equality
-        :type other: instance of Workflow
+        :type other: Workflow
         """
+        if type(other) is not Workflow:
+            return False
         id_sort = lambda i: i.id
         return bool(self.name == other.name and
                     sorted(self.hints) == sorted(other.hints) and
@@ -76,7 +78,7 @@ class Workflow:
         """Test the inequality of two workflows.
 
         :param other: the workflow with which to test inequality
-        :type other: instance of Workflow
+        :type other: Workflow
         """
         return bool(not self.__eq__(other))
 
@@ -161,9 +163,11 @@ class Task:
 
         Task ID and dependencies do not factor into equality testing.
         :param other: the task with which to test equality
-        :type other: instance of Task
+        :type other: Task
         :rtype: bool
         """
+        if type(other) is not Task:
+            return False
         id_sort = lambda i: i.id
         return bool(self.name == other.name and
                     self.base_command == other.base_command and
@@ -177,7 +181,7 @@ class Task:
         """Test the inequality of two tasks.
 
         :param other: the task with which to test inequality
-        :type other: instance of Task
+        :type other: Task
         :rtype: bool
         """
         return bool(not self.__eq__(other))
