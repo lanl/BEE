@@ -145,7 +145,7 @@ class WorkflowInterface:
         else:
             raise ValueError("invalid task for checkpoint restart")
 
-        metadata = self.get_task_metadata(new_task)
+        metadata = self.get_task_metadata(task)
         self._gdb_interface.restart_task(task, new_task)
         self.set_task_metadata(new_task, metadata)
         self.set_task_state(task, "RESTARTED")
