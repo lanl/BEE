@@ -204,9 +204,10 @@ def get_checkpoints(file_regex, file_path):
 def get_task_checkpoint(task):
     """Harvest task checkpoint."""
     task_checkpoint = None
+    hints = dict(task.hints)
     try:
         # Try to get Hints
-        hint_checkpoint = task.hints['beeflow:CheckpointRequirement']
+        hint_checkpoint = hints['beeflow:CheckpointRequirement']
     except (KeyError, TypeError):
         # Task Hints are not mandatory. No task checkpoint hint specified.
         hint_checkpoint = None
@@ -261,7 +262,7 @@ def update_jobs():
             update_task_state(task.id, job_state, output={})
 
         if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
-            # Harvest CheckpointRequirment regex and path if it exists.
+            # Harvest lastest checkpoint file.
             task_checkpoint = get_task_checkpoint(task)
             if task_checkpoint:
                 checkpoint_file = get_restart_file(task_checkpoint)
