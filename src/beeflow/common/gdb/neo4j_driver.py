@@ -559,4 +559,4 @@ def _reconstruct_metadata(metadata_record):
     :rtype: dict
     """
     rec = metadata_record["m"]
-    return {key: val for key, val in rec.items()}
+    return {key: val for key, val in rec.items() if key != "state"}
