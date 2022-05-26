@@ -424,9 +424,9 @@ def set_task_metadata(tx, task, metadata):
     for k, v in metadata.items():
         # Manual sanitization needed for keys as the official Neo4j driver does not
         # currently support parameter substitution for property keys
-        if fullmatch(r"[A-Za-z_][0-9A-Za-z_]*", k) is None:
+        if fullmatch(r"[A-Za-z][0-9A-Za-z_]*", k) is None:
             raise ValueError(f"invalid metadata key: {k}")
-        metadata_query = f"MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) SET m.{k} = $value"
+        metadata_query = f"MATCH (m:Metadata)-[:DESCRIBES]->(:Task {{id: $task_id}}) SET m.{k} = $value"
 
         tx.run(metadata_query, task_id=task.id, value=v)
 
