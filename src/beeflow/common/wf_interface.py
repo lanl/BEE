@@ -148,7 +148,8 @@ class WorkflowInterface:
         metadata = self.get_task_metadata(new_task)
         self._gdb_interface.restart_task(task, new_task)
         self.set_task_metadata(new_task, metadata)
-        self.set_task_state(new_task, "RESTARTED")
+        self.set_task_state(task, "RESTARTED")
+        self.set_task_state(new_task, "READY")
         return new_task
 
     def finalize_task(self, task):
