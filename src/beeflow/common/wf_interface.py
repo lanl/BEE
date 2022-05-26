@@ -136,7 +136,7 @@ class WorkflowInterface:
         new_task = task.copy(new_id=True)
         for hint in new_task.hints:
             if hint.class_ == "beeflow:CheckpointRequirement":
-                if hint["num_tries"] > 0:
+                if hint.params["num_tries"] > 0:
                     hint.params["num_tries"] -= 1
                     hint.params["bee_checkpoint_file__"] = checkpoint_file
                     break
