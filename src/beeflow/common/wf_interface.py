@@ -3,6 +3,8 @@
 Delegates its work to a GraphDatabaseInterface instance.
 """
 
+import re
+
 from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.wf_data import Workflow, Task
 
@@ -145,6 +147,15 @@ class WorkflowInterface:
             raise ValueError("invalid task for checkpoint restart")
 
         new_task = task.copy(new_id=True)
+        # Pattern match on task name
+        # Append (1) if not in name already
+        # Increment number on each restart
+        match = re.match(r".+\(([0-9]+)\)$", new_task.name)
+        if not match:
+            new_task.name += "(1)"
+        else:
+            i = int(match.group(1))
+            new_task.name = re.sub(r"\([0-9]+\)", f"({i + 1})", new_task.name)
         metadata = self.get_task_metadata(task)
         self._gdb_interface.restart_task(task, new_task)
         self.set_task_metadata(new_task, metadata)
