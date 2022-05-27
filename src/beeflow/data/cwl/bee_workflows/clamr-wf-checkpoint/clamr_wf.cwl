@@ -60,7 +60,7 @@ steps:
             copyContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"   
         beeflow:CheckpointRequirement:
             enabled: true
-            file_path: checkpoint_output
+            file_path: $HOME/checkpoint_output
             file_regex: backup[0-9]*.crx 
             restart_parameters: -R $(checkpoint_file)  
             num_tries: 3
