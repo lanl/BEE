@@ -46,8 +46,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         try:
             # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
-            # Require tasks to have unique names
-            self._require_tasks_unique()
         except ServiceUnavailable:
             print("Neo4j database unavailable. Is it running?")
 
@@ -391,10 +389,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         outputs = [_reconstruct_task_outputs(output_record) for output_record in output_records]
 
         return list(zip(trecords, hints, reqs, inputs, outputs))
-
-    def _require_tasks_unique(self):
-        """Require tasks to have unique names."""
-        self._write_transaction(tx.constrain_tasks_unique)
 
     def _read_transaction(self, tx_fun, **kwargs):
         """Run a Neo4j read transaction.

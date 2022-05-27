@@ -3,14 +3,6 @@
 from re import fullmatch
 
 
-def constrain_tasks_unique(tx):
-    """Constrain tasks to have unique names."""
-    unique_task_query = ("CREATE CONSTRAINT ON (t:Task) "
-                         "ASSERT t.id IS UNIQUE")
-
-    tx.run(unique_task_query)
-
-
 def create_workflow_node(tx, workflow):
     """Create a Workflow node in the Neo4j database.
 
