@@ -208,7 +208,8 @@ class TestWorkflowInterface(unittest.TestCase):
                         Requirement("NetworkAccess", {"networkAccess": True})]
         hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
                  Hint("NetworkAccess", {"networkAccess": True}),
-                 Hint("beeflow:CheckpointRequirement", {"file_path": "checkpoint_output",
+                 Hint("beeflow:CheckpointRequirement", {"file_path": "$HOME/checkpoint_output",
+                                                        "container_path": "checkpoint_output",
                                                         "file_regex": "backup[0-9]*.crx",
                                                         "restart_parameters": "-R",
                                                         "num_tries": 2})]
