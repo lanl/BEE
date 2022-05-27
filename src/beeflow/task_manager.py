@@ -111,7 +111,10 @@ def update_task_state(task_id, job_state, **kwargs):
     data = {'task_id': task_id, 'job_state': job_state}
     if 'metadata' in kwargs:
         metadata_json = jsonpickle.encode(kwargs['metadata'])
-        kwargs['metadata'] = metadata_json
+
+    if 'task_info' in kwargs:
+        task_info_json = jsonpickle.encode(kwargs['task_info'])
+
     data.update(kwargs)
     resp = requests.put(_resource("update/"),
                         json=data)
@@ -194,7 +197,6 @@ def get_checkpoints(file_regex, file_path):
     checkpoints = []
     regex = re.compile(file_regex)
     for _, _, checkpoint_files in os.walk(file_path):
-
         for checkpoint_file in checkpoint_files:
             if regex.match(checkpoint_file):
                 checkpoints.append(checkpoint_file)
@@ -246,7 +248,8 @@ def get_restart_file(task_checkpoint):
         checkpoints.sort(key=os.path.getmtime)
         checkpoint_file = checkpoints[-1]
         log.info(f'Checkpoint file is {checkpoint_file}')
-    return os.path.basename(checkpoint_file)
+        return os.path.basename(checkpoint_file)
+    return None
 
 
 def update_jobs():
@@ -256,21 +259,23 @@ def update_jobs():
         job_id = job['job_id']
         job_state = worker.query_task(job_id)
 
+        # If state changes update the WFM
         if job_state != job['job_state']:
             log.info(f'{task.name} {job["job_state"]} -> {job_state}')
             job['job_state'] = job_state
-            update_task_state(task.id, job_state, output={})
+            if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
+                # Harvest lastest checkpoint file.
+                task_checkpoint = get_task_checkpoint(task)
+                if task_checkpoint:
+                    checkpoint_file = get_restart_file(task_checkpoint)
+                    task_info = {'checkpoint_filename': checkpoint_file, 'restart': True}
+                    log.info(f'Restart: {task.name} task_info: {task_info}')
+                update_task_state(task.id, job_state, task_info=task_info)
+            else:
+                update_task_state(task.id, job_state)
 
-        if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
-            # Harvest lastest checkpoint file.
-            task_checkpoint = get_task_checkpoint(task)
-            if task_checkpoint:
-                checkpoint_file = get_restart_file(task_checkpoint)
-                metadata = {'checkpoint_filename': checkpoint_file, 'restart': True}
-                log.info(f'Restart: {task.name} metadata: {metadata}')
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
-
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
             log.info(f'Job {job_id} done {task.name}: removed from job status queue')
@@ -285,7 +290,7 @@ def process_queues():
 if "pytest" not in sys.modules:
     # TODO Decide on the time interval for the scheduler
     scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
-    scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
+    scheduler.add_job(func=process_queues, trigger="interval", seconds=8)
     scheduler.start()
 
     # This kills the scheduler when the process terminates
