@@ -241,7 +241,11 @@ class Task:
                 if "bee_checkpoint_file__" in hint.params:
                     if "restart_parameters" in hint.params:
                         command.append(hint.params["restart_parameters"])
-                    command.append(hint.params["bee_checkpoint_file__"])
+                    if "file_path" in hint.params:
+                        command.append(hint.params["file_path"] +
+                                       "/" + hint.params["bee_checkpoint_file__"])
+                    else:
+                        command.append(hint.params["bee_checkpoint_file__"])
                 break
 
         return command
