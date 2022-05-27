@@ -208,12 +208,13 @@ class TestWorkflowInterface(unittest.TestCase):
                         Requirement("NetworkAccess", {"networkAccess": True})]
         hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
                  Hint("NetworkAccess", {"networkAccess": True}),
-                 Hint("beeflow:CheckpointRequirement", {"file_path": "checkpoint_output",
+                 Hint("beeflow:CheckpointRequirement", {"file_path": "$HOME/checkpoint_output",
+                                                        "container_path": "checkpoint_output",
                                                         "file_regex": "backup[0-9]*.crx",
                                                         "restart_parameters": "-R",
                                                         "num_tries": 2})]
         stdout = "output.txt"
-        test_checkpoint_file = "test_checkpoint_file.crx"
+        test_checkpoint_file = "backup0.crx"
 
         self.wfi.initialize_workflow("test_workflow",
                                      [InputParameter("test_input", "File", "input.txt")],
@@ -242,6 +243,11 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(self.wfi.get_task_metadata(task),
                          self.wfi.get_task_metadata(new_task))
 
+        # Check that task command includes checkpoint file
+        self.assertListEqual(['ls', '-a', '-F', '-l', 'input.txt', '-R',
+                              'checkpoint_output/backup0.crx'],
+                              new_task.command)
+
         # Restart once again
         newer_task = self.wfi.restart_task(new_task, test_checkpoint_file)
 
@@ -258,6 +264,11 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Restart on more time (should return None)
         self.assertIsNone(self.wfi.restart_task(newer_task, test_checkpoint_file))
+
+        # Check that task command includes checkpoint file
+        self.assertListEqual(['ls', '-a', '-F', '-l', 'input.txt', '-R',
+                              'checkpoint_output/backup0.crx'],
+                              newer_task.command)
 
     def test_finalize_task(self):
         """Test finalization of completed tasks."""
