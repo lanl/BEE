@@ -248,7 +248,7 @@ def get_restart_file(task_checkpoint):
         checkpoints.sort(key=os.path.getmtime)
         checkpoint_file = checkpoints[-1]
         log.info(f'Checkpoint file is {checkpoint_file}')
-        return checkpoint_file
+        return os.path.basename(checkpoint_file)
     return None
 
 
