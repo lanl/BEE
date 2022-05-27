@@ -110,10 +110,10 @@ def update_task_state(task_id, job_state, **kwargs):
     """Informs the workflow manager of the current state of a task."""
     data = {'task_id': task_id, 'job_state': job_state}
     if 'metadata' in kwargs:
-        metadata_json = jsonpickle.encode(kwargs['metadata'])
+        kwargs['metadata'] = jsonpickle.encode(kwargs['metadata'])
 
     if 'task_info' in kwargs:
-        task_info_json = jsonpickle.encode(kwargs['task_info'])
+        kwargs['task_info'] = jsonpickle.encode(kwargs['task_info'])
 
     data.update(kwargs)
     resp = requests.put(_resource("update/"),
@@ -268,7 +268,7 @@ def update_jobs():
                 task_checkpoint = get_task_checkpoint(task)
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint)
-                    task_info = {'checkpoint_filename': checkpoint_file, 'restart': True}
+                    task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
                     log.info(f'Restart: {task.name} task_info: {task_info}')
                 update_task_state(task.id, job_state, task_info=task_info)
             else:
