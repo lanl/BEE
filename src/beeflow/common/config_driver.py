@@ -178,21 +178,32 @@ def check_choice(msg, opts):
         print(f'ERROR: invalid option: {value}')
 
 
+def join_path(*pargs):
+    """Join multiple dirnames together to form a path."""
+    path = pargs[0]
+    for part in pargs[1:]:
+        path = os.path.join(path, part)
+    return path
+
+
 def job_template_init(path):
     """Job template init function."""
     if not check_yes(f'Do you want to write a default job template to "{path}"?'):
         return
     template = check_choice('What template should be generated?', ('Slurm', 'LSF', 'Simple'))
     template_files = {
-        'Slurm': '/'.join(['data', 'slurm-submit.jinja']),
-        'LSF': None,
-        'Simple': None,
+        'Slurm': 'slurm-submit.jinja',
     }
-    pkg_name = __package__.split('.')[0]
-    data = pkgutil.get_data(pkg_name, template_files[template])
-    # shutil.copy(template_file[template], path)
-    with open(path, 'w') as fp:
-        fp.write(data)
+    if template not in template_files:
+        raise NotImplementedError(f'generation of template file "{template}" is not implemented')
+    fname = template_files[template]
+    # I don't like how this is done, but there seems to be some difficulties
+    # with using the pkgutil.get_data() method and the importlib.resources
+    # module.
+    common = os.path.dirname(__file__)
+    beeflow = os.path.dirname(common)
+    file_path = join_path(beeflow, 'data', 'job_templates', fname)
+    shutil.copy(file_path, path)
 
 
 # Below is the definition of all bee config options, defaults and requirements.
@@ -231,6 +242,9 @@ VALIDATOR.option('task_manager', 'listen_port', default=DEFAULT_TM_PORT, validat
 VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
                  choices=('Charliecloud', 'Singularity'),
                  info='container runtime to use for configuration')
+# Note: I've added a special attrs keyword which can include anything. In this
+# case it's being used to store a special 'init' function that can be used to
+# initialize the parameter when a user is generating a new configuration.
 VALIDATOR.option('task_manager', 'job_template', required=True,
                  info='job template to use for generating submission scripts',
                  validator=validate_file,
