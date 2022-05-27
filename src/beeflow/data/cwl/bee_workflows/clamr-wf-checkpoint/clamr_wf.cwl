@@ -62,7 +62,7 @@ steps:
             enabled: true
             file_path: $HOME/checkpoint_output
             file_regex: backup[0-9]*.crx 
-            restart_parameters: -R $(checkpoint_file)  
+            restart_parameters: -R
             num_tries: 3
             
   ffmpeg:

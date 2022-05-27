@@ -82,6 +82,16 @@ class GraphDatabaseInterface:
     def initialize_ready_tasks(self):
         """Set runnable tasks in a workflow to ready."""
         self._connection.initialize_ready_tasks()
+    
+    def restart_task(self, old_task, new_task):
+        """Create a new task from a failed task checkpoint restart enabled.
+        
+        :param old_task: the failed task
+        :type old_task: Task
+        :param new_task: the new (restarted) task
+        :type new_task: Task
+        """
+        self._connection.restart_task(old_task, new_task)
 
     def finalize_task(self, task):
         """Set a task's state to completed.
@@ -158,16 +168,14 @@ class GraphDatabaseInterface:
         """
         return self._connection.set_task_state(task, state)
 
-    def get_task_metadata(self, task, keys):
+    def get_task_metadata(self, task):
         """Return the job description metadata of a task.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
-        :param keys: the metadata keys whose values to retrieve
-        :type keys: iterable of str
         :rtype: dict
         """
-        return self._connection.get_task_metadata(task, keys)
+        return self._connection.get_task_metadata(task)
 
     def set_task_metadata(self, task, metadata):
         """Set the job description metadata of a task.

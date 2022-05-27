@@ -123,7 +123,6 @@ class TestWorkflowInterface(unittest.TestCase):
         tasks = self._create_test_tasks()
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
-        empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
 
         # Set tasks' metadata, set state to COMPLETED
         for task in tasks:
@@ -135,7 +134,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # States should be reset, metadata should be deleted
         for task in tasks:
-            self.assertDictEqual(empty_metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+            self.assertDictEqual(dict(), self.wfi.get_task_metadata(task))
             self.assertEqual("WAITING", self.wfi.get_task_state(task))
 
         # Workflow ID should be reset
@@ -197,6 +196,68 @@ class TestWorkflowInterface(unittest.TestCase):
         gdb_task = self.wfi.get_task_by_id(task.id)
         self.assertEqual(task, gdb_task)
         self.assertEqual(task.id, gdb_task.id)
+    
+    def test_restart_task(self):
+        """Test restart of failed task."""
+        task_name = "test_task"
+        base_command = ["ls", "-a", "-F"]
+        inputs = [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", "-l",
+                            None, None)]
+        outputs = [StepOutput("test_input/test_task_done", "stdout", "output.txt", "output.txt")]
+        requirements = [Requirement("ResourceRequirement", {"ramMin": 1024}),
+                        Requirement("NetworkAccess", {"networkAccess": True})]
+        hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
+                 Hint("NetworkAccess", {"networkAccess": True}),
+                 Hint("beeflow:CheckpointRequirement", {"file_path": "checkpoint_output",
+                                                        "file_regex": "backup[0-9]*.crx",
+                                                        "restart_parameters": "-R",
+                                                        "num_tries": 2})]
+        stdout = "output.txt"
+        test_checkpoint_file = "test_checkpoint_file.crx"
+
+        self.wfi.initialize_workflow("test_workflow",
+                                     [InputParameter("test_input", "File", "input.txt")],
+                                     [OutputParameter("test_output", "File", "output.txt",
+                                                      "test_input/test_task_done")])
+        task = self.wfi.add_task(
+            name=task_name,
+            base_command=base_command,
+            inputs=inputs,
+            outputs=outputs,
+            requirements=requirements,
+            hints=hints,
+            stdout=stdout)
+        
+        # Restart the task, should create a new Task
+        new_task = self.wfi.restart_task(task, test_checkpoint_file)
+
+        # Assert equality of Task objects
+        self.assertNotEqual(task.id, new_task.id)
+        self.assertEqual("test_task(1)", new_task.name)
+
+        # Assert equality of graph database objects
+        self.assertEqual(new_task, self.wfi.get_task_by_id(new_task.id))
+        self.assertEqual("RESTARTED", self.wfi.get_task_state(task))
+        self.assertEqual("READY", self.wfi.get_task_state(new_task))
+        self.assertEqual(self.wfi.get_task_metadata(task),
+                         self.wfi.get_task_metadata(new_task))
+
+        # Restart once again
+        newer_task = self.wfi.restart_task(new_task, test_checkpoint_file)
+
+        # Assert equality of Task objects
+        self.assertNotEqual(new_task.id, newer_task.id)
+        self.assertEqual("test_task(2)", newer_task.name)
+
+        # Assert equality of graph database objects
+        self.assertEqual(newer_task, self.wfi.get_task_by_id(newer_task.id))
+        self.assertEqual("RESTARTED", self.wfi.get_task_state(new_task))
+        self.assertEqual("READY", self.wfi.get_task_state(newer_task))
+        self.assertEqual(self.wfi.get_task_metadata(new_task),
+                         self.wfi.get_task_metadata(newer_task))
+
+        # Restart on more time (should return None)
+        self.assertIsNone(self.wfi.restart_task(newer_task, test_checkpoint_file))
 
     def test_finalize_task(self):
         """Test finalization of completed tasks."""
@@ -353,7 +414,7 @@ class TestWorkflowInterface(unittest.TestCase):
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
         self.wfi.set_task_metadata(task, metadata)
-        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task))
 
     def test_set_task_metadata(self):
         """Test the setting of task metadata."""
@@ -369,15 +430,14 @@ class TestWorkflowInterface(unittest.TestCase):
             [StepOutput("test_task/output", "File", "output.txt", "output.txt")])
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
-        empty_metadata = {"cluster": None, "crt": None, "container_md5": None, "job_id": None}
 
         # Metadata should be empty
-        self.assertDictEqual(empty_metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+        self.assertDictEqual(dict(), self.wfi.get_task_metadata(task))
 
         self.wfi.set_task_metadata(task, metadata)
 
         # Metadata should now be populated
-        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task, metadata.keys()))
+        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task))
 
     def test_get_task_input(self):
         self.wfi.initialize_workflow(
