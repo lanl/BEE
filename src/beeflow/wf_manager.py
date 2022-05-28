@@ -666,17 +666,19 @@ class JobUpdate(Resource):
         elif job_state == "FAILED" or job_state == "TIMEOUT":
             if 'task_info' in data:
                 task_info = jsonpickle.decode(data['task_info'])
+                checkpoint_file = task_info['checkpoint_file']
+                new_task = wfi.restart_task(task, checkpoint_file)
+                if new_task is None:                    
+                    log.info("No more restarts")
+                    resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
+                    return resp
+                else:                               
+                    submit_tasks_tm([new_task])       
             else:
                 log.info("TM didn't send task info for failed task")
                 resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
                 return resp
 
-            checkpoint_file = task_info['checkpoint_file']
-            new_task = wfi.restart_task(task, checkpoint_file)
-            if new_task is None:                    
-                log.info("No more restarts")
-            else:                               
-                submit_tasks_tm([new_task])       
 
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp

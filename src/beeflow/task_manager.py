@@ -270,7 +270,9 @@ def update_jobs():
                     checkpoint_file = get_restart_file(task_checkpoint)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
                     log.info(f'Restart: {task.name} task_info: {task_info}')
-                update_task_state(task.id, job_state, task_info=task_info)
+                    update_task_state(task.id, job_state, task_info=task_info)
+                else:
+                    update_task_state(task.id, job_state)
             else:
                 update_task_state(task.id, job_state)
 
