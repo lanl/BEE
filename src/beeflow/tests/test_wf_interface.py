@@ -232,7 +232,7 @@ class TestWorkflowInterface(unittest.TestCase):
         # Restart the task, should create a new Task
         new_task = self.wfi.restart_task(task, test_checkpoint_file)
 
-        # Assert equality of Task objects
+        # Assert inequality of Task objects
         self.assertNotEqual(task.id, new_task.id)
         self.assertEqual("test_task(1)", new_task.name)
 
@@ -251,7 +251,7 @@ class TestWorkflowInterface(unittest.TestCase):
         # Restart once again
         newer_task = self.wfi.restart_task(new_task, test_checkpoint_file)
 
-        # Assert equality of Task objects
+        # Assert inequality of Task objects
         self.assertNotEqual(new_task.id, newer_task.id)
         self.assertEqual("test_task(2)", newer_task.name)
 
