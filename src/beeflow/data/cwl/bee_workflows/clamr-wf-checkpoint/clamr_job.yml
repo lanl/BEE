@@ -1,5 +1,5 @@
 # Inputs for CLAMR
-# /clamr/CLAMR-master/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png -c 5
+# /clamr/CLAMR-master/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png -c 50
 
 grid_resolution: 32
 max_levels: 3
