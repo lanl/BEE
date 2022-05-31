@@ -183,6 +183,7 @@ def query_workflow(wf_id):
         if resp.status_code != requests.codes.okay:
             raise ApiError("GET /jobs {}".format(resp.status_code, matched_id))
         task_status = resp.json()['msg']
+        print(task_status)
         logging.info('Query job: ' + resp.text)
 
 # Sends a request to the server to delete the resource 
