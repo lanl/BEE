@@ -18,8 +18,17 @@ _SYSTEM = platform.system()
 class BeeConfig:
     r"""Class to manage and store all BEE configuration.
 
-    BeeConfig.sysconfig is a ConfigParser object of system configurations.
-    BeeConfig.userconfig is a ConfigParser object of user configurations.
+    All configuration values can be retrieved by using the get(section, key)
+    class method. If those particular values are not in the config file, then
+    defaults will be set, or a validation error raised, based on the validation code
+    within the module.
+
+    When new configuration keys are needed, they should be added to the
+    validation code, along with information about the allowed input types, and
+    general text for the user. If a key isn't added, but other code tries to
+    access it, then an error will be raised letting the programmer know that the
+    key needs to be added to the validation. This will hopefully help manage
+    complexity and act as documentation as more keys are added.
 
     Configuration file locations by supported platform:
     Linux:

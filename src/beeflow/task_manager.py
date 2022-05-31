@@ -21,7 +21,7 @@ import traceback
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 
 # This must be imported before calling other parts of BEE
 if len(sys.argv) >= 2:

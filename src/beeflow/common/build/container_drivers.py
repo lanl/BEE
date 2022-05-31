@@ -7,7 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
 from beeflow.common.build.build_driver import BuildDriver
@@ -44,94 +44,108 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         :type kwargs: set of build system parameters
         """
         if userconf_file:
-            bc = BeeConfig(userconfig=userconf_file)
+            bc.init(userconfig=userconf_file)
         else:
-            bc = BeeConfig()
+            bc.init()
         # Store build logs relative to bee_workdir.
-        try:
-            if bc.userconfig['DEFAULT'].get('bee_workdir'):
-                bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
-            else:
-                # Can't log if we don't know where to log, just print error
-                print('Invalid config file. bee_workdir not found in DEFAULT.', file=sys.stderr)
-                print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
-                bee_workdir = '~/.beeflow'
-        except KeyError:
-            # Can't log if we don't know where to log, just print error
-            print('Invalid config file. DEFAULT section missing.', file=sys.stderr)
-            print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
-            bee_workdir = '~/.beeflow'
-        finally:
-            _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
-                                     logfile='CharliecloudBuildDriver.log')
+        #try:
+        #    if bc.userconfig['DEFAULT'].get('bee_workdir'):
+        #        bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
+        #    else:
+        #        # Can't log if we don't know where to log, just print error
+        #        print('Invalid config file. bee_workdir not found in DEFAULT.', file=sys.stderr)
+        #        print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
+        #        bee_workdir = '~/.beeflow'
+        #except KeyError:
+        #    # Can't log if we don't know where to log, just print error
+        #    print('Invalid config file. DEFAULT section missing.', file=sys.stderr)
+        #    print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
+        #    bee_workdir = '~/.beeflow'
+        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+        #finally:
+        _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
+                                 logfile='CharliecloudBuildDriver.log')
         # Store build container archive pased on config file or relative to bee_workdir if not set.
-        try:
-            if bc.userconfig['builder'].get('container_archive'):
-                container_archive = bc.userconfig['builder'].get('container_archive')
-            else:
-                # Set container archive relative to bee_workdir if config does not specify
-                log.warning('Invalid config file. container_archive not found in builder section.')
-                container_archive = '/'.join([bee_workdir, 'container_archive'])
-                log.warning(f'Assuming container_archive is {container_archive}')
-        except KeyError:
-            log.warning('Container is missing builder section')
-            log.warning('Setting container archive relative to bee_workdir')
-            container_archive = f'{bee_workdir}/container_archive'
-        finally:
-            self.container_archive = bc.resolve_path(container_archive)
-            os.makedirs(self.container_archive, exist_ok=True)
-            bc.modify_section('user', 'builder', {'container_archive': self.container_archive})
-            log.info(f'Build container archive directory is: {self.container_archive}')
-            log.info("Wrote deployed image root to user BeeConfig file.")
+        #try:
+        #    if bc.userconfig['builder'].get('container_archive'):
+        #        container_archive = bc.userconfig['builder'].get('container_archive')
+        #    else:
+        #        # Set container archive relative to bee_workdir if config does not specify
+        #        log.warning('Invalid config file. container_archive not found in builder section.')
+        #        container_archive = '/'.join([bee_workdir, 'container_archive'])
+        #        log.warning(f'Assuming container_archive is {container_archive}')
+        #except KeyError:
+        #    log.warning('Container is missing builder section')
+        #    log.warning('Setting container archive relative to bee_workdir')
+        #    container_archive = f'{bee_workdir}/container_archive'
+        #finally:
+        #    self.container_archive = bc.resolve_path(container_archive)
+        #    os.makedirs(self.container_archive, exist_ok=True)
+        #    bc.modify_section('user', 'builder', {'container_archive': self.container_archive})
+        #    log.info(f'Build container archive directory is: {self.container_archive}')
+        #    log.info("Wrote deployed image root to user BeeConfig file.")
+        container_archive = bc.get('builder', 'container_archive')
+        self.container_archive = bc.resolve_path(container_archive)
+        os.makedirs(self.container_archive, exist_ok=True)
         # Deploy build tarballs relative to /var/tmp/username/beeflow by default
-        try:
-            if bc.userconfig['builder'].get('deployed_image_root'):
-                deployed_image_root = bc.userconfig['builder'].get('deployed_image_root')
-                # Make sure conf_file path exists
-                os.makedirs(deployed_image_root, exist_ok=True)
-                # Make sure path is absolute
-                deployed_image_root = bc.resolve_path(deployed_image_root)
-            else:
-                log.info('Deployed image root not found.')
-                deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
-                                               'beeflow_deployed_containers'])
-                # Make sure conf_file path exists
-                os.makedirs(deployed_image_root, exist_ok=True)
-                # Make sure path is absolute
-                deployed_image_root = bc.resolve_path(deployed_image_root)
-                log.info(f'Assuming deployed image root is {deployed_image_root}')
-        except KeyError:
-            log.info('Config file is missing builder section.')
-            deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
-                                           'beeflow_deployed_containers'])
-            # Make sure conf_file path exists
-            os.makedirs(deployed_image_root, exist_ok=True)
-            # Make sure path is absolute
-            deployed_image_root = bc.resolve_path(deployed_image_root)
-            log.info(f'Assuming deployed image root is {deployed_image_root}')
-        finally:
-            self.deployed_image_root = deployed_image_root
-            os.makedirs(self.deployed_image_root, exist_ok=True)
-            bc.modify_section('user', 'builder', {'deployed_image_root': self.deployed_image_root})
-            log.info(f'Deployed image root directory is: {self.deployed_image_root}')
-            log.info("Wrote deployed image root to user BeeConfig file.")
+        #try:
+        #    if bc.userconfig['builder'].get('deployed_image_root'):
+        #        deployed_image_root = bc.userconfig['builder'].get('deployed_image_root')
+        #        # Make sure conf_file path exists
+        #        os.makedirs(deployed_image_root, exist_ok=True)
+        #        # Make sure path is absolute
+        #        deployed_image_root = bc.resolve_path(deployed_image_root)
+        #    else:
+        #        log.info('Deployed image root not found.')
+        #        deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
+        #                                       'beeflow_deployed_containers'])
+        #        # Make sure conf_file path exists
+        #        os.makedirs(deployed_image_root, exist_ok=True)
+        #        # Make sure path is absolute
+        #        deployed_image_root = bc.resolve_path(deployed_image_root)
+        #        log.info(f'Assuming deployed image root is {deployed_image_root}')
+        #except KeyError:
+        #    log.info('Config file is missing builder section.')
+        #    deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
+        #                                   'beeflow_deployed_containers'])
+        #    # Make sure conf_file path exists
+        #    os.makedirs(deployed_image_root, exist_ok=True)
+        #    # Make sure path is absolute
+        #    deployed_image_root = bc.resolve_path(deployed_image_root)
+        #    log.info(f'Assuming deployed image root is {deployed_image_root}')
+        #finally:
+        #    self.deployed_image_root = deployed_image_root
+        #    os.makedirs(self.deployed_image_root, exist_ok=True)
+        #    bc.modify_section('user', 'builder', {'deployed_image_root': self.deployed_image_root})
+        #    log.info(f'Deployed image root directory is: {self.deployed_image_root}')
+        #    log.info("Wrote deployed image root to user BeeConfig file.")
+        # Deploy build tarballs relative to /var/tmp/username/beeflow by default
+        deployed_image_root = bc.get('builder', 'deployed_image_root')
+        # Make sure conf_file path exists
+        os.makedirs(deployed_image_root, exist_ok=True)
+        # Make sure path is absolute
+        deployed_image_root = bc.resolve_path(deployed_image_root)
+        self.deployed_image_root = deployed_image_root
+        os.makedirs(self.deployed_image_root, exist_ok=True)
         # Set container-relative output directory based on BeeConfig, or use '/'
-        try:
-            container_output_path = bc.userconfig['builder'].get('container_output_path')
-            # If the builder section exists but not the container_output_path entry,
-            # bc will return "None". Treat this is as a KeyError.
-            if not container_output_path:
-                raise KeyError
-        except KeyError:
-            container_output_path = '/'
-            log.info(f'Assuming container-relative output path is {container_output_path}')
-            bc.modify_section('user', 'builder', {'container_output_path': container_output_path})
-            log.info('Wrote container-relative output path to user BeeConfig file.')
-        finally:
-            self.container_output_path = container_output_path
-            log.info(f'Container-relative output path is: {self.container_output_path}')
+        #try:
+        #    container_output_path = bc.userconfig['builder'].get('container_output_path')
+        #    # If the builder section exists but not the container_output_path entry,
+        #    # bc will return "None". Treat this is as a KeyError.
+        #    if not container_output_path:
+        #        raise KeyError
+        #except KeyError:
+        #    container_output_path = '/'
+        #    log.info(f'Assuming container-relative output path is {container_output_path}')
+        #    bc.modify_section('user', 'builder', {'container_output_path': container_output_path})
+        #    log.info('Wrote container-relative output path to user BeeConfig file.')
+        #finally:
+        #    self.container_output_path = container_output_path
+        #    log.info(f'Container-relative output path is: {self.container_output_path}')
+        container_output_path = bc.get('builder', 'container_output_path')
+        self.container_output_path = container_output_path
         # record that a Charliecloud builder was used
-        bc.modify_section('user', 'builder', {'container_type': 'charliecloud'})
+        # bc.modify_section('user', 'builder', {'container_type': 'charliecloud'})
         self.task = task
         self.docker_image_id = None
         self.container_name = None
