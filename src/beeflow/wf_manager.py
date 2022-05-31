@@ -670,6 +670,8 @@ class JobUpdate(Resource):
                 new_task = wfi.restart_task(task, checkpoint_file)
                 if new_task is None:                    
                     log.info("No more restarts")
+                    state = "FAIL: RESTARTS EXCEEDED"
+                    wfi.set_task_state(task, job_state)
                     resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
                     return resp
                 else:                               
