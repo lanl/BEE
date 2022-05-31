@@ -1,6 +1,7 @@
 """Defines data structures for holding task and workflow data."""
 from collections import namedtuple
 from uuid import uuid4
+from copy import deepcopy
 
 # Workflow input parameter class
 InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
@@ -127,10 +128,10 @@ class Task:
         self.workflow_id = workflow_id
 
         # Task ID as UUID if not given
-        if task_id:
-            self.id = task_id
-        else:
+        if task_id is None:
             self.id = self.generate_workflow_id()
+        else:
+            self.id = task_id
 
     def generate_workflow_id(self):
         """Generate a unique workflow ID.
@@ -146,17 +147,11 @@ class Task:
         :type new_id: bool
         :rtype: Task
         """
-        if new_id:
-            return Task(name=self.name, base_command=self.base_command,
-                        hints=self.hints, requirements=self.requirements,
-                        inputs=self.inputs, outputs=self.outputs,
-                        stdout=self.stdout, workflow_id=self.workflow_id)
-        else:
-            return Task(name=self.name, base_command=self.base_command,
-                        hints=self.hints, requirements=self.requirements,
-                        inputs=self.inputs, outputs=self.outputs,
-                        stdout=self.stdout, workflow_id=self.workflow_id,
-                        task_id=self.id)
+        task_id = self.generate_workflow_id() if new_id else self.id
+        return Task(name=self.name, base_command=self.base_command,
+                    hints=deepcopy(self.hints), requirements=deepcopy(self.requirements),
+                    inputs=deepcopy(self.inputs), outputs=deepcopy(self.outputs),
+                    stdout=self.stdout, workflow_id=self.workflow_id, task_id=task_id)
 
     def __eq__(self, other):
         """Test the equality of two tasks.
