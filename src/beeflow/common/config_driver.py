@@ -61,6 +61,11 @@ class BeeConfig:
         )
 
     @classmethod
+    def ready(cls):
+        """Check if the class is ready (i.e. if BeeConfig has been initialized)."""
+        return cls.CONFIG is not None
+
+    @classmethod
     def init(cls, userconfig=None, **kwargs):
         """Initialize BeeConfig class.
 
@@ -121,7 +126,14 @@ class BeeConfig:
            specify a default here."""
         if cls.CONFIG is None:
             raise RuntimeError('BeeConfig has not been initialized')
-        return cls.CONFIG[sec_name][opt_name]
+        try:
+            return cls.CONFIG[sec_name][opt_name]
+        except KeyError:
+            raise RuntimeError(
+                f'Option {sec_name}::{opt_name} was not found. Please contact '
+                'a BEE developer or check the validation code in '
+                'src/beeflow/common/config_driver.py.'
+            ) from None
 
     @staticmethod
     def resolve_path(relative_path):
@@ -259,6 +271,8 @@ VALIDATOR.option('task_manager', 'listen_port', default=DEFAULT_TM_PORT, validat
 VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
                  choices=('Charliecloud', 'Singularity'),
                  info='container runtime to use for configuration')
+VALIDATOR.option('task_manager', 'runner_opts', validator=str,
+                 info='special runner options to pass to the runner opts')
 # Note: I've added a special attrs keyword which can include anything. In this
 # case it's being used to store a special 'init' function that can be used to
 # initialize the parameter when a user is generating a new configuration.

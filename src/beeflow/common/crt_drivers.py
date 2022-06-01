@@ -11,14 +11,9 @@ from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
-if len(sys.argv) >= 2:
-    USERCONFIG = sys.argv[1]
-    bc.init(userconfig=USERCONFIG)
-else:
-    USERCONFIG = None
-    bc.init()
+USERCONFIG = bc.userconfig_path()
 
-bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
 

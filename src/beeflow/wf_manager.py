@@ -17,9 +17,9 @@ from beeflow.common.config_driver import BeeConfig as bc
 
 # The bc object must be created before importing other parts of BEE
 if len(sys.argv) > 2:
-    bc = bc.init(userconfig=sys.argv[1])
+    bc.init(userconfig=sys.argv[1])
 else:
-    bc = bc.init()
+    bc.init()
 
 # Server and REST handlin
 from flask import Flask, jsonify, make_response

@@ -8,34 +8,34 @@ import os
 import argparse
 import subprocess
 import getpass
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
-    os.makedirs(bc.userconfig.get('DEFAULT','bee_workdir'), exist_ok=True)
-    with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
+    os.makedirs(bc.get('DEFAULT','bee_workdir'), exist_ok=True)
+    with open('{}/{}'.format(str(bc.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 
 def StartGDB(bc, gdb_workdir, reexecute=False, debug=False):
     """Start the graph database. Returns a Popen process object."""
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    bee_workdir = bc.get('DEFAULT','bee_workdir')
     gdb_handler = bee_logging.save_log(bee_workdir=bee_workdir, log=gdb_log, logfile='gdb_launch.log')
     # Load gdb config from config file if exists
-    try:
-        bc.userconfig['graphdb']
-    except KeyError:
-        graphdb_dict = {
-            'hostname': 'localhost',
-            'dbpass': 'password',
-            'bolt_port': bc.default_bolt_port,
-            'http_port': bc.default_http_port,
-            'https_port': bc.default_https_port ,
-            'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
-            'gdb_image_mntdir': '/tmp',
-        }
-        # Add section (writes to config file)
-        bc.modify_section('user','graphdb',graphdb_dict)
+    #try:
+    #    bc.userconfig['graphdb']
+    #except KeyError:
+    #    graphdb_dict = {
+    #        'hostname': 'localhost',
+    #        'dbpass': 'password',
+    #        'bolt_port': bc.default_bolt_port,
+    #        'http_port': bc.default_http_port,
+    #        'https_port': bc.default_https_port ,
+    #        'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
+    #        'gdb_image_mntdir': '/tmp',
+    #    }
+    #    # Add section (writes to config file)
+    #    bc.modify_section('user','graphdb',graphdb_dict)
 
     if shutil.which("ch-convert") == None or shutil.which("ch-run") == None:
         gdb_log.error("ch-convert or ch-run not found. Charliecloud required for neo4j container.")
@@ -46,13 +46,13 @@ def StartGDB(bc, gdb_workdir, reexecute=False, debug=False):
     stderr = sys.stderr
 
     # Read the config file back in
-    db_hostname = bc.userconfig.get('graphdb','hostname')
-    db_password = bc.userconfig.get('graphdb','dbpass')
-    bolt_port   = bc.userconfig.get('graphdb','bolt_port')
-    http_port   = bc.userconfig.get('graphdb','http_port')
-    https_port  = bc.userconfig.get('graphdb','https_port')
-    gdb_img     = bc.userconfig.get('graphdb','gdb_image')
-    gdb_img_mntdir = bc.userconfig.get('graphdb','gdb_image_mntdir')
+    db_hostname = bc.get('graphdb','hostname')
+    db_password = bc.get('graphdb','dbpass')
+    bolt_port   = bc.get('graphdb','bolt_port')
+    http_port   = bc.get('graphdb','http_port')
+    https_port  = bc.get('graphdb','https_port')
+    gdb_img     = bc.get('graphdb','gdb_image')
+    gdb_img_mntdir = bc.get('graphdb','gdb_image_mntdir')
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
     if debug:
@@ -153,7 +153,8 @@ def StartGDB(bc, gdb_workdir, reexecute=False, debug=False):
 
 
 gdb_log = bee_logging.setup_logging(level='DEBUG')
-bc = BeeConfig()
+if not bc.ready():
+    bc.init()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

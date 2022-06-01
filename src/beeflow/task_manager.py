@@ -253,9 +253,9 @@ if worker_class is None:
 worker_kwargs = {
     'bee_workdir': bc.get('DEFAULT', 'bee_workdir'),
     'container_runtime': bc.get('task_manager', 'container_runtime'),
-    'job_template': bc.get('task_manager', 'job_template', fallback=None),
+    'job_template': bc.get('task_manager', 'job_template'),
     # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
-    'runner_opts': bc.get('task_manager', 'runner_opts', fallback=None),
+    'runner_opts': bc.get('task_manager', 'runner_opts'),
 }
 # TODO: Maybe this should be put into a sub class
 if WLS == 'Slurm':
