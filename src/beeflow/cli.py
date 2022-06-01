@@ -114,8 +114,8 @@ def start_build(args, cli_log):
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
-    os.makedirs(bc.userconfig.get('DEFAULT', 'bee_workdir'), exist_ok=True)
-    with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT', 'bee_workdir')),
+    os.makedirs(bc.get('DEFAULT', 'bee_workdir'), exist_ok=True)
+    with open('{}/{}'.format(str(bc.get('DEFAULT', 'bee_workdir')),
                              pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 

@@ -55,15 +55,48 @@ class ConfigValidator:
                     "option '%s' in section '%s' is required but has not been set"
                     % (key[1], key[0])
                 )
+
+        # Set of (sec_name, opt_name) pairs for which defaults have already
+        # been set, or are in the process of being set.
+        done = set()
+
+        def set_default(sec_name, opt_name):
+            """Set a default value in the new_conf."""
+            if sec_name not in new_conf:
+                new_conf[sec_name] = {}
+            if sec_name not in conf or opt_name not in conf[sec_name]:
+                # try to call a default function
+                try:
+                    new_conf[sec_name][opt_name] = self._options[key].default(inst)
+                except TypeError as e:
+                    print(e)
+                    new_conf[sec_name][opt_name] = self._options[key].default
+
+        class ConfigInstance:
+            """Special class used for setting defaults."""
+
+            def get(self, sec_name, opt_name):
+                """Get a config value."""
+                if (sec_name not in new_conf or opt_name not in new_conf[sec_name]):
+                    if (sec_name, opt_name) not in done:
+                        done.add((sec_name, opt_name))
+                        set_default(sec_name, opt_name)
+                    else:
+                        raise ValueError(
+                             f'there appears to be a default dependency cycle for option {sec_name}::{opt_name}'
+                        )
+                return new_conf[sec_name][opt_name]
+
+        # special config instance for default functions
+        inst = ConfigInstance()
+
         # finally set defaults
         for key in self._options:
             if not self._validate_section(conf, self._sections[key[0]].depends_on):
                 # skip invalid sections
                 continue
-            if key[0] not in new_conf:
-                new_conf[key[0]] = {}
-            if key[0] not in conf or key[1] not in conf[key[0]]:
-                new_conf[key[0]][key[1]] = self._options[key].default
+            set_default(key[0], key[1])
+        print(done)
         return new_conf
 
     def _validate_section(self, conf, depends_on):

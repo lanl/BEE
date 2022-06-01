@@ -178,6 +178,14 @@ def validate_file(path):
     return path
 
 
+def validate_nonnegative_int(value):
+    """Validate that the input is nonnegative."""
+    i = int(value)
+    if i < 0:
+        raise ValueError('the value must be nonnegative')
+    return i
+
+
 def check_choice(msg, opts):
     """Ask the user to pick from opts."""
     while True:
@@ -302,8 +310,30 @@ VALIDATOR.option('slurmrestd', 'slurm_args', default='-s openapi/v0.0.35',
                  info='arguments for the slurmrestd binary')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
+VALIDATOR.option('scheduler', 'log',
+                 default=lambda inst: join_path(inst.get('DEFAULT', 'bee_workdir'), 'logs', 'scheduler.log'),
+                 validator=str,
+                 info='scheduler log file')
 VALIDATOR.option('scheduler', 'listen_port', default=DEFAULT_SCHED_PORT, validator=int,
                  info='scheduler port')
+VALIDATOR.option('scheduler', 'use_mars', default=False, validator=bool,
+                 info='whether or not to use the MARS scheduler')
+VALIDATOR.option('scheduler', 'mars_model', default=None, validator=str,
+                 info='location of MARS model')
+VALIDATOR.option('scheduler', 'mars_task_cnt', default=3, validator=validate_nonnegative_int,
+                 info='minimum number of tasks to cause the MARS scheduler to be invoked')
+VALIDATOR.option('scheduler', 'alloc_logfile',
+                 default=lambda inst: join_path(inst.get('DEFAULT', 'bee_workdir'), 'logs', 'scheduler_alloc.log'),
+                 validator=str,
+                 info='allocation logfile, to be used for later training')
+VALIDATOR.option('scheduler', 'algorithm', default='FCFS', validator=str,
+                 info='scheduling algorithm to use')
+VALIDATOR.option('scheduler', 'default_algorithm', default='FCFS', validator=str,
+                 info='default algorithm to use, when both MARS and this baseline algorithm are to be used')
+VALIDATOR.option('scheduler', 'workdir',
+                 default=lambda inst: os.path.join(inst.get('DEFAULT', 'bee_workdir'), 'scheduler'),
+                 validator=str,
+                 info='workdir to be used for the scheduler')
 
 
 def print_wrap(text, next_line_indent=''):

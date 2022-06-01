@@ -116,3 +116,17 @@ def test_option_attr():
     opt_name, option = validator.options('abc')[0]
     assert opt_name == 'test'
     assert option.attrs == {'key': 1}
+
+
+def test_default_function():
+    validator = ConfigValidator(description='testing with a default function')
+
+    validator.section('some-section', info='some section')
+    validator.option('some-section', 'opt0', info='some random option', default='abc')
+    validator.option('some-section', 'opt1', info='some random option',
+                     default=lambda inst: inst.get('some-section', 'opt0') + '/' + 'test')
+
+    assert validator.validate({'some-section': {'opt0': '123', 'opt1': '5'}}) == {'some-section': {'opt0': '123', 'opt1': '5'}}
+    assert validator.validate({}) == {'some-section': {'opt0': 'abc', 'opt1': 'abc/test'}}
+    assert validator.validate({'some-section': {'opt0': 'x'}}) == {'some-section': {'opt0': 'x', 'opt1': 'x/test'}}
+    assert validator.validate({'some-section': {'opt1': '77777'}}) == {'some-section': {'opt0': 'abc', 'opt1': '77777'}}
