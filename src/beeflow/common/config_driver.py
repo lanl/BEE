@@ -290,6 +290,8 @@ VALIDATOR.option('charliecloud', 'chrun_opts', default=f'--cd {HOME_DIR}',
                  info='extra options to pass to ch-run')
 VALIDATOR.option('charliecloud', 'container_dir', required=True,
                  info='Charliecloud container directory')
+VALIDATOR.option('charliecloud', 'setup', default='', validator=str,
+                 info='extra Charliecloud setup to put in a job script')
 # Graph Database
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost', info='hostname of database')

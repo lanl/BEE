@@ -48,7 +48,6 @@ class CwlParser:
         self._wfi = None
 
         try:
-            bc.init()
             self._wfi = WorkflowInterface(user="neo4j",
                                           bolt_port=bc.get("graphdb", "bolt_port"),
                                           db_hostname=bc.get("graphdb", "hostname"),

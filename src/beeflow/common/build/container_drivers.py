@@ -43,10 +43,6 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         :param kwargs: Dictionary of build system config options
         :type kwargs: set of build system parameters
         """
-        if userconf_file:
-            bc.init(userconfig=userconf_file)
-        else:
-            bc.init()
         # Store build logs relative to bee_workdir.
         #try:
         #    if bc.userconfig['DEFAULT'].get('bee_workdir'):
