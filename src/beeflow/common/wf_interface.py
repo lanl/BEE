@@ -142,6 +142,8 @@ class WorkflowInterface:
                     hint.params["bee_checkpoint_file__"] = checkpoint_file
                     break
                 else:
+                    state = self.get_task_state(task)
+                    self.set_task_state(task, f"RESTART FAILED: {state}")
                     return None
         else:
             raise ValueError("invalid task for checkpoint restart")
