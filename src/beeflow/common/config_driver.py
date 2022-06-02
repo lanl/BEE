@@ -323,9 +323,10 @@ VALIDATOR.option('scheduler', 'alloc_logfile',
                  default=lambda inst: join_path(inst.get('DEFAULT', 'bee_workdir'), 'logs', 'scheduler_alloc.log'),
                  validator=str,
                  info='allocation logfile, to be used for later training')
-VALIDATOR.option('scheduler', 'algorithm', default='FCFS', validator=str,
+SCHEDULER_ALGORITHMS = ('fcfs', 'mars', 'backfill', 'sjf')
+VALIDATOR.option('scheduler', 'algorithm', default='fcfs', choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
-VALIDATOR.option('scheduler', 'default_algorithm', default='FCFS', validator=str,
+VALIDATOR.option('scheduler', 'default_algorithm', default='fcfs', choices=SCHEDULER_ALGORITHMS,
                  info='default algorithm to use, when both MARS and this baseline algorithm are to be used')
 VALIDATOR.option('scheduler', 'workdir',
                  default=lambda inst: os.path.join(inst.get('DEFAULT', 'bee_workdir'), 'scheduler'),

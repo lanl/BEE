@@ -405,7 +405,7 @@ def submit_tasks_scheduler(sched_tasks):
         return
 
     if resp.status_code != 200:
-        log.info(f"Something bad happened {resp.status_code}")
+        log.info(f"The BEE scheduler failed on submission with error: {resp.status_code}")
     return resp.json()
 
 

@@ -69,7 +69,6 @@ class ConfigValidator:
                 try:
                     new_conf[sec_name][opt_name] = self._options[key].default(inst)
                 except TypeError as e:
-                    print(e)
                     new_conf[sec_name][opt_name] = self._options[key].default
 
         class ConfigInstance:
@@ -96,7 +95,6 @@ class ConfigValidator:
                 # skip invalid sections
                 continue
             set_default(key[0], key[1])
-        print(done)
         return new_conf
 
     def _validate_section(self, conf, depends_on):
