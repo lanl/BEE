@@ -78,26 +78,6 @@ class BeeConfig:
             )
         config = ConfigParser()
         system = platform.system()
-        #if system == "Linux":
-        #    sysconfig_file = '/etc/beeflow/bee.conf'
-        #    try:
-        #        # Accept user_config option
-        #        userconfig_file = kwargs['userconfig']
-        #    except KeyError:
-        #        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-        #elif system == "Darwin":
-        #    sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
-        #    userconfig_file = os.path.expanduser(
-        #        '~/Library/Application Support/beeflow/bee.conf')
-        #elif system == "Windows":
-        #    sysconfig_file = ''
-        #    try:
-        #        # Accept user_config option
-        #        userconfig_file = kwargs['userconfig']
-        #    except KeyError:
-        #        userconfig_file = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
-        #if userconfig is None:
-        #    userconfig = userconfig_file
         if userconfig is not None:
             cls.USERCONFIG_FILE = userconfig
         # Try and read the file
@@ -120,10 +100,11 @@ class BeeConfig:
     def get(cls, sec_name, opt_name):
         """Get a configuration value.
 
-           If this throws, then either BeeConfig has not been initialized or a
-           configuration value is missing from the definition. Default values
-           are built into the ConfigValidator class, so there is no need to
-           specify a default here."""
+        If this throws, then either BeeConfig has not been initialized or a
+        configuration value is missing from the definition. Default values
+        are built into the ConfigValidator class, so there is no need to
+        specify a default or a fallback here.
+        """
         if cls.CONFIG is None:
             raise RuntimeError('BeeConfig has not been initialized')
         try:
@@ -360,7 +341,6 @@ def print_wrap(text, next_line_indent=''):
 
 def info(validator):
     """Display some info about bee.conf's various options."""
-    #out = []
     print('# BEE Configuration')
     print()
     print_wrap(validator.description)

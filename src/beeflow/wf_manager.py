@@ -88,12 +88,6 @@ def _resource(component, tag=""):
 wfi = None
 # Instantiate the workflow profiler
 wf_profiler = None
-#try:
-#    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
-#                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
-#                            password=bc.userconfig.get('graphdb', 'dbpass'))
-# except (KeyError, configparser.NoSectionError) as e:
-#    wfi = WorkflowInterface()
 
 
 class ResourceMonitor():
@@ -273,7 +267,7 @@ class JobsList(Resource):
                     return resp
 
             # Initialize the workflow profiling code
-            fname = '{}.json'.format(job_name)
+            fname = f'{job_name}.json'
             profile_dir = os.path.join(bee_workdir, 'profiles')
             os.makedirs(profile_dir, exist_ok=True)
             output_path = os.path.join(profile_dir, fname)
@@ -341,7 +335,7 @@ class JobsList(Resource):
             # Launch new container with bindmounted GDB
             script_path = get_script_path()
             gdb_proc = StartGDB(bc, gdb_workdir, reexecute=True)
-            log.info('waiting {}s for GDB to come up'.format(gdb_sleep_time))
+            log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
             time.sleep(gdb_sleep_time)
 
             # Initialize the database connection object

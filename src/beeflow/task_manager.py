@@ -239,11 +239,6 @@ def get_status():
 from beeflow.common.worker_interface import WorkerInterface
 import beeflow.common.worker as worker_pkg
 
-#try:
-#    WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
-#except ValueError as error:
-#    log.error(f'workload scheduler error {error}')
-#    WLS = None
 WLS = bc.get('DEFAULT', 'workload_scheduler')
 worker_class = worker_pkg.find_worker(WLS)
 if worker_class is None:
