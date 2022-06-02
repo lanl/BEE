@@ -21,21 +21,6 @@ def StartGDB(bc, gdb_workdir, reexecute=False, debug=False):
     """Start the graph database. Returns a Popen process object."""
     bee_workdir = bc.get('DEFAULT','bee_workdir')
     gdb_handler = bee_logging.save_log(bee_workdir=bee_workdir, log=gdb_log, logfile='gdb_launch.log')
-    # Load gdb config from config file if exists
-    #try:
-    #    bc.userconfig['graphdb']
-    #except KeyError:
-    #    graphdb_dict = {
-    #        'hostname': 'localhost',
-    #        'dbpass': 'password',
-    #        'bolt_port': bc.default_bolt_port,
-    #        'http_port': bc.default_http_port,
-    #        'https_port': bc.default_https_port ,
-    #        'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
-    #        'gdb_image_mntdir': '/tmp',
-    #    }
-    #    # Add section (writes to config file)
-    #    bc.modify_section('user','graphdb',graphdb_dict)
 
     if shutil.which("ch-convert") == None or shutil.which("ch-run") == None:
         gdb_log.error("ch-convert or ch-run not found. Charliecloud required for neo4j container.")

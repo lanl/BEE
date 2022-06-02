@@ -162,12 +162,6 @@ def main():
     if args.job_template:
         config_params['job_template'] = args.job_template
     bc.init(**config_params)
-    # If workdir argument exists, over-write
-    #if args.bee_workdir:
-    #    bc.modify_section('user', 'DEFAULT', {'bee_workdir': bc.resolve_path(args.bee_workdir)})
-    # If workload_scheduler argument exists, over-write
-    #if args.workload_scheduler:
-    #    bc.modify_section('user', 'task_manager', {'workload_scheduler': args.workload_scheduler})
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     # Setup logging based on args.debug
     _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='beeflow.log')
@@ -195,11 +189,6 @@ def main():
     wait_list = []  # List of processes to wait for
     # Only start slurmrestd if workload_scheduler is Slurm (default)
     workload_scheduler = bc.get('DEFAULT', 'workload_scheduler')
-    #try:
-    #    workload_scheduler = bc.userconfig.get('DEFAULT', 'workload_scheduler')
-    #except NoOptionError:
-    #    workload_scheduler = 'Slurm'
-    #    bc.modify_section('user', 'DEFAULT', {'workload_scheduler': workload_scheduler})
     if workload_scheduler == 'Slurm':
         if args.restd or start_all:
             proc = start_slurm_restd(bc, args)
