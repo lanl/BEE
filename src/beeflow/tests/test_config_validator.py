@@ -130,3 +130,15 @@ def test_default_function():
     assert validator.validate({}) == {'some-section': {'opt0': 'abc', 'opt1': 'abc/test'}}
     assert validator.validate({'some-section': {'opt0': 'x'}}) == {'some-section': {'opt0': 'x', 'opt1': 'x/test'}}
     assert validator.validate({'some-section': {'opt1': '77777'}}) == {'some-section': {'opt0': 'abc', 'opt1': '77777'}}
+
+
+def test_default_function_cycle():
+    validator = ConfigValidator(description='testing a default function with an invalid cycle')
+
+    validator.section('a-section', info='A section')
+    # this option will try to get the value of itself, thus creating a cycle
+    validator.option('a-section', 'option', info='an option',
+                     default=lambda inst: inst.get('a-section', 'option'))
+
+    with pytest.raises(ValueError):
+        validator.validate({})
