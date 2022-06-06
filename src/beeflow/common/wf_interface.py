@@ -143,7 +143,7 @@ class WorkflowInterface:
                     break
                 else:
                     state = self.get_task_state(task)
-                    self.set_task_state(task, f"RESTART FAILED: {state}")
+                    self.set_task_state(task, f"FAILED RESTART: {state}")
                     return None
         else:
             raise ValueError("invalid task for checkpoint restart")
