@@ -1,0 +1,19 @@
+name: Integration workflow
+
+on:
+  push:
+    branches:
+      - ci-workflow
+
+env: {}
+
+jobs:
+  integration-test:
+    name: BEE Integration Test
+    # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
+    # available on 20.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Integration Test
+        run: ./ci/integration_test.sh

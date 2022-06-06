@@ -1,0 +1,20 @@
+name: PyLama Lint
+
+on:
+  #pull_request:
+  #  types: [opened, synchronize, edited]
+  #  branches: [main, develop]
+  push:
+    branches:
+      - ci-workflow
+
+jobs:
+  pylama:
+    name: PyLama Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Lint
+        run: |
+          pip install pylama 2>&1 >/dev/null
+          pylama src/
