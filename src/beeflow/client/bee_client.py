@@ -171,8 +171,8 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
         raise error_exit(f"Starting {long_wf_id} failed."
                          f" Returned {resp.status_code}")
 
-    typer.echo("Started Workflow!")
-    logging.info('Started workflow ' + resp.text)
+    typer.echo(f"{resp.json()['msg']}")
+    logging.info('Started ' + resp.text)
 
 
 @app.command()

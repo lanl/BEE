@@ -12,7 +12,6 @@ import shutil
 import time
 import getpass
 import subprocess
-import cwl_utils.parser.cwl_v1_0 as cwl
 
 from beeflow.common.config_driver import BeeConfig
 
@@ -29,7 +28,7 @@ from flask_restful import Resource, Api, reqparse
 from werkzeug.datastructures import FileStorage
 # Temporary clamr parser
 from beeflow.common.wf_interface import WorkflowInterface
-from beeflow.common.parser import CwlParser
+from beeflow.common.parser import CwlParser 
 from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.start_gdb import StartGDB
 from beeflow.cli import log
@@ -299,7 +298,6 @@ class JobsList(Resource):
                 except AttributeError:
                     resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
                     return resp
-            state = wfi.get_workflow_state()
 
             # Initialize the workflow profiling code
             fname = '{}.json'.format(job_name)
@@ -310,7 +308,6 @@ class JobsList(Resource):
 
             # Save the workflow to the workflow_id dir
             wf_id = wfi.workflow_id
-            log.info(f'New workflow {wf_id}')
             workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
             os.makedirs(workflow_dir)
             # workflow_path = os.path.join(workflow_dir, wf_filename)
@@ -495,9 +492,13 @@ class JobActions(Resource):
     @staticmethod
     def post(wf_id):
         """Start workflow. Send ready tasks to the task manager."""
-        # Get dependent tasks that branch off of bee_init and send to the scheduler
-        wfi.execute_workflow()
         state = wfi.get_workflow_state()
+        if state == 'RUNNING' or state == 'PAUSED' or state == 'COMPLETED':
+            resp = make_response(jsonify(msg='Cannot start workflow it is currently '
+                                        f'{state.capitalize()}', 
+                                            status='ok'), 200)
+            return resp
+        wfi.execute_workflow()
         tasks = wfi.get_ready_tasks()
         # Convert to a scheduler task object
         sched_tasks = tasks_to_sched(tasks)
@@ -512,7 +513,7 @@ class JobActions(Resource):
         with open(status_path, 'w') as status:
             status.write('Running')
 
-        resp = make_response(jsonify(msg='Started workflow', status='ok'), 200)
+        resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
         return resp
 
     @staticmethod
@@ -657,6 +658,12 @@ class JobUpdate(Resource):
                 else:
                     wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
+            state = wfi.get_workflow_state()
+            if tasks and state != 'PAUSED':
+                sched_tasks = tasks_to_sched(tasks)
+                submit_tasks_scheduler(sched_tasks)
+                submit_tasks_tm(tasks)
+
 
             if wfi.workflow_completed():
                 log.info("Workflow Completed")
@@ -687,10 +694,6 @@ class JobUpdate(Resource):
                     reexecute = False
 
                 #else:
-                if tasks:
-                    sched_tasks = tasks_to_sched(tasks)
-                    submit_tasks_scheduler(sched_tasks)
-                    submit_tasks_tm(tasks)
 
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
