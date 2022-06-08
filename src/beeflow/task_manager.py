@@ -65,7 +65,7 @@ if bc.userconfig.has_section('task_manager'):
     for key, value in items:
         tm_dict.setdefault(key, value)
     for key in tm_default:
-        if key not in tm_dict.keys():
+        if key not in tm_dict:
             tm_dict[key] = tm_default[key]
             UPDATE_CONFIG = True
     if UPDATE_CONFIG:
@@ -254,7 +254,8 @@ def get_restart_file(task_checkpoint):
 
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
-    for job in job_queue:
+    job_q = job_queue.copy()
+    for job in job_q:
         task = job['task']
         job_id = job['job_id']
         job_state = worker.query_task(job_id)
@@ -275,7 +276,6 @@ def update_jobs():
                     update_task_state(task.id, job_state)
             else:
                 update_task_state(task.id, job_state)
-
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
