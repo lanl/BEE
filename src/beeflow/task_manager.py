@@ -244,10 +244,13 @@ def get_restart_file(task_checkpoint):
             file_path = string.Template(file_path).substitute(os.environ)
         checkpoints = get_checkpoints(file_regex, file_path)
         # Find latest checkpoint file
-        checkpoints = [f'{file_path}/{file_name}' for file_name in checkpoints]
-        checkpoints.sort(key=os.path.getmtime)
-        checkpoint_file = checkpoints[-1]
-        log.info(f'Checkpoint file is {checkpoint_file}')
+        if checkpoints:
+            checkpoints = [f'{file_path}/{file_name}' for file_name in checkpoints]
+            checkpoints.sort(key=os.path.getmtime)
+            checkpoint_file = checkpoints[-1]
+        else:
+            log.warn(f'No checkpoints found using regex: {file_regex} in path: {file_path}!')
+            return None
         return os.path.basename(checkpoint_file)
     return None
 
@@ -269,9 +272,12 @@ def update_jobs():
                 task_checkpoint = get_task_checkpoint(task)
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint)
-                    task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
-                    log.info(f'Restart: {task.name} task_info: {task_info}')
-                    update_task_state(task.id, job_state, task_info=task_info)
+                    if checkpoint_file:
+                        task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
+                        log.info(f'Restart: {task.name} task_info: {task_info}')
+                        update_task_state(task.id, job_state, task_info=task_info)
+                    else:
+                        log.error(f'Restart failed; no checkpoint file found')
                 else:
                     update_task_state(task.id, job_state)
             else:
