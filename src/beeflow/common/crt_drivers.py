@@ -22,6 +22,17 @@ bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
 
+class ContainerRuntimeResult:
+    """Result to be used for returning to the worker code."""
+
+    def __init__(self, env_code, pre_commands, main_command, post_commands):
+        """Construct the result."""
+        self.env_code = env_code
+        self.pre_commands = pre_commands
+        self.main_command = main_command
+        self.post_commands = post_commands
+
+
 class ContainerRuntimeDriver(ABC):
     """ContainerRuntimeDriver interface for generic container runtime."""
 
@@ -188,7 +199,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 log.info(f'Moving with expectation: {task_container_name} is the container target')
 
         if baremetal:
-            return [], [str(arg) for arg in task.command], []
+            return ContainerRuntimeResult(env_code='', pre_commands=[],
+                                          main_command=[str(arg) for arg in task.command],
+                                          post_commands=[])
 
         container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
         log.info(f'Expecting container at {container_path}. Ready to deploy and run.')
@@ -198,23 +211,22 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         command = ' '.join(task.command)
         cc_setup = cc_setup.split()
-        pre_commands = [cc_setup] if cc_setup else []
+        env_code = [cc_setup] if cc_setup else []
         deployed_path = deployed_image_root + '/' + task_container_name
-        pre_commands.extend([
+        pre_commands = [
             f'mkdir -p {deployed_image_root}\n'.split(),
             f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split()
-        ])
+        ]
         main_command = f'ch-run --join {deployed_path} {chrun_opts} -- {command}\n'.split()
         post_commands = [
             f'rm -rf {deployed_path}\n'.split(),
         ]
-        return pre_commands, main_command, post_commands
+        return ContainerRuntimeResult(env_code, pre_commands, main_command, post_commands)
 
     def build_text(self, userconfig, task):
         """Build text for Charliecloud batch script."""
         task_args = task2arg(task)
-        text = (f'beeflow --build {userconfig} {task_args}\n'
-                )
+        text = (f'beeflow --build {userconfig} {task_args}\n')
         return text
 
 
@@ -238,7 +250,8 @@ class SingularityDriver(ContainerRuntimeDriver):
                 main_command = argv
             except (KeyError, TypeError):
                 pass
-        return [], main_command, []
+        return ContainerRuntimeResult(env_code='', pre_commands=[], main_command=main_command,
+                                      post_commands=[])
 
     def build_text(self, userconfig, task):
         """Build text for Singularity batch script."""
