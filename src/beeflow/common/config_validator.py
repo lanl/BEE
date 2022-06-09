@@ -3,13 +3,13 @@
 
 class ConfigError(Exception):
     """Configuration error class."""
-    pass
 
 
 class ConfigValidator:
     """Config validation/schema class for managing configuration."""
 
     def __init__(self, description):
+        """Construct the config validator."""
         self.description = description
         self._section_order = []
         self._sections = {}
@@ -68,7 +68,7 @@ class ConfigValidator:
                 # try to call a default function
                 try:
                     new_conf[sec_name][opt_name] = self._options[key].default(inst)
-                except TypeError as e:
+                except TypeError:
                     new_conf[sec_name][opt_name] = self._options[key].default
 
         class ConfigInstance:
@@ -82,7 +82,8 @@ class ConfigValidator:
                         set_default(sec_name, opt_name)
                     else:
                         raise ValueError(
-                             f'there appears to be a default dependency cycle for option {sec_name}::{opt_name}'
+                            'there appears to be a default dependency cycle for option '
+                            f'{sec_name}::{opt_name}'
                         )
                 return new_conf[sec_name][opt_name]
 
@@ -145,6 +146,7 @@ class ConfigSection:
     """Config section."""
 
     def __init__(self, info, depends_on=None):
+        """Config section constructor."""
         self.info = info
         # (sec_name, key, value)
         self.depends_on = depends_on
@@ -153,7 +155,9 @@ class ConfigSection:
 class ConfigOption:
     """Config option/validation class."""
 
-    def __init__(self, info, validator=str, required=False, default=None, choices=None, attrs=None):
+    def __init__(self, info, validator=str, required=False, default=None,
+                 choices=None, attrs=None):
+        """Construct the config option class."""
         self.required = required
         self.info = info
         if choices is not None and not required and default not in choices:

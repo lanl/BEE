@@ -2,8 +2,6 @@
 
 from configparser import ConfigParser
 import os
-import sys
-import pkgutil
 import platform
 import argparse
 import shutil
@@ -56,13 +54,14 @@ class BeeConfig:
         USERCONFIG_FILE = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
 
     def __init__(self, **kwargs):
+        """Do not use this constructor."""
         raise RuntimeError(
             'BeeConfig is a singleton class. Call BeeConfig.init() once to initialize.'
         )
 
     @classmethod
     def ready(cls):
-        """Check if the class is ready (i.e. if BeeConfig has been initialized)."""
+        """Check if the class has been initialized."""
         return cls.CONFIG is not None
 
     @classmethod
@@ -77,7 +76,6 @@ class BeeConfig:
                 'BeeConfig.init() has been called more than once. BeeConfig is a singleton class.'
             )
         config = ConfigParser()
-        system = platform.system()
         if userconfig is not None:
             cls.USERCONFIG_FILE = userconfig
         # Try and read the file
@@ -144,6 +142,7 @@ def check_yes(msg):
     """Check for a y/n answer."""
     res = input(f'{msg} [y/n] ')
     return res.lower() == 'y'
+
 
 # Specialized functions for validation and config initialization
 
@@ -236,8 +235,10 @@ DEFAULT_SCHED_PORT = 5100 + OFFSET
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
-VALIDATOR.option('DEFAULT', 'bee_workdir', required=True, info='main BEE workdir', validator=validate_dir)
-VALIDATOR.option('DEFAULT', 'workload_scheduler', required=True, choices=('Slurm', 'LSF', 'Simple'),
+VALIDATOR.option('DEFAULT', 'bee_workdir', required=True, info='main BEE workdir',
+                 validator=validate_dir)
+VALIDATOR.option('DEFAULT', 'workload_scheduler', required=True,
+                 choices=('Slurm', 'LSF', 'Simple'),
                  info='backend workload scheduler to interact with ')
 VALIDATOR.option('DEFAULT', 'use_archive', default=False, validator=bool,
                  info='use the BEE archiving functinality')
@@ -246,7 +247,8 @@ VALIDATOR.section('workflow_manager', info='Workflow manager section.')
 VALIDATOR.option('workflow_manager', 'listen_port', default=DEFAULT_WFM_PORT, validator=int,
                  info='workflow manager port')
 # Task manager
-VALIDATOR.section('task_manager', info='Task manager configuration and config of container to use.')
+VALIDATOR.section('task_manager',
+                  info='Task manager configuration and config of container to use.')
 VALIDATOR.option('task_manager', 'listen_port', default=DEFAULT_TM_PORT, validator=int,
                  info='task manager listen port')
 VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
@@ -308,7 +310,11 @@ VALIDATOR.option('slurmrestd', 'slurm_args', default='-s openapi/v0.0.35',
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
 VALIDATOR.option('scheduler', 'log',
-                 default=lambda inst: join_path(inst.get('DEFAULT', 'bee_workdir'), 'logs', 'scheduler.log'),
+                 default=lambda inst: join_path(
+                     inst.get('DEFAULT', 'bee_workdir'),
+                     'logs',
+                     'scheduler.log',
+                 ),
                  validator=str,
                  info='scheduler log file')
 VALIDATOR.option('scheduler', 'listen_port', default=DEFAULT_SCHED_PORT, validator=int,
@@ -320,16 +326,24 @@ VALIDATOR.option('scheduler', 'mars_model', default=None, validator=str,
 VALIDATOR.option('scheduler', 'mars_task_cnt', default=3, validator=validate_nonnegative_int,
                  info='minimum number of tasks to cause the MARS scheduler to be invoked')
 VALIDATOR.option('scheduler', 'alloc_logfile',
-                 default=lambda inst: join_path(inst.get('DEFAULT', 'bee_workdir'), 'logs', 'scheduler_alloc.log'),
+                 default=lambda inst: join_path(
+                     inst.get('DEFAULT', 'bee_workdir'),
+                     'logs',
+                     'scheduler_alloc.log',
+                 ),
                  validator=str,
                  info='allocation logfile, to be used for later training')
 SCHEDULER_ALGORITHMS = ('fcfs', 'mars', 'backfill', 'sjf')
 VALIDATOR.option('scheduler', 'algorithm', default='fcfs', choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
 VALIDATOR.option('scheduler', 'default_algorithm', default='fcfs', choices=SCHEDULER_ALGORITHMS,
-                 info='default algorithm to use, when both MARS and this baseline algorithm are to be used')
+                 info=('default algorithm to use, when both MARS and this baseline '
+                       'algorithm are to be used'))
 VALIDATOR.option('scheduler', 'workdir',
-                 default=lambda inst: os.path.join(inst.get('DEFAULT', 'bee_workdir'), 'scheduler'),
+                 default=lambda inst: os.path.join(
+                     inst.get('DEFAULT', 'bee_workdir'),
+                     'scheduler',
+                 ),
                  validator=str,
                  info='workdir to be used for the scheduler')
 
@@ -366,6 +380,7 @@ class ConfigGenerator:
     """Config generator class."""
 
     def __init__(self, fname, validator):
+        """Construct the config generator."""
         self.fname = fname
         self.validator = validator
         self.sections = {}
@@ -432,7 +447,8 @@ class ConfigGenerator:
                     print(f'{opt_name} = {self.sections[sec_name][opt_name]}', file=fp)
         print(f'Saved config to "{self.fname}"')
         print()
-        print_wrap('Before running BEE, make sure to check that other default options are compatible with your system.')
+        print_wrap('Before running BEE, make sure to check that other default '
+                   'options are compatible with your system.')
 
 
 def main():
