@@ -196,6 +196,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         chrun_opts, cc_setup = self.get_cc_options()
         deployed_image_root = bc.userconfig.get('builder', 'deployed_image_root')
 
+        mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
         command = ' '.join(task.command)
         cc_setup = cc_setup.split()
         pre_commands = [cc_setup] if cc_setup else []
@@ -204,7 +205,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             f'mkdir -p {deployed_image_root}\n'.split(),
             f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split()
         ])
-        main_command = f'ch-run --join {deployed_path} {chrun_opts} -- {command}\n'.split()
+        main_command = f'ch-run {mpi_opt} {deployed_path} {chrun_opts} -- {command}\n'.split()
         post_commands = [
             f'rm -rf {deployed_path}\n'.split(),
         ]
