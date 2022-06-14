@@ -9,6 +9,8 @@
 #SBATCH -n {{ hints['beeflow:MPIRequirement']['ntasks'] }}
 {% endif %}
 
+{{ env_code }}
+
 # pre commands
 {% for cmd in pre_commands %}
 srun {{ cmd|join(' ') }}

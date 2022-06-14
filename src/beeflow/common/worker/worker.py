@@ -75,18 +75,18 @@ class Worker(ABC):
         """Build text for task script; use template if it exists."""
         # workflow_path = f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
         task_save_path = self.task_save_path(task)
-        pre_commands, main_command, post_commands = self.crt.run_text(task)
+        crt_res = self.crt.run_text(task)
         requirements = dict(task.requirements)
         hints = dict(task.hints)
-        print(main_command)
         job_text = self.template.render(
             task_save_path=task_save_path,
             task_name=task.name,
             task_id=task.id,
             workflow_id=task.workflow_id,
-            pre_commands=pre_commands,
-            main_command=main_command,
-            post_commands=post_commands,
+            env_code=crt_res.env_code,
+            pre_commands=crt_res.pre_commands,
+            main_command=crt_res.main_command,
+            post_commands=crt_res.post_commands,
             requirements=requirements,
             hints=hints,
         )
