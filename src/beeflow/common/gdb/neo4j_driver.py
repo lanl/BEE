@@ -167,7 +167,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         
         :rtype: str
         """
-
         with self._driver.session() as session:
            state = self._read_transaction(tx.get_workflow_state) 
         return state
@@ -176,9 +175,9 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Set the state of the workflow. 
          
         :param state: the new state of the workflow
-        :type stae: str
+        :type state: str
         """
-        self._set_workflow_state(state)
+        self._write_transaction(tx.set_workflow_state, state=state)
 
     def get_workflow_tasks(self):
         """Return all workflow task records from the Neo4j database.

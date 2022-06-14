@@ -548,6 +548,8 @@ class JobActions(Resource):
             resp = requests.delete(_resource('tm'))
         except requests.exceptions.ConnectionError:
             log.error('Unable to connect to task manager to delete.')
+            resp = make_response(jsonify(status='Could not cancel'), 404)
+            return
         if resp.status_code != 200:
             log.info(f"Delete from task manager returned bad status: {resp.status_code}")
         workflows_dir = os.path.join(bee_workdir, 'workflows')

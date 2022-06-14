@@ -114,6 +114,13 @@ class GraphDatabaseInterface:
         """
         return self._connection.get_workflow_state()
 
+    def set_workflow_state(self, state):
+        """Return workflow's current state.
+        :param state: the new state of the workflow
+        :type str
+        """
+        self._connection.set_workflow_state(state)
+
     def get_workflow_tasks(self):
         """Return a workflow's tasks from the graph database.
 
