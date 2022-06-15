@@ -48,6 +48,8 @@ class Workflow:
             self.id = workflow_id
         else:
             self.id = self.generate_workflow_id()
+
+        self.state = "SUBMITTED"
     
     def generate_workflow_id(self):
         """Generate a unique workflow ID.
