@@ -631,7 +631,8 @@ def final_tasks_completed(tx):
     :rtype: bool
     """
     not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task) "
-                           "WHERE NOT (t)<-[:DEPENDS_ON]-(:Task) AND m.state <> 'COMPLETED' "
+                           "WHERE NOT (t)<-[:DEPENDS_ON|:RESTARTED_FROM]-(:Task) "
+                           "AND m.state <> 'COMPLETED' "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task with state not 'COMPLETED'
