@@ -626,7 +626,7 @@ def reset_workflow_id(tx, new_id):
 
 
 def final_tasks_completed(tx):
-    """Return true if each of a workflow's final tasks has state 'COMPLETED'.
+    """Return true if each of a workflow's final Task nodes has state 'COMPLETED'.
 
     :rtype: bool
     """
