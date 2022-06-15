@@ -345,10 +345,10 @@ class Neo4jDriver(GraphDatabaseDriver):
     def workflow_completed(self):
         """Determine if a workflow in the Neo4j database has completed.
 
-        A workflow has completed if each of its tasks has state 'COMPLETED'.
+        A workflow has completed if each of its final tasks have state 'COMPLETED'.
         :rtype: bool
         """
-        return self._read_transaction(tx.all_tasks_completed)
+        return self._read_transaction(tx.final_tasks_completed)
 
     def empty(self):
         """Determine if the Neo4j database is empty.

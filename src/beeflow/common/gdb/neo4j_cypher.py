@@ -625,13 +625,13 @@ def reset_workflow_id(tx, new_id):
     tx.run(reset_workflow_id_query, new_id=new_id)
 
 
-def all_tasks_completed(tx):
-    """Return true if all of a workflow's tasks have state 'COMPLETED'.
+def final_tasks_completed(tx):
+    """Return true if each of a workflow's final tasks has state 'COMPLETED'.
 
     :rtype: bool
     """
     not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task) "
-                           "WHERE m.state <> 'COMPLETED' "
+                           "WHERE NOT (t)<-[:DEPENDS_ON]-(:Task) AND m.state <> 'COMPLETED' "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task with state not 'COMPLETED'
