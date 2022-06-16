@@ -655,33 +655,33 @@ class JobUpdate(Resource):
             task_output_path = os.path.join(bee_workdir, fname)
             with open(task_output_path, 'w') as fp:
                 json.dump(json.loads(data['output']), fp, indent=4)
-    
+
         if job_state == "COMPLETED":
-            for output in task.outputs:      
-                if output.glob != None:      
+            for output in task.outputs:
+                if output.glob != None:
                     wfi.set_task_output(task, output.id, output.glob)
-                else:                        
+                else:
                     wfi.set_task_output(task, output.id, "temp")
 
-            tasks = wfi.finalize_task(task)    
-            if WORKFLOW_PAUSED:                
-                # If we've paused the workflo  w save the task until we resume
-                save_task(task)                
-            else:                              
-                if wfi.workflow_completed():   
+            tasks = wfi.finalize_task(task)
+            if wfi.get_workflow_state() == 'PAUSED':
+                # If we've paused the workflow save the task until we resume
+                save_task(task)
+            else:
+                if wfi.workflow_completed():
                     log.info("Workflow Completed")
-                                               
-                    # Save the profile         
-                    wf_profiler.save()         
-                                               
+
+                    # Save the profile
+                    wf_profiler.save()
+
                     if archive and not reexecute:
                         gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
                         wf_id = wfi.workflow_id
                         workflows_dir = os.path.join(bee_workdir, 'workflows')
                         workflow_dir = os.path.join(workflows_dir, wf_id)
-                        # Archive GDB          
+                        # Archive GDB
                         shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
-                        # Archive Config       
+                        # Archive Config
                         shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                                 workflow_dir + '/' + 'bee.conf')
                         status_path = os.path.join(workflow_dir, 'bee_wf_status')
