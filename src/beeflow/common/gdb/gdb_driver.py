@@ -31,14 +31,14 @@ class GraphDatabaseDriver(ABC):
     def pause_workflow(self):
         """Pause execution of a running workflow.
 
-        Set tasks with state 'RUNNING' to 'PAUSED'.
+        Set workflow from state 'RUNNING' to 'PAUSED'.
         """
 
     @abstractmethod
     def resume_workflow(self):
         """Resume execution of a paused workflow.
 
-        Set tasks with state 'PAUSED' to 'RUNNING'.
+        Set workflow state from 'PAUSED' to 'RUNNING'.
         """
 
     @abstractmethod
@@ -108,6 +108,14 @@ class GraphDatabaseDriver(ABC):
 
         :rtype: Workflow
         """
+
+    @abstractmethod
+    def get_workflow_state(self):
+        """Return the current state of the workflow
+
+        :rtype: str
+        """
+
     @abstractmethod
     def get_workflow_tasks(self):
         """Return a list of all workflow tasks from the graph database.

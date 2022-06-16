@@ -12,10 +12,11 @@ def create_workflow_node(tx, workflow):
     """
     workflow_query = ("CREATE (w:Workflow) "
                       "SET w.id = $workflow_id "
-                      "SET w.name = $name")
+                      "SET w.name = $name "
+                      "SET w.state = $state")
 
     # Store the workflow ID and name in a new workflow node
-    tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name)
+    tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name, state=workflow.state)
 
 
 def create_workflow_hint_nodes(tx, hints):
@@ -338,11 +339,32 @@ def get_workflow_inputs(tx):
 def get_workflow_outputs(tx):
     """Get workflow outputs from the Neo4j database.
 
-    :rtype BoltStatementResult
+    :rtype: BoltStatementResult
     """
     outputs_query = "MATCH (:Workflow)<-[:OUTPUT_OF]-(o:Output) RETURN o"
 
     return tx.run(outputs_query)
+
+
+def get_workflow_state(tx):
+    """Get workflow state from the Neo4j database.
+
+    :rtype: str
+    """
+    state_query = "MATCH (w:Workflow) RETURN w.state"
+    
+    return tx.run(state_query).single().value()
+
+
+def set_workflow_state(tx, state):
+    """Get workflow state from the Neo4j database.
+
+    :param state: the state the workflow will be set to
+    type state: str
+    """
+    state_query = "MATCH (w:Workflow) SET w.state = $state"
+    
+    return tx.run(state_query, state=state)
 
 
 def get_ready_tasks(tx):
