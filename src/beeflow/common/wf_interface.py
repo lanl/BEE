@@ -331,7 +331,7 @@ class WorkflowInterface:
         self._gdb_interface.evaluate_expression(task, id, output)
 
     def workflow_completed(self):
-        """Return true if all of a workflow's tasks have completed, else false.
+        """Return true if all of a workflow's final tasks have completed, else false.
 
         :rtype: bool
         """

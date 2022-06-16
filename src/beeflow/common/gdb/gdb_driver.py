@@ -260,7 +260,7 @@ class GraphDatabaseDriver(ABC):
     def workflow_completed(self):
         """Determine if a workflow has completed.
 
-        A workflow has completed if each of its tasks has state 'COMPLETED'.
+        A workflow has completed if each of its final tasks has state 'COMPLETED'.
 
         :rtype: bool
         """

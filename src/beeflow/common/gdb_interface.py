@@ -294,7 +294,7 @@ class GraphDatabaseInterface:
                 raise ValueError(f"unable to evaluate expression {step_input.value_from}")
 
     def workflow_completed(self):
-        """Return true if all tasks in a workflow have state 'COMPLETED', else false.
+        """Return true if all of a workflow's final tasks have completed, else false.
 
         :rtype: bool
         """
