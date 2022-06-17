@@ -663,43 +663,41 @@ class JobUpdate(Resource):
                 else:
                     wfi.set_task_output(task, output.id, "temp")
 
-            tasks = wfi.finalize_task(task)
-            if wfi.get_workflow_state() == 'PAUSED':
-                # If we've paused the workflow save the task until we resume
-                save_task(task)
-            else:
-                if wfi.workflow_completed():
-                    log.info("Workflow Completed")
+            if wfi.workflow_completed():
+                log.info("Workflow Completed")
 
-                    # Save the profile
-                    wf_profiler.save()
+                # Save the profile
+                wf_profiler.save()
 
-                    if archive and not reexecute:
-                        gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
-                        wf_id = wfi.workflow_id
-                        workflows_dir = os.path.join(bee_workdir, 'workflows')
-                        workflow_dir = os.path.join(workflows_dir, wf_id)
-                        # Archive GDB
-                        shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
-                        # Archive Config
-                        shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
-                                workflow_dir + '/' + 'bee.conf')
-                        status_path = os.path.join(workflow_dir, 'bee_wf_status')
-                        with open(status_path, 'w') as status:
-                            status.write('Archived')
-                        archive_dir = os.path.join(bee_workdir, 'archives')
-                        os.makedirs(archive_dir, exist_ok=True)
-                        #archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
-                        archive_path = f'../archives/{wf_id}.tgz'
-                        # We use tar directly since tarfile is apparently very slow
-                        subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
-                    else:
-                        reexecute = False
+                if archive and not reexecute:
+                    gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
+                    wf_id = wfi.workflow_id
+                    workflows_dir = os.path.join(bee_workdir, 'workflows')
+                    workflow_dir = os.path.join(workflows_dir, wf_id)
+                    # Archive GDB
+                    shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
+                    # Archive Config
+                    shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
+                            workflow_dir + '/' + 'bee.conf')
+                    status_path = os.path.join(workflow_dir, 'bee_wf_status')
+                    with open(status_path, 'w') as status:
+                        status.write('Archived')
+                    archive_dir = os.path.join(bee_workdir, 'archives')
+                    os.makedirs(archive_dir, exist_ok=True)
+                    #archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
+                    archive_path = f'../archives/{wf_id}.tgz'
+                    # We use tar directly since tarfile is apparently very slow
+                    subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
                 else:
+                    reexecute = False
+            else:
+                tasks = wfi.finalize_task(task)
+                if wfi.get_workflow_state() != 'PAUSED':
                     if tasks:
                         sched_tasks = tasks_to_sched(tasks)
                         submit_tasks_scheduler(sched_tasks)
                         submit_tasks_tm(tasks)
+
         elif job_state == "FAILED" or job_state == "TIMEOUT":
             if 'task_info' in data:
                 task_info = jsonpickle.decode(data['task_info'])
