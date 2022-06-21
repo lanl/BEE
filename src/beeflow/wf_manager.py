@@ -616,7 +616,6 @@ class JobActions(Resource):
 
 archive = bc.userconfig.get('DEFAULT', 'use_archive')
 
-
 class JobUpdate(Resource):
     """Class to interact with an existing job."""
 
@@ -629,6 +628,8 @@ class JobUpdate(Resource):
                                    required=True)
         self.reqparse.add_argument('metadata', type=str, location='json',
                                    required=False)
+        self.reqparse.add_argument('task_info', type=str, location='json',
+                                   required=False)
         self.reqparse.add_argument('output', location='json', required=False)
 
     def put(self):
@@ -637,6 +638,8 @@ class JobUpdate(Resource):
         data = self.reqparse.parse_args()
         task_id = data['task_id']
         job_state = data['job_state']
+        task_info = data['task_info']
+
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
         wf_profiler.add_state_change(task, job_state)
@@ -653,19 +656,12 @@ class JobUpdate(Resource):
             with open(task_output_path, 'w') as fp:
                 json.dump(json.loads(data['output']), fp, indent=4)
 
-        if job_state == "COMPLETED" or job_state == "FAILED":
+        if job_state == "COMPLETED":
             for output in task.outputs:
-                if output.glob is not None:
+                if output.glob != None:
                     wfi.set_task_output(task, output.id, output.glob)
                 else:
                     wfi.set_task_output(task, output.id, "temp")
-            tasks = wfi.finalize_task(task)
-            state = wfi.get_workflow_state()
-            if tasks and state != 'PAUSED':
-                sched_tasks = tasks_to_sched(tasks)
-                submit_tasks_scheduler(sched_tasks)
-                submit_tasks_tm(tasks)
-
 
             if wfi.workflow_completed():
                 log.info("Workflow Completed")
@@ -682,24 +678,49 @@ class JobUpdate(Resource):
                     shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
                     # Archive Config
                     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
-                                    workflow_dir + '/' + 'bee.conf')
+                            workflow_dir + '/' + 'bee.conf')
                     status_path = os.path.join(workflow_dir, 'bee_wf_status')
                     with open(status_path, 'w') as status:
                         status.write('Archived')
                     archive_dir = os.path.join(bee_workdir, 'archives')
                     os.makedirs(archive_dir, exist_ok=True)
-                    # archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
+                    #archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
                     archive_path = f'../archives/{wf_id}.tgz'
                     # We use tar directly since tarfile is apparently very slow
                     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
                 else:
                     reexecute = False
+            else:
+                tasks = wfi.finalize_task(task)
+                if wfi.get_workflow_state() != 'PAUSED':
+                    if tasks:
+                        sched_tasks = tasks_to_sched(tasks)
+                        submit_tasks_scheduler(sched_tasks)
+                        submit_tasks_tm(tasks)
 
-                #else:
+        elif job_state == "FAILED" or job_state == "TIMEOUT":
+            if 'task_info' in data:
+                task_info = jsonpickle.decode(data['task_info'])
+                checkpoint_file = task_info['checkpoint_file']
+                new_task = wfi.restart_task(task, checkpoint_file)
+                if new_task is None:                    
+                    log.info("No more restarts")
+                    #state = wfi.get_task_state(task)
+                    #wfi.set_task_state(task, f"RESTART FAILED: {state}")
+                    #wfi.set_task_state(task, job_state)
+                    state = wfi.get_task_state(task)
+                    print(f'STATE: {wfi.get_task_state(task)}')
+                    resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
+                    return resp
+                else:                               
+                    submit_tasks_tm([new_task])       
+            else:
+                log.info("TM didn't send task info for failed task")
+                resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
+                return resp
 
         resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
         return resp
-
 
 
 @flask_app.route('/bee_wfm/v1/status/<string:wf_id>')

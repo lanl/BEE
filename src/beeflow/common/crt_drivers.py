@@ -108,11 +108,11 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         task_container_name = None
         # The container runtime treats hints and requirements as dicts
-        task.hints = dict(task.hints)
+        hints = dict(task.hints)
         task.requirements = dict(task.requirements)
         try:
             # Try to get Hints
-            hint_container_name = task.hints['DockerRequirement']['containerName']
+            hint_container_name = hints['DockerRequirement']['containerName']
         except (KeyError, TypeError):
             # Task Hints are not mandatory. No container_name specified in task hints.
             hint_container_name = None
@@ -138,7 +138,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_container_path = None
             try:
                 # Try to get Hints
-                hint_container_path = task.hints['DockerRequirement']['copyContainer']
+                hint_container_path = hints['DockerRequirement']['copyContainer']
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No container_path specified in task hints.
                 hint_container_path = None
@@ -164,7 +164,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_addr = None
             try:
                 # Try to get Hints
-                hint_addr = task.hints['DockerRequirement']['dockerPull']
+                hint_addr = hints['DockerRequirement']['dockerPull']
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No dockerPull image specified in task hints.
                 hint_addr = None
@@ -209,6 +209,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         chrun_opts, cc_setup = self.get_cc_options()
         deployed_image_root = bc.userconfig.get('builder', 'deployed_image_root')
 
+        mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
         command = ' '.join(task.command)
         cc_setup = cc_setup.split()
         env_code = [cc_setup] if cc_setup else []
@@ -217,7 +218,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             f'mkdir -p {deployed_image_root}\n'.split(),
             f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split()
         ]
-        main_command = f'ch-run --join {deployed_path} {chrun_opts} -- {command}\n'.split()
+        main_command = f'ch-run {mpi_opt} {deployed_path} {chrun_opts} -- {command}\n'.split()
         post_commands = [
             f'rm -rf {deployed_path}\n'.split(),
         ]
