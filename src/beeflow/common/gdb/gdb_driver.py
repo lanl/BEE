@@ -71,6 +71,27 @@ class GraphDatabaseDriver(ABC):
 
         Runnable tasks are tasks with all input dependencies fulfilled.
         """
+    
+    @abstractmethod
+    def restart_task(self, old_task, new_task):
+        """Restart a failed task.
+        
+        Create a Task node for new_task with state 'RESTARTED' and an edge
+        to indicate that it is the child of the Task node of old_task.
+
+        :param old_task: the failed task
+        :type old_task: Task
+        :param new_task: the new (restarted) task
+        :type new_task: Task
+        """
+
+    @abstractmethod
+    def finalize_task(self, task):
+        """Set task state to 'COMPLETED' and set inputs from source.
+        
+        :param task: the task to finalize
+        :type task: Task
+        """
 
     @abstractmethod
     def get_task_by_id(self, task_id):
@@ -156,13 +177,11 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_task_metadata(self, task, keys):
+    def get_task_metadata(self, task):
         """Return the metadata of a task in the graph database.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
-        :param keys: the metadata keys whose values to retrieve
-        :type keys: iterable of str
         :rtype: dict
         """
 
@@ -249,7 +268,7 @@ class GraphDatabaseDriver(ABC):
     def workflow_completed(self):
         """Determine if a workflow has completed.
 
-        A workflow has completed if each of its tasks has state 'COMPLETED'.
+        A workflow has completed if each of its final tasks has state 'COMPLETED'.
 
         :rtype: bool
         """
