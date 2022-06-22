@@ -498,11 +498,22 @@ def info():
         print()
 
 
+DEFAULT_BEE_CONF = os.path.expanduser('~/.config/beeflow/bee.conf')
+
+
 @app.command()
-def new(path: str = typer.Argument(..., help='Path to new config file')):
+def new(path: str = typer.Argument(default=DEFAULT_BEE_CONF, help='Path to new config file')):
     """Create a new config file."""
     if os.path.exists(path):
-        sys.exit(f'ERROR: path "{path}" already exists')
+        if check_yes(f'Path "{path}" already exists. Would you like to save a copy of it?'):
+            i = 1
+            backup_path = f'{path}.{i}'
+            while os.path.exists(backup_path):
+                i += 1
+                backup_path = f'{path}.{i}'
+            shutil.copy(path, backup_path)
+            print(f'Saved old config to "{backup_path}".')
+            print()
     ConfigGenerator(path, VALIDATOR).choose_values().save()
 
 
