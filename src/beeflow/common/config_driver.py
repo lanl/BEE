@@ -195,11 +195,20 @@ def join_path(*pargs):
     return path
 
 
-def job_template_init(path):
-    """Job template init function."""
+def job_template_init(path, cur_opts):
+    """Job template init function.
+
+    :param path: chosen path of Jinja job template file
+    :param cur_opts: current chosen options from the config generator
+    """
     if not check_yes(f'Do you want to write a default job template to "{path}"?'):
         return
-    template = check_choice('What template should be generated?', ('Slurm', 'LSF', 'Simple'))
+    # Check for workload_scheduler in cur_opts (NB: this will need to be updated
+    # if the option name changes later on)
+    if 'DEFAULT' in cur_opts and 'workload_scheduler' in cur_opts['DEFAULT']:
+        template = cur_opts['DEFAULT']['workload_scheduler']
+    else:
+        template = check_choice('What template should be generated?', ('Slurm', 'LSF', 'Simple'))
     template_files = {
         'Slurm': 'slurm-submit.jinja',
     }
@@ -394,7 +403,7 @@ class ConfigGenerator:
                    'options. Please take a look at the other options and their '
                    'defaults before running BEE.')
         print()
-        print('Please enter values for the following options:')
+        print('Please enter values for the following sections and options:')
         # Let the user choose values for each required attribute
         for sec_name, section in self.validator.sections:
             self.sections[sec_name] = {}
@@ -409,16 +418,22 @@ class ConfigGenerator:
                 # Print the section name if it has a required option and it hasn't
                 # already been printed.
                 if not printed:
-                    print('[{}]'.format(sec_name))
+                    print()
+                    print(f'## {sec_name}')
+                    print()
+                    print_wrap(section.info)
+                    print()
                     printed = True
                 value = None
                 # Input and then validate the value
                 while value is None:
-                    print('#', option.info)
-                    value = input(f'{opt_name} = ')
+                    print_wrap(f'{opt_name} - {option.info}')
+                    if option.choices is not None:
+                        print(f'(allowed values: {",".join(option.choices)})')
+                    value = input(f'{opt_name}: ')
                     # Call the init function if there is one
                     if init_fn is not None:
-                        init_fn(value)
+                        init_fn(value, self.sections)
                     try:
                         option.validate(value)
                     except ValueError as ve:
@@ -449,6 +464,7 @@ class ConfigGenerator:
         print()
         print_wrap('Before running BEE, make sure to check that other default '
                    'options are compatible with your system.')
+        print('(Try `beeflow-cfg --info` to see more about each option)')
 
 
 def main():
