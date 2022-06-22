@@ -83,7 +83,7 @@ class BeeConfig:
             with open(cls.USERCONFIG_FILE) as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            print(f'{fp} does not exist')
+            print('Configuration file does not exist!')
         # remove default keys from the other sections
         default_keys = [key for key in config['DEFAULT']]
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -455,13 +455,16 @@ class ConfigGenerator:
         if ans.lower() != 'y':
             print('Quitting without saving')
             return
-        with open(self.fname, 'w') as fp:
-            for sec_name in self.sections:
-                if not self.sections[sec_name]:
-                    continue
-                print('[{}]'.format(sec_name), file=fp)
-                for opt_name in self.sections[sec_name]:
-                    print(f'{opt_name} = {self.sections[sec_name][opt_name]}', file=fp)
+        try:
+            with open(self.fname, 'w') as fp:
+                for sec_name in self.sections:
+                    if not self.sections[sec_name]:
+                        continue
+                    print('[{}]'.format(sec_name), file=fp)
+                    for opt_name in self.sections[sec_name]:
+                        print(f'{opt_name} = {self.sections[sec_name][opt_name]}', file=fp)
+        except FileNotFoundError:
+            print('Configuration file does not exist!')
         print(f'Saved config to "{self.fname}"')
         print()
         print_wrap('Before running BEE, make sure to check that other default '
