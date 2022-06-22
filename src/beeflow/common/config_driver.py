@@ -201,6 +201,7 @@ def job_template_init(path, cur_opts):
     :param path: chosen path of Jinja job template file
     :param cur_opts: current chosen options from the config generator
     """
+    path = os.path.expanduser(path)
     if not check_yes(f'Do you want to write a default job template to "{path}"?'):
         return
     # Check for workload_scheduler in cur_opts (NB: this will need to be updated
@@ -280,8 +281,6 @@ VALIDATOR.option('charliecloud', 'image_mntdir', default='/tmp',
                  info='Charliecloud mount directory')
 VALIDATOR.option('charliecloud', 'chrun_opts', default=f'--cd {HOME_DIR}',
                  info='extra options to pass to ch-run')
-VALIDATOR.option('charliecloud', 'container_dir', required=True,
-                 info='Charliecloud container directory')
 VALIDATOR.option('charliecloud', 'setup', default='', validator=str,
                  info='extra Charliecloud setup to put in a job script')
 # Graph Database
