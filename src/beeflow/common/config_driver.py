@@ -79,8 +79,11 @@ class BeeConfig:
         if userconfig is not None:
             cls.USERCONFIG_FILE = userconfig
         # Try and read the file
-        with open(cls.USERCONFIG_FILE) as fp:
-            config.read_file(fp)
+        try:
+            with open(cls.USERCONFIG_FILE) as fp:
+                config.read_file(fp)
+        except FileNotFoundError:
+            print(f'{fp} does not exist')
         # remove default keys from the other sections
         default_keys = [key for key in config['DEFAULT']]
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
