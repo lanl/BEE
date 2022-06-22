@@ -3,11 +3,13 @@
 from configparser import ConfigParser
 import os
 import platform
-import argparse
 import shutil
 import textwrap
+import typer
+import sys
 
 from beeflow.common.config_validator import ConfigValidator
+from beeflow.common.cli import NaturalOrderGroup
 
 
 _SYSTEM = platform.system()
@@ -65,7 +67,7 @@ class BeeConfig:
         return cls.CONFIG is not None
 
     @classmethod
-    def init(cls, userconfig=None, **kwargs):
+    def init(cls, userconfig=None, **_kwargs):
         """Initialize BeeConfig class.
 
         We check the platform and read in system and user configuration files.
@@ -228,6 +230,20 @@ def job_template_init(path, cur_opts):
     shutil.copy(file_path, path)
 
 
+def bee_workdir_init(path, cur_opts):
+    """BEE workdir init function.
+
+    :param path: chosen path for the bee workdir
+    :param cur_opts: current chosen options form the config generator
+    """
+    path = os.path.expanduser(path)
+    if os.path.exists(path):
+        return
+    if not check_yes(f'Path "{path}" does not exist. Would you like to create it?'):
+        return
+    os.makedirs(path)
+
+
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
 # singleton class above.
@@ -249,7 +265,7 @@ DEFAULT_SCHED_PORT = 5100 + OFFSET
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
 VALIDATOR.option('DEFAULT', 'bee_workdir', required=True, info='main BEE workdir',
-                 validator=validate_dir)
+                 attrs={'init': bee_workdir_init}, validator=validate_dir)
 VALIDATOR.option('DEFAULT', 'workload_scheduler', required=True,
                  choices=('Slurm', 'LSF', 'Simple'),
                  info='backend workload scheduler to interact with ')
@@ -365,28 +381,6 @@ def print_wrap(text, next_line_indent=''):
         print(line)
 
 
-def info(validator):
-    """Display some info about bee.conf's various options."""
-    print('# BEE Configuration')
-    print()
-    print_wrap(validator.description)
-    print()
-    for sec_name, section in validator.sections:
-        print(f'## {sec_name}')
-        if section.depends_on is not None:
-            print()
-            print_wrap('*only required if %s::%s == "%s"*' % section.depends_on)
-        print()
-        print_wrap(f'{section.info}')
-        print()
-        for opt_name, option in validator.options(sec_name):
-            required_text = '*required* ' if option.required else ''
-            print_wrap(f'* {opt_name} - {required_text}{option.info}', '  ')
-            if option.choices is not None:
-                print(f'\t* allowed values: {",".join(option.choices)}')
-        print()
-
-
 class ConfigGenerator:
     """Config generator class."""
 
@@ -460,7 +454,7 @@ class ConfigGenerator:
                 for sec_name in self.sections:
                     if not self.sections[sec_name]:
                         continue
-                    print('[{}]'.format(sec_name), file=fp)
+                    print(f'[{sec_name}]'.format(sec_name), file=fp)
                     for opt_name in self.sections[sec_name]:
                         print(f'{opt_name} = {self.sections[sec_name][opt_name]}', file=fp)
         except FileNotFoundError:
@@ -469,28 +463,53 @@ class ConfigGenerator:
         print()
         print_wrap('Before running BEE, make sure to check that other default '
                    'options are compatible with your system.')
-        print('(Try `beeflow-cfg --info` to see more about each option)')
+        print('(Try `bee_cfg info` to see more about each option)')
+
+
+app = typer.Typer(no_args_is_help=False, add_completion=False, cls=NaturalOrderGroup)
+
+
+@app.command()
+def validate(path: str = typer.Argument(..., help='Path to config file')):
+    """Validate an existing configuration file."""
+    BeeConfig.init(path)
+
+
+@app.command()
+def info():
+    """Display some info about bee.conf's various options."""
+    print('# BEE Configuration')
+    print()
+    print_wrap(VALIDATOR.description)
+    print()
+    for sec_name, section in VALIDATOR.sections:
+        print(f'## {sec_name}')
+        if section.depends_on is not None:
+            print()
+            print_wrap('*only required if %s::%s == "%s"*' % section.depends_on)
+        print()
+        print_wrap(f'{section.info}')
+        print()
+        for opt_name, option in VALIDATOR.options(sec_name):
+            required_text = '*required* ' if option.required else ''
+            print_wrap(f'* {opt_name} - {required_text}{option.info}', '  ')
+            if option.choices is not None:
+                print(f'\t* allowed values: {",".join(option.choices)}')
+        print()
+
+
+@app.command()
+def new(path: str = typer.Argument(..., help='Path to new config file')):
+    """Create a new config file."""
+    if os.path.exists(path):
+        sys.exit(f'ERROR: path "{path}" already exists')
+    ConfigGenerator(path, VALIDATOR).choose_values().save()
 
 
 def main():
     """Entry point for config validation and help."""
-    parser = argparse.ArgumentParser(description='BEE configuration helper and validator')
-    parser.add_argument('--validate', '-v', type=str,
-                        help='validate a configuration file')
-    parser.add_argument('--info', '-i', action='store_true',
-                        help='print general info for each configuration')
-    parser.add_argument('--new', '-n', type=str, default=None,
-                        help='create a new bee conf file')
-    args = parser.parse_args()
-    # Load and validate the bee.conf
-    if args.validate:
-        # BeeConfig auto validates the file on load
-        BeeConfig.init(args.validate)
-    if args.info:
-        info(VALIDATOR)
-    if args.new is not None:
-        ConfigGenerator(args.new, VALIDATOR).choose_values().save()
+    app()
 
 
 if __name__ == '__main__':
-    main()
+    app()

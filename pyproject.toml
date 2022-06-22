@@ -42,8 +42,8 @@ classifiers = [
 [tool.poetry.scripts]
 beeflow = 'beeflow.cli:main'
 bee_client = 'beeflow.client.bee_client:main'
-beeflow-cloud = 'beeflow.cloud_launcher:main'
-beeflow-cfg = 'beeflow.common.config_driver:main'
+bee_cloud = 'beeflow.cloud_launcher:main'
+bee_cfg = 'beeflow.common.config_driver:main'
 
 [tool.poetry.dependencies]
 # Python version (>=3.8.3, <4.0.0)

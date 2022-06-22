@@ -8,6 +8,7 @@ from pathlib import Path
 import jsonpickle
 import inspect
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.cli import NaturalOrderGroup
 
 
 bc.init()
@@ -43,11 +44,6 @@ def _short_id(wf_id):
 
 def _resource(tag=""):
     return _url() + str(tag)
-
-
-class NaturalOrderGroup(click.Group):
-    def list_commands(self, ctx):
-        return self.commands.keys()
 
 
 # Check short workflow IDs for colliions, increase short ID
