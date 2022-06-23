@@ -534,6 +534,16 @@ def new(path: str = typer.Argument(default=DEFAULT_BEE_CONF, help='Path to new c
             print()
     ConfigGenerator(path, VALIDATOR).choose_values().save()
 
+@app.command()
+def list():
+    """List the contents of the default bee.conf."""
+    if not os.path.exists(DEFAULT_BEE_CONF):
+        print('The bee.conf does not exist yet. Please run `bee_cfg new`.')
+        return
+    print(f'# {DEFAULT_BEE_CONF}')
+    with open(DEFAULT_BEE_CONF) as fp:
+        print(fp.read(), end='')
+
 
 def main():
     """Entry point for config validation and help."""
