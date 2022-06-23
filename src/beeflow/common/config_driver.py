@@ -169,6 +169,14 @@ def validate_dir(path):
     return path
 
 
+def validate_make_dir(path):
+    """Check if the dir exists and if not creat it."""
+    os.makedirs(path, exist_ok=True)
+    if not os.path.isdir(path):
+        raise ValueError('path "{path}" is not a directory')
+    return path
+
+
 def validate_file(path):
     """Check that the path exists and is a file."""
     path = validate_path(path)
@@ -316,7 +324,7 @@ VALIDATOR.option('task_manager', 'job_template', info='job template to use for g
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
 VALIDATOR.option('charliecloud', 'image_mntdir', attrs={'default': join_path('/tmp', USER)},
-                 info='Charliecloud mount directory')
+                 info='Charliecloud mount directory', validator=validate_make_dir)
 VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': f'--cd {HOME_DIR}'},
                  info='extra options to pass to ch-run')
 VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''}, validator=str,
@@ -332,16 +340,16 @@ VALIDATOR.option('graphdb', 'http_port', attrs={'default': DEFAULT_HTTP_PORT}, v
 VALIDATOR.option('graphdb', 'https_port', attrs={'default': DEFAULT_HTTPS_PORT},
                  info='HTTPS port used for the graph database')
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', attrs={'default': join_path('/tmp', USER)},
-                 info='graph database image mount directory')
+                 info='graph database image mount directory', validator=validate_make_dir)
 VALIDATOR.option('graphdb', 'sleep_time', validator=int, attrs={'default': 10},
                  info='how long to wait for the graph database to come up (this can take a while, '
                       'depending on the system)')
 # Builder
 VALIDATOR.section('builder', info='General builder configuration section.')
 VALIDATOR.option('builder', 'deployed_image_root', attrs={'default': '/tmp'},
-                 info='where to deploy container images')
+                 info='where to deploy container images', validator=validate_make_dir)
 VALIDATOR.option('builder', 'container_output_path', attrs={'default': '/tmp'},
-                 info='container output path')
+                 info='container output path', validator=validate_make_dir)
 VALIDATOR.option('builder', 'container_archive',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'container_archive')},
                  info='container archive location')
