@@ -325,7 +325,7 @@ VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
 VALIDATOR.option('charliecloud', 'image_mntdir', attrs={'default': join_path('/tmp', USER)},
                  info='Charliecloud mount directory', validator=validate_make_dir)
-VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': f'--cd {HOME_DIR}'},
+VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': f'--cd /home/{USER}'},
                  info='extra options to pass to ch-run')
 VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''}, validator=str,
                  info='extra Charliecloud setup to put in a job script')
