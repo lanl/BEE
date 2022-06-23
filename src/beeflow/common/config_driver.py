@@ -473,8 +473,9 @@ class ConfigGenerator:
             for opt_name in self.sections[sec_name]:
                 print(f'{opt_name} = {self.sections[sec_name][opt_name]}')
         print()
-        ans = input(f'Would you like to save this config? (You can edit "{self.fname}" if you would '
-                    'like to change an option) [y/n] ')
+        ans = input(f'To change options edit "{self.fname}". \n'
+                    '** See documentation for values you should refrain from editting! **\n'
+                    'Would you like to save this config? [y/n] ')
         if ans.lower() != 'y':
             print('Quitting without saving')
             return
