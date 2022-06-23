@@ -235,6 +235,7 @@ def job_template_init(path, cur_opts):
         template = check_choice('What template should be generated?', ('Slurm', 'LSF', 'Simple'))
     template_files = {
         'Slurm': 'slurm-submit.jinja',
+        'LSF': 'lsf-submit.jinja',
     }
     if template not in template_files:
         raise NotImplementedError(f'generation of template file "{template}" is not implemented')
