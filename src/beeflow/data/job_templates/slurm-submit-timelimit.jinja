@@ -13,13 +13,15 @@
 #SBATCH -n {{ hints['beeflow:MPIRequirement']['ntasks'] }}
 {% endif %}
 
+{{ env_code }}
+
 # pre commands
 {% for cmd in pre_commands %}
-{{ cmd|join(' ') }}
+srun {{ cmd|join(' ') }}
 {% endfor %}
 
 # main command
-srun --mpi=pmix_v3 {{ main_command|join(' ') }}
+srun {{ main_command|join(' ') }}
 
 # post commands
 {% for cmd in post_commands %}
