@@ -36,7 +36,7 @@ def StartGDB(bc, gdb_workdir, reexecute=False, debug=False):
     bolt_port   = bc.get('graphdb','bolt_port')
     http_port   = bc.get('graphdb','http_port')
     https_port  = bc.get('graphdb','https_port')
-    gdb_img     = bc.get('graphdb','gdb_image')
+    gdb_img     = bc.get('DEFAULT','bee_dep_image')
     gdb_img_mntdir = bc.get('graphdb','gdb_image_mntdir')
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))

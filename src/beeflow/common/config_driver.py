@@ -1,8 +1,10 @@
 """BEE configuration driver module."""
 
 from configparser import ConfigParser
+import getpass
 import os
 import platform
+import random
 import shutil
 import textwrap
 import typer
@@ -183,6 +185,11 @@ def validate_nonnegative_int(value):
     return i
 
 
+def validate_bool(value):
+    """Validate a boolean value."""
+    return str(value).lower() == 'true'
+
+
 def check_choice(msg, opts):
     """Ask the user to pick from opts."""
     while True:
@@ -205,10 +212,13 @@ def job_template_init(path, cur_opts):
 
     :param path: chosen path of Jinja job template file
     :param cur_opts: current chosen options from the config generator
+    :return: initialized Jinja template path
     """
     path = os.path.expanduser(path)
+    if os.path.exists(path):
+        return path
     if not check_yes(f'Do you want to write a default job template to "{path}"?'):
-        return
+        return path
     # Check for workload_scheduler in cur_opts (NB: this will need to be updated
     # if the option name changes later on)
     if 'DEFAULT' in cur_opts and 'workload_scheduler' in cur_opts['DEFAULT']:
@@ -228,6 +238,7 @@ def job_template_init(path, cur_opts):
     beeflow = os.path.dirname(common)
     file_path = join_path(beeflow, 'data', 'job_templates', fname)
     shutil.copy(file_path, path)
+    return path
 
 
 def bee_workdir_init(path, cur_opts):
@@ -235,13 +246,15 @@ def bee_workdir_init(path, cur_opts):
 
     :param path: chosen path for the bee workdir
     :param cur_opts: current chosen options form the config generator
+    :return: initialized bee workdir path
     """
     path = os.path.expanduser(path)
     if os.path.exists(path):
-        return
+        return path
     if not check_yes(f'Path "{path}" does not exist. Would you like to create it?'):
-        return
+        return path
     os.makedirs(path)
+    return path
 
 
 # Below is the definition of all bee config options, defaults and requirements.
@@ -261,116 +274,113 @@ DEFAULT_HTTPS_PORT = 7473 + OFFSET
 DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
+HOME_DIR = os.path.expanduser('~/')
+CONF_DIR = join_path(HOME_DIR, '.config', 'beeflow')
+DEFAULT_BEE_CONF = join_path(CONF_DIR, 'bee.conf')
+DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
+USER = getpass.getuser()
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
-VALIDATOR.option('DEFAULT', 'bee_workdir', required=True, info='main BEE workdir',
-                 attrs={'init': bee_workdir_init}, validator=validate_dir)
-VALIDATOR.option('DEFAULT', 'workload_scheduler', required=True,
-                 choices=('Slurm', 'LSF', 'Simple'),
+VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
+                 attrs={'init': bee_workdir_init, 'default': DEFAULT_BEE_WORKDIR},
+                 validator=validate_dir)
+VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Simple'),
                  info='backend workload scheduler to interact with ')
-VALIDATOR.option('DEFAULT', 'use_archive', default=False, validator=bool,
+VALIDATOR.option('DEFAULT', 'use_archive', validator=validate_bool, attrs={'default': True},
                  info='use the BEE archiving functinality')
+VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validate_file,
+                 info='container image with BEE dependencies')
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
-VALIDATOR.option('workflow_manager', 'listen_port', default=DEFAULT_WFM_PORT, validator=int,
+VALIDATOR.option('workflow_manager', 'listen_port',
+                 attrs={'default': DEFAULT_WFM_PORT}, validator=int,
                  info='workflow manager port')
 # Task manager
 VALIDATOR.section('task_manager',
                   info='Task manager configuration and config of container to use.')
-VALIDATOR.option('task_manager', 'listen_port', default=DEFAULT_TM_PORT, validator=int,
+VALIDATOR.option('task_manager', 'listen_port', attrs={'default': DEFAULT_TM_PORT}, validator=int,
                  info='task manager listen port')
-VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
+VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charliecloud'},
                  choices=('Charliecloud', 'Singularity'),
                  info='container runtime to use for configuration')
-VALIDATOR.option('task_manager', 'runner_opts', validator=str,
+VALIDATOR.option('task_manager', 'runner_opts', validator=str, attrs={'default': ''},
                  info='special runner options to pass to the runner opts')
 # Note: I've added a special attrs keyword which can include anything. In this
 # case it's being used to store a special 'init' function that can be used to
 # initialize the parameter when a user is generating a new configuration.
-VALIDATOR.option('task_manager', 'job_template', required=True,
-                 info='job template to use for generating submission scripts',
+VALIDATOR.option('task_manager', 'job_template', info='job template to use for generating submission scripts',
                  validator=validate_file,
-                 attrs={'init': job_template_init})
+                 attrs={'init': job_template_init, 'default': join_path(CONF_DIR, 'submit.jinja')})
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
-HOME_DIR = os.path.expanduser('~/')
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
-VALIDATOR.option('charliecloud', 'image_mntdir', default='/tmp',
+VALIDATOR.option('charliecloud', 'image_mntdir', attrs={'default': join_path('/tmp', USER)},
                  info='Charliecloud mount directory')
-VALIDATOR.option('charliecloud', 'chrun_opts', default=f'--cd {HOME_DIR}',
+VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': f'--cd {HOME_DIR}'},
                  info='extra options to pass to ch-run')
-VALIDATOR.option('charliecloud', 'setup', default='', validator=str,
+VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''}, validator=str,
                  info='extra Charliecloud setup to put in a job script')
 # Graph Database
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
-VALIDATOR.option('graphdb', 'hostname', default='localhost', info='hostname of database')
-VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
-VALIDATOR.option('graphdb', 'bolt_port', default=DEFAULT_BOLT_PORT, validator=int,
+VALIDATOR.option('graphdb', 'hostname', attrs={'default': 'localhost'}, info='hostname of database')
+VALIDATOR.option('graphdb', 'dbpass', attrs={'default': 'password'}, info='password for database')
+VALIDATOR.option('graphdb', 'bolt_port', attrs={'default': DEFAULT_BOLT_PORT}, validator=int,
                  info='port used for the BOLT API')
-VALIDATOR.option('graphdb', 'http_port', default=DEFAULT_HTTP_PORT, validator=int,
+VALIDATOR.option('graphdb', 'http_port', attrs={'default': DEFAULT_HTTP_PORT}, validator=int,
                  info='HTTP port used for the graph database')
-VALIDATOR.option('graphdb', 'https_port', default=DEFAULT_HTTPS_PORT,
+VALIDATOR.option('graphdb', 'https_port', attrs={'default': DEFAULT_HTTPS_PORT},
                  info='HTTPS port used for the graph database')
-VALIDATOR.option('graphdb', 'gdb_image', required=True, info='graph database container image file')
-VALIDATOR.option('graphdb', 'gdb_image_mntdir', default='/tmp',
+VALIDATOR.option('graphdb', 'gdb_image_mntdir', attrs={'default': join_path('/tmp', USER)},
                  info='graph database image mount directory')
-VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=10,
+VALIDATOR.option('graphdb', 'sleep_time', validator=int, attrs={'default': 10},
                  info='how long to wait for the graph database to come up (this can take a while, '
                       'depending on the system)')
 # Builder
 VALIDATOR.section('builder', info='General builder configuration section.')
-VALIDATOR.option('builder', 'deployed_image_root', default='/tmp',
+VALIDATOR.option('builder', 'deployed_image_root', attrs={'default': '/tmp'},
                  info='where to deploy container images')
-VALIDATOR.option('builder', 'container_output_path', default='/tmp',
+VALIDATOR.option('builder', 'container_output_path', attrs={'default': '/tmp'},
                  info='container output path')
 VALIDATOR.option('builder', 'container_archive',
-                 default=os.path.join(HOME_DIR, 'container_archive'),
+                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'container_archive')},
                  info='container archive location')
-VALIDATOR.option('builder', 'container_type', default='charliecloud', info='container type to use')
+VALIDATOR.option('builder', 'container_type', attrs={'default': 'charliecloud'},
+                 info='container type to use')
 # Slurmrestd (depends on DEFAULT:workload_scheduler == Slurm)
 VALIDATOR.section('slurmrestd', info='Configuration section for Slurmrestd.',
                   depends_on=('DEFAULT', 'workload_scheduler', 'Slurm'))
-VALIDATOR.option('slurmrestd', 'slurm_socket', default='/tmp/slurm.sock', info='socket location')
-VALIDATOR.option('slurmrestd', 'slurm_args', default='-s openapi/v0.0.35',
+DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
+VALIDATOR.option('slurmrestd', 'slurm_socket', attrs={'default': DEFAULT_SLURMRESTD_SOCK},
+                 info='socket location')
+VALIDATOR.option('slurmrestd', 'slurm_args', attrs={'default': '-s openapi/v0.0.35'},
                  info='arguments for the slurmrestd binary')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
 VALIDATOR.option('scheduler', 'log',
-                 default=lambda inst: join_path(
-                     inst.get('DEFAULT', 'bee_workdir'),
-                     'logs',
-                     'scheduler.log',
-                 ),
-                 validator=str,
-                 info='scheduler log file')
-VALIDATOR.option('scheduler', 'listen_port', default=DEFAULT_SCHED_PORT, validator=int,
+                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler.log')},
+                 validator=str, info='scheduler log file')
+VALIDATOR.option('scheduler', 'listen_port', attrs={'default': DEFAULT_SCHED_PORT}, validator=int,
                  info='scheduler port')
-VALIDATOR.option('scheduler', 'use_mars', default=False, validator=bool,
+VALIDATOR.option('scheduler', 'use_mars', attrs={'default': False}, validator=validate_bool,
                  info='whether or not to use the MARS scheduler')
-VALIDATOR.option('scheduler', 'mars_model', default=None, validator=str,
+VALIDATOR.option('scheduler', 'mars_model', attrs={'default': ''}, validator=str,
                  info='location of MARS model')
-VALIDATOR.option('scheduler', 'mars_task_cnt', default=3, validator=validate_nonnegative_int,
+VALIDATOR.option('scheduler', 'mars_task_cnt', attrs={'default': 3},
+                 validator=validate_nonnegative_int,
                  info='minimum number of tasks to cause the MARS scheduler to be invoked')
 VALIDATOR.option('scheduler', 'alloc_logfile',
-                 default=lambda inst: join_path(
-                     inst.get('DEFAULT', 'bee_workdir'),
-                     'logs',
-                     'scheduler_alloc.log',
-                 ),
-                 validator=str,
-                 info='allocation logfile, to be used for later training')
+                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler_alloc.log')},
+                 validator=str, info='allocation logfile, to be used for later training')
 SCHEDULER_ALGORITHMS = ('fcfs', 'mars', 'backfill', 'sjf')
-VALIDATOR.option('scheduler', 'algorithm', default='fcfs', choices=SCHEDULER_ALGORITHMS,
+VALIDATOR.option('scheduler', 'algorithm', attrs={'default': 'fcfs'}, choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
-VALIDATOR.option('scheduler', 'default_algorithm', default='fcfs', choices=SCHEDULER_ALGORITHMS,
+VALIDATOR.option('scheduler', 'default_algorithm', attrs={'default': 'fcfs'},
+                 choices=SCHEDULER_ALGORITHMS,
                  info=('default algorithm to use, when both MARS and this baseline '
                        'algorithm are to be used'))
 VALIDATOR.option('scheduler', 'workdir',
-                 default=lambda inst: os.path.join(
-                     inst.get('DEFAULT', 'bee_workdir'),
-                     'scheduler',
-                 ),
+                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'scheduler')},
                  validator=str,
                  info='workdir to be used for the scheduler')
 
@@ -392,12 +402,15 @@ class ConfigGenerator:
 
     def choose_values(self):
         """Choose configuration values based on user input."""
+        dirname = os.path.dirname(self.fname)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
         print(f'Creating a new config: "{self.fname}".')
         print()
         print_wrap('This will walk you through creating a new configuration for BEE. '
-                   'Note that you will only be required to enter values for required '
-                   'options. Please take a look at the other options and their '
-                   'defaults before running BEE.')
+                   'Note that you will only be required to enter values for options '
+                   'without defaults. Please take a look at the other options and '
+                   'their defaults before running BEE.')
         print()
         print('Please enter values for the following sections and options:')
         # Let the user choose values for each required attribute
@@ -405,14 +418,7 @@ class ConfigGenerator:
             self.sections[sec_name] = {}
             printed = False
             for opt_name, option in self.validator.options(sec_name):
-                if not option.required:
-                    continue
-                init_fn = None
-                # Check for an init function
-                if option.attrs is not None and 'init' in option.attrs:
-                    init_fn = option.attrs['init']
-                # Print the section name if it has a required option and it hasn't
-                # already been printed.
+                # Print the section name if it hasn't already been printed.
                 if not printed:
                     print()
                     print(f'## {sec_name}')
@@ -420,6 +426,16 @@ class ConfigGenerator:
                     print_wrap(section.info)
                     print()
                     printed = True
+                if option.attrs is not None and 'default' in option.attrs:
+                    default = option.attrs['default']
+                    if option.attrs is not None and 'init' in option.attrs:
+                        value = option.attrs['init'](default, self.sections)
+                    else:
+                        value = option.validate(default)
+                    print(f'Setting option "{opt_name}" to default value "{value}".')
+                    print()
+                    self.sections[sec_name][opt_name] = value
+                    continue
                 value = None
                 # Input and then validate the value
                 while value is None:
@@ -428,13 +444,14 @@ class ConfigGenerator:
                         print(f'(allowed values: {",".join(option.choices)})')
                     value = input(f'{opt_name}: ')
                     # Call the init function if there is one
-                    if init_fn is not None:
-                        init_fn(value, self.sections)
+                    if option.attrs is not None and 'init' in option.attrs:
+                        option.attrs['init'](value, self.sections)
                     try:
                         option.validate(value)
                     except ValueError as ve:
                         print('ERROR:', ve)
                         value = None
+                print()
                 self.sections[sec_name][opt_name] = value
         return self
 
@@ -443,9 +460,13 @@ class ConfigGenerator:
         print()
         print('The following configuration options were chosen:')
         for sec_name in self.sections:
+            print()
+            print(f'[{sec_name}]')
             for opt_name in self.sections[sec_name]:
-                print('{}::{} = {}'.format(sec_name, opt_name, self.sections[sec_name][opt_name]))
-        ans = input('Are these correct? [y/n] ')
+                print(f'{opt_name} = {self.sections[sec_name][opt_name]}')
+        print()
+        ans = input(f'Would you like to save this config? (You can edit "{self.fname}" if you would '
+                    'like to change an option) [y/n] ')
         if ans.lower() != 'y':
             print('Quitting without saving')
             return
@@ -454,6 +475,7 @@ class ConfigGenerator:
                 for sec_name in self.sections:
                     if not self.sections[sec_name]:
                         continue
+                    print(file=fp)
                     print(f'[{sec_name}]'.format(sec_name), file=fp)
                     for opt_name in self.sections[sec_name]:
                         print(f'{opt_name} = {self.sections[sec_name][opt_name]}', file=fp)
@@ -470,7 +492,7 @@ app = typer.Typer(no_args_is_help=False, add_completion=False, cls=NaturalOrderG
 
 
 @app.command()
-def validate(path: str = typer.Argument(..., help='Path to config file')):
+def validate(path: str = typer.Argument(default=DEFAULT_BEE_CONF, help='Path to config file')):
     """Validate an existing configuration file."""
     BeeConfig.init(path)
 
@@ -491,14 +513,10 @@ def info():
         print_wrap(f'{section.info}')
         print()
         for opt_name, option in VALIDATOR.options(sec_name):
-            required_text = '*required* ' if option.required else ''
-            print_wrap(f'* {opt_name} - {required_text}{option.info}', '  ')
+            print_wrap(f'* {opt_name} - {option.info}', '  ')
             if option.choices is not None:
                 print(f'\t* allowed values: {",".join(option.choices)}')
         print()
-
-
-DEFAULT_BEE_CONF = os.path.expanduser('~/.config/beeflow/bee.conf')
 
 
 @app.command()

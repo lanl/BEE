@@ -188,7 +188,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
         command = ' '.join(task.command)
         cc_setup = cc_setup.split()
-        env_code = [cc_setup] if cc_setup else []
+        env_code = cc_setup if cc_setup else ''
         deployed_path = deployed_image_root + '/' + task_container_name
         pre_commands = [
             f'mkdir -p {deployed_image_root}\n'.split(),

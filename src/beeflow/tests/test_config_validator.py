@@ -6,10 +6,9 @@ from beeflow.common.config_validator import ConfigValidator, ConfigError
 def test_empty():
     validator = ConfigValidator(description='empty test case')
     assert validator.validate({}) == {}
-    # it should not allow any extra keys
+    # It should not allow any extra keys
     with pytest.raises(ValueError):
         validator.validate({'key': {}})
-
 
 def test_two():
     conf = {'section0': {'key0': 'value'}, 'section1': {'key0': '123'}}
@@ -22,65 +21,33 @@ def test_two():
     validator.option('section1', 'key0', validator=int, info='some config opt')
 
     assert validator.validate(conf) == valid_conf
+    # Test missing sections and values
     with pytest.raises(ValueError):
         validator.validate({'section1': {'key0': 'abc'}})
-
-
-def test_required():
-    conf = {'section0': {'key0': '123'}}
-
-    validator = ConfigValidator(description='test case for required options')
-    validator.section('section0', info='some more info')
-    validator.option('section0', 'key0', required=True, info='test value')
-
-    assert validator.validate(conf) == conf
     with pytest.raises(ValueError):
         validator.validate({})
     with pytest.raises(ValueError):
-        validator.validate({'section0': {}})
+        validator.validate({'section2': {'key0': 'something'}})
 
 
 def test_choices():
     validator = ConfigValidator(description='test case for choice-based option')
     validator.section('section0', info='info')
-    validator.option('section0', 'choice-key', choices=('A', 'B', 'C'), default='C', info='choice-based option')
+    validator.option('section0', 'choice-key', choices=('A', 'B', 'C'), info='choice-based option')
 
-    assert validator.validate({}) == {'section0': {'choice-key': 'C'}}
     assert validator.validate({'section0': {'choice-key': 'B'}}) == {'section0': {'choice-key': 'B'}}
     with pytest.raises(ValueError):
         assert validator.validate({'section0': {'choice-key': 'E'}})
-
-def test_choices_default():
-    validator = ConfigValidator(description='test case for choice-based option')
-    validator.section('section0', info='info')
-    # adding a choice-based option without a default should raise a runtime error
-    with pytest.raises(ConfigError):
-        validator.option('section0', 'choice-key1', choices=('A', 'B', 'C'), info='choice-based option')
-    # adding a choice-based option with a bad default should also raise an error
-    with pytest.raises(ConfigError):
-        validator.option('section0', 'choice-key2', choices=('A', 'B', 'C'), default='X', info='choice-based option')
-    # but if the option is required, and there is no default, then everything is ok
-    validator.option('section0', 'required-choice', required=True, choices=('1', '2', '3'), info='required choice')
-
-def test_defaults():
-    validator = ConfigValidator(description='test case for defaults')
-    validator.section('a', info='section a')
-    validator.option('a', 'key', default='something', info='section with default value')
-
-    assert validator.validate({'a': {'key': '123'}}) == {'a': {'key': '123'}}
-    assert validator.validate({'a': {}}) == {'a': {'key': 'something'}}
-    assert validator.validate({}) == {'a': {'key': 'something'}}
 
 
 def test_depends_on():
     validator = ConfigValidator(description='depends on relation test')
     validator.section('one', info='section one')
-    validator.option('one', 'key', choices=('A', 'B'), default='B', info='choice-based option')
-    # section two depends on one::key == A
+    validator.option('one', 'key', choices=('A', 'B'), info='choice-based option')
+    # Section two depends on one::key == A
     validator.section('two', info='section two', depends_on=('one', 'key', 'A'))
-    validator.option('two', 'some-key', required=True, info='some other config value dependent on [one] key == A')
+    validator.option('two', 'some-key', info='some other config value dependent on [one] key == A')
 
-    assert validator.validate({}) == {'one': {'key': 'B'}}
     with pytest.raises(ValueError):
         assert validator.validate({'one': {'key': 'B'}, 'two': {}})
     with pytest.raises(ValueError):
@@ -116,29 +83,3 @@ def test_option_attr():
     opt_name, option = validator.options('abc')[0]
     assert opt_name == 'test'
     assert option.attrs == {'key': 1}
-
-
-def test_default_function():
-    validator = ConfigValidator(description='testing with a default function')
-
-    validator.section('some-section', info='some section')
-    validator.option('some-section', 'opt0', info='some random option', default='abc')
-    validator.option('some-section', 'opt1', info='some random option',
-                     default=lambda inst: inst.get('some-section', 'opt0') + '/' + 'test')
-
-    assert validator.validate({'some-section': {'opt0': '123', 'opt1': '5'}}) == {'some-section': {'opt0': '123', 'opt1': '5'}}
-    assert validator.validate({}) == {'some-section': {'opt0': 'abc', 'opt1': 'abc/test'}}
-    assert validator.validate({'some-section': {'opt0': 'x'}}) == {'some-section': {'opt0': 'x', 'opt1': 'x/test'}}
-    assert validator.validate({'some-section': {'opt1': '77777'}}) == {'some-section': {'opt0': 'abc', 'opt1': '77777'}}
-
-
-def test_default_function_cycle():
-    validator = ConfigValidator(description='testing a default function with an invalid cycle')
-
-    validator.section('a-section', info='A section')
-    # this option will try to get the value of itself, thus creating a cycle
-    validator.option('a-section', 'option', info='an option',
-                     default=lambda inst: inst.get('a-section', 'option'))
-
-    with pytest.raises(ValueError):
-        validator.validate({})
