@@ -13,13 +13,13 @@ import time
 import getpass
 import subprocess
 
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 
 # The bc object must be created before importing other parts of BEE
 if len(sys.argv) > 2:
-    bc = BeeConfig(userconfig=sys.argv[1])
+    bc.init(userconfig=sys.argv[1])
 else:
-    bc = BeeConfig()
+    bc.init()
 
 # Server and REST handlin
 from flask import Flask, jsonify, make_response
@@ -39,47 +39,20 @@ from beeflow.common.gdb.neo4j_driver import Neo4JNotRunning
 sys.excepthook = bee_logging.catch_exception
 
 
-if bc.userconfig.has_section('workflow_manager'):
-    # Try getting listen port from config if exists, use WM_PORT if it doesnt exist
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port', bc.default_wfm_port)
-    log.info(f"wfm_listen_port {wfm_listen_port}")
-else:
-    log.info("[workflow_manager] section not found in configuration file, default values\
- will be added")
-
-    wfm_dict = {
-        'listen_port': bc.default_wfm_port,
-    }
-
-    bc.modify_section('user', 'workflow_manager', wfm_dict)
-    sys.exit("Please check " + str(bc.userconfig_file) + " and restart WorkflowManager")
-
-if bc.userconfig.has_section('task_manager'):
-    # Try getting listen port from config if exists, use default if it doesnt exist
-    TM_LISTEN_PORT = bc.userconfig['task_manager'].get('listen_port', bc.default_tm_port)
-else:
-    log.info("[task_manager] section not found in configuration file, default values will be used")
-    # Set Workflow manager ports, attempt to prevent collisions
-    TM_LISTEN_PORT = bc.default_tm_port
-
-if bc.userconfig.has_section('scheduler'):
-    # Try getting listen port from config if exists, use 5050 if it doesnt exist
-    SCHED_LISTEN_PORT = bc.userconfig['scheduler'].get('listen_port', bc.default_sched_port)
-else:
-    log.info("[scheduler] section not found in configuration file, default values will be used")
-    # Set Workflow manager ports, attempt to prevent collisions
-    SCHED_LISTEN_PORT = bc.default_sched_port
+wfm_listen_port = bc.get('workflow_manager', 'listen_port')
+TM_LISTEN_PORT = bc.get('task_manager', 'listen_port')
+SCHED_LISTEN_PORT = bc.get('scheduler', 'listen_port')
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+bee_workdir = bc.get('DEFAULT','bee_workdir')
 UPLOAD_FOLDER = os.path.join(bee_workdir, 'current_workflow')
 # Create the upload folder if it doesn't exist
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 # gdb sleep time
-gdb_sleep_time = bc.userconfig['graphdb'].getint('sleep_time', 10)
+gdb_sleep_time = bc.get('graphdb', 'sleep_time')
 
 flask_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -115,12 +88,6 @@ def _resource(component, tag=""):
 wfi = None
 # Instantiate the workflow profiler
 wf_profiler = None
-#try:
-#    wfi = WorkflowInterface(user='neo4j', bolt_port=bc.userconfig.get('graphdb', 'bolt_port'),
-#                            db_hostname=bc.userconfig.get('graphdb', 'hostname'),
-#                            password=bc.userconfig.get('graphdb', 'dbpass'))
-# except (KeyError, configparser.NoSectionError) as e:
-#    wfi = WorkflowInterface()
 
 
 class ResourceMonitor():
@@ -274,7 +241,7 @@ class JobsList(Resource):
             try:
                 parser = CwlParser()
             except Neo4JNotRunning:
-                container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
+                container_runtime = bc.get('task_manager', 'container_runtime')
                 container_msg = "Neo4j DB is not running. Please make sure " \
                                 f"{container_runtime} is installed and available."
                 logging.error(container_msg)
@@ -300,7 +267,7 @@ class JobsList(Resource):
                     return resp
 
             # Initialize the workflow profiling code
-            fname = '{}.json'.format(job_name)
+            fname = f'{job_name}.json'
             profile_dir = os.path.join(bee_workdir, 'profiles')
             os.makedirs(profile_dir, exist_ok=True)
             output_path = os.path.join(profile_dir, fname)
@@ -368,7 +335,7 @@ class JobsList(Resource):
             # Launch new container with bindmounted GDB
             script_path = get_script_path()
             gdb_proc = StartGDB(bc, gdb_workdir, reexecute=True)
-            log.info('waiting {}s for GDB to come up'.format(gdb_sleep_time))
+            log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
             time.sleep(gdb_sleep_time)
 
             # Initialize the database connection object
@@ -438,7 +405,7 @@ def submit_tasks_scheduler(sched_tasks):
         return
 
     if resp.status_code != 200:
-        log.info(f"Something bad happened {resp.status_code}")
+        log.info(f"The BEE scheduler failed on submission with error: {resp.status_code}")
     return resp.json()
 
 
@@ -614,7 +581,7 @@ class JobActions(Resource):
             return resp
 
 
-archive = bc.userconfig.get('DEFAULT', 'use_archive')
+archive = bc.get('DEFAULT','use_archive')
 
 class JobUpdate(Resource):
     """Class to interact with an existing job."""
@@ -740,7 +707,7 @@ if __name__ == '__main__':
     # Setup the Scheduler
     setup_scheduler()
     log.info(f'wfm_listen_port:{wfm_listen_port}')
-    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+    bee_workdir = bc.get('DEFAULT','bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='wf_manager.log')
 
     # Werkzeug logging

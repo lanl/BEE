@@ -12,7 +12,7 @@ import json
 import os
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_data import (InputParameter,
                                     OutputParameter,
                                     StepInput,
@@ -48,11 +48,10 @@ class CwlParser:
         self._wfi = None
 
         try:
-            bc = BeeConfig()
             self._wfi = WorkflowInterface(user="neo4j",
-                                          bolt_port=bc.userconfig.get("graphdb", "bolt_port"),
-                                          db_hostname=bc.userconfig.get("graphdb", "hostname"),
-                                          password=bc.userconfig.get("graphdb", "dbpass"))
+                                          bolt_port=bc.get("graphdb", "bolt_port"),
+                                          db_hostname=bc.get("graphdb", "hostname"),
+                                          password=bc.get("graphdb", "dbpass"))
         except KeyError:
             self._wfi = WorkflowInterface()
         except configparser.NoSectionError:

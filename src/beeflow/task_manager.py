@@ -20,13 +20,13 @@ from flask_restful import Resource, Api, reqparse
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 
 # This must be imported before calling other parts of BEE
 if len(sys.argv) >= 2:
-    bc = BeeConfig(userconfig=sys.argv[1])
+    bc.init(userconfig=sys.argv[1])
 else:
-    bc = BeeConfig()
+    bc.init()
 
 
 from beeflow.cli import log
@@ -36,57 +36,12 @@ import beeflow.common.log as bee_logging
 
 sys.excepthook = bee_logging.catch_exception
 
-USERCONFIG = bc.userconfig_file
 
+runtime = bc.get('task_manager', 'container_runtime')
 
-def check_crt_config(c_runtime):
-    """Check container runtime configurations."""
-    supported_runtimes = ['Charliecloud', 'Singularity']
-    if c_runtime not in supported_runtimes:
-        sys.exit(f'Container runtime, {runtime}, not supported.\n' +
-                 f'Please check {bc.userconfig_file} and restart TaskManager.')
+tm_listen_port = bc.get('task_manager', 'listen_port')
 
-    if c_runtime == 'Charliecloud':
-        if not bc.userconfig.has_section('charliecloud'):
-            cc_opts = {'setup': 'module load charliecloud',
-                       'chrun_opts': '--cd /home/$USER'
-                       }
-            bc.modify_section('user', 'charliecloud', cc_opts)
-
-
-# Check task_manager and container_runtime sections of user configuration file
-tm_dict = {}
-tm_default = {'listen_port': bc.default_tm_port,
-              'container_runtime': 'Charliecloud'}
-if bc.userconfig.has_section('task_manager'):
-    # Insert defaults for any options not in task_manager section of userconfig file
-    UPDATE_CONFIG = False
-    items = bc.userconfig.items('task_manager')
-    for key, value in items:
-        tm_dict.setdefault(key, value)
-    for key in tm_default:
-        if key not in tm_dict:
-            tm_dict[key] = tm_default[key]
-            UPDATE_CONFIG = True
-    if UPDATE_CONFIG:
-        bc.modify_section('user', 'task_manager', tm_dict)
-else:
-    tm_listen_port = bc.default_tm_port
-    bc.modify_section('user', 'task_manager', tm_default)
-    check_crt_config(tm_default['container_runtime'])
-    sys.exit(f'[task_manager] section missing in {bc.userconfig_file}\n' +
-             'Default values added. Please check and restart Task Manager.')
-runtime = bc.userconfig.get('task_manager', 'container_runtime')
-check_crt_config(runtime)
-
-tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
-
-# Check Workflow manager port, use default if none.
-if bc.userconfig.has_section('workflow_manager'):
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port',
-                                                            bc.default_wfm_port)
-else:
-    wfm_listen_port = bc.default_wfm_port
+wfm_listen_port = bc.get('workflow_manager', 'listen_port')
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -357,26 +312,22 @@ def get_status():
 from beeflow.common.worker_interface import WorkerInterface
 import beeflow.common.worker as worker_pkg
 
-try:
-    WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
-except ValueError as error:
-    log.error(f'workload scheduler error {error}')
-    WLS = None
+WLS = bc.get('DEFAULT', 'workload_scheduler')
 worker_class = worker_pkg.find_worker(WLS)
 if worker_class is None:
     sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
-             f'Please check {bc.userconfig_file} and restart TaskManager.')
+             f'Please check {bc.userconfig_path()} and restart TaskManager.')
 # Get the parameters for the worker classes
 worker_kwargs = {
-    'bee_workdir': bc.userconfig.get('DEFAULT', 'bee_workdir'),
-    'container_runtime': bc.userconfig.get('task_manager', 'container_runtime'),
-    'job_template': bc.userconfig.get('task_manager', 'job_template', fallback=None),
+    'bee_workdir': bc.get('DEFAULT', 'bee_workdir'),
+    'container_runtime': bc.get('task_manager', 'container_runtime'),
+    'job_template': bc.get('task_manager', 'job_template'),
     # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
-    'runner_opts': bc.userconfig.get('task_manager', 'runner_opts', fallback=None),
+    'runner_opts': bc.get('task_manager', 'runner_opts'),
 }
 # TODO: Maybe this should be put into a sub class
 if WLS == 'Slurm':
-    worker_kwargs['slurm_socket'] = bc.userconfig.get('slurmrestd', 'slurm_socket')
+    worker_kwargs['slurm_socket'] = bc.get('slurmrestd', 'slurm_socket')
 worker = WorkerInterface(worker_class, **worker_kwargs)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
@@ -385,10 +336,10 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 if __name__ == '__main__':
     hostname = socket.gethostname()
     log.info(f'Starting Task Manager on host: {hostname}')
-    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
-    container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
+    container_runtime = bc.get('task_manager', 'container_runtime')
     log.info(f'container_runtime: {container_runtime}')
 
     # Werkzeug logging

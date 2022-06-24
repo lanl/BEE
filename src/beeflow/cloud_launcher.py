@@ -10,7 +10,7 @@ import jinja2
 import requests
 
 import beeflow.common.cloud as cloud
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 
 
 def run(private_key_file, bee_user, ip_addr, cmd):
@@ -158,12 +158,12 @@ def main():
 
     # Get configuration information
     if args.config_file is not None:
-        bc = BeeConfig(userconfig=args.config_file, workload_scheduler='Simple')
+        bc.init(userconfig=args.config_file, workload_scheduler='Simple')
     else:
-        bc = BeeConfig(workload_scheduler='Simple')
+        bc.init(workload_scheduler='Simple')
     # Load the provider config file
     cfg = yaml.load(open(args.provider_config), Loader=yaml.Loader)
-    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 
     # Get the component ports for forwarding connections
     wfm_listen_port = cfg['wfm_listen_port']

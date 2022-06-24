@@ -6,19 +6,14 @@ from abc import ABC, abstractmethod
 import os
 from configparser import NoOptionError
 import sys
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
-if len(sys.argv) >= 2:
-    USERCONFIG = sys.argv[1]
-    bc = BeeConfig(userconfig=USERCONFIG)
-else:
-    USERCONFIG = None
-    bc = BeeConfig()
+USERCONFIG = bc.userconfig_path()
 
-bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
 
@@ -74,37 +69,18 @@ class CharliecloudDriver(ContainerRuntimeDriver):
     @staticmethod
     def get_cc_options():
         """Retrieve Charlicloud options from configuration file."""
-        try:
-            chrun_opts = bc.userconfig.get('charliecloud', 'chrun_opts')
-        except NoOptionError:
-            chrun_opts = ''
-        try:
-            cc_setup = bc.userconfig.get('charliecloud', 'setup')
-        except NoOptionError:
-            cc_setup = ''
+        chrun_opts = bc.get('charliecloud', 'chrun_opts')
+        cc_setup = bc.get('charliecloud', 'setup')
         return(chrun_opts, cc_setup)
 
     def run_text(self, task):
         """Build text for Charliecloud batch script."""
         # Read container archive path from config.
-        try:
-            if bc.userconfig['builder'].get('container_archive'):
-                container_archive = bc.userconfig['builder'].get('container_archive')
-            else:
-                # Set container archive relative to bee_workdir if config does not specify
-                log.warning('Invalid config file. container_archive not found in builder section.')
-                container_archive = '/'.join([bee_workdir, 'container_archive'])
-                log.warning(f'Assuming container_archive is {container_archive}')
-        except KeyError:
-            log.warning('Container is missing builder section')
-            log.warning('Setting container archive relative to bee_workdir')
-            container_archive = f'{bee_workdir}/container_archive'
-        finally:
-            self.container_archive = bc.resolve_path(container_archive)
-            os.makedirs(self.container_archive, exist_ok=True)
-            bc.modify_section('user', 'builder', {'container_archive': self.container_archive})
-            log.info(f'Build container archive directory is: {self.container_archive}')
-            log.info("Wrote deployed image root to user BeeConfig file.")
+        container_archive = bc.get('builder', 'container_archive')
+        self.container_archive = bc.resolve_path(container_archive)
+        os.makedirs(self.container_archive, exist_ok=True)
+        log.info(f'Build container archive directory is: {self.container_archive}')
+        log.info("Wrote deployed image root to user BeeConfig file.")
 
         task_container_name = None
         # The container runtime treats hints and requirements as dicts
@@ -207,12 +183,12 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         log.info(f'Expecting container at {container_path}. Ready to deploy and run.')
 
         chrun_opts, cc_setup = self.get_cc_options()
-        deployed_image_root = bc.userconfig.get('builder', 'deployed_image_root')
+        deployed_image_root = bc.get('builder', 'deployed_image_root')
 
         mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
         command = ' '.join(task.command)
         cc_setup = cc_setup.split()
-        env_code = [cc_setup] if cc_setup else []
+        env_code = cc_setup if cc_setup else ''
         deployed_path = deployed_image_root + '/' + task_container_name
         pre_commands = [
             f'mkdir -p {deployed_image_root}\n'.split(),
