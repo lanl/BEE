@@ -82,10 +82,10 @@ class GraphDatabaseInterface:
     def initialize_ready_tasks(self):
         """Set runnable tasks in a workflow to ready."""
         self._connection.initialize_ready_tasks()
-    
+
     def restart_task(self, old_task, new_task):
         """Create a new task from a failed task checkpoint restart enabled.
-        
+
         :param old_task: the failed task
         :type old_task: Task
         :param new_task: the new (restarted) task
@@ -126,8 +126,9 @@ class GraphDatabaseInterface:
 
     def set_workflow_state(self, state):
         """Return workflow's current state.
+
         :param state: the new state of the workflow
-        :type str
+        :type state: str
         """
         self._connection.set_workflow_state(state)
 
@@ -246,7 +247,7 @@ class GraphDatabaseInterface:
         """
         self._connection.set_task_output(task, output_id, value)
 
-    def evaluate_expression(self, task, id, output):
+    def evaluate_expression(self, task, id_, output):
         """Evaluate a task input/output expression.
 
         Expression can be a parameter substitution or a string concatenation in a StepInput
@@ -255,13 +256,13 @@ class GraphDatabaseInterface:
 
         :param task: the task whose expression to evaluate
         :type task: Task
-        :param id: the id of the step input/output
-        :type id: str
+        :param id_: the id of the step input/output
+        :type id_: str
         :param output: true if output glob expression being evaluated, else false
         :type output: bool
         """
         # Get ground-truth task from database before doing anything
-        task =  self._connection.get_task_by_id(task.id)
+        task = self._connection.get_task_by_id(task.id)
         input_pairs = {input.id: input.value for input in task.inputs}
         if output:
             step_output = self._connection.get_task_output(task, id)
@@ -282,9 +283,9 @@ class GraphDatabaseInterface:
                 eval_string = split[0]
                 for v, s in zip(values, split[1:]):
                     eval_string += v + s
-                self._connection.set_task_output_glob(task, id, eval_string)
+                self._connection.set_task_output_glob(task, id_, eval_string)
         else:
-            step_input = self._connection.get_task_input(task, id)
+            step_input = self._connection.get_task_input(task, id_)
             # Match any of the following patterns: self.path, inputs.foo, or "foo"
             # in an expression of the form $(A + B) in the valueFrom field
             expr_pattern = r'\$\((self\.path|inputs\.\w+|".+") \+ (self\.path|inputs\.\w+|".+")\)'
@@ -302,8 +303,8 @@ class GraphDatabaseInterface:
                     else:
                         # Pattern "foo" (strip quotes)
                         values.append(m[1:-1])
-                self._connection.set_task_input_type(task, id, "string")
-                self._connection.set_task_input(task, id, values[0] + values[1])
+                self._connection.set_task_input_type(task, id_, "string")
+                self._connection.set_task_input(task, id_, values[0] + values[1])
             else:
                 raise ValueError(f"unable to evaluate expression {step_input.value_from}")
 
