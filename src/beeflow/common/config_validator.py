@@ -63,12 +63,17 @@ class ConfigValidator:
         if depends_on is None:
             return True
         if depends_on[0] not in conf or depends_on[1] not in conf[depends_on[0]]:
-            # try and get the default
-            value = self._options[(depends_on[0], depends_on[1])].default
-        else:
-            value = conf[depends_on[0]][depends_on[1]]
+            return False
         # value must match for the section to be valid
-        return value == depends_on[2]
+        return conf[depends_on[0]][depends_on[1]] == depends_on[2]
+
+    def is_section_valid(self, cur_conf, sec_name):
+        """Determine if given the current configuration, sec_name is valid.
+
+        sec_name is assumed to be the name of a valid section.
+        """
+        depends_on = self._sections[sec_name].depends_on
+        return self._validate_section(cur_conf, depends_on)
 
     def section(self, sec_name, info, depends_on=None):
         """Define a configuration section."""
@@ -95,7 +100,21 @@ class ConfigValidator:
     @property
     def sections(self):
         """Return all sections in order as list of tuples (sec_name, section)."""
-        return [(sec_name, self._sections[sec_name]) for sec_name in self._section_order]
+        sec_names = [sec_name for sec_name in self._section_order]
+        s = set()
+        order = []
+        # Ensure dependency ordering
+        for sec_name in sec_names:
+            if sec_name in s:
+                continue
+            section = self._sections[sec_name]
+            depends_on = section.depends_on
+            if depends_on is not None and depends_on[0] not in s:
+                s.add(depends_on[0])
+                order.append((depends_on[0], self._sections[depends_on[0]]))
+            s.add(sec_name)
+            order.append((sec_name, section))
+        return order
 
     def options(self, sec_name):
         """Return all options for a given section."""

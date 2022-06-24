@@ -424,6 +424,9 @@ class ConfigGenerator:
         print('Please enter values for the following sections and options:')
         # Let the user choose values for each required attribute
         for sec_name, section in self.validator.sections:
+            # Determine if this section is valid under the current configuration
+            if not self.validator.is_section_valid(self.sections, sec_name):
+                continue
             self.sections[sec_name] = {}
             printed = False
             for opt_name, option in self.validator.options(sec_name):

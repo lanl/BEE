@@ -55,6 +55,47 @@ def test_depends_on():
     validator.validate({'one': {'key': 'A'}, 'two': {'some-key': '123'}}) == {'one': {'key': 'A'}, 'two': {'some-key': '123'}}
 
 
+def test_depends_on_order():
+    validator = ConfigValidator(description='depends on relation test')
+    # Section two depends on one::key == A
+    validator.section('two', info='section two', depends_on=('one', 'key', 'A'))
+    validator.option('two', 'some-key', info='some other config value dependent on [one] key == A')
+    validator.section('one', info='section one')
+    validator.option('one', 'key', choices=('A', 'B'), info='choice-based option')
+
+    # Sections must be listed in dependency order, so if section two dependends
+    # on section one, then section one must be listed first, then section two
+    sections = validator.sections
+    assert sections[0][0] == 'one'
+    assert sections[1][0] == 'two'
+
+
+def test_depends_on_validate():
+    validator = ConfigValidator(description='depends on relation test')
+    # Section two depends on one::key == A
+    validator.section('two', info='section two', depends_on=('one', 'key', 'A'))
+    validator.option('two', 'some-key', info='some other config value dependent on [one] key == A')
+    validator.section('one', info='section one')
+    validator.option('one', 'key', choices=('A', 'B'), info='choice-based option')
+
+    assert not validator.is_section_valid({'one': {'key': 'B'}}, 'two')
+    assert validator.is_section_valid({'one': {'key': 'A'}}, 'two')
+    assert validator.is_section_valid({}, 'one')
+
+
+def test_section_order():
+    validator = ConfigValidator(description='section order test')
+    validator.section('one', info='section one')
+    validator.option('one', 'key-a', info='some option')
+    validator.section('two', info='section two')
+    validator.option('two', 'key-b', info='some option')
+
+    sections = validator.sections
+
+    assert sections[0][0] == 'one'
+    assert sections[1][0] == 'two'
+
+
 def test_double_definition():
     validator = ConfigValidator(description='test case for when code tries to define sections and options twice')
 
