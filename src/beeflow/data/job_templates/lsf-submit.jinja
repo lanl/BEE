@@ -1,16 +1,16 @@
 #!/bin/bash
-#BSUB -P CSC420
+#BSUB -P <account> 
 #BSUB -W 0:30
-#BSUB -nnodes 1
 #BSUB -J {{task_name}}-{{task_id}}
 #BSUB -o {{task_save_path}}/{{task_name}}-{{task_id}}.out
 #BSUB -e {{task_save_path}}/{{task_name}}-{{task_id}}.err
-
 {% if 'beeflow:MPIRequirement' in hints and 'nodes' in hints['beeflow:MPIRequirement'] %}
 #BSUB -nnodes {{ hints['beeflow:MPIRequirement']['nodes'] }}
 {% else %}
 #BSUB -nnodes 1
 {% endif %}
+
+{{ env_code }}
 
 # pre commands
 {% for cmd in pre_commands %}
