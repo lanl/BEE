@@ -485,6 +485,7 @@ class ConfigGenerator:
             return
         try:
             with open(self.fname, 'w') as fp:
+                print('# BEE Configuration File', file=fp)
                 for sec_name in self.sections:
                     if not self.sections[sec_name]:
                         continue
