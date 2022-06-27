@@ -265,7 +265,7 @@ class GraphDatabaseInterface:
         task = self._connection.get_task_by_id(task.id)
         input_pairs = {input.id: input.value for input in task.inputs}
         if output:
-            step_output = self._connection.get_task_output(task, id)
+            step_output = self._connection.get_task_output(task, id_)
             # Find all matches of string pattern $(inputs.foo), capturing value of foo
             expr_pattern = r"\$\(inputs\.(\w+)\)"
             match = re.findall(expr_pattern, step_output.glob)
