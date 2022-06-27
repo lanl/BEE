@@ -78,20 +78,14 @@ class TestWorkflowInterface(unittest.TestCase):
                                      [InputParameter("test_input", "File", "input.txt")],
                                      [OutputParameter("test_output", "File", "output.txt",
                                                       "viz/output")])
-        tasks = self._create_test_tasks()
+        self._create_test_tasks()
 
-        # Set Compute tasks to RUNNING
-        for task in tasks[1:4]:
-            self.wfi.set_task_state(task, "RUNNING")
+        self.wfi.execute_workflow()
+
         self.wfi.pause_workflow()
 
-        # Compute tasks should now be PAUSED
-        for task in tasks[1:4]:
-            self.assertEqual("PAUSED", self.wfi.get_task_state(task))
-
-        # No other tasks should be affected
-        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[0]))
-        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[4]))
+        # Workflow state should now be 'PAUSED'
+        self.assertEqual("PAUSED", self.wfi.get_workflow_state())
 
     def test_resume_workflow(self):
         """Test workflow execution resuming (set paused tasks' states to 'RUNNING')."""
@@ -99,20 +93,14 @@ class TestWorkflowInterface(unittest.TestCase):
                                      [InputParameter("test_input", "File", "input.txt")],
                                      [OutputParameter("test_output", "File", "output.txt",
                                                       "viz/output")])
-        tasks = self._create_test_tasks()
+        self._create_test_tasks()
 
-        # Set Compute tasks to PAUSED
-        for task in tasks[1:4]:
-            self.wfi.set_task_state(task, "PAUSED")
+        self.wfi.execute_workflow()
+        self.wfi.pause_workflow()
         self.wfi.resume_workflow()
 
-        # Compute tasks should now be PAUSED
-        for task in tasks[1:4]:
-            self.assertEqual("RUNNING", self.wfi.get_task_state(task))
-
-        # No other tasks should be affected
-        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[0]))
-        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[4]))
+        # Workflow state should now be 'RESUME'
+        self.assertEqual("RESUME", self.wfi.get_workflow_state())
 
     def test_reset_workflow(self):
         """Test workflow execution resetting (set all tasks to 'WAITING', delete metadata)."""
