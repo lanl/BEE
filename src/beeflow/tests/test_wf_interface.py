@@ -57,9 +57,10 @@ class TestWorkflowInterface(unittest.TestCase):
 
         gdb_workflow, _ = self.wfi.get_workflow()
 
-        self.assertEqual(gdb_workflow, workflow)
-        self.assertEqual(gdb_workflow.id, workflow.id)
+        self.assertEqual(workflow, gdb_workflow)
+        self.assertEqual(workflow.id, gdb_workflow.id)
         self.assertIsNotNone(self.wfi._workflow_id)
+        self.assertEqual("SUBMITTED", self.wfi.get_workflow_state())
 
     def test_execute_workflow(self):
         """Test workflow execution initialization (set initial tasks' states to 'READY')."""
@@ -70,7 +71,8 @@ class TestWorkflowInterface(unittest.TestCase):
         tasks = self._create_test_tasks()
         self.wfi.execute_workflow()
 
-        self.assertEqual(self.wfi.get_task_state(tasks[0]), "READY")
+        self.assertEqual("READY", self.wfi.get_task_state(tasks[0]))
+        self.assertEqual("RUNNING", self.wfi.get_workflow_state())
 
     def test_pause_workflow(self):
         """Test workflow execution pausing (set running tasks' states to 'PAUSED')."""
@@ -328,10 +330,39 @@ class TestWorkflowInterface(unittest.TestCase):
         workflow = self.wfi.initialize_workflow(
             "test_workflow",
             [InputParameter("test_input", "File", "input.txt")],
-            [OutputParameter("test_output", "File", "output.txt",
-                             "test_task/test_task_done")])
+            [OutputParameter("test_output", "File", "output.txt", "test_task/test_task_done")])
 
         self.assertListEqual(workflow.outputs, self.wfi.get_workflow_outputs())
+    
+    def test_get_workflow_state(self):
+        """Test obtaining the state of a workflow."""
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/test_task_done")])
+        
+        # Initialized workflow state should be 'SUBMITTED'
+        self.assertEqual("SUBMITTED", self.wfi.get_workflow_state())
+
+        self.wfi.execute_workflow()
+
+        # Executed workflow state should be 'RUNNING'
+        self.assertEqual("RUNNING", self.wfi.get_workflow_state())
+
+    def test_set_workflow_state(self):
+        """Test setting the state of a workflow."""
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/test_task_done")])
+
+        # Initialized workflow state should be 'SUBMITTED'
+        self.assertEqual("SUBMITTED", self.wfi.get_workflow_state())
+
+        self.wfi.set_workflow_state("RUNNING")
+
+        # Workflow state should now be 'RUNNING'
+        self.assertEqual("RUNNING", self.wfi.get_workflow_state())
 
     def test_get_ready_tasks(self):
         """Test obtaining of ready workflow tasks."""
