@@ -5,6 +5,7 @@ from beeflow.client import bee_client
 import subprocess
 import os
 import time
+import sys
 
 
 # Max time of each workflow
@@ -106,6 +107,7 @@ def test_workflows(workflows):
         if error is not None:
             print(f'{name}: {error}')
     print('##################################')
+    return 1 if fails > 0 else 0
 
 
 # Initialize BEE's config system
@@ -128,4 +130,4 @@ workflows = [
 ]
 
 # Run the workflows and then show completion results
-test_workflows(workflows)
+sys.exit(test_workflows(workflows))
