@@ -6,19 +6,14 @@ from abc import ABC, abstractmethod
 import os
 from configparser import NoOptionError
 import sys
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
-if len(sys.argv) >= 2:
-    USERCONFIG = sys.argv[1]
-    bc = BeeConfig(userconfig=USERCONFIG)
-else:
-    USERCONFIG = None
-    bc = BeeConfig()
+USERCONFIG = bc.userconfig_path()
 
-bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
 class ContainerRuntimeDriver(ABC):
@@ -26,10 +21,11 @@ class ContainerRuntimeDriver(ABC):
 
     @abstractmethod
     def run_text(self, task):
-        """Create text for job using the container runtime.
+        """Create commands for job using the container runtime.
 
+        Returns a tuple (pre-commands, main-command, post-commands).
         :param task: instance of Task
-        :rtype: string
+        :rtype tuple of (list of list of str, list of str, list of list of str)
         """
 
     @abstractmethod
@@ -61,64 +57,26 @@ class CharliecloudDriver(ContainerRuntimeDriver):
     @staticmethod
     def get_cc_options():
         """Retrieve Charlicloud options from configuration file."""
-        try:
-            chrun_opts = bc.userconfig.get('charliecloud', 'chrun_opts')
-        except NoOptionError:
-            chrun_opts = ''
-        try:
-            cc_setup = bc.userconfig.get('charliecloud', 'setup')
-        except NoOptionError:
-            cc_setup = ''
+        chrun_opts = bc.get('charliecloud', 'chrun_opts')
+        cc_setup = bc.get('charliecloud', 'setup')
         return(chrun_opts, cc_setup)
 
     def run_text(self, task):
         """Build text for Charliecloud batch script."""
-        if task.hints is not None:
-            docker = False
-            # Make sure all commands are strings
-            cmd_tasks = list(map(str, task.command))
-            command = ' '.join(cmd_tasks) + '\n'
-            for hint in task.hints:
-                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    name = self.get_ccname(hint.params["dockerImageId"])
-                    chrun_opts, cc_setup = self.get_cc_options()
-                    image_mntdir = bc.userconfig.get('charliecloud', 'image_mntdir')
-                    text = (f'{cc_setup}\n'
-                            f'mkdir -p {image_mntdir}\n'
-                            f'ch-tar2dir {hint.params["dockerImageId"]} {image_mntdir}\n'
-                            f'ch-run {image_mntdir}/{name} {chrun_opts} -- {command}'
-                            f'rm -rf {image_mntdir}/{name}\n'
-                            )
-                    docker = True
-            if not docker:
-                text = command
         # Read container archive path from config.
-        try:
-            if bc.userconfig['builder'].get('container_archive'):
-                container_archive = bc.userconfig['builder'].get('container_archive')
-            else:
-                # Set container archive relative to bee_workdir if config does not specify
-                log.warning('Invalid config file. container_archive not found in builder section.')
-                container_archive = '/'.join([bee_workdir, 'container_archive'])
-                log.warning(f'Assuming container_archive is {container_archive}')
-        except KeyError:
-            log.warning('Container is missing builder section')
-            log.warning('Setting container archive relative to bee_workdir')
-            container_archive = f'{bee_workdir}/container_archive'
-        finally:
-            self.container_archive = bc.resolve_path(container_archive)
-            os.makedirs(self.container_archive, exist_ok=True)
-            bc.modify_section('user', 'builder', {'container_archive': self.container_archive})
-            log.info(f'Build container archive directory is: {self.container_archive}')
-            log.info("Wrote deployed image root to user BeeConfig file.")
+        container_archive = bc.get('builder', 'container_archive')
+        self.container_archive = bc.resolve_path(container_archive)
+        os.makedirs(self.container_archive, exist_ok=True)
+        log.info(f'Build container archive directory is: {self.container_archive}')
+        log.info("Wrote deployed image root to user BeeConfig file.")
 
         task_container_name = None
         # The container runtime treats hints and requirements as dicts
-        task.hints = dict(task.hints)
+        hints = dict(task.hints)
         task.requirements = dict(task.requirements)
         try:
             # Try to get Hints
-            hint_container_name = task.hints['DockerRequirement']['containerName']
+            hint_container_name = hints['DockerRequirement']['containerName']
         except (KeyError, TypeError):
             # Task Hints are not mandatory. No container_name specified in task hints.
             hint_container_name = None
@@ -130,7 +88,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             req_container_name = None
 
         # Prefer requirements over hints
-        if (req_container_name or hint_container_name) and (not hint_container_name):
+        if req_container_name:
             task_container_name = req_container_name
         elif hint_container_name:
             task_container_name = hint_container_name
@@ -144,7 +102,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_container_path = None
             try:
                 # Try to get Hints
-                hint_container_path = task.hints['DockerRequirement']['copyContainer']
+                hint_container_path = hints['DockerRequirement']['copyContainer']
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No container_path specified in task hints.
                 hint_container_path = None
@@ -156,7 +114,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 req_container_path = None
 
             # Prefer requirements over hints
-            if (req_container_path or hint_container_path) and (not hint_container_path):
+            if req_container_path:
                 task_container_path = req_container_path
             elif hint_container_path:
                 task_container_path = hint_container_path
@@ -170,7 +128,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_addr = None
             try:
                 # Try to get Hints
-                hint_addr = task.hints['DockerRequirement']['dockerPull']
+                hint_addr = hints['DockerRequirement']['dockerPull']
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No dockerPull image specified in task hints.
                 hint_addr = None
@@ -182,7 +140,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 req_addr = None
 
             # Prefer requirements over hints
-            if (req_addr or hint_addr) and (not hint_addr):
+            if req_addr:
                 task_addr = req_addr
             elif hint_addr:
                 task_addr = hint_addr
@@ -192,9 +150,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 runtime_target_list.append(task_container_path)
                 log.info('Found dockerPull address, assuming this contains the container name.')
                 if len(runtime_target_list) > 1:
-                    log.error('Too many container runtimes specified!')
-                    log.error('Pick a maximum of one per workflow step.')
-                    return 1
+                    raise RuntimeError(
+                        'Too many container runtimes specified! Pick one per workflow step.'
+                    )
             if len(runtime_target_list) == 0:
                 log.warning('No containerName specified.')
                 log.warning('Cannot be inferred from other DockerRequirements.')
@@ -202,33 +160,38 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             else:
                 # Build container name from container path.
                 task_container_name = runtime_target_list[0]
-                log.info('Moving with the expectation that {} is the runtime container target'.
-                         format(task_container_name))
+                log.info(f'Moving with expectation: {task_container_name} is the container target')
 
-        command = ' '.join(task.command) + '\n'
         if baremetal:
-            return command
+            return ContainerRuntimeResult(env_code='', pre_commands=[],
+                                          main_command=[str(arg) for arg in task.command],
+                                          post_commands=[])
 
         container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
-        log.info('Expecting container at {}. Ready to deploy and run.'.format(container_path))
+        log.info(f'Expecting container at {container_path}. Ready to deploy and run.')
 
         chrun_opts, cc_setup = self.get_cc_options()
-        deployed_image_root = bc.userconfig.get('builder', 'deployed_image_root')
+        deployed_image_root = bc.get('builder', 'deployed_image_root')
 
-        text = (f'{cc_setup}\n'
-                f'mkdir -p {deployed_image_root}\n'
-                f'ch-tar2dir {container_path} {deployed_image_root}\n'
-                f'ch-run {deployed_image_root}/{task_container_name} {chrun_opts} -- {command}\n'
-                f'rm -rf {deployed_image_root}/{task_container_name}\n'
-                )
-        log.info('run text:\n{}'.format(text))
-        return text
+        mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
+        command = ' '.join(task.command)
+        cc_setup = cc_setup.split()
+        env_code = cc_setup if cc_setup else ''
+        deployed_path = deployed_image_root + '/' + task_container_name
+        pre_commands = [
+            f'mkdir -p {deployed_image_root}\n'.split(),
+            f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split()
+        ]
+        main_command = f'ch-run {mpi_opt} {deployed_path} {chrun_opts} -- {command}\n'.split()
+        post_commands = [
+            f'rm -rf {deployed_path}\n'.split(),
+        ]
+        return ContainerRuntimeResult(env_code, pre_commands, main_command, post_commands)
 
     def build_text(self, userconfig, task):
         """Build text for Charliecloud batch script."""
         task_args = task2arg(task)
-        text = (f'beeflow --build {userconfig} {task_args}\n'
-                )
+        text = (f'beeflow --build {userconfig} {task_args}\n')
         return text
 
 
@@ -240,21 +203,20 @@ class SingularityDriver(ContainerRuntimeDriver):
 
     def run_text(self, task):
         """Build text for Singularity batch script."""
+        # Make sure all commands are strings
+        cmd_tasks = list(map(str, task.command))
+        main_command = cmd_tasks
         if task.hints is not None:
-            docker = False
-            # Make sure all commands are strings
-            cmd_tasks = list(map(str, task.command))
-            command = ' '.join(cmd_tasks) + '\n'
-            for hint in task.hints:
-                if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-                    text = ''.join([
-                        'singularity exec ', hint.params["dockerImageId"],
-                        ' ', command,
-                        ])
-                    docker = True
-            if not docker:
-                text = command
-        return text
+            hints = dict(task.hints)
+            try:
+                img = hints['DockerRequirement']['copyContainer']
+                argv = ['singularity', 'exec', img]
+                argv.extend(cmd_tasks)
+                main_command = argv
+            except (KeyError, TypeError):
+                pass
+        return ContainerRuntimeResult(env_code='', pre_commands=[], main_command=main_command,
+                                      post_commands=[])
 
     def build_text(self, userconfig, task):
         """Build text for Singularity batch script."""

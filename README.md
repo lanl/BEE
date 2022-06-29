@@ -30,16 +30,6 @@ a repository, it can be automatically tested across a suite of different softwar
 
 The BEE project supports launching applications using the [Charliecloud](https://github.com/hpc/charliecloud) HPC container runtime.  These applications can be executed on a traditional HPC cluster or an OpenStack cloud cluster.
 
-# Running on Darwin
-
-We use a custom Slurm built for the BEE project on Darwin, built against the Darwin admin maintained configs in `/etc/slurm/`. In order to use the Slurm rest interface on Darwin, you must set up and use this custom Slurm build:
-
-```
-module use /projects/beedev/modulefiles
-module load slurmrestd
-```
-
-Then proceed as usual.
 
 # Contributing
 

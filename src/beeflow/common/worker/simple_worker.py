@@ -7,6 +7,7 @@ from beeflow.common.worker.worker import Worker
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
+import os
 
 # Import all implemented container runtime drivers now
 # No error if they don't exist
@@ -25,16 +26,9 @@ class SimpleWorker(Worker):
 
     def __init__(self, container_runtime, **kwargs):
         """Simple worker class."""
+        super().__init__(container_runtime=container_runtime, **kwargs)
+        # TODO: this should be stored in Redis if possible
         self.tasks = {}
-        # TODO: This code should be put into the driver code itself
-        crt_class = None
-        if container_runtime == 'Charliecloud':
-            crt_class = CharliecloudDriver
-        elif container_runtime == 'Singularity':
-            crt_class = SingularityDriver
-        if crt_class is None:
-            log.warning("No container runtime specified in config, proceeding with caution.")
-        self.crt = ContainerRuntimeInterface(CharliecloudDriver)
 
     def submit_task(self, task):
         """Worker submits task; returns job_id, job_state.
@@ -42,9 +36,11 @@ class SimpleWorker(Worker):
         :param task: instance of Task
         :rtype: tuple (int, string)
         """
-        script = self.crt.run_text(task)
-        print(script)
-        self.tasks[task.id] = subprocess.Popen(['/bin/sh', '-c', script])
+        script = self.build_text(task)
+        script_path = os.path.join(self.task_save_path(task), f'{task.name}-{task.id}.sh')
+        with open(script_path, 'w') as fp:
+            fp.write(script)
+        self.tasks[task.id] = subprocess.Popen(['/bin/sh', script_path])
         return (task.id, 'PENDING')
 
     def cancel_task(self, job_id):

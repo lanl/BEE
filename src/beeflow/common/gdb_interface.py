@@ -82,6 +82,16 @@ class GraphDatabaseInterface:
     def initialize_ready_tasks(self):
         """Set runnable tasks in a workflow to ready."""
         self._connection.initialize_ready_tasks()
+    
+    def restart_task(self, old_task, new_task):
+        """Create a new task from a failed task checkpoint restart enabled.
+        
+        :param old_task: the failed task
+        :type old_task: Task
+        :param new_task: the new (restarted) task
+        :type new_task: Task
+        """
+        self._connection.restart_task(old_task, new_task)
 
     def finalize_task(self, task):
         """Set a task's state to completed.
@@ -106,6 +116,20 @@ class GraphDatabaseInterface:
         :rtype: Workflow
         """
         return self._connection.get_workflow_description()
+
+    def get_workflow_state(self):
+        """Return workflow's current state.
+
+        :rtype: str
+        """
+        return self._connection.get_workflow_state()
+
+    def set_workflow_state(self, state):
+        """Return workflow's current state.
+        :param state: the new state of the workflow
+        :type str
+        """
+        self._connection.set_workflow_state(state)
 
     def get_workflow_tasks(self):
         """Return a workflow's tasks from the graph database.
@@ -158,16 +182,14 @@ class GraphDatabaseInterface:
         """
         return self._connection.set_task_state(task, state)
 
-    def get_task_metadata(self, task, keys):
+    def get_task_metadata(self, task):
         """Return the job description metadata of a task.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
-        :param keys: the metadata keys whose values to retrieve
-        :type keys: iterable of str
         :rtype: dict
         """
-        return self._connection.get_task_metadata(task, keys)
+        return self._connection.get_task_metadata(task)
 
     def set_task_metadata(self, task, metadata):
         """Set the job description metadata of a task.
@@ -286,7 +308,7 @@ class GraphDatabaseInterface:
                 raise ValueError(f"unable to evaluate expression {step_input.value_from}")
 
     def workflow_completed(self):
-        """Return true if all tasks in a workflow have state 'COMPLETED', else false.
+        """Return true if all of a workflow's final tasks have completed, else false.
 
         :rtype: bool
         """

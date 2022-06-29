@@ -7,11 +7,12 @@ import os
 import shutil
 import subprocess
 import sys
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
 from beeflow.common.build.build_driver import BuildDriver
 import beeflow.common.log as bee_logging
+from beeflow.common.crt_drivers import CharliecloudDriver as crt_driver
 
 
 class ContainerBuildDriver(BuildDriver):
@@ -42,95 +43,27 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         :param kwargs: Dictionary of build system config options
         :type kwargs: set of build system parameters
         """
-        if userconf_file:
-            bc = BeeConfig(userconfig=userconf_file)
-        else:
-            bc = BeeConfig()
         # Store build logs relative to bee_workdir.
-        try:
-            if bc.userconfig['DEFAULT'].get('bee_workdir'):
-                bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
-            else:
-                # Can't log if we don't know where to log, just print error
-                print('Invalid config file. bee_workdir not found in DEFAULT.', file=sys.stderr)
-                print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
-                bee_workdir = '~/.beeflow'
-        except KeyError:
-            # Can't log if we don't know where to log, just print error
-            print('Invalid config file. DEFAULT section missing.', file=sys.stderr)
-            print('Assuming bee_workdir is ~/.beeflow', file=sys.stderr)
-            bee_workdir = '~/.beeflow'
-        finally:
-            _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
-                                     logfile='CharliecloudBuildDriver.log')
+        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+        _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
+                                 logfile='CharliecloudBuildDriver.log')
         # Store build container archive pased on config file or relative to bee_workdir if not set.
-        try:
-            if bc.userconfig['builder'].get('container_archive'):
-                container_archive = bc.userconfig['builder'].get('container_archive')
-            else:
-                # Set container archive relative to bee_workdir if config does not specify
-                log.warning('Invalid config file. container_archive not found in builder section.')
-                container_archive = '/'.join([bee_workdir, 'container_archive'])
-                log.warning(f'Assuming container_archive is {container_archive}')
-        except KeyError:
-            log.warning('Container is missing builder section')
-            log.warning('Setting container archive relative to bee_workdir')
-            container_archive = f'{bee_workdir}/container_archive'
-        finally:
-            self.container_archive = bc.resolve_path(container_archive)
-            os.makedirs(self.container_archive, exist_ok=True)
-            bc.modify_section('user', 'builder', {'container_archive': self.container_archive})
-            log.info(f'Build container archive directory is: {self.container_archive}')
-            log.info("Wrote deployed image root to user BeeConfig file.")
+        container_archive = bc.get('builder', 'container_archive')
+        self.container_archive = bc.resolve_path(container_archive)
+        os.makedirs(self.container_archive, exist_ok=True)
         # Deploy build tarballs relative to /var/tmp/username/beeflow by default
-        try:
-            if bc.userconfig['builder'].get('deployed_image_root'):
-                deployed_image_root = bc.userconfig['builder'].get('deployed_image_root')
-                # Make sure conf_file path exists
-                os.makedirs(deployed_image_root, exist_ok=True)
-                # Make sure path is absolute
-                deployed_image_root = bc.resolve_path(deployed_image_root)
-            else:
-                log.info('Deployed image root not found.')
-                deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
-                                               'beeflow_deployed_containers'])
-                # Make sure conf_file path exists
-                os.makedirs(deployed_image_root, exist_ok=True)
-                # Make sure path is absolute
-                deployed_image_root = bc.resolve_path(deployed_image_root)
-                log.info(f'Assuming deployed image root is {deployed_image_root}')
-        except KeyError:
-            log.info('Config file is missing builder section.')
-            deployed_image_root = '/'.join(['/var/tmp', os.getlogin(),
-                                           'beeflow_deployed_containers'])
-            # Make sure conf_file path exists
-            os.makedirs(deployed_image_root, exist_ok=True)
-            # Make sure path is absolute
-            deployed_image_root = bc.resolve_path(deployed_image_root)
-            log.info(f'Assuming deployed image root is {deployed_image_root}')
-        finally:
-            self.deployed_image_root = deployed_image_root
-            os.makedirs(self.deployed_image_root, exist_ok=True)
-            bc.modify_section('user', 'builder', {'deployed_image_root': self.deployed_image_root})
-            log.info(f'Deployed image root directory is: {self.deployed_image_root}')
-            log.info("Wrote deployed image root to user BeeConfig file.")
+        deployed_image_root = bc.get('builder', 'deployed_image_root')
+        # Make sure conf_file path exists
+        os.makedirs(deployed_image_root, exist_ok=True)
+        # Make sure path is absolute
+        deployed_image_root = bc.resolve_path(deployed_image_root)
+        self.deployed_image_root = deployed_image_root
+        os.makedirs(self.deployed_image_root, exist_ok=True)
         # Set container-relative output directory based on BeeConfig, or use '/'
-        try:
-            container_output_path = bc.userconfig['builder'].get('container_output_path')
-            # If the builder section exists but not the container_output_path entry,
-            # bc will return "None". Treat this is as a KeyError.
-            if not container_output_path:
-                raise KeyError
-        except KeyError:
-            container_output_path = '/'
-            log.info(f'Assuming container-relative output path is {container_output_path}')
-            bc.modify_section('user', 'builder', {'container_output_path': container_output_path})
-            log.info('Wrote container-relative output path to user BeeConfig file.')
-        finally:
-            self.container_output_path = container_output_path
-            log.info(f'Container-relative output path is: {self.container_output_path}')
+        container_output_path = bc.get('builder', 'container_output_path')
+        self.container_output_path = container_output_path
         # record that a Charliecloud builder was used
-        bc.modify_section('user', 'builder', {'container_type': 'charliecloud'})
+        # bc.modify_section('user', 'builder', {'container_type': 'charliecloud'})
         self.task = task
         self.docker_image_id = None
         self.container_name = None
@@ -138,24 +71,22 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         try:
             requirement_DockerRequirements = self.task.requirements['DockerRequirement'].keys()
             dockerRequirements = dockerRequirements.union(requirement_DockerRequirements)
-            log.info('task {} requirement DockerRequirements: {}'.
-                     format(self.task.id, set(requirement_DockerRequirements)))
+            req_string = (f'{set(requirement_DockerRequirements)}')
+            log.info(f'task {self.task.id} requirement DockerRequirements: {req_string}')
         except (TypeError, KeyError):
-            log.info('task {} requirements has no DockerRequirements'.format(self.task.id))
+            log.info(f'task {self.task.name} {self.task.id} no DockerRequirements in requirement')
         try:
             hint_DockerRequirements = self.task.hints['DockerRequirement'].keys()
             dockerRequirements = dockerRequirements.union(hint_DockerRequirements)
-            log.info('task {} hint DockerRequirements: {}'.format(self.task.id,
-                                                                  set(hint_DockerRequirements)))
+            hint_str = (f'{set(hint_DockerRequirements)}')
+            log.info(f'task {self.task.name} {self.task.id} hint DockerRequirements: {hint_str}')
         except (TypeError, KeyError):
-            log.info('task {} hints has no DockerRequirements'.format(self.task.id))
-        log.info('task {} union DockerRequirements consist of: {}'.format(self.task.id,
-                                                                          dockerRequirements))
+            log.info(f'task {self.task.name} {self.task.id} hints has no DockerRequirements')
+        log.info(f'task {self.task.id} union DockerRequirements : {dockerRequirements}')
         exec_superset = self.resolve_priority()
         self.exec_list = [i for i in exec_superset if i[1] in dockerRequirements]
         log_exec_list = [i[1] for i in self.exec_list]
-        log.info('task {} DockerRequirement execution order will be: {}'.format(self.task.id,
-                                                                                log_exec_list))
+        log.info(f'task {self.task.id} DockerRequirement execution order will be: {log_exec_list}')
         log.info('Execution order pre-empts hint/requirement status.')
 
     def dockerPull(self, addr=None, force=False):
@@ -199,7 +130,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.info('No image specified and no image required, nothing to do.')
             return 0
 
-        # DetermVine name for successful build target
+        # Determine name for successful build target
         ch_build_addr = addr.replace('/', '%')
 
         ch_build_target = '/'.join([self.container_archive, ch_build_addr]) + '.tar.gz'
@@ -215,12 +146,14 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-image/'+ch_build_addr)
+                shutil.rmtree('/var/tmp/' + os.getlogin() + '/ch-image/' + ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Out of excuses. Pull the image.
-        cmd = (f'ch-image pull {addr} && ch-builder2tar {ch_build_addr} {self.container_archive}'
+        cmd = (f'ch-image pull {addr}\n'
+               f'ch-convert -i ch-image -o tar {ch_build_addr}'
+               f' {self.container_archive}/{ch_build_addr}.tar.gz'
                )
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
@@ -287,13 +220,13 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Create context directory to use as Dockerfile context, use container name so user
         # can prep the directory with COPY sources as needed.
         context_dir = os.path.expanduser('~')
-        log.info('Context directory will be {}.'.format(context_dir))
+        log.info(f'Context directory will be {context_dir}')
 
         # Determine name for successful build target
         ch_build_addr = self.container_name.replace('/', '%')
 
         ch_build_target = '/'.join([self.container_archive, ch_build_addr]) + '.tar.gz'
-        log.info('Build will create tar ball at {}'.format(ch_build_target))
+        log.info(f'Build will create tar ball at {ch_build_target}')
         # Return if image already exist and force==False.
         if os.path.exists(ch_build_target) and not force:
             return 0
@@ -304,16 +237,17 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
             try:
-                shutil.rmtree('/var/tmp/'+os.getlogin()+'/ch-image/'+ch_build_addr)
+                shutil.rmtree('/var/tmp/' + os.getlogin() + '/ch-image/' + ch_build_addr)
             except FileNotFoundError:
                 pass
 
         # Out of excuses. Build the image.
         log.info('Context directory configured. Beginning build.')
         cmd = (f'ch-image build -t {self.container_name} -f {task_dockerfile} {context_dir}\n'
-               f'ch-builder2tar {ch_build_addr} {self.container_archive}'
+               f'ch-convert -i ch-image -o tar {ch_build_addr} '
+               f'{self.container_archive}/{ch_build_addr}.tar.gz'
                )
-        log.info('Executing: {}'.format(cmd))
+        log.info(f'Executing: {cmd}')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
@@ -350,7 +284,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             import_input_path = task_import
 
         # Pull the image.
-        cmd = (f'ch-tar2dir {import_input_path} {self.deployed_image_root}/')
+        file_name = crt_driver.get_ccname(import_input_path)
+        cmd = (f'ch-convert {import_input_path} {self.deployed_image_root}/{file_name}')
+        log.info(f'Docker import: Assuming container name is {import_input_path}. Correct?')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
@@ -445,8 +381,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if self.container_name:
             copy_target = '/'.join([self.container_archive, self.container_name + '.tar.gz'])
         else:
-            copy_target = '/'.join([self.container_archive, os.path.basename(task_container_path)])
-        log.info('Build will copy a container to {}'.format(copy_target))
+            copy_target = '/'.join([self.container_archive,
+                                    crt_driver.get_ccname(task_container_path) + '.tar.gz'])
+        log.info(f'Build will copy a container to {copy_target}')
         # Return if image already exist and force==False.
         if os.path.exists(copy_target) and not force:
             log.info('Container by this name exists in archive. Taking no action.')
@@ -461,7 +398,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         log.info('Copying container.')
         cmd = (f'cp {task_container_path} {copy_target}\n'
                )
-        log.info('Executing: {}'.format(cmd))
+        log.info(f'Executing: {cmd}')
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 

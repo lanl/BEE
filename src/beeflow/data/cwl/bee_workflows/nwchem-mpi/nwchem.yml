@@ -1,0 +1,3 @@
+# nw_file: "/nwchem/examples/tcepolar/ccsd_polar_small.nw"
+# this input seems like a good quick-running test case
+nw_file: "/nwchem/QA/tests/h2o_bnl/h2o_bnl.nw"

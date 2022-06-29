@@ -12,31 +12,19 @@ components of the gdb_interface as required.
 import sys
 from subprocess import CalledProcessError
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 from beeflow.common.build.build_driver import arg2task
 
-if __name__ == "__main__":
-    try:
-        userconfig = sys.argv[1]
-        bc = BeeConfig(userconfig=userconfig)
-        my_args = sys.argv[2]
-    except IndexError:
-        raise IndexError('build_interface must execute with 2 arguments.')
 
-    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='build_interface.log')
-
-    try:
-        task = arg2task(my_args)
-        # The build driver treats Hint and Requirement objects as Dicts.
-        task.hints = dict(task.hints)
-        task.requirements = dict(task.requirements)
-    except Exception as e:
-        log.info('{}'.format(e))
-
-    builder = CharliecloudBuildDriver(task)
+def build_main(bc, task):
+    """Main build code."""
+    # The build driver treats Hint and Requirement objects as Dicts.
+    local_task = task.copy()
+    local_task.hints = dict(local_task.hints)
+    local_task.requirements = dict(local_task.requirements)
+    builder = CharliecloudBuildDriver(local_task)
     log.info('CharliecloudBuildDriver initialized')
 
     # Deque the next build instruction until empty or reach terminal case
@@ -71,6 +59,26 @@ if __name__ == "__main__":
         except IndexError:
             build_op, op_name, op_priority, op_terminal = None, None, None, True
     log.info('Out of build instructions. Build operations complete.')
+
+
+if __name__ == '__main__':
+    try:
+        userconfig = sys.argv[1]
+        bc.init(userconfig=userconfig)
+        my_args = sys.argv[2]
+    except IndexError:
+        raise IndexError('build_interface must execute with 2 arguments.')
+
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='build_interface.log')
+
+    try:
+        local_task = arg2task(my_args)
+    except Exception as e:
+        log.info('{}'.format(e))
+
+    build_main(bc, local_task)
+>>>>>>> develop
 
 # Ignore W0707: Re-raising with from keyword does not aid in readability or functionality
 # Ignore W0703: Catching generic exception isn't a problem if we just want a descriptive report

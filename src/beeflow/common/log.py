@@ -165,9 +165,9 @@ def catch_exception(type, value, traceback):
     # If we don't have a module log handler, figure out which log we need
     if __module_log__ is None:
         from beeflow.cli import log
-        from beeflow.common.config_driver import BeeConfig
-        bc = BeeConfig()
-        bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+        from beeflow.common.config_driver import BeeConfig as bc
+        bc.init()
+        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
         # Get the filename sans extension
         path = traceback.tb_frame.f_code.co_filename
         filename = path.split('/')[-1].rsplit('.', 1)[0]

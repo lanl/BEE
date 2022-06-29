@@ -1,9 +1,9 @@
 # Build functionality for BEE
 
-The BEE system should launch containerized jobs, and resolve the container runtime environment (RTE) using a combination of CWL hints/requirements and BeeConfig parameters. The steps leading up to the creation of an RTE will be referred to as "build" steps. All build functionality is defined in this directory, but may depend on other components (such as container runtimes) 
+The BEE system should launch containerized jobs, and resolve the container runtime environment (RTE) using a combination of CWL hints/requirements and BeeConfig parameters. The steps leading up to the creation of an RTE will be referred to as "build" steps. All build functionality is defined in this directory, but may depend on other components (such as container runtimes)
 
 ## Extending build functionality
-BEE supports build extensions by offering interfaces and templates for those who wish to utilize build functionality not currently supported in BEE. The BEE build system consists of three major parts:  
+BEE supports build extensions by offering interfaces and templates for those who wish to utilize build functionality not currently supported in BEE. The BEE build system consists of three major parts:
 
 
 * ***build_interfaces.py:*** A collection of build interfaces which define interactions between build objects and the components they interact with (eg- task manager, worker, workflow manager, ...)
@@ -15,7 +15,7 @@ BEE supports build extensions by offering interfaces and templates for those who
 
 All BEE components will access build drivers through an interface, and all build interfaces are defined in `../build_interfaces.py`.
 
-**Static methods:** Static methods implement methods associated with build operations but which are not directly to the build interface object and the specific RTE it provides. Static methods do not require that a build interface object exists in order to run.  
+**Static methods:** Static methods implement methods associated with build operations but which are not directly to the build interface object and the specific RTE it provides. Static methods do not require that a build interface object exists in order to run.
 
 ### BuildInterfaceTM
 The BuildInterfaceTM class is defined in `build_interface.py`. This class defines methods which are useful to interactions with the task manager.
@@ -47,33 +47,34 @@ A few examples to use for testing:
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerPull':'git.lanl.gov:5050/qwofford/containerhub/lstopo'}},
                  hints=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout="output.txt",
+                 task_id=1,
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.dockerPull()
 a.dockerPull('git.lanl.gov:5050/trandles/baseimages/centos:7')
 
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  requirements={},
                  hints=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout="output.txt",
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.dockerPull()
 a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
 
-task = Task(name='hi',command=['hi','hello'],
-                 subworkflow=None,
+task = Task(name='hi',base_command=['hi','hello'],
                  hints=None,
                  requirements=None,
                  workflow_id=42,
+                 stdout="output.txt",
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -85,12 +86,12 @@ a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=True)
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerFile':'src/beeflow/data/dockerfiles/Dockerfile.builder_demo',
                                                     'containerName':'my_fun_container:sillytag'}},
                  hints=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout="output.txt",
                  inputs={},
                  outputs={})
 b = CharliecloudBuildDriver(task)
@@ -101,11 +102,11 @@ b.dockerFile()
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  requirements={},
                  hints=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -118,36 +119,35 @@ a = CharliecloudBuildDriver(task)
 # When a "builder entry does exist in bee.conf
 # >>> Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
 # >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
                  hints=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.dockerImport()
-# >>> CompletedProcess(args='ch-tar2dir /usr/projects/beedev/neo4j-3-5-17-ch.tar.gz /var/tmp/qwofford/beeflow/', returncode=0, stdout=b'/var/tmp/qwofford/beeflow//neo4j-3-5-17-ch unpacked ok\n', stderr=b'replacing existing image /var/tmp/qwofford/beeflow//neo4j-3-5-17-ch\n')
-task = Task(name='hi',command=['hi','hello'],
+
+task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
                  requirements=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.dockerImport()
-# >>> CompletedProcess(args='ch-tar2dir /usr/projects/beedev/neo4j-3-5-17-ch.tar.gz /var/tmp/qwofford/beeflow/', returncode=0, stdout=b'/var/tmp/qwofford/beeflow//neo4j-3-5-17-ch unpacked ok\n', stderr=b'replacing existing image /var/tmp/qwofford/beeflow//neo4j-3-5-17-ch\n')
 ```
 ### dockerOutputDirectory
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
                  requirements=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -166,11 +166,11 @@ a.dockerOutputDirectory()
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerLoad':'bogus path'}},
                  requirements=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -178,11 +178,11 @@ a.dockerLoad()
 # >>> Charliecloud does not have the concept of a layered image tarball.
 # >>> Did you mean to use dockerImport?
 # >>> 0
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerLoad':'bogus path'}},
                  hints=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -197,11 +197,11 @@ Note that this is an extension to the CWL spec. CWL uses "dockerImageId as a con
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'containerName':'my_containerName'}},
                  requirements=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
@@ -211,17 +211,17 @@ a.containerName(param_containerName='another_containerName')
 # >>> 'another_containerName'
 a.containerName()
 # >>> 'my_containerName'
-task = Task(name='hi',command=['hi','hello'],
+task = Task(name='hi',base_command=['hi','hello'],
                  hints=None,
                  requirements=None,
                  workflow_id=42,
-                 subworkflow=None,
+                 stdout='output.txt',
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.containerName()
 # >>> 1
-a.containerName(param_containerName='another_containerName')
+a.containerName('another_containerName')
 # >>> 'another_containerName'
 a.containerName()
 # >>> 'another_containerName'

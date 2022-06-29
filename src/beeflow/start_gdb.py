@@ -8,37 +8,22 @@ import os
 import argparse
 import subprocess
 import getpass
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 
 
 def create_pid_file(proc, pid_file, bc):
     """Create a new PID file."""
-    os.makedirs(bc.userconfig.get('DEFAULT','bee_workdir'), exist_ok=True)
-    with open('{}/{}'.format(str(bc.userconfig.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
+    os.makedirs(bc.get('DEFAULT','bee_workdir'), exist_ok=True)
+    with open('{}/{}'.format(str(bc.get('DEFAULT','bee_workdir')),pid_file), 'w') as fp:
         fp.write(str(proc.pid))
 
-def StartGDB(bc, gdb_workdir, reexecute, debug=False):
+def StartGDB(bc, gdb_workdir, reexecute=False, debug=False):
     """Start the graph database. Returns a Popen process object."""
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    bee_workdir = bc.get('DEFAULT','bee_workdir')
     gdb_handler = bee_logging.save_log(bee_workdir=bee_workdir, log=gdb_log, logfile='gdb_launch.log')
-    # Load gdb config from config file if exists
-    try:
-        bc.userconfig['graphdb']
-    except KeyError:
-        graphdb_dict = {
-            'hostname': 'localhost',
-            'dbpass': 'password',
-            'bolt_port': bc.default_bolt_port,
-            'http_port': bc.default_http_port,
-            'https_port': bc.default_https_port ,
-            'gdb_image': '/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz',
-            'gdb_image_mntdir': '/tmp',
-        }
-        # Add section (writes to config file)
-        bc.modify_section('user','graphdb',graphdb_dict)
 
-    if shutil.which("ch-tar2dir") == None or shutil.which("ch-run") == None:
-        gdb_log.error("ch-tar2dir or ch-run not found. Charliecloud required for neo4j container.")
+    if shutil.which("ch-convert") == None or shutil.which("ch-run") == None:
+        gdb_log.error("ch-convert or ch-run not found. Charliecloud required for neo4j container.")
         return None
 
     # Setup subprocess output
@@ -46,22 +31,25 @@ def StartGDB(bc, gdb_workdir, reexecute, debug=False):
     stderr = sys.stderr
 
     # Read the config file back in
-    db_hostname = bc.userconfig.get('graphdb','hostname')
-    db_password = bc.userconfig.get('graphdb','dbpass')
-    bolt_port   = bc.userconfig.get('graphdb','bolt_port')
-    http_port   = bc.userconfig.get('graphdb','http_port')
-    https_port  = bc.userconfig.get('graphdb','https_port')
-    gdb_img     = bc.userconfig.get('graphdb','gdb_image')
-    gdb_img_mntdir = bc.userconfig.get('graphdb','gdb_image_mntdir')
+    db_hostname = bc.get('graphdb','hostname')
+    db_password = bc.get('graphdb','dbpass')
+    bolt_port   = bc.get('graphdb','bolt_port')
+    http_port   = bc.get('graphdb','http_port')
+    https_port  = bc.get('graphdb','https_port')
+    gdb_img     = bc.get('DEFAULT','bee_dep_image')
+    gdb_img_mntdir = bc.get('graphdb','gdb_image_mntdir')
 
     container_dir = tempfile.mkdtemp(suffix="_" + getpass.getuser(), prefix="gdb_", dir=str(gdb_img_mntdir))
     if debug:
         gdb_log.info("GraphDB container mount directory " + container_dir + " created")
 
     try:
-        cp = subprocess.run(["ch-tar2dir",str(gdb_img),str(container_dir)], stdout=stdout, stderr=stderr, check=True)
+        image_name = os.path.basename(gdb_img).split('.')[0]
+        cp = subprocess.run(["ch-convert", "-i", "tar", "-o", "dir",
+                             str(gdb_img), str(container_dir) + f'/{image_name}'],
+                             stdout=stdout, stderr=stderr, check=True)
     except subprocess.CalledProcessError as cp:
-        gdb_log.error(f"ch-tar2dir failed: {cp}")
+        gdb_log.error(f"ch-convert failed: {cp}")
         shutil.rmtree(container_dir)
         if debug:
             gdb_log.error("GraphDB container mount directory " + container_dir + " removed")
@@ -150,18 +138,20 @@ def StartGDB(bc, gdb_workdir, reexecute, debug=False):
 
 
 gdb_log = bee_logging.setup_logging(level='DEBUG')
-bc = BeeConfig()
+if not bc.ready():
+    bc.init()
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--gdb_workdir', type=str, required=True)
-parser.add_argument('--reexecute', action='store_true')
-args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gdb_workdir', type=str, required=True)
+    parser.add_argument('--reexecute', action='store_true')
+    args = parser.parse_args()
 
-gdb_workdir = args.gdb_workdir
-reexecute = args.reexecute
+    gdb_workdir = args.gdb_workdir
+    reexecute = args.reexecute
 
-proc = StartGDB(bc, gdb_workdir, reexecute)
+    proc = StartGDB(bc, gdb_workdir, reexecute)
 
-if proc is None:
-    gdb_log.error('Graph Database failed to start. Exiting.')
-    exit()
+    if proc is None:
+        gdb_log.error('Graph Database failed to start. Exiting.')
+        exit()

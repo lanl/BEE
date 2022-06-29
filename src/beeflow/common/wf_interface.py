@@ -3,7 +3,8 @@
 Delegates its work to a GraphDatabaseInterface instance.
 """
 
-from uuid import uuid4
+import re
+
 from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.wf_data import Workflow, Task
 
@@ -78,12 +79,17 @@ class WorkflowInterface:
 
     def reset_workflow(self):
         """Reset the execution state and ID of a BEE workflow."""
-        self._workflow_id = str(uuid4())
+        workflow, _ = self.get_workflow()
+        self._workflow_id = workflow.generate_workflow_id()
         self._gdb_interface.reset_workflow(self._workflow_id)
+        #self._set_workflow_state('SUBMITTED')
+        self._gdb_interface.set_workflow_state('SUBMITTED')
 
     def finalize_workflow(self):
         """Deconstruct a BEE workflow."""
         self._workflow_id = None
+        #self._set_workflow_state('COMPLETED')
+        self._gdb_interface.set_workflow_state('COMPLETED')
         self._gdb_interface.cleanup()
 
     def add_task(self, name, base_command, inputs, outputs, requirements=None, hints=None,
@@ -121,6 +127,47 @@ class WorkflowInterface:
         # Load the new task into the graph database
         self._gdb_interface.load_task(task)
         return task
+    
+    def restart_task(self, task, checkpoint_file):
+        """Restart a failed BEE workflow task.
+        
+        The task must have a beeflow:CheckpointRequirement hint. If there are no
+        remaining retry attemps (num_tries = 0) then the graph database is
+        unmodified and this method returns None.
+
+        :param task: the task to restart
+        :type task: Task
+        :rtype: Task or None
+        """
+        for hint in task.hints:
+            if hint.class_ == "beeflow:CheckpointRequirement":
+                if hint.params["num_tries"] > 0:
+                    hint.params["num_tries"] -= 1
+                    hint.params["bee_checkpoint_file__"] = checkpoint_file
+                    break
+                else:
+                    state = self.get_task_state(task)
+                    self.set_task_state(task, f"FAILED RESTART: {state}")
+                    return None
+        else:
+            raise ValueError("invalid task for checkpoint restart")
+
+        new_task = task.copy(new_id=True)
+        # Pattern match on task name
+        # Append (1) if not in name already
+        # Increment number on each restart
+        match = re.match(r".+\(([0-9]+)\)$", new_task.name)
+        if not match:
+            new_task.name += "(1)"
+        else:
+            i = int(match.group(1))
+            new_task.name = re.sub(r"\([0-9]+\)", f"({i + 1})", new_task.name)
+        metadata = self.get_task_metadata(task)
+        self._gdb_interface.restart_task(task, new_task)
+        self.set_task_metadata(new_task, metadata)
+        self.set_task_state(task, "RESTARTED")
+        self.set_task_state(new_task, "READY")
+        return new_task
 
     def finalize_task(self, task):
         """Mark a BEE workflow task as completed.
@@ -165,6 +212,14 @@ class WorkflowInterface:
         workflow = self._gdb_interface.get_workflow_description()
         return workflow.outputs
 
+    def get_workflow_state(self):
+        """Get the value of the workflow state.
+        
+        rtype: str
+        """
+        state = self._gdb_interface.get_workflow_state()
+        return state
+
     def get_ready_tasks(self):
         """Get ready tasks from a BEE workflow.
 
@@ -203,16 +258,14 @@ class WorkflowInterface:
         """
         self._gdb_interface.set_task_state(task, state)
 
-    def get_task_metadata(self, task, keys):
+    def get_task_metadata(self, task):
         """Get the job description metadata of a task in a BEE workflow.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
-        :param keys: the metadata keys whose values to retrieve
-        :type keys: iterable of str
         :rtype: dict
         """
-        return self._gdb_interface.get_task_metadata(task, keys)
+        return self._gdb_interface.get_task_metadata(task)
 
     def set_task_metadata(self, task, metadata):
         """Set the job description metadata of a task in a BEE workflow.
@@ -290,7 +343,7 @@ class WorkflowInterface:
         self._gdb_interface.evaluate_expression(task, id, output)
 
     def workflow_completed(self):
-        """Return true if all of a workflow's tasks have completed, else false.
+        """Return true if all of a workflow's final tasks have completed, else false.
 
         :rtype: bool
         """
@@ -323,7 +376,7 @@ class WorkflowInterface:
         :rtype: str
         """
         if self._workflow_id is None and self.workflow_loaded():
-            workflow = self.get_workflow()[0]
+            workflow, _ = self.get_workflow()
             self._workflow_id = workflow.id
 
         return self._workflow_id
