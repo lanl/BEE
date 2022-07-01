@@ -497,7 +497,7 @@ class ConfigGenerator:
         print(70*'#')
         print('Before running BEE, check defaults in the configuration file:',
               f'\n\t{self.fname}',
-              '\n ** See documentation for values you should refrain from editting! **',
+              '\n ** See documentation for values you should refrain from editing! **',
               '\n\nThe job template configured is:',
               f'\n\t{self.sections["task_manager"]["job_template"]}',
               '\n ** Include job options (such as account) required for this system.**')
