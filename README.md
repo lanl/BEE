@@ -1,11 +1,10 @@
 # BEE: Build and Execute Environment
-The goal of BEE (Build and Execution Environment) is to create a unified
-software stack to _containerize_ HPC applications. A container is a package of
-code (usually binaries) and all of that code's dependencies (libraries,
-etc.). Once built, this container can be run on many different platforms. The
-execution environment on each platform will download and install (for this
-application only) all of the applications and dependencies into an isolated
-user environment and then execute the code. Containers provide many benefits:
+BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language ([CWL](https://www.commonwl.org/)) for specifying workflows.
+
+BEE workflows can be archived for provenance and reproducibility. BEE can orchestrate workflows with containerized applications or those built locally on a system. There are advantages to containerizing an application.
+
+A container is a package of code (usually binaries) and all of that code's dependencies (libraries, etc.). Once built, this container can be run on many different platforms.
+Containers provide many benefits:
 
 - Users can choose their own software stack (libraries, compilers, etc.) and
 not be bound by the currently installed environment on any one machine.
@@ -22,13 +21,9 @@ between software components can be tracked.
 no real need to test on the actual HPC platform (performance testing obviously
 requires target hardware).
 
-The BEE project uses Docker to containerize applications. Docker has become the de
-facto standard container system and is used widely in cloud and web
-environments. Continuous integration services have been built on Docker, allowing application
-developers to describe compile and execution environments with Docker. When code is checked into 
-a repository, it can be automatically tested across a suite of different software environments.
 
-The BEE project supports launching applications using the [Charliecloud](https://github.com/hpc/charliecloud) HPC container runtime.  These applications can be executed on a traditional HPC cluster or an OpenStack cloud cluster.
+
+
 
 
 # Contributing
@@ -46,7 +41,7 @@ Using these git hooks will ensure your contributions adhere to style guidelines 
 
 # Mail List and Contact
 
-For bugs and problems report, suggestions and other general questions regarding the BEE project, Please subscribe to [BEE-LANL](https://groups.google.com/forum/#!forum/BEE-User-Group) and post your questions. 
+For bugs and problems report, suggestions and other general questions regarding the BEE project, email questions to [bee-dev@lanl.gov](bee-dev@lanl.gov). 
 
 
 # Release
@@ -56,11 +51,11 @@ This software has been approved for open source release and has been assigned **
 
 # Publications
 
-- [BeeFlow: A Workflow Management System for In Situ Processing across HPC and Cloud Systems, ICDCS, 2018](https://ieeexplore.ieee.org/abstract/document/8416366/)
-- [Build and execution environment (BEE): an encapsulated environment enabling HPC applications running everywhere, IEEE BigData, 2018](https://ieeexplore.ieee.org/document/8622572)
-- BeeSwarm: Enabling Parallel Scaling Performance Measurement in Continuous Integration for HPC Applications, ASE, 2021
-- BEE Orchestrator: Running Complex Scientific Workflows on Multiple Systems, HiPC, 2021
-
+- BEE Orchestrator: Running Complex Scientific Workflows on Multiple Systems, HiPC, 2021, [DOI: 10.1109/HiPC53243.2021.00052](https://doi.org/10.1109/HiPC53243.2021.00052)
+- "BeeSwarm: Enabling Parallel Scaling Performance Measurement in Continuous Integration for HPC Applications", ASE, 2021, [DOI: 10.1109/ASE51524.2021.9678805](https://www.computer.org/csdl/proceedings-article/ase/2021/033700b136/1AjTjgnW2pa#:~:text=10.1109/ASE51524.2021.9678805)
+- "BeeFlow: A Workflow Management System for In Situ Processing across HPC and Cloud Systems", ICDCS, 2018, [DOI: 10.1109/ICDCS.2018.00103](https://ieeexplore.ieee.org/abstract/document/8416366)
+- "Build and execution environment (BEE): an encapsulated environment enabling HPC applications running everywhere", IEEE BigData, 2018, [DOI: 10.1109/BigData.2018.8622572](https://ieeexplore.ieee.org/document/8622572)
 
 # Copyright
 License can be found [here](https://github.com/lanl/BEE/blob/master/LICENSE)
+=======

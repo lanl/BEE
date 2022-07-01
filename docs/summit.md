@@ -1,15 +1,15 @@
 ### To run on summit:
 
 ```
-cd BEE_Private
-mkdir -p ~/.beeflow/worker
-cp BEE_Private/examples/job_templates/lsf-job.template ~/.beeflow/worker
-cp BEE_Private/src/beeflow/data/job_templates/lsf-job.template ~/.beeflow/worker
+#### Create a new bee.conf for first time use
 
-beeflow --config-only --workload-scheduler LSF --job-template ~/.beeflow/worker/lsf-job.template
-```
+bee_cfg new
+
+You need to know the path of the Charliecloud image that has depdencies for
+beeflow.
+Summit uses the LSF workload scheduler so when queried for that answer LSF.
+
 ### Fix user config file for summit
-In  ~/.config/beeflow/bee.conf (or wherever your configuration file is)  
-    Fix path of neo4j container  
-    Remove or Replace 'setup' in the 'charliecloud' section.  
+In  ~/.config/beeflow/bee.conf (or wherever your configuration file is)
+you must change <account> to your account and set the time limit to an appropriate time.
 

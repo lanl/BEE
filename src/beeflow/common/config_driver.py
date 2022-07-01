@@ -51,6 +51,19 @@ class BeeConfig:
     """
 
 
+    CONFIG = None
+    # Set default config locations
+    if _SYSTEM == 'Linux':
+        SYSCONFIG_FILE = '/etc/beeflow/bee.conf'
+        USERCONFIG_FILE = os.path.expanduser('~/.config/beeflow/bee.conf')
+    elif _SYSTEM == 'Darwin':
+        SYSCONFIG_FILE = '/Library/Application Support/beeflow/bee.conf'
+        USERCONFIG_FILE = os.path.expanduser(
+            '~/Library/Application Support/beeflow/bee.conf')
+    elif _SYSTEM == 'Windows':
+        SYSCONFIG_FILE = None
+        USERCONFIG_FILE = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
+
     def __init__(self, **kwargs):
         """Do not use this constructor."""
         raise RuntimeError(

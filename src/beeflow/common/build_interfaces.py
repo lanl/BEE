@@ -78,7 +78,6 @@ if __name__ == '__main__':
         log.info('{}'.format(e))
 
     build_main(bc, local_task)
->>>>>>> develop
 
 # Ignore W0707: Re-raising with from keyword does not aid in readability or functionality
 # Ignore W0703: Catching generic exception isn't a problem if we just want a descriptive report
