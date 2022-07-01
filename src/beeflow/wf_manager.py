@@ -666,7 +666,7 @@ class JobUpdate(Resource):
                         submit_tasks_tm(tasks)
 
         elif job_state == "FAILED" or job_state == "TIMEOUT":
-            if 'task_info' in data:
+            if 'task_info' in data and data['task_info'] is not None:
                 task_info = jsonpickle.decode(data['task_info'])
                 checkpoint_file = task_info['checkpoint_file']
                 new_task = wfi.restart_task(task, checkpoint_file)

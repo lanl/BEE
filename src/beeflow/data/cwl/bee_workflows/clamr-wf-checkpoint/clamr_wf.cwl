@@ -56,8 +56,8 @@ steps:
         DockerRequirement:
             # TODO Sort this out
             #dockerImport: clamr_img.tar.gz
-            #copyContainer: clamr
-            copyContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"   
+            #beeflow:copyContainer: clamr
+            beeflow:copyContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
         beeflow:CheckpointRequirement:
             enabled: true
             file_path: $HOME/checkpoint_output
