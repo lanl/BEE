@@ -219,7 +219,8 @@ def job_template_init(path, cur_opts):
     path = os.path.expanduser(path)
     if os.path.exists(path):
         return path
-    if not check_yes(f'Do you want to write a default job template to "{path}"?'):
+    print('Check that options (like accounts)for your particular system are satisfied.')
+    if not check_yes(f'Do you want to write a default job template to:\n "{path}"?'):
         return path
     # Check for workload_scheduler in cur_opts (NB: this will need to be updated
     # if the option name changes later on)
@@ -254,7 +255,7 @@ def bee_workdir_init(path, cur_opts):
     path = os.path.expanduser(path)
     if os.path.exists(path):
         return path
-    if not check_yes(f'Path "{path}" does not exist. Would you like to create it?'):
+    if not check_yes(f'Path "{path}" does not exist.\nWould you like to create it?'):
         return path
     os.makedirs(path)
     return path
@@ -471,9 +472,7 @@ class ConfigGenerator:
             for opt_name in self.sections[sec_name]:
                 print(f'{opt_name} = {self.sections[sec_name][opt_name]}')
         print()
-        ans = input(f'To change options edit "{self.fname}". \n'
-                    '** See documentation for values you should refrain from editting! **\n'
-                    'Would you like to save this config? [y/n] ')
+        ans = input(f'Would you like to save this config? [y/n] ')
         if ans.lower() != 'y':
             print('Quitting without saving')
             return
@@ -489,11 +488,15 @@ class ConfigGenerator:
                         print(f'{opt_name} = {self.sections[sec_name][opt_name]}', file=fp)
         except FileNotFoundError:
             print('Configuration file does not exist!')
-        print(f'Saved config to "{self.fname}"')
-        print()
-        print_wrap('Before running BEE, make sure to check that other default '
-                   'options are compatible with your system.')
-        print('(Try `bee_cfg info` to see more about each option)')
+        print(70*'#')
+        print('Before running BEE, check defaults in the configuration file:',
+              f'\n\t{self.fname}',
+              '\n ** See documentation for values you should refrain from editing! **',
+              '\n\nThe job template configured is:',
+              f'\n\t{self.sections["task_manager"]["job_template"]}',
+              '\n ** Include job options (such as account) required for this system.**')
+        print('\n(Try `bee_cfg info` to see more about each option)')
+        print(70*'#')
 
 
 app = typer.Typer(no_args_is_help=False, add_completion=False, cls=NaturalOrderGroup)
@@ -531,7 +534,7 @@ def info():
 def new(path: str = typer.Argument(default=DEFAULT_BEE_CONF, help='Path to new config file')):
     """Create a new config file."""
     if os.path.exists(path):
-        if check_yes(f'Path "{path}" already exists. Would you like to save a copy of it?'):
+        if check_yes(f'Path "{path}" already exists.\nWould you like to save a copy of it?'):
             i = 1
             backup_path = f'{path}.{i}'
             while os.path.exists(backup_path):
