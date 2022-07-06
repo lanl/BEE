@@ -51,7 +51,7 @@ This software has been approved for open source release and has been assigned **
 
 Copyright
 ==========================
-License can be found `here <https://github.com/lanl/BEE/blob/master/LICENSE>`
+License can be found `here <https://github.com/lanl/BEE/blob/master/LICENSE>`_
 
 
 Publications
