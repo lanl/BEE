@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "beeflow"
-version = open("VERSION", "r").read().rstrip()
+version = "0.1.0"
 description = "A software package for containerizing HPC applications and managing job workflow"
 
 authors = [
