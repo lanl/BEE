@@ -9,12 +9,12 @@ Requirements:
     * **Python version 3.8** (or greater)
 
     * `Charliecloud <https://hpc.github.io/charliecloud/>`_ **version 0.27** (or greater)
-        Charliecloud is installed on LANL clusters and can be invoked using the module command. Charliecloud is also easily installed in user space and requires no privleges to install. BEE runs dependencies from a charliecloud container and uses charliecloud to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.
+        Charliecloud is installed on LANL clusters and can be invoked using the module command. Charliecloud is also easily installed in user space and requires no privilege to install. BEE runs dependencies from a Charliecloud container and uses Charliecloud to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.
 
 
     * **BEE dependency container**: 
 
-        At this time the only dependency needed in a container is **neo4j version 3.5.x**. To build the containerfor x86. Invoke charliecloud on the cluster where BEE components will be running to pull the graph database **neo4j** and creat a charliecloud tarball.
+        At this time the only dependency needed in a container is **neo4j version 3.5.x**. To build the container for X86. Invoke Charliecloud on the cluster where BEE components will be running to pull the graph database **neo4j** and create a Charliecloud tarball.
 
 .. code-block::
 
