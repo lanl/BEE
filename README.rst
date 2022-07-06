@@ -1,7 +1,7 @@
 BEE: Build and Execution Environment
 ************************************
 
-BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (`CWL <https://www.commonwl.org/>`_) for specifying workflows.
+BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (`CWL <https://www.commonwl.org/>`_) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or LSF) on the HPC system that tasks are specified to run on.
 
 BEE workflows can be archived for provenance and reproducibility. BEE can orchestrate workflows with containerized applications or those built locally on a system. However, there are advantages to containerizing an application.
 
@@ -27,7 +27,7 @@ Containers provide many benefits:
 Contributing
 ==========================
 
-The BEE project adheres to style guidelines specified in `setup.cfg <https://github.com/lanl/BEE/blob/master/setup.cfg>`_. Before attempting to commit and push changes, please install our pre-commit githooks by running the following command in project root:
+The BEE project adheres to style guidelines specified in `setup.cfg <https://github.com/lanl/BEE/blob/master/setup\.cfg>`_. Before attempting to commit and push changes, please install our pre-commit githooks by running the following command in project root:
 
 If using `git --version` >= 2.9:
     git config core.hooksPath .githooks
@@ -51,7 +51,7 @@ This software has been approved for open source release and has been assigned **
 
 Copyright
 ==========================
-License can be found `here <https://github.com/lanl/BEE/blob/master/LICENSE>`
+License can be found `here <https://github.com/lanl/BEE/blob/master/LICENSE>`_
 
 
 Publications

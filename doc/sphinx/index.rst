@@ -17,6 +17,8 @@
 
    installation
    example
+   contribute
+   development
    api/wf_api
 
 
