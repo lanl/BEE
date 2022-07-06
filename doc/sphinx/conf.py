@@ -14,6 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('../beeflow'))
 import sphinx_rtd_theme
+import importlib.metadata
 
 
 # -- Project information -----------------------------------------------------
@@ -23,8 +24,8 @@ copyright = '2019, BEE Development Team'
 author = 'BEE Development Team'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
-
+#release = '0.1'
+version = importlib.metadata.version("beeflow")
 
 # -- General configuration ---------------------------------------------------
 

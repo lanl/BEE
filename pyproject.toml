@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "beeflow"
-version = "0.1.0"
+version = open("VERSION", "r").read().rstrip()
 description = "A software package for containerizing HPC applications and managing job workflow"
 
 authors = [
     "BEE-LANL Dev Team <bee-dev@lanl.gov>"
 ]
 
-readme = "README.md"
+readme = "README.rst"
 
 repository = "https://github.com/lanl/BEE"
 homepage = "https://bee.lanl.gov"
@@ -89,7 +89,7 @@ pylint = { version = ">=2.3.1" }
 pytest = { version = ">=6.0.0" }
 pytest-mock = { version = ">=3.3.1" }
 sphinx = "^2.1"
-sphinx-rtd-theme = "^0.4.3"
+sphinx-rtd-theme = "^1.0"
 cwltool = "^3.0.20200324120055"
 
 [build-system]
