@@ -51,10 +51,10 @@ class Workflow:
             self.id = self.generate_workflow_id()
 
         self.state = "SUBMITTED"
-    
+
     def generate_workflow_id(self):
         """Generate a unique workflow ID.
-        
+
         :rtype: str
         """
         return uuid4().hex
@@ -68,9 +68,12 @@ class Workflow:
         :param other: the workflow with which to test equality
         :type other: Workflow
         """
-        if type(other) is not Workflow:
+        if not isinstance(other, Workflow):
             return False
-        id_sort = lambda i: i.id
+
+        def id_sort(i):
+            return i.id
+
         return bool(self.name == other.name and
                     sorted(self.hints) == sorted(other.hints) and
                     sorted(self.requirements) == sorted(other.requirements) and
@@ -137,14 +140,14 @@ class Task:
 
     def generate_workflow_id(self):
         """Generate a unique workflow ID.
-        
+
         :rtype: str
         """
         return uuid4().hex
 
     def copy(self, new_id=False):
         """Make a copy of this task.
-        
+
         :param new_id: generate a new task ID
         :type new_id: bool
         :rtype: Task
@@ -163,9 +166,12 @@ class Task:
         :type other: Task
         :rtype: bool
         """
-        if type(other) is not Task:
+        if not isinstance(other, Task):
             return False
-        id_sort = lambda i: i.id
+
+        def id_sort(i):
+            return i.id
+
         return bool(self.name == other.name and
                     self.base_command == other.base_command and
                     sorted(self.hints) == sorted(other.hints) and
@@ -185,14 +191,14 @@ class Task:
 
     def __hash__(self):
         """Return the hash value for a task.
-        
+
         :rtype: int
         """
         return hash((self.id, self.workflow_id, self.name))
 
     def __repr__(self):
         """Construct a task's string representation.
-        
+
         :rtype: str
         """
         return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
@@ -231,7 +237,7 @@ class Task:
             if input_.prefix is not None:
                 command.append(input_.prefix)
             command.append(str(input_.value))
-        
+
         # Append restart parameter and checkpoint file if CheckpointRequirement specified
         for hint in self.hints:
             if hint.class_ == "beeflow:CheckpointRequirement":
