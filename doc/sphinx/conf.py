@@ -24,9 +24,11 @@ copyright = '2019, BEE Development Team'
 author = 'BEE Development Team'
 
 # The full version, including alpha/beta/rc tags
-#release = '0.1'
+# Release version from pypoetry.toml Needs poetry environment to run correctly 
 version = importlib.metadata.version("beeflow")
 
+# Logo place holder - We need a better logo
+html_logo = "BEElogo.png"
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
