@@ -2,6 +2,13 @@
 import uuid
 import time
 import subprocess
+import os
+from beeflow.common.config_driver import BeeConfig as bc
+
+
+bc.init()
+
+
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.wf_data import Task
@@ -19,7 +26,7 @@ BAD_TASK = Task(name='good-task', base_command=['/this/is/not/a/command'], hints
                  workflow_id=uuid.uuid4().hex)
 
 
-def wait_state(worker_iface, job_id, state)
+def wait_state(worker_iface, job_id, state):
     """Wait for Slurm to switch the job to another state."""
     time.sleep(1)
     n = 1
@@ -38,9 +45,13 @@ def setup_slurm_worker(fn):
     def decorator():
         """Decorator function."""
         slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
+        bee_workdir = f'/tmp/{uuid.uuid4().hex}'
+        os.mkdir(bee_workdir)
         proc = subprocess.Popen(f'slurmrestd {SLURMRESTD_ARGS} unix:{slurm_socket}', shell=True)
         time.sleep(1)
-        worker_iface = WorkerInterface(worker=SlurmWorker, slurm_socket=slurm_socket)
+        worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
+                                       slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                                       job_template=bc.get('task_manager', 'job_template'))
         fn(worker_iface)
         time.sleep(1)
         proc.kill()
