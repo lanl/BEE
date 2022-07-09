@@ -13,7 +13,7 @@ Containers provide many benefits:
 
 * Codes can be run portably across numerous platforms--all dependencies will be downloaded and installed at run time.
 
-* Entire _workflow_ environments can be built into one or more containers. A user can include visualization and analysis tools along with the application. They will all work together as the application runs.
+* Entire **workflow** environments can be built into one or more containers. A user can include visualization and analysis tools along with the application. They will all work together as the application runs.
 
 * Provenance and history can be tracked by storing containers in a historical repository. At any time, an older container can be rerun (all of its dependencies are stored with it). Execution is repeatable and interactions between software components can be tracked.
 

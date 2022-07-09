@@ -43,17 +43,16 @@ You will need to setup the bee configuration file that will be located in:
 
     $HOME/.config/beeflow/bee.conf
 
-Before creating a bee.conf file you will need to know the path to your **BEE dependency container**, and the type of workload scheduler (Slurm or LSF). Once you are ready type:
+Before creating a bee.conf file you will need to know the path to your **BEE dependency container**, and the type of workload scheduler (Slurm or LSF). Once you are ready type ``bee_cfg new``
 
-.. code-block::
+The bee.conf configuration file is a text file and you can edit it to suit your needs. You may list the contents by typing ``bee_cfg list``.
 
-    bee_cfg new
+``**Todo: Add cautions about which values should probably remain the same**``
 
-The bee.conf configuration file is a text file and you can edit it to suit your needs. bee_cfg has other options including a configuration validator. For more options run:
 
-.. code-block::
+**Caution: the default for container_archive is in the home directory. Some systems have small quotas for home directories and containers can be large files.**
 
-    bee_cfg info
+**bee_cfg** has other options including a configuration validator. For more options run ``bee_cfg info``
 
 Starting up the BEE components:
 -------------------------------
