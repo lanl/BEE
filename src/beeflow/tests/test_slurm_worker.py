@@ -4,12 +4,14 @@ import time
 import subprocess
 import os
 from beeflow.common.config_driver import BeeConfig as bc
+import pytest
 
 
 bc.init()
 
 
 from beeflow.common.worker_interface import WorkerInterface
+from beeflow.common.worker.worker import WorkerError
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.wf_data import Task
 
@@ -17,8 +19,8 @@ from beeflow.common.wf_data import Task
 # Timeout (seconds) for waiting on tasks
 TIMEOUT = 150
 # Extra slurmrestd arguments. This may be something to take on the command line
-SLURMRESTD_ARGS = ''
-GOOD_TASK = Task(name='good-task', base_command=['ls', '/'], hints=[],
+SLURMRESTD_ARGS = bc.get('slurmrestd', 'slurm_args')
+GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
                  requirements=[], inputs=[], outputs=[], stdout='',
                  workflow_id=uuid.uuid4().hex)
 BAD_TASK = Task(name='good-task', base_command=['/this/is/not/a/command'], hints=[],
@@ -64,8 +66,8 @@ def test_good_task(worker_iface):
     job_id, last_state = worker_iface.submit_task(GOOD_TASK)
     assert last_state == 'PENDING'
     last_state = wait_state(worker_iface, job_id, 'PENDING')
-    assert last_state == 'RUNNING'
-    last_state = wait_state(worker_iface, job_id, 'RUNNING')
+    if last_state == 'RUNNING':
+        last_state = wait_state(worker_iface, job_id, 'RUNNING')
     assert last_state == 'COMPLETED'
 
 
@@ -75,6 +77,28 @@ def test_bad_task(worker_iface):
     job_id, last_state = worker_iface.submit_task(BAD_TASK)
     assert last_state == 'PENDING'
     last_state = wait_state(worker_iface, job_id, 'PENDING')
-    assert last_state == 'RUNNING'
-    last_state = wait_state(worker_iface, job_id, 'RUNNING')
+    if last_state == 'RUNNING':
+        last_state = wait_state(worker_iface, job_id, 'RUNNING')
     assert last_state == 'FAILED'
+
+
+@setup_slurm_worker
+def test_query_bad_job_id(worker_iface):
+    """Test querying a bad job ID."""
+    with pytest.raises(WorkerError):
+        worker_iface.query_task(888)
+
+
+@setup_slurm_worker
+def test_cancel_good_job(worker_iface):
+    """Cancel a good job."""
+    job_id, _ = worker_iface.submit_task(GOOD_TASK)
+    job_state = worker_iface.cancel_task(job_id)
+    assert job_state == 'CANCELLED'
+
+
+@setup_slurm_worker
+def test_cancel_bad_job_id(worker_iface):
+    """Cancel a non-existent job."""
+    with pytest.raises(WorkerError):
+        job_info = worker_iface.cancel_task(888)

@@ -12,7 +12,7 @@ import requests_unixsocket
 import requests
 import getpass
 
-from beeflow.common.worker.worker import Worker
+from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
@@ -50,7 +50,7 @@ class SlurmWorker(Worker):
             resp = session.get(f'{slurm_url}/job/{job_id}')
 
             if resp.status_code != 200:
-                job_state = f"BAD_RESPONSE_{resp.status_code}"
+                raise WorkerError(f'Failed to query job {job_id}')
             else:
                 status = json.loads(resp.text)
                 job_state = status['job_state']
@@ -81,7 +81,7 @@ class SlurmWorker(Worker):
         """Worker cancels job, returns job_state."""
         resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
         if resp.status_code != 200:
-            raise Exception(f'Unable to cancel job id {job_id}!')
+            raise WorkerError(f'Unable to cancel job id {job_id}!')
         job_state = "CANCELLED"
         return job_state
 # Ignore R1732: Warnign about using open without "with' context. Seems like personal preference.
