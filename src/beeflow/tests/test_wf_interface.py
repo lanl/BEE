@@ -6,6 +6,7 @@
 
 import unittest
 
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_data import (Requirement, Hint, InputParameter, OutputParameter,
                                     StepInput, StepOutput)
 from beeflow.common.wf_interface import WorkflowInterface
@@ -17,7 +18,11 @@ class TestWorkflowInterface(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Initialize the Workflow interface."""
-        cls.wfi = WorkflowInterface()
+        bc.init()
+        cls.wfi = WorkflowInterface(user="neo4j",
+                                    bolt_port=bc.get("graphdb", "bolt_port"),
+                                    db_hostname=bc.get("graphdb", "hostname"),
+                                    password=bc.get("graphdb", "dbpass"))
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
