@@ -33,16 +33,12 @@ class TestParser(unittest.TestCase):
         wfi = self.parser.parse_workflow(cwl_wfi_file, cwl_job_yaml)
         self.assertTrue(wfi.workflow_loaded())
 
-        workflow = wfi.get_workflow()
-
         wfi.finalize_workflow()
         self.assertFalse(wfi.workflow_loaded())
 
         # Test workflow parsing with YAML input job file
         wfi = self.parser.parse_workflow(cwl_wfi_file, cwl_job_json)
         self.assertTrue(wfi.workflow_loaded())
-
-        workflow = wfi.get_workflow()
 
     def test_parse_workflow_no_job(self):
         """Test parsing of a workflow without an input job file."""
