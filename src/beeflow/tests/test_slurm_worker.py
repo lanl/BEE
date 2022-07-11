@@ -68,6 +68,8 @@ def test_good_task(worker_iface):
     last_state = wait_state(worker_iface, job_id, 'PENDING')
     if last_state == 'RUNNING':
         last_state = wait_state(worker_iface, job_id, 'RUNNING')
+    if last_state == 'COMPLETING':
+        last_state = wait_state(worker_iface, job_id, 'COMPLETING')
     assert last_state == 'COMPLETED'
 
 
@@ -79,6 +81,8 @@ def test_bad_task(worker_iface):
     last_state = wait_state(worker_iface, job_id, 'PENDING')
     if last_state == 'RUNNING':
         last_state = wait_state(worker_iface, job_id, 'RUNNING')
+    if last_state == 'COMPLETING':
+        last_state = wait_state(worker_iface, job_id, 'COMPLETING')
     assert last_state == 'FAILED'
 
 
