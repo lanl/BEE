@@ -12,6 +12,7 @@ import json
 import os
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
+
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_data import (InputParameter,
                                     OutputParameter,
@@ -20,6 +21,10 @@ from beeflow.common.wf_data import (InputParameter,
                                     Hint,
                                     Requirement)
 from beeflow.common.wf_interface import WorkflowInterface
+
+
+if not bc.ready():
+    bc.init()
 
 
 # Map CWL types to Python types
@@ -76,6 +81,8 @@ class CwlParser:
         if job:
             # Parse input job params into self.params
             self.parse_job(job)
+        else:
+            self.params = {}
 
         def resolve_input(input_, type_):
             """Resolve workflow input parameter from job file.
@@ -88,6 +95,8 @@ class CwlParser:
             """
             # Use parsed input parameter for input value if it exists
             input_id = _shortname(input_.id)
+            if input_id not in self.params:
+                return None
             if not isinstance(self.params[input_id], type_map[type_]):
                 raise ValueError("Input/param types do not match: "
                                  f"{input_id}/{self.params[input_id]}")
@@ -185,8 +194,10 @@ class CwlParser:
         for step_input in step_inputs:
             # If the input type is str, then the input is required
             # If it is a list containing 'null' and another type(s) then it is optional
+            # If the input is not in the source_map but has a default value then it will
+            # be set by the GDB later
             if _shortname(step_input.id) not in source_map.keys():
-                if isinstance(step_input.type, str):
+                if isinstance(step_input.type, str) and step_input.default is None:
                     raise ValueError(f"required input {_shortname(step_input.id)} not satisfied")
                 continue
 
@@ -222,7 +233,10 @@ class CwlParser:
         """
         out_short = list(map(_shortname, cwl_out))
         short_id = out_short[0].split("/")[0]
-        out_map = {short_id + "/" + _shortname(step_output.id): step_output
+        # Inline step outputs already have short_id+"/" prepended
+        out_map = {(_shortname(step_output.id)
+                   if _shortname(step_output.id).startswith(short_id + "/") else
+                   short_id + "/" + _shortname(step_output.id)): step_output
                    for step_output in step_outputs}
 
         outputs = []
