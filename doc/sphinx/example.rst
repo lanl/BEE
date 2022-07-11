@@ -7,7 +7,7 @@ CLAMR workflow
 ==============
 `CLAMR <https://github.com/lanl/CLAMR>`_ is an open source LANL mini-app that simulates shallow water equations. CLAMR performs hydrodynamic cell-based adaptive mesh refinement (AMR).
 
-The CLAMR workflow we introduce here is a simple two step workflow that runs a CLAMR simulation (step one) that produces graphic images from periodic time steps, then makes a movie using FFMPEG (step two) to visualize the progression of the simulation. We use this workflow for some of our integration tests and thought it a practical example to help you start with your first workflow. The workflow is in **example/clamr-ffmpeg-example.tgz**. You may want to untar the file to explore the cwl files that specify what will be run. You will see DockerRequirements that build the container from a dockerfile using Charliecloud. The dockerfile is located in **src/beeflow/data/dockerfiles**.
+The CLAMR workflow we introduce here is a simple two step workflow that runs a CLAMR simulation (step one) that produces graphic images from periodic time steps, then makes a movie using FFMPEG (step two) to visualize the progression of the simulation. We use this workflow for some of our integration tests and thought it a practical example to help you start with your first workflow. The workflow is in **examples/clamr-ffmpeg-example.tgz**. You may want to untar the file to explore the cwl files that specify what will be run. You will see DockerRequirements that build the container from a dockerfile using Charliecloud. The dockerfile is located in **src/beeflow/data/dockerfiles**.
 
 Submit the CLAMR workflow on the same front end, where you started the components (to start the components of beeflow, see Installation Guide).
 
@@ -89,7 +89,7 @@ The archived workflow with associated standard job outputs will be in the **bee_
 
 The other outputs are in the archive of the workflow.
 
-This example uses Charliecloud. The image will still be in the Charliecloud cache. You can list what is in the cache using ``ch-image list``. ``ch-image --help`` will show you commands for resetting the cache or deleted images. If there are no other builds, the result should be:
+This example uses Charliecloud. The image will still be in the Charliecloud cache. You can list what is in the cache using ``ch-image list``.  If there are no other builds, the result should be:
 
 .. code-block::
 
@@ -100,7 +100,7 @@ This example uses Charliecloud. The image will still be in the Charliecloud cach
     clamr-ffmpeg
     debian:stable-slim
 
-
+There are other commands for resetting (clearing out all images) and deleting an image. Type ``ch-image --help`` for more information.
 
 
 

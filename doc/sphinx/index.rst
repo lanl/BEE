@@ -18,7 +18,7 @@
    example
    contribute
    development
-   api/wf_api
+   wf_api
 
 
 Indices and tables
