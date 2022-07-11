@@ -4,7 +4,7 @@ The doc directory contains BEE documentation.
 The HTML BEE documentation is stored in the `doc/sphinx` directory.
 Documentation is automatically generated using Sphinx. 
 
-Build instructions in poetry environment:
+Building documentation in the poetry environment automatically gathers the version of beeflow. This may work in a python environtment with poetry installed also.
 
 .. code-block::
 
