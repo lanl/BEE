@@ -34,7 +34,7 @@ steps:
       baseCommand: "sh -c 'grep integer lorem.txt > grepout.txt;sleep 15;ls -l|grep grepout.txt'"
       hints:
         DockerRequirement:
-          copyContainer: "/usr/projects/beedev/toss-tiny-3-5.tar"
+          beeflow:copyContainer: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
       pattern: pattern
       infile: infile
@@ -54,7 +54,7 @@ steps:
       baseCommand: "sh -c 'ls -l;sleep 10; wc -l grepout.txt > counts.txt'"
       hints:
         DockerRequirement:
-          copyContainer: "/usr/projects/beedev/toss-tiny-3-5.tar"
+          beeflow:copyContainer: "/usr/projects/beedev/toss-tiny-3-5.tar"
     in:
       infile: grep/outfile
     out: [outfile]
