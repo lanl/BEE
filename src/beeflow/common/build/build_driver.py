@@ -134,7 +134,7 @@ class BuildDriver(ABC):
                     (self.dockerLoad, 'dockerLoad', 6, True),
                     (self.dockerFile, 'dockerFile', 7, True),
                     (self.dockerImport, 'dockerImport', 4, True),
-                    (self.copyContainer, 'copyContainer', 3, True),
+                    (self.copyContainer, 'beeflow:copyContainer', 3, True),
                     (self.dockerImageId, 'dockerImageId', 1, False),
                     (self.containerName, 'containerName', 2, False),
                     (self.dockerOutputDirectory, 'dockerOutputDirectory', 0, False)]

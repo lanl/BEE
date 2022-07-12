@@ -54,8 +54,8 @@ steps:
         DockerRequirement:
             # TODO Sort this out
             #dockerImport: clamr_img.tar.gz
-            #copyContainer: clamr
-            copyContainer: "/ccs/proj/csc420/BEE/clamr-ppc64le.tar.gz"
+            #beeflow:copyContainer: clamr
+            beeflow:copyContainer: "/ccs/proj/csc420/BEE/clamr-ppc64le.tar.gz"
 
   ffmpeg:
     run: ffmpeg.cwl
@@ -72,4 +72,4 @@ steps:
     out: [movie]
     hints:
       DockerRequirement:
-        copyContainer: "/ccs/proj/csc420/BEE/clamr-ppc64le.tar.gz"
+        beeflow:copyContainer: "/ccs/proj/csc420/BEE/clamr-ppc64le.tar.gz"

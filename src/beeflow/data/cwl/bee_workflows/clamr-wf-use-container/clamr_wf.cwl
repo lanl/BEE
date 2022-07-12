@@ -52,10 +52,7 @@ steps:
     out: [clamr_stdout, outdir, time_log]
     hints:
         DockerRequirement:
-            # TODO Sort this out
-            #dockerImport: clamr_img.tar.gz
-            #beeflow:copyContainer: clamr
-            beeflow:copyContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
+            beeflow:useContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
 
   ffmpeg:
     run: ffmpeg.cwl

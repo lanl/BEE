@@ -84,7 +84,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         task_container_name = None
         # The container runtime treats hints and requirements as dicts
         hints = dict(task.hints)
-        task.requirements = dict(task.requirements)
+        requirements = dict(task.requirements)
         try:
             # Try to get Hints
             hint_container_name = hints['DockerRequirement']['containerName']
@@ -93,7 +93,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             hint_container_name = None
         try:
             # Try to get Requirements
-            req_container_name = task.requirements['DockerRequirement']['containerName']
+            req_container_name = requirements['DockerRequirement']['containerName']
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No container_name specified in task reqs.
             req_container_name = None
@@ -104,22 +104,23 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         elif hint_container_name:
             task_container_name = hint_container_name
 
-        baremetal = False
+        baremetal = True
+        use_container = None
         if task_container_name is None:
             log.info('No container name provided.')
             log.info('Assuming another DockerRequirement is runtime target.')
             runtime_target_list = []
-            # Harvest copyContainer if it exists.
+            # Harvest beeflow:copyContainer if it exists.
             task_container_path = None
             try:
                 # Try to get Hints
-                hint_container_path = hints['DockerRequirement']['copyContainer']
+                hint_container_path = hints['DockerRequirement']['beeflow:copyContainer']
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No container_path specified in task hints.
                 hint_container_path = None
             try:
                 # Try to get Requirements
-                req_container_path = task.requirements['DockerRequirement']['copyContainer']
+                req_container_path = requirements['DockerRequirement']['beeflow:copyContainer']
             except (KeyError, TypeError):
                 # Task Requirements are not mandatory. No container_path specified in task reqs.
                 req_container_path = None
@@ -145,7 +146,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 hint_addr = None
             try:
                 # Try to get Requirements
-                req_addr = task.requirements['DockerRequirement']['dockerPull']
+                req_addr = requirements['DockerRequirement']['dockerPull']
             except (KeyError, TypeError):
                 # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
                 req_addr = None
@@ -167,18 +168,33 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             if len(runtime_target_list) == 0:
                 log.warning('No containerName specified.')
                 log.warning('Cannot be inferred from other DockerRequirements.')
-                baremetal = True
             else:
+                baremetal = False
                 # Build container name from container path.
                 task_container_name = runtime_target_list[0]
                 log.info(f'Moving with expectation: {task_container_name} is the container target')
+
+            # Check for `beeflow:useContainer` (only in hints for now)
+            try:
+                use_container = hints['DockerRequirement']['beeflow:useContainer']
+                log.info(f'Found beeflow:useContainer option. Using container {use_container}')
+                baremetal = False
+            except (KeyError, TypeError):
+                pass
 
         if baremetal:
             return ContainerRuntimeResult(env_code='', pre_commands=[],
                                           main_command=[str(arg) for arg in task.command],
                                           post_commands=[])
 
-        container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
+        # If use_container is specified, then no copying is done and the file
+        # path is used directly
+        if use_container is not None:
+            container_path = os.path.expanduser(use_container)
+            tmp = os.path.basename(container_path)
+            task_container_name = os.path.splitext(tmp)[0]
+        else:
+            container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
         log.info(f'Expecting container at {container_path}. Ready to deploy and run.')
 
         chrun_opts, cc_setup = self.get_cc_options()
@@ -220,7 +236,7 @@ class SingularityDriver(ContainerRuntimeDriver):
         if task.hints is not None:
             hints = dict(task.hints)
             try:
-                img = hints['DockerRequirement']['copyContainer']
+                img = hints['DockerRequirement']['beeflow:copyContainer']
                 argv = ['singularity', 'exec', img]
                 argv.extend(cmd_tasks)
                 main_command = argv
