@@ -7,7 +7,13 @@ CLAMR workflow
 ==============
 `CLAMR <https://github.com/lanl/CLAMR>`_ is an open source LANL mini-app that simulates shallow water equations. CLAMR performs hydrodynamic cell-based adaptive mesh refinement (AMR).
 
-The CLAMR workflow we introduce here is a simple two step workflow that runs a CLAMR simulation (step one) that produces graphic images from periodic time steps, then makes a movie using FFMPEG (step two) to visualize the progression of the simulation. We use this workflow for some of our integration tests and thought it a practical example to help you start with your first workflow. The workflow is in **examples/clamr-ffmpeg-example.tgz**. You may want to untar the file to explore the cwl files that specify what will be run. You will see DockerRequirements that build the container from a dockerfile using Charliecloud. The dockerfile is located in **src/beeflow/data/dockerfiles**.
+The CLAMR workflow we introduce here is a simple two step workflow that runs a CLAMR simulation (step one) that produces graphic images from periodic time steps, then makes a movie using FFMPEG (step two) to visualize the progression of the simulation. We use this workflow for some of our integration tests and thought it a practical example to help you start with your first workflow. The workflow is in **examples/clamr-ffmpeg-example.tgz**. You may want to untar the file (in examples directory ``tar xvf clamr-ffmpeg-example.tgz``) to explore the cwl files that specify what will be run. Below is the clamr-step with the DockerRequirement in hints that specifies to build a container from a dockerfile using Charliecloud (the container runtime specified in the configuration file).
+
+clamr step in clamr_wf.cwl
+--------------------------------------------
+
+.. image:: clamr-step.png
+
 
 Submit the CLAMR workflow on the same front end, where you started the components (to start the components of beeflow, see Installation Guide).
 
@@ -34,7 +40,7 @@ Output:
 
     Started workflow!
 
-If this is the first time you've run the workflow it will build the container and create a Charliecloud image tarball. This process will be done before running the workflow tasks as jobs and may take a few minutes. The first task will be in the ready state, until the container is built. This is the pre-processing building phase and will only be performed once. Once the build has been completed the Charlicloud image will be in the container archive location specified in the builder section of the bee configuration file. You can list contents of the configuration file using ``bee_cfg list``. The status of the workflow will progress to completion and can be queried as shown:
+If this is the first time you've run the workflow it will build the container and create a Charliecloud image tarball. This process will be done before running the workflow tasks as jobs and may take a few minutes. The first task will be in the ready state, until the container is built. This is the pre-processing building phase and will only be performed once. In this example both steps use the container that is built in the pre-processing stage. Once the build has been completed the Charlicloud image will be in the container archive location specified in the builder section of the bee configuration file. You can list contents of the configuration file using ``bee_cfg list``. The status of the workflow will progress to completion and can be queried as shown:
 
 
 Check the status:
@@ -79,7 +85,7 @@ Output:
     clamr--COMPLETED
     ffmpeg--COMPLETED
 
-The archived workflow with associated standard job outputs will be in the **bee_workdir**, also specified in the configuration file. This workflow also produces output from CLAMR and ffmpeg in your home directory:
+The archived workflow with associated standard job outputs will be in the **bee_workdir** see the default section of your configuration file (to list configuration file contents run ``bee_cfg list``). This workflow also produces output from CLAMR and ffmpeg in your home directory:
 
 .. code-block::
 
