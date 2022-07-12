@@ -357,13 +357,13 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Need container_path to know how dockerfile should be named, else fail
         try:
             # Try to get Hints
-            hint_container_path = self.task.hints['DockerRequirement']['copyContainer']
+            hint_container_path = self.task.hints['DockerRequirement']['beeflow:copyContainer']
         except (KeyError, TypeError):
             # Task Hints are not mandatory. No container_path specified in task hints.
             hint_container_path = None
         try:
             # Try to get Requirements
-            req_container_path = self.task.requirements['DockerRequirement']['copyContainer']
+            req_container_path = self.task.requirements['DockerRequirement']['beeflow:copyContainer']
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No container_path specified in task reqs.
             req_container_path = None
@@ -375,7 +375,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             task_container_path = hint_container_path
 
         if not task_container_path:
-            log.error("copyContainer: You must specify the path to an existing container.")
+            log.error("beeflow:copyContainer: You must specify the path to an existing container.")
             return 1
 
         if self.container_name:
