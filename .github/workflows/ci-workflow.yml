@@ -15,5 +15,11 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
+      - name: Dependency Install
+        run: ./ci/deps_install.sh
+      - name: Slurm Setup and Install
+        run: ./ci/slurm_start.sh
+      - name: BEE Install
+        run: ./ci/bee.sh
       - name: Integration Test
         run: ./ci/integration_test.sh
