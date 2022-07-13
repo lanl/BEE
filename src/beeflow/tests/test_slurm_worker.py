@@ -44,6 +44,7 @@ def wait_state(worker_iface, job_id, state):
 
 def setup_slurm_worker(fn):
     """Add a decorator to set up the worker interface."""
+
     def decorator():
         """Decorator function."""
         slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
@@ -57,6 +58,23 @@ def setup_slurm_worker(fn):
         fn(worker_iface)
         time.sleep(1)
         proc.kill()
+
+    return decorator
+
+
+def setup_worker_iface(fn):
+    """Add a deacorator that creates the worker interface, but not slurmrestd."""
+
+    def decorator():
+        """Decorator function."""
+        slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
+        bee_workdir = f'/tmp/{uuid.uuid4().hex}'
+        os.mkdir(bee_workdir)
+        worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
+                                       slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                                       job_template=bc.get('task_manager', 'job_template'))
+        fn(worker_iface)
+
     return decorator
 
 
@@ -106,3 +124,11 @@ def test_cancel_bad_job_id(worker_iface):
     """Cancel a non-existent job."""
     with pytest.raises(WorkerError):
         job_info = worker_iface.cancel_task(888)
+
+@setup_worker_iface
+def test_no_slurmrestd(worker_iface):
+    """Test without running slurmrestd."""
+    job_id, state = worker_iface.submit_task(GOOD_TASK)
+    assert state == 'NOT_RESPONDING'
+    assert worker_iface.query_task(job_id) == 'NOT_RESPONDING'
+    assert worker_iface.cancel_task(job_id) == 'NOT_RESPONDING'

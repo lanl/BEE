@@ -79,7 +79,10 @@ class SlurmWorker(Worker):
 
     def cancel_task(self, job_id):
         """Worker cancels job, returns job_state."""
-        resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
+        try:
+            resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
+        except requests.exceptions.ConnectionError:
+            return 'NOT_RESPONDING'
         if resp.status_code != 200:
             raise WorkerError(f'Unable to cancel job id {job_id}!')
         job_state = "CANCELLED"
