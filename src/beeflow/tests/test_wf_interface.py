@@ -6,6 +6,7 @@
 
 import unittest
 
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_data import (Requirement, Hint, InputParameter, OutputParameter,
                                     StepInput, StepOutput)
 from beeflow.common.wf_interface import WorkflowInterface
@@ -17,7 +18,11 @@ class TestWorkflowInterface(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Initialize the Workflow interface."""
-        cls.wfi = WorkflowInterface()
+        bc.init()
+        cls.wfi = WorkflowInterface(user="neo4j",
+                                    bolt_port=bc.get("graphdb", "bolt_port"),
+                                    db_hostname=bc.get("graphdb", "hostname"),
+                                    password=bc.get("graphdb", "dbpass"))
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
@@ -26,10 +31,10 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_reconnect(self):
         """Test workflow reconnection."""
-        workflow = self.wfi.initialize_workflow("test_workflow",
-                                                [InputParameter("test_input", "File", "input.txt")],
-                                                [OutputParameter("test_output", "File",
-                                                                 "output.txt", "viz/output")])
+        workflow = self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
 
         # Destroy connection object
         self.wfi._gdb_interface._connection = None
@@ -57,62 +62,52 @@ class TestWorkflowInterface(unittest.TestCase):
 
         gdb_workflow, _ = self.wfi.get_workflow()
 
-        self.assertEqual(gdb_workflow, workflow)
-        self.assertEqual(gdb_workflow.id, workflow.id)
+        self.assertEqual(workflow, gdb_workflow)
+        self.assertEqual(workflow.id, gdb_workflow.id)
         self.assertIsNotNone(self.wfi._workflow_id)
+        self.assertEqual("SUBMITTED", self.wfi.get_workflow_state())
 
     def test_execute_workflow(self):
         """Test workflow execution initialization (set initial tasks' states to 'READY')."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
         tasks = self._create_test_tasks()
         self.wfi.execute_workflow()
 
-        self.assertEqual(self.wfi.get_task_state(tasks[0]), "READY")
+        self.assertEqual("READY", self.wfi.get_task_state(tasks[0]))
+        self.assertEqual("RUNNING", self.wfi.get_workflow_state())
 
     def test_pause_workflow(self):
         """Test workflow execution pausing (set running tasks' states to 'PAUSED')."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
-        tasks = self._create_test_tasks()
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
+        self._create_test_tasks()
 
-        # Set Compute tasks to RUNNING
-        for task in tasks[1:4]:
-            self.wfi.set_task_state(task, "RUNNING")
+        self.wfi.execute_workflow()
+
         self.wfi.pause_workflow()
 
-        # Compute tasks should now be PAUSED
-        for task in tasks[1:4]:
-            self.assertEqual("PAUSED", self.wfi.get_task_state(task))
-
-        # No other tasks should be affected
-        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[0]))
-        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[4]))
+        # Workflow state should now be 'PAUSED'
+        self.assertEqual("PAUSED", self.wfi.get_workflow_state())
 
     def test_resume_workflow(self):
         """Test workflow execution resuming (set paused tasks' states to 'RUNNING')."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
-        tasks = self._create_test_tasks()
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
+        self._create_test_tasks()
 
-        # Set Compute tasks to PAUSED
-        for task in tasks[1:4]:
-            self.wfi.set_task_state(task, "PAUSED")
+        self.wfi.execute_workflow()
+        self.wfi.pause_workflow()
         self.wfi.resume_workflow()
 
-        # Compute tasks should now be PAUSED
-        for task in tasks[1:4]:
-            self.assertEqual("RUNNING", self.wfi.get_task_state(task))
-
-        # No other tasks should be affected
-        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[0]))
-        self.assertEqual("WAITING", self.wfi.get_task_state(tasks[4]))
+        # Workflow state should now be 'RESUME'
+        self.assertEqual("RESUME", self.wfi.get_workflow_state())
 
     def test_reset_workflow(self):
         """Test workflow execution resetting (set all tasks to 'WAITING', delete metadata)."""
@@ -134,7 +129,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # States should be reset, metadata should be deleted
         for task in tasks:
-            self.assertDictEqual(dict(), self.wfi.get_task_metadata(task))
+            self.assertDictEqual({}, self.wfi.get_task_metadata(task))
             self.assertEqual("WAITING", self.wfi.get_task_state(task))
 
         # Workflow ID should be reset
@@ -147,10 +142,10 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_finalize_workflow(self):
         """Test workflow deletion from the graph database."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
         self.wfi.finalize_workflow()
 
         self.assertFalse(self.wfi.workflow_loaded())
@@ -168,10 +163,10 @@ class TestWorkflowInterface(unittest.TestCase):
                  Hint("NetworkAccess", {"networkAccess": True})]
         stdout = "output.txt"
 
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "test_input/test_task_done")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_input/test_task_done")])
         task = self.wfi.add_task(
             name=task_name,
             base_command=base_command,
@@ -196,7 +191,7 @@ class TestWorkflowInterface(unittest.TestCase):
         gdb_task = self.wfi.get_task_by_id(task.id)
         self.assertEqual(task, gdb_task)
         self.assertEqual(task.id, gdb_task.id)
-    
+
     def test_restart_task(self):
         """Test restart of failed task."""
         task_name = "test_task"
@@ -216,10 +211,10 @@ class TestWorkflowInterface(unittest.TestCase):
         stdout = "output.txt"
         test_checkpoint_file = "backup0.crx"
 
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "test_input/test_task_done")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_input/test_task_done")])
         task = self.wfi.add_task(
             name=task_name,
             base_command=base_command,
@@ -228,7 +223,7 @@ class TestWorkflowInterface(unittest.TestCase):
             requirements=requirements,
             hints=hints,
             stdout=stdout)
-        
+
         # Restart the task, should create a new Task
         new_task = self.wfi.restart_task(task, test_checkpoint_file)
 
@@ -245,8 +240,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Check that task command includes checkpoint file
         self.assertListEqual(['ls', '-a', '-F', '-l', 'input.txt', '-R',
-                              'checkpoint_output/backup0.crx'],
-                              new_task.command)
+                              'checkpoint_output/backup0.crx'], new_task.command)
 
         # Restart once again
         newer_task = self.wfi.restart_task(new_task, test_checkpoint_file)
@@ -267,15 +261,14 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Check that task command includes checkpoint file
         self.assertListEqual(['ls', '-a', '-F', '-l', 'input.txt', '-R',
-                              'checkpoint_output/backup0.crx'],
-                              newer_task.command)
+                              'checkpoint_output/backup0.crx'], newer_task.command)
 
     def test_finalize_task(self):
         """Test finalization of completed tasks."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
         tasks = self._create_test_tasks()
         self.wfi.execute_workflow()
         self.wfi.set_task_output(tasks[0], "prep/prep_output", "prep_output.txt")
@@ -304,10 +297,10 @@ class TestWorkflowInterface(unittest.TestCase):
                  Hint("NetworkAccess", {"networkAccess": True})]
         stdout = "output.txt"
 
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "test_task/test_task_done")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/test_task_done")])
         task = self.wfi.add_task(
             name=task_name,
             base_command=base_command,
@@ -323,10 +316,11 @@ class TestWorkflowInterface(unittest.TestCase):
         """Test obtaining the workflow from the graph database."""
         requirements = [Requirement("ResourceRequirement", {"ramMin": 1024})]
         hints = [Hint("NetworkAccess", {"networkAccess": True})]
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")], requirements, hints)
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")],
+            requirements, hints)
         tasks = self._create_test_tasks()
 
         (workflow, wf_tasks) = self.wfi.get_workflow()
@@ -340,17 +334,46 @@ class TestWorkflowInterface(unittest.TestCase):
         workflow = self.wfi.initialize_workflow(
             "test_workflow",
             [InputParameter("test_input", "File", "input.txt")],
-            [OutputParameter("test_output", "File", "output.txt",
-                             "test_task/test_task_done")])
+            [OutputParameter("test_output", "File", "output.txt", "test_task/test_task_done")])
 
         self.assertListEqual(workflow.outputs, self.wfi.get_workflow_outputs())
 
+    def test_get_workflow_state(self):
+        """Test obtaining the state of a workflow."""
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/test_task_done")])
+
+        # Initialized workflow state should be 'SUBMITTED'
+        self.assertEqual("SUBMITTED", self.wfi.get_workflow_state())
+
+        self.wfi.execute_workflow()
+
+        # Executed workflow state should be 'RUNNING'
+        self.assertEqual("RUNNING", self.wfi.get_workflow_state())
+
+    def test_set_workflow_state(self):
+        """Test setting the state of a workflow."""
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "test_task/test_task_done")])
+
+        # Initialized workflow state should be 'SUBMITTED'
+        self.assertEqual("SUBMITTED", self.wfi.get_workflow_state())
+
+        self.wfi.set_workflow_state("RUNNING")
+
+        # Workflow state should now be 'RUNNING'
+        self.assertEqual("RUNNING", self.wfi.get_workflow_state())
+
     def test_get_ready_tasks(self):
         """Test obtaining of ready workflow tasks."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
         tasks = self._create_test_tasks()
 
         # Should be no ready tasks
@@ -364,10 +387,10 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_get_dependent_tasks(self):
         """Test obtaining of dependent tasks."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
         tasks = self._create_test_tasks()
         # Get dependent tasks of Data Prep
         dependent_tasks = self.wfi.get_dependent_tasks(tasks[0])
@@ -443,7 +466,7 @@ class TestWorkflowInterface(unittest.TestCase):
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
         # Metadata should be empty
-        self.assertDictEqual(dict(), self.wfi.get_task_metadata(task))
+        self.assertDictEqual({}, self.wfi.get_task_metadata(task))
 
         self.wfi.set_task_metadata(task, metadata)
 
@@ -451,6 +474,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertDictEqual(metadata, self.wfi.get_task_metadata(task))
 
     def test_get_task_input(self):
+        """Test the obtaining of a task input."""
         self.wfi.initialize_workflow(
             "test_workflow",
             [InputParameter("test_input", "File", "input.txt")],
@@ -465,6 +489,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(task.inputs[0], self.wfi.get_task_input(task, "test_input"))
 
     def test_set_task_input(self):
+        """Test the setting of a task input."""
         self.wfi.initialize_workflow(
             "test_workflow",
             [InputParameter("test_input", "File", "input.txt")],
@@ -481,6 +506,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(test_input, self.wfi.get_task_input(task, "test_input"))
 
     def test_get_task_output(self):
+        """Test the obtaining of a task output."""
         self.wfi.initialize_workflow(
             "test_workflow",
             [InputParameter("test_input", "File", "input.txt")],
@@ -495,6 +521,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(task.outputs[0], self.wfi.get_task_output(task, "test_task/output"))
 
     def test_set_task_output(self):
+        """Test the setting of a task output."""
         self.wfi.initialize_workflow(
             "test_workflow",
             [InputParameter("test_input", "File", "input.txt")],
@@ -511,6 +538,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertEqual(test_output, self.wfi.get_task_output(task, "test_task/output"))
 
     def test_evaluate_expression(self):
+        """Test the evaluation of an input/output expression."""
         self.wfi.initialize_workflow(
             "test_workflow",
             [InputParameter("test_input", "File", "input.txt")],
@@ -556,29 +584,29 @@ class TestWorkflowInterface(unittest.TestCase):
 
     def test_workflow_initialized(self):
         """Test determining if a workflow is initialized."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
 
         # Workflow now initialized
         self.assertTrue(self.wfi.workflow_initialized())
 
     def test_workflow_loaded(self):
         """Test determining if a workflow is loaded."""
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
         self.wfi.finalize_workflow()
 
         # Workflow not loaded
         self.assertFalse(self.wfi.workflow_loaded())
 
-        self.wfi.initialize_workflow("test_workflow",
-                                     [InputParameter("test_input", "File", "input.txt")],
-                                     [OutputParameter("test_output", "File", "output.txt",
-                                                      "viz/output")])
+        self.wfi.initialize_workflow(
+            "test_workflow",
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
 
         # Workflow now loaded
         self.assertTrue(self.wfi.workflow_loaded())
