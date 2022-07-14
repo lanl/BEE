@@ -1,6 +1,9 @@
 name: PyLama Lint
 
 on:
+  # For manual exec
+  # (https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
+  workflow_dispatch: {}
   #pull_request:
   #  types: [opened, synchronize, edited]
   #  branches: [main, develop]
