@@ -84,12 +84,3 @@ printf "#### bee.conf ####\n"
 cat ~/.config/beeflow/bee.conf
 printf "#### bee.conf ####\n"
 printf "\n\n"
-
-# Try to run BEE
-printf "\n\n"
-printf "**Starting BEE**\n"
-
-# Slurmrestd will fail by default when running as `SlurmUser`
-SLURMRESTD_SECURITY=disable_user_check beeflow || exit 1
-
-sleep 4

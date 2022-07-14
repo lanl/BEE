@@ -1,4 +1,4 @@
-name: Integration workflow
+name: Unit tests
 
 on:
   # For manual exec
@@ -12,7 +12,7 @@ env: {}
 
 jobs:
   integration-test:
-    name: BEE Integration Test
+    name: BEE Unit Tests
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
     # available on 20.04
     runs-on: ubuntu-22.04
@@ -24,7 +24,9 @@ jobs:
         run: ./ci/slurm_start.sh
       - name: BEE Install
         run: ./ci/bee_install.sh
-      - name: BEE Start
-        run: ./ci/bee_start.sh
-      - name: Integration Test
-        run: ./ci/integration_test.sh
+      # TODO: Add the script for the unit tests here
+      - name: Unit tests
+        run: |
+          #!/bin/sh
+          . ./venv/bin/activate
+          pytest src/beeflow/tests/test_*.py
