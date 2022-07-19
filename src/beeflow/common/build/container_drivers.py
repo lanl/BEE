@@ -6,7 +6,6 @@ All container-based build systems belong here.
 import os
 import shutil
 import subprocess
-import sys
 from beeflow.common.config_driver import BeeConfig as bc
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
@@ -30,7 +29,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
     requests a RTE, and a method to return the requested RTE.
     """
 
-    def __init__(self, task, userconf_file=None):
+    def __init__(self, task):
         """Begin build request.
 
         Parse hints and requirements to determine target build
@@ -67,30 +66,30 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         self.task = task
         self.docker_image_id = None
         self.container_name = None
-        dockerRequirements = set()
+        docker_requirements = set()
         try:
-            requirement_DockerRequirements = self.task.requirements['DockerRequirement'].keys()
-            dockerRequirements = dockerRequirements.union(requirement_DockerRequirements)
-            req_string = (f'{set(requirement_DockerRequirements)}')
+            requirement_docker_requirements = self.task.requirements['DockerRequirement'].keys()
+            docker_requirements = docker_requirements.union(requirement_docker_requirements)
+            req_string = (f'{set(requirement_docker_requirements)}')
             log.info(f'task {self.task.id} requirement DockerRequirements: {req_string}')
         except (TypeError, KeyError):
             log.info(f'task {self.task.name} {self.task.id} no DockerRequirements in requirement')
         try:
-            hint_DockerRequirements = self.task.hints['DockerRequirement'].keys()
-            dockerRequirements = dockerRequirements.union(hint_DockerRequirements)
-            hint_str = (f'{set(hint_DockerRequirements)}')
+            hint_docker_requirements = self.task.hints['DockerRequirement'].keys()
+            docker_requirements = docker_requirements.union(hint_docker_requirements)
+            hint_str = (f'{set(hint_docker_requirements)}')
             log.info(f'task {self.task.name} {self.task.id} hint DockerRequirements: {hint_str}')
         except (TypeError, KeyError):
             log.info(f'task {self.task.name} {self.task.id} hints has no DockerRequirements')
-        log.info(f'task {self.task.id} union DockerRequirements : {dockerRequirements}')
+        log.info(f'task {self.task.id} union DockerRequirements : {docker_requirements}')
         exec_superset = self.resolve_priority()
-        self.exec_list = [i for i in exec_superset if i[1] in dockerRequirements]
+        self.exec_list = [i for i in exec_superset if i[1] in docker_requirements]
         log_exec_list = [i[1] for i in self.exec_list]
         log.info(f'task {self.task.id} DockerRequirement execution order will be: {log_exec_list}')
         log.info('Execution order pre-empts hint/requirement status.')
 
-    def dockerPull(self, addr=None, force=False):
-        """CWL compliant dockerPull.
+    def docker_pull(self, addr=None, force=False):
+        """CWL compliant dockerPull method.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
@@ -158,7 +157,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def dockerLoad(self):
+    def docker_load(self):
         """CWL compliant dockerLoad.
 
         CWL spec 09-23-2020: Specify a HTTP URL from which to
@@ -179,7 +178,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
         return 0
 
-    def dockerFile(self, task_dockerfile=None, force=False):
+    def docker_file(self, task_dockerfile=None, force=False):
         """CWL compliant dockerFile.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
@@ -251,7 +250,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def dockerImport(self, param_import=None):
+    def docker_import(self, param_import=None):
         """CWL compliant dockerImport.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
@@ -290,7 +289,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def dockerImageId(self, param_imageid=None):
+    def docker_image_id(self, param_imageid=None):
         """CWL compliant dockerImageId.
 
         A divergence from the CWL spec. Docker image Id is defined by docker as a checksum
@@ -334,7 +333,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 0
         return 1
 
-    def dockerOutputDirectory(self, param_output_directory=None):
+    def docker_output_directory(self, param_output_directory=None):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
@@ -347,7 +346,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             self.container_output_path = param_output_directory
         return 0
 
-    def copyContainer(self, force=False):
+    def copy_container(self, force=False):
         """CWL extension, copy an existing container into the build archive.
 
         If you have a container tarball, and all you need to do is stage it,
@@ -402,7 +401,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def containerName(self):
+    def container_name(self):
         """CWL extension, need a way to refer to containers human-readable name.
 
         The CWL spec currently uses dockerImageId to refer to the name of a container
@@ -456,7 +455,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         :type kwargs: set of build system parameters
         """
 
-    def dockerPull(self, addr=None, force=False):
+    def docker_pull(self, addr=None, force=False):
         """CWL compliant dockerPull.
 
         CWL spec 09-23-2020: Specify a Docker image to
@@ -464,21 +463,21 @@ class SingularityBuildDriver(ContainerBuildDriver):
         digest to ensure an exact container is used.
         """
 
-    def dockerLoad(self):
+    def docker_load(self):
         """CWL compliant dockerLoad.
 
         CWL spec 09-23-2020: Specify a HTTP URL from which to
         download a Docker image using docker load.
         """
 
-    def dockerFile(self, task_dockerfile=None, force=False):
+    def docker_file(self, task_dockerfile=None, force=False):
         """CWL compliant dockerFile.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build.
         """
 
-    def dockerImport(self, param_import=None):
+    def docker_import(self, param_import=None):
         """CWL compliant dockerImport.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
@@ -486,7 +485,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         may be used to override DockerRequirement specs.
         """
 
-    def dockerImageId(self, param_imageid=None):
+    def docker_image_id(self, param_imageid=None):
         """CWL compliant dockerImageId.
 
         CWL spec 09-23-2020: The image id that will be used for
@@ -497,7 +496,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         specs.
         """
 
-    def dockerOutputDirectory(self, param_output_directory=None):
+    def docker_output_directory(self, param_output_directory=None):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
@@ -505,9 +504,5 @@ class SingularityBuildDriver(ContainerBuildDriver):
         param_output_directory may be used to override DockerRequirement
         specs.
         """
-# Ignore snake_case requirement to enable CWL compliant names. (C0103)
-# Ignore "too many statements". Some of these methods are long, and that's ok (R0915)
 # Ignore W0231: linter doesn't know about abstract classes, it's ok to now call the parent __init__
-# Ignore W1202: Using fstrings does not cause us any issues in logging currently, improves
-#               readibility as is
-# pylama:ignore=C0103,R0915,W0231,W1202
+# pylama:ignore=W0231
