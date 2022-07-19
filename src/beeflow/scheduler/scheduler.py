@@ -12,7 +12,7 @@ from flask_restful import Resource, Api
 import beeflow.scheduler.algorithms as algorithms
 import beeflow.scheduler.task as task
 import beeflow.scheduler.resource_allocation as resource_allocation
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
@@ -130,20 +130,13 @@ def load_config_values():
     if args.read_config:
         # Read config values from the config file
         if args.config_file is not None:
-            bc = BeeConfig(userconfig=args.config_file) # noqa
+            bc.init(userconfig=args.config_file) # noqa
         else:
-            bc = BeeConfig() # noqa
+            bc.init() # noqa
 
-        if bc.userconfig.has_section('scheduler'):
-            for key in bc.userconfig['scheduler']:
-                conf[key] = bc.userconfig['scheduler'].get(key)
-        else:
-            log.info('[scheduler] section not found in configuration file, '
-                    'default values will be added')
-            bc.modify_section('user', 'scheduler', conf)
-            sys.exit(f'Please check {bc.userconfig_file} and restart '
-                     'Scheduler')
-        bee_workdir = bc.userconfig['DEFAULT'].get('bee_workdir')
+        for key in conf:
+            conf[key] = bc.get('scheduler', key)
+        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
         # Set some defaults
         if not conf['log']:
             conf['log'] = '/'.join([bee_workdir, 'logs', 'scheduler.log'])
@@ -177,7 +170,7 @@ def load_config_values():
 
 if __name__ == '__main__':
     CONF, bc = load_config_values()
-    bee_workdir = bc.userconfig.get('DEFAULT','bee_workdir')
+    bee_workdir = bc.get('DEFAULT','bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='scheduler.log')
     flask_app.sched_conf = CONF
     # Load algorithm data

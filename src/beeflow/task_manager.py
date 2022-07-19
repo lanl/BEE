@@ -8,88 +8,40 @@ import sys
 import logging
 import hashlib
 import socket
-import subprocess
-from subprocess import PIPE
-import jsonpickle
-import json
-import requests
-import threading
-import glob
 import os
+import re
+import string
 import traceback
+import requests
+import jsonpickle
 
 from flask import Flask, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
 
-from beeflow.common.config_driver import BeeConfig
+from apscheduler.schedulers.background import BackgroundScheduler
+
+from beeflow.common.config_driver import BeeConfig as bc
 
 # This must be imported before calling other parts of BEE
 if len(sys.argv) >= 2:
-    bc = BeeConfig(userconfig=sys.argv[1])
+    bc.init(userconfig=sys.argv[1])
 else:
-    bc = BeeConfig()
+    bc.init()
 
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.cli import log
-from beeflow.common.build.build_driver import task2arg
 from beeflow.common.build_interfaces import build_main
 import beeflow.common.log as bee_logging
 
 
 sys.excepthook = bee_logging.catch_exception
 
-USERCONFIG = bc.userconfig_file
 
+runtime = bc.get('task_manager', 'container_runtime')
 
-def check_crt_config(c_runtime):
-    """Check container runtime configurations."""
-    supported_runtimes = ['Charliecloud', 'Singularity']
-    if c_runtime not in supported_runtimes:
-        sys.exit(f'Container runtime, {runtime}, not supported.\n' +
-                 f'Please check {bc.userconfig_file} and restart TaskManager.')
+tm_listen_port = bc.get('task_manager', 'listen_port')
 
-    if c_runtime == 'Charliecloud':
-        if not bc.userconfig.has_section('charliecloud'):
-            cc_opts = {'setup': 'module load charliecloud',
-                       'chrun_opts': '--cd /home/$USER'
-                       }
-            bc.modify_section('user', 'charliecloud', cc_opts)
-
-
-# Check task_manager and container_runtime sections of user configuration file
-tm_dict = {}
-tm_default = {'listen_port': bc.default_tm_port,
-              'container_runtime': 'Charliecloud'}
-if bc.userconfig.has_section('task_manager'):
-    # Insert defaults for any options not in task_manager section of userconfig file
-    UPDATE_CONFIG = False
-    items = bc.userconfig.items('task_manager')
-    for key, value in items:
-        tm_dict.setdefault(key, value)
-    for key in tm_default:
-        if key not in tm_dict.keys():
-            tm_dict[key] = tm_default[key]
-            UPDATE_CONFIG = True
-    if UPDATE_CONFIG:
-        bc.modify_section('user', 'task_manager', tm_dict)
-else:
-    tm_listen_port = bc.default_tm_port
-    bc.modify_section('user', 'task_manager', tm_default)
-    check_crt_config(tm_default['container_runtime'])
-    sys.exit(f'[task_manager] section missing in {bc.userconfig_file}\n' +
-             'Default values added. Please check and restart Task Manager.')
-runtime = bc.userconfig.get('task_manager', 'container_runtime')
-check_crt_config(runtime)
-
-tm_listen_port = bc.userconfig.get('task_manager', 'listen_port')
-
-# Check Workflow manager port, use default if none.
-if bc.userconfig.has_section('workflow_manager'):
-    wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port',
-                                                            bc.default_wfm_port)
-else:
-    wfm_listen_port = bc.default_wfm_port
+wfm_listen_port = bc.get('workflow_manager', 'listen_port')
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -113,8 +65,11 @@ def update_task_state(task_id, job_state, **kwargs):
     """Informs the workflow manager of the current state of a task."""
     data = {'task_id': task_id, 'job_state': job_state}
     if 'metadata' in kwargs:
-        metadata_json = jsonpickle.encode(kwargs['metadata'])
-        kwargs['metadata'] = metadata_json
+        kwargs['metadata'] = jsonpickle.encode(kwargs['metadata'])
+
+    if 'task_info' in kwargs:
+        kwargs['task_info'] = jsonpickle.encode(kwargs['task_info'])
+
     data.update(kwargs)
     resp = requests.put(_resource("update/"),
                         json=data)
@@ -167,9 +122,9 @@ def submit_jobs():
         task_dict = submit_queue.pop(0)
         task = next(iter(task_dict.values()))
         try:
-            log.info('Resolving environment for task {}'.format(task.name))
-            _ = resolve_environment(task)
-            log.info('Environment preparation complete for task {}'.format(task.name))
+            log.info(f'Resolving environment for task {task.name}')
+            resolve_environment(task)
+            log.info(f'Environment preparation complete for task {task.name}')
             job_id, job_state = worker.submit_task(task)
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
@@ -192,19 +147,92 @@ def submit_jobs():
             update_task_state(task.id, job_state)
 
 
+def get_checkpoints(file_regex, file_path):
+    """Retrieve List of Checkpoint files."""
+    checkpoints = []
+    regex = re.compile(file_regex)
+    for _, _, checkpoint_files in os.walk(file_path):
+        for checkpoint_file in checkpoint_files:
+            if regex.match(checkpoint_file):
+                checkpoints.append(checkpoint_file)
+    return checkpoints
+
+
+def get_task_checkpoint(task):
+    """Harvest task checkpoint."""
+    task_checkpoint = None
+    hints = dict(task.hints)
+    try:
+        # Try to get Hints
+        hint_checkpoint = hints['beeflow:CheckpointRequirement']
+    except (KeyError, TypeError):
+        # Task Hints are not mandatory. No task checkpoint hint specified.
+        hint_checkpoint = None
+    try:
+        # Try to get Requirements
+        req_checkpoint = task.requirements['beeflow:CheckpointRequirement']
+    except (KeyError, TypeError):
+        # Task Requirements are not mandatory. No task checkpoint requirement specified.
+        req_checkpoint = None
+    # Prefer requirements over hints
+    if req_checkpoint:
+        task_checkpoint = req_checkpoint
+    elif hint_checkpoint:
+        task_checkpoint = hint_checkpoint
+    return task_checkpoint
+
+
+def get_restart_file(task_checkpoint):
+    """Find latest checkpoint file."""
+    checkpoint_file = ""
+    try:
+        file_regex = task_checkpoint['file_regex']
+    except (KeyError, TypeError):
+        file_regex = ""
+    try:
+        file_path = task_checkpoint['file_path']
+    except (KeyError, TypeError):
+        file_path = ""
+    if file_path != "":
+        # Replace environment variables
+        if "$" in file_path:
+            file_path = string.Template(file_path).substitute(os.environ)
+        checkpoints = get_checkpoints(file_regex, file_path)
+        # Find latest checkpoint file
+        checkpoints = [f'{file_path}/{file_name}' for file_name in checkpoints]
+        checkpoints.sort(key=os.path.getmtime)
+        checkpoint_file = checkpoints[-1]
+        log.info(f'Checkpoint file is {checkpoint_file}')
+        return os.path.basename(checkpoint_file)
+    return None
+
+
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
-    for job in job_queue:
+    job_q = job_queue.copy()
+    for job in job_q:
         task = job['task']
         job_id = job['job_id']
         job_state = worker.query_task(job_id)
 
+        # If state changes update the WFM
         if job_state != job['job_state']:
             log.info(f'{task.name} {job["job_state"]} -> {job_state}')
             job['job_state'] = job_state
-            update_task_state(task.id, job_state, output={})
+            if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
+                # Harvest lastest checkpoint file.
+                task_checkpoint = get_task_checkpoint(task)
+                if task_checkpoint:
+                    checkpoint_file = get_restart_file(task_checkpoint)
+                    task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
+                    log.info(f'Restart: {task.name} task_info: {task_info}')
+                    update_task_state(task.id, job_state, task_info=task_info)
+                else:
+                    update_task_state(task.id, job_state)
+            else:
+                update_task_state(task.id, job_state)
 
-        if job_state in ('FAILED', 'COMPLETED', 'CANCELLED', 'ZOMBIE'):
+        if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
             job_queue.remove(job)
             log.info(f'Job {job_id} done {task.name}: removed from job status queue')
@@ -219,7 +247,7 @@ def process_queues():
 if "pytest" not in sys.modules:
     # TODO Decide on the time interval for the scheduler
     scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
-    scheduler.add_job(func=process_queues, trigger="interval", seconds=5)
+    scheduler.add_job(func=process_queues, trigger="interval", seconds=8)
     scheduler.start()
 
     # This kills the scheduler when the process terminates
@@ -284,26 +312,22 @@ def get_status():
 from beeflow.common.worker_interface import WorkerInterface
 import beeflow.common.worker as worker_pkg
 
-try:
-    WLS = bc.userconfig.get('DEFAULT', 'workload_scheduler')
-except ValueError as error:
-    log.error(f'workload scheduler error {error}')
-    WLS = None
+WLS = bc.get('DEFAULT', 'workload_scheduler')
 worker_class = worker_pkg.find_worker(WLS)
 if worker_class is None:
     sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
-             f'Please check {bc.userconfig_file} and restart TaskManager.')
+             f'Please check {bc.userconfig_path()} and restart TaskManager.')
 # Get the parameters for the worker classes
 worker_kwargs = {
-    'bee_workdir': bc.userconfig.get('DEFAULT', 'bee_workdir'),
-    'container_runtime': bc.userconfig.get('task_manager', 'container_runtime'),
-    'job_template': bc.userconfig.get('task_manager', 'job_template', fallback=None),
+    'bee_workdir': bc.get('DEFAULT', 'bee_workdir'),
+    'container_runtime': bc.get('task_manager', 'container_runtime'),
+    'job_template': bc.get('task_manager', 'job_template'),
     # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
-    'runner_opts': bc.userconfig.get('task_manager', 'runner_opts', fallback=None),
+    'runner_opts': bc.get('task_manager', 'runner_opts'),
 }
 # TODO: Maybe this should be put into a sub class
 if WLS == 'Slurm':
-    worker_kwargs['slurm_socket'] = bc.userconfig.get('slurmrestd', 'slurm_socket')
+    worker_kwargs['slurm_socket'] = bc.get('slurmrestd', 'slurm_socket')
 worker = WorkerInterface(worker_class, **worker_kwargs)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
@@ -312,10 +336,10 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 if __name__ == '__main__':
     hostname = socket.gethostname()
     log.info(f'Starting Task Manager on host: {hostname}')
-    bee_workdir = bc.userconfig.get('DEFAULT', 'bee_workdir')
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
     log.info(f'tm_listen_port:{tm_listen_port}')
-    container_runtime = bc.userconfig.get('task_manager', 'container_runtime')
+    container_runtime = bc.get('task_manager', 'container_runtime')
     log.info(f'container_runtime: {container_runtime}')
 
     # Werkzeug logging

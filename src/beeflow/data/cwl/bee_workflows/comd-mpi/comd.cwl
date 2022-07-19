@@ -30,7 +30,7 @@ steps:
     hints:
       DockerRequirement:
         # dockerPull: "jtronge/comd:latest"
-        copyContainer: "/home/jaket/comd.tar.gz"
+        beeflow:copyContainer: "/usr/projects/beedev/comd/comd-x86_64.tar.gz"
       beeflow:MPIRequirement:
         nodes: 8
         ntasks: 8

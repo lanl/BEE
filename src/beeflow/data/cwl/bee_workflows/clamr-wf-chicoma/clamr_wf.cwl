@@ -52,7 +52,7 @@ steps:
     out: [clamr_stdout, outdir, time_log]
     hints:
         DockerRequirement:
-            copyContainer: "/usr/projects/beedev/clamr/clamr-ffmpeg.tar.gz"
+            beeflow:copyContainer: "/usr/projects/beedev/clamr/clamr-ffmpeg.tar.gz"
 
   ffmpeg:
     run: ffmpeg.cwl
@@ -70,4 +70,4 @@ steps:
     out: [movie]
     hints:
         DockerRequirement:
-            copyContainer: "/usr/projects/beedev/clamr/clamr-ffmpeg.tar.gz"
+            beeflow:copyContainer: "/usr/projects/beedev/clamr/clamr-ffmpeg.tar.gz"

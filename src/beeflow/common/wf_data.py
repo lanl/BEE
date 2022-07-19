@@ -1,6 +1,7 @@
 """Defines data structures for holding task and workflow data."""
 from collections import namedtuple
 from uuid import uuid4
+from copy import deepcopy
 
 # Workflow input parameter class
 InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
@@ -65,8 +66,10 @@ class Workflow:
         Currently, the code is boilerplate. We do not support multiple workflows.
 
         :param other: the workflow with which to test equality
-        :type other: instance of Workflow
+        :type other: Workflow
         """
+        if type(other) is not Workflow:
+            return False
         id_sort = lambda i: i.id
         return bool(self.name == other.name and
                     sorted(self.hints) == sorted(other.hints) and
@@ -78,7 +81,7 @@ class Workflow:
         """Test the inequality of two workflows.
 
         :param other: the workflow with which to test inequality
-        :type other: instance of Workflow
+        :type other: Workflow
         """
         return bool(not self.__eq__(other))
 
@@ -127,26 +130,41 @@ class Task:
         self.workflow_id = workflow_id
 
         # Task ID as UUID if not given
-        if task_id:
-            self.id = task_id
+        if task_id is None:
+            self.id = self.generate_workflow_id()
         else:
-            self.id = str(uuid4())
+            self.id = task_id
 
-    def copy(self):
-        """Make a copy of this task."""
+    def generate_workflow_id(self):
+        """Generate a unique workflow ID.
+        
+        :rtype: str
+        """
+        return uuid4().hex
+
+    def copy(self, new_id=False):
+        """Make a copy of this task.
+        
+        :param new_id: generate a new task ID
+        :type new_id: bool
+        :rtype: Task
+        """
+        task_id = self.generate_workflow_id() if new_id else self.id
         return Task(name=self.name, base_command=self.base_command,
-                    hints=self.hints, requirements=self.requirements,
-                    inputs=self.inputs, outputs=self.outputs,
-                    stdout=self.stdout, workflow_id=self.workflow_id,
-                    task_id=self.id)
+                    hints=deepcopy(self.hints), requirements=deepcopy(self.requirements),
+                    inputs=deepcopy(self.inputs), outputs=deepcopy(self.outputs),
+                    stdout=self.stdout, workflow_id=self.workflow_id, task_id=task_id)
 
     def __eq__(self, other):
         """Test the equality of two tasks.
 
         Task ID and dependencies do not factor into equality testing.
         :param other: the task with which to test equality
-        :type other: instance of Task
+        :type other: Task
+        :rtype: bool
         """
+        if type(other) is not Task:
+            return False
         id_sort = lambda i: i.id
         return bool(self.name == other.name and
                     self.base_command == other.base_command and
@@ -160,16 +178,23 @@ class Task:
         """Test the inequality of two tasks.
 
         :param other: the task with which to test inequality
-        :type other: instance of Task
+        :type other: Task
+        :rtype: bool
         """
         return bool(not self.__eq__(other))
 
     def __hash__(self):
-        """Return the hash value for a task."""
+        """Return the hash value for a task.
+        
+        :rtype: int
+        """
         return hash((self.id, self.workflow_id, self.name))
 
     def __repr__(self):
-        """Construct a task's string representation."""
+        """Construct a task's string representation.
+        
+        :rtype: str
+        """
         return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
                 f"hints={self.hints} requirements = {self.requirements} "
                 f"inputs={self.inputs} outputs={self.outputs} stdout={self.stdout} "
@@ -206,5 +231,18 @@ class Task:
             if input_.prefix is not None:
                 command.append(input_.prefix)
             command.append(str(input_.value))
+        
+        # Append restart parameter and checkpoint file if CheckpointRequirement specified
+        for hint in self.hints:
+            if hint.class_ == "beeflow:CheckpointRequirement":
+                if "bee_checkpoint_file__" in hint.params:
+                    if "restart_parameters" in hint.params:
+                        command.append(hint.params["restart_parameters"])
+                    if "container_path" in hint.params:
+                        command.append(hint.params["container_path"] +
+                                       "/" + hint.params["bee_checkpoint_file__"])
+                    else:
+                        command.append(hint.params["bee_checkpoint_file__"])
+                break
 
         return command

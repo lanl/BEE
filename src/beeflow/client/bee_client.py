@@ -7,8 +7,11 @@ import requests
 from pathlib import Path
 import jsonpickle
 import inspect
-from beeflow.common.config_driver import BeeConfig
+from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.cli import NaturalOrderGroup
 
+
+bc.init()
 
 # Length of a shortened workflow ID
 short_id_len = 6
@@ -31,17 +34,8 @@ def error_exit(msg):
 def _url():
     """Returns URL to the workflow manager end point"""
     WM_PORT = 5000
-    if bc.userconfig.has_section('workflow_manager'):
-        wfm_listen_port = bc.userconfig['workflow_manager'].get('listen_port',
-                                                                WM_PORT)
-    else:
-        print("[workflow_manager] section not found in configuration file."
-              "Default port WM_PORT will be used.")
-        wfm_listen_port = WM_PORT
+    wfm_listen_port = bc.get('workflow_manager', 'listen_port')
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
-
-
-bc = BeeConfig()
 
 
 def _short_id(wf_id):
@@ -50,11 +44,6 @@ def _short_id(wf_id):
 
 def _resource(tag=""):
     return _url() + str(tag)
-
-
-class NaturalOrderGroup(click.Group):
-    def list_commands(self, ctx):
-        return self.commands.keys()
 
 
 # Check short workflow IDs for colliions, increase short ID
