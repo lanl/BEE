@@ -4,27 +4,19 @@
 #BSUB -J {{task_name}}-{{task_id}}
 #BSUB -o {{task_save_path}}/{{task_name}}-{{task_id}}.out
 #BSUB -e {{task_save_path}}/{{task_name}}-{{task_id}}.err
-{% if 'beeflow:MPIRequirement' in hints and 'nodes' in hints['beeflow:MPIRequirement'] %}
-#BSUB -nnodes {{ hints['beeflow:MPIRequirement']['nodes'] }}
-{% else %}
 #BSUB -nnodes 1
-{% endif %}
-
 {{ env_code }}
 
 # pre commands
 {% for cmd in pre_commands %}
-jsrun --rs_per_host 1 {{ cmd|join(' ') }}
+{{ cmd|join(' ') }}
 {% endfor %}
 
 # main command
-{% if 'beeflow:MPIRequirement' in hints and 'ntasks' in hints['beeflow:MPIRequirement'] %}
-jsrun --rs_per_host {{ hints['beeflow:MPIRequirement']['ntasks'] }} {{ main_command|join(' ') }}
-{% else %}
 {{ main_command|join(' ') }}
-{% endif %}
 
 # post commands
 {% for cmd in post_commands %}
-jsrun --rs_per_host 1 {{ cmd|join(' ') }}
+{{ cmd|join(' ') }}
 {% endfor %}
+
