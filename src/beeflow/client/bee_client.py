@@ -133,16 +133,17 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     else:
         error_exit(f'Workflow tarball {wf_path} cannot be found')
 
-    files = {
+    data = {
         'wf_name': wf_name.encode(),
         'wf_filename': os.path.basename(wf_path).encode(),
-        'workflow': wf_tarball,
         'main_cwl': main_cwl,
         'yaml': yaml
     }
-
+    files = {
+        'workflow_archive': wf_tarball
+    }
     try:
-        resp = requests.post(_url(), files=files)
+        resp = requests.post(_url(), data=data, files=files)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
@@ -150,6 +151,8 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         error_exit(f"Submit for {wf_name} failed. Please check the WF Manager.")
 
     check_short_id_collision()
+    if 'wf_id' not in resp.json():
+        error_exit(f"wf_id not in WFM response")
     wf_id = resp.json()['wf_id']
     typer.secho("Workflow submitted! Your workflow id is "
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
