@@ -48,8 +48,8 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def docker_pull(self, addr, force):
-        """CWL compliant dockerPull method.
+    def get_docker_pull(self, addr, force):
+        """Get the CWL compliant dockerPull dockerRequirement.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
@@ -57,32 +57,32 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def docker_load(self):
-        """CWL compliant dockerLoad method.
+    def get_docker_load(self):
+        """Get the CWL compliant dockerLoad dockerRequirement.
 
         CWL spec 09-23-2020: Specify a HTTP URL from which to
         download a Docker image using docker load.
         """
 
     @abstractmethod
-    def docker_file(self, task_dockerfile, force):
-        """CWL compliant dockerFile method.
+    def get_docker_file(self, task_dockerfile, force):
+        """Get the CWL compliant dockerFile dockerRequirement.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build.
         """
 
     @abstractmethod
-    def docker_import(self, param_import):
-        """CWL compliant dockerImport method.
+    def get_docker_import(self, param_import):
+        """Get the CWL compliant dockerImport dockerRequirement.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
         gunzip a Docker images using docker import.
         """
 
     @abstractmethod
-    def docker_image_id(self, param_imageid):
-        """CWL compliant dockerImageId method.
+    def get_docker_image_id(self, param_imageid):
+        """Get the CWL compliant dockerImageId dockerRequirement.
 
         CWL spec 09-23-2020: The image id that will be used for
         docker run. May be a human-readable image name or the
@@ -92,16 +92,18 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def docker_output_directory(self, param_output_directory):
-        """CWL compliant dockerOutputDirectory method.
+    def get_docker_output_directory(self, param_output_directory):
+        """Get the CWL compliant dockerOutputDirectory dockerRequirement.
 
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container.
         """
 
     @abstractmethod
-    def copy_container(self, force):
-        """CWL extension, copy an existing container into the build archive.
+    def get_copy_container(self, force):
+        """Get the BEE CWL extension copyContainer dockerRequirement.
+
+        This CWL extension will copy an existing container to the build archive.
 
         If you have a container tarball, and all you need to do is stage it,
         that is, all you need to do is copy it to a location that BEE knows,
@@ -109,8 +111,10 @@ class BuildDriver(ABC):
         """
 
     @abstractmethod
-    def container_name(self):
-        """CWL extension, need a way to refer to containers human-readable name.
+    def get_container_name(self):
+        """Get BEE CWL extension for containerName dockerRequirement.
+
+        This is a BEE extension to CWL to refer to containers with human-readable name.
 
         The CWL spec currently uses dockerImageId to refer to the name of a container
         but this is explicitly not how Docker defines it. We need a way to name
@@ -130,13 +134,13 @@ class BuildDriver(ABC):
         """
         # cwl spec priority list consists of:
         # (bound method, method name, priority, terminal case bool)
-        cwl_spec = [(self.docker_pull, 'dockerPull', 5, True),
-                    (self.docker_load, 'dockerLoad', 6, True),
-                    (self.docker_file, 'dockerFile', 7, True),
-                    (self.docker_import, 'dockerImport', 4, True),
-                    (self.copy_container, 'copyContainer', 3, True),
-                    (self.docker_image_id, 'dockerImageId', 1, False),
-                    (self.container_name, 'containerName', 2, False),
-                    (self.docker_output_directory, 'dockerOutputDirectory', 0, False)]
+        cwl_spec = [(self.get_docker_pull, 'dockerPull', 5, True),
+                    (self.get_docker_load, 'dockerLoad', 6, True),
+                    (self.get_docker_file, 'dockerFile', 7, True),
+                    (self.get_docker_import, 'dockerImport', 4, True),
+                    (self.get_copy_container, 'copyContainer', 3, True),
+                    (self.get_docker_image_id, 'dockerImageId', 1, False),
+                    (self.get_container_name, 'containerName', 2, False),
+                    (self.get_docker_output_directory, 'dockerOutputDirectory', 0, False)]
         exec_list = sorted(cwl_spec, key=lambda x: x[2])
         return exec_list

@@ -58,7 +58,8 @@ def build_main(task):
             op_values = builder.exec_list.pop(0)
         except IndexError:
             op_values = [None, None, None, True]
-        op_dict = dict(zip(op_keys, op_values))
+        finally:
+            op_dict = dict(zip(op_keys, op_values))
 
 
 if __name__ == '__main__':

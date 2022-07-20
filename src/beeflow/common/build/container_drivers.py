@@ -88,8 +88,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         log.info(f'task {self.task.id} DockerRequirement execution order will be: {log_exec_list}')
         log.info('Execution order pre-empts hint/requirement status.')
 
-    def docker_pull(self, addr=None, force=False):
-        """CWL compliant dockerPull method.
+    def get_docker_pull(self, addr=None, force=False):
+        """Get the CWL compliant dockerPull dockerRequirement.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
@@ -157,8 +157,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def docker_load(self):
-        """CWL compliant dockerLoad.
+    def get_docker_load(self):
+        """Get the CWL compliant dockerLoad dockerRequirment.
 
         CWL spec 09-23-2020: Specify a HTTP URL from which to
         download a Docker image using docker load.
@@ -178,8 +178,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
         return 0
 
-    def docker_file(self, task_dockerfile=None, force=False):
-        """CWL compliant dockerFile.
+    def get_docker_file(self, task_dockerfile=None, force=False):
+        """Get the CWL compliant dockerFile dockerRequirement.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build. We have discussed implementing CWL
@@ -250,8 +250,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def docker_import(self, param_import=None):
-        """CWL compliant dockerImport.
+    def get_docker_import(self, param_import=None):
+        """Get the CWL compliant dockerImport dockerRequirement.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
         gunzip a Docker images using docker import. The param_import
@@ -289,8 +289,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def docker_image_id(self, param_imageid=None):
-        """CWL compliant dockerImageId.
+    def get_docker_image_id(self, param_imageid=None):
+        """Get the CWL compliant dockerImageId dockerRequirement.
 
         A divergence from the CWL spec. Docker image Id is defined by docker as a checksum
         on a container, not a human-readable name. The Docker image ID must be produced after
@@ -333,8 +333,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 0
         return 1
 
-    def docker_output_directory(self, param_output_directory=None):
-        """CWL compliant dockerOutputDirectory.
+    def get_docker_output_directory(self, param_output_directory=None):
+        """Get the CWL compliant dockerOutputDirectory dockerRequirement.
 
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container. The
@@ -346,8 +346,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             self.container_output_path = param_output_directory
         return 0
 
-    def copy_container(self, force=False):
-        """CWL extension, copy an existing container into the build archive.
+    def get_copy_container(self, force=False):
+        """Get the BEE CWL extension copyContainer dockerRequirement.
+
+        This CWL extension will copy an existing container to the build archive.
 
         If you have a container tarball, and all you need to do is stage it,
         that is, all you need to do is copy it to a location that BEE knows,
@@ -401,8 +403,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def container_name(self):
-        """CWL extension, need a way to refer to containers human-readable name.
+    def get_container_name(self):
+        """Get BEE CWL extension for containerName dockerRequirement.
+
+        This is a BEE extension to CWL to refer to containers with human-readable name.
 
         The CWL spec currently uses dockerImageId to refer to the name of a container
         but this is explicitly not how Docker defines it. We need a way to name
@@ -455,38 +459,38 @@ class SingularityBuildDriver(ContainerBuildDriver):
         :type kwargs: set of build system parameters
         """
 
-    def docker_pull(self, addr=None, force=False):
-        """CWL compliant dockerPull.
+    def get_docker_pull(self, addr=None, force=False):
+        """Get the CWL compliant dockerPull dockerRequirement.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
         digest to ensure an exact container is used.
         """
 
-    def docker_load(self):
-        """CWL compliant dockerLoad.
+    def get_docker_load(self):
+        """Get the CWL compliant dockerLoad dockerRequirement.
 
         CWL spec 09-23-2020: Specify a HTTP URL from which to
         download a Docker image using docker load.
         """
 
-    def docker_file(self, task_dockerfile=None, force=False):
-        """CWL compliant dockerFile.
+    def get_docker_file(self, task_dockerfile=None, force=False):
+        """Get the CWL compliant dockerFile dockerRequirement.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build.
         """
 
-    def docker_import(self, param_import=None):
-        """CWL compliant dockerImport.
+    def get_docker_import(self, param_import=None):
+        """Get the CWL compliant dockerImport dockerRequirement.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
         gunzip a Docker images using docker import. The param_import
         may be used to override DockerRequirement specs.
         """
 
-    def docker_image_id(self, param_imageid=None):
-        """CWL compliant dockerImageId.
+    def get_docker_image_id(self, param_imageid=None):
+        """Get the CWL compliant dockerImageId dockerRequirement.
 
         CWL spec 09-23-2020: The image id that will be used for
         docker run. May be a human-readable image name or the
@@ -496,7 +500,7 @@ class SingularityBuildDriver(ContainerBuildDriver):
         specs.
         """
 
-    def docker_output_directory(self, param_output_directory=None):
+    def get_docker_output_directory(self, param_output_directory=None):
         """CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
