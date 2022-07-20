@@ -18,5 +18,3 @@ sudo apt-get install -y software-properties-common
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt-get install -y python3.8 python3.8-dev python3.8-venv
-# Set the default python
-# sudo update-alternatives --set python /usr/bin/python3.8

@@ -88,13 +88,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         requirements = dict(task.requirements)
         try:
             # Try to get Hints
-            hint_container_name = hints['DockerRequirement']['containerName']
+            hint_container_name = hints['DockerRequirement']['beeflow:containerName']
         except (KeyError, TypeError):
             # Task Hints are not mandatory. No container_name specified in task hints.
             hint_container_name = None
         try:
             # Try to get Requirements
-            req_container_name = requirements['DockerRequirement']['containerName']
+            req_container_name = requirements['DockerRequirement']['beeflow:containerName']
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No container_name specified in task reqs.
             req_container_name = None
@@ -167,7 +167,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                         'Too many container runtimes specified! Pick one per workflow step.'
                     )
             if len(runtime_target_list) == 0:
-                log.warning('No containerName specified.')
+                log.warning('No beeflow:containerName specified.')
                 log.warning('Cannot be inferred from other DockerRequirements.')
             else:
                 baremetal = False
