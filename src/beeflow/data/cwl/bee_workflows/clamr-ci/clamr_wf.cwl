@@ -55,7 +55,7 @@ steps:
             # TODO Sort this out
             #dockerImport: clamr_img.tar.gz
             #copyContainer: clamr
-            copyContainer: "/tmp/clamr.tar.gz"
+            beeflow:copyContainer: "/tmp/clamr.tar.gz"
 
   ffmpeg:
     run: ffmpeg.cwl
@@ -76,6 +76,6 @@ steps:
             # TODO Sort this out
             #dockerImport: clamr_img.tar.gz
             #copyContainer: clamr
-            copyContainer: "/tmp/clamr.tar.gz"
+            beeflow:copyContainer: "/tmp/clamr.tar.gz"
     requirements:
         InlineJavascriptRequirement: {}
