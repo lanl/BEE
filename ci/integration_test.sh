@@ -1,6 +1,7 @@
 #!/bin/sh
 
 . ./ci/env.sh
+. venv/bin/activate
 
 # Start the actual integration tests
 ./ci/integration_test.py
