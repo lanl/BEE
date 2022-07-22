@@ -21,7 +21,8 @@ $PYTHON -m venv venv
 . venv/bin/activate
 pip install --upgrade pip
 pip install poetry
-poetry install || exit 1
+# Do a poetry install, making sure that all extras are added
+poetry install -E cloud_extras -E scheduler_extras || exit 1
 
 # BEE Configuration
 mkdir -p ~/.config/beeflow
