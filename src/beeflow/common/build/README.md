@@ -43,6 +43,14 @@ Each step in a workflow may include a reference to `DockerRequirement` in the CW
 
 A few examples to use for testing:
 ## CharliecloudBuildDriver Examples
+
+### Initialize BeeConfig for all the examples:
+
+```
+from beeflow.common.config_driver import BeeConfig as bc
+bc.init()
+```
+
 ### dockerPull
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
@@ -56,8 +64,8 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.dockerPull()
-a.dockerPull('git.lanl.gov:5050/trandles/baseimages/centos:7')
+a.get_docker_pull()
+a.get_docker_pull('git.lanl.gov:5050/trandles/baseimages/centos:7')
 
 task = Task(name='hi',base_command=['hi','hello'],
                  requirements={},
@@ -67,8 +75,8 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.dockerPull()
-a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
+a.get_docker_pull()
+a.get_docker_pull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
 
 task = Task(name='hi',base_command=['hi','hello'],
                  hints=None,
@@ -78,9 +86,9 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.dockerPull()
-a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
-a.dockerPull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=True)
+a.get_docker_pull()
+a.get_docker_pull('git.lanl.gov:5050/qwofford/containerhub/lstopo')
+a.get_docker_pull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=True)
 ```
 ### dockerFile
 ```
@@ -95,8 +103,10 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 b = CharliecloudBuildDriver(task)
-b.containerName()
-b.dockerFile()
+b.get_docker_file()
+ERROR: dockerFile may not be specified without containerName
+b.get_container_name()
+b.get_docker_file()
 ```
 ### dockerImport
 ```
@@ -110,15 +120,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-# When a "builder" entry does not exist in bee.conf
-# >>> Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
-# >>> Config file is missing builder section.
-# >>> Assuming deployed image root is /var/tmp/qwofford/beeflow
-# >>> Wrote deployed image root to user BeeConfig file.
-# >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
-# When a "builder entry does exist in bee.conf
-# >>> Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
-# >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
+
 task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
                  hints=None,
@@ -127,7 +129,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.dockerImport()
+a.get_docker_import()
 
 task = Task(name='hi',base_command=['hi','hello'],
                  hints={'DockerRequirement':{'dockerImport':'/usr/projects/beedev/neo4j-3-5-17-ch.tar.gz'}},
@@ -137,9 +139,9 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.dockerImport()
+a.get_docker_import()
 ```
-### dockerOutputDirectory
+### dockerOutputDirectory   Needs work
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
@@ -150,17 +152,16 @@ task = Task(name='hi',base_command=['hi','hello'],
                  stdout='output.txt',
                  inputs={},
                  outputs={})
-a = CharliecloudBuildDriver(task)
-# >>> Build cache directory is: /yellow/users/qwofford/.beeflow/build_cache
-# >>> Deployed image root directory is: /var/tmp/qwofford/beeflow
+a = CharliecloudBuildDriver(tas)
+
 # >>> Container-relative output path is: /
-# >>> a.dockerOutputDirectory()
+# >>> a.get_docker_output_directory()
 # >>> '/'
-a.dockerOutputDirectory(param_output_directory='/home/qwofford')
-# >>> '/home/qwofford'
+a.get_docker_output_directory(param_output_directory='/home/<username>')
+# >>> '/home/<username>'
 # Note: Changing the output directory by parameter changes the bc object, but it does NOT over-write the config file.
-a.dockerOutputDirectory()
-# >>> '/home/qwofford'
+a.get_docker_output_directory()
+# >>> '/home/<username>'
 ```
 ### dockerLoad
 ```
@@ -174,7 +175,7 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.dockerLoad()
+a.get_docker_load()
 # >>> Charliecloud does not have the concept of a layered image tarball.
 # >>> Did you mean to use dockerImport?
 # >>> 0
@@ -186,13 +187,13 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.dockerLoad()
+a.get_docker_load()
 # >>> Charliecloud does not have the concept of a layered image tarball.
 # >>> Did you mean to use dockerImport?
 # >>> ERROR: dockerLoad specified as requirement.
 # >>> 1
 ```
-### containerName
+### containerName need to fix for beeflow:containerName
 Note that this is an extension to the CWL spec. CWL uses "dockerImageId as a container name, but this actually referes to the image ID hash, which cannot be produced until after a Docekrfile is built. To work around this problem, we created containerName.
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
@@ -205,11 +206,11 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.containerName()
+a.get_container_name()
 # >>> 'my_containerName'
-a.containerName(param_containerName='another_containerName')
+a.get_container_name(param_containerName='another_containerName')
 # >>> 'another_containerName'
-a.containerName()
+a.get_container_name()
 # >>> 'my_containerName'
 task = Task(name='hi',base_command=['hi','hello'],
                  hints=None,
@@ -219,10 +220,13 @@ task = Task(name='hi',base_command=['hi','hello'],
                  inputs={},
                  outputs={})
 a = CharliecloudBuildDriver(task)
-a.containerName()
+a.get_container_name()
 # >>> 1
-a.containerName('another_containerName')
+a.get_container_name('another_containerName')
 # >>> 'another_containerName'
-a.containerName()
+a.get_container_name()
 # >>> 'another_containerName'
 ```
+
+### Add tests for beeflow:copyContainer and beeflow:useContainer
+
