@@ -633,9 +633,17 @@ class JobUpdate(Resource):
             if wfi.workflow_completed():
                 log.info("Workflow Completed")
 
+                workflows_dir = os.path.join(bee_workdir, 'workflows')
+                wf_id = wfi.workflow_id
+                workflow_dir = os.path.join(workflows_dir, wf_id)
+                status_path = os.path.join(workflow_dir, 'bee_wf_status')
+                with open(status_path, 'w') as status:
+                    status.write('Completed')
+                wfi.workflow_completed()
+
+
                 # Save the profile
                 wf_profiler.save()
-
                 if archive and not reexecute:
                     gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
                     wf_id = wfi.workflow_id
@@ -666,7 +674,7 @@ class JobUpdate(Resource):
                         submit_tasks_tm(tasks)
 
         elif job_state == "FAILED" or job_state == "TIMEOUT":
-            if 'task_info' in data:
+            if 'task_info' in data and data['task_info'] is not None:
                 task_info = jsonpickle.decode(data['task_info'])
                 checkpoint_file = task_info['checkpoint_file']
                 new_task = wfi.restart_task(task, checkpoint_file)
@@ -676,7 +684,6 @@ class JobUpdate(Resource):
                     #wfi.set_task_state(task, f"RESTART FAILED: {state}")
                     #wfi.set_task_state(task, job_state)
                     state = wfi.get_task_state(task)
-                    print(f'STATE: {wfi.get_task_state(task)}')
                     resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
                     return resp
                 else:                               

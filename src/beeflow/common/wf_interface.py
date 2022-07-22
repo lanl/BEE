@@ -81,12 +81,14 @@ class WorkflowInterface:
         workflow, _ = self.get_workflow()
         self._workflow_id = workflow.generate_workflow_id()
         self._gdb_interface.reset_workflow(self._workflow_id)
-        self.set_workflow_state('SUBMITTED')
+        self._gdb_interface.set_workflow_state('SUBMITTED')
+
+    def workflow_completed(self):
+        self._gdb_interface.set_workflow_state('COMPLETED')
 
     def finalize_workflow(self):
         """Deconstruct a BEE workflow."""
         self._workflow_id = None
-        self.set_workflow_state('COMPLETED')
         self._gdb_interface.cleanup()
 
     def add_task(self, name, base_command, inputs, outputs, requirements=None, hints=None,
