@@ -30,7 +30,7 @@ steps:
       hints:
         DockerRequirement:
           dockerFile: "src/beeflow/data/dockerfiles/Dockerfile.clamr-lanl-x86_64"
-          containerName: "foo2"
+          beeflow:containerName: "foo2"
     in:
       infile: infile
     out: [outfile]
