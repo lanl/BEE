@@ -11,6 +11,11 @@ from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
+# The bc object must be created before importing other parts of BEE
+# This is needed to generate Sphinx documentation
+if not bc.ready():
+    bc.init()
+
 USERCONFIG = bc.userconfig_path()
 
 bee_workdir = bc.get('DEFAULT', 'bee_workdir')
