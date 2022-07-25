@@ -90,7 +90,7 @@ The archived workflow with associated standard job outputs will be in the **bee_
 .. code-block::
 
     graphics_output - a directory containing the graphics png files.
-    total_executuion_time.log
+    total_execution_time.log
     CLAMR_movie.mp4 - The final movie
 
 The other outputs are in the archive of the workflow.
