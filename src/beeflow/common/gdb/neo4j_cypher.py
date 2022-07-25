@@ -360,7 +360,7 @@ def set_workflow_state(tx, state):
     """Get workflow state from the Neo4j database.
 
     :param state: the state the workflow will be set to
-    type state: str
+    :type state: str
     """
     state_query = "MATCH (w:Workflow) SET w.state = $state"
     
