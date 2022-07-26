@@ -190,7 +190,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # containerName is always processed before dockerFile, so safe to assume it exists
         # otherwise, raise an error.
         if self.container_name is None:
-            log.error("dockerFile may not be specified without containerName")
+            log.error("dockerFile may not be specified without beeflow:containerName")
             return 1
 
         # Need dockerfile in order to build, else fail
@@ -411,13 +411,13 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """
         try:
             # Try to get Hints
-            hint_container_name = self.task.hints['DockerRequirement']['containerName']
+            hint_container_name = self.task.hints['DockerRequirement']['beeflow:containerName']
         except (KeyError, TypeError):
             # Task Hints are not mandatory. No container_name specified in task hints.
             hint_container_name = None
         try:
             # Try to get Requirements
-            req_container_name = self.task.requirements['DockerRequirement']['containerName']
+            req_container_name = self.task.requirements['DockerRequirement']['beeflow:containerName']
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No container_name specified in task reqs.
             req_container_name = None
@@ -429,9 +429,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             task_container_name = hint_container_name
 
         if not task_container_name and self.docker_image_id is None:
-            log.error("containerName: You must specify the containerName or dockerImageId")
+            log.error("beeflow:containerName: You must specify the containerName or dockerImageId")
             return 1
         self.container_name = task_container_name
+        log.info(f'Setting container_name to: {self.container_name}')
         return 0
 
 

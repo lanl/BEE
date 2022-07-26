@@ -136,7 +136,7 @@ class BuildDriver(ABC):
                     (self.dockerImport, 'dockerImport', 4, True),
                     (self.copyContainer, 'beeflow:copyContainer', 3, True),
                     (self.dockerImageId, 'dockerImageId', 1, False),
-                    (self.containerName, 'containerName', 2, False),
+                    (self.containerName, 'beeflow:containerName', 2, False),
                     (self.dockerOutputDirectory, 'dockerOutputDirectory', 0, False)]
         exec_list = sorted(cwl_spec, key=lambda x: x[2])
         return exec_list

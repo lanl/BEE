@@ -88,13 +88,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         requirements = dict(task.requirements)
         try:
             # Try to get Hints
-            hint_container_name = hints['DockerRequirement']['containerName']
+            hint_container_name = hints['DockerRequirement']['beeflow:containerName']
         except (KeyError, TypeError):
             # Task Hints are not mandatory. No container_name specified in task hints.
             hint_container_name = None
         try:
             # Try to get Requirements
-            req_container_name = requirements['DockerRequirement']['containerName']
+            req_container_name = requirements['DockerRequirement']['beeflow:containerName']
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No container_name specified in task reqs.
             req_container_name = None
