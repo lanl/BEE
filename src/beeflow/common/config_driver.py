@@ -42,7 +42,7 @@ class BeeConfig:
     MacOS:
       sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
 
-      userconfig_file = '~/Library/Application Support/beeflow/bee.conf'
+      userconfig_file = '~/.config/beeflow/bee.conf'
 
     Windows:
       sysconfig_file = NOT SUPPORTED. Should be windows registry.
@@ -58,8 +58,7 @@ class BeeConfig:
         USERCONFIG_FILE = os.path.expanduser('~/.config/beeflow/bee.conf')
     elif _SYSTEM == 'Darwin':
         SYSCONFIG_FILE = '/Library/Application Support/beeflow/bee.conf'
-        USERCONFIG_FILE = os.path.expanduser(
-            '~/Library/Application Support/beeflow/bee.conf')
+        USERCONFIG_FILE = os.path.expanduser('~/.config/beeflow/bee.conf')
     elif _SYSTEM == 'Windows':
         SYSCONFIG_FILE = None
         USERCONFIG_FILE = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
