@@ -58,8 +58,7 @@ class BeeConfig:
         USERCONFIG_FILE = os.path.expanduser('~/.config/beeflow/bee.conf')
     elif _SYSTEM == 'Darwin':
         SYSCONFIG_FILE = '/Library/Application Support/beeflow/bee.conf'
-        USERCONFIG_FILE = os.path.expanduser(
-            '~/Library/Application Support/beeflow/bee.conf')
+        USERCONFIG_FILE = os.path.expanduser('~/.config/beeflow/bee.conf')
     elif _SYSTEM == 'Windows':
         SYSCONFIG_FILE = None
         USERCONFIG_FILE = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
@@ -97,6 +96,8 @@ class BeeConfig:
             print('Configuration file does not exist!')
         # remove default keys from the other sections
         default_keys = [key for key in config['DEFAULT']]
+        print(userconfig)
+        print(default_keys)
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
                              if sec_name == 'DEFAULT' or key not in default_keys}
                   for sec_name in config}
