@@ -2,10 +2,12 @@
 
 This workflow uses the DockerRequirement to build the clamr and ffmpeg in a container.
 
-clamr_wf.cwl - the main cwl.
-calmr_job.yml - yaml file for values used by the cwl files.
-clamr.cwl - cwl file for the clamr step.
-ffmpeg.cwl - cwl file for the ffmpeg step.
+```
+clamr_wf.cwl - the main cwl  
+calmr_job.yml - yaml file for values used by the cwl files   
+clamr.cwl - cwl file for the clamr step
+ffmpeg.cwl - cwl file for the ffmpeg step
+```
 
 
 
