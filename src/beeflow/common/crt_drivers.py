@@ -167,7 +167,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                         'Too many container runtimes specified! Pick one per workflow step.'
                     )
             if len(runtime_target_list) == 0:
-                log.warning('No containerName specified.')
+                log.warning('No beeflow:containerName specified.')
                 log.warning('Cannot be inferred from other DockerRequirements.')
             else:
                 baremetal = False
