@@ -37,7 +37,7 @@ Each step in a workflow may include a reference to `DockerRequirement` in the CW
 2. `dockerLoad:` The HTTP URL associated with the container registry in use. The container runtime requested will be specified by the `<container>://` prefix. dockerLoad must be used in combination with dockerPull, such that dockerPull defines what the required container image is named.
 3. `dockerFile:` The path to a container definition file. The builder will fail if `dockerFile` is defined along with `dockerPull` or `dockerLoad`.
 4. `dockerImport:` Provide HTTP URL to download and gunzip a Docker image using `docker import`. This should be the path to a compressed image. 
-5. `containerName:` A reference to the image id that will be invoked by the container runtime's `run` or `exec` command. Note that this differs from `dockerPull` slightly, in that `dockerPull` is the image to be acquired. It is possible to pull an image in a workflow stage, and then run an entirely different image by specifying a different `containerName`. If `containerName` is not defined, assume `dockerPull` references the container to run. If `containerName` is specified and image does not exist, error.
+5. `beeflow:containerName:` A reference to the image id that will be invoked by the container runtime's `run` or `exec` command. Note that this differs from `dockerPull` slightly, in that `dockerPull` is the image to be acquired. It is possible to pull an image in a workflow stage, and then run an entirely different image by specifying a different `containerName`. If `containerName` is not defined, assume `dockerPull` references the container to run. If `containerName` is specified and image does not exist, error.
 6. `dockerOutputDirectory:` Set the designated output directory to a specific location inside the Docker container.
 
 
@@ -88,7 +88,7 @@ from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
 task = Task(name='hi',base_command=['hi','hello'],
                  requirements={'DockerRequirement':{'dockerFile':'src/beeflow/data/dockerfiles/Dockerfile.builder_demo',
-                                                    'containerName':'my_fun_container:sillytag'}},
+                                                    'beeflow:containerName':'my_fun_container:sillytag'}},
                  hints=None,
                  workflow_id=42,
                  stdout="output.txt",
@@ -192,13 +192,14 @@ a.dockerLoad()
 # >>> ERROR: dockerLoad specified as requirement.
 # >>> 1
 ```
-### containerName
-Note that this is an extension to the CWL spec. CWL uses "dockerImageId as a container name, but this actually referes to the image ID hash, which cannot be produced until after a Docekrfile is built. To work around this problem, we created containerName.
+### beeflow:containerName
+
+Note: this is a BEE extension to the CWL spec. CWL uses "dockerImageId as a container name, but that actually refers to the image ID hash, which cannot be produced until after a Docekrfile is built. To work around this problem, we created beeflow:containerName.
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
 task = Task(name='hi',base_command=['hi','hello'],
-                 hints={'DockerRequirement':{'containerName':'my_containerName'}},
+                 hints={'DockerRequirement':{'beeflow:containerName':'my_containerName'}},
                  requirements=None,
                  workflow_id=42,
                  stdout='output.txt',
@@ -206,11 +207,9 @@ task = Task(name='hi',base_command=['hi','hello'],
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.containerName()
-# >>> 'my_containerName'
-a.containerName(param_containerName='another_containerName')
-# >>> 'another_containerName'
-a.containerName()
-# >>> 'my_containerName'
+# INFO: Setting container_name to: my_containerName
+# 0
+
 task = Task(name='hi',base_command=['hi','hello'],
                  hints=None,
                  requirements=None,
@@ -220,9 +219,6 @@ task = Task(name='hi',base_command=['hi','hello'],
                  outputs={})
 a = CharliecloudBuildDriver(task)
 a.containerName()
-# >>> 1
-a.containerName('another_containerName')
-# >>> 'another_containerName'
-a.containerName()
-# >>> 'another_containerName'
+# ERROR: ...
+# 1
 ```

@@ -429,9 +429,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             task_container_name = hint_container_name
 
         if not task_container_name and self.docker_image_id is None:
-            log.error("containerName: You must specify the beeflow:containerName or dockerImageId")
+            log.error("beeflow:containerName: You must specify the containerName or dockerImageId")
             return 1
         self.container_name = task_container_name
+        log.info(f'Setting container_name to: {self.container_name}')
         return 0
 
 
