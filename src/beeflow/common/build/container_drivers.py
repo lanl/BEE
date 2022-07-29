@@ -189,10 +189,10 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         change to expect a file handle instead of file contents, and use the file
         handle expectation here.
         """
-        # containerName is always processed before dockerFile, so safe to assume it exists
+        # beeflow:containerName is always processed before dockerFile, so safe to assume it exists
         # otherwise, raise an error.
         if self.container_name is None:
-            log.error("dockerFile may not be specified without containerName")
+            log.error("dockerFile may not be specified without beeflow:containerName")
             return 1
 
         # Need dockerfile in order to build, else fail
@@ -343,11 +343,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         but this is explicitly not how Docker defines it. We need a way to name
         containers in a human readable format.
         """
-        task_container_name = self.get_docker_req('containerName')
+        task_container_name = self.get_docker_req('beeflow:containerName')
         if not task_container_name and self.docker_image_id is None:
-            log.error("containerName: You must specify the containerName or dockerImageId")
+            log.error("beeflow:containerName: You must specify the containerName or dockerImageId")
             return 1
         self.container_name = task_container_name
+        log.info(f'Setting container_name to: {self.container_name}')
         return 0
 
 
