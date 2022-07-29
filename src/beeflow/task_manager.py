@@ -112,7 +112,7 @@ def gen_task_metadata(task, job_id):
 
 def resolve_environment(task):
     """Use build interface to create a valid environment."""
-    build_main(bc, task)
+    build_main(task)
 
 
 def submit_jobs():
