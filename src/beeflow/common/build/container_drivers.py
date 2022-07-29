@@ -88,6 +88,34 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         log.info(f'task {self.task.id} DockerRequirement execution order will be: {log_exec_list}')
         log.info('Execution order pre-empts hint/requirement status.')
 
+    def get_docker_req(self, docker_req_param):
+        """Get dockerRequirement, prioritizing requirements over hints.
+
+        :param docker_req_param: the dockerRequirement parameter (e.g. 'dockerFile')
+        :type docker_req_param: str
+
+        When requirements are specified hints will be ignored.
+        By default, tasks need not specify hints or requirements
+        """
+        task_docker_req = None
+        # Get value if specified in requirements
+        try:
+            # Try to get Requirements
+            task_docker_req = self.task.requirements['DockerRequirement']['dockerPull']
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
+            task_docker_req = None
+        # Ignore hints if requirements available
+        if not task_docker_req:
+            # Get value if specified in hints
+            try:
+                # Try to get Hints
+                task_docker_req = self.task.hints['DockerRequirement'][docker_req_param]
+            except (KeyError, TypeError):
+                # Task Hints are not mandatory. No docker_req_param specified in task hints.
+                task_docker_req = None
+        return task_docker_req
+
     def get_docker_pull(self, addr=None, force=False):
         """Get the CWL compliant dockerPull dockerRequirement.
 
@@ -95,26 +123,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         retrieve using docker pull. Can contain the immutable
         digest to ensure an exact container is used.
         """
-        # By default, tasks need not specify hints or reqs
-        task_addr = None
-        try:
-            # Try to get Hints
-            hint_addr = self.task.hints['DockerRequirement']['dockerPull']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No dockerPull image specified in task hints.
-            hint_addr = None
-        try:
-            # Try to get Requirements
-            req_addr = self.task.requirements['DockerRequirement']['dockerPull']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
-            req_addr = None
-
-        # Prefer requirements over hints
-        if req_addr:
-            task_addr = req_addr
-        elif hint_addr:
-            task_addr = hint_addr
+        task_addr = self.get_docker_req('dockerPull')
 
         # Use task specified image if image parameter empty
         if not addr:
@@ -125,7 +134,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.error("dockerPull set but no image path specified.")
             return 1
         # If no image specified and no image required, nothing to do.
-        if not req_addr and not addr:
+        if not task_addr and not addr:
             log.info('No image specified and no image required, nothing to do.')
             return 0
 
@@ -193,25 +202,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
 
         # Need dockerfile in order to build, else fail
-        try:
-            # Try to get Hints
-            hint_dockerfile = self.task.hints['DockerRequirement']['dockerFile']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No dockerfile specified in task hints.
-            hint_dockerfile = None
-        try:
-            # Try to get Requirements
-            req_dockerfile = self.task.requirements['DockerRequirement']['dockerFile']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No dockerfile specified in task reqs.
-            req_dockerfile = None
-
-        # Prefer requirements over hints
-        if req_dockerfile:
-            task_dockerfile = req_dockerfile
-        elif hint_dockerfile:
-            task_dockerfile = hint_dockerfile
-
+        task_dockerfile = self.get_docker_req('dockerFile')
         if not task_dockerfile:
             log.error("dockerFile not specified as task attribute or parameter.")
             return 1
@@ -262,25 +253,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             import_input_path = param_import
         else:
             # Get path for tarball to import
-            try:
-                # Try to get Hints
-                hint_import = self.task.hints['DockerRequirement']['dockerImport']
-            except (KeyError, TypeError):
-                # Task Hints are not mandatory. No import specified in task hints.
-                hint_import = None
-            try:
-                # Try to get Requirements
-                req_import = self.task.requirements['DockerRequirement']['dockerImport']
-            except (KeyError, TypeError):
-                # Task Requirements are not mandatory. No import specified in task reqs.
-                req_import = None
-            # Prefer requirements over hints
-            if req_import:
-                task_import = req_import
-            elif hint_import:
-                task_import = hint_import
-            # Set import
-            import_input_path = task_import
+            import_input_path = self.get_docker_req('dockerImport')
 
         # Pull the image.
         file_name = crt_driver.get_ccname(import_input_path)
@@ -294,7 +267,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         A divergence from the CWL spec. Docker image Id is defined by docker as a checksum
         on a container, not a human-readable name. The Docker image ID must be produced after
-        the container is build, and can not be used to tag the container for that reason.
+        the container is built, and can not be used to tag the container for that reason.
         The param_imageid may be used to override DockerRequirement specs.
         """
         # Parameter takes precedence
@@ -304,32 +277,14 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if self.docker_image_id:
             return 0
 
-        # Need imageid to know how dockerfile should be named, else fail
-        try:
-            # Try to get Hints
-            hint_imageid = self.task.hints['DockerRequirement']['dockerImageId']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No imageid specified in task hints.
-            hint_imageid = None
-        try:
-            # Try to get Requirements
-            req_imageid = self.task.requirements['DockerRequirement']['dockerImageId']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No imageid specified in task reqs.
-            req_imageid = None
-
-        # Prefer requirements over hints
-        task_imageid = None
-        if req_imageid:
-            task_imageid = req_imageid
-        elif hint_imageid:
-            task_imageid = hint_imageid
+        # Need ImageId to know how dockerFile should be named, else fail
+        task_image_id = self.get_docker_req('dockerImageId')
 
         # Set imageid
-        self.docker_image_id = task_imageid
+        self.docker_image_id = task_image_id
 
-        # If task and parameter still doesn't specify image_id, consider this an error.
-        if self.docker_image_id:
+        # If task and parameter still doesn't specify ImageId, consider this an error.
+        if not self.docker_image_id:
             return 0
         return 1
 
@@ -356,25 +311,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         use this to put the container into the build archive.
         """
         # Need container_path to know how dockerfile should be named, else fail
-        try:
-            # Try to get Hints
-            hint_container_path = self.task.hints['DockerRequirement']['beeflow:copyContainer']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No container_path specified in task hints.
-            hint_container_path = None
-        try:
-            # Try to get Requirements
-            req_container_path = self.task.requirements['DockerRequirement']['beeflow:copyContainer']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No container_path specified in task reqs.
-            req_container_path = None
-
-        # Prefer requirements over hints
-        if req_container_path:
-            task_container_path = req_container_path
-        elif hint_container_path:
-            task_container_path = hint_container_path
-
+        task_container_path = self.get_docker_req('beeflow:copyContainer')
         if not task_container_path:
             log.error("beeflow:copyContainer: You must specify the path to an existing container.")
             return 1
@@ -412,25 +349,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         but this is explicitly not how Docker defines it. We need a way to name
         containers in a human readable format.
         """
-        try:
-            # Try to get Hints
-            hint_container_name = self.task.hints['DockerRequirement']['containerName']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No container_name specified in task hints.
-            hint_container_name = None
-        try:
-            # Try to get Requirements
-            req_container_name = self.task.requirements['DockerRequirement']['containerName']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No container_name specified in task reqs.
-            req_container_name = None
-
-        # Prefer requirements over hints
-        if req_container_name:
-            task_container_name = req_container_name
-        elif hint_container_name:
-            task_container_name = hint_container_name
-
+        task_container_name = self.get_docker_req('containerName')
         if not task_container_name and self.docker_image_id is None:
             log.error("containerName: You must specify the containerName or dockerImageId")
             return 1
