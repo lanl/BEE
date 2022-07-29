@@ -3,14 +3,12 @@
 Builds command for submitting batch job.
 """
 
-import os
-import string
 import subprocess
 import json
 import urllib
+import getpass
 import requests_unixsocket
 import requests
-import getpass
 
 from beeflow.common.worker.worker import Worker
 from beeflow.cli import log
@@ -38,7 +36,7 @@ class SlurmWorker(Worker):
         """Build task script; returns filename of script."""
         task_text = self.build_text(task)
         task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
-        script_f = open(task_script, 'w')
+        script_f = open(task_script, 'w', encoding='UTF-8')
         script_f.write(task_text)
         script_f.close()
         return task_script

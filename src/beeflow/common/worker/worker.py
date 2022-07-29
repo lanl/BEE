@@ -23,7 +23,7 @@ class Worker(ABC):
     """Worker interface for a generic workload manager."""
 
     def __init__(self, bee_workdir, **kwargs):
-        # Load appropriate container runtime driver, based on configs in kwargs
+        """Load appropriate container runtime driver, based on configs in kwargs."""
         try:
             self.tm_crt = kwargs['container_runtime']
             if self.tm_crt == 'Charliecloud':
@@ -44,22 +44,22 @@ class Worker(ABC):
         if self.job_template:
             # Make sure that the file exists and is readable
             try:
-                with open(self.job_template, 'r') as template_file:
+                with open(self.job_template, 'r', encoding='UTF-8') as template_file:
                     template_file.read()
                 log.info(f'Jobs will use template: {self.job_template}')
             except ValueError as error:
-                raise RuntimeError(f'Cannot open job template {self.job_template}, {error}')
-            except FileNotFoundError:
-                raise RuntimeError(f'Cannot find job template {self.job_template}')
-            except PermissionError:
-                raise RuntimeError(f'Permission error job template {self.job_template}')
+                raise RuntimeError(f'Cannot open {self.job_template}, {error}') from error
+            except FileNotFoundError as exc:
+                raise RuntimeError(f'Cannot find job template {self.job_template}') from exc
+            except PermissionError as error:
+                raise RuntimeError(f'Permission error {self.job_template}') from error
         else:
             raise RuntimeError('No job_template found for the worker class')
 
     @property
     def template(self):
         """Load the template file."""
-        with open(self.job_template) as fp:
+        with open(self.job_template, encoding='UTF-8') as fp:
             return jinja2.Template(fp.read())
 
     def task_save_path(self, task):

@@ -51,6 +51,5 @@ class WorkerInterface:
         :rtype tuple (int, string)
         """
         return self._worker.query_task(job_id)
-# Ignore module imported but unused error.
-# No way to know which workload scheduler will be needed
+# Ignore W0611 module imported but unused error; unsure which workload scheduler will be needed
 # pylama:ignore=W0611
