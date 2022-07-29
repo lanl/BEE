@@ -101,7 +101,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Get value if specified in requirements
         try:
             # Try to get Requirements
-            task_docker_req = self.task.requirements['DockerRequirement']['dockerPull']
+            task_docker_req = self.task.requirements['DockerRequirement'][docker_req_param]
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
             task_docker_req = None
