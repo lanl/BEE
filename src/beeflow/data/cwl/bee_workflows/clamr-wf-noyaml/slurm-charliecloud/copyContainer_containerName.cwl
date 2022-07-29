@@ -30,7 +30,7 @@ steps:
       hints:
         DockerRequirement:
           beeflow:copyContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
-          containerName: "foo"
+          beeflow:containerName: "foo"
     in:
       infile: infile
     out: [outfile]

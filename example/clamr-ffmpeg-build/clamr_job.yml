@@ -1,0 +1,18 @@
+# Inputs for CLAMR
+# /CLAMR/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png
+
+grid_resolution: 32
+max_levels: 3
+time_steps: 5000
+steps_between_outputs: 10
+steps_between_graphics: 25
+graphics_type: png
+
+# Inputs for FFMPEG
+#ffmpeg -f image2 -r 12 -s 800x800 -pix_fmt yuv420p $HOME/CLAMR_movie.mp4
+
+input_format: image2
+frame_rate: 12
+frame_size: 800x800
+pixel_format: yuv420p
+output_filename: CLAMR_movie.mp4
