@@ -105,9 +105,10 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         elif hint_container_name:
             task_container_name = hint_container_name
 
-        baremetal = True
+        baremetal = False 
         use_container = None
         if task_container_name is None:
+            baremetal = True
             log.info('No container name provided.')
             log.info('Assuming another DockerRequirement is runtime target.')
             runtime_target_list = []
@@ -188,6 +189,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                                           main_command=[str(arg) for arg in task.command],
                                           post_commands=[])
 
+        if task_container_name:
+            container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
+
         # If use_container is specified, then no copying is done and the file
         # path is used directly
         if use_container is not None:
@@ -196,6 +200,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             task_container_name = os.path.splitext(tmp)[0]
         else:
             container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
+
         log.info(f'Expecting container at {container_path}. Ready to deploy and run.')
 
         chrun_opts, cc_setup = self.get_cc_options()
