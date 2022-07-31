@@ -343,7 +343,6 @@ if __name__ == '__main__':
     # Flask logging
     flask_app.logger.addHandler(handler)
     flask_app.run(debug=False, port=str(tm_listen_port))
-# Ignore TODO comments
 # Ignoring CO413 beeflow modules must be loaded after bc.init()
 # Ignoring W0703: Catching general exception is ok for failed submit and cancel.
 # pylama:ignore=C0413,W0703
