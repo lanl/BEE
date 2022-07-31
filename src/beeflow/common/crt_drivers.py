@@ -4,8 +4,6 @@ Builds text for job to run task in a Container
 """
 from abc import ABC, abstractmethod
 import os
-from configparser import NoOptionError
-import sys
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
@@ -73,6 +71,37 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         cc_setup = bc.get('charliecloud', 'setup')
         return(chrun_opts, cc_setup)
 
+    def get_docker_req(self, docker_req_param, task):
+        """Get dockerRequirement, prioritizing requirements over hints.
+
+        :param docker_req_param: the dockerRequirement parameter (e.g. 'dockerFile')
+        :type docker_req_param: str
+
+        When requirements are specified hints will be ignored.
+        By default, tasks need not specify hints or requirements
+        """
+        # The container runtime treats hints and requirements as dicts
+        hints = dict(task.hints)
+        requirements = dict(task.requirements)
+        task_docker_req = None
+        # Get value if specified in requirements
+        try:
+            # Try to get Requirements
+            task_docker_req = requirements['DockerRequirement'][docker_req_param]
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
+            task_docker_req = None
+        # Ignore hints if requirements available
+        if not task_docker_req:
+            # Get value if specified in hints
+            try:
+                # Try to get Hints
+                task_docker_req = hints['DockerRequirement'][docker_req_param]
+            except (KeyError, TypeError):
+                # Task Hints are not mandatory. No docker_req_param specified in task hints.
+                task_docker_req = None
+        return task_docker_req
+
     def run_text(self, task):
         """Build text for Charliecloud batch script."""
         # Read container archive path from config.
@@ -82,82 +111,26 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         log.info(f'Build container archive directory is: {self.container_archive}')
         log.info("Wrote deployed image root to user BeeConfig file.")
 
+        use_container = None
         task_container_name = None
         # The container runtime treats hints and requirements as dicts
-        hints = dict(task.hints)
-        requirements = dict(task.requirements)
-        try:
-            # Try to get Hints
-            hint_container_name = hints['DockerRequirement']['beeflow:containerName']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No container_name specified in task hints.
-            hint_container_name = None
-        try:
-            # Try to get Requirements
-            req_container_name = requirements['DockerRequirement']['beeflow:containerName']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No container_name specified in task reqs.
-            req_container_name = None
+        task_container_name = self.get_docker_req('beeflow:containerName', task)
 
-        # Prefer requirements over hints
-        if req_container_name:
-            task_container_name = req_container_name
-        elif hint_container_name:
-            task_container_name = hint_container_name
-
-        baremetal = False 
-        use_container = None
+        baremetal = False
         if task_container_name is None:
             baremetal = True
             log.info('No container name provided.')
             log.info('Assuming another DockerRequirement is runtime target.')
             runtime_target_list = []
             # Harvest beeflow:copyContainer if it exists.
-            task_container_path = None
-            try:
-                # Try to get Hints
-                hint_container_path = hints['DockerRequirement']['beeflow:copyContainer']
-            except (KeyError, TypeError):
-                # Task Hints are not mandatory. No container_path specified in task hints.
-                hint_container_path = None
-            try:
-                # Try to get Requirements
-                req_container_path = requirements['DockerRequirement']['beeflow:copyContainer']
-            except (KeyError, TypeError):
-                # Task Requirements are not mandatory. No container_path specified in task reqs.
-                req_container_path = None
-
-            # Prefer requirements over hints
-            if req_container_path:
-                task_container_path = req_container_path
-            elif hint_container_path:
-                task_container_path = hint_container_path
-            # If comes from copyContainer, harvest name from tarball.
+            task_container_path = self.get_docker_req('beeflow:copyContainer', task)
             if task_container_path:
                 task_container_path = os.path.basename(task_container_path).split('.')[0]
                 runtime_target_list.append(task_container_path)
                 log.info('Found copyContainer tarball, assuming this contains the container name.')
 
             # Harvest dockerPull if it exists
-            task_addr = None
-            try:
-                # Try to get Hints
-                hint_addr = hints['DockerRequirement']['dockerPull']
-            except (KeyError, TypeError):
-                # Task Hints are not mandatory. No dockerPull image specified in task hints.
-                hint_addr = None
-            try:
-                # Try to get Requirements
-                req_addr = requirements['DockerRequirement']['dockerPull']
-            except (KeyError, TypeError):
-                # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
-                req_addr = None
-
-            # Prefer requirements over hints
-            if req_addr:
-                task_addr = req_addr
-            elif hint_addr:
-                task_addr = hint_addr
+            task_addr = self.get_docker_req('dockerPull', task)
 
             if task_addr:
                 task_container_path = task_addr.replace('/', '%')
@@ -177,12 +150,10 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 log.info(f'Moving with expectation: {task_container_name} is the container target')
 
             # Check for `beeflow:useContainer` (only in hints for now)
-            try:
-                use_container = hints['DockerRequirement']['beeflow:useContainer']
+            use_container = self.get_docker_req('beeflow:useContainer', task)
+            if use_container:
                 log.info(f'Found beeflow:useContainer option. Using container {use_container}')
                 baremetal = False
-            except (KeyError, TypeError):
-                pass
 
         if baremetal:
             return ContainerRuntimeResult(env_code='', pre_commands=[],
@@ -194,10 +165,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         # If use_container is specified, then no copying is done and the file
         # path is used directly
-        if use_container is not None:
+        if use_container:
+            task_container_name = self.get_ccname(use_container)
             container_path = os.path.expanduser(use_container)
-            tmp = os.path.basename(container_path)
-            task_container_name = os.path.splitext(tmp)[0]
         else:
             container_path = '/'.join([container_archive, task_container_name]) + '.tar.gz'
 
@@ -206,6 +176,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         chrun_opts, cc_setup = self.get_cc_options()
         deployed_image_root = bc.get('builder', 'deployed_image_root')
 
+        hints = dict(task.hints)
         mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
         command = ' '.join(task.command)
         env_code = cc_setup if cc_setup else ''
