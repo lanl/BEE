@@ -20,8 +20,10 @@ DEFAULT_BOLT_PORT = "7687"
 DEFAULT_USER = "neo4j"
 DEFAULT_PASSWORD = "password"
 
+
 class Neo4JNotRunning(Exception):
-    pass
+    """Exception thrown when connection attempted while Neo4j is not running."""
+
 
 class Neo4jDriver(GraphDatabaseDriver):
     """The driver for a Neo4j Database.
@@ -48,8 +50,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         try:
             # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
-        except ServiceUnavailable:
-            raise Neo4JNotRunning("Neo4j database is unavailable")
+        except ServiceUnavailable as sue:
+            raise Neo4JNotRunning("Neo4j database is unavailable") from sue
 
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow stored in Neo4j.
@@ -131,7 +133,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def restart_task(self, old_task, new_task):
         """Restart a failed task.
-        
+
         Create a Task node for new_task with 'RESTARTED_FROM' relationship to the
         Task node of old_task.
 
@@ -152,7 +154,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def finalize_task(self, task):
         """Set task state to 'COMPLETED' and set inputs from source.
-        
+
         :param task: the task to finalize
         :type task: Task
         """
@@ -183,16 +185,14 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def get_workflow_state(self):
         """Return the current workflow state from the Neo4j database.
-        
+
         :rtype: str
         """
-        with self._driver.session() as session:
-           state = self._read_transaction(tx.get_workflow_state) 
-        return state
+        return self._read_transaction(tx.get_workflow_state)
 
     def set_workflow_state(self, state):
-        """Set the state of the workflow. 
-         
+        """Set the state of the workflow in the Neo4j database.
+
         :param state: the new state of the workflow
         :type state: str
         """
@@ -576,3 +576,5 @@ def _reconstruct_metadata(metadata_record):
     """
     rec = metadata_record["m"]
     return {key: val for key, val in rec.items() if key != "state"}
+
+# pylama:ignore=E1129

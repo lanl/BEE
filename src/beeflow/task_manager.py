@@ -28,11 +28,11 @@ if len(sys.argv) >= 2:
 else:
     bc.init()
 
-
 from beeflow.cli import log
 from beeflow.common.build_interfaces import build_main
 import beeflow.common.log as bee_logging
-
+from beeflow.common.worker_interface import WorkerInterface
+import beeflow.common.worker as worker_pkg
 
 sys.excepthook = bee_logging.catch_exception
 
@@ -112,7 +112,7 @@ def gen_task_metadata(task, job_id):
 
 def resolve_environment(task):
     """Use build interface to create a valid environment."""
-    build_main(bc, task)
+    build_main(task)
 
 
 def submit_jobs():
@@ -245,7 +245,6 @@ def process_queues():
 
 
 if "pytest" not in sys.modules:
-    # TODO Decide on the time interval for the scheduler
     scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
     scheduler.add_job(func=process_queues, trigger="interval", seconds=8)
     scheduler.start()
@@ -304,13 +303,8 @@ class TaskActions(Resource):
 @flask_app.route('/status')
 def get_status():
     """Report the current status of the Task Manager."""
-    # TODO: Report statistics about jobs, perhaps current system load, etc.
     return make_response(jsonify(status='up'), 200)
 
-
-# WorkerInterface needs to be placed here. Don't Move!
-from beeflow.common.worker_interface import WorkerInterface
-import beeflow.common.worker as worker_pkg
 
 WLS = bc.get('DEFAULT', 'workload_scheduler')
 worker_class = worker_pkg.find_worker(WLS)
@@ -325,7 +319,6 @@ worker_kwargs = {
     # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
     'runner_opts': bc.get('task_manager', 'runner_opts'),
 }
-# TODO: Maybe this should be put into a sub class
 if WLS == 'Slurm':
     worker_kwargs['slurm_socket'] = bc.get('slurmrestd', 'slurm_socket')
 worker = WorkerInterface(worker_class, **worker_kwargs)
@@ -350,10 +343,6 @@ if __name__ == '__main__':
     # Flask logging
     flask_app.logger.addHandler(handler)
     flask_app.run(debug=False, port=str(tm_listen_port))
-# Ignore TODO comments
-# Ignoring "modules loaded below top of file" warning per Pat's comment
-# Ignoring flask.logger.AddHandler not found because logging is working...
-# Ignoring W1202: https://github.com/PyCQA/pylint/issues/2395
-# Ignoring W0703: Catching general exception is ok in our case.
-# Ignoring C0206: Iterating with .items() is not important for readability or functionality
-# pylama:ignore=W0511,E402,C0413,E1101,W1202,W0703,C0206
+# Ignoring CO413 beeflow modules must be loaded after bc.init()
+# Ignoring W0703: Catching general exception is ok for failed submit and cancel.
+# pylama:ignore=C0413,W0703

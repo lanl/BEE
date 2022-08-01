@@ -6,7 +6,6 @@ All container-based build systems belong here.
 import os
 import shutil
 import subprocess
-import sys
 from beeflow.common.config_driver import BeeConfig as bc
 # from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
@@ -30,7 +29,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
     requests a RTE, and a method to return the requested RTE.
     """
 
-    def __init__(self, task, userconf_file=None):
+    def __init__(self, task):
         """Begin build request.
 
         Parse hints and requirements to determine target build
@@ -67,55 +66,64 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         self.task = task
         self.docker_image_id = None
         self.container_name = None
-        dockerRequirements = set()
+        docker_requirements = set()
         try:
-            requirement_DockerRequirements = self.task.requirements['DockerRequirement'].keys()
-            dockerRequirements = dockerRequirements.union(requirement_DockerRequirements)
-            req_string = (f'{set(requirement_DockerRequirements)}')
+            requirement_docker_requirements = self.task.requirements['DockerRequirement'].keys()
+            docker_requirements = docker_requirements.union(requirement_docker_requirements)
+            req_string = (f'{set(requirement_docker_requirements)}')
             log.info(f'task {self.task.id} requirement DockerRequirements: {req_string}')
         except (TypeError, KeyError):
             log.info(f'task {self.task.name} {self.task.id} no DockerRequirements in requirement')
         try:
-            hint_DockerRequirements = self.task.hints['DockerRequirement'].keys()
-            dockerRequirements = dockerRequirements.union(hint_DockerRequirements)
-            hint_str = (f'{set(hint_DockerRequirements)}')
+            hint_docker_requirements = self.task.hints['DockerRequirement'].keys()
+            docker_requirements = docker_requirements.union(hint_docker_requirements)
+            hint_str = (f'{set(hint_docker_requirements)}')
             log.info(f'task {self.task.name} {self.task.id} hint DockerRequirements: {hint_str}')
         except (TypeError, KeyError):
             log.info(f'task {self.task.name} {self.task.id} hints has no DockerRequirements')
-        log.info(f'task {self.task.id} union DockerRequirements : {dockerRequirements}')
+        log.info(f'task {self.task.id} union DockerRequirements : {docker_requirements}')
         exec_superset = self.resolve_priority()
-        self.exec_list = [i for i in exec_superset if i[1] in dockerRequirements]
+        self.exec_list = [i for i in exec_superset if i[1] in docker_requirements]
         log_exec_list = [i[1] for i in self.exec_list]
         log.info(f'task {self.task.id} DockerRequirement execution order will be: {log_exec_list}')
         log.info('Execution order pre-empts hint/requirement status.')
 
-    def dockerPull(self, addr=None, force=False):
-        """CWL compliant dockerPull.
+    def get_docker_req(self, docker_req_param):
+        """Get dockerRequirement, prioritizing requirements over hints.
+
+        :param docker_req_param: the dockerRequirement parameter (e.g. 'dockerFile')
+        :type docker_req_param: str
+
+        When requirements are specified hints will be ignored.
+        By default, tasks need not specify hints or requirements
+        """
+        task_docker_req = None
+        # Get value if specified in requirements
+        try:
+            # Try to get Requirements
+            task_docker_req = self.task.requirements['DockerRequirement'][docker_req_param]
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
+            task_docker_req = None
+        # Ignore hints if requirements available
+        if not task_docker_req:
+            # Get value if specified in hints
+            try:
+                # Try to get Hints
+                task_docker_req = self.task.hints['DockerRequirement'][docker_req_param]
+            except (KeyError, TypeError):
+                # Task Hints are not mandatory. No docker_req_param specified in task hints.
+                task_docker_req = None
+        return task_docker_req
+
+    def process_docker_pull(self, addr=None, force=False):
+        """Get the CWL compliant dockerPull dockerRequirement.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
         digest to ensure an exact container is used.
         """
-        # By default, tasks need not specify hints or reqs
-        task_addr = None
-        try:
-            # Try to get Hints
-            hint_addr = self.task.hints['DockerRequirement']['dockerPull']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No dockerPull image specified in task hints.
-            hint_addr = None
-        try:
-            # Try to get Requirements
-            req_addr = self.task.requirements['DockerRequirement']['dockerPull']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No dockerPull image specified in task reqs.
-            req_addr = None
-
-        # Prefer requirements over hints
-        if req_addr:
-            task_addr = req_addr
-        elif hint_addr:
-            task_addr = hint_addr
+        task_addr = self.get_docker_req('dockerPull')
 
         # Use task specified image if image parameter empty
         if not addr:
@@ -126,7 +134,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             log.error("dockerPull set but no image path specified.")
             return 1
         # If no image specified and no image required, nothing to do.
-        if not req_addr and not addr:
+        if not task_addr and not addr:
             log.info('No image specified and no image required, nothing to do.')
             return 0
 
@@ -158,20 +166,14 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def dockerLoad(self):
-        """CWL compliant dockerLoad.
+    def process_docker_load(self):
+        """Get and process the CWL compliant dockerLoad dockerRequirment.
 
         CWL spec 09-23-2020: Specify a HTTP URL from which to
         download a Docker image using docker load.
         """
-        # Need to know if dockerLoad is a requirement in order to determine fail/success
-        try:
-            # Try to get Requirements
-            req_dockerload = self.task.requirements['DockerRequirement']['dockerLoad']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No dockerload specified in task reqs.
-            req_dockerload = None
-
+        # Need to know if dockerLoad is specified in order to determine fail/success
+        req_dockerload = self.get_docker_req('dockerLoad')
         log.warning('Charliecloud does not have the concept of a layered image tarball.')
         log.warning('Did you mean to use dockerImport?')
         if req_dockerload:
@@ -179,40 +181,22 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
         return 0
 
-    def dockerFile(self, task_dockerfile=None, force=False):
-        """CWL compliant dockerFile.
+    def process_docker_file(self, task_dockerfile=None, force=False):
+        """Get and process the CWL compliant dockerFile dockerRequirement.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build. We have discussed implementing CWL
         change to expect a file handle instead of file contents, and use the file
         handle expectation here.
         """
-        # containerName is always processed before dockerFile, so safe to assume it exists
+        # beeflow:containerName is always processed before dockerFile, so safe to assume it exists
         # otherwise, raise an error.
         if self.container_name is None:
             log.error("dockerFile may not be specified without beeflow:containerName")
             return 1
 
         # Need dockerfile in order to build, else fail
-        try:
-            # Try to get Hints
-            hint_dockerfile = self.task.hints['DockerRequirement']['dockerFile']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No dockerfile specified in task hints.
-            hint_dockerfile = None
-        try:
-            # Try to get Requirements
-            req_dockerfile = self.task.requirements['DockerRequirement']['dockerFile']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No dockerfile specified in task reqs.
-            req_dockerfile = None
-
-        # Prefer requirements over hints
-        if req_dockerfile:
-            task_dockerfile = req_dockerfile
-        elif hint_dockerfile:
-            task_dockerfile = hint_dockerfile
-
+        task_dockerfile = self.get_docker_req('dockerFile')
         if not task_dockerfile:
             log.error("dockerFile not specified as task attribute or parameter.")
             return 1
@@ -251,8 +235,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def dockerImport(self, param_import=None):
-        """CWL compliant dockerImport.
+    def process_docker_import(self, param_import=None):
+        """Get and process the CWL compliant dockerImport dockerRequirement.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
         gunzip a Docker images using docker import. The param_import
@@ -263,25 +247,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             import_input_path = param_import
         else:
             # Get path for tarball to import
-            try:
-                # Try to get Hints
-                hint_import = self.task.hints['DockerRequirement']['dockerImport']
-            except (KeyError, TypeError):
-                # Task Hints are not mandatory. No import specified in task hints.
-                hint_import = None
-            try:
-                # Try to get Requirements
-                req_import = self.task.requirements['DockerRequirement']['dockerImport']
-            except (KeyError, TypeError):
-                # Task Requirements are not mandatory. No import specified in task reqs.
-                req_import = None
-            # Prefer requirements over hints
-            if req_import:
-                task_import = req_import
-            elif hint_import:
-                task_import = hint_import
-            # Set import
-            import_input_path = task_import
+            import_input_path = self.get_docker_req('dockerImport')
 
         # Pull the image.
         file_name = crt_driver.get_ccname(import_input_path)
@@ -290,12 +256,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def dockerImageId(self, param_imageid=None):
-        """CWL compliant dockerImageId.
+    def process_docker_image_id(self, param_imageid=None):
+        """Get and process the CWL compliant dockerImageId dockerRequirement.
 
         A divergence from the CWL spec. Docker image Id is defined by docker as a checksum
         on a container, not a human-readable name. The Docker image ID must be produced after
-        the container is build, and can not be used to tag the container for that reason.
+        the container is built, and can not be used to tag the container for that reason.
         The param_imageid may be used to override DockerRequirement specs.
         """
         # Parameter takes precedence
@@ -305,37 +271,19 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if self.docker_image_id:
             return 0
 
-        # Need imageid to know how dockerfile should be named, else fail
-        try:
-            # Try to get Hints
-            hint_imageid = self.task.hints['DockerRequirement']['dockerImageId']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No imageid specified in task hints.
-            hint_imageid = None
-        try:
-            # Try to get Requirements
-            req_imageid = self.task.requirements['DockerRequirement']['dockerImageId']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No imageid specified in task reqs.
-            req_imageid = None
-
-        # Prefer requirements over hints
-        task_imageid = None
-        if req_imageid:
-            task_imageid = req_imageid
-        elif hint_imageid:
-            task_imageid = hint_imageid
+        # Need ImageId to know how dockerFile should be named, else fail
+        task_image_id = self.get_docker_req('dockerImageId')
 
         # Set imageid
-        self.docker_image_id = task_imageid
+        self.docker_image_id = task_image_id
 
-        # If task and parameter still doesn't specify image_id, consider this an error.
-        if self.docker_image_id:
+        # If task and parameter still doesn't specify ImageId, consider this an error.
+        if not self.docker_image_id:
             return 0
         return 1
 
-    def dockerOutputDirectory(self, param_output_directory=None):
-        """CWL compliant dockerOutputDirectory.
+    def process_docker_output_directory(self, param_output_directory=None):
+        """Get and process the CWL compliant dockerOutputDirectory dockerRequirement.
 
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container. The
@@ -347,33 +295,17 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             self.container_output_path = param_output_directory
         return 0
 
-    def copyContainer(self, force=False):
-        """CWL extension, copy an existing container into the build archive.
+    def process_copy_container(self, force=False):
+        """Get and process the BEE CWL extension copyContainer dockerRequirement.
+
+        This CWL extension will copy an existing container to the build archive.
 
         If you have a container tarball, and all you need to do is stage it,
         that is, all you need to do is copy it to a location that BEE knows,
         use this to put the container into the build archive.
         """
         # Need container_path to know how dockerfile should be named, else fail
-        try:
-            # Try to get Hints
-            hint_container_path = self.task.hints['DockerRequirement']['beeflow:copyContainer']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No container_path specified in task hints.
-            hint_container_path = None
-        try:
-            # Try to get Requirements
-            req_container_path = self.task.requirements['DockerRequirement']['beeflow:copyContainer']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No container_path specified in task reqs.
-            req_container_path = None
-
-        # Prefer requirements over hints
-        if req_container_path:
-            task_container_path = req_container_path
-        elif hint_container_path:
-            task_container_path = hint_container_path
-
+        task_container_path = self.get_docker_req('beeflow:copyContainer')
         if not task_container_path:
             log.error("beeflow:copyContainer: You must specify the path to an existing container.")
             return 1
@@ -402,32 +334,16 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               check=True, shell=True)
 
-    def containerName(self):
-        """CWL extension, need a way to refer to containers human-readable name.
+    def process_container_name(self):
+        """Get and process BEE CWL extension for containerName dockerRequirement.
+
+        This is a BEE extension to CWL to refer to containers with human-readable name.
 
         The CWL spec currently uses dockerImageId to refer to the name of a container
         but this is explicitly not how Docker defines it. We need a way to name
         containers in a human readable format.
         """
-        try:
-            # Try to get Hints
-            hint_container_name = self.task.hints['DockerRequirement']['beeflow:containerName']
-        except (KeyError, TypeError):
-            # Task Hints are not mandatory. No container_name specified in task hints.
-            hint_container_name = None
-        try:
-            # Try to get Requirements
-            req_container_name = self.task.requirements['DockerRequirement']['beeflow:containerName']
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No container_name specified in task reqs.
-            req_container_name = None
-
-        # Prefer requirements over hints
-        if req_container_name:
-            task_container_name = req_container_name
-        elif hint_container_name:
-            task_container_name = hint_container_name
-
+        task_container_name = self.get_docker_req('beeflow:containerName')
         if not task_container_name and self.docker_image_id is None:
             log.error("beeflow:containerName: You must specify the containerName or dockerImageId")
             return 1
@@ -457,38 +373,38 @@ class SingularityBuildDriver(ContainerBuildDriver):
         :type kwargs: set of build system parameters
         """
 
-    def dockerPull(self, addr=None, force=False):
-        """CWL compliant dockerPull.
+    def process_docker_pull(self, addr=None, force=False):
+        """Get and process the CWL compliant dockerPull dockerRequirement.
 
         CWL spec 09-23-2020: Specify a Docker image to
         retrieve using docker pull. Can contain the immutable
         digest to ensure an exact container is used.
         """
 
-    def dockerLoad(self):
-        """CWL compliant dockerLoad.
+    def process_docker_load(self):
+        """Get and process the CWL compliant dockerLoad dockerRequirement.
 
         CWL spec 09-23-2020: Specify a HTTP URL from which to
         download a Docker image using docker load.
         """
 
-    def dockerFile(self, task_dockerfile=None, force=False):
-        """CWL compliant dockerFile.
+    def process_docker_file(self, task_dockerfile=None, force=False):
+        """Get and process the CWL compliant dockerFile dockerRequirement.
 
         CWL spec 09-23-2020: Supply the contents of a Dockerfile
         which will be built using docker build.
         """
 
-    def dockerImport(self, param_import=None):
-        """CWL compliant dockerImport.
+    def process_docker_import(self, param_import=None):
+        """Get and process the CWL compliant dockerImport dockerRequirement.
 
         CWL spec 09-23-2020: Provide HTTP URL to download and
         gunzip a Docker images using docker import. The param_import
         may be used to override DockerRequirement specs.
         """
 
-    def dockerImageId(self, param_imageid=None):
-        """CWL compliant dockerImageId.
+    def process_docker_image_id(self, param_imageid=None):
+        """Get and process the CWL compliant dockerImageId dockerRequirement.
 
         CWL spec 09-23-2020: The image id that will be used for
         docker run. May be a human-readable image name or the
@@ -498,17 +414,13 @@ class SingularityBuildDriver(ContainerBuildDriver):
         specs.
         """
 
-    def dockerOutputDirectory(self, param_output_directory=None):
-        """CWL compliant dockerOutputDirectory.
+    def process_docker_output_directory(self, param_output_directory=None):
+        """Get and process the CWL compliant dockerOutputDirectory.
 
         CWL spec 09-23-2020: Set the designated output directory
         to a specific location inside the Docker container. The
         param_output_directory may be used to override DockerRequirement
         specs.
         """
-# Ignore snake_case requirement to enable CWL compliant names. (C0103)
-# Ignore "too many statements". Some of these methods are long, and that's ok (R0915)
 # Ignore W0231: linter doesn't know about abstract classes, it's ok to now call the parent __init__
-# Ignore W1202: Using fstrings does not cause us any issues in logging currently, improves
-#               readibility as is
-# pylama:ignore=C0103,R0915,W0231,W1202
+# pylama:ignore=W0231
