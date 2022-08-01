@@ -88,34 +88,6 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         log.info(f'task {self.task.id} DockerRequirement execution order will be: {log_exec_list}')
         log.info('Execution order pre-empts hint/requirement status.')
 
-    def get_docker_req(self, docker_req_param):
-        """Get dockerRequirement, prioritizing requirements over hints.
-
-        :param docker_req_param: the dockerRequirement parameter (e.g. 'dockerFile')
-        :type docker_req_param: str
-
-        When requirements are specified hints will be ignored.
-        By default, tasks need not specify hints or requirements
-        """
-        task_docker_req = None
-        # Get value if specified in requirements
-        try:
-            # Try to get Requirements
-            task_docker_req = self.task.requirements['DockerRequirement'][docker_req_param]
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
-            task_docker_req = None
-        # Ignore hints if requirements available
-        if not task_docker_req:
-            # Get value if specified in hints
-            try:
-                # Try to get Hints
-                task_docker_req = self.task.hints['DockerRequirement'][docker_req_param]
-            except (KeyError, TypeError):
-                # Task Hints are not mandatory. No docker_req_param specified in task hints.
-                task_docker_req = None
-        return task_docker_req
-
     def process_docker_pull(self, addr=None, force=False):
         """Get the CWL compliant dockerPull dockerRequirement.
 
