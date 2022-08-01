@@ -121,7 +121,7 @@ class BuildDriver(ABC):
         containers in a human readable format.
         """
 
-    def get_docker_req(self, docker_req_param):
+    def get_docker_req(self, docker_req_param, task):
         """Get dockerRequirement, prioritizing requirements over hints.
 
         :param docker_req_param: the dockerRequirement parameter (e.g. 'dockerFile')
@@ -134,7 +134,7 @@ class BuildDriver(ABC):
         # Get value if specified in requirements
         try:
             # Try to get Requirements
-            task_docker_req = self.task.requirements['DockerRequirement'][docker_req_param]
+            task_docker_req = task.requirements['DockerRequirement'][docker_req_param]
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
             task_docker_req = None
@@ -143,7 +143,7 @@ class BuildDriver(ABC):
             # Get value if specified in hints
             try:
                 # Try to get Hints
-                task_docker_req = self.task.hints['DockerRequirement'][docker_req_param]
+                task_docker_req = task.hints['DockerRequirement'][docker_req_param]
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No docker_req_param specified in task hints.
                 task_docker_req = None

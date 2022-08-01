@@ -95,7 +95,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         retrieve using docker pull. Can contain the immutable
         digest to ensure an exact container is used.
         """
-        task_addr = self.get_docker_req('dockerPull')
+        task_addr = self.get_docker_req('dockerPull', self.task)
 
         # Use task specified image if image parameter empty
         if not addr:
@@ -145,7 +145,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         download a Docker image using docker load.
         """
         # Need to know if dockerLoad is specified in order to determine fail/success
-        req_dockerload = self.get_docker_req('dockerLoad')
+        req_dockerload = self.get_docker_req('dockerLoad', self.task)
         log.warning('Charliecloud does not have the concept of a layered image tarball.')
         log.warning('Did you mean to use dockerImport?')
         if req_dockerload:
@@ -168,7 +168,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 1
 
         # Need dockerfile in order to build, else fail
-        task_dockerfile = self.get_docker_req('dockerFile')
+        task_dockerfile = self.get_docker_req('dockerFile', self.task)
         if not task_dockerfile:
             log.error("dockerFile not specified as task attribute or parameter.")
             return 1
@@ -219,7 +219,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             import_input_path = param_import
         else:
             # Get path for tarball to import
-            import_input_path = self.get_docker_req('dockerImport')
+            import_input_path = self.get_docker_req('dockerImport', self.task)
 
         # Pull the image.
         file_name = crt_driver.get_ccname(import_input_path)
@@ -244,7 +244,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             return 0
 
         # Need ImageId to know how dockerFile should be named, else fail
-        task_image_id = self.get_docker_req('dockerImageId')
+        task_image_id = self.get_docker_req('dockerImageId', self.task)
 
         # Set imageid
         self.docker_image_id = task_image_id
@@ -277,7 +277,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         use this to put the container into the build archive.
         """
         # Need container_path to know how dockerfile should be named, else fail
-        task_container_path = self.get_docker_req('beeflow:copyContainer')
+        task_container_path = self.get_docker_req('beeflow:copyContainer', self.task)
         if not task_container_path:
             log.error("beeflow:copyContainer: You must specify the path to an existing container.")
             return 1
@@ -315,7 +315,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         but this is explicitly not how Docker defines it. We need a way to name
         containers in a human readable format.
         """
-        task_container_name = self.get_docker_req('beeflow:containerName')
+        task_container_name = self.get_docker_req('beeflow:containerName', self.task)
         if not task_container_name and self.docker_image_id is None:
             log.error("beeflow:containerName: You must specify the containerName or dockerImageId")
             return 1
