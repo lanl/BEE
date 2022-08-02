@@ -51,7 +51,8 @@ def create_workflow_input_nodes(tx, inputs):
     """Create Input nodes for the workflow.
 
     :param inputs: the workflow inputs
-    :type inputs: list of InputParameter"""
+    :type inputs: list of InputParameter
+    """
     for input_ in inputs:
         input_query = ("MATCH (w:Workflow) CREATE (w)<-[:INPUT_OF]-(i:Input) "
                        "SET i.id = $input_id "
@@ -65,7 +66,8 @@ def create_workflow_output_nodes(tx, outputs):
     """Create Output nodes for the workflow.
 
     :param outputs: the workflow outputs
-    :type outputs: list of OutputParameter"""
+    :type outputs: list of OutputParameter
+    """
     for output in outputs:
         output_query = ("MATCH (w:Workflow) CREATE (w)<-[:OUTPUT_OF]-(o:Output) "
                         "SET o.id = $output_id "
@@ -127,7 +129,8 @@ def create_task_input_nodes(tx, task):
     """Create Input nodes for a task.
 
     :param task: the task whose inputs to add to the graph
-    :type task: Task"""
+    :type task: Task
+    """
     for input_ in task.inputs:
         input_query = ("MATCH (t:Task {id: $task_id}) "
                        "CREATE (t)<-[:INPUT_OF]-(i:Input) "
@@ -149,7 +152,8 @@ def create_task_output_nodes(tx, task):
     """Create Output nodes for a task.
 
     :param task: the task whose outputs to add to the graph
-    :type task: Task"""
+    :type task: Task
+    """
     for output in task.outputs:
         output_query = ("MATCH (t:Task {id: $task_id}) "
                         "CREATE (t)<-[:OUTPUT_OF]-(o:Output) "
@@ -352,7 +356,7 @@ def get_workflow_state(tx):
     :rtype: str
     """
     state_query = "MATCH (w:Workflow) RETURN w.state"
-    
+
     return tx.run(state_query).single().value()
 
 
@@ -363,7 +367,7 @@ def set_workflow_state(tx, state):
     :type state: str
     """
     state_query = "MATCH (w:Workflow) SET w.state = $state"
-    
+
     return tx.run(state_query, state=state)
 
 
@@ -440,7 +444,8 @@ def set_task_metadata(tx, task, metadata):
         # currently support parameter substitution for property keys
         if fullmatch(r"[A-Za-z][0-9A-Za-z_]*", k) is None:
             raise ValueError(f"invalid metadata key: {k}")
-        metadata_query = f"MATCH (m:Metadata)-[:DESCRIBES]->(:Task {{id: $task_id}}) SET m.{k} = $value"
+        metadata_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) "
+                          f"SET m.{k} = $value")
 
         tx.run(metadata_query, task_id=task.id, value=v)
 

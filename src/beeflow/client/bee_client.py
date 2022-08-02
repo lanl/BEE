@@ -11,24 +11,37 @@ from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.cli import NaturalOrderGroup
 
 
-bc.init()
-
 # Length of a shortened workflow ID
 short_id_len = 6
 
 # Maximum length of a workflow ID
 MAX_ID_LEN = 32
 
+# Global used to indicate whether this instance is interactive or not
+_interactive = False
+
 
 logging.basicConfig(level=logging.WARNING)
 workflow_manager = 'bee_wfm/v1/jobs'
 
 
+class ClientError(Exception):
+    """Client error class."""
+
+    def __init__(self, *args):
+        """Error constructor."""
+        self.args = args
+
+
 def error_exit(msg):
     caller_func = str.capitalize(inspect.stack()[1].function)
     msg = caller_func + ': ' + msg
-    typer.secho(msg, fg=typer.colors.RED)
-    exit(1)
+    if _interactive:
+        typer.secho(msg, fg=typer.colors.RED)
+        exit(1)
+    else:
+        # Raise an error so that client libraries can handle it
+        raise ClientError(msg) from None
 
 
 def _url():
@@ -143,6 +156,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     typer.secho("Workflow submitted! Your workflow id is "
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
     logging.info('Sumit workflow: ' + resp.text)
+    return wf_id
 
 
 @app.command()
@@ -214,6 +228,7 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         typer.echo(tasks_status)
 
     logging.info('Query workflow: ' + resp.text)
+    return wf_status, tasks_status
 
 
 @app.command()
@@ -308,6 +323,9 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 
 
 def main():
+    global _interactive
+    _interactive = True
+    bc.init()
     app()
 
 
