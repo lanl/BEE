@@ -48,7 +48,7 @@ def setup_slurm_worker(fn):
     def decorator():
         """Decorator function."""
         slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
-        bee_workdir = f'/tmp/{uuid.uuid4().hex}'
+        bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
         os.mkdir(bee_workdir)
         proc = subprocess.Popen(f'slurmrestd {SLURMRESTD_ARGS} unix:{slurm_socket}', shell=True)
         time.sleep(1)
@@ -68,7 +68,7 @@ def setup_worker_iface(fn):
     def decorator():
         """Decorator function."""
         slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
-        bee_workdir = f'/tmp/{uuid.uuid4().hex}'
+        bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
         os.mkdir(bee_workdir)
         worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
                                        slurm_socket=slurm_socket, bee_workdir=bee_workdir,
