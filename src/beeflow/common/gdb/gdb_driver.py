@@ -71,11 +71,11 @@ class GraphDatabaseDriver(ABC):
 
         Runnable tasks are tasks with all input dependencies fulfilled.
         """
-    
+
     @abstractmethod
     def restart_task(self, old_task, new_task):
         """Restart a failed task.
-        
+
         Create a Task node for new_task with state 'RESTARTED' and an edge
         to indicate that it is the child of the Task node of old_task.
 
@@ -88,7 +88,7 @@ class GraphDatabaseDriver(ABC):
     @abstractmethod
     def finalize_task(self, task):
         """Set task state to 'COMPLETED' and set inputs from source.
-        
+
         :param task: the task to finalize
         :type task: Task
         """
@@ -111,9 +111,17 @@ class GraphDatabaseDriver(ABC):
 
     @abstractmethod
     def get_workflow_state(self):
-        """Return the current state of the workflow
+        """Return the current state of the workflow.
 
         :rtype: str
+        """
+
+    @abstractmethod
+    def set_workflow_state(self, state):
+        """Set the state of the workflow.
+
+        :param state: the new state of the workflow
+        :type state: str
         """
 
     @abstractmethod
