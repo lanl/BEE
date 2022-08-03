@@ -28,7 +28,7 @@ author = 'BEE Development Team'
 version = importlib.metadata.version("beeflow")
 
 # Logo place holder - We need a better logo
-html_logo = "BEElogo.png"
+html_logo = "BEE_Symbol.jpg"
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
