@@ -1,129 +1,139 @@
-#! /usr/bin/env python3
-"""Unit test module for BEE slurm worker interface."""
-
-import unittest
+"""Tests of the Slurm worker."""
+import uuid
+import time
+import subprocess
 import os
-import string
+import pytest
+from beeflow.common.config_driver import BeeConfig as bc
 
-from beeflow.common.data.wf_data import Task
-from beeflow.common.worker.worker_interface import WorkerInterface
+
+bc.init()
+
+
+from beeflow.common.worker_interface import WorkerInterface
+from beeflow.common.worker.worker import WorkerError
 from beeflow.common.worker.slurm_worker import SlurmWorker
-from beeflow.common.worker.slurm_worker import submit_job
+from beeflow.common.wf_data import Task
 
 
-class TestSlurmWorker(unittest.TestCase):
-    """Unit test case for worker interface."""
+# Timeout (seconds) for waiting on tasks
+TIMEOUT = 150
+# Extra slurmrestd arguments. This may be something to take on the command line
+SLURMRESTD_ARGS = bc.get('slurmrestd', 'slurm_args')
+GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
+                 requirements=[], inputs=[], outputs=[], stdout='',
+                 workflow_id=uuid.uuid4().hex)
+BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[],
+                requirements=[], inputs=[], outputs=[], stdout='',
+                workflow_id=uuid.uuid4().hex)
 
-    @classmethod
-    def setUpClass(cls):
-        """Initialize the Worker interface."""
-        cls.worker = WorkerInterface(SlurmWorker)
-        # for temporary scripts use template if exists
-        template_file = os.path.expanduser('~/.beeflow/worker/job.template')
-        job_template = ''
-        try:
-            template_f = open(template_file, 'r')
-            job_template = template_f.read()
-            template_f.close()
-        except OSError as err:
-            print("OS error: {0}".format(err))
-            print('No job_template: creating a simple job template!')
-            job_template = '#! /bin/bash\n#SBATCH\n'
-        template = string.Template(job_template)
 
-        # write good script
-        sub = {'name': 'good', 'id': 'job'}
-        command = 'echo "Good Job ran with job id:"; echo $SLURM_JOB_ID\n'
-        text = template.substitute(sub) + ''.join(command)
-        try:
-            script = open('good.slr', 'w')
-            script.write(text)
-            script.close()
-        except IOError as error:
-            print('Could not write good.slr!')
-            print('I/O error: {0}'.format(error))
+def wait_state(worker_iface, job_id, state):
+    """Wait for Slurm to switch the job to another state."""
+    time.sleep(1)
+    n = 1
+    last_state = worker_iface.query_task(job_id)
+    while last_state == state:
+        if n >= TIMEOUT:
+            raise RuntimeError(f'job timed out, still in state {state}')
+        time.sleep(1)
+        n += 1
+        last_state = worker_iface.query_task(job_id)
+    return last_state
 
-        # write bad script
-        sub['name'] = 'bad'
-        command = 'echo "Bad job should not run!"\n'
-        text = template.substitute(sub) + ''.join(command)
-        text = text.replace("#SBATCH", "#SBATCH BAD_DIRECTIVE", 1)
-        try:
-            script = open('bad.slr', 'w')
-            script.write(text)
-            script.close()
-        except IOError as error:
-            print('Could not write bad.slr!')
-            print('I/O error: {0}'.format(error))
 
-    @classmethod
-    def tearDownClass(cls):
-        """Delete temporary scripts created for tests."""
-        try:
-            os.remove('good.slr')
-        except IOError as error:
-            print('Could not remove good.slr!')
-            print('I/O error: {0}'.format(error))
-        try:
-            os.remove('bad.slr')
-        except IOError as error:
-            print('Could not remove bad.slr!')
-            print('I/O error: {0}'.format(error))
+def setup_slurm_worker(fn):
+    """Add a decorator to set up the worker interface and slurmrestd."""
 
-    def test_submit_bad_job(self):
-        """Submit a job."""
-        job_info = submit_job('bad.slr')
-        self.assertEqual(job_info[0], -1)
-        self.assertIn('error', job_info[1])
+    def decorator():
+        """Decorate the input function."""
+        slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
+        bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
+        os.mkdir(bee_workdir)
+        proc = subprocess.Popen(f'slurmrestd {SLURMRESTD_ARGS} unix:{slurm_socket}', shell=True)
+        time.sleep(1)
+        worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
+                                       slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                                       job_template=bc.get('task_manager', 'job_template'))
+        fn(worker_iface)
+        time.sleep(1)
+        proc.kill()
 
-    def test_submit_good_job(self):
-        """Submit a job."""
-        job_info = submit_job('good.slr')
-        self.assertNotEqual(job_info[0], 1)
-        self.assertEqual('PENDING', job_info[1])
+    return decorator
 
-    def test_submit_bad_task(self):
-        """Build and submit a bad task using  a bad directive."""
-        task = Task('bad', command=['#SBATCH BAD_DIRECTIVE'], hints={},
-                    subworkflow=None, inputs=None, outputs=None)
-        job_info = self.worker.submit_task(task)
-        self.assertEqual(job_info[0], -1)
-        self.assertIn('error', job_info[1])
 
-    def test_submit_good_task(self):
-        """Build and submit a good task, state should be 'PENDING' or 'RUNNING'."""
-        task = Task('good',
-                    command=['echo', ' "Good task ran with job id:"',
-                             ';', 'echo', ' $SLURM_JOB_ID'],
-                    hints={}, subworkflow=None, inputs=None, outputs=None)
-        job_info = self.worker.submit_task(task)
-        self.assertNotEqual(job_info[0], 1)
-        self.assertTrue(job_info[1] == 'PENDING' or job_info[1] == 'RUNNING')
+def setup_worker_iface(fn):
+    """Add a decorator that creates the worker interface but not slurmrestd."""
 
-    def test_query_bad_job_id(self):
-        """Query a non-existent job."""
-        job_info = self.worker.query_job(888)
-        self.assertEqual(job_info[0], -1)
-        self.assertEqual('Invalid job id specified', job_info[1])
+    def decorator():
+        """Decorate the input function."""
+        slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
+        bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
+        os.mkdir(bee_workdir)
+        worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
+                                       slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                                       job_template=bc.get('task_manager', 'job_template'))
+        fn(worker_iface)
 
-    def test_query_good_job(self):
-        """Submit a job and query the state, should be 'PENDING' or 'RUNNING'."""
-        job_info = submit_job('good.slr')
-        job_id = job_info[0]
-        job_info = self.worker.query_job(job_id)
-        self.assertEqual(job_info[0], True)
-        self.assertTrue(job_info[1] == 'PENDING' or job_info[1] == 'RUNNING')
+    return decorator
 
-    def test_cancel_good_job(self):
-        """Submit a job and cancel it."""
-        job_info = submit_job('good.slr')
-        job_id = job_info[0]
-        job_info = self.worker.cancel_job(job_id)
-        self.assertEqual(job_info[0], True)
-        self.assertTrue(job_info[1] == 'CANCELLED' or job_info[1] == 'CANCELLING')
 
-    def test_cancel_bad_job_id(self):
-        """Cancel a non-existent job."""
-        job_info = self.worker.cancel_job(888)
-        self.assertEqual(job_info[0], -1)
-        self.assertEqual('Invalid job id specified', job_info[1])
+@setup_slurm_worker
+def test_good_task(worker_iface):
+    """Test submission of a good task."""
+    job_id, last_state = worker_iface.submit_task(GOOD_TASK)
+    assert last_state == 'PENDING'
+    last_state = wait_state(worker_iface, job_id, 'PENDING')
+    if last_state == 'RUNNING':
+        last_state = wait_state(worker_iface, job_id, 'RUNNING')
+    if last_state == 'COMPLETING':
+        last_state = wait_state(worker_iface, job_id, 'COMPLETING')
+    assert last_state == 'COMPLETED'
+
+
+@setup_slurm_worker
+def test_bad_task(worker_iface):
+    """Test submission of a bad task."""
+    job_id, last_state = worker_iface.submit_task(BAD_TASK)
+    assert last_state == 'PENDING'
+    last_state = wait_state(worker_iface, job_id, 'PENDING')
+    if last_state == 'RUNNING':
+        last_state = wait_state(worker_iface, job_id, 'RUNNING')
+    if last_state == 'COMPLETING':
+        last_state = wait_state(worker_iface, job_id, 'COMPLETING')
+    assert last_state == 'FAILED'
+
+
+@setup_slurm_worker
+def test_query_bad_job_id(worker_iface):
+    """Test querying a bad job ID."""
+    with pytest.raises(WorkerError):
+        worker_iface.query_task(888)
+
+
+@setup_slurm_worker
+def test_cancel_good_job(worker_iface):
+    """Cancel a good job."""
+    job_id, _ = worker_iface.submit_task(GOOD_TASK)
+    job_state = worker_iface.cancel_task(job_id)
+    assert job_state == 'CANCELLED'
+
+
+@setup_slurm_worker
+def test_cancel_bad_job_id(worker_iface):
+    """Cancel a non-existent job."""
+    with pytest.raises(WorkerError):
+        worker_iface.cancel_task(888)
+
+
+@setup_worker_iface
+def test_no_slurmrestd(worker_iface):
+    """Test without running slurmrestd."""
+    job_id, state = worker_iface.submit_task(GOOD_TASK)
+    assert state == 'NOT_RESPONDING'
+    assert worker_iface.query_task(job_id) == 'NOT_RESPONDING'
+    assert worker_iface.cancel_task(job_id) == 'NOT_RESPONDING'
+# Ignoring R1732: This is not what we need to do with the Popen of slurmrestd above;
+#                 using a with statement doesn't kill the process immediately but just
+#                 waits for it to complete and slurmrestd never will unless we kill it.
+# pylama:ignore=R1732

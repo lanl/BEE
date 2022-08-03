@@ -18,47 +18,48 @@ import beeflow.common.log as bee_logging
 from beeflow.common.build.build_driver import arg2task
 
 
-def build_main(bc, task):
-    """Main build code."""
+def build_main(task):
+    """Process build instructions - main code."""
     # The build driver treats Hint and Requirement objects as Dicts.
-    local_task = task.copy()
-    local_task.hints = dict(local_task.hints)
-    local_task.requirements = dict(local_task.requirements)
-    builder = CharliecloudBuildDriver(local_task)
+    task_local = task.copy()
+    task_local.hints = dict(task_local.hints)
+    task_local.requirements = dict(task_local.requirements)
+    builder = CharliecloudBuildDriver(task_local)
     log.info('CharliecloudBuildDriver initialized')
 
     # Deque the next build instruction until empty or reach terminal case
     # ...catch the case where no build instructions are required.
+    op_keys = ["build_op", "op_name", "op_priority", "op_terminal"]
     try:
-        build_op, op_name, op_priority, op_terminal = builder.exec_list.pop(0)
+        op_values = builder.exec_list.pop(0)
     except IndexError:
         log.info('No build instructions provided. Assuming this is ok...')
-        build_op, op_name, op_priority, op_terminal = None, None, None, True
-
-    while build_op:
-        log.info('Executing build operation: "{}"'.format(op_name))
+        op_values = [None, None, None, True]
+    op_dict = dict(zip(op_keys, op_values))
+    while op_dict["build_op"]:
+        log.info(f'Executing build operation: {op_dict["op_name"]}')
         try:
-            return_obj = build_op()
+            return_obj = op_dict["build_op"]()
             # Return objects will be successful subprocess or return code.
             try:
-                RETURN_CODE = return_obj.returncode
+                return_code = return_obj.returncode
             except AttributeError:
-                RETURN_CODE = int(return_obj)
+                return_code = int(return_obj)
         except CalledProcessError:
-            RETURN_CODE = 1
-            log.warning('There was a problem executing {}, check relevant log for detail.'
-                        .format(op_name))
+            return_code = 1
+            log.warning(f'There was a problem executing {op_dict["op_name"]}!')
         # Case 1: Not the last operation spec'd, but is a terminal operation.
-        if op_terminal and RETURN_CODE == 0:
-            log.info('Reached terminal build case')
-            build_op, op_name, op_priority, op_terminal = None, None, None, True
+        if op_dict["op_terminal"] and return_code == 0:
+            op_values = [None, None, None, True]
+            op_dict = dict(zip(op_keys, op_values))
             continue
         # Case 2: Go to next, or last operation spec'd.
         try:
-            build_op, op_name, op_priority, op_terminal = builder.exec_list.pop(0)
+            op_values = builder.exec_list.pop(0)
         except IndexError:
-            build_op, op_name, op_priority, op_terminal = None, None, None, True
-    log.info('Out of build instructions. Build operations complete.')
+            op_values = [None, None, None, True]
+        finally:
+            op_dict = dict(zip(op_keys, op_values))
 
 
 if __name__ == '__main__':
@@ -66,20 +67,18 @@ if __name__ == '__main__':
         userconfig = sys.argv[1]
         bc.init(userconfig=userconfig)
         my_args = sys.argv[2]
-    except IndexError:
-        raise IndexError('build_interface must execute with 2 arguments.')
+    except IndexError as exc:
+        raise IndexError('build_interface must execute with 2 arguments.') from exc
 
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='build_interface.log')
 
     try:
         local_task = arg2task(my_args)
-    except Exception as e:
-        log.info('{}'.format(e))
+    except Exception as err:
+        log.info(f'{err}')
 
-    build_main(bc, local_task)
+    build_main(local_task)
 
-# Ignore W0707: Re-raising with from keyword does not aid in readability or functionality
 # Ignore W0703: Catching generic exception isn't a problem if we just want a descriptive report
-# Ignore: W1202: fstring variable sub in logging as a pre-processing step is not causing problems.
-# pylama:ignore=W0707,W0703,W1202
+# pylama:ignore=W0703

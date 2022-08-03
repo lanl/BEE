@@ -33,9 +33,8 @@ class WorkflowInterface:
         """Reconnect to the graph database using stored credentials."""
         self._gdb_interface.connect(**self._kwargs)
         if self.workflow_loaded():
-            self._workflow_id = None
-            # This property automatically sets self._workflow_id when invoked
-            self.workflow_id
+            workflow, _ = self.get_workflow()
+            self._workflow_id = workflow.id
 
     def initialize_workflow(self, name, inputs, outputs, requirements=None, hints=None):
         """Begin construction of a BEE workflow.
@@ -127,10 +126,10 @@ class WorkflowInterface:
         # Load the new task into the graph database
         self._gdb_interface.load_task(task)
         return task
-    
+
     def restart_task(self, task, checkpoint_file):
         """Restart a failed BEE workflow task.
-        
+
         The task must have a beeflow:CheckpointRequirement hint. If there are no
         remaining retry attemps (num_tries = 0) then the graph database is
         unmodified and this method returns None.
@@ -145,10 +144,9 @@ class WorkflowInterface:
                     hint.params["num_tries"] -= 1
                     hint.params["bee_checkpoint_file__"] = checkpoint_file
                     break
-                else:
-                    state = self.get_task_state(task)
-                    self.set_task_state(task, f"FAILED RESTART: {state}")
-                    return None
+                state = self.get_task_state(task)
+                self.set_task_state(task, f"FAILED RESTART: {state}")
+                return None
         else:
             raise ValueError("invalid task for checkpoint restart")
 
@@ -214,11 +212,19 @@ class WorkflowInterface:
 
     def get_workflow_state(self):
         """Get the value of the workflow state.
-        
-        rtype: str
+
+        :rtype: str
         """
         state = self._gdb_interface.get_workflow_state()
         return state
+
+    def set_workflow_state(self, state):
+        """Return workflow's current state.
+
+        :param state: the new state of the workflow
+        :type state: str
+        """
+        self._gdb_interface.set_workflow_state(state)
 
     def get_ready_tasks(self):
         """Get ready tasks from a BEE workflow.
@@ -325,7 +331,7 @@ class WorkflowInterface:
         """
         self._gdb_interface.set_task_output(task, output_id, value)
 
-    def evaluate_expression(self, task, id, output=False):
+    def evaluate_expression(self, task, id_, output=False):
         """Evaluate a task input/output expression.
 
         Expression can be either a string concatenation in a StepInput
@@ -335,12 +341,12 @@ class WorkflowInterface:
 
         :param task: the task whose expression to evaluate
         :type task: Task
-        :param id: the id of the step input/output
-        :type id: str
+        :param id_: the id of the step input/output
+        :type id_: str
         :param output: true if output glob expression being evaluated, else false
         :type output: bool
         """
-        self._gdb_interface.evaluate_expression(task, id, output)
+        self._gdb_interface.evaluate_expression(task, id_, output)
 
     def workflow_completed(self):
         """Return true if all of a workflow's final tasks have completed, else false.
