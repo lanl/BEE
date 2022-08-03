@@ -63,7 +63,7 @@ def setup_slurm_worker(fn):
 
 
 def setup_worker_iface(fn):
-    """Add a deacorator that creates the worker interface but not slurmrestd."""
+    """Add a decorator that creates the worker interface but not slurmrestd."""
 
     def decorator():
         """Decorate the input function."""
