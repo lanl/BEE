@@ -3,8 +3,8 @@ import uuid
 import time
 import subprocess
 import os
-from beeflow.common.config_driver import BeeConfig as bc
 import pytest
+from beeflow.common.config_driver import BeeConfig as bc
 
 
 bc.init()
@@ -24,8 +24,8 @@ GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
                  requirements=[], inputs=[], outputs=[], stdout='',
                  workflow_id=uuid.uuid4().hex)
 BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[],
-                 requirements=[], inputs=[], outputs=[], stdout='',
-                 workflow_id=uuid.uuid4().hex)
+                requirements=[], inputs=[], outputs=[], stdout='',
+                workflow_id=uuid.uuid4().hex)
 
 
 def wait_state(worker_iface, job_id, state):
@@ -43,10 +43,10 @@ def wait_state(worker_iface, job_id, state):
 
 
 def setup_slurm_worker(fn):
-    """Add a decorator to set up the worker interface."""
+    """Add a decorator to set up the worker interface and slurmrestd."""
 
     def decorator():
-        """Decorator function."""
+        """Decorate the input function."""
         slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
         bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
         os.mkdir(bee_workdir)
@@ -63,10 +63,10 @@ def setup_slurm_worker(fn):
 
 
 def setup_worker_iface(fn):
-    """Add a deacorator that creates the worker interface, but not slurmrestd."""
+    """Add a deacorator that creates the worker interface but not slurmrestd."""
 
     def decorator():
-        """Decorator function."""
+        """Decorate the input function."""
         slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
         bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
         os.mkdir(bee_workdir)
@@ -123,7 +123,8 @@ def test_cancel_good_job(worker_iface):
 def test_cancel_bad_job_id(worker_iface):
     """Cancel a non-existent job."""
     with pytest.raises(WorkerError):
-        job_info = worker_iface.cancel_task(888)
+        worker_iface.cancel_task(888)
+
 
 @setup_worker_iface
 def test_no_slurmrestd(worker_iface):
@@ -132,3 +133,7 @@ def test_no_slurmrestd(worker_iface):
     assert state == 'NOT_RESPONDING'
     assert worker_iface.query_task(job_id) == 'NOT_RESPONDING'
     assert worker_iface.cancel_task(job_id) == 'NOT_RESPONDING'
+# Ignoring R1732: This is not what we need to do with the Popen of slurmrestd above;
+#                 using a with statement doesn't kill the process immediately but just
+#                 waits for it to complete and slurmrestd never will unless we kill it.
+# pylama:ignore=R1732
