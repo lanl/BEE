@@ -6,8 +6,8 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 import abc
 import time
 
-import beeflow.scheduler.resource_allocation as resource_allocation
-import beeflow.scheduler.mars_util as mars_util
+from beeflow.scheduler import resource_allocation
+from beeflow.scheduler import mars_util
 
 
 class Algorithm(abc.ABC):
@@ -19,9 +19,7 @@ class Algorithm(abc.ABC):
     @staticmethod
     @abc.abstractmethod
     def load(**kwargs):
-        """Load configuration for the algorithm.
-
-        """
+        """Load configuration for the algorithm."""
 
     @staticmethod
     @abc.abstractmethod
@@ -44,9 +42,7 @@ class SJF(Algorithm):
 
     @staticmethod
     def load(**kwargs):
-        """Load algorithm configuration, if necessary.
-
-        """
+        """Load algorithm configuration, if necessary."""
 
     @staticmethod
     def schedule_all(tasks, resources, **kwargs):
@@ -66,17 +62,11 @@ class SJF(Algorithm):
 
 
 class FCFS(Algorithm):
-    """FCFS scheduling algorithm.
-
-    This class holds the scheduling code used for the FCFS
-    scheduling algorithm.
-    """
+    """FCFS scheduling algorithm."""
 
     @staticmethod
     def load(**kwargs):
-        """Load algorithm configuration, if necessary.
-
-        """
+        """Load algorithm configuration, if necessary."""
 
     @staticmethod
     def schedule_all(tasks, resources, **kwargs):
@@ -110,9 +100,7 @@ class Backfill(Algorithm):
     """
 
     def load(**kwargs):
-        """Load algorithm configuration, if necessary.
-
-        """
+        """Load algorithm configuration, if necessary."""
 
     @staticmethod
     def schedule_all(tasks, resources, **kwargs):
@@ -186,11 +174,12 @@ class MARS(Algorithm):
         :type mars_model: str
         """
         # Only import the mars module if necessary
-        import beeflow.scheduler.mars as mars
+        from beeflow.scheduler import mars
         MARS.mod = mars
         MARS.actor, MARS.critic = mars.load_models(mars_model)
 
-    def policy(actor, critic, task, tasks, possible_times):
+    @staticmethod
+    def policy(actor, _critic, task, tasks, possible_times):
         """Evaluate the policy function to find a scheduling of the task.
 
         Evaluate the policy function with the model task.
@@ -214,13 +203,13 @@ class MARS(Algorithm):
         vec = mars_util.workflow2vec(task, tasks)
         vec = mars.tf.constant([vec])
         # Convert the result into an action index
-        pl = [float(n) for n in actor.call(vec)[0]]
-        a = pl.index(max(pl))
-        a = (float(a) / len(pl)) * (len(possible_times) - 1)
-        return int(a)
+        actor_results = [float(n) for n in actor.call(vec)[0]]
+        i = actor_results.index(max(actor_results))
+        i = (float(i) / len(actor_results)) * (len(possible_times) - 1)
+        return int(i)
 
     @staticmethod
-    def schedule_all(tasks, resources, mars_model='model', **kwargs):
+    def schedule_all(tasks, resources, _mars_model='model', **kwargs):
         """Schedule a list of tasks on the given resources.
 
         Schedule a full list of tasks on the given resources. Note: MARS.load()
@@ -229,8 +218,8 @@ class MARS(Algorithm):
         :type tasks: list of instance of Task
         :param resources: list of resources
         :type resources: list of instance of Resource
-        :param mars_model: the mars model path
-        :type mars_model: str
+        :param _mars_model: the mars model path
+        :type _mars_model: str
         """
         allocator = resource_allocation.TaskAllocator(resources)
         current_time = 0
@@ -280,7 +269,7 @@ class AlgorithmLogWrapper:
         results out to a log file.
         """
         self.cls.schedule_all(tasks, resources, **self.kwargs)
-        with open(self.alloc_logfile, 'a') as fp:
+        with open(self.alloc_logfile, 'a', encoding='utf-8') as fp:
             print('; Log start at', time.time(), file=fp)
             # curr_allocs = []
             for task in tasks:
@@ -359,3 +348,10 @@ def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
         cls = algorithm_objects['mars']
 
     return AlgorithmLogWrapper(cls, **kwargs)
+# Ignoring E0211: This is how the class is designed right now, we should think about changing this
+#                 however.
+# Ignoring C0415: This is done on purpose to avoid importing MARS when we don't have the tensorflow
+#                 dependency.
+# Ignoring W0511: A number of these TODO's are hinted at in issue #333, but I don't want to remove
+#                 them from the code until this issue is fully addressed.
+# pylama:ignore=E0211,C0415,W0511

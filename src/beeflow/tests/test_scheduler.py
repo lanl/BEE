@@ -2,12 +2,9 @@
 
 Tests of the BEE Scheduler module.
 """
-
-import time
-
-import beeflow.scheduler.algorithms as algorithms
-import beeflow.scheduler.task as task
-import beeflow.scheduler.resource_allocation as resource_allocation
+from beeflow.scheduler import algorithms
+from beeflow.scheduler import task
+from beeflow.scheduler import resource_allocation
 
 
 class TestFCFS:
@@ -15,50 +12,35 @@ class TestFCFS:
 
     Test the FCFS algorithm.
     """
+
     @staticmethod
     def test_schedule_one_task():
-        """Test scheduling one task.
-
-        Test scheduling one task.
-        """
+        """Test scheduling one task."""
         schedule_one_task(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_two_tasks():
-        """Test scheduling two tasks.
-
-        Test scheduling two tasks.
-        """
+        """Test scheduling two tasks."""
         schedule_two_tasks(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_task_fail():
-        """Test scheduling a task with more resources required than available.
-
-        Test scheduling a task with more resources required than available.
-        """
+        """Test scheduling a task with more resources required than available."""
         schedule_task_fail(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_task_gpus_req():
-        """Test scheduling a task with a gpus requirement.
-
-        """
+        """Test scheduling a task with a gpus requirement."""
         schedule_task_gpus_req(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_task_gpus_req_fail():
-        """Test scheduling a task with a gpus requirement that should fail.
-
-        """
+        """Test scheduling a task with a gpus requirement that should fail."""
         schedule_task_gpus_req_fail(algorithms.FCFS())
 
     @staticmethod
     def test_schedule_six_tasks():
-        """Test scheduling six tasks.
-
-        Test scheduling six tasks.
-        """
+        """Test scheduling six tasks."""
         requirements1 = {'max_runtime': 3}
         task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
                           requirements=requirements1)
@@ -100,55 +82,36 @@ class TestFCFS:
 
 
 class TestBackfill:
-    """Test the Backfill algorithm.
-
-    Test the Backfill algorithm.
-    """
+    """Test the Backfill algorithm."""
 
     @staticmethod
     def test_schedule_one_task():
-        """Test scheduling one task.
-
-        Test scheduling one task.
-        """
+        """Test scheduling one task."""
         schedule_one_task(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_two_tasks():
-        """Test scheduling two tasks.
-
-        Test scheduling two tasks.
-        """
+        """Test scheduling two tasks."""
         schedule_two_tasks(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_task_fail():
-        """Test scheduling a task with more resources required than available.
-
-        Test scheduling a task with more resources required than available.
-        """
+        """Test scheduling a task with more resources required than available."""
         schedule_task_fail(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_task_gpus_req():
-        """Test scheduling a task with a gpus requirement.
-
-        """
+        """Test scheduling a task with a gpus requirement."""
         schedule_task_gpus_req(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_task_gpus_req_fail():
-        """Test scheduling a task with a gpus requirement that should fail.
-
-        """
+        """Test scheduling a task with a gpus requirement that should fail."""
         schedule_task_gpus_req_fail(algorithms.Backfill())
 
     @staticmethod
     def test_schedule_three_tasks():
-        """Test scheduling three tasks.
-
-        Test scheduling three tasks.
-        """
+        """Test scheduling three tasks."""
         requirements = {'max_runtime': 1, 'nodes': 1}
         task1 = task.Task(workflow_name='workflow-0', task_name='task-1',
                           requirements=requirements)
@@ -178,10 +141,7 @@ class TestBackfill:
 
     @staticmethod
     def test_schedule_four_tasks():
-        """Test scheduling four tasks.
-
-        Test scheduling four tasks.
-        """
+        """Test scheduling four tasks."""
         requirements = {'max_runtime': 2, 'nodes': 4}
         task1 = task.Task(workflow_name='workflow-0', task_name='task-0',
                           requirements=requirements)
@@ -222,10 +182,7 @@ class TestBackfill:
 
     @staticmethod
     def test_schedule_six_tasks():
-        """Test scheduling six tasks.
-
-        Test scheduling six tasks.
-        """
+        """Test scheduling six tasks."""
         requirements = {'max_runtime': 1, 'nodes': 1}
         task1 = task.Task(workflow_name='workflow-0', task_name='task-1',
                           requirements=requirements)
@@ -272,25 +229,16 @@ class TestBackfill:
 
 
 class TestSJF:
-    """Test SJF.
-
-    Test SJF.
-    """
+    """Test SJF."""
 
     @staticmethod
     def test_schedule_one_task():
-        """Test scheduling one task.
-
-        Test scheduling one task.
-        """
+        """Test scheduling one task."""
         schedule_one_task(algorithms.SJF)
 
     @staticmethod
     def test_schedule_two_tasks():
-        """Test scheduling two tasks.
-
-        Test scheduling two tasks.
-        """
+        """Test scheduling two tasks."""
         # schedule_two_tasks(algorithms.SJF)
         requirements = {'max_runtime': 3}
         task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
@@ -314,24 +262,17 @@ class TestSJF:
 
     @staticmethod
     def test_schedule_task_fail():
-        """Test scheduling a task with more resources required than available.
-
-        Test scheduling a task with more resources required than available.
-        """
+        """Test scheduling a task with more resources required than available."""
         schedule_task_fail(algorithms.SJF())
 
     @staticmethod
     def test_schedule_task_gpus_req():
-        """Test scheduling a task with a gpus requirement.
-
-        """
+        """Test scheduling a task with a gpus requirement."""
         schedule_task_gpus_req(algorithms.SJF())
 
     @staticmethod
     def test_schedule_task_gpus_req_fail():
-        """Test scheduling a task with a gpus requirement that should fail.
-
-        """
+        """Test scheduling a task with a gpus requirement that should fail."""
         schedule_task_gpus_req_fail(algorithms.SJF())
 
 
@@ -340,10 +281,7 @@ class TestSJF:
 #
 
 def schedule_one_task(algorithm):
-    """Test scheduling one task.
-
-    Test scheduling one task.
-    """
+    """Test scheduling one task."""
     requirements = {'max_runtime': 3}
     task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
                       requirements=requirements)
@@ -357,10 +295,7 @@ def schedule_one_task(algorithm):
 
 
 def schedule_two_tasks(algorithm):
-    """Test scheduling two tasks.
-
-    Test scheduling two tasks.
-    """
+    """Test scheduling two tasks."""
     requirements = {'max_runtime': 3}
     task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
                       requirements=requirements)
@@ -379,10 +314,7 @@ def schedule_two_tasks(algorithm):
 
 
 def schedule_task_fail(algorithm):
-    """Test scheduling a task with more resources required than available.
-
-    Test scheduling a task with more resources required than available.
-    """
+    """Test scheduling a task with more resources required than available."""
     requirements = {'max_runtime': 3, 'nodes': 10}
     task1 = task.Task(workflow_name='workflow-1', task_name='task-1',
                       requirements=requirements)
@@ -392,10 +324,9 @@ def schedule_task_fail(algorithm):
     # No allocations available
     assert not task1.allocations
 
-def schedule_task_gpus_req(algorithm):
-    """Test scheduling a task with the gpus requirement.
 
-    """
+def schedule_task_gpus_req(algorithm):
+    """Test scheduling a task with the gpus requirement."""
     requirements = {
         'max_runtime': 10,
         'nodes': 10,
@@ -414,10 +345,9 @@ def schedule_task_gpus_req(algorithm):
     assert task1.allocations[0].nodes == 10
     assert task1.allocations[0].start_time == 0
 
-def schedule_task_gpus_req_fail(algorithm):
-    """Test scheduling a task with the gpus requirement that should fail.
 
-    """
+def schedule_task_gpus_req_fail(algorithm):
+    """Test scheduling a task with the gpus requirement that should fail."""
     requirements = {
         'max_runtime': 10,
         'nodes': 10,

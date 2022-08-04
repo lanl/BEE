@@ -2,9 +2,9 @@
 
 Tests of the REST interface for BEE Scheduler.
 """
-import requests
 import subprocess
 import time
+import requests
 import pytest
 
 
@@ -29,11 +29,12 @@ def scheduler():
     time.sleep(6)
     try:
         # Give control over to the test function
-        yield 'http://localhost:%s/bee_sched/v1' % SCHEDULER_TEST_PORT
+        yield f'http://localhost:{SCHEDULER_TEST_PORT}/bee_sched/v1'
     finally:
         # Teardown
         # Note: Should not use proc.kill() here with flask debug
         proc.terminate()
+
 
 @pytest.fixture(scope='function')
 def scheduler_mars_simple():
@@ -47,17 +48,18 @@ def scheduler_mars_simple():
         '-p', SCHEDULER_TEST_PORT,
         '--no-config',
         '--log', '/tmp/sched.log',
-        '--mars-task-cnt', '2', # Need 2 tasks to use MARS
+        '--mars-task-cnt', '2',  # Need 2 tasks to use MARS
         '--use-mars',
     ], shell=False)
     time.sleep(6)
     try:
         # Give control over to the test function
-        yield 'http://localhost:%s/bee_sched/v1' % SCHEDULER_TEST_PORT
+        yield f'http://localhost:{SCHEDULER_TEST_PORT}/bee_sched/v1'
     finally:
         # Teardown
         # Note: Should not use proc.kill() here with flask debug
         proc.terminate()
+
 
 @pytest.fixture(scope='function')
 def scheduler_mars():
@@ -76,11 +78,12 @@ def scheduler_mars():
     time.sleep(6)
     try:
         # Give control over to the test function
-        yield 'http://localhost:%s/bee_sched/v1' % SCHEDULER_TEST_PORT
+        yield f'http://localhost:{SCHEDULER_TEST_PORT}/bee_sched/v1'
     finally:
         # Teardown
         # Note: Should not use proc.kill() here with flask debug
         proc.terminate()
+
 
 def test_schedule_job_no_resources(scheduler):
     """Test scheduling a job with no resources.
@@ -98,10 +101,10 @@ def test_schedule_job_no_resources(scheduler):
             'max_runtime': 1,
         },
     }
-    r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
+    req = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
-    assert r.ok
-    data = r.json()
+    assert req.ok
+    data = req.json()
     assert len(data) == 1
     assert data[0]['workflow_name'] == workflow_name
     assert data[0]['task_name'] == 'test-task'
@@ -123,10 +126,10 @@ def test_schedule_job_one_resource(scheduler):
         'id_': 'resource-1',
         'nodes': 10,
     }
-    r = requests.put(f'{url}/resources', json=[resource1])
+    req = requests.put(f'{url}/resources', json=[resource1])
 
-    assert r.ok
-    assert r.json() == 'created 1 resource(s)'
+    assert req.ok
+    assert req.json() == 'created 1 resource(s)'
 
     workflow_name = 'test-workflow'
     task1 = {
@@ -136,10 +139,10 @@ def test_schedule_job_one_resource(scheduler):
             'max_runtime': 1,
         },
     }
-    r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
+    req = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
-    assert r.ok
-    data = r.json()
+    assert req.ok
+    data = req.json()
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task'
@@ -169,10 +172,10 @@ def test_schedule_job_two_resources(scheduler):
         'id_': 'resource-2',
         'nodes': 64,
     }
-    r = requests.put(f'{url}/resources', json=[resource1, resource2])
+    req = requests.put(f'{url}/resources', json=[resource1, resource2])
 
-    assert r.ok
-    assert r.json() == 'created 2 resource(s)'
+    assert req.ok
+    assert req.json() == 'created 2 resource(s)'
 
     workflow_name = 'test-workflow'
     task1 = {
@@ -182,10 +185,10 @@ def test_schedule_job_two_resources(scheduler):
             'max_runtime': 1,
         },
     }
-    r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
+    req = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
-    assert r.ok
-    data = r.json() 
+    assert req.ok
+    data = req.json()
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task'
@@ -211,10 +214,10 @@ def test_schedule_multi_job_two_resources(scheduler):
         'id_': 'resource-1',
         'nodes': 16,
     }
-    r = requests.put(f'{url}/resources', json=[resource1, resource2])
+    req = requests.put(f'{url}/resources', json=[resource1, resource2])
 
-    assert r.ok
-    assert r.json() == 'created 2 resource(s)'
+    assert req.ok
+    assert req.json() == 'created 2 resource(s)'
 
     workflow_name = 'test-workflow'
     task1 = {
@@ -239,11 +242,11 @@ def test_schedule_multi_job_two_resources(scheduler):
             'nodes': 16,
         },
     }
-    r = requests.put(f'{url}/workflows/{workflow_name}/jobs',
-                     json=[task1, task2, task3])
+    req = requests.put(f'{url}/workflows/{workflow_name}/jobs',
+                       json=[task1, task2, task3])
 
-    assert r.ok
-    data = r.json()
+    assert req.ok
+    data = req.json()
     assert len(data) == 3
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task-0'
@@ -282,10 +285,10 @@ def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
         'id_': 'resource-1',
         'nodes': 10,
     }
-    r = requests.put(f'{url}/resources', json=[resource1])
+    req = requests.put(f'{url}/resources', json=[resource1])
 
-    assert r.ok
-    assert r.json() == 'created 1 resource(s)'
+    assert req.ok
+    assert req.json() == 'created 1 resource(s)'
 
     workflow_name = 'test-workflow'
     task1 = {
@@ -295,10 +298,10 @@ def test_schedule_one_job_one_resource_mars_simple(scheduler_mars_simple):
             'max_runtime': 1,
         },
     }
-    r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
+    req = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
 
-    assert r.ok
-    data = r.json()
+    assert req.ok
+    data = req.json()
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task'
@@ -325,10 +328,10 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
         'id_': 'resource-1',
         'nodes': 1,
     }
-    r = requests.put(f'{url}/resources', json=[resource1])
+    req = requests.put(f'{url}/resources', json=[resource1])
 
-    assert r.ok
-    assert r.json() == 'created 1 resource(s)'
+    assert req.ok
+    assert req.json() == 'created 1 resource(s)'
 
     workflow_name = 'test-workflow'
     task1 = {
@@ -347,10 +350,10 @@ def test_schedule_two_jobs_one_resource_mars_simple(scheduler_mars_simple):
             'nodes': 1,
         },
     }
-    r = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1, task2])
+    req = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1, task2])
 
-    assert r.ok
-    data = r.json()
+    assert req.ok
+    data = req.json()
     assert len(data) == 2
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[1]['workflow_name'] == 'test-workflow'
@@ -391,10 +394,10 @@ def test_mars_timing(scheduler_mars):
             "nodes": 1,
         },
     ]
-    r = requests.put(f'{url}/resources', json=resources)
+    req = requests.put(f'{url}/resources', json=resources)
 
-    assert r.ok
-    assert r.json() == 'created 4 resource(s)'
+    assert req.ok
+    assert req.json() == 'created 4 resource(s)'
 
     workflow_name = 'workflow'
     tasks = [
@@ -415,14 +418,15 @@ def test_mars_timing(scheduler_mars):
             }
         },
     ]
-    r = requests.put(f'{url}/workflows/{workflow_name}/jobs',
-                     json=tasks)
+    req = requests.put(f'{url}/workflows/{workflow_name}/jobs',
+                       json=tasks)
 
-    assert r.ok
-    data = r.json()
+    assert req.ok
+    data = req.json()
     # Ensure both start times are good (much less than time.time())
     assert data[0]['allocations'][0]['start_time'] < (time.time() / 8)
     assert data[1]['allocations'][0]['start_time'] < (time.time() / 8)
 
-# TODO: More job tests
-# TODO: More resource tests
+# Ignore R1732: This suggestion about using `with` doesn't apply here.
+# Ignore W0621: These are fixtures; it's supposed to work this way.
+# pylama:ignore=R1732,W0621

@@ -1,8 +1,5 @@
-"""Task allocator code.
-
-"""
-
-import beeflow.scheduler.serializable as serializable
+"""Task allocator code."""
+from beeflow.scheduler import serializable
 
 
 class TaskAllocator:
@@ -39,8 +36,7 @@ class TaskAllocator:
             # if (reqs.mem_per_node <= res.mem_per_node
             #     and reqs.gpus_per_node <= res.gpus_per_node):
             if res.fits(reqs):
-                total_nodes += (res.nodes
-                                - sum(alloc.nodes for alloc in allocs))
+                total_nodes += (res.nodes - sum(alloc.nodes for alloc in allocs))
         # Return True if we have enough nodes that match
         return total_nodes >= reqs.nodes
 
@@ -199,7 +195,7 @@ class Requirements(serializable.Serializable):
     # TODO: Determine default requirements
     def __init__(self, max_runtime, nodes=1, mem_per_node=1024,
                  gpus_per_node=0, cost=1):
-        """Requirements constructor.
+        """Construct a requirements object.
 
         :param max_runtime: maximum runtime in seconds
         :type max_runtime: int
@@ -263,3 +259,5 @@ class Allocation(serializable.Serializable):
         :type data: dict
         """
         return Allocation(**data)
+# Ignore W0511: This is related to issue #333.
+# pylama:ignore=W0511

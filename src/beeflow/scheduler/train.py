@@ -1,21 +1,20 @@
-"""
-MARS Training program for BEE.
+"""MARS Training program for BEE.
 
 Implementation of the MARS training algorithm for BEE.
 """
+import argparse
+import json
 import numpy as np
 import tensorflow as tf
-import json
 
-import beeflow.scheduler.mars as mars
-import beeflow.scheduler.mars_util as mars_util
-import beeflow.scheduler.evaluate as evaluate
-import beeflow.scheduler.task as task
+from beeflow.scheduler import mars
+from beeflow.scheduler import mars_util
+from beeflow.scheduler import evaluate
+from beeflow.scheduler import task
 
 
-if __name__ == '__main__':
-    import argparse
-
+def main():
+    """Enter main training code."""
     parser = argparse.ArgumentParser()
     parser.add_argument('--workload', type=str,
                         default='./schedule_trace.txt')
@@ -45,7 +44,7 @@ if __name__ == '__main__':
     # Load the resource_file
     resource_cnt = 5  # default resource_cnt
     if args.resource_file is not None:
-        with open(args.resource_file) as fp:
+        with open(args.resource_file, encoding='utf-8') as fp:
             # Only counts resouces right now
             resource_cnt = len(json.load(fp))
 
@@ -64,7 +63,7 @@ if __name__ == '__main__':
     # for record in workload.records:
     for i in range(0, len(workload), args.step_size):
         # record = tf.constant([record])
-        tasks = workload[i:i+args.step_size]
+        tasks = workload[i:i + args.step_size]
         # Learn
         with tf.GradientTape() as tape1, tf.GradientTape() as tape2:
             ps = []
@@ -123,3 +122,13 @@ if __name__ == '__main__':
     actor.predict(vec)
     critic.predict(vec)
     mars.save_models(actor, critic, args.trained_model)
+
+
+if __name__ == '__main__':
+    main()
+# Ignore R0915: This warns about too many statements in the function above
+#               which requires a refactor related to issue #333.
+# Ignore W0511: This warns about TODOs in code which need to be addressed by issue #333.
+# Ignore C0103: There are a lot of these here and I'm thinking about just
+#               removing this file altogether.
+# pylama:ignore=R0915,W0511,C0103

@@ -1,20 +1,14 @@
-"""Test internal MARS functions.
-
-Test internal MARS functions.
-"""
+"""Test internal MARS functions."""
 import os
 import tensorflow as tf
 
-import beeflow.scheduler.mars_util as mars_util
-import beeflow.scheduler.mars as mars
-import beeflow.scheduler.task as task
+from beeflow.scheduler import mars_util
+from beeflow.scheduler import mars
+from beeflow.scheduler import task
 
 
 def test_workflow2vec_one_task():
-    """Test workflow2vec() with one task.
-
-    Test workflow2vec() with one task.
-    """
+    """Test workflow2vec() with one task."""
     tasks = [task.Task(workflow_name='workflow-1', task_name='task-1',
              requirements={'cost': 3.0, 'max_runtime': 2})]
 
@@ -28,10 +22,7 @@ def test_workflow2vec_one_task():
 
 
 def test_workflow2vec_three_tasks():
-    """Test workflow2vec() with three tasks.
-
-    Test workflow2vec() with three tasks.
-    """
+    """Test workflow2vec() with three tasks."""
     tasks = [
         task.Task(workflow_name='workflow-1', task_name='task-1',
                   requirements={'cost': 3.0, 'max_runtime': 4}),
@@ -55,11 +46,9 @@ def test_workflow2vec_three_tasks():
     assert all(v == 0.0 for v in vec[6:])
     # assert vec == []
 
-def test_model_default():
-    """Test saving a default model.
 
-    Test saving a default model.
-    """
+def test_model_default():
+    """Test saving a default model."""
     # TODO: Choose a truly temporary filename
     fname = '/tmp/test-model'
 
@@ -83,3 +72,5 @@ def test_model_default():
 #    assert mars.build_availability_list(tasks, tasks[0], []) == []
 
 # TODO: Add more tests for test_build_availability_list()
+# Ignore W0511: This is related to issue #333
+# pylama:ignore=W0511

@@ -1,9 +1,9 @@
-"""MARS RL implementation.
-"""
+"""MARS RL implementation."""
 import json
 import os
 import tensorflow as tf
-import beeflow.scheduler.mars_util as mars_util
+
+from beeflow.scheduler import mars_util
 
 
 def _get_action(x, total_avail):
@@ -13,22 +13,15 @@ def _get_action(x, total_avail):
     :param x: tensor to calculate the action from
     :type x: tf.Tensor
     """
-    xl = list(x[0].numpy())
-    return xl.index(max(xl)) / float(len(xl) - 1) * (total_avail - 1)
+    actions = list(x[0].numpy())
+    return actions.index(max(actions)) / float(len(actions) - 1) * (total_avail - 1)
 
 
 class Model:
-    """Model for MARS.
+    """Model for MARS."""
 
-    Model for MARS.
-    """
-
-    # TODO
     def __init__(self, layers=None):
-        """Constructor for MARS.
-
-        Constructor for MARS.
-        """
+        """Construct the MARS object."""
         # TODO: Determine the best number of layers
         if layers is not None:
             self.layers = layers
@@ -60,8 +53,8 @@ class Model:
             params.append(x)
             x = tf.matmul(x, layer)
         # Calculate the action
-        a = _get_action(x, total_avail)
-        return a, params, x
+        action = _get_action(x, total_avail)
+        return action, params, x
 
     def make_batch(self, cost, result, params):
         """Make the batch for this expected value.
@@ -127,8 +120,7 @@ class Model:
         :param fname: file name
         :type fname: str
         """
-        # TODO
-        with open(fname) as fp:
+        with open(fname, encoding='utf-8') as fp:
             layers = json.load(fp)
         layers = [tf.convert_to_tensor(layer) for layer in layers]
         return Model(layers)
@@ -144,7 +136,7 @@ class Model:
         layers = [[[float(n) for n in tensor] for tensor in layer]
                   for layer in self.layers]
         print(layers)
-        with open(fname, 'w') as fp:
+        with open(fname, 'w', encoding='utf-8') as fp:
             json.dump(layers, fp=fp)
 
 
@@ -251,3 +243,5 @@ def task2vec(task):
         float(task.requirements.cost),
         float(task.requirements.max_runtime),
     ]
+# Ignore W0511: This relates to issue #333
+# pylama:ignore=W0511
