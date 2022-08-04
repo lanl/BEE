@@ -12,9 +12,11 @@ Requirements:
         Charliecloud is installed on LANL clusters and can be invoked using the module command. Charliecloud is also easily installed in user space and requires no privilege to install. BEE runs dependencies from a Charliecloud container and uses Charliecloud to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.
 
 
-    * **BEE dependency container**: 
+    * **BEE dependency container**:
+        If you are on a LANL system there you may use the dependency container supplied by the BEE team. The path is **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**
 
         At this time the only dependency needed in a container is **neo4j version 3.5.x**. To build the container for X86. Invoke Charliecloud on the cluster where BEE components will be running to pull the graph database **neo4j** and create a Charliecloud tarball.
+
 
 .. code-block::
 

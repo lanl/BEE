@@ -17,7 +17,7 @@ Installation
 It is possible to install Poetry using Pip, but it is recommended to instead
 install it via a script using the following command:
 
-`curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python3`
+`curl -sSL https://install.python-poetry.org | python3 -`
 
 This will install Poetry to `~/.poetry/bin`, which should be automatically prepended to your PATH
 by modifying your `~/.profile`, `~/.bash_profile`, and/or `~/.bashrc`. If you are using a

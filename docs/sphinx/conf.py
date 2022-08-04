@@ -27,7 +27,6 @@ author = 'BEE Development Team'
 # Release version from pypoetry.toml Needs poetry environment to run correctly 
 version = importlib.metadata.version("beeflow")
 
-# Logo place holder - We need a better logo
 html_logo = "BEE_Symbol.jpg"
 # -- General configuration ---------------------------------------------------
 
