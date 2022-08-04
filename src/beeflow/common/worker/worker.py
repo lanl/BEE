@@ -19,6 +19,14 @@ except ModuleNotFoundError:
     pass
 
 
+class WorkerError(Exception):
+    """Worker error class."""
+
+    def __init__(self, *args):
+        """Construct a new worker error."""
+        self.args = args
+
+
 class Worker(ABC):
     """Worker interface for a generic workload manager."""
 

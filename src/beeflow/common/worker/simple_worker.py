@@ -9,17 +9,6 @@ from beeflow.cli import log
 import beeflow.common.log as bee_logging
 import os
 
-# Import all implemented container runtime drivers now
-# No error if they don't exist
-try:
-    from beeflow.common.crt_drivers import CharliecloudDriver
-except ModuleNotFoundError:
-    pass
-try:
-    from beeflow.common.crt_drivers import SingularityDriver
-except ModuleNotFoundError:
-    pass
-
 
 class SimpleWorker(Worker):
     """The Worker interface for no workload manager."""
