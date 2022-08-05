@@ -1,4 +1,4 @@
-
+"""Cloud init module."""
 from beeflow.common.cloud import chameleoncloud
 from beeflow.common.cloud import openstack
 from beeflow.common.cloud import provider
@@ -20,4 +20,6 @@ def get_provider(name, **kwargs):
     if name in providers:
         return providers[name](**kwargs)
 
-    raise RuntimeError('Invalid provider "%s"' % name)
+    raise RuntimeError(f'Invalid provider "{name}"')
+# Ignore W0611: These are meant to be used by external code
+# pylama:ignore=W0611
