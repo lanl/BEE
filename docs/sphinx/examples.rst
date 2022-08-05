@@ -115,7 +115,7 @@ This example uses Charliecloud. The image will still be in the Charliecloud cach
     clamr-ffmpeg
     debian:stable-slim
 
-There are other commands for resetting (clearing out all images) and deleting an image. Type ``ch-image --help`` for more information or read the [Charliecloud documentation](https://hpc.github.io/charliecloud/).
+There are other commands for resetting (clearing out all images) and deleting an image. Type ``ch-image --help`` more information consult the `Charliecloud documentation <https://hpc.github.io/charliecloud/>`_.
 
 CLAMR copy workflow
 --------------------

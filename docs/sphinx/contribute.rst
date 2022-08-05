@@ -1,8 +1,8 @@
 Contribute
 ************
 
-Workflow
-=========
+Git Workflow
+============
 
 BEE has two lifetime branches, develop and main. All Pull Requests's (PR's) will be reviewed and tested then merged into develop when tests pass and review is complete.
 
