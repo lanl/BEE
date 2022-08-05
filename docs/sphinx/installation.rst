@@ -49,8 +49,6 @@ Before creating a bee.conf file you will need to know the path to your **BEE dep
 
 The bee.conf configuration file is a text file and you can edit it to suit your needs. You may list the contents by typing ``bee_cfg list``.
 
-``**Todo: Add cautions about which values should probably remain the same**``
-
 
 **Caution: the default for container_archive is in the home directory. Some systems have small quotas for home directories and containers can be large files.**
 
