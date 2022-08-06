@@ -1,16 +1,19 @@
-import sys
+"""Configuration validor tests."""
 import pytest
 from beeflow.common.config_validator import ConfigValidator, ConfigError
 
 
 def test_empty():
+    """Test an empty config."""
     validator = ConfigValidator(description='empty test case')
-    assert validator.validate({}) == {}
+    assert validator.validate({}) == {} # noqa
     # It should not allow any extra keys
     with pytest.raises(ValueError):
         validator.validate({'key': {}})
 
+
 def test_two():
+    """Test a config with two sections."""
     conf = {'section0': {'key0': 'value'}, 'section1': {'key0': '123'}}
     valid_conf = {'section0': {'key0': 'value'}, 'section1': {'key0': 123}}
 
@@ -31,16 +34,19 @@ def test_two():
 
 
 def test_choices():
+    """Test a config option that can have a set of choices."""
     validator = ConfigValidator(description='test case for choice-based option')
     validator.section('section0', info='info')
     validator.option('section0', 'choice-key', choices=('A', 'B', 'C'), info='choice-based option')
 
-    assert validator.validate({'section0': {'choice-key': 'B'}}) == {'section0': {'choice-key': 'B'}}
+    assert (validator.validate({'section0': {'choice-key': 'B'}})
+            == {'section0': {'choice-key': 'B'}}) # noqa
     with pytest.raises(ValueError):
         assert validator.validate({'section0': {'choice-key': 'E'}})
 
 
 def test_depends_on():
+    """Test the depends_on relation for sections in a config."""
     validator = ConfigValidator(description='depends on relation test')
     validator.section('one', info='section one')
     validator.option('one', 'key', choices=('A', 'B'), info='choice-based option')
@@ -52,10 +58,12 @@ def test_depends_on():
         assert validator.validate({'one': {'key': 'B'}, 'two': {}})
     with pytest.raises(ValueError):
         validator.validate({'one': {'key': 'A'}})
-    validator.validate({'one': {'key': 'A'}, 'two': {'some-key': '123'}}) == {'one': {'key': 'A'}, 'two': {'some-key': '123'}}
+    assert (validator.validate({'one': {'key': 'A'}, 'two': {'some-key': '123'}})
+            == {'one': {'key': 'A'}, 'two': {'some-key': '123'}}) # noqa
 
 
 def test_depends_on_order():
+    """Test that the depends_on relation is not broken by ordering."""
     validator = ConfigValidator(description='depends on relation test')
     # Section two depends on one::key == A
     validator.section('two', info='section two', depends_on=('one', 'key', 'A'))
@@ -71,6 +79,7 @@ def test_depends_on_order():
 
 
 def test_depends_on_validate():
+    """Test that validation does not break the depends_on relation."""
     validator = ConfigValidator(description='depends on relation test')
     # Section two depends on one::key == A
     validator.section('two', info='section two', depends_on=('one', 'key', 'A'))
@@ -84,6 +93,7 @@ def test_depends_on_validate():
 
 
 def test_section_order():
+    """Ensure that the order of section insertion is preserved."""
     validator = ConfigValidator(description='section order test')
     validator.section('one', info='section one')
     validator.option('one', 'key-a', info='some option')
@@ -97,7 +107,10 @@ def test_section_order():
 
 
 def test_double_definition():
-    validator = ConfigValidator(description='test case for when code tries to define sections and options twice')
+    """Ensure that double definitions of sections and options are not allowed."""
+    validator = ConfigValidator(
+        description='test case for when code tries to define sections and options twice'
+    )
 
     validator.section('section', info='some section')
     with pytest.raises(ConfigError):
@@ -109,13 +122,16 @@ def test_double_definition():
 
 
 def test_missing_section():
+    """Test validation of a missing section."""
     validator = ConfigValidator(description='missing section')
 
     with pytest.raises(ConfigError):
-        validator.option('some-section', 'option', info='defining an option, but the section is not defined')
+        validator.option('some-section', 'option',
+                         info='defining an option, but the section is not defined')
 
 
 def test_option_attr():
+    """Test adding attributes to a section option."""
     validator = ConfigValidator(description='option with attribute')
 
     validator.section('abc', info='some section')

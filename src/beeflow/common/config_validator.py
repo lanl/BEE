@@ -23,27 +23,26 @@ class ConfigValidator:
             new_conf[sec_name] = {}
             section = conf[sec_name]
             if sec_name not in self._sections:
-                raise ValueError('section "{}" is not defined'.format(sec_name))
+                raise ValueError(f'section "{sec_name}" is not defined')
             # check that this section is valid in this context
             dep = self._sections[sec_name].depends_on
             if not self._validate_section(conf, depends_on=dep):
                 raise ValueError(
-                    "section '%s' requires that %s::%s == '%s'"
-                    % (sec_name, dep[0], dep[1], dep[2])
+                    f"section '{sec_name}' requires that {dep[0]}::{dep[1]} == '{dep[2]}'"
                 )
             # validate each option
             for opt_name in section:
                 key = (sec_name, opt_name)
                 if key not in self._options:
                     raise ValueError(
-                        "option '{}' in section '{}' is not defined".format(opt_name, sec_name)
+                        f"option '{opt_name}' in section '{sec_name}' is not defined"
                     )
                 option = self._options[key]
                 try:
                     new_conf[sec_name][opt_name] = option.validate(section[opt_name])
-                except ValueError as ve:
+                except ValueError as err:
                     raise ValueError(
-                        '{}::{}: {}'.format(sec_name, opt_name, ve.args[0])
+                        f'{sec_name}::{opt_name}: {err.args[0]}'
                     ) from None
         # then check required options
         for key in self._options:
@@ -52,8 +51,7 @@ class ConfigValidator:
                 continue
             if key[0] not in conf or key[1] not in conf[key[0]]:
                 raise ValueError(
-                    "option '%s' in section '%s' is required but has not been set"
-                    % (key[1], key[0])
+                    f"option '{key[1]}' in section '{key[0]}' is required but has not been set"
                 )
 
         return new_conf
@@ -78,7 +76,7 @@ class ConfigValidator:
     def section(self, sec_name, info, depends_on=None):
         """Define a configuration section."""
         if sec_name in self._sections:
-            raise ConfigError("section '{}' has already been defined".format(sec_name))
+            raise ConfigError(f"section '{sec_name}' has already been defined")
         self._sections[sec_name] = ConfigSection(info, depends_on=depends_on)
         # save insertion order
         self._section_order.append(sec_name)
@@ -86,21 +84,21 @@ class ConfigValidator:
     def option(self, sec_name, opt_name, *args, **kwargs):
         """Define a configuration option."""
         if sec_name not in self._sections:
-            raise ConfigError("section '{}' has not been defined".format(sec_name))
+            raise ConfigError(f"section '{sec_name}' has not been defined")
         key = (sec_name, opt_name)
         if key in self._options:
             raise ConfigError(
-                "option '{}' in section '{}' has already been defined".format(opt_name, sec_name)
+                f"option '{opt_name}' in section '{sec_name}' has already been defined"
             )
         try:
             self._options[key] = ConfigOption(*args, **kwargs)
-        except ConfigError as ce:
-            raise ConfigError('{}::{}: {}'.format(sec_name, opt_name, ce.args[0])) from None
+        except ConfigError as err:
+            raise ConfigError(f'{sec_name}::{opt_name}: {err.args[0]}') from None
 
     @property
     def sections(self):
         """Return all sections in order as list of tuples (sec_name, section)."""
-        sec_names = [sec_name for sec_name in self._section_order]
+        sec_names = list(self._section_order)
         s = set()
         order = []
         # Ensure dependency ordering
@@ -118,7 +116,7 @@ class ConfigValidator:
 
     def options(self, sec_name):
         """Return all options for a given section."""
-        return [(key[1], self._options[key]) for key in self._options if key[0] == sec_name]
+        return [(key[1], value) for key, value in self._options.items() if key[0] == sec_name]
 
 
 class ConfigSection:
@@ -146,6 +144,6 @@ class ConfigOption:
         """Validate the value and return it."""
         if self.choices is not None:
             if value not in self.choices:
-                raise ValueError("value must be one of {}; found '{}'".format(self.choices, value))
+                raise ValueError(f"value must be one of {self.choices}; found '{value}'")
             return value
         return self._validator(value)
