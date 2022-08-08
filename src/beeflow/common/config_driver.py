@@ -34,7 +34,7 @@ else:
 
 
 class BeeConfig:
-    r"""Class to manage and store all BEE configuration.
+    """Class to manage and store all BEE configuration.
 
     All configuration values can be retrieved by using the get(section, key)
     class method. If those particular values are not in the config file, then
@@ -49,16 +49,23 @@ class BeeConfig:
     complexity and act as documentation as more keys are added.
 
     Configuration file locations by supported platform:
+
     Linux:
       sysconfig_file = '/etc/beeflow/bee.conf'
+
       userconfig_file = '~/.config/beeflow/bee.conf'
+
     MacOS:
       sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
+
       userconfig_file = '~/Library/Application Support/beeflow/bee.conf'
+
     Windows:
       sysconfig_file = NOT SUPPORTED. Should be windows registry.
+
       userconfig_file = '%APPDATA%\beeflow\bee.conf'
     """
+
 
     CONFIG = None
 

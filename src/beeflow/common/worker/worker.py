@@ -105,7 +105,7 @@ class Worker(ABC):
         """Worker submits task; returns job_id, job_state.
 
         :param task: instance of Task
-        :rtype tuple (int, string)
+        :rtype: tuple (int, string)
         """
 
     @abstractmethod
@@ -114,7 +114,7 @@ class Worker(ABC):
 
         :param job_id: to be cancelled
         :type job_id: integer
-        :rtype string
+        :rtype: string
         """
 
     @abstractmethod
@@ -123,5 +123,5 @@ class Worker(ABC):
 
         :param job_id: job id to query for status.
         :type job_id: int
-        :rtype string
+        :rtype: string
         """

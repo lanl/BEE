@@ -2,7 +2,6 @@
 
 Delegates the actual work to an instance of a subclass of
 the abstract base class 'Worker'. Default: 'SlurmWorker' class.
-Worker may be a configuration value in the future.
 """
 
 from beeflow.common.worker.slurm_worker import SlurmWorker
@@ -27,7 +26,7 @@ class WorkerInterface:
         """Worker builds script and submits task as job returns job_id, job_state.
 
         :param task: instance of Task
-        :rtype tuple (int, string)
+        :rtype: tuple (int, string)
         """
         # First prepare for the task (create necessary directories, etc.)
         self._worker.prepare(task)
@@ -39,7 +38,7 @@ class WorkerInterface:
 
         :param job_id: job_id to be cancelled
         :type job_id: integer
-        :rtype string
+        :rtype: string
         """
         return self._worker.cancel_task(job_id)
 
@@ -48,7 +47,7 @@ class WorkerInterface:
 
         :param job_id: job id to query for status.
         :type job_id: int
-        :rtype tuple (int, string)
+        :rtype: tuple (int, string)
         """
         return self._worker.query_task(job_id)
 # Ignore module imported but unused error.
