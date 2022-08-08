@@ -44,10 +44,9 @@ def build_main(task):
             try:
                 return_code = return_obj.returncode
             except AttributeError:
-                return_code = int(return_obj)
+                raise BuildError('Could not get the return code from the build operation')
         except CalledProcessError:
-            return_code = 1
-            log.warning(f'There was a problem executing {op_dict["op_name"]}!')
+            raise BuildError(f'There was a problem executing {op_dict["op_name"]}!') from None
         # Case 1: Not the last operation spec'd, but is a terminal operation.
         if op_dict["op_terminal"] and return_code == 0:
             op_values = [None, None, None, True]

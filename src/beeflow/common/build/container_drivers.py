@@ -12,6 +12,7 @@ from beeflow.cli import log
 from beeflow.common.build.build_driver import BuildDriver
 import beeflow.common.log as bee_logging
 from beeflow.common.crt_drivers import CharliecloudDriver as crt_driver
+from beeflow.common.build.build_error import BuildError
 
 
 class ContainerBuildDriver(BuildDriver):
@@ -126,17 +127,15 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         task_addr = self.get_docker_req('dockerPull')
 
         # Use task specified image if image parameter empty
-        if not addr:
+        if addr is None:
             addr = task_addr
 
         # If Requirement is set but not specified, and param empty, do nothing and error.
-        if self.task.requirements == {} and not addr:
-            log.error("dockerPull set but no image path specified.")
-            return 1
+        if self.task.requirements == {} and addr is not None:
+            raise BuildError("dockerPull set but no image path specified.")
         # If no image specified and no image required, nothing to do.
-        if not task_addr and not addr:
-            log.info('No image specified and no image required, nothing to do.')
-            return 0
+        if task_addr is None and addr is None:
+            raise BuildError('dockerPull not set.')
 
         # Determine name for successful build target
         ch_build_addr = addr.replace('/', '%')
@@ -146,7 +145,6 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         if os.path.exists(ch_build_target) and not force:
             log.info('Image already exists. If you want to refresh container, use force option.')
             log.info(f'Image path: {ch_build_target}')
-            return 0
         # Force remove any cached images if force==True
         if os.path.exists(ch_build_target) and force:
             try:
@@ -177,9 +175,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         log.warning('Charliecloud does not have the concept of a layered image tarball.')
         log.warning('Did you mean to use dockerImport?')
         if req_dockerload:
-            log.warning('dockerLoad specified as requirement.')
-            return 1
-        return 0
+            # TODO: Should this raise an error, or remain as a warning?
+            raise BuildError('dockerLoad specified as requirement.')
 
     def process_docker_file(self, task_dockerfile=None, force=False):
         """Get and process the CWL compliant dockerFile dockerRequirement.
@@ -192,14 +189,12 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # beeflow:containerName is always processed before dockerFile, so safe to assume it exists
         # otherwise, raise an error.
         if self.container_name is None:
-            log.error("dockerFile may not be specified without beeflow:containerName")
-            return 1
+            raise BuildError("dockerFile may not be specified without beeflow:containerName")
 
         # Need dockerfile in order to build, else fail
         task_dockerfile = self.get_docker_req('dockerFile')
         if not task_dockerfile:
-            log.error("dockerFile not specified as task attribute or parameter.")
-            return 1
+            raise BuildError("dockerFile not specified as task attribute or parameter.")
 
         # Create context directory to use as Dockerfile context, use container name so user
         # can prep the directory with COPY sources as needed.
@@ -307,8 +302,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Need container_path to know how dockerfile should be named, else fail
         task_container_path = self.get_docker_req('beeflow:copyContainer')
         if not task_container_path:
-            log.error("beeflow:copyContainer: You must specify the path to an existing container.")
-            return 1
+            raise BuildError("beeflow:copyContainer: You must specify the path to an existing container.")
 
         if self.container_name:
             copy_target = '/'.join([self.container_archive, self.container_name + '.tar.gz'])
@@ -345,8 +339,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """
         task_container_name = self.get_docker_req('beeflow:containerName')
         if not task_container_name and self.docker_image_id is None:
-            log.error("beeflow:containerName: You must specify the containerName or dockerImageId")
-            return 1
+            raise BuildError("beeflow:containerName: You must specify the containerName or dockerImageId")
         self.container_name = task_container_name
         log.info(f'Setting container_name to: {self.container_name}')
         return 0
