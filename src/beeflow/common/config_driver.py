@@ -34,7 +34,7 @@ else:
 
 
 class BeeConfig:
-    """Class to manage and store all BEE configuration.
+    r"""Class to manage and store all BEE configuration.
 
     All configuration values can be retrieved by using the get(section, key)
     class method. If those particular values are not in the config file, then
@@ -63,9 +63,8 @@ class BeeConfig:
     Windows:
       sysconfig_file = NOT SUPPORTED. Should be windows registry.
 
-      userconfig_file = '%APPDATA%\beeflow\bee.conf'
+      userconfig_file = '%APPDATA%\\beeflow\\bee.conf'
     """
-
 
     CONFIG = None
 
@@ -568,9 +567,9 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
 
 
 @app.command()
-def dump(path: str = typer.Argument(default=USERCONFIG_FILE,
+def show(path: str = typer.Argument(default=USERCONFIG_FILE,
                                     help='Path to config file')):
-    """Dump the contents of the default bee.conf."""
+    """Show the contents of the default bee.conf."""
     if not os.path.exists(path):
         print('The bee.conf does not exist yet. Please run `bee_cfg new`.')
         return
