@@ -13,7 +13,7 @@ Requirements:
 
 
     * **BEE dependency container**:
-        If you are on a LANL system there you may use the dependency container supplied by the BEE team. The path is **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**
+        If you are on a LANL system, you may use the dependency container supplied by the BEE team: **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**
 
         At this time the only dependency needed in a container is **neo4j version 3.5.x**. To build the container for X86. Invoke Charliecloud on the cluster where BEE components will be running to pull the graph database **neo4j** and create a Charliecloud tarball.
 
@@ -21,16 +21,14 @@ Requirements:
 .. code-block::
 
         ch-image pull neo4j:3.5.22
-        ch-convert -o tar neo4j:3.5.22 neo4j-3-5-22.tar.gz (or path of your choice)
+        ch-convert -o tar neo4j:3.5.22 neo4j-3-5-22.tar.gz
 
-        Add the path to the bee.conf file in the Default section as:
-
-            bee_dep_image = (path to neo4j-3-5-22.tar.gz)
+..
 
 Installation:
 =============
 
-BEE is a PyPI package that can be installed using pip. On an HPC cluster you may want to set up a miniconda or conda environment or other python environment where you can install beeflow using the following command.
+BEE is a PyPI package that can be installed using pip. On an HPC cluster you may want to set up a miniconda or conda environment or other python environment where you can install beeflow using the following command:
 
 .. code-block::
 
@@ -43,16 +41,20 @@ Creating Configuration File:
 ----------------------------
 You will need to setup the bee configuration file that will be located in:
 
-    $HOME/.config/beeflow/bee.conf
+    Linux:  ``~/.config/beeflow/bee.conf``
 
-Before creating a bee.conf file you will need to know the path to your **BEE dependency container**, and the type of workload scheduler (Slurm or LSF). Once you are ready type ``bee_cfg new``
+    macOS:  ``~/Library/Application Support/beeflow/bee.conf``
 
-The bee.conf configuration file is a text file and you can edit it to suit your needs. You may list the contents by typing ``bee_cfg list``.
+Before creating a bee.conf file you will need to know the path to your **BEE dependency container** and the type of workload scheduler (Slurm or LSF). (On LANL systems you may use the BEE provided container: **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**).
+
+Once you are ready type ``bee_cfg new``
+
+The bee.conf configuration file is a text file and you can edit it for your needs. You may show the contents by typing ``bee_cfg show``.
 
 
-**Caution: the default for container_archive is in the home directory. Some systems have small quotas for home directories and containers can be large files.**
+**Caution: The default for container_archive is in the home directory. Some systems have small quotas for home directories and containers can be large files.**
 
-**bee_cfg** has other options including a configuration validator. For more options run ``bee_cfg info``
+**bee_cfg** has other options including a configuration validator. For more information run ``bee_cfg info``
 
 Starting up the BEE components:
 -------------------------------
