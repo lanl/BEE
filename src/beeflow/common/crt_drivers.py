@@ -9,11 +9,15 @@ from beeflow.common.build.build_driver import task2arg
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
+# The bc object must be created before importing other parts of BEE
+# This is needed to generate Sphinx documentation
+if not bc.ready():
+    bc.init()
+
 USERCONFIG = bc.userconfig_path()
 
 bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
-
 
 class ContainerRuntimeResult:
     """Result to be used for returning to the worker code."""
@@ -35,7 +39,7 @@ class ContainerRuntimeDriver(ABC):
 
         Returns a tuple (pre-commands, main-command, post-commands).
         :param task: instance of Task
-        :rtype tuple of (list of list of str, list of str, list of list of str)
+        :rtype: tuple of (list of list of str, list of str, list of list of str)
         """
 
     @abstractmethod
@@ -43,7 +47,7 @@ class ContainerRuntimeDriver(ABC):
         """Create text for builder pre-run using the container runtime.
 
         :param task: instance of Task
-        :rtype string
+        :rtype: string
         """
 
 

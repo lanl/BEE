@@ -27,7 +27,7 @@ class ContainerRuntimeInterface:
         """Create text required to run the task using the container_runtime.
 
         :param task: instance of Task
-        :rtype string
+        :rtype: string
         """
         return self._crt_driver.run_text(task)
 
@@ -36,7 +36,7 @@ class ContainerRuntimeInterface:
 
         :param task: instance of Task
         :param userconfig: path to userconfig file
-        :rtype string
+        :rtype: string
         """
         return self._crt_driver.build_text(userconfig, task)
 # Ignore module imported but unused error. No way to know which crt will be needed

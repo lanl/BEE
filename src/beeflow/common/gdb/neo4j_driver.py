@@ -225,7 +225,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
         Returns a tuple of (inputs, outputs).
 
-        :rtype (list of InputParameter, list of OutputParameter)
+        :rtype: (list of InputParameter, list of OutputParameter)
         """
         with self._driver.session() as session:
             inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs))

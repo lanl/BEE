@@ -20,7 +20,7 @@ class SimpleWorker(Worker):
         """Worker submits task; returns job_id, job_state.
 
         :param task: instance of Task
-        :rtype tuple (int, string)
+        :rtype: tuple (int, string)
         """
         script = self.build_text(task)
         script_path = os.path.join(self.task_save_path(task), f'{task.name}-{task.id}.sh')
@@ -35,7 +35,7 @@ class SimpleWorker(Worker):
 
         :param job_id: to be cancelled
         :type job_id: integer
-        :rtype string
+        :rtype: string
         """
         self.tasks[job_id].kill()
         return 'CANCELLED'
@@ -45,7 +45,7 @@ class SimpleWorker(Worker):
 
         :param job_id: job id to query for status.
         :type job_id: int
-        :rtype string
+        :rtype: string
         """
         return_code = self.tasks[job_id].poll()
         # This assumes a standard returncode

@@ -8,13 +8,29 @@ import random
 import shutil
 import textwrap
 import typer
-import sys
 
 from beeflow.common.config_validator import ConfigValidator
 from beeflow.common.cli import NaturalOrderGroup
 
 
+# System specific path set up
+HOME_DIR = os.path.expanduser('~/')
 _SYSTEM = platform.system()
+if _SYSTEM == 'Linux':
+    CONF_DIR = os.path.join(HOME_DIR, '.config/beeflow')
+    SYSCONFIG_FILE = '/etc/beeflow/bee.conf'
+    USERCONFIG_FILE = os.path.expanduser('~/.config/beeflow/bee.conf')
+elif _SYSTEM == 'Darwin':
+    CONF_DIR = os.path.expanduser('~/Library/Application Support/beeflow')
+    SYSCONFIG_FILE = '/Library/Application Support/beeflow/bee.conf'
+    USERCONFIG_FILE = os.path.expanduser(
+        '~/Library/Application Support/beeflow/bee.conf')
+elif _SYSTEM == 'Windows':
+    CONF_DIR = os.path.expandvars(r'%APPDATA%\beeflow')
+    SYSCONFIG_FILE = None
+    USERCONFIG_FILE = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
+else:
+    raise RuntimeError(f'System "{_SYSTEM}" is not supported')
 
 
 class BeeConfig:
@@ -33,29 +49,24 @@ class BeeConfig:
     complexity and act as documentation as more keys are added.
 
     Configuration file locations by supported platform:
+
     Linux:
       sysconfig_file = '/etc/beeflow/bee.conf'
+
       userconfig_file = '~/.config/beeflow/bee.conf'
+
     MacOS:
       sysconfig_file = '/Library/Application Support/beeflow/bee.conf'
+
       userconfig_file = '~/Library/Application Support/beeflow/bee.conf'
+
     Windows:
       sysconfig_file = NOT SUPPORTED. Should be windows registry.
-      userconfig_file = '%APPDATA%\beeflow\bee.conf'
+
+      userconfig_file = '%APPDATA%\\beeflow\\bee.conf'
     """
 
     CONFIG = None
-    # Set default config locations
-    if _SYSTEM == 'Linux':
-        SYSCONFIG_FILE = '/etc/beeflow/bee.conf'
-        USERCONFIG_FILE = os.path.expanduser('~/.config/beeflow/bee.conf')
-    elif _SYSTEM == 'Darwin':
-        SYSCONFIG_FILE = '/Library/Application Support/beeflow/bee.conf'
-        USERCONFIG_FILE = os.path.expanduser(
-            '~/Library/Application Support/beeflow/bee.conf')
-    elif _SYSTEM == 'Windows':
-        SYSCONFIG_FILE = None
-        USERCONFIG_FILE = os.path.expandvars(r'%APPDATA%\beeflow\bee.conf')
 
     def __init__(self, **kwargs):
         """Do not use this constructor."""
@@ -75,23 +86,24 @@ class BeeConfig:
         We check the platform and read in system and user configuration files.
         If the user configuration file doesn't exist we create it with a [DEFAULT] section.
         """
+        global USERCONFIG_FILE
         if cls.CONFIG is not None:
             raise RuntimeError(
                 'BeeConfig.init() has been called more than once. BeeConfig is a singleton class.'
             )
         config = ConfigParser()
         if userconfig is not None:
-            cls.USERCONFIG_FILE = userconfig
+            USERCONFIG_FILE = userconfig
         # Try and read the file
         try:
-            with open(cls.USERCONFIG_FILE) as fp:
+            with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
             print('Configuration file does not exist!')
         # remove default keys from the other sections
-        default_keys = [key for key in config['DEFAULT']]
+        default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
-                             if sec_name == 'DEFAULT' or key not in default_keys}
+                             if sec_name == 'DEFAULT' or key not in default_keys} # noqa
                   for sec_name in config}
         # Validate the config
         cls.CONFIG = VALIDATOR.validate(config)
@@ -99,7 +111,7 @@ class BeeConfig:
     @classmethod
     def userconfig_path(cls):
         """Get the path of the user config."""
-        return cls.USERCONFIG_FILE
+        return USERCONFIG_FILE
 
     @classmethod
     def get(cls, sec_name, opt_name):
@@ -113,7 +125,7 @@ class BeeConfig:
         if cls.CONFIG is None:
             raise RuntimeError('BeeConfig has not been initialized')
         try:
-            return cls.CONFIG[sec_name][opt_name]
+            return cls.CONFIG[sec_name][opt_name] # noqa (this object is subscritable)
         except KeyError:
             raise RuntimeError(
                 f'Option {sec_name}::{opt_name} was not found. Please contact '
@@ -251,11 +263,11 @@ def job_template_init(path, cur_opts):
     return path
 
 
-def bee_workdir_init(path, cur_opts):
+def bee_workdir_init(path, _cur_opts):
     """BEE workdir init function.
 
     :param path: chosen path for the bee workdir
-    :param cur_opts: current chosen options form the config generator
+    :param _cur_opts: current chosen options form the config generator
     :return: initialized bee workdir path
     """
     path = os.path.expanduser(path)
@@ -284,9 +296,6 @@ DEFAULT_HTTPS_PORT = 7473 + OFFSET
 DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
-HOME_DIR = os.path.expanduser('~/')
-CONF_DIR = join_path(HOME_DIR, '.config', 'beeflow')
-DEFAULT_BEE_CONF = join_path(CONF_DIR, 'bee.conf')
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 USER = getpass.getuser()
 # Create the validator
@@ -319,7 +328,8 @@ VALIDATOR.option('task_manager', 'runner_opts', validator=str, attrs={'default':
 # Note: I've added a special attrs keyword which can include anything. In this
 # case it's being used to store a special 'init' function that can be used to
 # initialize the parameter when a user is generating a new configuration.
-VALIDATOR.option('task_manager', 'job_template', info='job template to use for generating submission scripts',
+VALIDATOR.option('task_manager', 'job_template',
+                 info='job template to use for generating submission scripts',
                  validator=validate_file,
                  attrs={'init': job_template_init, 'default': join_path(CONF_DIR, 'submit.jinja')})
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
@@ -333,7 +343,8 @@ VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''}, validator=str,
                  info='extra Charliecloud setup to put in a job script')
 # Graph Database
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
-VALIDATOR.option('graphdb', 'hostname', attrs={'default': 'localhost'}, info='hostname of database')
+VALIDATOR.option('graphdb', 'hostname', attrs={'default': 'localhost'},
+                 info='hostname of database')
 VALIDATOR.option('graphdb', 'dbpass', attrs={'default': 'password'}, info='password for database')
 VALIDATOR.option('graphdb', 'bolt_port', attrs={'default': DEFAULT_BOLT_PORT}, validator=int,
                  info='port used for the BOLT API')
@@ -461,8 +472,8 @@ class ConfigGenerator:
                         option.attrs['init'](value, self.sections)
                     try:
                         option.validate(value)
-                    except ValueError as ve:
-                        print('ERROR:', ve)
+                    except ValueError as err:
+                        print('ERROR:', err)
                         value = None
                 print()
                 self.sections[sec_name][opt_name] = value
@@ -472,29 +483,29 @@ class ConfigGenerator:
         """Save the config to a file."""
         print()
         print('The following configuration options were chosen:')
-        for sec_name in self.sections:
+        for sec_name, section in self.sections.items():
             print()
             print(f'[{sec_name}]')
-            for opt_name in self.sections[sec_name]:
-                print(f'{opt_name} = {self.sections[sec_name][opt_name]}')
+            for opt_name in section:
+                print(f'{opt_name} = {section[opt_name]}')
         print()
-        ans = input(f'Would you like to save this config? [y/n] ')
+        ans = input('Would you like to save this config? [y/n] ')
         if ans.lower() != 'y':
             print('Quitting without saving')
             return
         try:
-            with open(self.fname, 'w') as fp:
+            with open(self.fname, 'w', encoding='utf-8') as fp:
                 print('# BEE Configuration File', file=fp)
-                for sec_name in self.sections:
-                    if not self.sections[sec_name]:
+                for sec_name, section in self.sections.items():
+                    if not section:
                         continue
                     print(file=fp)
                     print(f'[{sec_name}]'.format(sec_name), file=fp)
-                    for opt_name in self.sections[sec_name]:
-                        print(f'{opt_name} = {self.sections[sec_name][opt_name]}', file=fp)
+                    for opt_name in section:
+                        print(f'{opt_name} = {section[opt_name]}', file=fp)
         except FileNotFoundError:
             print('Configuration file does not exist!')
-        print(70*'#')
+        print(70 * '#')
         print('Before running BEE, check defaults in the configuration file:',
               f'\n\t{self.fname}',
               '\n ** See documentation for values you should refrain from editing! **',
@@ -502,14 +513,15 @@ class ConfigGenerator:
               f'\n\t{self.sections["task_manager"]["job_template"]}',
               '\n ** Include job options (such as account) required for this system.**')
         print('\n(Try `bee_cfg info` to see more about each option)')
-        print(70*'#')
+        print(70 * '#')
 
 
 app = typer.Typer(no_args_is_help=False, add_completion=False, cls=NaturalOrderGroup)
 
 
 @app.command()
-def validate(path: str = typer.Argument(default=DEFAULT_BEE_CONF, help='Path to config file')):
+def validate(path: str = typer.Argument(default=USERCONFIG_FILE,
+                                        help='Path to config file')):
     """Validate an existing configuration file."""
     BeeConfig.init(path)
 
@@ -525,7 +537,8 @@ def info():
         print(f'## {sec_name}')
         if section.depends_on is not None:
             print()
-            print_wrap('*only required if %s::%s == "%s"*' % section.depends_on)
+            deps = section.depends_on
+            print_wrap(f'*only required if {deps[0]}::{deps[1]} == "{deps[2]}"*')
         print()
         print_wrap(f'{section.info}')
         print()
@@ -537,7 +550,8 @@ def info():
 
 
 @app.command()
-def new(path: str = typer.Argument(default=DEFAULT_BEE_CONF, help='Path to new config file')):
+def new(path: str = typer.Argument(default=USERCONFIG_FILE,
+                                   help='Path to new config file')):
     """Create a new config file."""
     if os.path.exists(path):
         if check_yes(f'Path "{path}" already exists.\nWould you like to save a copy of it?'):
@@ -551,14 +565,16 @@ def new(path: str = typer.Argument(default=DEFAULT_BEE_CONF, help='Path to new c
             print()
     ConfigGenerator(path, VALIDATOR).choose_values().save()
 
+
 @app.command()
-def list():
-    """List the contents of the default bee.conf."""
-    if not os.path.exists(DEFAULT_BEE_CONF):
+def show(path: str = typer.Argument(default=USERCONFIG_FILE,
+                                    help='Path to config file')):
+    """Show the contents of the default bee.conf."""
+    if not os.path.exists(path):
         print('The bee.conf does not exist yet. Please run `bee_cfg new`.')
         return
-    print(f'# {DEFAULT_BEE_CONF}')
-    with open(DEFAULT_BEE_CONF) as fp:
+    print(f'# {path}')
+    with open(path, encoding='utf-8') as fp:
         print(fp.read(), end='')
 
 

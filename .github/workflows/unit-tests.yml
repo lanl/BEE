@@ -7,13 +7,14 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    types: [opened, synchronize, edited]
+    types: [opened, synchronize, edited, labeled, unlabeled]
     branches: [main, develop]
 
 env: {}
 
 jobs:
   integration-test:
+    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP') || contains(github.event.pull_request.labels.*.name, 'no ci')) }}
     name: BEE Unit Tests
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
     # available on 20.04
@@ -29,6 +30,17 @@ jobs:
       # TODO: Add the script for the unit tests here
       - name: Unit tests
         run: |
-          #!/bin/sh
+          #!/bin/bash
           . ./venv/bin/activate
-          pytest src/beeflow/tests/test_*.py
+          . ./ci/env.sh
+          set +e
+          code=0
+          for test in src/beeflow/tests/test_*.py; do
+              pytest $test
+              result=$?
+              # Ensure the step fails if one test fails
+              if [ $result -ne 0 ]; then
+                  code=$result
+              fi
+          done
+          exit $code

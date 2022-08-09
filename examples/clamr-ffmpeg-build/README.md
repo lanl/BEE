@@ -1,6 +1,6 @@
 # CLAMR - FFMPEG workflow using CWL
 
-This workflow uses the DockerRequirement to build the clamr and ffmpeg in a container.
+This workflow uses the DockerRequirements dockerFile and beeflow:containerNameto build the clamr and ffmpeg in a container.
 
 ```
 clamr_wf.cwl - the main cwl  
