@@ -1,5 +1,5 @@
 #!/bin/sh
-# Setup, install and run BEE.
+# Setup and install BEE.
 
 . ./ci/env.sh
 
