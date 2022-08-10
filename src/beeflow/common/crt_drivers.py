@@ -19,6 +19,7 @@ USERCONFIG = bc.userconfig_path()
 bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='crt_driver.log')
 
+
 class ContainerRuntimeResult:
     """Result to be used for returning to the worker code."""
 
@@ -75,37 +76,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         cc_setup = bc.get('charliecloud', 'setup')
         return(chrun_opts, cc_setup)
 
-    def get_docker_req(self, docker_req_param, task):
-        """Get dockerRequirement, prioritizing requirements over hints.
-
-        :param docker_req_param: the dockerRequirement parameter (e.g. 'dockerFile')
-        :type docker_req_param: str
-
-        When requirements are specified hints will be ignored.
-        By default, tasks need not specify hints or requirements
-        """
-        # The container runtime treats hints and requirements as dicts
-        hints = dict(task.hints)
-        requirements = dict(task.requirements)
-        task_docker_req = None
-        # Get value if specified in requirements
-        try:
-            # Try to get Requirements
-            task_docker_req = requirements['DockerRequirement'][docker_req_param]
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
-            task_docker_req = None
-        # Ignore hints if requirements available
-        if not task_docker_req:
-            # Get value if specified in hints
-            try:
-                # Try to get Hints
-                task_docker_req = hints['DockerRequirement'][docker_req_param]
-            except (KeyError, TypeError):
-                # Task Hints are not mandatory. No docker_req_param specified in task hints.
-                task_docker_req = None
-        return task_docker_req
-
     def run_text(self, task):
         """Build text for Charliecloud batch script."""
         # Read container archive path from config.
@@ -118,7 +88,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         use_container = None
         task_container_name = None
         # The container runtime treats hints and requirements as dicts
-        task_container_name = self.get_docker_req('beeflow:containerName', task)
+        task_container_name = task.get_requirement('DockerRequirement', 'beeflow:containerName')
 
         baremetal = False
         if task_container_name is None:
@@ -127,14 +97,15 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             log.info('Assuming another DockerRequirement is runtime target.')
             runtime_target_list = []
             # Harvest beeflow:copyContainer if it exists.
-            task_container_path = self.get_docker_req('beeflow:copyContainer', task)
+            task_container_path = task.get_requirement('DockerRequirement',
+                                                       'beeflow:copyContainer')
             if task_container_path:
                 task_container_path = os.path.basename(task_container_path).split('.')[0]
                 runtime_target_list.append(task_container_path)
                 log.info('Found copyContainer tarball, assuming this contains the container name.')
 
             # Harvest dockerPull if it exists
-            task_addr = self.get_docker_req('dockerPull', task)
+            task_addr = task.get_requirement('DockerRequirement', 'dockerPull')
 
             if task_addr:
                 task_container_path = task_addr.replace('/', '%')
@@ -154,7 +125,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 log.info(f'Moving with expectation: {task_container_name} is the container target')
 
             # Check for `beeflow:useContainer` (only in hints for now)
-            use_container = self.get_docker_req('beeflow:useContainer', task)
+            use_container = task.get_requirement('DockerRequirement', 'beeflow:useContainer')
             if use_container:
                 log.info(f'Found beeflow:useContainer option. Using container {use_container}')
                 baremetal = False
