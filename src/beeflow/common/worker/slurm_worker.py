@@ -36,9 +36,9 @@ class SlurmWorker(Worker):
         """Build task script; returns filename of script."""
         task_text = self.build_text(task)
         task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
-        script_f = open(task_script, 'w', encoding='UTF-8')
-        script_f.write(task_text)
-        script_f.close()
+        with open(task_script, 'w', encoding='UTF-8') as script_f:
+            script_f.write(task_text)
+            script_f.close()
         return task_script
 
     @staticmethod
@@ -49,9 +49,8 @@ class SlurmWorker(Worker):
 
             if resp.status_code != 200:
                 raise WorkerError(f'Failed to query job {job_id}')
-            else:
-                status = json.loads(resp.text)
-                job_state = status['job_state']
+            status = json.loads(resp.text)
+            job_state = status['job_state']
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
         return job_state
@@ -85,5 +84,3 @@ class SlurmWorker(Worker):
             raise WorkerError(f'Unable to cancel job id {job_id}!')
         job_state = "CANCELLED"
         return job_state
-# Ignore R1732: Warnign about using open without "with' context. Seems like personal preference.
-# pylama:ignore=R1732

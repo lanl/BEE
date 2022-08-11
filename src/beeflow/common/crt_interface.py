@@ -22,7 +22,7 @@ class ContainerRuntimeInterface:
         :param crt_driver: container runtime driver (default: CharliecloudDriver)
         :type crt_driver: subclass of ContainerRuntimeDriver
         """
-        bee_workdir = bc.get('DEFAULT','bee_workdir')
+        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
         self._crt_driver = crt_driver(bee_workdir)
 
     def run_text(self, task):

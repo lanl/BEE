@@ -34,9 +34,9 @@ class LSFWorker(Worker):
         """Build task script; returns filename of script."""
         task_text = self.build_text(task)
         task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
-        script_f = open(task_script, 'w', encoding='UTF-8')
-        script_f.write(task_text)
-        script_f.close()
+        with open(task_script, 'w', encoding='UTF-8') as script_f:
+            script_f.write(task_text)
+            script_f.close()
         return task_script
 
     def query_job(self, job_id):
@@ -71,5 +71,3 @@ class LSFWorker(Worker):
         subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"
         return job_state
-# Ignore R1732: Warnign about using open without "with' context. Seems like personal preference.
-# pylama:ignore=R1732
