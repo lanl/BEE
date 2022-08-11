@@ -7,11 +7,10 @@ import os
 import shutil
 import subprocess
 from beeflow.common.config_driver import BeeConfig as bc
-# from beeflow.common.crt.crt_drivers import CharliecloudDriver, SingularityDriver
 from beeflow.cli import log
 from beeflow.common.build.build_driver import BuildDriver
 import beeflow.common.log as bee_logging
-from beeflow.common.crt_drivers import CharliecloudDriver as crt_driver
+from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
 
 
 class ContainerBuildDriver(BuildDriver):
