@@ -1,14 +1,11 @@
-"""Test the resource_allocation submodule of BEE.
-
-"""
-import beeflow.scheduler.resource_allocation as resource_allocation
+"""Test the resource_allocation submodule of BEE."""
 import json
+
+from beeflow.scheduler import resource_allocation
 
 
 def test_resource_simple():
-    """Test creating a resource.
-
-    """
+    """Test creating a resource."""
     resource = resource_allocation.Resource(id_='test-resource', nodes=1)
 
     assert resource.id_ == 'test-resource'
@@ -18,9 +15,7 @@ def test_resource_simple():
 
 
 def test_resource_encode_decode_json():
-    """Ensure that a resource can be encoded/decoded to/from JSON.
-
-    """
+    """Ensure that a resource can be encoded/decoded to/from JSON."""
     resource = resource_allocation.Resource(id_='test-resource', nodes=1)
 
     s = json.dumps(resource.encode())
@@ -33,9 +28,7 @@ def test_resource_encode_decode_json():
 
 
 def test_allocation_simple():
-    """Test creating an allocation.
-
-    """
+    """Test creating an allocation."""
     allocation = resource_allocation.Allocation(id_='resource-0', start_time=0,
                                                 max_runtime=4, nodes=2)
 
@@ -46,9 +39,7 @@ def test_allocation_simple():
 
 
 def test_allocation_encode_decode_json():
-    """Test that an allocation can be encoded/decoded to/from JSON.
-
-    """
+    """Test that an allocation can be encoded/decoded to/from JSON."""
     allocation = resource_allocation.Allocation(id_='resource-0', start_time=3,
                                                 max_runtime=5, nodes=6)
 
@@ -62,9 +53,7 @@ def test_allocation_encode_decode_json():
 
 
 def test_requirements_simple():
-    """Test creating a requirement.
-
-    """
+    """Test creating a requirement."""
     requirements = resource_allocation.Requirements(max_runtime=3, nodes=1)
 
     assert requirements.max_runtime == 3
@@ -73,9 +62,7 @@ def test_requirements_simple():
 
 
 def test_requirements_encode_decode_json():
-    """Test that an allocation can be encoded/decoded to/from JSON.
-
-    """
+    """Test that an allocation can be encoded/decoded to/from JSON."""
     requirements = resource_allocation.Requirements(max_runtime=1, nodes=3)
 
     s = json.dumps(requirements.encode())
@@ -83,3 +70,5 @@ def test_requirements_encode_decode_json():
     decoded = resource_allocation.Requirements.decode(json.loads(s))
     assert decoded.max_runtime == requirements.max_runtime
     assert decoded.nodes == requirements.nodes
+# Ignore W0511: This is related to issue #333
+# pylama:ignore=W0511

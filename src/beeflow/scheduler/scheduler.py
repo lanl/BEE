@@ -9,9 +9,9 @@ import os
 from flask import Flask, request
 from flask_restful import Resource, Api
 
-import beeflow.scheduler.algorithms as algorithms
-import beeflow.scheduler.task as task
-import beeflow.scheduler.resource_allocation as resource_allocation
+from beeflow.scheduler import algorithms
+from beeflow.scheduler import task
+from beeflow.scheduler import resource_allocation
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
@@ -24,47 +24,35 @@ api = Api(flask_app)
 # List of all available resources
 resources = []
 
-class ResourcesHandler(Resource):
-    """Resources handler.
 
-    """
+class ResourcesHandler(Resource):
+    """Resources handler."""
 
     @staticmethod
     def put():
-        """Create a list of resources to use for allocation.
-
-        """
+        """Create a list of resources to use for allocation."""
         resources.clear()
         resources.extend([resource_allocation.Resource.decode(r)
                           for r in request.json])
-        return 'created %i resource(s)' % len(resources)
+        return f'created {len(resources)} resource(s)'
 
     @staticmethod
     def get():
-        """Get a list of all resources.
-
-        """
+        """Get a list of all resources."""
         return [r.encode() for r in resources]
 
 
 class WorkflowJobHandler(Resource):
-    """Handle scheduling of workflow jobs.
-
-    Schedule jobs for a specific workflow with the current resources.
-    """
+    """Schedule jobs for a specific workflow with the current resources."""
 
     @staticmethod
     def put(workflow_name):
-        """Schedule a list of independent tasks.
-
-        Schedules a new list of independent tasks with available resources.
-        """
+        """Schedules a new list of independent tasks with available resources."""
+        print('Scheduling', workflow_name)
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
         algorithm = algorithms.choose(tasks, **vars(flask_app.sched_conf))
-        # algorithm = algorithms.choose(tasks, use_mars=Config.conf.use_mars,
-        #                              mars_model=Config.conf.mars_model)
         algorithm.schedule_all(tasks, resources)
         return [t.encode() for t in tasks]
 
@@ -165,13 +153,13 @@ def load_config_values():
     log.info(f'\tdefault_algorithm = {conf.default_algorithm}')
     log.info(f'\tworkdir = {conf.workdir}')
     log.info(']')
-    return conf, bc
+    return conf
 
 
 if __name__ == '__main__':
-    CONF, bc = load_config_values()
-    bee_workdir = bc.get('DEFAULT','bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='scheduler.log')
+    CONF = load_config_values()
+    workdir = bc.get('DEFAULT', 'bee_workdir')
+    handler = bee_logging.save_log(bee_workdir=workdir, log=log, logfile='scheduler.log')
     flask_app.sched_conf = CONF
     # Load algorithm data
     algorithms.load(**vars(CONF))

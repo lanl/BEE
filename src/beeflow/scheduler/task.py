@@ -3,8 +3,8 @@
 This file holds classes for respresenting workflows and tasks/jobs, as
 well as resources that will be used during scheduling.
 """
-import beeflow.scheduler.serializable as serializable
-import beeflow.scheduler.resource_allocation as resource_allocation
+from beeflow.scheduler import serializable
+from beeflow.scheduler import resource_allocation
 
 
 class Task(serializable.Serializable):
@@ -35,7 +35,6 @@ class Task(serializable.Serializable):
             resource_allocation.Requirements.decode(requirements)
             if requirements is not None else {}
         )
-        self.requirements
         self.allocations = allocations if allocations is not None else []
 
     def encode(self):

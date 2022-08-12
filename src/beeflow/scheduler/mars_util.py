@@ -1,6 +1,4 @@
-"""MARS Utility Functions and Parameters.
-
-"""
+"""MARS Utility Functions and Parameters."""
 
 VECTOR_SIZE = 512
 
@@ -17,12 +15,12 @@ def workflow2vec(task, tasks):
     # Note: task must be in the list of tasksjj
     i = tasks.index(task)
     new_tasks = tasks[:i]
-    new_tasks.extend(tasks[i+1:])
+    new_tasks.extend(tasks[i + 1:])
     tasks = new_tasks
     vec = _task2vec(task)
     # vec = [float(t.requirements.cost), float(t.requirements.max_runtime)]
-    for task in tasks:
-        vec.extend(_task2vec(task))
+    for t in tasks:
+        vec.extend(_task2vec(t))
         # vec.extend([float(task.requirements.cost),
         #            float(task.requirements.max_runtime)])
     # Resize the vector
@@ -45,3 +43,5 @@ def _task2vec(task):
         float(task.requirements.cost),
         float(task.requirements.max_runtime),
     ]
+# Ignore W0511: This is related to issue #333.
+# pylama:ignore=W0511

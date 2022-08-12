@@ -8,8 +8,8 @@ FCFS and SJF.
 import argparse
 import subprocess
 import time
-import requests
 import json
+import requests
 
 # Used for plotting results
 import numpy as np
@@ -20,16 +20,10 @@ SCHED_PORT = '5100'
 
 
 class Scheduler:
-    """Scheduler process class.
-
-    Scheduler process class.
-    """
+    """Scheduler process class."""
 
     def __init__(self, algorithm):
-        """Scheduler process class constructor.
-
-        Scheduler process class constructor.
-        """
+        """Scheduler process class constructor."""
         self.proc = subprocess.Popen([
             'python', 'beeflow/scheduler/scheduler.py',
             '-p', SCHED_PORT,
@@ -42,16 +36,12 @@ class Scheduler:
     def __enter__(self):
         """Enter the runtime context.
 
-        Enter the runtime context.
         :rtype: str, the link to use to connect to the scheduler
         """
-        return 'http://localhost:%s/bee_sched/v1' % SCHED_PORT
+        return f'http://localhost:{SCHED_PORT}/bee_sched/v1'
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Exit the runtime context.
-
-        Exit the runtime context.
-        """
+        """Exit the runtime context."""
         self.proc.terminate()
 
 
@@ -66,7 +56,7 @@ def read_logfile(logfile):
     # TODO: Determine logfile type (swf), read it and convert it into a list of
     # tasks
     tasks = []
-    with open(logfile) as fp:
+    with open(logfile, encoding='utf-8') as fp:
         for line in fp:
             split = line.split()
             # Skip comments
@@ -76,9 +66,9 @@ def read_logfile(logfile):
             # wait_time = int(split[2])
             task_id = int(split[0])
             runtime = int(split[3])
-            used_memory = int(split[6])
+            # used_memory = int(split[6])
             procs = int(split[4])
-            req_mem = int(split[9])
+            # req_mem = int(split[9])
             tasks.append({
                 'workflow_name': logfile,
                 'task_name': task_id,
@@ -92,6 +82,7 @@ def read_logfile(logfile):
 
 
 def main():
+    """Enter main function."""
     parser = argparse.ArgumentParser(description='MARS evaluation program')
     parser.add_argument('--logfile', dest='logfile',
                         help='name of swf logfile to use for evaluation',
@@ -100,8 +91,7 @@ def main():
                         help='json resource file to use', required=True)
     args = parser.parse_args()
 
-    # resources = []
-    with open(args.resource_file) as fp:
+    with open(args.resource_file, encoding='utf-8') as fp:
         resources = json.load(fp)
     resource_names = [res['id_'] for res in resources]
     tasks = read_logfile(args.logfile)
@@ -123,18 +113,18 @@ def main():
             requests.put(res_link, json=resources)
 
             # Work with chunks of 512 tasks
-            CHUNK_SIZE = 10
-            for i in range(0, len(tasks), CHUNK_SIZE):
+            chunk_size = 10
+            for i in range(0, len(tasks), chunk_size):
                 j = len(tasks) - i
-                j = j if j < CHUNK_SIZE else CHUNK_SIZE
+                j = j if j < chunk_size else chunk_size
 
                 print('Sending tasks from', i, 'to', i + j)
                 tasks_send = tasks[i:i + j]
                 arrival_time = time.time()
-                r = requests.put(wfl_link, json=tasks_send)
+                req = requests.put(wfl_link, json=tasks_send)
                 first_response_time = time.time()
                 response_time = first_response_time - arrival_time
-                task_sched = r.json()
+                task_sched = req.json()
                 data.append(task_sched)
 
                 # Set resource distribution (see how tasks are distributed
@@ -151,8 +141,8 @@ def main():
             try:
                 start_time = min(task['allocations'][0]['start_time']
                                  for task in group if task['allocations'])
-                end_time = max(task['allocations'][0]['start_time']
-                               + task['requirements']['max_runtime']
+                end_time = max((task['allocations'][0]['start_time']
+                                + task['requirements']['max_runtime'])
                                for task in group if task['allocations'])
                 total_time += end_time - start_time
             except ValueError:
@@ -165,25 +155,21 @@ def main():
         }
 
     # Setup and display the graph
-    fig, ax = plt.subplots()
-    labels = [algorithm for algorithm in results]
+    _fig, ax = plt.subplots()
+    labels = list(results)
     x = np.arange(len(labels))
-    y = [results[algorithm]['avg_time'] for algorithm in results]
+    y = [result['avg_time'] for _, result in results.items()]
     rects = ax.bar(x, y, 0.6, label='Average Times', bottom=(min(y) - 20))
-    ax.set_title('Workflow Times for each algorithm ("%s", "%s")'
-                 % (args.logfile, args.resource_file))
+    ax.set_title(f'Workflow Times for each algorithm ("{args.logfile}", "{args.resource_file}")')
     ax.set_ylabel('Total workflow time (s)')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
 
     def autolabel(rects):
-        """Add labels to each rectangle.
-
-        Add labels to each rectangle.
-        """
+        """Add labels to each rectangle."""
         for rect in rects:
             height = rect.get_height()
-            ax.annotate('%i' % height,
+            ax.annotate(str(height),
                         xy=(rect.get_x() + rect.get_width() / 2, height + 20),
                         xytext=(0, 3), textcoords='offset points', ha='center',
                         va='bottom')
@@ -192,30 +178,27 @@ def main():
     plt.show()
 
     # Display the response time graph
-    fig, ax = plt.subplots()
-    y = [results[algorithm]['response_time'] for algorithm in results]
+    _fig, ax = plt.subplots()
+    y = [result['response_time'] for _, result in results.items()]
     rects = ax.bar(x, y, 0.6, label='Response time')
-    ax.set_title('Algorithm response times ("%s", "%s")'
-                 % (args.logfile, args.resource_file))
+    ax.set_title(f'Algorithm response times ("{args.logfile}", "{args.resource_file}")')
     ax.set_ylabel('Response times')
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     plt.show()
 
     # Display the resource distribution graph
-    fig, ax = plt.subplots()
+    _fig, ax = plt.subplots()
     width = 0.1
     # Transpose the results
-    allocs = [[alloc for alloc in results[algorithm]['resource_dist']]
-              for algorithm in results]
+    allocs = [list(result['resource_dist']) for _, result in results.items()]
     allocs = np.asarray(allocs).T
     rects = []
     for i, (alloc, res_name) in enumerate(zip(allocs, resource_names)):
         pos = i * width - ((len(allocs) * width) / 2) + 1
         rects.append(ax.bar(x + pos, alloc, width, label=res_name))
     ax.set_ylabel('Average usage')
-    ax.set_title('Resource usage per algorithm ("%s", "%s")'
-                 % (args.logfile, args.resource_file))
+    ax.set_title(f'Resource usage per algorithm ("{args.logfile}", "{args.resource_file}")')
     ax.set_xticks(x + len(allocs) * width)
     ax.set_xticklabels(labels)
     ax.legend()
@@ -224,3 +207,9 @@ def main():
 
 if __name__ == '__main__':
     main()
+# Ignore R1732: This suggestion doesn't make sense since I'm trying to create a context manager
+#               object
+# Ignore W0511: See issue #333
+# Ignore R0915: Yes there are too many statements here, but this requires a
+#               redesign related to issue #333.
+# pylama:ignore=R1732,W0511,R0915
