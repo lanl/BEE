@@ -1,7 +1,6 @@
 """Google provider code."""
-import googleapiclient.discovery
 import time
-import importlib.util
+import googleapiclient.discovery
 import yaml
 
 from beeflow.common.cloud import provider
@@ -29,7 +28,7 @@ class GoogleProvider(provider.Provider):
             return None
 
     def setup_cloud(self, config):
-        """Setup the cloud based on the config information."""
+        """Set up the cloud based on the config information."""
         # Load the YAML data
         config = yaml.load(config, Loader=yaml.Loader)
         # This just creates instances one-by-one. There may be a better API call
@@ -40,3 +39,6 @@ class GoogleProvider(provider.Provider):
             res = call.execute()
             print(res)
             time.sleep(2)
+# Ignore E1101: Pylama notes that self._api doesn't have an 'instances' member.
+#               I believe this is set at runtime by googleapiclient.
+# pylama:ignore=E1101

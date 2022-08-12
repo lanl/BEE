@@ -1,3 +1,4 @@
+"""Cloud API tests."""
 from beeflow.common.cloud import provider
 
 
@@ -8,5 +9,3 @@ def test_cloud_api():
     mock.setup_cloud('empty config....')
 
     assert mock.get_ext_ip_addr('some-node')
-
-# TODO: More tests should be added with future API additions
