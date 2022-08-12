@@ -3,20 +3,17 @@
 
 import subprocess
 
-from beeflow.common.worker.worker import Worker
-from beeflow.common.crt_interface import ContainerRuntimeInterface
-from beeflow.cli import log
-import beeflow.common.log as bee_logging
 import os
+from beeflow.common.worker.worker import Worker
 
 
 class SimpleWorker(Worker):
-    """The Worker interface for no workload manager."""
+    """Worker interface for system with no workload manager."""
 
     def __init__(self, container_runtime, **kwargs):
-        """Simple worker class."""
+        """Create Simple worker object."""
         super().__init__(container_runtime=container_runtime, **kwargs)
-        # TODO: this should be stored in Redis if possible
+        # This should be stored in Redis if possible
         self.tasks = {}
 
     def submit_task(self, task):
@@ -27,9 +24,10 @@ class SimpleWorker(Worker):
         """
         script = self.build_text(task)
         script_path = os.path.join(self.task_save_path(task), f'{task.name}-{task.id}.sh')
-        with open(script_path, 'w') as fp:
+        with open(script_path, 'w', encoding='UTF-8') as fp:
             fp.write(script)
-        self.tasks[task.id] = subprocess.Popen(['/bin/sh', script_path])
+        with subprocess.Popen(['/bin/sh', script_path]) as taskid:
+            self.tasks[task.id] = taskid
         return (task.id, 'PENDING')
 
     def cancel_task(self, job_id):
@@ -49,11 +47,10 @@ class SimpleWorker(Worker):
         :type job_id: int
         :rtype: string
         """
-        rc = self.tasks[job_id].poll()
-        # XXX: This assumes a standard returncode
-        if rc is None:
+        return_code = self.tasks[job_id].poll()
+        # This assumes a standard returncode
+        if return_code is None:
             return 'RUNNING'
-        elif rc == 0:
+        if return_code == 0:
             return 'COMPLETED'
-        else:
-            return 'FAILED'
+        return 'FAILED'

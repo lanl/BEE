@@ -158,6 +158,38 @@ class Task:
                     inputs=deepcopy(self.inputs), outputs=deepcopy(self.outputs),
                     stdout=self.stdout, workflow_id=self.workflow_id, task_id=task_id)
 
+    def get_requirement(self, req_type, req_param):
+        """Get requirement from hints or requirements, prioritizing requirements over hints.
+
+        :param req_type: the type of requirement (e.g. 'DockerRequirement')
+        :type req_type: str
+        :param req_param: the requirement parameter (e.g. 'dockerFile')
+        :type req_param: str
+
+        When requirements are specified hints will be ignored.
+        By default, tasks need not specify hints or requirements
+        """
+        requirements = dict(self.requirements)
+        requirement = None
+        # Get value if specified in requirements
+        try:
+            # Try to get Requirement
+            requirement = requirements[req_type][req_param]
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
+            requirement = None
+        # Ignore hints if requirements available
+        if not requirement:
+            hints = dict(self.hints)
+            # Get value if specified in hints
+            try:
+                # Try to get Hints
+                requirement = hints[req_type][req_param]
+            except (KeyError, TypeError):
+                # Task Hints are not mandatory. No docker_req_param specified in task hints.
+                requirement = None
+        return requirement
+
     def __eq__(self, other):
         """Test the equality of two tasks.
 
