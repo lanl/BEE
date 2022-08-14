@@ -23,12 +23,11 @@ CWL for clamr step in examples/clamr-ffmpeg-build/clamr_wf.cwl
 
 
 
-Submit the CLAMR workflow on the same front end, where you started the components (to start the components of beeflow, see Installation Guide).
+Submit the CLAMR workflow from the top level directory of the repository (BEE), on the same front-end where you started the components (to start the components of beeflow, see Installation Guide).
 
 .. code-block::
 
-    cd <to the directory containing clamr-ffmpeg-build.tgz>
-    bee_client submit example clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml
+    bee_client submit clamr-example examples/clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml
 
 Output:
 
