@@ -14,7 +14,7 @@ env: {}
 
 jobs:
   integration-test:
-    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP') || contains(github.event.pull_request.labels.*.name, 'no ci')) }}
+    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP') || contains(github.event.pull_request.labels.*.name, 'lint-only')) }}
     name: BEE Integration Test
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
     # available on 20.04

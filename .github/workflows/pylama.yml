@@ -7,12 +7,11 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    types: [opened, synchronize, edited, labeled, unlabeled]
+    types: [opened, synchronize, edited]
     branches: [main, develop]
 
 jobs:
   pylama:
-    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP') || contains(github.event.pull_request.labels.*.name, 'no ci')) }}
     name: PyLama Lint
     runs-on: ubuntu-latest
     steps:
