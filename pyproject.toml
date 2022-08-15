@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "beeflow"
-version = "0.1.0"
+version = "0.1.0rc1"
 description = "A software package for containerizing HPC applications and managing job workflow"
 
 authors = [
@@ -10,7 +10,6 @@ authors = [
 readme = "README.rst"
 
 repository = "https://github.com/lanl/BEE"
-homepage = "https://bee.lanl.gov"
 
 keywords = [
     "bee",

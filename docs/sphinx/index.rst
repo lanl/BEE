@@ -7,7 +7,7 @@
 
 .. note::
 
-   This is documentation was built |today|, beeflow version |version|.
+   This documentation was built |today|, beeflow version |version|.
 
 
 .. toctree:: :maxdepth: 2
