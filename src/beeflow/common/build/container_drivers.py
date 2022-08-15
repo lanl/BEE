@@ -227,7 +227,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # Out of excuses. Build the image.
         log.info('Context directory configured. Beginning build.')
-        cmd = (f'ch-image build -t {self.container_name} --force -f {task_dockerfile} {context_dir}\n'
+        cmd = (f'ch-image build -t {self.container_name} --force '
+               f'-f {task_dockerfile} {context_dir}\n'
                f'ch-convert -i ch-image -o tar {ch_build_addr} '
                f'{self.container_archive}/{ch_build_addr}.tar.gz'
                )
