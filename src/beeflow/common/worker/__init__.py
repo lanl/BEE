@@ -1,5 +1,4 @@
 """Init file for the worker package."""
-import sys
 
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.worker.lsf_worker import LSFWorker
