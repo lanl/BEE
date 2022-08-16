@@ -1,15 +1,13 @@
 """This is a sample docstring."""
 
-import beeflow.task_manager as tm
-import beeflow
-# import flask_restful
-# from flask import Flask
 import pytest
 import jsonpickle
 import requests
-# import os
 from mocks import MockWFI, MockWorkerCompletion, MockWorkerSubmission
 from mocks import mock_put
+
+import beeflow.task_manager as tm
+import beeflow
 
 
 @pytest.fixture
