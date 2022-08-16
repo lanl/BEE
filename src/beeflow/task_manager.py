@@ -309,8 +309,8 @@ def get_status():
 WLS = bc.get('DEFAULT', 'workload_scheduler')
 worker_class = worker_pkg.find_worker(WLS)
 if worker_class is None:
-    sys.exit(f'Workload scheduler {WLS}, not supported.\n' +
-             f'Please check {bc.userconfig_path()} and restart TaskManager.')
+    sys.exit(f'Workload scheduler {WLS}, not supported.\n'
+             + f'Please check {bc.userconfig_path()} and restart TaskManager.')
 # Get the parameters for the worker classes
 worker_kwargs = {
     'bee_workdir': bc.get('DEFAULT', 'bee_workdir'),
