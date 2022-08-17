@@ -74,11 +74,11 @@ class Workflow:
         def id_sort(i):
             return i.id
 
-        return bool(self.name == other.name and
-                    sorted(self.hints) == sorted(other.hints) and
-                    sorted(self.requirements) == sorted(other.requirements) and
-                    sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort) and
-                    sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort))
+        return bool(self.name == other.name
+                    and sorted(self.hints) == sorted(other.hints)
+                    and sorted(self.requirements) == sorted(other.requirements)
+                    and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
+                    and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort))
 
     def __ne__(self, other):
         """Test the inequality of two workflows.
@@ -204,13 +204,13 @@ class Task:
         def id_sort(i):
             return i.id
 
-        return bool(self.name == other.name and
-                    self.base_command == other.base_command and
-                    sorted(self.hints) == sorted(other.hints) and
-                    sorted(self.requirements) == sorted(other.requirements) and
-                    sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort) and
-                    sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort) and
-                    self.stdout == other.stdout)
+        return bool(self.name == other.name
+                    and self.base_command == other.base_command
+                    and sorted(self.hints) == sorted(other.hints)
+                    and sorted(self.requirements) == sorted(other.requirements)
+                    and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
+                    and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort)
+                    and self.stdout == other.stdout)
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
@@ -277,8 +277,8 @@ class Task:
                     if "restart_parameters" in hint.params:
                         command.append(hint.params["restart_parameters"])
                     if "container_path" in hint.params:
-                        command.append(hint.params["container_path"] +
-                                       "/" + hint.params["bee_checkpoint_file__"])
+                        command.append(hint.params["container_path"]
+                                       + "/" + hint.params["bee_checkpoint_file__"])
                     else:
                         command.append(hint.params["bee_checkpoint_file__"])
                 break

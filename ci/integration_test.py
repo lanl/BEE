@@ -35,7 +35,7 @@ class Container:
         if not self.done:
             try:
                 subprocess.check_call(['ch-image', 'build', '-f', self.dockerfile, '-t', self.name,
-                                       os.path.dirname(self.dockerfile)])
+                                       '--force', os.path.dirname(self.dockerfile)])
                 subprocess.check_call(['ch-convert', '-i', 'ch-image', '-o', 'tar', self.name,
                                        self.tarball])
             except subprocess.CalledProcessError as error:

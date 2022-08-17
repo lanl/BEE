@@ -24,6 +24,7 @@ class WorkerError(Exception):
 
     def __init__(self, *args):
         """Construct a new worker error."""
+        super(Exception, self).__init__()
         self.args = args
 
 

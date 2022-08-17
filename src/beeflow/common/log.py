@@ -1,19 +1,23 @@
+"""Logging interface for BEE."""
+
+
 import logging
-import inspect
 import sys
 import os
+
 
 STEP_INFO = 15
 logging.addLevelName(STEP_INFO, "STEP_INFO")
 
-# We fallback to the global beeflow.log file 
+# We fallback to the global beeflow.log file
 __module_log__ = None
+
 
 class LogFormatter(logging.Formatter):
     """Format a string for the log file.
-    
+
     This is a place to apply rich text formatting.
-    
+
     Level Values are:
     DEBUG: 10
     STEP_INFO: 15
@@ -47,13 +51,13 @@ class LogFormatter(logging.Formatter):
         "CRITICAL": "%(levelname)s: %(msg)s",
     }
 
-
     def __init__(self, colors):
         """Initialize formatted loggers.
 
         :param colors: Format with or without ANSI Escape Code color formatting
         :type colors: Bool
         """
+        super(logging.Formatter, self).__init__()
         self.log_fmt = self.log_format if colors else self.log_format_no_colors
 
     def format(self, record):
@@ -65,11 +69,12 @@ class LogFormatter(logging.Formatter):
         fmt = self.log_fmt.get(logging.getLevelName(record.levelno))
         return logging.Formatter(fmt).format(record)
 
-class BeeLogger(logging.Logger):
-    """ Extend Python logger to handle custom log category."""
 
-    def step_info(self, msg="", *args, **kwargs):
-        """ Log a messagewith severity 'STEP_INFO'.
+class BeeLogger(logging.Logger):
+    """Extend Python logger to handle custom log category."""
+
+    def step_info(self, msg, *args, **kwargs):
+        r"""Log a messagewith severity 'STEP_INFO'.
 
         :param msg: Message to be logged
         :type msg: string
@@ -81,53 +86,55 @@ class BeeLogger(logging.Logger):
         if self.isEnabledFor(STEP_INFO):
             self._log(STEP_INFO, msg, args, **kwargs)
 
+
 class LevelFilter(logging.Filter):
     """Filters the level that are to be accepted and rejected."""
 
     def __init__(self, passlevels, reject):
+        """Initailize pass levels."""
+        super(logging.Filter, self).__init__()
         self.passlevels = passlevels
         self.reject = reject
 
     def filter(self, record):
-        """Returns True and False according to the pass levels and reject value.
+        """Return True and False according to the pass levels and reject value.
 
         :param record: Record from logs
         :type record: logging.LogRecord
         """
         if self.reject:
             return record.levelno not in self.passlevels
-        else:
-            return record.levelno in self.passlevels
+        return record.levelno in self.passlevels
 
 
 def setup_logging(level="STEP_INFO", colors=True):
-    """Setup logger.
+    """Set up logger.
 
     :param level: Level to be logged in logger.
     :type level: String
     """
     logging.setLoggerClass(BeeLogger)
-    log = logging.getLogger("bee")
-    if log.hasHandlers():
-        log.setLevel(level)
-        return log
-    else:
-        formatter = LogFormatter(colors=colors)
-    
-        # Intermediate step info goes to stdout
-        h1 = logging.StreamHandler(sys.stdout)
-        h1.addFilter(LevelFilter([logging.INFO, STEP_INFO], False))
-        h1.setFormatter(formatter)
-    
-        # All stepinfo goes to stdout
-        h2 = logging.StreamHandler(sys.stdout)
-        h2.addFilter(LevelFilter([logging.INFO, STEP_INFO], True))
-        h2.setFormatter(formatter)
-    
-        log.addHandler(h1)
-        log.addHandler(h2)
-        log.setLevel(level)
-        return log
+    log_ = logging.getLogger("bee")
+    if log_.hasHandlers():
+        log_.setLevel(level)
+        return log_
+    formatter = LogFormatter(colors=colors)
+
+    # Intermediate step info goes to stdout
+    handler1 = logging.StreamHandler(sys.stdout)
+    handler1.addFilter(LevelFilter([logging.INFO, STEP_INFO], False))
+    handler1.setFormatter(formatter)
+
+    # All stepinfo goes to stdout
+    handler2 = logging.StreamHandler(sys.stdout)
+    handler2.addFilter(LevelFilter([logging.INFO, STEP_INFO], True))
+    handler2.setFormatter(formatter)
+
+    log_.addHandler(handler1)
+    log_.addHandler(handler2)
+    log_.setLevel(level)
+    return log_
+
 
 def save_log(bee_workdir, log, logfile):
     """Set log formatter for handle and add handler to logger.
@@ -155,11 +162,12 @@ def save_log(bee_workdir, log, logfile):
     __module_log__ = log
     return handler
 
-def catch_exception(type, value, traceback):
-    """Catch unhandled exceptions and submit to log"""
+
+def catch_exception(_type, value, traceback):
+    """Catch unhandled exceptions and submit to log."""
     # Ignore keyboard interrupts so we can close with ctrl+c
-    if issubclass(type, KeyboardInterrupt):
-        sys.__excepthook__(type, value, traceback)
+    if issubclass(_type, KeyboardInterrupt):
+        sys.__excepthook__(_type, value, traceback)
         return
 
     # If we don't have a module log handler, figure out which log we need
@@ -175,4 +183,7 @@ def catch_exception(type, value, traceback):
         log.critical("Uncaught exception", exc_info=(type, value, traceback))
     else:
         print(f'__module_log__{__module_log__}')
-        __module_log__.critical("Uncaught exception", exc_info=(type, value, traceback))
+        __module_log__.critical("Uncaught exception", exc_info=(_type, value, traceback))
+
+# Ignore C0415 Import outside toplevel we only do this if we don't have a log handler
+# pylama:ignore=C0415

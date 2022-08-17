@@ -1,15 +1,13 @@
 """This is a sample docstring."""
 
-import beeflow.task_manager as tm
-import beeflow
-# import flask_restful
-# from flask import Flask
 import pytest
 import jsonpickle
 import requests
-# import os
 from mocks import MockWFI, MockWorkerCompletion, MockWorkerSubmission
 from mocks import mock_put
+
+import beeflow.task_manager as tm
+import beeflow
 
 
 @pytest.fixture
@@ -73,22 +71,22 @@ def test_remove_task(flask_client, mocker):  # noqa
     """Test cancelling a workflow and removing tasks."""
     # Add a few tasks
     beeflow.task_manager.job_queue.append({2: {'name': 'task1',
-                                                            'job_id': 1,
-                                                            'job_state':
-                                                            'RUNNING'}
-                                                        })
+                                               'job_id': 1,
+                                               'job_state':
+                                               'RUNNING'}
+                                           })
 
     beeflow.task_manager.job_queue.append({4: {'name': 'task2',
-                                                            'job_id': 2,
-                                                            'job_state':
-                                                            'PENDING'}
-                                                        })
+                                               'job_id': 2,
+                                               'job_state':
+                                               'PENDING'}
+                                           })
 
     beeflow.task_manager.job_queue.append({6: {'name': 'task3',
-                                                            'job_id': 3,
-                                                            'job_state':
-                                                            'PENDING'}
-                                                        })
+                                               'job_id': 3,
+                                               'job_state':
+                                               'PENDING'}
+                                           })
 
     mocker.patch('beeflow.task_manager.worker',
                  new_callable=MockWorkerCompletion)
