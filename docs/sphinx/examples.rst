@@ -19,7 +19,7 @@ The workflow is in **examples/clamr-ffmpeg-build.tgz**. You may want to explore 
 
 CWL for clamr step in examples/clamr-ffmpeg-build/clamr_wf.cwl
 
-.. image:: clamr-step.png
+.. image:: images/clamr-step.png
 
 
 
