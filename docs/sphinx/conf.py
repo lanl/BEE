@@ -19,7 +19,7 @@ import importlib.metadata
 
 # -- Project information -----------------------------------------------------
 
-project = ''
+project = 'BEE: Build and Execution Environment'
 copyright = '2019, BEE Development Team'
 author = 'BEE Development Team'
 
