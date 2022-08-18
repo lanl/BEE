@@ -27,9 +27,19 @@ Configuration
 Container Runtime
 ===========================
 
-Container Runtime Drivers
+Container Runtime Driver
 ---------------------------
-.. automodule:: beeflow.common.crt_drivers
+.. automodule:: beeflow.common.crt.crt_driver
+   :members:
+
+Charliecloud Driver
+-------------------
+.. automodule:: beeflow.common.crt.charliecloud_driver
+   :members:
+
+Singularity Driver
+---------------------------
+.. automodule:: beeflow.common.crt.singularity_driver
    :members:
 
 Container Runtime Interface
