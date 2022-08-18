@@ -182,7 +182,7 @@ def validate_dir(path):
 
 
 def validate_make_dir(path):
-    """Check if the dir exists and if not creat it."""
+    """Check if the dir exists and if not create it."""
     os.makedirs(path, exist_ok=True)
     if not os.path.isdir(path):
         raise ValueError('path "{path}" is not a directory')
@@ -302,8 +302,7 @@ USER = getpass.getuser()
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
 VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
-                 attrs={'init': bee_workdir_init, 'default': DEFAULT_BEE_WORKDIR},
-                 validator=validate_dir)
+                 attrs={'default': DEFAULT_BEE_WORKDIR}, validator=validate_make_dir)
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Simple'),
                  info='backend workload scheduler to interact with ')
 VALIDATOR.option('DEFAULT', 'use_archive', validator=validate_bool, attrs={'default': True},
