@@ -174,6 +174,7 @@ class JobsList(Resource):
                                    location='files')
         self.reqparse.add_argument('wf_id', type=FileStorage, required=False,
                                    location='files')
+        self.reqparse.add_argument('workdir', type=FileStorage, required=False, location='files')
         super(JobsList, self).__init__()
 
     def get(self):
@@ -211,6 +212,8 @@ class JobsList(Resource):
         job_name = data['wf_name'].read().decode()
         # None if not sent
         yaml_file = data['yaml']
+        # Workflow workdir
+        wfl_workdir = data['workdir'].read().decode()
 
         if wf_tarball:
             # We have to bind mount a new GDB with charliecloud.
@@ -295,6 +298,14 @@ class JobsList(Resource):
             name_path = os.path.join(workflow_dir, 'bee_wf_name')
             with open(name_path, 'w') as name:
                 name.write(job_name)
+
+            # Add workflow metadata (including workdir)
+            _, tasks = wfi.get_workflow()
+            for task in tasks:
+                metadata = wfi.get_task_metadata(task)
+                metadata['workdir'] = wfl_workdir
+                wfi.set_task_metadata(task, metadata)
+
             resp = make_response(jsonify(msg='Workflow uploaded', status='ok', wf_id=wf_id), 201)
             return resp
         else:
@@ -377,8 +388,12 @@ class JobsList(Resource):
 
 
 # Submit tasks to the TM
-def submit_tasks_tm(tasks):
+def submit_tasks_tm(tasks, wfi):
     """Submit a task to the task manager."""
+    # Add workdir (TODO: this should be done directly in the gdb perhaps)
+    for task in tasks:
+        metadata = wfi.get_task_metadata(task)
+        task.workdir = metadata['workdir']
     # Serialize task with json
     tasks_json = jsonpickle.encode(tasks)
     # Send task_msg to task manager
@@ -473,7 +488,7 @@ class JobActions(Resource):
         allocation = submit_tasks_scheduler(sched_tasks)  # NOQA
 
         # Submit tasks to TM
-        submit_tasks_tm(tasks)
+        submit_tasks_tm(tasks, wfi)
         wf_id = wfi.workflow_id
         workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
         status_path = os.path.join(workflow_dir, 'bee_wf_status')
@@ -569,7 +584,7 @@ class JobActions(Resource):
             tasks = wfi.get_ready_tasks()
             sched_tasks = tasks_to_sched(tasks)
             submit_tasks_scheduler(sched_tasks)
-            submit_tasks_tm(tasks)
+            submit_tasks_tm(tasks, wfi)
 
             log.info("Workflow Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)
@@ -614,7 +629,9 @@ class JobUpdate(Resource):
         if 'metadata' in data:
             if data['metadata'] is not None:
                 metadata = jsonpickle.decode(data['metadata'])
-                wfi.set_task_metadata(task, metadata)
+                old_metadata = wfi.get_task_metadata(task)
+                old_metadata.update(metadata)
+                wfi.set_task_metadata(task, old_metadata)
 
         # Get output from the task
         if 'output' in data and data['output'] is not None:
@@ -640,7 +657,6 @@ class JobUpdate(Resource):
                 with open(status_path, 'w') as status:
                     status.write('Completed')
                 wfi.workflow_completed()
-
 
                 # Save the profile
                 wf_profiler.save()
@@ -671,7 +687,7 @@ class JobUpdate(Resource):
                     if tasks:
                         sched_tasks = tasks_to_sched(tasks)
                         submit_tasks_scheduler(sched_tasks)
-                        submit_tasks_tm(tasks)
+                        submit_tasks_tm(tasks, wfi)
 
         elif job_state == "FAILED" or job_state == "TIMEOUT":
             if 'task_info' in data and data['task_info'] is not None:
@@ -687,7 +703,7 @@ class JobUpdate(Resource):
                     resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
                     return resp
                 else:                               
-                    submit_tasks_tm([new_task])       
+                    submit_tasks_tm([new_task], wfi)
             else:
                 log.info("TM didn't send task info for failed task")
                 resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
@@ -726,4 +742,3 @@ if __name__ == '__main__':
     # Putting this off for another issue so noqa to appease the lama
     flask_app.logger.addHandler(handler) #noqa
     flask_app.run(debug=False, port=str(wfm_listen_port))
-

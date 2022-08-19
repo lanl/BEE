@@ -336,7 +336,19 @@ VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
 VALIDATOR.option('charliecloud', 'image_mntdir', attrs={'default': join_path('/tmp', USER)},
                  info='Charliecloud mount directory', validator=validate_make_dir)
-VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': f'--cd /home/{USER}'},
+
+
+def validate_chrun_opts(opts):
+    """Ensure that chrun_opts don't contain options that'll conflict with BEE."""
+    args = opts.split()
+    if '--cd' in args or '-c' in args:
+        raise ValueError('Initial working directory option (-c or --cd) conflicts with BEE. '
+                         'Please make sure that you choose the correct working directory on '
+                         'workflow submission.')
+    return opts
+
+
+VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': ''}, validator=validate_chrun_opts,
                  info='extra options to pass to ch-run')
 VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''}, validator=str,
                  info='extra Charliecloud setup to put in a job script')

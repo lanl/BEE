@@ -98,7 +98,7 @@ class Task:
     """Data structure for holding data about a single task."""
 
     def __init__(self, name, base_command, hints, requirements, inputs, outputs, stdout,
-                 workflow_id, task_id=None):
+                 workflow_id, task_id=None, workdir=None):
         """Store a task description.
 
         Task ID should only be given as a parameter when reconstructing the Task object
@@ -122,6 +122,8 @@ class Task:
         :type workflow_id: str
         :param task_id: the task ID
         :type task_id: str
+        :param workdir: the working directory from which to get and store data
+        :type workdir: path
         """
         self.name = name
         self.base_command = base_command
@@ -131,6 +133,7 @@ class Task:
         self.outputs = outputs
         self.stdout = stdout
         self.workflow_id = workflow_id
+        self.workdir = workdir
 
         # Task ID as UUID if not given
         if task_id is None:
@@ -156,7 +159,8 @@ class Task:
         return Task(name=self.name, base_command=self.base_command,
                     hints=deepcopy(self.hints), requirements=deepcopy(self.requirements),
                     inputs=deepcopy(self.inputs), outputs=deepcopy(self.outputs),
-                    stdout=self.stdout, workflow_id=self.workflow_id, task_id=task_id)
+                    stdout=self.stdout, workflow_id=self.workflow_id, task_id=task_id,
+                    workdir=self.workdir)
 
     def get_requirement(self, req_type, req_param):
         """Get requirement from hints or requirements, prioritizing requirements over hints.
