@@ -1,0 +1,18 @@
+FROM debian:11
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get -y update && \
+    apt-get -y install git cmake gcc g++ gfortran libopenmpi-dev openmpi-bin \
+                       libpmix-dev libpmix-bin
+
+ARG REPO=https://github.com/llnl/LULESH.git
+ARG BRANCH=master
+# Note: Pass `--build-arg WITH_OPENMP=TRUE` to build with OpenMP
+ARG WITH_OPENMP=FALSE
+RUN git clone -b $BRANCH $REPO && \
+    cd LULESH && \
+    mkdir -p build &&  \
+    cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DMPI_CXX_COMPILER=`which mpicxx` -DWITH_OPENMP=$WITH_OPENMP ../ && \
+    make && \
+    cp lulesh2.0 /
