@@ -133,13 +133,13 @@ def test_workflows(wfls):
 bc.init()
 
 
-def ch_image_reset():
-    """Execute a ch-image reset."""
+def ch_image_delete(img_name):
+    """Execute a ch-image delete [img_name]."""
     try:
-        subprocess.check_call(['ch-image', 'reset'])
+        subprocess.check_call(['ch-image', 'delete', img_name])
     except subprocess.CalledProcessError:
         raise CIError(
-            'failed when calling `ch-image reset` to clean up'
+            f'failed when calling `ch-image delete {img_name}` to clean up'
         ) from None
 
 
@@ -230,6 +230,7 @@ def generate_builder_workflow(output_path, docker_requirement, main_input):
     return (main_cwl_file, job_file)
 
 
+BASE_CONTAINER = 'alpine'
 SIMPLE_DOCKERFILE = """
 # Dummy docker file that really doesn't do much
 FROM alpine
@@ -249,10 +250,15 @@ with open(DOCKER_FILE_PATH, 'w', encoding='utf-8') as docker_file_fp:
 
 WORKFLOWS = []
 
+# Remove an existing base container
+if BASE_CONTAINER in ch_image_list():
+    ch_image_delete(BASE_CONTAINER)
+
 
 # `beeflow:copyContainer` workflow
 CC_CONTAINER_PATH = f'/tmp/copy_container-{uuid.uuid4().hex}.tar.gz'
-CC_CTR = Container('copy-container', DOCKER_FILE_PATH, CC_CONTAINER_PATH)
+CC_CONTAINER_NAME = 'copy-container'
+CC_CONTAINER = Container(CC_CONTAINER_NAME, DOCKER_FILE_PATH, CC_CONTAINER_PATH)
 CC_WORKFLOW_PATH = os.path.join('/tmp', f'bee-cc-workflow-{uuid.uuid4().hex}')
 CC_MAIN_INPUT = 'copy_container'
 CC_DOCKER_REQUIREMENT = {
@@ -261,7 +267,7 @@ CC_DOCKER_REQUIREMENT = {
 CC_MAIN_CWL, CC_JOB_FILE = generate_builder_workflow(CC_WORKFLOW_PATH, CC_DOCKER_REQUIREMENT,
                                                      CC_MAIN_INPUT)
 CC_WORKFLOW = Workflow('copy-container', CC_WORKFLOW_PATH, main_cwl=CC_MAIN_CWL,
-                       job_file=CC_JOB_FILE, containers=[CC_CTR])
+                       job_file=CC_JOB_FILE, containers=[CC_CONTAINER])
 WORKFLOWS.append(CC_WORKFLOW)
 
 
@@ -278,41 +284,47 @@ def copy_container_check_cleanup():
     path = os.path.join(container_archive, basename)
     check_path_exists(path)
     os.remove(path)
-    ch_image_reset()
+    ch_image_delete(BASE_CONTAINER)
+    ch_image_delete(CC_CONTAINER_NAME)
 
 
 # `beeflow:useContainer` workflow
-USE_CTR_PATH = os.path.expanduser(f'~/use_container-{uuid.uuid4().hex}.tar.gz')
-USE_CTR = Container('use-container', DOCKER_FILE_PATH, USE_CTR_PATH)
-USE_CTR_WORKFLOW_PATH = os.path.join('/tmp', f'bee-use-ctr-workflow-{uuid.uuid4().hex}')
-USE_CTR_MAIN_INPUT = 'use_ctr'
-USE_CTR_DOCKER_REQUIREMENT = {
-    'beeflow:useContainer': USE_CTR_PATH,
+USE_CONTAINER_PATH = os.path.expanduser(f'~/use_container-{uuid.uuid4().hex}.tar.gz')
+USE_CONTAINER_NAME = 'use-container'
+USE_CONTAINER = Container(USE_CONTAINER_NAME, DOCKER_FILE_PATH, USE_CONTAINER_PATH)
+USE_CONTAINER_WORKFLOW_PATH = os.path.join('/tmp', f'bee-use-ctr-workflow-{uuid.uuid4().hex}')
+USE_CONTAINER_MAIN_INPUT = 'use_ctr'
+USE_CONTAINER_DOCKER_REQUIREMENT = {
+    'beeflow:useContainer': USE_CONTAINER_PATH,
 }
-USE_CTR_MAIN_CWL, USE_CTR_JOB_FILE = generate_builder_workflow(USE_CTR_WORKFLOW_PATH,
-                                                               USE_CTR_DOCKER_REQUIREMENT,
-                                                               USE_CTR_MAIN_INPUT)
-USE_CTR_WORKFLOW = Workflow('use-container', USE_CTR_WORKFLOW_PATH, main_cwl=USE_CTR_MAIN_CWL,
-                            job_file=USE_CTR_JOB_FILE, containers=[USE_CTR])
-WORKFLOWS.append(USE_CTR_WORKFLOW)
+USE_CONTAINER_MAIN_CWL, USE_CONTAINER_JOB_FILE = generate_builder_workflow(
+    USE_CONTAINER_WORKFLOW_PATH,
+    USE_CONTAINER_DOCKER_REQUIREMENT,
+    USE_CONTAINER_MAIN_INPUT,
+)
+USE_CONTAINER_WORKFLOW = Workflow('use-container', USE_CONTAINER_WORKFLOW_PATH,
+                                  main_cwl=USE_CONTAINER_MAIN_CWL, job_file=USE_CONTAINER_JOB_FILE,
+                                  containers=[USE_CONTAINER])
+WORKFLOWS.append(USE_CONTAINER_WORKFLOW)
 
 
-@USE_CTR_WORKFLOW.check_cleanup
+@USE_CONTAINER_WORKFLOW.check_cleanup
 def use_ctr_check_cleanup():
     """Check that the `beeflow:useContainer` example worked properly and then clean up."""
-    path = os.path.expanduser(f'~/{USE_CTR_MAIN_INPUT}')
+    path = os.path.expanduser(f'~/{USE_CONTAINER_MAIN_INPUT}')
     check_path_exists(path)
     os.remove(path)
     # This container should not have been copied into the container archive
     container_archive = bc.get('builder', 'container_archive')
-    basename = os.path.basename(USE_CTR_PATH)
+    basename = os.path.basename(USE_CONTAINER_PATH)
     path = os.path.join(container_archive, basename)
     if os.path.exists(path):
         raise CIError(
             f'the container "{basename}" was copied into the container archive, but shouldn\'t '
             'have been'
         )
-    ch_image_reset()
+    ch_image_delete(BASE_CONTAINER)
+    ch_image_delete(USE_CONTAINER_NAME)
 
 
 # `dockerFile` workflow
@@ -346,12 +358,13 @@ def docker_file_check_cleanup():
     images = ch_image_list()
     if DF_CONTAINER_NAME not in images:
         raise CIError(f'cannot find expected container "{DF_CONTAINER_NAME}"')
-    ch_image_reset()
+    ch_image_delete(BASE_CONTAINER)
+    ch_image_delete(DF_CONTAINER_NAME)
 
 
 # `dockerPull` workflow
 DP_WORKFLOW_PATH = os.path.join('/tmp', f'bee-dp-workflow-{uuid.uuid4().hex}')
-DP_CONTAINER_NAME = 'alpine'
+DP_CONTAINER_NAME = BASE_CONTAINER
 DP_DOCKER_REQUIREMENT = {
     'dockerPull': DP_CONTAINER_NAME,
 }
@@ -378,7 +391,7 @@ def docker_pull_check_cleanup():
     images = ch_image_list()
     if DP_CONTAINER_NAME not in images:
         raise CIError(f'could not find expected container "{DP_CONTAINER_NAME}"')
-    ch_image_reset()
+    ch_image_delete(DP_CONTAINER_NAME)
 
 
 # Run the workflows and then show completion results
