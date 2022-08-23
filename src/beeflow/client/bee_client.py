@@ -54,10 +54,10 @@ def check_short_id_collision():
     if resp.status_code != requests.codes.okay:
         error_exit("Checking for ID collision failed: {resp.status_code}")
 
-    job_list = jsonpickle.decode(resp.json()['job_list'])
-    if job_list:
+    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    if workflow_list:
         while short_id_len < MAX_ID_LEN:
-            id_list = [_short_id(job[1]) for job in job_list]
+            id_list = [_short_id(job[1]) for job in workflow_list]
             id_list_set = set(id_list)
             # Collision if set shorter than list
             if len(id_list_set) < len(id_list):
@@ -83,9 +83,9 @@ def match_short_id(wf_id):
         error_exit(f'Could not match ID: {wf_id}. Code {resp.status_code}')
         # raise ApiError("GET /jobs".format(resp.status_code))
 
-    job_list = jsonpickle.decode(resp.json()['job_list'])
-    if job_list:
-        for job in job_list:
+    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    if workflow_list:
+        for job in workflow_list:
             if job[1].startswith(wf_id):
                 matched_ids.append(job[1])
         if len(matched_ids) > 1:
@@ -181,11 +181,11 @@ def list():
         error_exit('WF Manager did not return workflow list')
 
     logging.info("List Jobs: " + resp.text)
-    job_list = jsonpickle.decode(resp.json()['job_list'])
-    if job_list:
+    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    if workflow_list:
         typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
 
-        for name, wf_id, status in job_list:
+        for name, wf_id, status in workflow_list:
             typer.echo(f"{name}\t{_short_id(wf_id)}\t{status}")
     else:
         typer.echo("There are currently no workflows.")
