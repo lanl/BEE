@@ -95,7 +95,7 @@ a.process_docker_pull('git.lanl.gov:5050/qwofford/containerhub/lstopo',force=Tru
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.wf_data import Task
 task = Task(name='hi',base_command=['hi','hello'],
-                 requirements={'DockerRequirement':{'dockerFile':'src/beeflow/data/dockerfiles/Dockerfile.builder_demo',
+                 requirements={'DockerRequirement':{'dockerFile':'beeflow/data/dockerfiles/Dockerfile.builder_demo',
                                                     'beeflow:containerName':'my_fun_container:sillytag'}},
                  hints=None,
                  workflow_id=42,

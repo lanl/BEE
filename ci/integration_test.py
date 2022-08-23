@@ -122,10 +122,10 @@ def check_clamr():
 
 
 # Set up containers and workflows
-clamr_ctr = Container('clamr', 'src/beeflow/data/dockerfiles/Dockerfile.clamr-ffmpeg',
+clamr_ctr = Container('clamr', 'beeflow/data/dockerfiles/Dockerfile.clamr-ffmpeg',
                       '/tmp/clamr.tar.gz')
 workflows = [
-    Workflow('clamr', './src/beeflow/data/cwl/bee_workflows/clamr-ci', main_cwl='clamr_wf.cwl',
+    Workflow('clamr', './beeflow/data/cwl/bee_workflows/clamr-ci', main_cwl='clamr_wf.cwl',
              job_file='clamr_job.yml', check_fn=check_clamr, containers=[clamr_ctr]),
 ]
 

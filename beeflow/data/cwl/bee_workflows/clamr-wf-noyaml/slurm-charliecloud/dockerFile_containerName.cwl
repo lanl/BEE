@@ -29,7 +29,7 @@ steps:
       baseCommand: "/CLAMR/clamr_cpuonly -n 32 -l 3 -t 5000 -i 10 -g 25 -G png"
       hints:
         DockerRequirement:
-          dockerFile: "src/beeflow/data/dockerfiles/Dockerfile.clamr-lanl-x86_64"
+          dockerFile: "beeflow/data/dockerfiles/Dockerfile.clamr-lanl-x86_64"
           beeflow:containerName: "foo2"
     in:
       infile: infile

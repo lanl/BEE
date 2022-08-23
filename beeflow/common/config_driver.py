@@ -130,7 +130,7 @@ class BeeConfig:
             raise RuntimeError(
                 f'Option {sec_name}::{opt_name} was not found. Please contact '
                 'a BEE developer or check the validation code in '
-                'src/beeflow/common/config_driver.py.'
+                'beeflow/common/config_driver.py.'
             ) from None
 
     @staticmethod
