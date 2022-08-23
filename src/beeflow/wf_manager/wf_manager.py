@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_restful import Api
+<<<<<<< HEAD
 from beeflow.common.config_driver import BeeConfig as bc
 
 from beeflow.wf_manager.resources.wf_list import WFList
