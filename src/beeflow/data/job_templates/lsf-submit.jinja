@@ -1,0 +1,22 @@
+#!/bin/bash
+#BSUB -P <account> 
+#BSUB -W 0:30
+#BSUB -J {{task_name}}-{{task_id}}
+#BSUB -o {{task_save_path}}/{{task_name}}-{{task_id}}.out
+#BSUB -e {{task_save_path}}/{{task_name}}-{{task_id}}.err
+#BSUB -nnodes 1
+{{ env_code }}
+
+# pre commands
+{% for cmd in pre_commands %}
+{{ cmd|join(' ') }}
+{% endfor %}
+
+# main command
+{{ main_command|join(' ') }}
+
+# post commands
+{% for cmd in post_commands %}
+{{ cmd|join(' ') }}
+{% endfor %}
+
