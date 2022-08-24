@@ -13,3 +13,4 @@ poetry.lock
 .env
 .venv
 docs/sphinx/_build
+dist

@@ -19,4 +19,4 @@ jobs:
       - name: Lint
         run: |
           pip install pylama 2>&1 >/dev/null
-          pylama src/
+          pylama beeflow/

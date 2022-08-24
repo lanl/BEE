@@ -2,7 +2,7 @@
 
 This is a simple example MPI workflow that should run on x86 systems.  The
 client script needs to first package up this directory:
-`src/beeflow/data/cwl/bee_workflows/nwchem-mpi`.  Then you should be able to
+`beeflow/data/cwl/bee_workflows/nwchem-mpi`.  Then you should be able to
 submit the workflow to the WFM after packaging with the client as well. An
 example submission is below with the `nwchem.cwl` and `nwchem.yml` files
 specified.
@@ -39,6 +39,6 @@ At this point the job can then be started just as with any other workflow.
 
 This workflow pulls the x86 container from DockerHub, so if the container is not
 working for some reason, I've included an example Dockerfile that should build
-with Charliecloud. See `src/beeflow/data/dockerfiles/Dockerfile.nwchem-x86_64`.
+with Charliecloud. See `beeflow/data/dockerfiles/Dockerfile.nwchem-x86_64`.
 NWChem is a massive program, so the build may take upwards of an hour depending
 on the system.

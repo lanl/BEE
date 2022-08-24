@@ -25,7 +25,7 @@ author = 'BEE Development Team'
 
 # The full version, including alpha/beta/rc tags
 # Release version from pypoetry.toml Needs poetry environment to run correctly
-version = importlib.metadata.version("beeflow")
+version = importlib.metadata.version("hpc-beeflow")
 
 html_logo = "images/logos/BEEGrey.jpg"
 # -- General configuration ---------------------------------------------------

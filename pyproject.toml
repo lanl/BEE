@@ -1,7 +1,8 @@
 [tool.poetry]
-name = "beeflow"
+name = "hpc-beeflow"
 version = "0.1.0rc1"
 description = "A software package for containerizing HPC applications and managing job workflow"
+
 
 authors = [
     "BEE-LANL Dev Team <bee-dev@lanl.gov>"
@@ -32,10 +33,13 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering",
     "Topic :: System :: Clustering",
-    "Topic :: System :: Database",
     "Topic :: System :: Distributed Computing",
     "Topic :: System :: Logging",
     "Topic :: System :: Monitoring"
+]
+
+packages = [
+    { include = "beeflow" }
 ]
 
 [tool.poetry.scripts]

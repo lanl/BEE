@@ -28,8 +28,8 @@ install_bee()
     local git_branch=$4
     mkdir -p $bee_dir
     cd $bee_dir
-    git clone https://$auth_token:x-oauth-basic@github.com/lanl/BEE_Private.git || exit 1
-    cd BEE_Private
+    git clone https://$auth_token:x-oauth-basic@github.com/lanl/BEE.git || exit 1
+    cd BEE
     git checkout $git_branch
     python3 -m venv venv
     . venv/bin/activate
@@ -43,7 +43,7 @@ install_bee()
     cat >> /bee/tm <<EOF
 #!/bin/sh
 . /etc/profile
-cd /bee/BEE_Private
+cd /bee/BEE
 . ./venv/bin/activate
 exec python -m beeflow.task_manager $conf
 EOF

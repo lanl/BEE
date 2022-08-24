@@ -35,7 +35,7 @@ If using `git --version` >= 2.9:
 Otherwise:
     cp .githooks/* .git/hooks/
 
-Using these git hooks will ensure your contributions adhere to style guidelines required for contribution. You will need to repeat these steps for every `BEE_Private` repo you clone.
+Using these git hooks will ensure your contributions adhere to style guidelines required for contribution. You will need to repeat these steps for every `BEE` repo you clone.
 
 Mail List and Contact
 ==========================

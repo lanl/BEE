@@ -27,7 +27,7 @@ poetry install -E cloud_extras -E scheduler_extras || exit 1
 # BEE Configuration
 mkdir -p ~/.config/beeflow
 JOB_TEMPLATE=$HOME/.config/beeflow/submit.jinja
-cp src/beeflow/data/job_templates/slurm-submit.jinja $JOB_TEMPLATE
+cp beeflow/data/job_templates/slurm-submit.jinja $JOB_TEMPLATE
 cat >> ~/.config/beeflow/bee.conf <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]

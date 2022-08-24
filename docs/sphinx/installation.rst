@@ -32,7 +32,7 @@ BEE is a PyPI package that can be installed using pip. On an HPC cluster you may
 
 .. code-block::
 
-    pip install beeflow
+    pip install hpc-beeflow
 
 An alternative is to use a Poetry environment, but we suggest this only for developers.
 For more information click on the Developer's Guide in this documentation.
