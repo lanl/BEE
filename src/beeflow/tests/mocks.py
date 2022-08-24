@@ -13,6 +13,14 @@ class MockTask:
 
 class MockWFI:
     """Mock worfklow interface object."""
+    def __init__(self):
+        self._workflow_id = '42'
+
+    def pause_workflow(self):
+        return 
+
+    def resume_workflow(self):
+        return 
 
     def get_dependent_tasks(self, task): # noqa
         """Get depdendent states."""
@@ -21,6 +29,16 @@ class MockWFI:
     def get_task_by_id(self, task_id): # noqa
         """Return a mock task from an ID."""
         return MockTask()
+
+    def get_workflow_state(self):
+        return 'PENDING'
+
+    @property
+    def workflow_id(self):
+        return self._workflow_id
+
+    def get_ready_tasks(self):
+        return [MockTask()]
 
     @staticmethod
     def workflow_initialized():
@@ -51,11 +69,25 @@ class MockWFI:
     @staticmethod
     def get_workflow():
         """Get a list of workflows."""
-        return [MockTask("task1"), MockTask("task2")], [], []
+        return None, [MockTask("task1"), MockTask("task2")]
 
     def get_task_state(self, task_name): # noqa
         """Returns the task state."""
         return "RUNNING"
+
+    def execute_workflow(self):
+        pass
+
+def mock_create_image():
+    pass
+
+class MockCwlParser:
+    """Mock the CWLParser"""
+    def __init__(self):
+        pass
+    
+    def parse_workflow(self, cwl_path, yaml_file=None):
+        return MockWFI()
 
 
 class MockWorkerSubmission:
