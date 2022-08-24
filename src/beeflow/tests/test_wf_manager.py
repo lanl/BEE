@@ -2,7 +2,7 @@ import time
 import pytest
 from beeflow.wf_manager.wf_manager import create_app
 import beeflow.wf_manager.resources.wf_utils as wf_utils
-from beeflow.wf_manager.mocks import MockWFI, MockCwlParser
+from beeflow.tests.mocks import MockWFI, MockCwlParser
 
 # We use this as the test workflow id
 wf_id = '42'
@@ -50,6 +50,7 @@ def test_submit_workflow(client, mocker, teardown_workflow):
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
+    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
     mocker.patch('subprocess.run', return_value=True)
     tarball = 'clamr-wf.tgz'
     tarball_contents = open(tarball, 'rb')
@@ -105,7 +106,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow):
 def test_pause_workflow(client, mocker, setup_teardown_workflow):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
             return_value=MockWFI())
-    mocker.patch('beeflow.wf_manager.mocks.MockWFI.get_workflow_state',
+    mocker.patch('beeflow.tests.mocks.MockWFI.get_workflow_state',
             return_value='RUNNING')
 
     wf_utils.update_wf_status(wf_id, 'Running')
@@ -118,7 +119,7 @@ def test_pause_workflow(client, mocker, setup_teardown_workflow):
 def test_resume_workflow(client, mocker, setup_teardown_workflow):
    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
            return_value=MockWFI())
-   mocker.patch('beeflow.wf_manager.mocks.MockWFI.get_workflow_state',
+   mocker.patch('beeflow.tests.mocks.MockWFI.get_workflow_state',
            return_value='PAUSED')
    mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
    mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_scheduler', return_value=None)

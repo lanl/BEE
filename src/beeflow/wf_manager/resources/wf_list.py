@@ -139,7 +139,8 @@ class WFList(Resource):
 
         # Save the workflow temporarily to this folder for the parser
         # This is a temporary measure until we can get the worflow ID before a parse
-        extract_wf_temp(wf_filename, wf_tarball)
+        temp_dir = extract_wf_temp(wf_filename, wf_tarball)
+        print(f'{temp_dir}')
         dep_manager.start_gdb()
         dep_manager.wait_gdb(log, 5)
 
@@ -164,6 +165,9 @@ class WFList(Resource):
             f_path = os.path.join(temp_dir, f)
             if os.path.isfile(f_path):
                 shutil.copy(f_path, workflow_dir)
+
+        # We've parsed and added temp files to wf directory so we can chuck it
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
         wf_utils.create_wf_metadata(wf_id, wf_name)
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok', 
