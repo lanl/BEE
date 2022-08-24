@@ -226,6 +226,7 @@ def wait_gdb(log, gdb_sleep_time=1):
     log.info('waiting {}s for GDB to come up'.format(gdb_sleep_time))
     time.sleep(gdb_sleep_time)
 
+
 def remove_current_run():
     current_run_dir = get_current_run_dir()
     shutil.rmtree(current_run_dir, ignore_errors=True)

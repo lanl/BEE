@@ -3,6 +3,7 @@ import sqlite3
 from sqlite3 import Error
 from collections import namedtuple
 
+
 def create_connection():
     db_file = 'workflow.db'
     conn = None
@@ -89,12 +90,14 @@ def init():
     create_table(conn, info_stmt)
     conn.close()
 
+
 # Initialize the database
 init()
 
+
 def add_workflow(workflow_id, name, status):
     stmt = """INSERT INTO workflows (workflow_id, name, status)
-               						VALUES(?, ?, ?);"""
+                                    VALUES(?, ?, ?);"""
     run(stmt, [workflow_id, name, status])
 
 
@@ -104,6 +107,8 @@ def update_workflow_state(workflow_id, status):
 
 
 Workflow = namedtuple("Workflow", "id workflow_id name status")
+
+
 def get_workflow(workflow_id):
     stmt = "SELECT * FROM workflows WHERE workflow_id=?"
     result = get(stmt, [workflow_id])[0]
@@ -125,7 +130,9 @@ def add_task(task_id, workflow_id, name, status):
 
 
 Task = namedtuple("Task", "id task_id workflow_id resource status slurm_id "
-                   "name")
+                  "name")
+
+
 def get_tasks(workflow_id):
     stmt = "SELECT * FROM tasks WHERE workflow_id=?"
     result = get(stmt, [workflow_id])
@@ -152,4 +159,4 @@ def get_task(workflow_id):
 
 def delete_task(task_id, workflow_id):
     stmt = "DELETE FROM workflows WHERE task_id=? AND workflow_id=?"
-    result = run(stmt, [task_id, workflow_id])
+    run(stmt, [task_id, workflow_id])

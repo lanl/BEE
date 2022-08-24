@@ -2,7 +2,6 @@ from beeflow.cli import log
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 import beeflow.wf_manager.resources.wf_utils as wf_utils
-import beeflow.wf_manager.common.wf_db as wf_db
 
 
 class WFActions(Resource):

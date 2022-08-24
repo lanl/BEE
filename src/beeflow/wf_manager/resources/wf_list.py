@@ -1,6 +1,5 @@
 import os
 import jsonpickle
-import time
 import shutil
 import tempfile
 import subprocess
@@ -10,10 +9,8 @@ from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
 
 from beeflow.cli import log
-from beeflow.start_gdb import StartGDB
 from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.common.parser import CwlParser
-from beeflow.common.gdb.neo4j_driver import Neo4JNotRunning
 
 import beeflow.wf_manager.resources.wf_utils as wf_utils
 import beeflow.wf_manager.common.dep_manager as dep_manager
@@ -43,15 +40,16 @@ def parse_workflow(workflow_dir, main_cwl, yaml_file, wf_name):
             return resp
     return wfi
 
+
 def initialize_dep_container():
-        # Create new dependency container if one does not currently exist
-        try:
-            dep_manager.create_image()
-        except dep_manager.NoContainerRuntime:
-            crt_message = "Charliecloud not installed in current environment."
-            log.error(crt_message)
-            resp = make_response(jsonify(msg=crt_message, status='error'), 418)
-            return resp
+    # Create new dependency container if one does not currently exist
+    try:
+        dep_manager.create_image()
+    except dep_manager.NoContainerRuntime:
+        crt_message = "Charliecloud not installed in current environment."
+        log.error(crt_message)
+        resp = make_response(jsonify(msg=crt_message, status='error'), 418)
+    return resp
 
 
 def initialize_wf_profiler(wf_name):
@@ -62,6 +60,7 @@ def initialize_wf_profiler(wf_name):
     os.makedirs(profile_dir, exist_ok=True)
     output_path = os.path.join(profile_dir, fname)
     wf_profiler = WorkflowProfiler(wf_name, output_path)
+
 
 def extract_wf_temp(filename, workflow_archive):
     # Make a temp directory to store the archive
@@ -92,38 +91,21 @@ class WFList(Resource):
         resp = make_response(jsonify(workflow_list=jsonpickle.encode(info)), 200)
         return resp
 
-        bee_workdir = wf_utils.get_bee_workdir()
-        workflows_dir = os.path.join(bee_workdir, 'workflows')
-        # TODO update this to use the workflow DB instead
-        workflow_list = []
-        ## Confirm that workflows directory exist
-        #if os.path.isdir(workflows_dir):
-        #    workflows = next(os.walk(workflows_dir))[1]
-        #    for wf_id in workflows:
-        #        status = wf_utils.read_wf_status(wf_id)
-        #        wf_path = os.path.join(workflows_dir, wf_id)
-        #        status_path = os.path.join(wf_path, 'bee_wf_status')
-        #        name_path = os.path.join(wf_path, 'bee_wf_name')
-        #        status = pathlib.Path(status_path).read_text()
-        #        name = pathlib.Path(name_path).read_text()
-        #        workflow_list.append([name, wf_id, status])
-
-
     def post(self):
         """Receive a workflow, parse it, and start up a neo4j instance for it.
            Workflow manager returns a workflow ID used for subsequent communication
         """
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
-                                   location='form')
+                               location='form')
         reqparser.add_argument('main_cwl', type=str, required=True,
-                                   location='form')
+                               location='form')
         reqparser.add_argument('yaml', type=str, required=False,
-                                   location='form')
+                               location='form')
         reqparser.add_argument('wf_filename', type=str, required=True,
-                                   location='form')
+                               location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
-                                   location='files')
+                               location='files')
         data = reqparser.parse_args()
         wf_tarball = data['workflow_archive']
         wf_filename = data['wf_filename']
@@ -140,17 +122,11 @@ class WFList(Resource):
         # Save the workflow temporarily to this folder for the parser
         # This is a temporary measure until we can get the worflow ID before a parse
         temp_dir = extract_wf_temp(wf_filename, wf_tarball)
-        print(f'{temp_dir}')
         dep_manager.start_gdb()
         dep_manager.wait_gdb(log, 5)
 
         wf_path = os.path.join(temp_dir, wf_filename[:-4])
-
-        try:
-            wfi = parse_workflow(wf_path, main_cwl, yaml_file, wf_name)
-        except AttributeError:
-            resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
-            return resp
+        wfi = parse_workflow(wf_path, main_cwl, yaml_file, wf_name)
 
         # initialize_wf_profiler(wf_name)
         # Save the workflow to the workflow_id dir in the beeflow dir
@@ -158,7 +134,6 @@ class WFList(Resource):
         bee_workdir = wf_utils.get_bee_workdir()
         workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
         os.makedirs(workflow_dir)
-        workflow_path = os.path.join(workflow_dir, wf_filename)
 
         # Copy workflow files to later archive
         for f in os.listdir(temp_dir):
@@ -170,7 +145,7 @@ class WFList(Resource):
         shutil.rmtree(temp_dir, ignore_errors=True)
 
         wf_utils.create_wf_metadata(wf_id, wf_name)
-        resp = make_response(jsonify(msg='Workflow uploaded', status='ok', 
+        resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
         return resp
 
@@ -178,23 +153,24 @@ class WFList(Resource):
         """ReExecute a workflow"""
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
-                                   location='form')
+                               location='form')
         reqparser.add_argument('wf_filename', type=str, required=True,
-                                   location='form')
+                               location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
-                                   location='files')
+                               location='files')
 
         data = reqparser.parse_args()
         workflow_archive = data['workflow_archive']
         wf_filename = data['wf_filename']
         wf_name = data['wf_name']
 
-        wfi = get_wfi()
+        wfi = wf_utils.get_wfi()
 
-        extract_wf_temp(filename, workflow_archive)
+        tmp_dir = extract_wf_temp(wf_filename, workflow_archive)
 
-        archive_dir = filename.split('.')[0]
-        gdb_path = os.path.join(tmp_path, archive_dir, 'gdb')
+        archive_dir = wf_filename.split('.')[0]
+        gdb_path = os.path.join(tmp_dir, archive_dir, 'gdb')
+        bee_workdir = wf_utils.get_bee_workdir()
         gdb_workdir = os.path.join(bee_workdir, 'current_run')
         shutil.copytree(gdb_path, gdb_workdir)
 
@@ -206,11 +182,6 @@ class WFList(Resource):
         # Launch new container with bindmounted GDB
         dep_manager.start_gdb(reexecute=True)
         dep_manager.wait_gdb(log, 5)
-
-        wf_path = os.path.join(temp_dir, wf_filename[:-4])
-
-
-        bee_workdir = wf_utils.get_bee_workdir()
 
         # Initialize the database connection object
         wfi.initialize_workflow(inputs=None, outputs=None, existing=True)
@@ -225,7 +196,7 @@ class WFList(Resource):
         wf_utils.create_wf_metadata(wf_id, wf_name)
 
         # Return the wf_id and created
-        resp = make_response(jsonify(msg='Workflow uploaded', status='ok', 
+        resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
         return resp
 

@@ -21,7 +21,6 @@ MAX_ID_LEN = 32
 
 
 logging.basicConfig(level=logging.WARNING)
-workflow_manager = 'bee_wfm/v1/jobs'
 
 
 def error_exit(msg):
@@ -33,8 +32,8 @@ def error_exit(msg):
 
 def _url():
     """Returns URL to the workflow manager end point"""
-    WM_PORT = 5000
     wfm_listen_port = bc.get('workflow_manager', 'listen_port')
+    workflow_manager = 'bee_wfm/v1/jobs'
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
 
 

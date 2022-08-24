@@ -32,10 +32,12 @@ def remove_wf_dir(wf_id):
         shutil.rmtree(workflows_dir)
     wf_db.delete_workflow(wf_id)
 
+
 def create_wf_metadata(wf_id, wf_name):
     create_wf_name(wf_id, wf_name)
     create_wf_status(wf_id)
     wf_db.add_workflow(wf_id, wf_name, 'Pending')
+
 
 def create_wf_name(wf_id, wf_name):
     bee_workdir = get_bee_workdir()
