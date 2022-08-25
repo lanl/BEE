@@ -3,14 +3,22 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to the BEE documentation!
-*********************************
+.. include:: ../../README.rst
 
-.. toctree::
-   :maxdepth: 2
+.. note::
+
+   This documentation was built |today|, beeflow version |version|.
+
+
+.. toctree:: :maxdepth: 2
    :caption: Contents:
 
-   api/wf_api
+
+   installation
+   examples
+   contribute
+   development
+   wf_api
 
 
 Indices and tables

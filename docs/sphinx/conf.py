@@ -14,6 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('../beeflow'))
 import sphinx_rtd_theme
+import importlib.metadata
 
 
 # -- Project information -----------------------------------------------------
@@ -23,9 +24,10 @@ copyright = '2019, BEE Development Team'
 author = 'BEE Development Team'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+# Release version from pypoetry.toml Needs poetry environment to run correctly
+version = importlib.metadata.version("hpc-beeflow")
 
-
+html_logo = "images/logos/BEEGrey.jpg"
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be

@@ -1,3 +1,0 @@
-
-BEE_USER = 'bee'
-
