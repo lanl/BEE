@@ -159,11 +159,14 @@ def start_nginx(bc, args):
     wfm_port = bc.userconfig['workflow_manager']['listen_port']
     tm_port = bc.userconfig['task_manager']['listen_port']
     sched_port  = bc.userconfig['scheduler']['listen_port']
-    options = { 'wfm_listen_port': wfm_port, 'tm_listen_port': tm_port,
-                'sched_listen_port': sched_port, 'user': getpass.getuser()}
     tm_port = bc.userconfig['task_manager']['listen_port']
-    nginx_img     = bc.userconfig.get('nginx','nginx_image')
-    nginx_img_mntdir = bc.userconfig.get('nginx','nginx_image_mntdir')
+    nginx_img     = bc.userconfig.get('nginx', 'nginx_image')
+    nginx_img_mntdir = bc.userconfig.get('nginx', 'nginx_image_mntdir')
+    nginx_port = bc.userconfig.get('nginx', 'nginx_listen_port')
+    options = { 'wfm_listen_port': wfm_port, 'tm_listen_port': tm_port,
+                'sched_listen_port': sched_port, 'nginx_listen_port': nginx_port, 
+                'user': getpass.getuser()}
+
 
     # Create nginx configuration directory if it doesn't exist
     nginx_config_dir = bee_workdir + '/nginx_config'
