@@ -135,6 +135,8 @@ def load_config_values():
                                                  ALLOC_LOGFILE)
     else:
         # Don't read from the config
+        # TODO: Need to refactor this code to avoid this messy configuration
+        bc.init()
         if not conf['log']:
             conf['log'] = 'scheduler.log'
         if not conf['workdir']:

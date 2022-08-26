@@ -5,6 +5,10 @@ Tests of the BEE Scheduler module.
 from beeflow.scheduler import algorithms
 from beeflow.scheduler import task
 from beeflow.scheduler import resource_allocation
+from beeflow.common.config_driver import BeeConfig as bc
+
+
+bc.init()
 
 
 class TestFCFS:
