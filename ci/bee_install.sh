@@ -17,10 +17,10 @@ ch-convert -i ch-image -o tar neo4j:3.5.22 $NEO4J_CONTAINER || exit 1
 printf "\n\n"
 printf "**Installing BEE**\n"
 printf "\n\n"
-# Upgrade pip
+$PYTHON -m venv venv
+. venv/bin/activate
 pip install --upgrade pip
-# Install poetry first
-curl -sSL https://install.python-poetry.org | python3 -
+pip install poetry
 # Do a poetry install, making sure that all extras are added
 poetry install -E cloud_extras -E scheduler_extras || exit 1
 
