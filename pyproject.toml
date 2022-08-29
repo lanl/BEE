@@ -49,8 +49,8 @@ bee_cloud = 'beeflow.cloud_launcher:main'
 bee_cfg = 'beeflow.common.config_driver:main'
 
 [tool.poetry.dependencies]
-# Python version (>=3.8.3, <4.0.0)
-python = "^3.8.3"
+# Python version (>=3.8.3, <3.11)
+python = ">=3.8.3,<=3.11"
 
 # Package dependencies
 Flask = { version = "^1.1.1" }
@@ -61,7 +61,7 @@ PyYAML = { version = "^5.1.1" }
 flask_restful = "0.3.7"
 celery = {extras = ["redis"], version = "^4.4.0"}
 redis = "^3.3.11"
-cwl-utils = "^0.13"
+cwl-utils = "^0.16"
 pylint = { version = ">=2.3.1" }
 APScheduler = "^3.6.3"
 jsonpickle = "^1.3"
