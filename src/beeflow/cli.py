@@ -81,9 +81,9 @@ def start_workflow_manager(bc, args):
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     use_wsgi = bc.userconfig.get('DEFAULT', 'use_wsgi')
     if use_wsgi == "True":
-        proc = subprocess.Popen(['uwsgi', '--ini', 
-            get_script_path() + '/data/uwsgi_configs/wf_manager.ini'])
-            #get_script_path() + '/data/uwsgi_configs/wf_manager.ini'],
+        proc = subprocess.Popen(['gunicorn', '--ini', 
+            get_script_path() + '/data/gunicorn_configs/wf_manager.ini'])
+            #get_script_path() + '/data/gunicorn_configs/wf_manager.ini'],
             #                stdout=PIPE, stderr=PIPE)
     else:
         proc = subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
@@ -118,9 +118,9 @@ def start_task_manager(bc, args):
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
     use_wsgi = bc.userconfig.get('DEFAULT', 'use_wsgi')
     if use_wsgi == "True":
-        proc = subprocess.Popen(['uwsgi', '--ini', 
-            get_script_path() + '/data/uwsgi_configs/task_manager.ini'])
-            #get_script_path() + '/data/uwsgi_configs/task_manager.ini'],
+        proc = subprocess.Popen(['gunicorn', '--ini', 
+            get_script_path() + '/data/gunicorn_configs/task_manager.ini'])
+            #get_script_path() + '/data/gunicorn_configs/task_manager.ini'],
             #                stdout=PIPE, stderr=PIPE)
     else:
         proc = subprocess.Popen(["python", get_script_path() + "/task_manager.py",
@@ -159,14 +159,11 @@ def start_nginx(bc, args):
     wfm_port = bc.userconfig['workflow_manager']['listen_port']
     tm_port = bc.userconfig['task_manager']['listen_port']
     sched_port  = bc.userconfig['scheduler']['listen_port']
-    tm_port = bc.userconfig['task_manager']['listen_port']
-    nginx_img     = bc.userconfig.get('nginx', 'nginx_image')
-    nginx_img_mntdir = bc.userconfig.get('nginx', 'nginx_image_mntdir')
-    nginx_port = bc.userconfig.get('nginx', 'nginx_listen_port')
     options = { 'wfm_listen_port': wfm_port, 'tm_listen_port': tm_port,
-                'sched_listen_port': sched_port, 'nginx_listen_port': nginx_port, 
-                'user': getpass.getuser()}
-
+                'sched_listen_port': sched_port, 'user': getpass.getuser()}
+    tm_port = bc.userconfig['task_manager']['listen_port']
+    nginx_img     = bc.userconfig.get('nginx','nginx_image')
+    nginx_img_mntdir = bc.userconfig.get('nginx','nginx_image_mntdir')
 
     # Create nginx configuration directory if it doesn't exist
     nginx_config_dir = bee_workdir + '/nginx_config'
@@ -205,8 +202,8 @@ def start_nginx(bc, args):
     try:
         # Kill all previous nginx processes 
         subprocess.run(['pkill', '-u', os.getlogin(), 'nginx'])
-        # Kill all previous uwsgi instances
-        subprocess.run(['pkill', '-u', os.getlogin(), 'uwsgi'])
+        # Kill all previous gunicorn instances
+        subprocess.run(['pkill', '-u', os.getlogin(), 'gunicorn'])
         proc = subprocess.Popen([
             "ch-run",
             "-b", 
@@ -255,8 +252,8 @@ def start_scheduler(bc, args):
 
     use_wsgi = bc.userconfig.get('DEFAULT', 'use_wsgi')
     if use_wsgi == "True":
-        proc = subprocess.Popen(['uwsgi', '--ini', 
-            get_script_path() + '/data/uwsgi_configs/scheduler.ini'],
+        proc = subprocess.Popen(['gunicorn', '--ini', 
+            get_script_path() + '/data/gunicorn_configs/scheduler.ini'],
                             stdout=PIPE, stderr=PIPE)
     else:
         proc = subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
