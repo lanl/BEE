@@ -7,7 +7,6 @@ from beeflow.common.config_driver import BeeConfig as bc
 # We use this as the test workflow id
 wf_id = '42'
 
-
 @pytest.fixture
 def app():
     app = create_app()
@@ -16,7 +15,6 @@ def app():
     })
 
     yield app
-
 
 @pytest.fixture()
 def client(app):
