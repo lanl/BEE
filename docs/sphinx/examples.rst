@@ -27,7 +27,8 @@ Submit the CLAMR workflow from the top level directory of the repository (BEE), 
 
 .. code-block::
 
-    bee_client submit clamr-example examples/clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml
+    bee_client package examples/clamr-ffmpeg-build .
+    bee_client submit clamr-example clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml
 
 Output:
 
