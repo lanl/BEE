@@ -44,7 +44,7 @@ runner_opts =
 
 [charliecloud]
 image_mntdir = /tmp
-chrun_opts = --cd $HOME
+chrun_opts =
 setup =
 
 [graphdb]
