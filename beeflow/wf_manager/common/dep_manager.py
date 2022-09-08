@@ -13,8 +13,6 @@ from beeflow.common.config_driver import BeeConfig as bc
 
 
 dep_log = bee_logging.setup_logging(level='DEBUG')
-# gdb_handler = bee_logging.save_log(bee_workdir=bee_workdir,
-#        log=dep_log, logfile='gdb_launch.log')
 
 
 class NoContainerRuntime(Exception):
@@ -93,9 +91,9 @@ def setup_gdb_mounts():
 
 def setup_gdb_configs():
     """
-        Setup GDB configurations for the next run.
-        This function needs to be run before each new invocation since the
-        config file could have changed.
+    Setup GDB configurations for the next run.
+    This function needs to be run before each new invocation since the
+    config file could have changed.
     """
     bolt_port = bc.get('graphdb', 'bolt_port')
     http_port = bc.get('graphdb', 'http_port')
@@ -125,8 +123,8 @@ def setup_gdb_configs():
 
 def create_image():
     """
-       Create a new BEE dependency container if one does not exist.
-       By default, the container is stored in /tmp/<user>/beeflow/deps.
+    Create a new BEE dependency container if one does not exist.
+    By default, the container is stored in /tmp/<user>/beeflow/deps.
     """
     # Can throw an exception that needs to be handled by the caller
     check_container_runtime()
@@ -156,7 +154,6 @@ def create_image():
     # Make the certificates directory
     container_certs_path = os.path.join(container_dir, 'var/lib/neo4j/certificates')
     os.makedirs(container_certs_path, exist_ok=True)
-    # dep_log.debug('Created certificates directory %s', container_certs_path)
 
 
 def start_gdb(reexecute=False):
@@ -165,7 +162,8 @@ def start_gdb(reexecute=False):
     """
     setup_gdb_configs()
     # We need to rerun the mount step before each start
-    setup_gdb_mounts()
+    if not reexecute:
+        setup_gdb_mounts()
 
     db_password = bc.get('graphdb', 'dbpass')
     current_run_dir = get_current_run_dir()
@@ -176,21 +174,21 @@ def start_gdb(reexecute=False):
     confs_dir = current_run_dir + "/conf"
 
     container_path = get_container_dir()
-    # if not reexecute and len(os.listdir(data_dir)) == 0:
-    try:
-        command = ['neo4j-admin', 'set-initial-password', str(db_password)]
-        proc = subprocess.run([
-            "ch-run",
-            "--set-env=" + container_path + "/ch/environment",
-            "-b", confs_dir + ":/var/lib/neo4j/conf",
-            "-b", data_dir + ":/data",
-            "-b", logs_dir + ":/logs",
-            "-b", run_dir + ":/var/lib/neo4j/run", container_path,
-            "--", *command
-        ], stdout=sys.stdout, stderr=sys.stderr, check=True)
-    except subprocess.CalledProcessError:
-        dep_log.error("neo4j-admin set-initial-password failed")
-        return None
+    if not reexecute:
+        try:
+            command = ['neo4j-admin', 'set-initial-password', str(db_password)]
+            proc = subprocess.run([
+                "ch-run",
+                "--set-env=" + container_path + "/ch/environment",
+                "-b", confs_dir + ":/var/lib/neo4j/conf",
+                "-b", data_dir + ":/data",
+                "-b", logs_dir + ":/logs",
+                "-b", run_dir + ":/var/lib/neo4j/run", container_path,
+                "--", *command
+            ], stdout=sys.stdout, stderr=sys.stderr, check=True)
+        except subprocess.CalledProcessError:
+            dep_log.error("neo4j-admin set-initial-password failed")
+            return None
 
     try:
         command = ['neo4j', 'start']
@@ -213,7 +211,6 @@ def start_gdb(reexecute=False):
     except FileNotFoundError:
         dep_log.error("Neo4j failed to start.")
         return None
-
     return proc
 
 
@@ -229,7 +226,7 @@ def wait_gdb(log, gdb_sleep_time=1):
 
 def remove_current_run():
     current_run_dir = get_current_run_dir()
-    shutil.rmtree(current_run_dir, ignore_errors=True)
+    shutil.rmtree(current_run_dir)
 
 
 def remove_gdb():
@@ -249,8 +246,8 @@ def remove_gdb():
 
 def kill_gdb():
     """
-        Kill the current GDB process.
-        This will stop functioning correctly with multiple workflow support.
+    Kill the current GDB process.
+    This will stop functioning correctly with multiple workflow support.
     """
     # TODO TERRIBLE Kludge until we can figure out a better way to get the PID
     user = getpass.getuser()

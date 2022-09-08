@@ -7,6 +7,7 @@ from beeflow.common.config_driver import BeeConfig as bc
 # We use this as the test workflow id
 wf_id = '42'
 
+
 @pytest.fixture
 def app():
     app = create_app()
@@ -15,6 +16,7 @@ def app():
     })
 
     yield app
+
 
 @pytest.fixture()
 def client(app):
@@ -50,6 +52,8 @@ def test_submit_workflow(client, mocker, teardown_workflow):
     """This function tests a user submitting a workflow to the POST in WFList"""
     mocker.patch('beeflow.wf_manager.resources.wf_list.CwlParser', new=MockCwlParser)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image', return_value=True)
+    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.remove_current_run',
+                 return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
@@ -66,8 +70,30 @@ def test_submit_workflow(client, mocker, teardown_workflow):
     assert resp.json['msg'] == 'Workflow uploaded'
 
 
-def test_reexecute_workflow():
-    pass
+def test_reexecute_workflow(client, mocker, teardown_workflow):
+    mocker.patch('beeflow.wf_manager.resources.wf_list.CwlParser', new=MockCwlParser)
+    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image', return_value=True)
+    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
+    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
+    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
+    mocker.patch('beeflow.wf_manager.resources.wf_list.shutil.copytree', return_value=True)
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
+                 return_value=MockWFI())
+    mocker.patch('subprocess.run', return_value=True)
+
+    wf_utils.create_current_run_dir()
+
+    tarball = '42.tgz'
+    tarball_contents = open(tarball, 'rb')
+
+    resp = client().put('/bee_wfm/v1/jobs/', data={
+            'wf_filename': tarball,
+            'wf_name': 'clamr',
+            'workflow_archive': tarball_contents
+    })
+
+    wf_utils.remove_current_run_dir()
+    assert resp.json['msg'] == 'Workflow uploaded'
 
 
 def test_copy_workflow():

@@ -25,6 +25,19 @@ def create_wf_dir(wf_id):
     os.makedirs(workflow_dir)
 
 
+def create_current_run_dir():
+    bee_workdir = get_bee_workdir()
+    current_run_dir = os.path.join(bee_workdir, 'current_run')
+    os.makedirs(current_run_dir)
+
+
+def remove_current_run_dir():
+    bee_workdir = get_bee_workdir()
+    current_run_dir = os.path.join(bee_workdir, 'current_run')
+    if os.path.exists(current_run_dir):
+        shutil.rmtree(current_run_dir)
+
+
 def remove_wf_dir(wf_id):
     bee_workdir = get_bee_workdir()
     workflows_dir = os.path.join(bee_workdir, 'workflows', wf_id)

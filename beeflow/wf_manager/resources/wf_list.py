@@ -9,7 +9,7 @@ from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
 
 from beeflow.cli import log
-from beeflow.common.wf_profiler import WorkflowProfiler
+# from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.common.parser import CwlParser
 
 import beeflow.wf_manager.resources.wf_utils as wf_utils
@@ -41,7 +41,7 @@ def parse_workflow(workflow_dir, main_cwl, yaml_file, wf_name):
     return wfi
 
 
-def initialize_dep_container():
+def create_dep_container():
     # Create new dependency container if one does not currently exist
     try:
         dep_manager.create_image()
@@ -49,17 +49,17 @@ def initialize_dep_container():
         crt_message = "Charliecloud not installed in current environment."
         log.error(crt_message)
         resp = make_response(jsonify(msg=crt_message, status='error'), 418)
-    return resp
+        return resp
 
 
-def initialize_wf_profiler(wf_name):
-    # Initialize the workflow profiling code
-    bee_workdir = wf_utils.get_bee_workdir()
-    fname = '{}.json'.format(wf_name)
-    profile_dir = os.path.join(bee_workdir, 'profiles')
-    os.makedirs(profile_dir, exist_ok=True)
-    output_path = os.path.join(profile_dir, fname)
-    wf_profiler = WorkflowProfiler(wf_name, output_path)
+# def initialize_wf_profiler(wf_name):
+#    # Initialize the workflow profiling code
+#    bee_workdir = wf_utils.get_bee_workdir()
+#    fname = '{}.json'.format(wf_name)
+#    profile_dir = os.path.join(bee_workdir, 'profiles')
+#    os.makedirs(profile_dir, exist_ok=True)
+#    output_path = os.path.join(profile_dir, fname)
+#    wf_profiler = WorkflowProfiler(wf_name, output_path)
 
 
 def extract_wf_temp(filename, workflow_archive):
@@ -115,15 +115,15 @@ class WFList(Resource):
         yaml_file = data['yaml']
 
         dep_manager.kill_gdb()
-        initialize_dep_container()
-        # Remove the current run directory in the bee workdir
         dep_manager.remove_current_run()
+        create_dep_container()
+        # Remove the current run directory in the bee workdir
 
         # Save the workflow temporarily to this folder for the parser
         # This is a temporary measure until we can get the worflow ID before a parse
         temp_dir = extract_wf_temp(wf_filename, wf_tarball)
         dep_manager.start_gdb()
-        dep_manager.wait_gdb(log, 5)
+        dep_manager.wait_gdb(log, 10)
 
         wf_path = os.path.join(temp_dir, wf_filename[:-4])
         wfi = parse_workflow(wf_path, main_cwl, yaml_file, wf_name)
@@ -164,7 +164,10 @@ class WFList(Resource):
         wf_filename = data['wf_filename']
         wf_name = data['wf_name']
 
-        wfi = wf_utils.get_wfi()
+        dep_manager.kill_gdb()
+        create_dep_container()
+        # Remove the current run directory in the bee workdir
+        dep_manager.remove_current_run()
 
         tmp_dir = extract_wf_temp(wf_filename, workflow_archive)
 
@@ -173,18 +176,12 @@ class WFList(Resource):
         bee_workdir = wf_utils.get_bee_workdir()
         gdb_workdir = os.path.join(bee_workdir, 'current_run')
         shutil.copytree(gdb_path, gdb_workdir)
-
-        dep_manager.kill_gdb()
-        initialize_dep_container()
-        # Remove the current run directory in the bee workdir
-        dep_manager.remove_current_run()
-
+        shutil.rmtree(tmp_dir)
         # Launch new container with bindmounted GDB
         dep_manager.start_gdb(reexecute=True)
-        dep_manager.wait_gdb(log, 5)
+        dep_manager.wait_gdb(log, 10)
+        wfi = wf_utils.get_workflow_interface()
 
-        # Initialize the database connection object
-        wfi.initialize_workflow(inputs=None, outputs=None, existing=True)
         # Reset the workflow state and generate a new workflow ID
         wfi.reset_workflow()
         wf_id = wfi.workflow_id

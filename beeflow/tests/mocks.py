@@ -17,10 +17,13 @@ class MockWFI:
         self._workflow_id = '42'
 
     def pause_workflow(self):
-        return 
+        return
 
     def resume_workflow(self):
-        return 
+        return
+    
+    def reset_workflow(self):
+        return
 
     def get_dependent_tasks(self, task): # noqa
         """Get depdendent states."""

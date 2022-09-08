@@ -2,7 +2,6 @@
 import os
 import logging
 import typer
-import click
 import requests
 from pathlib import Path
 import jsonpickle
@@ -153,7 +152,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
 
     check_short_id_collision()
     if 'wf_id' not in resp.json():
-        error_exit(f"wf_id not in WFM response")
+        error_exit("wf_id not in WFM response")
     wf_id = resp.json()['wf_id']
     typer.secho("Workflow submitted! Your workflow id is "
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
@@ -301,26 +300,32 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 @app.command()
 def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
-              archive_path: Path = typer.Argument(...), help='Path to archive'):
+              wf_path: Path = typer.Argument(..., help='Path to the workflow archive')):
     """
     Reexecute an archived workflow
     """
-    files = {
-        'wf_filename': os.path.basename(archive_path).encode(),
-        'workflow_archive': open(archive_path, 'rb'),
+    if os.path.exists(wf_path):
+        wf_tarball = open(wf_path, 'rb')
+    else:
+        error_exit(f'Workflow tarball {wf_path} cannot be found')
+
+    data = {
+        'wf_filename': os.path.basename(wf_path).encode(),
         'wf_name': wf_name.encode()
     }
     try:
-        resp = requests.put(_url(), files=files)
+        resp = requests.put(_url(), data=data,
+                            files={'workflow_archive': wf_tarball})
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.created:
-        error_exit('WF Manager could not reexecute workflow.')
-
-    logging.info("ReExecute Workflow: " + resp.text)
+        error_exit(f"Reexecute for {wf_name} failed. Please check the WF Manager.")
 
     wf_id = resp.json()['wf_id']
+    typer.secho("Workflow submitted! Your workflow id is "
+                f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
+    logging.info("ReExecute Workflow: " + resp.text)
     return wf_id
 
 
