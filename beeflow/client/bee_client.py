@@ -3,8 +3,10 @@ import os
 import logging
 import typer
 import requests
-from pathlib import Path
+import pathlib
 import jsonpickle
+import subprocess
+import shutil
 import inspect
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.cli import NaturalOrderGroup
@@ -121,7 +123,7 @@ app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGr
 
 @app.command()
 def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
-           wf_path: Path = typer.Argument(..., help='Path to the workflow tarball'),
+           wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow tarball'),
            main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
            yaml: str = typer.Argument(..., help='filename of YAML file'),
            ):
@@ -177,6 +179,40 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
     typer.echo(f"{resp.json()['msg']}")
     logging.info('Started ' + resp.text)
+
+
+@app.command()
+def package(wf_path: pathlib.Path = typer.Argument(..., 
+            help='Path to the workflow package directory'),
+            package_dest: pathlib.Path = typer.Argument(..., 
+            help='Path for where the packaged workflow should be saved')
+            ):
+    """
+    Package a workflow into a tarball.
+    """
+    if not os.path.isdir(wf_path):
+        print(f"{wf_path} is not a valid directory.")
+
+    # Get the filename
+    wf_dir = wf_path.name
+    tarball = wf_path.name + '.tgz'
+    # Get the parent directory and resolve it in case the path is relative
+    parent_dir = wf_path.resolve().parent
+    # Just use tar with subprocess. Python's tar library is not performant. 
+    return_code = subprocess.run(['tar', '-C', parent_dir, '-czf', tarball, wf_dir]).returncode
+    package_path = package_dest.resolve()/tarball
+
+    # Get the curent working directory
+    cwd = pathlib.Path().absolute()
+    if package_dest != cwd:
+        # Move the tarball if the directory it's wanted in is not in the current working directory
+        tarball_path = cwd/tarball
+        shutil.move(tarball_path, package_path)
+
+    if return_code != 0:
+        print("Package failed")
+    else:
+        print(f"Package {tarball} created successfully")
 
 
 @app.command()

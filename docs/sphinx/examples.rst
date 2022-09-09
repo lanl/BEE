@@ -15,7 +15,7 @@ The CLAMR workflow examples we introduce here are simple two step workflows that
 
 CLAMR build workflow
 --------------------
-The workflow is in **examples/clamr-ffmpeg-build.tgz**. You may want to explore the cwl files in **examples/clamr-ffmpeg-build** to understand the workflow specification for the example. Below is the clamr-step with the DockerRequirement in hints that specifies to build a container from a dockerfile using Charliecloud (the container runtime specified in the configuration file).
+The workflow is in **examples/clamr-ffmpeg-build**. You may want to explore the cwl files to understand the workflow specification for the example. Below is the clamr-step with the DockerRequirement in hints that specifies to build a container from a dockerfile using Charliecloud (the container runtime specified in the configuration file).
 
 CWL for clamr step in examples/clamr-ffmpeg-build/clamr_wf.cwl
 
@@ -27,7 +27,8 @@ Submit the CLAMR workflow from the top level directory of the repository (BEE), 
 
 .. code-block::
 
-    bee_client submit clamr-example examples/clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml
+    bee_client package examples/clamr-ffmpeg-build .
+    bee_client submit clamr-example clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml
 
 Output:
 
