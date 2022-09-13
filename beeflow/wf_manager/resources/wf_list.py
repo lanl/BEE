@@ -1,8 +1,13 @@
+"""The workflow list module.
+
+This contains endpoints forsubmitting, starting, and reexecuting workflows.
+"""
+
 import os
-import jsonpickle
 import shutil
 import tempfile
 import subprocess
+import jsonpickle
 
 from flask import make_response, jsonify
 from werkzeug.datastructures import FileStorage
@@ -12,19 +17,19 @@ from beeflow.cli import log
 # from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.common.parser import CwlParser
 
-import beeflow.wf_manager.resources.wf_utils as wf_utils
-import beeflow.wf_manager.common.dep_manager as dep_manager
-import beeflow.wf_manager.common.wf_db as wf_db
+from beeflow.wf_manager.resources import wf_utils
+from beeflow.wf_manager.common import dep_manager
+from beeflow.wf_manager.common import wf_db
 
 
-def parse_workflow(workflow_dir, main_cwl, yaml_file, wf_name):
+def parse_workflow(workflow_dir, main_cwl, yaml_file):
+    """Run the parser."""
     parser = CwlParser()
     parse_msg = "Unable to parse workflow." \
                 "Please check workflow manager."
 
     cwl_path = os.path.join(workflow_dir, main_cwl)
     if yaml_file is not None:
-        yaml_file = yaml_file
         yaml_path = os.path.join(workflow_dir, yaml_file)
         try:
             wfi = parser.parse_workflow(cwl_path, yaml_path)
@@ -42,14 +47,7 @@ def parse_workflow(workflow_dir, main_cwl, yaml_file, wf_name):
 
 
 def create_dep_container():
-    # Create new dependency container if one does not currently exist
-    try:
-        dep_manager.create_image()
-    except dep_manager.NoContainerRuntime:
-        crt_message = "Charliecloud not installed in current environment."
-        log.error(crt_message)
-        resp = make_response(jsonify(msg=crt_message, status='error'), 418)
-        return resp
+    """Create new dependency container if one does not currently exist."""
 
 
 # def initialize_wf_profiler(wf_name):
@@ -63,24 +61,21 @@ def create_dep_container():
 
 
 def extract_wf_temp(filename, workflow_archive):
+    """Extract a workflow into a temporary directory."""
     # Make a temp directory to store the archive
     tmp_path = tempfile.mkdtemp()
     archive_path = os.path.join(tmp_path, filename)
     workflow_archive.save(archive_path)
     # Extract to tmp directory
-    subprocess.run(['tar', '-xf', archive_path, '-C', tmp_path])
+    subprocess.run(['tar', '-xf', archive_path, '-C', tmp_path], check=False)
     return tmp_path
 
 
 class WFList(Resource):
     """Interacts with existing workflows."""
 
-    def __init__(self):
-        """Don't need to initialize anything"""
-        pass
-
     def get(self):
-        """Return list of workflows to client"""
+        """Return list of workflows to client."""
         workflow_list = wf_db.get_workflows()
         info = []
         for wf_info in workflow_list:
@@ -92,9 +87,7 @@ class WFList(Resource):
         return resp
 
     def post(self):
-        """Receive a workflow, parse it, and start up a neo4j instance for it.
-           Workflow manager returns a workflow ID used for subsequent communication
-        """
+        """Receive a workflow, parse it, and start up a neo4j instance for it."""
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
@@ -116,7 +109,14 @@ class WFList(Resource):
 
         dep_manager.kill_gdb()
         dep_manager.remove_current_run()
-        create_dep_container()
+        try:
+            dep_manager.create_image()
+        except dep_manager.NoContainerRuntime:
+            crt_message = "Charliecloud not installed in current environment."
+            log.error(crt_message)
+            resp = make_response(jsonify(msg=crt_message, status='error'), 418)
+            return resp
+
         # Remove the current run directory in the bee workdir
 
         # Save the workflow temporarily to this folder for the parser
@@ -126,7 +126,7 @@ class WFList(Resource):
         dep_manager.wait_gdb(log, 10)
 
         wf_path = os.path.join(temp_dir, wf_filename[:-4])
-        wfi = parse_workflow(wf_path, main_cwl, yaml_file, wf_name)
+        wfi = parse_workflow(wf_path, main_cwl, yaml_file)
 
         # initialize_wf_profiler(wf_name)
         # Save the workflow to the workflow_id dir in the beeflow dir
@@ -136,8 +136,8 @@ class WFList(Resource):
         os.makedirs(workflow_dir)
 
         # Copy workflow files to later archive
-        for f in os.listdir(temp_dir):
-            f_path = os.path.join(temp_dir, f)
+        for workflow_file in os.listdir(temp_dir):
+            f_path = os.path.join(temp_dir, workflow_file)
             if os.path.isfile(f_path):
                 shutil.copy(f_path, workflow_dir)
 
@@ -150,7 +150,7 @@ class WFList(Resource):
         return resp
 
     def put(self):
-        """ReExecute a workflow"""
+        """Reexecute a workflow."""
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
@@ -165,7 +165,14 @@ class WFList(Resource):
         wf_name = data['wf_name']
 
         dep_manager.kill_gdb()
-        create_dep_container()
+        try:
+            dep_manager.create_image()
+        except dep_manager.NoContainerRuntime:
+            crt_message = "Charliecloud not installed in current environment."
+            log.error(crt_message)
+            resp = make_response(jsonify(msg=crt_message, status='error'), 418)
+            return resp
+
         # Remove the current run directory in the bee workdir
         dep_manager.remove_current_run()
 
@@ -198,14 +205,14 @@ class WFList(Resource):
         return resp
 
     def patch(self):
-        """Copy workflow archive"""
+        """Copy workflow archive."""
         reqparser = reqparse.RequestParser()
         data = reqparser.parse_args()
         bee_workdir = wf_utils.get_bee_workdir()
         wf_id = data['wf_id']
         archive_path = os.path.join(bee_workdir, 'archives', wf_id + '.tgz')
-        with open(archive_path, 'rb') as a:
-            archive_file = jsonpickle.encode(a.read())
+        with open(archive_path, 'rb') as archive:
+            archive_file = jsonpickle.encode(archive.read())
         archive_filename = os.path.basename(archive_path)
         resp = make_response(jsonify(archive_file=archive_file,
                              archive_filename=archive_filename), 200)

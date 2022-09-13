@@ -1,17 +1,20 @@
+"""Contains the workflow update REST endpoint."""
+
 import os
 import json
-import jsonpickle
 import shutil
 import subprocess
 import time
+import jsonpickle
 
-from beeflow.cli import log
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
-import beeflow.wf_manager.resources.wf_utils as wf_utils
+from beeflow.wf_manager.resources import wf_utils
+from beeflow.cli import log
 
 
 def archive_workflow(wf_id):
+    """Archive a workflow after completion."""
     bee_workdir = wf_utils.get_bee_workdir()
     gdb_workdir = os.path.join(bee_workdir, 'current_run')
     workflows_dir = os.path.join(bee_workdir, 'workflows')
@@ -37,6 +40,7 @@ class WFUpdate(Resource):
     """Class to interact with an existing workflow."""
 
     def __init__(self):
+        """Set up arguments."""
         self.reqparse = reqparse.RequestParser()
         self.reqparse.add_argument('task_id', type=str, location='json',
                                    required=True)
@@ -50,7 +54,6 @@ class WFUpdate(Resource):
 
     def put(self):
         """Update the state of a task from the task manager."""
-
         data = self.reqparse.parse_args()
         task_id = data['task_id']
         job_state = data['job_state']
@@ -71,10 +74,10 @@ class WFUpdate(Resource):
         if 'output' in data and data['output'] is not None:
             fname = f'{wfi.workflow_id}_{task.id}_{int(time.time())}.json'
             task_output_path = os.path.join(bee_workdir, fname)
-            with open(task_output_path, 'w') as fp:
+            with open(task_output_path, 'w', encoding='utf8') as fp:
                 json.dump(json.loads(data['output']), fp, indent=4)
 
-        if job_state == "COMPLETED" or job_state == "FAILED":
+        if job_state in ('COMPLETED', 'FAILED'):
             for output in task.outputs:
                 if output.glob is not None:
                     wfi.set_task_output(task, output.id, output.glob)
@@ -84,6 +87,7 @@ class WFUpdate(Resource):
             state = wfi.get_workflow_state()
             if tasks and state != 'PAUSED':
                 allocation = wf_utils.submit_tasks_scheduler(log, tasks)
+                print(allocation)
                 wf_utils.submit_tasks_tm(log, tasks, allocation)
 
             if wfi.workflow_completed():

@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 
-import beeflow.common.log as bee_logging
+"""Functions for managing the BEE depency container and associated bind mounts."""
+
+import os
+import sys
+import time
 import shutil
 import signal
-import time
-import sys
-import os
 import subprocess
 import getpass
-import beeflow.wf_manager.resources.wf_utils as wf_utils
+
+import beeflow.common.log as bee_logging
+from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.config_driver import BeeConfig as bc
 
 
@@ -16,14 +19,12 @@ dep_log = bee_logging.setup_logging(level='DEBUG')
 
 
 class NoContainerRuntime(Exception):
-    pass
+    """An exception for no container runtime like charliecloud or singularity."""
 
 
 def check_container_runtime():
-    """
-    Checks if the container runtime is currently installed
-    """
-    # TODO Needs to support singuarity as well
+    """Check if the container runtime is currently installed."""
+    # Needs to support singuarity as well
     if shutil.which("ch-convert") is None or shutil.which("ch-run") is None:
         dep_log.error("ch-convert or ch-run not found. Charliecloud required"
                       " for neo4j container.")
@@ -31,7 +32,7 @@ def check_container_runtime():
 
 
 def make_dep_dir():
-    # Look for a BEE directory in /var/tmp
+    """Make a new bee dependency container directory."""
     bee_workdir = wf_utils.get_bee_workdir()
     bee_dir = f'{bee_workdir}/deps'
     bee_dir_exists = os.path.isdir(bee_dir)
@@ -40,36 +41,34 @@ def make_dep_dir():
 
 
 def get_dep_dir():
+    """Return the dependency directory path."""
     bee_workdir = wf_utils.get_bee_workdir()
     bee_container_dir = f'{bee_workdir}/deps/'
     return bee_container_dir
 
 
 def get_current_run_dir():
+    """Return the current run directory."""
     bee_workdir = wf_utils.get_bee_workdir()
     current_run_dir = f'{bee_workdir}/current_run/'
     return current_run_dir
 
 
 def get_container_dir():
+    """Return the depency container path."""
     container_name = 'dep_container'
     return get_dep_dir() + container_name
 
 
 def check_container_dir():
-    """
-    Returns true if the container directory exists
-    """
+    """Return true if the container directory exists."""
     container_dir = get_container_dir()
     container_dir_exists = os.path.isdir(container_dir)
     return container_dir_exists
 
 
 def setup_gdb_mounts():
-    """
-    Sets up mount directories for the graph database
-    """
-
+    """Set up mount directories for the graph database."""
     current_run_dir = get_current_run_dir()
     data_dir = current_run_dir + '/data'
     logs_dir = current_run_dir + '/logs'
@@ -90,8 +89,8 @@ def setup_gdb_mounts():
 
 
 def setup_gdb_configs():
-    """
-    Setup GDB configurations for the next run.
+    """Set up GDB configuration.
+
     This function needs to be run before each new invocation since the
     config file could have changed.
     """
@@ -107,23 +106,22 @@ def setup_gdb_configs():
                                      confs_dir + "/neo4j.conf")
     dep_log.debug(gdb_configfile)
 
-    cfile = open(gdb_configfile, "rt")
-    data = cfile.read()
-    cfile.close()
+    with open(gdb_configfile, "rt", encoding="utf8") as cfile:
+        data = cfile.read()
+
     data = data.replace("#dbms.connector.bolt.listen_address=:7687",
                         "dbms.connector.bolt.listen_address=:" + str(bolt_port))
     data = data.replace("#dbms.connector.http.listen_address=:7474",
                         "dbms.connector.http.listen_address=:" + str(http_port))
     data = data.replace("#dbms.connector.https.listen_address=:7473",
                         "dbms.connector.https.listen_address=:" + str(https_port))
-    cfile = open(gdb_configfile, "wt")
-    cfile.write(data)
-    cfile.close()
+    with open(gdb_configfile, "wt", encoding="utf8") as cfile:
+        cfile.write(data)
 
 
 def create_image():
-    """
-    Create a new BEE dependency container if one does not exist.
+    """Create a new BEE dependency container if one does not exist.
+
     By default, the container is stored in /tmp/<user>/beeflow/deps.
     """
     # Can throw an exception that needs to be handled by the caller
@@ -136,20 +134,19 @@ def create_image():
     if container_dir_exists:
         dep_log.info('Already have neo4j container')
         return
-    else:
-        make_dep_dir()
 
+    make_dep_dir()
     container_dir = get_container_dir()
     # Build new dependency container
     try:
         subprocess.run(["ch-convert", "-i", "tar", "-o", "dir",
                         str(dep_img), str(container_dir)],
                        stdout=sys.stdout, stderr=sys.stderr, check=True)
-    except subprocess.CalledProcessError as e:
-        dep_log.error(f"ch-convert failed: {e}")
+    except subprocess.CalledProcessError as error:
+        dep_log.error(f"ch-convert failed: {error}")
         shutil.rmtree(container_dir)
-        dep_log.debug("GraphDB container mount directory " + container_dir + " removed")
-        return None
+        dep_log.debug("GraphDB container mount directory %s removed", container_dir)
+        return
 
     # Make the certificates directory
     container_certs_path = os.path.join(container_dir, 'var/lib/neo4j/certificates')
@@ -157,9 +154,7 @@ def create_image():
 
 
 def start_gdb(reexecute=False):
-    """
-        Start the graph database
-    """
+    """Start the graph database."""
     setup_gdb_configs()
     # We need to rerun the mount step before each start
     if not reexecute:
@@ -192,7 +187,7 @@ def start_gdb(reexecute=False):
 
     try:
         command = ['neo4j', 'start']
-        proc = subprocess.Popen([
+        with subprocess.Popen([
             "ch-run",
             "--set-env=" + container_path + "/ch/environment",
             "-b",
@@ -207,32 +202,31 @@ def start_gdb(reexecute=False):
             certs_dir + ":/var/lib/neo4j/certificates",
             container_path,
             "--", *command
-        ], stdout=sys.stdout, stderr=sys.stderr)
+        ], stdout=sys.stdout, stderr=sys.stderr) as proc:
+            return proc
     except FileNotFoundError:
         dep_log.error("Neo4j failed to start.")
         return None
-    return proc
 
 
 def wait_gdb(log, gdb_sleep_time=1):
+    """Need to wait for the GDB. Currently, we're using the sleep time paramater.
 
-    """
-    Need to wait for the GDB. Currently, we're using the sleep time paramater.
     We'd like to remove that in the future.
     """
-    log.info('waiting {}s for GDB to come up'.format(gdb_sleep_time))
+    log.info('waiting %ss for GDB to come up', gdb_sleep_time)
     time.sleep(gdb_sleep_time)
 
 
 def remove_current_run():
+    """Remove the current run directory."""
     current_run_dir = get_current_run_dir()
-    shutil.rmtree(current_run_dir)
+    if os.path.exists(current_run_dir):
+        shutil.rmtree(current_run_dir)
 
 
 def remove_gdb():
-    """
-    Remove the current GDB bind mount directory
-    """
+    """Remove the current GDB bind mount directory."""
     bee_workdir = wf_utils.get_bee_workdir()
     gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
     old_gdb_workdir = os.path.join(bee_workdir, 'old_gdb')
@@ -245,21 +239,21 @@ def remove_gdb():
 
 
 def kill_gdb():
-    """
-    Kill the current GDB process.
+    """Kill the current GDB process.
+
     This will stop functioning correctly with multiple workflow support.
     """
-    # TODO TERRIBLE Kludge until we can figure out a better way to get the PID
+    # TERRIBLE Kludge until we can figure out a better way to get the PID
     user = getpass.getuser()
-    ps = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True,
-                        stdout=subprocess.PIPE)
-    if ps.stdout.decode() != '':
-        gdb_pid = int(ps.stdout.decode().split()[1])
+    process = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True,
+                             stdout=subprocess.PIPE, check=False)
+    if process.stdout.decode() != '':
+        gdb_pid = int(process.stdout.decode().split()[1])
         kill_process(gdb_pid)
 
 
 def kill_process(pid):
-    """Kill the process with pid"""
+    """Kill the process with pid."""
     try:
         os.kill(pid, signal.SIGTERM)
     except OSError:
