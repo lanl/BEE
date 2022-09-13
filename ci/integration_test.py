@@ -52,13 +52,14 @@ class Container:
 class Workflow:
     """Workflow CI class for interacting with BEE."""
 
-    def __init__(self, name, path, tarball, main_cwl, job_file, containers, check_cleanup_fn=None):
+    def __init__(self, name, path, tarball, main_cwl, job_file, workdir, containers, check_cleanup_fn=None):
         """Workflow constructor."""
         self.name = name
         self.path = path
         self.tarball = tarball
         self.main_cwl = main_cwl
         self.job_file = job_file
+        self.workdir = workdir
         self.containers = containers
         self.check_cleanup_fn = check_cleanup_fn
 
@@ -94,7 +95,7 @@ class Workflow:
                 f'workflow tar cmd: {error}'
             ) from None
         try:
-            wf_id = bee_client.submit(self.name, self.tarball, self.main_cwl, self.job_file)
+            wf_id = bee_client.submit(self.name, self.tarball, self.main_cwl, self.job_file, self.workdir)
             bee_client.start(wf_id)
             time.sleep(2)
             t = 0
@@ -259,6 +260,8 @@ if BASE_CONTAINER in ch_image_list():
 # `beeflow:copyContainer` workflow
 CC_CONTAINER_PATH = f'/tmp/copy_container-{uuid.uuid4().hex}.tar.gz'
 CC_CONTAINER_NAME = 'copy-container'
+CC_WORKDIR = os.path.expanduser(f'~/{uuid.uuid4().hex}')
+os.makedirs(CC_WORKDIR)
 CC_CONTAINER = Container(CC_CONTAINER_NAME, DOCKER_FILE_PATH, CC_CONTAINER_PATH)
 CC_WORKFLOW_PATH = os.path.join('/tmp', f'bee-cc-workflow-{uuid.uuid4().hex}')
 CC_WORKFLOW_TARBALL = f'{CC_WORKFLOW_PATH}.tgz'
@@ -269,7 +272,8 @@ CC_DOCKER_REQUIREMENT = {
 CC_MAIN_CWL, CC_JOB_FILE = generate_builder_workflow(CC_WORKFLOW_PATH, CC_DOCKER_REQUIREMENT,
                                                      CC_MAIN_INPUT)
 CC_WORKFLOW = Workflow('copy-container', CC_WORKFLOW_PATH, CC_WORKFLOW_TARBALL,
-                       main_cwl=CC_MAIN_CWL, job_file=CC_JOB_FILE, containers=[CC_CONTAINER])
+                       main_cwl=CC_MAIN_CWL, job_file=CC_JOB_FILE, workdir=CC_WORKDIR,
+                       containers=[CC_CONTAINER])
 WORKFLOWS.append(CC_WORKFLOW)
 
 
@@ -277,7 +281,7 @@ WORKFLOWS.append(CC_WORKFLOW)
 def copy_container_check_cleanup():
     """Ensure that using `beeflow:copyContainer` was successful and then do cleanup."""
     # Ensure the output file was created
-    path = os.path.expanduser(f'~/{CC_MAIN_INPUT}')
+    path = os.path.join(CC_WORKDIR, CC_MAIN_INPUT)
     check_path_exists(path)
     os.remove(path)
     # Ensure that the container has been copied into the archive
@@ -292,11 +296,14 @@ def copy_container_check_cleanup():
     shutil.rmtree(CC_WORKFLOW_PATH)
     os.remove(CC_CONTAINER_PATH)
     os.remove(CC_WORKFLOW_TARBALL)
+    shutil.rmtree(CC_WORKDIR)
 
 
 # `beeflow:useContainer` workflow
 USE_CONTAINER_PATH = os.path.expanduser(f'~/use_container-{uuid.uuid4().hex}.tar.gz')
 USE_CONTAINER_NAME = 'use-container'
+USE_CONTAINER_WORKDIR = os.path.expanduser(f'~/{uuid.uuid4().hex}')
+os.makedirs(USE_CONTAINER_WORKDIR)
 USE_CONTAINER = Container(USE_CONTAINER_NAME, DOCKER_FILE_PATH, USE_CONTAINER_PATH)
 USE_CONTAINER_WORKFLOW_PATH = os.path.join('/tmp', f'bee-use-ctr-workflow-{uuid.uuid4().hex}')
 USE_CONTAINER_WORKFLOW_TARBALL = f'{USE_CONTAINER_WORKFLOW_PATH}.tgz'
@@ -311,14 +318,15 @@ USE_CONTAINER_MAIN_CWL, USE_CONTAINER_JOB_FILE = generate_builder_workflow(
 )
 USE_CONTAINER_WORKFLOW = Workflow('use-container', USE_CONTAINER_WORKFLOW_PATH,
                                   USE_CONTAINER_WORKFLOW_TARBALL, main_cwl=USE_CONTAINER_MAIN_CWL,
-                                  job_file=USE_CONTAINER_JOB_FILE, containers=[USE_CONTAINER])
+                                  job_file=USE_CONTAINER_JOB_FILE, workdir=USE_CONTAINER_WORKDIR,
+                                  containers=[USE_CONTAINER])
 WORKFLOWS.append(USE_CONTAINER_WORKFLOW)
 
 
 @USE_CONTAINER_WORKFLOW.check_cleanup
 def use_ctr_check_cleanup():
     """Check that the `beeflow:useContainer` example worked properly and then clean up."""
-    path = os.path.expanduser(f'~/{USE_CONTAINER_MAIN_INPUT}')
+    path = os.path.join(USE_CONTAINER_WORKDIR, USE_CONTAINER_MAIN_INPUT)
     check_path_exists(path)
     os.remove(path)
     # This container should not have been copied into the container archive
@@ -336,11 +344,14 @@ def use_ctr_check_cleanup():
     shutil.rmtree(USE_CONTAINER_WORKFLOW_PATH)
     os.remove(USE_CONTAINER_PATH)
     os.remove(USE_CONTAINER_WORKFLOW_TARBALL)
+    shutil.rmtree(USE_CONTAINER_WORKDIR)
 
 
 # `dockerFile` workflow
 DF_WORKFLOW_PATH = os.path.join('/tmp', f'bee-df-workflow-{uuid.uuid4().hex}')
 DF_WORKFLOW_TARBALL = f'{DF_WORKFLOW_PATH}.tgz'
+DF_WORKDIR = os.path.expanduser(f'~/{uuid.uuid4().hex}')
+os.makedirs(DF_WORKDIR)
 DF_CONTAINER_NAME = 'docker_file_test'
 DF_DOCKER_REQUIREMENT = {
     'dockerFile': DOCKER_FILE_PATH,
@@ -350,14 +361,14 @@ DF_MAIN_INPUT = 'docker_file'
 DF_MAIN_CWL, DF_JOB_FILE = generate_builder_workflow(DF_WORKFLOW_PATH, DF_DOCKER_REQUIREMENT,
                                                      DF_MAIN_INPUT)
 DF_WORKFLOW = Workflow('docker-file', DF_WORKFLOW_PATH, DF_WORKFLOW_TARBALL, main_cwl=DF_MAIN_CWL,
-                       job_file=DF_JOB_FILE, containers=[])
+                       job_file=DF_JOB_FILE, workdir=DF_WORKDIR, containers=[])
 WORKFLOWS.append(DF_WORKFLOW)
 
 
 @DF_WORKFLOW.check_cleanup
 def docker_file_check_cleanup():
     """Ensure that the `dockerFile` example ran properly and then clean up."""
-    path = os.path.expanduser(f'~/{DF_MAIN_INPUT}')
+    path = os.path.join(DF_WORKDIR, DF_MAIN_INPUT)
     check_path_exists(path)
     os.remove(path)
     # The container should have been copied into the archive
@@ -375,6 +386,7 @@ def docker_file_check_cleanup():
     # Delete the generated workflow
     shutil.rmtree(DF_WORKFLOW_PATH)
     os.remove(DF_WORKFLOW_TARBALL)
+    shutil.rmtree(DF_WORKDIR)
 
 
 # `dockerPull` workflow
@@ -385,17 +397,19 @@ DP_DOCKER_REQUIREMENT = {
     'dockerPull': DP_CONTAINER_NAME,
 }
 DP_MAIN_INPUT = 'docker_pull'
+DP_WORKDIR = os.path.expanduser(f'~/{uuid.uuid4().hex}')
+os.makedirs(DP_WORKDIR)
 DP_MAIN_CWL, DP_JOB_FILE = generate_builder_workflow(DP_WORKFLOW_PATH, DP_DOCKER_REQUIREMENT,
                                                      DP_MAIN_INPUT)
 DP_WORKFLOW = Workflow('docker-pull', DP_WORKFLOW_PATH, DP_WORKFLOW_TARBALL, main_cwl=DP_MAIN_CWL,
-                       job_file=DP_JOB_FILE, containers=[])
+                       job_file=DP_JOB_FILE, workdir=DP_WORKDIR, containers=[])
 WORKFLOWS.append(DP_WORKFLOW)
 
 
 @DP_WORKFLOW.check_cleanup
 def docker_pull_check_cleanup():
     """Check that the `dockerPull` option was successful and then do cleanup."""
-    path = os.path.expanduser(f'~/{DP_MAIN_INPUT}')
+    path = os.path.join(DP_WORKDIR, DP_MAIN_INPUT)
     check_path_exists(path)
     os.remove(path)
     # Check that the image tarball is in the archive
@@ -411,6 +425,7 @@ def docker_pull_check_cleanup():
     # Delete the workflow path
     shutil.rmtree(DP_WORKFLOW_PATH)
     os.remove(DP_WORKFLOW_TARBALL)
+    shutil.rmtree(DP_WORKDIR)
 
 
 # Run the workflows and then show completion results

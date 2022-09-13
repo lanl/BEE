@@ -126,7 +126,10 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
            wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow tarball'),
            main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
            yaml: str = typer.Argument(..., help='filename of YAML file'),
-           ):
+           workdir: pathlib.Path = typer.Argument(
+               ...,
+               help='working directory for workflow containing input + output files',
+           )):
     """
     Submit a new workflow
     """
@@ -135,11 +138,19 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     else:
         error_exit(f'Workflow tarball {wf_path} cannot be found')
 
+    # Make sure the workdir is an absolute path and exists
+    workdir = os.path.expanduser(workdir)
+    workdir = os.path.abspath(workdir)
+    if not os.path.exists(workdir):
+        error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
+
+    # TODO: Can all of this information be sent as a file?
     data = {
         'wf_name': wf_name.encode(),
         'wf_filename': os.path.basename(wf_path).encode(),
         'main_cwl': main_cwl,
-        'yaml': yaml
+        'yaml': yaml,
+        'workdir': workdir,
     }
     files = {
         'workflow_archive': wf_tarball
