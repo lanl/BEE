@@ -9,7 +9,7 @@ steps_between_graphics: 25
 graphics_type: png
 
 # Inputs for FFMPEG
-#ffmpeg -f image2 -r 12 -s 800x800 -pix_fmt yuv420p $HOME/CLAMR_movie.mp4
+#ffmpeg -f image2 -r 12 -s 800x800 -pix_fmt yuv420p CLAMR_movie.mp4
 
 input_format: image2
 frame_rate: 12
