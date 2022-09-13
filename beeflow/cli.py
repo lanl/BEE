@@ -58,7 +58,7 @@ def start_workflow_manager(bc, args, cli_log):
         userconfig_file = args.userconfig_file
     else:
         userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", get_script_path() + "/wf_manager.py",
+    return subprocess.Popen(["python", get_script_path() + "/wf_manager/wf_manager.py",
                             userconfig_file], stdout=cli_log, stderr=cli_log)
 
 
