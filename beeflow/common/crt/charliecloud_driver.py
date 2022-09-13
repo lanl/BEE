@@ -7,6 +7,7 @@ import os
 from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRuntimeResult)
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.build_driver import task2arg
+from beeflow.common.container_path import convert_path
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
 
@@ -83,8 +84,11 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 log.info(f'Found beeflow:useContainer option. Using container {use_container}')
                 baremetal = False
 
+        # Set the workdir with the env code
+        task_workdir_env = f'cd {task.workdir}\n' if task.workdir is not None else ''
+
         if baremetal:
-            return ContainerRuntimeResult(env_code='', pre_commands=[],
+            return ContainerRuntimeResult(env_code=task_workdir_env, pre_commands=[],
                                           main_command=[str(arg) for arg in task.command],
                                           post_commands=[])
 
@@ -105,13 +109,23 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         hints = dict(task.hints)
         mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
         command = ' '.join(task.command)
-        env_code = self.cc_setup if self.cc_setup else ''
+        env_code = ''.join([self.cc_setup if self.cc_setup else '', task_workdir_env])
         deployed_path = deployed_image_root + '/' + task_container_name
         pre_commands = [
             f'mkdir -p {deployed_image_root}\n'.split(),
             f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split()
         ]
-        main_command = f'ch-run {mpi_opt} {deployed_path} {self.chrun_opts} -- {command}\n'.split()
+        # Need to convert the path from inside to outside base on the bind mounts
+        extra_opts = ''
+        if task.workdir is not None:
+            # Only setting it for $HOME right now
+            bind_mounts = {
+                # Charliecloud bindmounts $HOME to /home/$USER by default
+                os.getenv('HOME'): os.path.join('/home', os.getenv('USER')),
+            }
+            ctr_workdir_path = convert_path(task.workdir, bind_mounts)
+            extra_opts = f'--cd {ctr_workdir_path}'
+        main_command = f'ch-run {mpi_opt} {deployed_path} {self.chrun_opts} {extra_opts} -- {command}\n'.split()
         post_commands = [
             f'rm -rf {deployed_path}\n'.split(),
         ]

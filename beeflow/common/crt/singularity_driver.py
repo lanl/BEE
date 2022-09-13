@@ -22,13 +22,20 @@ class SingularityDriver(ContainerRuntimeDriver):
             hints = dict(task.hints)
             try:
                 img = hints['DockerRequirement']['beeflow:copyContainer']
-                argv = ['singularity', 'exec', img]
+                argv = ['singularity', 'exec']
+                if task.workdir is not None:
+                    argv.extend(['--pwd', task.workdir])
+                argv.append(img)
                 argv.extend(cmd_tasks)
                 main_command = argv
             except (KeyError, TypeError):
                 pass
-        return ContainerRuntimeResult(env_code='', pre_commands=[], main_command=main_command,
-                                      post_commands=[])
+        # Change to the working directory
+        env_code = ''
+        if task.workdir is not None:
+            env_code = f'cd {task.workdir}\n'
+        return ContainerRuntimeResult(env_code=env_code, pre_commands=[],
+                                      main_command=main_command, post_commands=[])
 
     def build_text(self, userconfig, task):
         """Build text for Singularity batch script."""

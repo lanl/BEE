@@ -82,11 +82,16 @@ class Worker(ABC):
 
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
-        # workflow_path = f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
         task_save_path = self.task_save_path(task)
         crt_res = self.crt.run_text(task)
         requirements = dict(task.requirements)
         hints = dict(task.hints)
+        main_command = crt_res.main_command[:]
+        # Append a tee to a file if requested
+        if task.stdout:
+            main_command.extend(['|', 'tee', task.stdout])
+        # TODO: It seems to me that there might be a better way to save stdout,
+        # but I think we might need further refactoring
         job_text = self.template.render(
             task_save_path=task_save_path,
             task_name=task.name,
@@ -94,7 +99,7 @@ class Worker(ABC):
             workflow_id=task.workflow_id,
             env_code=crt_res.env_code,
             pre_commands=crt_res.pre_commands,
-            main_command=crt_res.main_command,
+            main_command=main_command,
             post_commands=crt_res.post_commands,
             requirements=requirements,
             hints=hints,
