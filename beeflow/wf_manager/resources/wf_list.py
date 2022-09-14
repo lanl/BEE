@@ -97,6 +97,8 @@ class WFList(Resource):
                                location='form')
         reqparser.add_argument('wf_filename', type=str, required=True,
                                location='form')
+        reqparser.add_argument('workdir', type=str, required=True,
+                               location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
                                location='files')
         data = reqparser.parse_args()
@@ -104,6 +106,7 @@ class WFList(Resource):
         wf_filename = data['wf_filename']
         main_cwl = data['main_cwl']
         wf_name = data['wf_name']
+        wf_workdir = data['workdir']
         # None if not sent
         yaml_file = data['yaml']
 
@@ -145,6 +148,11 @@ class WFList(Resource):
         shutil.rmtree(temp_dir, ignore_errors=True)
 
         wf_utils.create_wf_metadata(wf_id, wf_name)
+        _, tasks = wfi.get_workflow()
+        for task in tasks:
+            metadata = wfi.get_task_metadata(task)
+            metadata['workdir'] = wf_workdir
+            wfi.set_task_metadata(task, metadata)
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
         return resp

@@ -71,6 +71,13 @@ class WFUpdate(Resource):
 
         bee_workdir = wf_utils.get_bee_workdir()
         # Get output from the task
+        if 'metadata' in data:
+            if data['metadata'] is not None:
+                metadata = jsonpickle.decode(data['metadata'])
+                old_metadata = wfi.get_task_metadata(task)
+                old_metadata.update(metadata)
+                wfi.set_task_metadata(task, old_metadata)
+
         if 'output' in data and data['output'] is not None:
             fname = f'{wfi.workflow_id}_{task.id}_{int(time.time())}.json'
             task_output_path = os.path.join(bee_workdir, fname)
@@ -87,7 +94,6 @@ class WFUpdate(Resource):
             state = wfi.get_workflow_state()
             if tasks and state != 'PAUSED':
                 allocation = wf_utils.submit_tasks_scheduler(log, tasks)
-                print(allocation)
                 wf_utils.submit_tasks_tm(log, tasks, allocation)
 
             if wfi.workflow_completed():

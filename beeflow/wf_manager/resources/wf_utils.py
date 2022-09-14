@@ -142,6 +142,10 @@ def _resource(component, tag=""):
 # pylama:ignore=W0613
 def submit_tasks_tm(log, tasks, allocation):
     """Submit a task to the task manager."""
+    wfi = wf_utils.get_workflow_interface()
+    for tasks in tasks:
+        metadata = wfi.get_task_metadata(task)
+        task.workdir = metadata['workdir']
     # Serialize task with json
     tasks_json = jsonpickle.encode(tasks)
     # Send task_msg to task manager
