@@ -22,9 +22,9 @@ def app():
 
 
 @pytest.fixture()
-def client(flask_app):
+def client(app):
     """Return the flask test client."""
-    return flask_app.test_client
+    return app.test_client
 
 
 @pytest.fixture()
