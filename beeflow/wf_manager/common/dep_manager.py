@@ -145,7 +145,7 @@ def create_image():
     except subprocess.CalledProcessError as error:
         dep_log.error(f"ch-convert failed: {error}")
         shutil.rmtree(container_dir)
-        dep_log.debug("GraphDB container mount directory %s removed", container_dir)
+        dep_log.debug(f"GraphDB container mount directory {container_dir} removed")
         return
 
     # Make the certificates directory
@@ -214,15 +214,24 @@ def wait_gdb(log, gdb_sleep_time=1):
 
     We'd like to remove that in the future.
     """
-    log.info('waiting %ss for GDB to come up', gdb_sleep_time)
+    log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
     time.sleep(gdb_sleep_time)
 
+import os
+import shutil
+import stat
+
+# remove directory with read-only files
+def rm_dir_readonly(func, path, _):
+    "Clear the readonly bit and reattempt the removal"
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 def remove_current_run():
     """Remove the current run directory."""
     current_run_dir = get_current_run_dir()
     if os.path.exists(current_run_dir):
-        shutil.rmtree(current_run_dir)
+        shutil.rmtree(current_run_dir, onerror=rm_dir_readonly)
 
 
 def remove_gdb():
