@@ -1,8 +1,10 @@
 """Unit tests for the workflow manager."""
 
 import pytest
+import pathlib
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.wf_manager.common import dep_manager
 from beeflow.tests.mocks import MockWFI, MockCwlParser
 from beeflow.common.config_driver import BeeConfig as bc
 
@@ -37,6 +39,7 @@ def teardown_workflow():
 @pytest.fixture()
 def setup_teardown_workflow(teardown_workflow):
     """Set up and tear down for tests that use the workflow directory."""
+    dep_manager.remove_current_run()
     wf_utils.create_wf_dir(WF_ID)
     wf_utils.create_wf_status(WF_ID)
     yield
@@ -66,14 +69,17 @@ def test_submit_workflow(client, mocker, teardown_workflow):
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
     mocker.patch('subprocess.run', return_value=True)
-    tarball = 'clamr-wf.tgz'
+    script_path = pathlib.Path(__file__).parent.resolve()
+    tarball = script_path / 'clamr-wf.tgz'
+    print(tarball)
     with open(tarball, 'rb') as tarball_contents:
         resp = client().post('/bee_wfm/v1/jobs/', data={
             'wf_name': 'clamr',
             'wf_filename': tarball,
             'main_cwl': 'clamr_wf.cwl',
             'yaml': 'clamr_job.yml',
-            'workflow_archive': tarball_contents
+            'workflow_archive': tarball_contents,
+            'workdir':'.'
         })
         assert resp.json['msg'] == 'Workflow uploaded'
 
@@ -93,7 +99,9 @@ def test_reexecute_workflow(client, mocker, teardown_workflow):
 
     wf_utils.create_current_run_dir()
 
-    tarball = '42.tgz'
+
+    script_path = pathlib.Path(__file__).parent.resolve()
+    tarball = script_path / '42.tgz'
     with open(tarball, 'rb') as tarball_contents:
         resp = client().put('/bee_wfm/v1/jobs/', data={
                             'wf_filename': tarball,

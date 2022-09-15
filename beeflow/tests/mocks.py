@@ -9,38 +9,53 @@ class MockTask:
         self.name = task_name
         self.state = state
         self.id = new_id
+        self.metadata = {}
 
 
 class MockWFI:
     """Mock worfklow interface object."""
+
     def __init__(self):
+        """Set the fake workflow id."""
         self._workflow_id = '42'
 
     def pause_workflow(self):
+        """Pause a workflow."""
         return
 
     def resume_workflow(self):
+        """Resume a workflow."""
         return
-    
+
     def reset_workflow(self):
+        """Reset a workflow."""
         return
 
     def get_dependent_tasks(self, task): # noqa
         """Get depdendent states."""
         return [MockTask()]
 
+    def get_task_metadata(self, task):
+        return task.metadata
+
+    def set_task_metadata(self, task, metadata):
+        task.metadata = metadata
+
     def get_task_by_id(self, task_id): # noqa
         """Return a mock task from an ID."""
         return MockTask()
 
     def get_workflow_state(self):
+        """Get a workflow state."""
         return 'PENDING'
 
     @property
     def workflow_id(self):
+        """Return the workflow id."""
         return self._workflow_id
 
     def get_ready_tasks(self):
+        """Return a mock ready task."""
         return [MockTask()]
 
     @staticmethod
@@ -79,17 +94,20 @@ class MockWFI:
         return "RUNNING"
 
     def execute_workflow(self):
-        pass
+        """Fake executing a workflow."""
+        pass # noqa 
 
-def mock_create_image():
-    pass
+
+def mock_create_image(): # noqa
+    """Fake image creation."""
+    pass # noqa
+
 
 class MockCwlParser:
-    """Mock the CWLParser"""
-    def __init__(self):
-        pass
-    
-    def parse_workflow(self, cwl_path, yaml_file=None):
+    """Mock the CWLParser."""
+
+    def parse_workflow(self, cwl_path, yaml_file=None): # noqa
+        """Parse the workflow."""
         return MockWFI()
 
 
@@ -113,12 +131,15 @@ class MockWorkerCompletion:
     """Mock Worker after completion."""
 
     def submit_task(self, task): #noqa
+        """Submit a task."""
         return 1, 'PENDING'
 
     def query_task(self, job_id): #noqa
+        """Submit a task."""
         return 'COMPLETED'
 
     def cancel_task(self, job_id): #noqa
+        """Cancel a task."""
         return 'CANCELLED'
 
 
@@ -136,20 +157,20 @@ class MockResponse:
 
 
 def mock_put(url, params=None, **kwargs): # noqa
-    """Fake put"""
+    """Fake put."""
     return MockResponse(200)
 
 
 def mock_post(url, params=None, **kwargs): # noqa
-    """Fake post"""
+    """Fake post."""
     return MockResponse(200)
 
 
 def mock_get(url, params=None, **kwargs): # noqa
-    """Fake get"""
+    """Fake get."""
     return MockResponse(200)
 
 
 def mock_delete(url, params=None, **kwargs): # noqa
-    """Fakes delete"""
+    """Fake delete."""
     return MockResponse(200)
