@@ -7,6 +7,7 @@ import sys
 import time
 import shutil
 import signal
+import stat
 import subprocess
 import getpass
 
@@ -217,15 +218,12 @@ def wait_gdb(log, gdb_sleep_time=1):
     log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
     time.sleep(gdb_sleep_time)
 
-import os
-import shutil
-import stat
 
-# remove directory with read-only files
 def rm_dir_readonly(func, path, _):
-    "Clear the readonly bit and reattempt the removal"
+    """Remove directory with read-only files."""
     os.chmod(path, stat.S_IWRITE)
     func(path)
+
 
 def remove_current_run():
     """Remove the current run directory."""
