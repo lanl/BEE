@@ -1,7 +1,7 @@
 """Unit tests for the workflow manager."""
 
-import pytest
 import pathlib
+import pytest
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
@@ -71,7 +71,6 @@ def test_submit_workflow(client, mocker, teardown_workflow):
     mocker.patch('subprocess.run', return_value=True)
     script_path = pathlib.Path(__file__).parent.resolve()
     tarball = script_path / 'clamr-wf.tgz'
-    print(tarball)
     with open(tarball, 'rb') as tarball_contents:
         resp = client().post('/bee_wfm/v1/jobs/', data={
             'wf_name': 'clamr',
@@ -79,7 +78,7 @@ def test_submit_workflow(client, mocker, teardown_workflow):
             'main_cwl': 'clamr_wf.cwl',
             'yaml': 'clamr_job.yml',
             'workflow_archive': tarball_contents,
-            'workdir':'.'
+            'workdir': '.'
         })
         assert resp.json['msg'] == 'Workflow uploaded'
 
@@ -98,7 +97,6 @@ def test_reexecute_workflow(client, mocker, teardown_workflow):
     mocker.patch('subprocess.run', return_value=True)
 
     wf_utils.create_current_run_dir()
-
 
     script_path = pathlib.Path(__file__).parent.resolve()
     tarball = script_path / '42.tgz'

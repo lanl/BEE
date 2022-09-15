@@ -7,7 +7,6 @@ import sys
 import time
 import shutil
 import signal
-import stat
 import subprocess
 import getpass
 
@@ -217,8 +216,6 @@ def wait_gdb(log, gdb_sleep_time=1):
     """
     log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
     time.sleep(gdb_sleep_time)
-
-
 
 
 def remove_current_run():
