@@ -219,17 +219,13 @@ def wait_gdb(log, gdb_sleep_time=1):
     time.sleep(gdb_sleep_time)
 
 
-def rm_dir_readonly(func, path, _):
-    """Remove directory with read-only files."""
-    os.chmod(path, stat.S_IWRITE)
-    func(path)
 
 
 def remove_current_run():
     """Remove the current run directory."""
     current_run_dir = get_current_run_dir()
     if os.path.exists(current_run_dir):
-        shutil.rmtree(current_run_dir, onerror=rm_dir_readonly)
+        shutil.rmtree(current_run_dir, ignore_errors=True)
 
 
 def remove_gdb():
