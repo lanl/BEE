@@ -35,9 +35,10 @@ bee_workdir = $BEE_WORKDIR
 workload_scheduler = Slurm
 use_archive = False
 bee_dep_image = $NEO4J_CONTAINER
+beeflow_pidfile = $HOME/beeflow.pid
 
 [task_manager]
-listen_port = 8892
+socket = $HOME/tm.sock
 container_runtime = Charliecloud
 job_template = $JOB_TEMPLATE
 runner_opts =
@@ -58,7 +59,7 @@ sleep_time = 10
 
 [scheduler]
 log = $BEE_WORKDIR/logs/scheduler.log
-listen_port = 5100
+socket = $HOME/scheduler.sock
 use_mars = False
 mars_model =
 mars_task_cnt = 3
@@ -68,7 +69,7 @@ default_algorithm = fcfs
 workdir = $BEE_WORKDIR/scheduler
 
 [workflow_manager]
-listen_port = 7233
+socket = $HOME/wf_manager.sock
 
 [builder]
 deployed_image_root = /tmp

@@ -2,10 +2,14 @@
 
 Tests of the REST interface for BEE Scheduler.
 """
+import os
+import pytest
 import subprocess
 import time
+import uuid
 import requests
-import pytest
+
+from beeflow.common.connection import Connection
 
 
 SCHEDULER_TEST_PORT = '5100'
@@ -18,18 +22,17 @@ def scheduler():
 
     Start a new scheduler as a subprocess for each test function.
     """
+    sock_name = uuid.uuid4().hex
+    socket = os.path.join('/tmp', f'{sock_name}.sock')
     # Setup
     proc = subprocess.Popen([
-        'python', '-m', 'beeflow.scheduler.scheduler',
-        '-p', SCHEDULER_TEST_PORT,
-        '--no-config',
-        '--log', '/tmp/sched.log',
-        # '--use-mars',  # Required for testing MARS
+        'gunicorn', 'beeflow.scheduler.scheduler:flask_app', '-b', f'unix:{socket}',
     ], shell=False)
-    time.sleep(6)
+    time.sleep(2)
     try:
         # Give control over to the test function
-        yield f'http://localhost:{SCHEDULER_TEST_PORT}/bee_sched/v1'
+        # yield f'http://localhost:{SCHEDULER_TEST_PORT}/bee_sched/v1'
+        yield Connection(socket, prefix='bee_sched/v1')
     finally:
         # Teardown
         # Note: Should not use proc.kill() here with flask debug
@@ -92,7 +95,7 @@ def test_schedule_job_no_resources(scheduler):
     :param scheduler: url returned by scheduler fixture function
     :type scheduler: str
     """
-    url = scheduler
+    conn = scheduler
     workflow_name = 'test-workflow'
     task1 = {
         'workflow_name': workflow_name,
@@ -101,8 +104,9 @@ def test_schedule_job_no_resources(scheduler):
             'max_runtime': 1,
         },
     }
-    req = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
+    req = conn.put(f'workflows/{workflow_name}/jobs', json=[task1])
 
+    print(req.text)
     assert req.ok
     data = req.json()
     assert len(data) == 1
@@ -119,14 +123,14 @@ def test_schedule_job_one_resource(scheduler):
     :param scheduler: url returned by scheduler fixture function
     :type scheduler: str
     """
-    url = scheduler
+    conn = scheduler
     # with scheduler() as url:
     # Create a single resource
     resource1 = {
         'id_': 'resource-1',
         'nodes': 10,
     }
-    req = requests.put(f'{url}/resources', json=[resource1])
+    req = conn.put('resources', json=[resource1])
 
     assert req.ok
     assert req.json() == 'created 1 resource(s)'
@@ -139,7 +143,7 @@ def test_schedule_job_one_resource(scheduler):
             'max_runtime': 1,
         },
     }
-    req = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
+    req = conn.put(f'workflows/{workflow_name}/jobs', json=[task1])
 
     assert req.ok
     data = req.json()
@@ -161,7 +165,7 @@ def test_schedule_job_two_resources(scheduler):
     :param scheduler: url returned by scheduler fixture function
     :type scheduler: str
     """
-    url = scheduler
+    conn = scheduler
     # with scheduler() as url:
     # Create a single resource
     resource1 = {
@@ -172,7 +176,7 @@ def test_schedule_job_two_resources(scheduler):
         'id_': 'resource-2',
         'nodes': 64,
     }
-    req = requests.put(f'{url}/resources', json=[resource1, resource2])
+    req = conn.put('resources', json=[resource1, resource2])
 
     assert req.ok
     assert req.json() == 'created 2 resource(s)'
@@ -185,7 +189,7 @@ def test_schedule_job_two_resources(scheduler):
             'max_runtime': 1,
         },
     }
-    req = requests.put(f'{url}/workflows/{workflow_name}/jobs', json=[task1])
+    req = conn.put(f'workflows/{workflow_name}/jobs', json=[task1])
 
     assert req.ok
     data = req.json()
@@ -203,7 +207,7 @@ def test_schedule_multi_job_two_resources(scheduler):
     :param scheduler: url returned by scheduler fixture function
     :type scheduler: str
     """
-    url = scheduler
+    conn = scheduler
     # with scheduler() as url:
     # Create a single resource
     resource1 = {
@@ -214,7 +218,7 @@ def test_schedule_multi_job_two_resources(scheduler):
         'id_': 'resource-1',
         'nodes': 16,
     }
-    req = requests.put(f'{url}/resources', json=[resource1, resource2])
+    req = conn.put('resources', json=[resource1, resource2])
 
     assert req.ok
     assert req.json() == 'created 2 resource(s)'
@@ -242,8 +246,8 @@ def test_schedule_multi_job_two_resources(scheduler):
             'nodes': 16,
         },
     }
-    req = requests.put(f'{url}/workflows/{workflow_name}/jobs',
-                       json=[task1, task2, task3])
+    req = conn.put(f'workflows/{workflow_name}/jobs',
+                   json=[task1, task2, task3])
 
     assert req.ok
     data = req.json()

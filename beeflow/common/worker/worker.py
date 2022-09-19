@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 import os
 import jinja2
-from beeflow.cli import log
+from beeflow.common.log import main_log as log
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 
 

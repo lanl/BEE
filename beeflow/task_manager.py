@@ -5,14 +5,12 @@ Communicates status to the Work Flow Manager, through RESTful API.
 """
 import atexit
 import sys
-import logging
 import hashlib
-import socket
 import os
 import re
+import socket
 import string
 import traceback
-import requests
 import jsonpickle
 
 from flask import Flask, jsonify, make_response
@@ -23,42 +21,55 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from beeflow.common.config_driver import BeeConfig as bc
 
 # This must be imported before calling other parts of BEE
-if len(sys.argv) >= 2:
-    bc.init(userconfig=sys.argv[1])
-else:
-    bc.init()
+bc.init()
 
-from beeflow.cli import log
+print(sys.argv)
+
+from beeflow.common.log import main_log as log
 from beeflow.common.build_interfaces import build_main
 import beeflow.common.log as bee_logging
 from beeflow.common.worker_interface import WorkerInterface
+from beeflow.common.connection import Connection
 import beeflow.common.worker as worker_pkg
+from beeflow.common.db import tm
 
 sys.excepthook = bee_logging.catch_exception
 
 
 runtime = bc.get('task_manager', 'container_runtime')
 
-tm_listen_port = bc.get('task_manager', 'listen_port')
-
-wfm_listen_port = bc.get('workflow_manager', 'listen_port')
-
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-submit_queue = []  # tasks ready to be submitted
-job_queue = []  # jobs that are being monitored
+# submit_queue = []  # tasks ready to be submitted
+# job_queue = []  # jobs that are being monitored
+DB_PATH = os.path.join(bc.get('DEFAULT', 'bee_workdir'), 'tm.db')
+
+
+def connect_db(fn):
+    """Connect to the TM database."""
+
+    def wrap(*pargs, **kwargs):
+        """Wrap the function."""
+        with tm.open_db(DB_PATH) as db:
+            return fn(db, *pargs, **kwargs)
+
+    return wrap
 
 
 def _url():
     """Return  the url to the WFM."""
-    workflow_manager = 'bee_wfm/v1/jobs/'
-    return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
+    return 'bee_wfm/v1/jobs/'
 
 
 def _resource(tag=""):
     """Access the WFM."""
     return _url() + str(tag)
+
+
+def _wfm_conn():
+    """Get a new connection to the WFM."""
+    return Connection(bc.get('workflow_manager', 'socket'))
 
 
 def update_task_state(task_id, job_state, **kwargs):
@@ -71,8 +82,8 @@ def update_task_state(task_id, job_state, **kwargs):
         kwargs['task_info'] = jsonpickle.encode(kwargs['task_info'])
 
     data.update(kwargs)
-    resp = requests.put(_resource("update/"),
-                        json=data)
+    conn = _wfm_conn()
+    resp = conn.put(_resource("update/"), json=data)
     if resp.status_code != 200:
         log.warning("WFM not responding when sending task update.")
 
@@ -94,10 +105,11 @@ def gen_task_metadata(task, job_id):
        container runtime (when task uses a container)
        hash of container file (when task uses a container)
     """
+    hostname = socket.gethostname()
     metadata = {'job_id': job_id, 'host': hostname}
     for hint in task.hints:
         if hint.class_ == "DockerRequirement" and "dockerImageId" in hint.params.keys():
-            metadata['container_runtime'] = container_runtime
+            metadata['container_runtime'] = bc.get('task_manager', 'container_runtime')
             container_path = hint.params["dockerImageId"]
             with open(container_path, 'rb') as container:
                 c_hash = hashlib.md5()
@@ -115,12 +127,12 @@ def resolve_environment(task):
     build_main(task)
 
 
-def submit_jobs():
+@connect_db
+def submit_jobs(db):
     """Submit all jobs currently in submit queue to the workload scheduler."""
-    while len(submit_queue) >= 1:
+    while db.submit_queue.count() >= 1:
         # Single value dictionary
-        task_dict = submit_queue.pop(0)
-        task = next(iter(task_dict.values()))
+        task = db.submit_queue.pop()
         try:
             log.info(f'Resolving environment for task {task.name}')
             resolve_environment(task)
@@ -128,7 +140,8 @@ def submit_jobs():
             job_id, job_state = worker.submit_task(task)
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
-            job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
+            db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
+            # job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
             # Update metadata
             # task_metadata = gen_task_metadata(task, job_id)
             # Need to
@@ -207,10 +220,13 @@ def get_restart_file(task_checkpoint):
     return None
 
 
-def update_jobs():
+@connect_db
+def update_jobs(db):
     """Check and update states of jobs in queue, remove completed jobs."""
-    job_q = job_queue.copy()
+    # Need to make a copy first
+    job_q = list(db.job_queue)
     for job in job_q:
+        id_ = job['id']
         task = job['task']
         job_id = job['job_id']
         job_state = worker.query_task(job_id)
@@ -218,7 +234,8 @@ def update_jobs():
         # If state changes update the WFM
         if job_state != job['job_state']:
             log.info(f'{task.name} {job["job_state"]} -> {job_state}')
-            job['job_state'] = job_state
+            # job['job_state'] = job_state
+            db.job_queue.update_job_state(id_, job_state)
             if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = get_task_checkpoint(task)
@@ -234,7 +251,8 @@ def update_jobs():
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
-            job_queue.remove(job)
+            db.job_queue.remove_by_id(id_)
+            # job_queue.remove(job)
             log.info(f'Job {job_id} done {task.name}: removed from job status queue')
 
 
@@ -251,7 +269,7 @@ if "pytest" not in sys.modules:
 
     # This kills the scheduler when the process terminates
     # so we don't accidentally leave a zombie process
-    atexit.register(lambda x: scheduler.shutdown())
+    atexit.register(lambda: scheduler.shutdown())
 
 
 class TaskSubmit(Resource):
@@ -259,15 +277,17 @@ class TaskSubmit(Resource):
 
     def __init__(self):
         """Intialize request."""
-        self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('tasks', type=str, location='json')
 
-    def post(self):
+    @staticmethod
+    @connect_db
+    def post(db):
         """Receives task from WFM."""
-        data = self.reqparse.parse_args()
+        parser = reqparse.RequestParser()
+        parser.add_argument('tasks', type=str, location='json')
+        data = parser.parse_args()
         tasks = jsonpickle.decode(data['tasks'])
         for task in tasks:
-            submit_queue.append({task.id: task})
+            db.submit_queue.push(task)
             log.info(f"Added {task.name} task to the submit queue")
         resp = make_response(jsonify(msg='Tasks Added!', status='ok'), 200)
         return resp
@@ -277,11 +297,12 @@ class TaskActions(Resource):
     """Actions to take for tasks."""
 
     @staticmethod
-    def delete():
+    @connect_db
+    def delete(db):
         """Cancel received from WFM to cancel job, update queue to monitor state."""
         cancel_msg = ""
-        for job in job_queue:
-            task_id = list(job.keys())[0]
+        for job in db.job_queue:
+            task_id = job['task'].id
             job_id = job[task_id]['job_id']
             name = job[task_id]['name']
             log.info(f"Cancelling {name} with job_id: {job_id}")
@@ -292,8 +313,8 @@ class TaskActions(Resource):
                 log.error(traceback.format_exc())
                 job_state = 'ZOMBIE'
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
-        job_queue.clear()
-        submit_queue.clear()
+        db.job_queue.clear()
+        db.submit_queue.clear()
         resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
         return resp
 
@@ -326,23 +347,23 @@ worker = WorkerInterface(worker_class, **worker_kwargs)
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
 api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
-if __name__ == '__main__':
-    hostname = socket.gethostname()
-    log.info(f'Starting Task Manager on host: {hostname}')
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
-    log.info(f'tm_listen_port:{tm_listen_port}')
-    container_runtime = bc.get('task_manager', 'container_runtime')
-    log.info(f'container_runtime: {container_runtime}')
-
-    # Werkzeug logging
-    werk_log = logging.getLogger('werkzeug')
-    werk_log.setLevel(logging.INFO)
-    werk_log.addHandler(handler)
-
-    # Flask logging
-    flask_app.logger.addHandler(handler)
-    flask_app.run(debug=False, port=str(tm_listen_port))
+# if __name__ == '__main__':
+#    hostname = socket.gethostname()
+#    log.info(f'Starting Task Manager on host: {hostname}')
+#    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+#    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
+#    log.info(f'tm_listen_port:{tm_listen_port}')
+#    container_runtime = bc.get('task_manager', 'container_runtime')
+#    log.info(f'container_runtime: {container_runtime}')
+#
+#    # Werkzeug logging
+#    werk_log = logging.getLogger('werkzeug')
+#    werk_log.setLevel(logging.INFO)
+#    werk_log.addHandler(handler)
+#
+#    # Flask logging
+#    flask_app.logger.addHandler(handler)
+#    flask_app.run(debug=False, port=str(tm_listen_port))
 # Ignoring CO413 beeflow modules must be loaded after bc.init()
 # Ignoring W0703: Catching general exception is ok for failed submit and cancel.
 # pylama:ignore=C0413,W0703

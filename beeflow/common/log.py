@@ -172,7 +172,7 @@ def catch_exception(_type, value, traceback):
 
     # If we don't have a module log handler, figure out which log we need
     if __module_log__ is None:
-        from beeflow.cli import log
+        from beeflow.common.log import main_log as log
         from beeflow.common.config_driver import BeeConfig as bc
         bc.init()
         bee_workdir = bc.get('DEFAULT', 'bee_workdir')
@@ -185,5 +185,10 @@ def catch_exception(_type, value, traceback):
         print(f'__module_log__{__module_log__}')
         __module_log__.critical("Uncaught exception", exc_info=(_type, value, traceback))
 
+
+# Create the default log (BEE_LOG_LEVEL will be passed in by beeflow/cli.py)
+level = os.getenv('BEE_LOG_LEVEL')
+level = 'DEBUG' if level is None else level
+main_log = setup_logging(level=level)
 # Ignore C0415 Import outside toplevel we only do this if we don't have a log handler
 # pylama:ignore=C0415

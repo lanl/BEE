@@ -6,6 +6,7 @@ import os
 import platform
 import random
 import shutil
+import sys
 import textwrap
 import typer
 
@@ -99,7 +100,7 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            print('Configuration file does not exist!')
+            sys.exit('Configuration file does not exist! Please try running `bee_cfg new`.')
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -293,9 +294,17 @@ else:
 DEFAULT_BOLT_PORT = 7687 + OFFSET
 DEFAULT_HTTP_PORT = 7474 + OFFSET
 DEFAULT_HTTPS_PORT = 7473 + OFFSET
+
 DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
+
+SOCKET_PATH = join_path(HOME_DIR, '.beeflow', 'sockets')
+os.makedirs(SOCKET_PATH, exist_ok=True)
+DEFAULT_WFM_SOCKET = join_path(SOCKET_PATH, 'wf_manager.sock')
+DEFAULT_TM_SOCKET = join_path(SOCKET_PATH, 'task_manager.sock')
+DEFAULT_SCHED_SOCKET = join_path(SOCKET_PATH, 'scheduler.sock')
+
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 USER = getpass.getuser()
 # Create the validator
@@ -309,15 +318,18 @@ VALIDATOR.option('DEFAULT', 'use_archive', validator=validate_bool, attrs={'defa
                  info='use the BEE archiving functinality')
 VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validate_file,
                  info='container image with BEE dependencies')
+VALIDATOR.option('DEFAULT', 'beeflow_pidfile',
+                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'beeflow.pid')},
+                 info='location of beeflow pidfile')
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
-VALIDATOR.option('workflow_manager', 'listen_port',
-                 attrs={'default': DEFAULT_WFM_PORT}, validator=int,
+VALIDATOR.option('workflow_manager', 'socket',
+                 attrs={'default': DEFAULT_WFM_SOCKET}, validator=str,
                  info='workflow manager port')
 # Task manager
 VALIDATOR.section('task_manager',
                   info='Task manager configuration and config of container to use.')
-VALIDATOR.option('task_manager', 'listen_port', attrs={'default': DEFAULT_TM_PORT}, validator=int,
+VALIDATOR.option('task_manager', 'socket', attrs={'default': DEFAULT_TM_SOCKET}, validator=str,
                  info='task manager listen port')
 VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charliecloud'},
                  choices=('Charliecloud', 'Singularity'),
@@ -392,8 +404,8 @@ VALIDATOR.section('scheduler', info='Scheduler configuration section.')
 VALIDATOR.option('scheduler', 'log',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler.log')},
                  validator=str, info='scheduler log file')
-VALIDATOR.option('scheduler', 'listen_port', attrs={'default': DEFAULT_SCHED_PORT}, validator=int,
-                 info='scheduler port')
+VALIDATOR.option('scheduler', 'socket', attrs={'default': DEFAULT_SCHED_SOCKET}, validator=str,
+                 info='scheduler socket')
 VALIDATOR.option('scheduler', 'use_mars', attrs={'default': False}, validator=validate_bool,
                  info='whether or not to use the MARS scheduler')
 VALIDATOR.option('scheduler', 'mars_model', attrs={'default': ''}, validator=str,

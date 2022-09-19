@@ -11,7 +11,7 @@ import requests_unixsocket
 import requests
 
 from beeflow.common.worker.worker import (Worker, WorkerError)
-from beeflow.cli import log
+from beeflow.common.log import main_log as log
 import beeflow.common.log as bee_logging
 
 
