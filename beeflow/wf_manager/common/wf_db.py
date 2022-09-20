@@ -1,31 +1,32 @@
 """Contains functions for managing a database for workflow and task information."""
 
 import sqlite3
-
 from sqlite3 import Error
 from collections import namedtuple
+from beeflow.wf_manager.resources import wf_utils
 
 
 def create_connection():
     """Create a new connection with the workflow database."""
-    db_file = 'workflow.db'
+    bee_workdir = wf_utils.get_bee_workdir()
+    db_file = bee_workdir + '/workflow.db'
     conn = None
     try:
         conn = sqlite3.connect(db_file)
         return conn
     except Error as error:
         print(error)
-
     return conn
 
 
-def create_table(conn, stmt):
+def create_table(stmt):
     """Create a new table in the database."""
-    try:
-        cursor = conn.cursor()
-        cursor.execute(stmt)
-    except Error as error:
-        print(error)
+    with create_connection() as conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute(stmt)
+        except Error as error:
+            print(error)
 
 
 def run(stmt, params=None):
@@ -53,12 +54,36 @@ def get(stmt, params=None):
                 cursor.execute(stmt)
             result = cursor.fetchall()
         except Error as error:
-            print(error)
-
+            print(f'Error in get: {error}')
+            result = None
         return result
 
 
-def init():
+def table_exists(table_name):
+    """Return true if a table exists and false if not."""
+    stmt = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';"
+    result = get(stmt)
+    if len(result) != 0:
+        return True
+    else:
+        return False
+
+
+def get_table_length(table):
+    """Returns the number of rows in a table."""
+    stmt = f"SELECT COUNT(*) from {table}"
+    result = get(stmt)
+    rows = result[0][0]
+    return rows
+
+def init_info():
+    """Insert a new workflow into the database."""
+    stmt = """INSERT INTO info (wfm_port, tm_port, sched_port)
+                                    VALUES(?, ?, ?);"""
+    run(stmt, [1, 2, 3])
+
+
+def init_tables():
     """Create the database."""
     # Create tables if they don't exist
     # Create new database
@@ -78,6 +103,7 @@ def init():
                     resource TEXT,
                     status TEXT,
                     slurm_id INTEGER,
+                    bolt_port INTEGER,
                     FOREIGN KEY (workflow_id)
                         REFERENCES workflows (workflow_id)
                             ON DELETE CASCADE
@@ -85,21 +111,74 @@ def init():
 
     info_stmt = """CREATE TABLE IF NOT EXISTS info (
                        id INTEGER PRIMARY KEY,
-                       workflow_manager_port INTEGER,
-                       task_manager_port INTEGER,
-                       scheduler_port INTEGER,
-                       bolt_port INTEGER
+                       wfm_port INTEGER,
+                       tm_port INTEGER,
+                       sched_port INTEGER
                        );"""
 
-    conn = create_connection()
-    create_table(conn, workflows_stmt)
-    create_table(conn, tasks_stmt)
-    create_table(conn, info_stmt)
-    conn.close()
+    if not table_exists('workflows'):
+        create_table(workflows_stmt)
+    if not table_exists('tasks'):
+        create_table(tasks_stmt)
+    if not table_exists('info'):
+        create_table(info_stmt)
+        init_info()
 
 
 # Initialize the database
-init()
+init_tables()
+
+
+Info = namedtuple("Info", "id wfm_port tm_port sched_port")
+ 
+
+def get_info():
+    """"Return an info object containing port information."""
+    stmt = "SELECT * FROM info"
+    result = get(stmt)
+    info = Info(*result[0])
+    return info
+
+def get_wfm_port():
+    """Return workflow manager port."""
+    stmt = "SELECT wfm_port FROM info"
+    result = get(stmt)
+    wfm_port = result[0][0]
+    return wfm_port
+
+
+def get_tm_port():
+    """Return task manager port."""
+    stmt = "SELECT tm_port FROM info"
+    result = get(stmt)
+    tm_port = result[0][0]
+    return tm_port
+
+
+def get_sched_port():
+    """Return scheduler port."""
+    stmt = "SELECT sched_port FROM info"
+    result = get(stmt)
+    sched_port = result[0][0]
+    return sched_port
+
+
+def set_wfm_port(new_port):
+    """Set workflow manager port."""
+    stmt = "UPDATE info SET wfm_port=?"
+    run(stmt, [new_port])
+
+
+def set_tm_port(new_port):
+    """Set workflow manager port."""
+    stmt = "UPDATE info SET tm_port=?"
+    run(stmt, [new_port])
+
+
+def set_sched_port(new_port):
+    """Set workflow manager port."""
+    stmt = "UPDATE info SET sched_port=?"
+    run(stmt, [new_port])
 
 
 def add_workflow(workflow_id, name, status):

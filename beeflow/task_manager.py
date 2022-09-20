@@ -21,6 +21,7 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.wf_manager.resources import wf_utils
 
 # This must be imported before calling other parts of BEE
 if len(sys.argv) >= 2:
@@ -39,7 +40,6 @@ sys.excepthook = bee_logging.catch_exception
 
 runtime = bc.get('task_manager', 'container_runtime')
 
-tm_listen_port = bc.get('task_manager', 'listen_port')
 
 wfm_listen_port = bc.get('workflow_manager', 'listen_port')
 
@@ -331,7 +331,6 @@ if __name__ == '__main__':
     log.info(f'Starting Task Manager on host: {hostname}')
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='task_manager.log')
-    log.info(f'tm_listen_port:{tm_listen_port}')
     container_runtime = bc.get('task_manager', 'container_runtime')
     log.info(f'container_runtime: {container_runtime}')
 
@@ -342,6 +341,9 @@ if __name__ == '__main__':
 
     # Flask logging
     flask_app.logger.addHandler(handler)
+    tm_listen_port = wf_utils.get_open_port()
+    wf_db.set_tm_port(wfm_listen_port)
+    log.info(f'tm_listen_port:{tm_listen_port}')
     flask_app.run(debug=False, port=str(tm_listen_port))
 # Ignoring CO413 beeflow modules must be loaded after bc.init()
 # Ignoring W0703: Catching general exception is ok for failed submit and cancel.

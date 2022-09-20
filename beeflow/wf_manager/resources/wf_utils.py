@@ -2,9 +2,9 @@
 
 import os
 import shutil
+import socket
 import requests
 import jsonpickle
-from beeflow.wf_manager.common import wf_db
 
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_interface import WorkflowInterface
@@ -50,14 +50,14 @@ def remove_wf_dir(wf_id):
     workflows_dir = os.path.join(bee_workdir, 'workflows', wf_id)
     if os.path.exists(workflows_dir):
         shutil.rmtree(workflows_dir)
-    wf_db.delete_workflow(wf_id)
+    #wf_db.delete_workflow(wf_id)
 
 
 def create_wf_metadata(wf_id, wf_name):
     """Create workflow metadata files."""
     create_wf_name(wf_id, wf_name)
     create_wf_status(wf_id)
-    wf_db.add_workflow(wf_id, wf_name, 'Pending')
+    #wf_db.add_workflow(wf_id, wf_name, 'Pending')
 
 
 def create_wf_name(wf_id, wf_name):
@@ -81,7 +81,7 @@ def update_wf_status(wf_id, status_msg):
     status_path = os.path.join(workflows_dir, 'bee_wf_status')
     with open(status_path, 'w', encoding="utf8") as status:
         status.write(status_msg)
-    wf_db.update_workflow_state(wf_id, status_msg)
+    #wf_db.update_workflow_state(wf_id, status_msg)
 
 
 def read_wf_status(wf_id):
@@ -193,3 +193,12 @@ def submit_tasks_scheduler(log, tasks):
         log.info(f"Something bad happened {resp.status_code}")
         return "Did not work"
     return resp.json()
+
+def get_open_port():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("",0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
+

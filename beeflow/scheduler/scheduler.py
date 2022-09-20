@@ -15,6 +15,8 @@ from beeflow.scheduler import resource_allocation
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.cli import log
 import beeflow.common.log as bee_logging
+from beeflow.wf_manager.common import wf_db
+from beeflow.wf_manager.resources import wf_utils
 
 sys.excepthook = bee_logging.catch_exception
 
@@ -144,7 +146,7 @@ def load_config_values():
 
     conf = argparse.Namespace(**conf)
     log.info('Config = [')
-    log.info(f'\tlisten_port = {conf.listen_port}')
+    #log.info(f'\tlisten_port = {conf.listen_port}')
     log.info(f'\tuse_mars = {conf.use_mars}')
     log.info(f'\tmars_model = {conf.mars_model}')
     log.info(f'\tmars_task_cnt = {conf.mars_task_cnt}')
@@ -174,7 +176,10 @@ if __name__ == '__main__':
 
     # Flask logging
     flask_app.logger.addHandler(handler) # noqa
-    flask_app.run(debug=False, port=CONF.listen_port)
+    # TODO should remove listen port from the internal scheduler configuration
+    sched_listen_port = wf_utils.get_open_port()
+    wf_db.set_sched_port(sched_listen_port)
+    flask_app.run(debug=False, port=sched_listen_port)
 
 # Ignore todo's or pylama fails
 # pylama:ignore=W0511
