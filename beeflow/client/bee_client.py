@@ -29,7 +29,6 @@ _INTERACTIVE = False
 
 
 logging.basicConfig(level=logging.WARNING)
-workflow_manager = 'bee_wfm/v1/jobs'
 
 
 class ClientError(Exception):
@@ -55,6 +54,7 @@ def error_exit(msg):
 def _url():
     """Return URL to the workflow manager end point."""
     wfm_listen_port = bc.get('workflow_manager', 'listen_port')
+    workflow_manager = 'bee_wfm/v1/jobs'
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
 
 
@@ -73,10 +73,10 @@ def check_short_id_collision():
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit("Checking for ID collision failed: {resp.status_code}")
 
-    job_list = jsonpickle.decode(resp.json()['job_list'])
-    if job_list:
+    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    if workflow_list:
         while short_id_len < MAX_ID_LEN:
-            id_list = [_short_id(job[1]) for job in job_list]
+            id_list = [_short_id(job[1]) for job in workflow_list]
             id_list_set = set(id_list)
             # Collision if set shorter than list
             if len(id_list_set) < len(id_list):
@@ -102,9 +102,9 @@ def match_short_id(wf_id):
         error_exit(f'Could not match ID: {wf_id}. Code {resp.status_code}')
         # raise ApiError("GET /jobs".format(resp.status_code))
 
-    job_list = jsonpickle.decode(resp.json()['job_list'])
-    if job_list:
-        for job in job_list:
+    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    if workflow_list:
+        for job in workflow_list:
             if job[1].startswith(wf_id):
                 matched_ids.append(job[1])
         if len(matched_ids) > 1:
@@ -146,15 +146,17 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     if not os.path.exists(workdir):
         error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
 
-    files = {
+    # TODO: Can all of this information be sent as a file?
+    data = {
         'wf_name': wf_name.encode(),
         'wf_filename': os.path.basename(wf_path).encode(),
-        'workflow': wf_tarball,
         'main_cwl': main_cwl,
         'yaml': yaml,
         'workdir': workdir,
     }
-
+    files = {
+        'workflow_archive': wf_tarball
+    }
     try:
         resp = requests.post(_url(), files=files, timeout=60)
     except requests.exceptions.ConnectionError:
@@ -164,6 +166,8 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         error_exit(f"Submit for {wf_name} failed. Please check the WF Manager.")
 
     check_short_id_collision()
+    if 'wf_id' not in resp.json():
+        error_exit("wf_id not in WFM response")
     wf_id = resp.json()['wf_id']
     typer.secho("Workflow submitted! Your workflow id is "
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
@@ -233,11 +237,11 @@ def listall():
         error_exit('WF Manager did not return workflow list')
 
     logging.info('List Jobs:  {resp.text}')
-    job_list = jsonpickle.decode(resp.json()['job_list'])
-    if job_list:
+    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    if workflow_list:
         typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
 
-        for name, wf_id, status in job_list:
+        for name, wf_id, status in workflow_list:
             typer.echo(f"{name}\t{_short_id(wf_id)}\t{status}")
     else:
         typer.echo("There are currently no workflows.")
@@ -331,24 +335,30 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 @app.command()
 def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
-              archive_path: pathlib.Path = typer.Argument(..., help='Path to archive')):
+              wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow archive')):
     """Reexecute an archived workflow."""
-    files = {
-        'wf_filename': os.path.basename(archive_path).encode(),
-        'workflow_archive': open(archive_path, 'rb'),
+    if os.path.exists(wf_path):
+        wf_tarball = open(wf_path, 'rb')
+    else:
+        error_exit(f'Workflow tarball {wf_path} cannot be found')
+
+    data = {
+        'wf_filename': os.path.basename(wf_path).encode(),
         'wf_name': wf_name.encode()
     }
     try:
-        resp = requests.put(_url(), files=files, timeout=60)
+        resp = requests.put(_url(), data=data,
+                            files={'workflow_archive': wf_tarball}, timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
-    if resp.status_code != requests.codes.created:   # pylint: disable=no-member
-        error_exit('WF Manager could not reexecute workflow.')
-
-    logging.info(f"ReExecute Workflow: {resp.text}")
+    if resp.status_code != requests.codes.created: #noqa: member does exist
+        error_exit(f"Reexecute for {wf_name} failed. Please check the WF Manager.")
 
     wf_id = resp.json()['wf_id']
+    typer.secho("Workflow submitted! Your workflow id is "
+                f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
+    logging.info(f'ReExecute Workflow: {resp.text}')
     return wf_id
 
 
