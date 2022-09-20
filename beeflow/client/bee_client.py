@@ -123,6 +123,8 @@ def match_short_id(wf_id):
     else:
         print("There are currently no workflows.")
 
+    return None
+
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 
@@ -185,8 +187,8 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        raise error_exit(f"Starting {long_wf_id} failed."
-                         f" Returned {resp.status_code}")
+        error_exit(f"Starting {long_wf_id} failed."
+                   f" Returned {resp.status_code}")
 
     typer.echo(f"{resp.json()['msg']}")
     logging.info('Started  {resp.text}')
@@ -376,4 +378,5 @@ if __name__ == "__main__":
 # Pylint is reporting no member for requests.codes even when they exist
 #     ignoring them line by line
 # Ignore using with for open files; used to send command.
-# pylama:ignore=R1732
+# Ignore W0511: This is a TODO that should be addressed later
+# pylama:ignore=R1732,W0511
