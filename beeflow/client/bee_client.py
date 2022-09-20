@@ -158,7 +158,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         'workflow_archive': wf_tarball
     }
     try:
-        resp = requests.post(_url(), files=files, timeout=60)
+        resp = requests.post(_url(), data=data, files=files, timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
