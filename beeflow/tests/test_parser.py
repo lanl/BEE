@@ -4,6 +4,7 @@
 import unittest
 
 from beeflow.common.parser import CwlParser
+from beeflow.common.wf_data import generate_workflow_id
 
 # Disable protected member access warning
 # pylama:ignore=W0212
@@ -28,24 +29,26 @@ class TestParser(unittest.TestCase):
         cwl_wfi_file = "clamr-wf/clamr_wf.cwl"
         cwl_job_yaml = "clamr-wf/clamr_job.yml"
         cwl_job_json = "clamr-wf/clamr_job.json"
+        workflow_id = generate_workflow_id()
 
         # Test workflow parsing with YAML input job file
-        wfi = self.parser.parse_workflow(cwl_wfi_file, cwl_job_yaml)
+        wfi = self.parser.parse_workflow(workflow_id, cwl_wfi_file, cwl_job_yaml)
         self.assertTrue(wfi.workflow_loaded())
 
         wfi.finalize_workflow()
         self.assertFalse(wfi.workflow_loaded())
 
-        # Test workflow parsing with YAML input job file
-        wfi = self.parser.parse_workflow(cwl_wfi_file, cwl_job_json)
+        # Test workflow parsing with JSON input job file
+        wfi = self.parser.parse_workflow(workflow_id, cwl_wfi_file, cwl_job_json)
         self.assertTrue(wfi.workflow_loaded())
 
     def test_parse_workflow_no_job(self):
         """Test parsing of a workflow without an input job file."""
         cwl_wfi_file = "cf.cwl"
+        workflow_id = generate_workflow_id()
 
         # Test workflow parsing without input job file
-        wfi = self.parser.parse_workflow(cwl_wfi_file)
+        wfi = self.parser.parse_workflow(workflow_id, cwl_wfi_file)
         self.assertTrue(wfi.workflow_loaded())
 
 
