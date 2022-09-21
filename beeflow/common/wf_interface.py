@@ -6,7 +6,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 import re
 
 from beeflow.common.gdb_interface import GraphDatabaseInterface
-from beeflow.common.wf_data import Workflow, Task
+from beeflow.common.wf_data import Workflow, Task, generate_workflow_id
 
 
 class WorkflowInterface:
@@ -36,9 +36,11 @@ class WorkflowInterface:
             workflow, _ = self.get_workflow()
             self._workflow_id = workflow.id
 
-    def initialize_workflow(self, name, inputs, outputs, requirements=None, hints=None):
+    def initialize_workflow(self, workflow_id, name, inputs, outputs, requirements=None, hints=None):
         """Begin construction of a BEE workflow.
 
+        :param workflow_id: the pre-generated workflow ID
+        :type workflow_id: str
         :param name: the workflow name
         :type name: str
         :param inputs: the inputs to the workflow
@@ -58,8 +60,8 @@ class WorkflowInterface:
         if hints is None:
             hints = []
 
-        workflow = Workflow(name, hints, requirements, inputs, outputs)
-        self._workflow_id = workflow.id
+        workflow = Workflow(name, hints, requirements, inputs, outputs, workflow_id)
+        self._workflow_id = workflow_id
         # Load the new workflow into the graph database
         self._gdb_interface.initialize_workflow(workflow)
         return workflow
@@ -78,8 +80,7 @@ class WorkflowInterface:
 
     def reset_workflow(self):
         """Reset the execution state and ID of a BEE workflow."""
-        workflow, _ = self.get_workflow()
-        self._workflow_id = workflow.generate_workflow_id()
+        self._workflow_id = generate_workflow_id()
         self._gdb_interface.reset_workflow(self._workflow_id)
         self._gdb_interface.set_workflow_state('SUBMITTED')
 
@@ -92,7 +93,7 @@ class WorkflowInterface:
         self._gdb_interface.cleanup()
 
     def add_task(self, name, base_command, inputs, outputs, requirements=None, hints=None,
-                 stdout=None):
+                 stdout=None, stderr=None):
         """Add a new task to a BEE workflow.
 
         :param name: the name given to the task
@@ -109,6 +110,8 @@ class WorkflowInterface:
         :type outputs: list of StepOutput
         :param stdout: the name of the file to which to redirect stdout
         :type stdout: str
+        :param stderr: the name of the file to which to redirect stderr
+        :type stderr: str
         :rtype: Task
         """
         # Immutable default arguments
@@ -121,7 +124,7 @@ class WorkflowInterface:
         if hints is None:
             hints = []
 
-        task = Task(name, base_command, hints, requirements, inputs, outputs, stdout,
+        task = Task(name, base_command, hints, requirements, inputs, outputs, stdout, stderr,
                     self._workflow_id)
         # Load the new task into the graph database
         self._gdb_interface.load_task(task)
