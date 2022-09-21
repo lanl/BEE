@@ -329,7 +329,10 @@ def status():
 @app.command()
 def stop():
     """Stop the current running beeflow daemon."""
-    ans = input('Are you sure you want to kill beeflow (there could be workflows running)? [y/n] ')
+    stop_msg = ("\n** Please ensure all workflows are complete before stopping beeflow. **"
+              + "\n** Check the status of workflows by running 'bee_client listall'.    **"
+              + "\nAre you sure you want to kill beeflow components? [y/n] ")
+    ans = input(stop_msg)
     if ans.lower() != 'y':
         return
     sock_path = bc.get('DEFAULT', 'beeflow_socket')
