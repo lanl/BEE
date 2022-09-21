@@ -304,6 +304,7 @@ os.makedirs(SOCKET_PATH, exist_ok=True)
 DEFAULT_WFM_SOCKET = join_path(SOCKET_PATH, 'wf_manager.sock')
 DEFAULT_TM_SOCKET = join_path(SOCKET_PATH, 'task_manager.sock')
 DEFAULT_SCHED_SOCKET = join_path(SOCKET_PATH, 'scheduler.sock')
+DEFAULT_BEEFLOW_SOCKET = join_path(SOCKET_PATH, 'beeflow.sock')
 
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 USER = getpass.getuser()
@@ -321,6 +322,9 @@ VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validate_file,
 VALIDATOR.option('DEFAULT', 'beeflow_pidfile',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'beeflow.pid')},
                  info='location of beeflow pidfile')
+VALIDATOR.option('DEFAULT', 'beeflow_socket',
+                 attrs={'default': DEFAULT_BEEFLOW_SOCKET},
+                 info='location of beeflow socket')
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
 VALIDATOR.option('workflow_manager', 'socket',

@@ -12,6 +12,7 @@ from contextlib import contextmanager
 import os
 import signal
 import subprocess
+import socket
 import sys
 import time
 
@@ -19,6 +20,7 @@ import daemon
 import typer
 
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common import cli_connection
 
 
 class ComponentManager:
@@ -90,6 +92,13 @@ class ComponentManager:
             if returncode is not None:
                 log = log_fname(name)
                 print(f'Component "{name}" failed, check log "{log}"')
+
+    def status(self):
+        """Return the statuses for each process in a dict."""
+        return {
+            name: 'RUNNING' if proc.poll() is None else 'FAILED'
+            for name, proc in self.procs.items()
+        }
 
     def kill(self):
         """Kill all components."""
@@ -202,12 +211,50 @@ def handle_terminate(signum, stack): # noqa
     sys.exit(1)
 
 
-def beeflow_loop(base_components):
-    """Run the main loop."""
-    mgr.run(base_components)
-    while True:
-        mgr.poll()
-        time.sleep(5)
+class Beeflow:
+    """Beeflow class for handling the main loop."""
+
+    def __init__(self, mgr, base_components):
+        """Create the Beeflow class."""
+        self.mgr = mgr
+        self.base_components = base_components
+        self.quit = False
+
+    def loop(self):
+        """Run the main loop."""
+        print(f'Running on {socket.gethostname()}')
+        self.mgr.run(self.base_components)
+        sock_path = bc.get('DEFAULT', 'beeflow_socket')
+        with cli_connection.server(sock_path) as server:
+            while not self.quit:
+                # Handle a message from the client, if there is one
+                self.handle_client(server)
+                # Poll the components
+                self.mgr.poll()
+                time.sleep(1)
+        # Kill everything, if possible
+        self.mgr.kill()
+
+    def handle_client(self, server):
+        """Handle a message from the client."""
+        try:
+            client = server.accept()
+            if client is None:
+                return
+            msg = client.get()
+            resp = None
+            if msg['type'] == 'status':
+                resp = {
+                    'components': self.mgr.status(),
+                }
+                print('Returned status info.')
+            elif msg['type'] == 'quit':
+                self.quit = True
+                resp = 'shutting down'
+                print('Shutting down.')
+            client.put(resp)
+        except cli_connection.BeeflowConnectionError as err:
+            print(f'connection failed: {err}')
 
 
 def daemonize(base_components):
@@ -243,7 +290,7 @@ def daemonize(base_components):
     fp = open_log('beeflow')
     with daemon.DaemonContext(signal_map=signal_map, stdout=fp, stderr=fp, stdin=fp,
                               umask=0o002, pidfile=pidfile_manager(pidfile)):
-        beeflow_loop(base_components)
+        Beeflow(mgr, base_components).loop()
 
 
 app = typer.Typer()
@@ -259,7 +306,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     base_components = ['wf_manager', 'task_manager', 'scheduler']
     if foreground:
         try:
-            beeflow_loop(base_components)
+            Beeflow(mgr, base_components).loop()
         except KeyboardInterrupt:
             mgr.kill()
     else:
@@ -267,21 +314,34 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 
 
 @app.command()
+def status():
+    """Check the status of beeflow and the components."""
+    sock_path = bc.get('DEFAULT', 'beeflow_socket')
+    resp = cli_connection.send(sock_path, {'type': 'status'})
+    if resp is None:
+        beeflow_log = log_fname('beeflow')
+        sys.exit(f'Cannot connect to the beeflow daemon, is it running? Check the log at "{beeflow_log}".')
+    print('beeflow components:')
+    for comp, status in resp['components'].items():
+        print(f'{comp} ... {status}')
+
+
+@app.command()
 def stop():
     """Stop the current running beeflow daemon."""
-    pidfile = bc.get('DEFAULT', 'beeflow_pidfile')
-    if not os.path.exists(pidfile):
-        sys.exit("Error: beeflow doesn't appear to be running")
-    with open(pidfile, encoding='utf-8') as fp:
-        pid = int(fp.read())
-        print(f'Killing pid {pid}')
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except (OverflowError, PermissionError):
-            sys.exit("Error: beeflow is not running on this system. It could be "
-                     "running on a different front end.")
+    ans = input('Are you sure you want to kill beeflow (there could be workflows running)? [y/n] ')
+    if ans.lower() != 'y':
+        return
+    sock_path = bc.get('DEFAULT', 'beeflow_socket')
+    resp = cli_connection.send(sock_path, {'type': 'quit'})
+    if resp is None:
         beeflow_log = log_fname('beeflow')
-        print(f'Check the beeflow log: "{beeflow_log}"')
+        sys.exit("Error: beeflow is not running on this system. It could be "
+                 "running on a different front end.\n"
+                 f'       Check the beeflow log: "{beeflow_log}".')
+    # As long as it returned something, we should be good
+    beeflow_log = log_fname('beeflow')
+    print('Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
 def main():
