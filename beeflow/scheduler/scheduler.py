@@ -3,7 +3,6 @@
 
 import argparse
 import sys
-import logging
 import os
 
 from flask import Flask, request
@@ -28,8 +27,11 @@ bc.init()
 
 def connect_db(fn):
     """Decorate a function for connecting to a database."""
-    workdir = bc.get('DEFAULT', 'bee_workdir')
-    path = os.path.join(workdir, 'sched.db')
+    # Favor the environment variable if it exists
+    path = os.getenv('BEE_SCHED_DB_PATH')
+    if path is None:
+        workdir = bc.get('DEFAULT', 'bee_workdir')
+        path = os.path.join(workdir, 'sched.db')
 
     def wrap(*pargs, **kwargs):
         """Decorate the function."""
@@ -115,7 +117,7 @@ def load_config_values():
         conf['workdir'] = os.path.join(bee_workdir, 'scheduler')
     if not conf['alloc_logfile']:
         conf['alloc_logfile'] = os.path.join(conf['workdir'],
-                                              ALLOC_LOGFILE)
+                                             ALLOC_LOGFILE)
 
     conf = argparse.Namespace(**conf)
     log.info('Config = [')
@@ -133,15 +135,15 @@ def load_config_values():
 def create_app():
     """Create the Flask app for the scheduler."""
     # TODO: Refactor this to actually create the app here
-    CONF = load_config_values()
+    conf = load_config_values()
     workdir = bc.get('DEFAULT', 'bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=workdir, log=log, logfile='scheduler.log')
-    flask_app.sched_conf = CONF
+    bee_logging.save_log(bee_workdir=workdir, log=log, logfile='scheduler.log')
+    flask_app.sched_conf = conf
     # Load algorithm data
-    algorithms.load(**vars(CONF))
+    algorithms.load(**vars(conf))
 
     # Create the scheduler workdir, if necessary
-    os.makedirs(CONF.workdir, exist_ok=True)
+    os.makedirs(conf.workdir, exist_ok=True)
     return flask_app
 
 # Ignore todo's or pylama fails
