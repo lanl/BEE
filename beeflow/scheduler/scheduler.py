@@ -50,7 +50,6 @@ class WorkflowJobHandler(Resource):
     @staticmethod
     def put(workflow_name):
         """Schedules a new list of independent tasks with available resources."""
-        print('Scheduling', workflow_name)
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm

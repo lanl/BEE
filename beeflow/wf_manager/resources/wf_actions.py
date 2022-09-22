@@ -15,7 +15,7 @@ class WFActions(Resource):
 
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
-        wfi = wf_utils.get_workflow_interface()
+        wfi = wf_utils.get_workflow_interface(wf_id)
         state = wfi.get_workflow_state()
         if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
             resp = make_response(jsonify(msg='Cannot start workflow it is '
@@ -27,8 +27,7 @@ class WFActions(Resource):
         # Submit ready tasks to the scheduler
         allocation = wf_utils.submit_tasks_scheduler(log, tasks)  #NOQA
         # Submit tasks to TM
-        wf_utils.submit_tasks_tm(log, tasks, allocation)
-        wf_id = wfi.workflow_id
+        wf_utils.submit_tasks_tm(wf_id, log, tasks, allocation)
         wf_utils.update_wf_status(wf_id, 'Running')
         resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
         return resp
@@ -36,7 +35,7 @@ class WFActions(Resource):
     @staticmethod
     def get(wf_id):
         """Check the database for the current status of all tasks."""
-        wfi = wf_utils.get_workflow_interface()
+        wfi = wf_utils.get_workflow_interface(wf_id)
         if wfi is not None:
             (_, tasks) = wfi.get_workflow()
             tasks_status = []
@@ -58,7 +57,7 @@ class WFActions(Resource):
     @staticmethod
     def delete(wf_id):
         """Cancel the workflow. Lets current tasks finish running."""
-        wfi = wf_utils.get_workflow_interface()
+        wfi = wf_utils.get_workflow_interface(wf_id)
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()
@@ -83,7 +82,7 @@ class WFActions(Resource):
             wfi.resume_workflow()
             tasks = wfi.get_ready_tasks()
             allocation = wf_utils.submit_tasks_scheduler(log, tasks)
-            wf_utils.submit_tasks_tm(log, tasks, allocation)
+            wf_utils.submit_tasks_tm(wf_id, log, tasks, allocation)
             wf_utils.update_wf_status(wf_id, 'Running')
             log.info("Workflow Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)

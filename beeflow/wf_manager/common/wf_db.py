@@ -3,12 +3,12 @@
 import sqlite3
 from sqlite3 import Error
 from collections import namedtuple
-from beeflow.wf_manager.resources import wf_utils
-
+from beeflow.common.config_driver import BeeConfig as bc
+#bc.init()
 
 def create_connection():
     """Create a new connection with the workflow database."""
-    bee_workdir = wf_utils.get_bee_workdir()
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     db_file = bee_workdir + '/workflow.db'
     conn = None
     try:
@@ -78,9 +78,9 @@ def get_table_length(table):
 
 def init_info():
     """Insert a new workflow into the database."""
-    stmt = """INSERT INTO info (wfm_port, tm_port, sched_port)
-                                    VALUES(?, ?, ?);"""
-    run(stmt, [1, 2, 3])
+    stmt = """INSERT INTO info (wfm_port, tm_port, sched_port, num_workflows)
+                                    VALUES(?, ?, ?, ?);"""
+    run(stmt, [-1, -1, -1, 0])
 
 
 def init_tables():
@@ -92,7 +92,10 @@ def init_tables():
                             -- Set workflow ID to unique.
                             workflow_id INTEGER UNIQUE,
                             name TEXT,
-                            status TEST NOT NULL
+                            status TEST NOT NULL,
+                            run_dir STR,
+                            bolt_port INTEGER,
+                            gdb_pid INTEGER
                                                            );"""
 
     tasks_stmt = """CREATE TABLE IF NOT EXISTS tasks (
@@ -103,7 +106,6 @@ def init_tables():
                     resource TEXT,
                     status TEXT,
                     slurm_id INTEGER,
-                    bolt_port INTEGER,
                     FOREIGN KEY (workflow_id)
                         REFERENCES workflows (workflow_id)
                             ON DELETE CASCADE
@@ -113,7 +115,8 @@ def init_tables():
                        id INTEGER PRIMARY KEY,
                        wfm_port INTEGER,
                        tm_port INTEGER,
-                       sched_port INTEGER
+                       sched_port INTEGER, 
+                       num_workflows INTEGER
                        );"""
 
     if not table_exists('workflows'):
@@ -125,11 +128,9 @@ def init_tables():
         init_info()
 
 
-# Initialize the database
-init_tables()
 
 
-Info = namedtuple("Info", "id wfm_port tm_port sched_port")
+Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows")
  
 
 def get_info():
@@ -163,29 +164,58 @@ def get_sched_port():
     return sched_port
 
 
+def get_num_workflows():
+    """Return scheduler port."""
+    stmt = "SELECT num_workflows FROM info"
+    result = get(stmt)
+    sched_port = result[0][0]
+    return sched_port
+
+
+def increment_num_workflows():
+    """Set workflow manager port."""
+    stmt = "UPDATE info SET num_workflows = num_workflows + 1"
+    run(stmt)
+
+
 def set_wfm_port(new_port):
     """Set workflow manager port."""
+    if not table_exists('info'):
+        # Initialize the database
+        init_tables()
+
     stmt = "UPDATE info SET wfm_port=?"
     run(stmt, [new_port])
 
 
 def set_tm_port(new_port):
     """Set workflow manager port."""
+    if not table_exists('info'):
+        # Initialize the database
+        init_tables()
     stmt = "UPDATE info SET tm_port=?"
     run(stmt, [new_port])
 
 
 def set_sched_port(new_port):
     """Set workflow manager port."""
+    if not table_exists('info'):
+        # Initialize the database
+        init_tables()
     stmt = "UPDATE info SET sched_port=?"
     run(stmt, [new_port])
 
 
-def add_workflow(workflow_id, name, status):
+def add_workflow(workflow_id, name, status, run_dir, bolt_port, gdb_pid):
     """Insert a new workflow into the database."""
-    stmt = """INSERT INTO workflows (workflow_id, name, status)
-                                    VALUES(?, ?, ?);"""
-    run(stmt, [workflow_id, name, status])
+    if not table_exists('workflows'):
+        # Initialize the database
+        init_tables()
+
+    stmt = """INSERT INTO workflows (workflow_id, name, status, run_dir, 
+                                        bolt_port, gdb_pid)
+                                    VALUES(?, ?, ?, ?, ?, ?);"""
+    run(stmt, [workflow_id, name, status, run_dir, bolt_port, gdb_pid])
 
 
 def update_workflow_state(workflow_id, status):
@@ -194,7 +224,39 @@ def update_workflow_state(workflow_id, status):
     run(stmt, [status, workflow_id])
 
 
-Workflow = namedtuple("Workflow", "id workflow_id name status")
+Workflow = namedtuple("Workflow", "id workflow_id name status run_dir bolt_port gdb_pid")
+
+
+def get_workflow_state(workflow_id):
+    """Return the bolt port associated with a workflow."""
+    stmt = "SELECT state FROM workflows WHERE workflow_id=?"
+    result = get(stmt, [workflow_id])[0]
+    state = result[0]
+    return state
+
+
+def get_bolt_port(workflow_id):
+    """Return the bolt port associated with a workflow."""
+    stmt = "SELECT bolt_port FROM workflows WHERE workflow_id=?"
+    result = get(stmt, [workflow_id])[0]
+    bolt_port = result[0]
+    return bolt_port
+
+
+def get_gdb_pid(workflow_id):
+    """Return the bolt port associated with a workflow."""
+    stmt = "SELECT gdb_pid FROM workflows WHERE workflow_id=?"
+    result = get(stmt, [workflow_id])[0]
+    gdb_pid = result[0]
+    return gdb_pid
+
+
+def get_run_dir(workflow_id):
+    """Return the bolt port associated with a workflow."""
+    stmt = "SELECT run_dir FROM workflows WHERE workflow_id=?"
+    result = get(stmt, [workflow_id])[0]
+    run_dir = result[0]
+    return run_dir
 
 
 def get_workflow(workflow_id):

@@ -3,6 +3,7 @@
 """Functions for managing the BEE depency container and associated bind mounts."""
 
 import os
+import re
 import sys
 import time
 import shutil
@@ -47,13 +48,6 @@ def get_dep_dir():
     return bee_container_dir
 
 
-def get_current_run_dir():
-    """Return the current run directory."""
-    bee_workdir = wf_utils.get_bee_workdir()
-    current_run_dir = f'{bee_workdir}/current_run/'
-    return current_run_dir
-
-
 def get_container_dir():
     """Return the depency container path."""
     container_name = 'dep_container'
@@ -67,13 +61,12 @@ def check_container_dir():
     return container_dir_exists
 
 
-def setup_gdb_mounts():
+def setup_gdb_mounts(mount_dir):
     """Set up mount directories for the graph database."""
-    current_run_dir = get_current_run_dir()
-    data_dir = current_run_dir + '/data'
-    logs_dir = current_run_dir + '/logs'
-    run_dir = current_run_dir + '/run'
-    certs_dir = current_run_dir + '/certificates'
+    data_dir = mount_dir + '/data'
+    logs_dir = mount_dir + '/logs'
+    run_dir = mount_dir + '/run'
+    certs_dir = mount_dir + '/certificates'
 
     data_dir = os.path.join(data_dir, "data")
     os.makedirs(data_dir, exist_ok=True)
@@ -81,26 +74,25 @@ def setup_gdb_mounts():
     logs_dir = os.path.join(logs_dir, "logs")
     os.makedirs(logs_dir, exist_ok=True)
 
-    run_dir = os.path.join(run_dir, "run")
-    os.makedirs(run_dir, exist_ok=True)
+    mount_dir = os.path.join(run_dir, "run")
+    os.makedirs(mount_dir, exist_ok=True)
 
     gdb_certs_path = os.path.join(certs_dir, "certificates")
     os.makedirs(gdb_certs_path, exist_ok=True)
 
 
-def setup_gdb_configs():
+def setup_gdb_configs(mount_dir, bolt_port, http_port, https_port):
     """Set up GDB configuration.
 
     This function needs to be run before each new invocation since the
     config file could have changed.
     """
-    bolt_port = bc.get('graphdb', 'bolt_port')
-    http_port = bc.get('graphdb', 'http_port')
-    https_port = bc.get('graphdb', 'https_port')
+    #bolt_port = bc.get('graphdb', 'bolt_port')
+    #http_port = bc.get('graphdb', 'http_port')
+    #https_port = bc.get('graphdb', 'https_port')
 
-    current_run_dir = get_current_run_dir()
     container_path = get_container_dir()
-    confs_dir = os.path.join(current_run_dir, "conf")
+    confs_dir = os.path.join(mount_dir, "conf")
     os.makedirs(confs_dir, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf",
                                      confs_dir + "/neo4j.conf")
@@ -109,12 +101,19 @@ def setup_gdb_configs():
     with open(gdb_configfile, "rt", encoding="utf8") as cfile:
         data = cfile.read()
 
-    data = data.replace("#dbms.connector.bolt.listen_address=:7687",
-                        "dbms.connector.bolt.listen_address=:" + str(bolt_port))
-    data = data.replace("#dbms.connector.http.listen_address=:7474",
-                        "dbms.connector.http.listen_address=:" + str(http_port))
-    data = data.replace("#dbms.connector.https.listen_address=:7473",
-                        "dbms.connector.https.listen_address=:" + str(https_port))
+    bolt_config = '#dbms.connector.bolt.listen_address=:'
+    http_config = '#dbms.connector.http.listen_address=:'
+    https_config = '#dbms.connector.https.listen_address=:'
+
+    data = re.sub(r'#(dbms.connector.bolt.listen_address=):[0-9]*', rf'\1:{bolt_port}', data)
+    data = re.sub(r'#(dbms.connector.http.listen_address=):[0-9]*', rf'\1:{http_port}', data)
+    data = re.sub(r'#(dbms.connector.https.listen_address=):[0-9]*', rf'\1:{https_port}', data)
+    #data = data.replace("7687",
+    #                    "dbms.connector.bolt.listen_address=:" + str(bolt_port))
+    #data = data.replace("#dbms.connector.http.listen_address=:7474",
+    #                    "dbms.connector.http.listen_address=:" + str(http_port))
+    #data = data.replace("#dbms.connector.https.listen_address=:7473",
+    #                    "dbms.connector.https.listen_address=:" + str(https_port))
     with open(gdb_configfile, "wt", encoding="utf8") as cfile:
         cfile.write(data)
 
@@ -153,20 +152,19 @@ def create_image():
     os.makedirs(container_certs_path, exist_ok=True)
 
 
-def start_gdb(reexecute=False):
+def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
     """Start the graph database."""
-    setup_gdb_configs()
+    setup_gdb_configs(mount_dir, bolt_port, http_port, https_port)
     # We need to rerun the mount step before each start
     if not reexecute:
-        setup_gdb_mounts()
+        setup_gdb_mounts(mount_dir)
 
     db_password = bc.get('graphdb', 'dbpass')
-    current_run_dir = get_current_run_dir()
-    data_dir = current_run_dir + '/data'
-    logs_dir = current_run_dir + '/logs'
-    run_dir = current_run_dir + '/run'
-    certs_dir = current_run_dir + '/certificates'
-    confs_dir = current_run_dir + "/conf"
+    data_dir = mount_dir + '/data'
+    logs_dir = mount_dir + '/logs'
+    run_dir = mount_dir + '/run'
+    certs_dir = mount_dir + '/certificates'
+    confs_dir = mount_dir + "/conf"
 
     container_path = get_container_dir()
     if not reexecute:
@@ -183,46 +181,48 @@ def start_gdb(reexecute=False):
             ], stdout=sys.stdout, stderr=sys.stderr, check=True)
         except subprocess.CalledProcessError:
             dep_log.error("neo4j-admin set-initial-password failed")
-            return None
+            return -1
 
     try:
         command = ['neo4j', 'start']
-        with subprocess.Popen([
-            "ch-run",
-            "--set-env=" + container_path + "/ch/environment",
-            "-b",
-            confs_dir + ":/var/lib/neo4j/conf",
-            "-b",
-            data_dir + ":/data",
-            "-b",
-            logs_dir + ":/logs",
-            "-b",
-            run_dir + ":/var/lib/neo4j/run",
-            "-b",
-            certs_dir + ":/var/lib/neo4j/certificates",
-            container_path,
-            "--", *command
-        ], stdout=sys.stdout, stderr=sys.stderr) as proc:
-            return proc
+        with subprocess.Popen(["ch-run",
+                              "--set-env=" + container_path + "/ch/environment",
+                              "-b",
+                              confs_dir + ":/var/lib/neo4j/conf",
+                              "-b",
+                              data_dir + ":/data",
+                              "-b",
+                              logs_dir + ":/logs",
+                              "-b",
+                              run_dir + ":/var/lib/neo4j/run",
+                              "-b",
+                              certs_dir + ":/var/lib/neo4j/certificates",
+                              container_path,
+                              "--", *command
+                              ], stdout=subprocess.PIPE, stderr=subprocess.PIPE) as p:
+            output = p.stdout.read().decode('utf-8')
+            pid = re.search(r'pid ([0-9]*)', output).group(1)
+            return pid
     except FileNotFoundError:
         dep_log.error("Neo4j failed to start.")
-        return None
+        return -1
 
-
-def wait_gdb(log, gdb_sleep_time=1):
+def wait_gdb(log):
     """Need to wait for the GDB. Currently, we're using the sleep time paramater.
 
     We'd like to remove that in the future.
     """
+    gdb_sleep_time = bc.get('graphdb', 'sleep_time')
     log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
-    time.sleep(gdb_sleep_time)
+    #time.sleep(gdb_sleep_time)
+    time.sleep(10)
 
 
-def remove_current_run():
-    """Remove the current run directory."""
-    current_run_dir = get_current_run_dir()
-    if os.path.exists(current_run_dir):
-        shutil.rmtree(current_run_dir, ignore_errors=True)
+#def remove_current_run():
+#    """Remove the current run directory."""
+#    run_dir = get_run_dir()
+#    if os.path.exists(run_dir):
+#        shutil.rmtree(run_dir, ignore_errors=True)
 
 
 def remove_gdb():
@@ -238,23 +238,16 @@ def remove_gdb():
         time.sleep(2)
 
 
-def kill_gdb():
-    """Kill the current GDB process.
-
-    This will stop functioning correctly with multiple workflow support.
-    """
-    # TERRIBLE Kludge until we can figure out a better way to get the PID
-    user = getpass.getuser()
-    process = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True,
-                             stdout=subprocess.PIPE, check=False)
-    if process.stdout.decode() != '':
-        gdb_pid = int(process.stdout.decode().split()[1])
-        kill_process(gdb_pid)
-
-
-def kill_process(pid):
-    """Kill the process with pid."""
+def kill_gdb(pid):
+    """Kill the GDB with the associated pid."""
     try:
         os.kill(pid, signal.SIGTERM)
     except OSError:
         dep_log.info('Process already killed')
+    # TERRIBLE Kludge until we can figure out a better way to get the PID
+    #user = getpass.getuser()
+    #process = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True,
+    #                         stdout=subprocess.PIPE, check=False)
+    #if process.stdout.decode() != '':
+    #    gdb_pid = int(process.stdout.decode().split()[1])
+    #    kill_process(gdb_pid)

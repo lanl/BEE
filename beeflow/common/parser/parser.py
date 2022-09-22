@@ -42,7 +42,7 @@ type_map = {
 class CwlParser:
     """Class for parsing CWL files."""
 
-    def __init__(self):
+    def __init__(self, bolt_port):
         """Initialize the CWL parser interface.
 
         Forms a connection to the graph database through the workflow interface.
@@ -54,7 +54,8 @@ class CwlParser:
 
         try:
             self._wfi = WorkflowInterface(user="neo4j",
-                                          bolt_port=bc.get("graphdb", "bolt_port"),
+                                          #bolt_port=bc.get("graphdb", "bolt_port"),
+                                          bolt_port=bolt_port,
                                           db_hostname=bc.get("graphdb", "hostname"),
                                           password=bc.get("graphdb", "dbpass"))
         except KeyError:

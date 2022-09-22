@@ -9,19 +9,24 @@ import jsonpickle
 
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
+from beeflow.wf_manager.common import wf_db
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.wf_manager.common import dep_manager
 from beeflow.cli import log
 
 
 def archive_workflow(wf_id):
     """Archive a workflow after completion."""
     bee_workdir = wf_utils.get_bee_workdir()
-    gdb_workdir = os.path.join(bee_workdir, 'current_run')
+    #gdb_workdir = os.path.join(bee_workdir, 'current_run')
+    mount_dir = wf_db.get_run_dir(wf_id)
     workflows_dir = os.path.join(bee_workdir, 'workflows')
     workflow_dir = os.path.join(workflows_dir, wf_id)
+    #os.mkdir(workflow_dir + '/gdb')
 
     # Archive GDB
-    shutil.copytree(gdb_workdir, workflow_dir + '/gdb')
+    #print(f"mount_dir: {mount_dir} dest: {workflow_dir + '/gdb'}")
+    shutil.copytree(mount_dir, workflow_dir + '/gdb')
     # Archive Config
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
@@ -42,6 +47,8 @@ class WFUpdate(Resource):
     def __init__(self):
         """Set up arguments."""
         self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('wf_id', type=str, location='json',
+                                   required=True)
         self.reqparse.add_argument('task_id', type=str, location='json',
                                    required=True)
         self.reqparse.add_argument('job_state', type=str, location='json',
@@ -55,10 +62,11 @@ class WFUpdate(Resource):
     def put(self):
         """Update the state of a task from the task manager."""
         data = self.reqparse.parse_args()
+        wf_id = data['wf_id']
         task_id = data['task_id']
         job_state = data['job_state']
 
-        wfi = wf_utils.get_workflow_interface()
+        wfi = wf_utils.get_workflow_interface(wf_id)
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
         # wf_profiler.add_state_change(task, job_state)
@@ -94,7 +102,7 @@ class WFUpdate(Resource):
             state = wfi.get_workflow_state()
             if tasks and state != 'PAUSED':
                 allocation = wf_utils.submit_tasks_scheduler(log, tasks)
-                wf_utils.submit_tasks_tm(log, tasks, allocation)
+                wf_utils.submit_tasks_tm(wf_id, log, tasks, allocation)
 
             if wfi.workflow_completed():
                 log.info("Workflow Completed")
@@ -102,6 +110,8 @@ class WFUpdate(Resource):
                 # wf_profiler.save()
                 wf_id = wfi.workflow_id
                 archive_workflow(wf_id)
+                pid = wf_db.get_gdb_pid(wf_id)
+                #dep_manager.kill_gdb(pid)
 
-        resp = make_response(jsonify(status=f'Task {task_id} set to {job_state}'), 200)
+        resp = make_response(jsonify(status=f'Task {task_id} belonging to WF {wf_id} set to {job_state}'), 200)
         return resp

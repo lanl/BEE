@@ -6,6 +6,7 @@ import socket
 import requests
 import jsonpickle
 
+from beeflow.wf_manager.common import wf_db
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_interface import WorkflowInterface
 
@@ -81,7 +82,7 @@ def update_wf_status(wf_id, status_msg):
     status_path = os.path.join(workflows_dir, 'bee_wf_status')
     with open(status_path, 'w', encoding="utf8") as status:
         status.write(status_msg)
-    #wf_db.update_workflow_state(wf_id, status_msg)
+    wf_db.update_workflow_state(wf_id, status_msg)
 
 
 def read_wf_status(wf_id):
@@ -103,21 +104,24 @@ def create_wf_namefile(wf_name, wf_id):
         name.write(wf_name)
 
 
-def get_workflow_interface():
+def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
+    bolt_port = wf_db.get_bolt_port(wf_id)
     try:
         wfi = WorkflowInterface(user="neo4j",
-                                bolt_port=bc.get("graphdb", "bolt_port"),
+                                bolt_port=bolt_port,
                                 db_hostname=bc.get("graphdb", "hostname"),
                                 password=bc.get("graphdb", "dbpass"))
     except KeyError:
-        wfi = WorkflowInterface()
+        log.error('The default way to load WFI didnt work')
+        #wfi = WorkflowInterface()
     return wfi
 
 
 def tm_url():
     """Get Task Manager url."""
-    tm_listen_port = bc.get('task_manager', 'listen_port')
+    #tm_listen_port = bc.get('task_manager', 'listen_port')
+    tm_listen_port = wf_db.get_tm_port()
     task_manager = "bee_tm/v1/task/"
     return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
 
@@ -125,7 +129,8 @@ def tm_url():
 def sched_url():
     """Get Scheduler url."""
     scheduler = "bee_sched/v1/"
-    sched_listen_port = bc.get('scheduler', 'listen_port')
+    #sched_listen_port = bc.get('scheduler', 'listen_port')
+    sched_listen_port = wf_db.get_sched_port()
     return f'http://127.0.0.1:{sched_listen_port}/{scheduler}'
 
 
@@ -140,9 +145,9 @@ def _resource(component, tag=""):
 
 # Submit tasks to the TM
 # pylama:ignore=W0613
-def submit_tasks_tm(log, tasks, allocation):
+def submit_tasks_tm(wf_id, log, tasks, allocation):
     """Submit a task to the task manager."""
-    wfi = get_workflow_interface()
+    wfi = get_workflow_interface(wf_id)
     for task in tasks:
         metadata = wfi.get_task_metadata(task)
         task.workdir = metadata['workdir']

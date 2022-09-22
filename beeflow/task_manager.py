@@ -22,12 +22,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.wf_manager.common import wf_db
 
 # This must be imported before calling other parts of BEE
 if len(sys.argv) >= 2:
     bc.init(userconfig=sys.argv[1])
 else:
     bc.init()
+
 
 from beeflow.cli import log
 from beeflow.common.build_interfaces import build_main
@@ -41,7 +43,6 @@ sys.excepthook = bee_logging.catch_exception
 runtime = bc.get('task_manager', 'container_runtime')
 
 
-wfm_listen_port = bc.get('workflow_manager', 'listen_port')
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -53,6 +54,8 @@ job_queue = []  # jobs that are being monitored
 def _url():
     """Return  the url to the WFM."""
     workflow_manager = 'bee_wfm/v1/jobs/'
+    #wfm_listen_port = bc.get('workflow_manager', 'listen_port')
+    wfm_listen_port = wf_db.get_wfm_port()
     return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
 
 
@@ -61,9 +64,9 @@ def _resource(tag=""):
     return _url() + str(tag)
 
 
-def update_task_state(task_id, job_state, **kwargs):
+def update_task_state(workflow_id, task_id, job_state, **kwargs):
     """Informs the workflow manager of the current state of a task."""
-    data = {'task_id': task_id, 'job_state': job_state}
+    data = {'wf_id': workflow_id, 'task_id': task_id, 'job_state': job_state}
     if 'metadata' in kwargs:
         kwargs['metadata'] = jsonpickle.encode(kwargs['metadata'])
 
@@ -144,7 +147,7 @@ def submit_jobs():
         finally:
             # Send the initial state to WFM
             # update_task_state(task.id, job_state, metadata=task_metadata)
-            update_task_state(task.id, job_state)
+            update_task_state(task.workflow_id, task.id, job_state)
 
 
 def get_checkpoints(file_regex, file_path):
@@ -226,11 +229,11 @@ def update_jobs():
                     checkpoint_file = get_restart_file(task_checkpoint)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
                     log.info(f'Restart: {task.name} task_info: {task_info}')
-                    update_task_state(task.id, job_state, task_info=task_info)
+                    update_task_state(task.workflow_id, task.id, job_state, task_info=task_info)
                 else:
-                    update_task_state(task.id, job_state)
+                    update_task_state(task.workflow_id, task.id, job_state)
             else:
-                update_task_state(task.id, job_state)
+                update_task_state(task.workflow_id, task.id, job_state)
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
@@ -342,7 +345,7 @@ if __name__ == '__main__':
     # Flask logging
     flask_app.logger.addHandler(handler)
     tm_listen_port = wf_utils.get_open_port()
-    wf_db.set_tm_port(wfm_listen_port)
+    wf_db.set_tm_port(tm_listen_port)
     log.info(f'tm_listen_port:{tm_listen_port}')
     flask_app.run(debug=False, port=str(tm_listen_port))
 # Ignoring CO413 beeflow modules must be loaded after bc.init()

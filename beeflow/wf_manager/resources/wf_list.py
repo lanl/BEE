@@ -22,9 +22,9 @@ from beeflow.wf_manager.common import dep_manager
 from beeflow.wf_manager.common import wf_db
 
 
-def parse_workflow(workflow_dir, main_cwl, yaml_file):
+def parse_workflow(workflow_dir, main_cwl, yaml_file, bolt_port):
     """Run the parser."""
-    parser = CwlParser()
+    parser = CwlParser(bolt_port)
     parse_msg = "Unable to parse workflow." \
                 "Please check workflow manager."
 
@@ -71,6 +71,21 @@ def extract_wf_temp(filename, workflow_archive):
     return tmp_path
 
 
+def get_run_dir():
+    """Return the newest run directory.
+    
+    This function is used to figure out what new run directory we want. 
+    At the moment, each bind mount directory will be set to a directory 
+    like run1, run2, ... Eventually these will use the workflow id.
+    """
+    bee_workdir = wf_utils.get_bee_workdir()
+    # Uses the number of workflows as a pseudo id
+    num_workflows = wf_db.get_num_workflows()
+    run_dir = f'{bee_workdir}/mount_dirs/run{num_workflows}/'
+    wf_db.increment_num_workflows()
+    return run_dir
+
+
 class WFList(Resource):
     """Interacts with existing workflows."""
 
@@ -110,8 +125,8 @@ class WFList(Resource):
         # None if not sent
         yaml_file = data['yaml']
 
-        dep_manager.kill_gdb()
-        dep_manager.remove_current_run()
+        #dep_manager.kill_gdb()
+        #dep_manager.remove_current_run()
         try:
             dep_manager.create_image()
         except dep_manager.NoContainerRuntime:
@@ -119,21 +134,23 @@ class WFList(Resource):
             log.error(crt_message)
             resp = make_response(jsonify(msg=crt_message, status='error'), 418)
             return resp
-
-        # Remove the current run directory in the bee workdir
-
         # Save the workflow temporarily to this folder for the parser
         # This is a temporary measure until we can get the worflow ID before a parse
         temp_dir = extract_wf_temp(wf_filename, wf_tarball)
-        dep_manager.start_gdb()
-        dep_manager.wait_gdb(log, 10)
+        run_dir = get_run_dir()
+        bolt_port = wf_utils.get_open_port()
+        http_port = wf_utils.get_open_port()
+        https_port = wf_utils.get_open_port()
+        gdb_pid = dep_manager.start_gdb(run_dir, bolt_port, http_port, https_port)
+        dep_manager.wait_gdb(log)
 
         wf_path = os.path.join(temp_dir, wf_filename[:-4])
-        wfi = parse_workflow(wf_path, main_cwl, yaml_file)
+        wfi = parse_workflow(wf_path, main_cwl, yaml_file, bolt_port)
 
         # initialize_wf_profiler(wf_name)
         # Save the workflow to the workflow_id dir in the beeflow dir
         wf_id = wfi.workflow_id
+        wf_db.add_workflow(wf_id, wf_name, 'Pending', run_dir, bolt_port, gdb_pid)
         bee_workdir = wf_utils.get_bee_workdir()
         workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
         os.makedirs(workflow_dir)
@@ -153,6 +170,7 @@ class WFList(Resource):
             metadata = wfi.get_task_metadata(task)
             metadata['workdir'] = wf_workdir
             wfi.set_task_metadata(task, metadata)
+            wf_db.add_task(task.id, wf_id, task.name, "WAITING")
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
         return resp
@@ -182,7 +200,7 @@ class WFList(Resource):
             return resp
 
         # Remove the current run directory in the bee workdir
-        dep_manager.remove_current_run()
+        #dep_manager.remove_current_run()
 
         tmp_dir = extract_wf_temp(wf_filename, workflow_archive)
 
