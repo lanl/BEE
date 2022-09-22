@@ -6,7 +6,7 @@ Builds command for submitting batch job.
 import subprocess
 
 from beeflow.common.worker.worker import Worker
-from beeflow.cli import log
+from beeflow.common.log import main_log as log
 import beeflow.common.log as bee_logging
 
 

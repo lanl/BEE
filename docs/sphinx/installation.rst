@@ -54,28 +54,53 @@ The bee.conf configuration file is a text file and you can edit it for your need
 
 **Caution: The default for container_archive is in the home directory. Some systems have small quotas for home directories and containers can be large files.**
 
-**bee_cfg** has other options including a configuration validator. For more information run ``bee_cfg info``
+**bee_cfg** has other options including a configuration validator. For more information or help run: ``bee_cfg info`` or ``bee_cfg --help``
 
 Starting up the BEE components:
 -------------------------------
 
-To start the components, workflow manager, task manager, graph database and scheduler
-simply run:
+To start the components (scheduler, slurmrestd(SLURM only), workflow manager, and task manager) simply run:
 
 .. code-block::
 
-    beeflow
+    beeflow start
+
+To check the status of the bee components run:
 
 .. code-block::
 
-    INFO: Starting slurmrestd based on userconfig file.
-    INFO: Loading Scheduler
-    INFO: Loading Workflow Manager
-    INFO: Loading Task Manager
+    beeflow status
 
+.. code-block::
+
+    beeflow components:
+    scheduler ... RUNNING
+    slurmrestd ... RUNNING
+    wf_manager ... RUNNING
+    task_manager ... RUNNING
 
 Some HPC systems have multiple front-ends. Run your workflows and components on the same front end.
 
+Stopping the BEE components:
+-------------------------------
+
+If at some point you would like to stop the beeflow components, you should first verify that all workflows are complete (archived). (If there are pending workflows, it is also fine to stop the components because you can restart beeflow later and start pending workflows with the "bee_client start" command).
+
+.. code-block::
+
+    bee_client listall
+
+.. code-block::
+
+    Name  ID      Status
+    clamr d631d3  Archived
+    blast a93267  Pending
+
+Now stop the components.
+
+.. code-block::
+
+    beeflow stop
 
 
 

@@ -36,9 +36,11 @@ class MockWFI:
         return [MockTask()]
 
     def get_task_metadata(self, task):
+        """Get the task's metadata."""
         return task.metadata
 
     def set_task_metadata(self, task, metadata):
+        """Set the metadata for this task."""
         task.metadata = metadata
 
     def get_task_by_id(self, task_id): # noqa

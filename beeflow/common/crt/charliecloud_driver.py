@@ -8,7 +8,7 @@ from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRunt
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.build_driver import task2arg
 from beeflow.common.container_path import convert_path
-from beeflow.cli import log
+from beeflow.common.log import main_log as log
 import beeflow.common.log as bee_logging
 
 
@@ -40,7 +40,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         name = '.'.join(name)
         return name
 
-    def run_text(self, task):
+    def run_text(self, task):  # noqa
         """Create text for Charliecloud batch script."""
         os.makedirs(self.container_archive, exist_ok=True)
         log.info(f'Build container archive directory is: {self.container_archive}')
@@ -125,7 +125,8 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             }
             ctr_workdir_path = convert_path(task.workdir, bind_mounts)
             extra_opts = f'--cd {ctr_workdir_path}'
-        main_command = f'ch-run {mpi_opt} {deployed_path} {self.chrun_opts} {extra_opts} -- {command}\n'.split()
+        main_command = (f'ch-run {mpi_opt} {deployed_path} {self.chrun_opts} '
+                        f'{extra_opts} -- {command}\n').split()
         post_commands = [
             f'rm -rf {deployed_path}\n'.split(),
         ]
