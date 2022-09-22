@@ -19,4 +19,4 @@ jobs:
       - name: Lint
         run: |
           pip install pylama pylint 2>&1 >/dev/null
-          pylama beeflow/ --ignore E0401 #ignore imports (beeflow not installed)
+          pylama beeflow/
