@@ -37,3 +37,7 @@ class Connection:
     def delete(self, path, *pargs, **kwargs):
         """Do an HTTP DELETE request."""
         return self._session.delete(self._full_url(path), *pargs, **kwargs)
+
+    def patch(self, path, *pargs, **kwargs):
+        """Do an HTTP PATCH request."""
+        return self._session.patch(self._full_url(path), *pargs, **kwargs)

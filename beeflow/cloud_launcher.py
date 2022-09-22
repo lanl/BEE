@@ -1,41 +1,39 @@
 """BEE Cloud Installer Script."""
 import argparse
-import os
 import subprocess
 import sys
 import time
 import yaml
-import importlib
 import jinja2
 import requests
 
-import beeflow.common.cloud as cloud
+from beeflow.common import cloud
 from beeflow.common.config_driver import BeeConfig as bc
 
 
 def run(private_key_file, bee_user, ip_addr, cmd):
     """Run a command on the remote host."""
-    cp = subprocess.run([
+    proc = subprocess.run([
         'ssh',
         '-i', private_key_file,
         '-o', 'StrictHostKeyChecking=no',
         '-o', 'ConnectTimeout=8',
         f'{bee_user}@{ip_addr}',
         cmd,
-    ])
-    return cp.returncode
+    ], check=True)
+    return proc.returncode
 
 
 def scp(bee_user, ip_addr, priv_key_file, src, dst):
     """SCP a file in src to dst on the remote machine."""
-    cp = subprocess.run([
+    proc = subprocess.run([
         'scp',
         '-i', priv_key_file,
         '-o', 'StrictHostKeyChecking=no',
         src,
         f'{bee_user}@{ip_addr}:{dst}',
-    ])
-    if cp.returncode != 0:
+    ], check=True)
+    if proc.returncode != 0:
         raise RuntimeError(f'Could not copy file "{src}" to "{dst}" on the remote machine')
 
 
@@ -72,8 +70,8 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
         if tm_proc.poll() is not None:
             raise RuntimeError('Failed to launch the Remote Task Manager')
 
-        # Set up the connection
-        tun_proc = subprocess.run([
+        # Set up the connection with an SSH tunnel
+        subprocess.run([
             'ssh',
             f'{bee_user}@{ip_addr}',
             '-i', private_key_file,
@@ -86,17 +84,17 @@ def launch_tm(provider, private_key_file, bee_user, launch_cmd, head_node,
             '-o', 'StrictHostKeyChecking=no',
             # Required in order to allow port forwarding
             '-o', 'UserKnownHostsFile=/dev/null',
-        ])
+        ], check=True)
     except KeyboardInterrupt:
         print('Got keyboard interrupt, quitting')
     finally:
         if tm_proc is not None:
             print('Killing the task manager')
-            # TODO: This could be done better using a pidfile
+            # TODO: This could be done much better using a pidfile
             run(private_key_file, bee_user, ip_addr, 'pkill python')
 
 
-def connect(provider, private_key_file, bee_user, launch_cmd, head_node,
+def connect(provider, private_key_file, bee_user, head_node,
             tm_listen_port, wfm_listen_port, max_retries):
     """Connect to an already running TM."""
     ip_addr = provider.get_ext_ip_addr(head_node)
@@ -115,22 +113,22 @@ def connect(provider, private_key_file, bee_user, launch_cmd, head_node,
         '-o', 'UserKnownHostsFile=/dev/null',
     ])
     time.sleep(3)
-    rc = tun_proc.poll()
+    returncode = tun_proc.poll()
     # Ensure the SSH process is still running
-    if rc is not None:
-        sys.exit('Tunnel set up failed with error: {}'.format(rc))
+    if returncode is not None:
+        sys.exit(f'Tunnel set up failed with error: {returncode}')
     # Now continue until we can ping the Task Manager
     url = f'http://localhost:{tm_listen_port}/status'
     interval = 5
     # Keep trying to get a status from the Task Manager (this could probably be
     # done better with some sort of backoff algorithm)
-    for i in range(max_retries):
+    for _ in range(max_retries):
         print('Trying to connect to the TM')
         time.sleep(interval)
         try:
-            resp = requests.get(url)
+            resp = requests.get(url, timeout=60)
             status = resp.json()
-            print('Connected to the TM with status "{}"'.format(status))
+            print(f'Connected to the TM with status "{status}"')
             return
         except requests.ConnectionError:
             pass
@@ -162,8 +160,8 @@ def main():
     else:
         bc.init(workload_scheduler='Simple')
     # Load the provider config file
-    cfg = yaml.load(open(args.provider_config), Loader=yaml.Loader)
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+    with open(args.provider_config, 'r', encoding='utf-8') as fp:
+        cfg = yaml.load(fp, Loader=yaml.Loader)
 
     # Get the component ports for forwarding connections
     wfm_listen_port = cfg['wfm_listen_port']
@@ -179,7 +177,7 @@ def main():
 
     if args.setup_cloud:
         print('Creating cloud from template...')
-        with open(template_file) as fp:
+        with open(template_file, encoding='utf-8') as fp:
             tmpl = jinja2.Template(fp.read())
         tmpl_data = tmpl.render(**cfg)
         if args.debug:
@@ -200,10 +198,15 @@ def main():
                   tm_listen_port=tm_listen_port)
     if args.connect:
         connect(provider=provider, private_key_file=private_key_file,
-                bee_user=bee_user, launch_cmd=launch_cmd, head_node=head_node,
+                bee_user=bee_user, head_node=head_node,
                 wfm_listen_port=wfm_listen_port, tm_listen_port=tm_listen_port,
                 max_retries=args.max_retries)
 
 
 if __name__ == '__main__':
     main()
+# Ignore R1732: Using a 'with' statement for resource allocation doesn't really apply here. We'd
+#               need to completely restructure the code to use it, but it's something to think
+#               about later on.
+# Ignore W0511: This TODO needs to be addressed later on, perhaps with a restructure of this code.
+# pylama:ignore=R1732,W0511

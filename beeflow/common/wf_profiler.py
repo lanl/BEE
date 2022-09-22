@@ -1,14 +1,13 @@
 """Workflow profiling code."""
 import json
 import time
-import os
 
 
 class WorkflowProfiler:
     """Class for profiling a single workflow's execution."""
 
     def __init__(self, workflow_name, output_path):
-        """WorkflowProfiler constructor."""
+        """Construct the workflow profiler class for a workflow."""
         self.workflow_name = workflow_name
         self.output_path = output_path
         self._state_changes = []
@@ -36,7 +35,7 @@ class WorkflowProfiler:
 
     def save(self):
         """Save the workflow results (run on workflow completion)."""
-        with open(self.output_path, 'w') as fp:
+        with open(self.output_path, 'w', encoding='utf-8') as fp:
             json.dump({
                 'state_changes': self._state_changes,
                 'scheduling_results': self._scheduling_results,

@@ -364,7 +364,8 @@ def validate_chrun_opts(opts):
     return opts
 
 
-VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': ''}, validator=validate_chrun_opts,
+VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': ''},
+                 validator=validate_chrun_opts,
                  info='extra options to pass to ch-run')
 VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''}, validator=str,
                  info='extra Charliecloud setup to put in a job script')

@@ -38,3 +38,4 @@ def test_clear(temp_db):
 
     db.resources.clear()
     assert len(list(db.resources)) == 0
+# pylama:ignore=W0621

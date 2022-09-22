@@ -1,11 +1,10 @@
 """Special connection for communicating with cli.py."""
-import jsonpickle
-
 from contextlib import contextmanager
 import socket
 import os
-import sys
 import traceback
+
+import jsonpickle
 
 
 class BeeflowConnectionError(Exception):
@@ -25,7 +24,7 @@ class Server:
     def accept(self):
         """Accept a new connection or return None."""
         try:
-            conn, addr = self.s.accept()
+            conn, _ = self.s.accept()
             return ClientConnection(conn)
         except BlockingIOError:
             # No clients right now

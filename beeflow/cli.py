@@ -107,13 +107,13 @@ class ComponentManager:
             proc.terminate()
 
 
-mgr = ComponentManager()
+MGR = ComponentManager()
 
 
-def launch_with_gunicorn(module, socket, *args, **kwargs):
+def launch_with_gunicorn(module, sock_path, *args, **kwargs):
     """Launch a component with Gunicorn."""
     # Setting the timeout to infinite, since sometimes the gdb can take too long
-    return subprocess.Popen(['gunicorn', module, '--timeout', '0', '-b', f'unix:{socket}'],
+    return subprocess.Popen(['gunicorn', module, '--timeout', '0', '-b', f'unix:{sock_path}'],
                             *args, **kwargs)
 
 
@@ -123,46 +123,46 @@ def log_path():
     return os.path.join(bee_workdir, 'logs')
 
 
-def log_fname(name):
-    """Determine the log file name."""
-    return os.path.join(log_path(), f'{name}.log')
+def log_fname(component):
+    """Determine the log file name for the given component."""
+    return os.path.join(log_path(), f'{component}.log')
 
 
-def open_log(name):
+def open_log(component):
     """Determine the log for the component, open and return it."""
-    log = log_fname(name)
+    log = log_fname(component)
     return open(log, 'a', encoding='utf-8')
 
 
-@mgr.component('wf_manager', ('scheduler', 'db'))
+@MGR.component('wf_manager', ('scheduler',))
 def start_wfm():
     """Start the WFM."""
     fp = open_log('wf_manager')
-    socket = bc.get('workflow_manager', 'socket')
+    sock_path = bc.get('workflow_manager', 'socket')
     return launch_with_gunicorn('beeflow.wf_manager.wf_manager:create_app()',
-                                socket, stdout=fp, stderr=fp)
+                                sock_path, stdout=fp, stderr=fp)
 
 
-@mgr.component('task_manager', ('slurmrestd', 'db'))
+@MGR.component('task_manager', ('slurmrestd',))
 def start_task_manager():
     """Start the TM."""
     fp = open_log('task_manager')
-    socket = bc.get('task_manager', 'socket')
-    return launch_with_gunicorn('beeflow.task_manager:flask_app', socket, stdout=fp, stderr=fp)
+    sock_path = bc.get('task_manager', 'socket')
+    return launch_with_gunicorn('beeflow.task_manager:flask_app', sock_path, stdout=fp, stderr=fp)
 
 
-@mgr.component('scheduler', ('db',))
+@MGR.component('scheduler', ())
 def start_scheduler():
     """Start the scheduler."""
     fp = open_log('scheduler')
-    socket = bc.get('scheduler', 'socket')
+    sock_path = bc.get('scheduler', 'socket')
     # Using a function here because of the funny way that the scheduler's written
-    return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()', socket, stdout=fp,
+    return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()', sock_path, stdout=fp,
                                 stderr=fp)
 
 
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
-@mgr.component('slurmrestd')
+@MGR.component('slurmrestd')
 def start_slurm_restd():
     """Start BEESlurmRestD. Returns a Popen process object."""
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
@@ -179,35 +179,10 @@ def start_slurm_restd():
     return subprocess.Popen(cmd, stdout=fp, stderr=fp)
 
 
-@mgr.component('db')
-def start_db():
-    """Start the main database (Redis or something else)."""
-    # TODO
-    return subprocess.Popen(['sleep', '10'])
-
-
-# TODO: Not sure if this start_build() function is needed here
-# @mgr.component('builder')
-# def start_build():
-#    """Start builder.
-#
-#    Start build tool with task described as Dict.
-#    :rtype: instance of Popen
-#    """
-#    print('args.build:', args.build)
-#    userconfig_file = args.build[0]
-#    build_args = args.build[1]
-#    print(["python", "-m", "beeflow.common.build_interfaces",
-#          userconfig_file, build_args],)
-#    return subprocess.run(["python", "-m", "beeflow.common.build_interfaces",
-#                          userconfig_file, build_args], check=False,
-#                          stdout=cli_log, stderr=cli_log)
-
-
 def handle_terminate(signum, stack): # noqa
     """Handle a terminate signal."""
     # Kill all subprocesses
-    mgr.kill()
+    MGR.kill()
     sys.exit(1)
 
 
@@ -290,7 +265,7 @@ def daemonize(base_components):
     fp = open_log('beeflow')
     with daemon.DaemonContext(signal_map=signal_map, stdout=fp, stderr=fp, stdin=fp,
                               umask=0o002, pidfile=pidfile_manager(pidfile)):
-        Beeflow(mgr, base_components).loop()
+        Beeflow(MGR, base_components).loop()
 
 
 app = typer.Typer()
@@ -306,9 +281,9 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     base_components = ['wf_manager', 'task_manager', 'scheduler']
     if foreground:
         try:
-            Beeflow(mgr, base_components).loop()
+            Beeflow(MGR, base_components).loop()
         except KeyboardInterrupt:
-            mgr.kill()
+            MGR.kill()
     else:
         daemonize(base_components)
 
@@ -320,10 +295,11 @@ def status():
     resp = cli_connection.send(sock_path, {'type': 'status'})
     if resp is None:
         beeflow_log = log_fname('beeflow')
-        sys.exit(f'Cannot connect to the beeflow daemon, is it running? Check the log at "{beeflow_log}".')
+        sys.exit('Cannot connect to the beeflow daemon, is it running? Check '
+                 f'the log at "{beeflow_log}".')
     print('beeflow components:')
-    for comp, status in resp['components'].items():
-        print(f'{comp} ... {status}')
+    for comp, stat in resp['components'].items():
+        print(f'{comp} ... {stat}')
 
 
 @app.command()

@@ -258,8 +258,8 @@ def update_jobs(db):
 
 def process_queues():
     """Look for newly submitted jobs and update status of scheduled jobs."""
-    submit_jobs()
-    update_jobs()
+    submit_jobs()  # noqa
+    update_jobs()  # noqa
 
 
 if "pytest" not in sys.modules:
@@ -269,7 +269,7 @@ if "pytest" not in sys.modules:
 
     # This kills the scheduler when the process terminates
     # so we don't accidentally leave a zombie process
-    atexit.register(lambda: scheduler.shutdown())
+    atexit.register(scheduler.shutdown)
 
 
 class TaskSubmit(Resource):

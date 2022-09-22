@@ -64,8 +64,7 @@ def build_main(task):
 
 if __name__ == '__main__':
     try:
-        userconfig = sys.argv[1]
-        bc.init(userconfig=userconfig)
+        bc.init(userconfig=sys.argv[1])
         my_args = sys.argv[2]
     except IndexError as exc:
         raise IndexError('build_interface must execute with 2 arguments.') from exc

@@ -187,8 +187,8 @@ def catch_exception(_type, value, traceback):
 
 
 # Create the default log (BEE_LOG_LEVEL will be passed in by beeflow/cli.py)
-level = os.getenv('BEE_LOG_LEVEL')
-level = 'DEBUG' if level is None else level
-main_log = setup_logging(level=level)
+LEVEL = os.getenv('BEE_LOG_LEVEL')
+LEVEL = 'DEBUG' if LEVEL is None else LEVEL
+main_log = setup_logging(level=LEVEL)
 # Ignore C0415 Import outside toplevel we only do this if we don't have a log handler
 # pylama:ignore=C0415

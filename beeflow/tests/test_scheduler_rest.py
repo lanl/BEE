@@ -3,11 +3,10 @@
 Tests of the REST interface for BEE Scheduler.
 """
 import os
-import pytest
 import subprocess
 import time
 import uuid
-import requests
+import pytest
 
 from beeflow.common.connection import Connection
 
