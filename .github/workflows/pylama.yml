@@ -18,5 +18,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: Lint
         run: |
-          pip install pylama 2>&1 >/dev/null
-          pylama beeflow/
+          pip install pylama pylint 2>&1 >/dev/null
+          pylama beeflow/ --ignore E0401 #ignore imports (beeflow not installed)
