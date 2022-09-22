@@ -30,7 +30,7 @@ _INTERACTIVE = False
 
 
 logging.basicConfig(level=logging.WARNING)
-workflow_manager = 'bee_wfm/v1/jobs/'
+WORKFLOW_MANAGER = 'bee_wfm/v1/jobs/'
 
 
 class ClientError(Exception):
@@ -59,8 +59,8 @@ def _wfm_conn():
 
 
 def _url():
-    """Returns URL to the workflow manager end point"""
-    return workflow_manager
+    """Return URL to the workflow manager end point."""
+    return WORKFLOW_MANAGER
 
 
 def _short_id(wf_id):
