@@ -7,9 +7,13 @@
 import unittest
 
 from beeflow.common.config_driver import BeeConfig as bc
+
+bc.init()
+
 from beeflow.common.wf_data import (Requirement, Hint, InputParameter, OutputParameter,
                                     StepInput, StepOutput)
 from beeflow.common.wf_interface import WorkflowInterface
+import gdb # noqa (this imports beeflow modules)
 
 
 class TestWorkflowInterface(unittest.TestCase):
@@ -17,12 +21,17 @@ class TestWorkflowInterface(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Initialize the Workflow interface."""
-        bc.init()
+        """Start the GDB and initialize the Workflow interface."""
+        gdb.start()
         cls.wfi = WorkflowInterface(user="neo4j",
                                     bolt_port=bc.get("graphdb", "bolt_port"),
                                     db_hostname=bc.get("graphdb", "hostname"),
                                     password=bc.get("graphdb", "dbpass"))
+
+    @classmethod
+    def tearDownClass(cls):
+        """Tear down method to stop the running GDB."""
+        gdb.stop()
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""

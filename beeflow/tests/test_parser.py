@@ -2,8 +2,8 @@
 """Unit test module for the BEE CWL parser module."""
 
 import unittest
-
 from beeflow.common.parser import CwlParser
+import gdb # noqa (this imports beeflow modules)
 
 # Disable protected member access warning
 # pylama:ignore=W0212
@@ -14,9 +14,15 @@ class TestParser(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Initialize the CWL parser, which connects to the GDB."""
+        """Start the GDB, initialize the CWL parser, which connects to the GDB."""
+        gdb.start()
         cls.parser = CwlParser()
         cls.wfi = cls.parser._wfi
+
+    @classmethod
+    def tearDownClass(cls):
+        """Stop the GDB."""
+        gdb.stop()
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
@@ -42,7 +48,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_no_job(self):
         """Test parsing of a workflow without an input job file."""
-        cwl_wfi_file = "cf.cwl"
+        cwl_wfi_file = "clamr-wf/clamr_wf.cwl"
 
         # Test workflow parsing without input job file
         wfi = self.parser.parse_workflow(cwl_wfi_file)

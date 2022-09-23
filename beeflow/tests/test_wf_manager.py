@@ -96,6 +96,8 @@ def test_reexecute_workflow(client, mocker, teardown_workflow):
                  return_value=MockWFI())
     mocker.patch('subprocess.run', return_value=True)
 
+    # Remove it if it was already created by another test
+    wf_utils.remove_current_run_dir()
     wf_utils.create_current_run_dir()
 
     script_path = pathlib.Path(__file__).parent.resolve()
