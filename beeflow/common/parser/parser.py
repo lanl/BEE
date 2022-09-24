@@ -19,7 +19,8 @@ from beeflow.common.wf_data import (InputParameter,
                                     StepInput,
                                     StepOutput,
                                     Hint,
-                                    Requirement)
+                                    Requirement,
+                                    generate_workflow_id)
 from beeflow.common.wf_interface import WorkflowInterface
 
 
@@ -332,7 +333,7 @@ def main():
     """Run the parser on a CWL Workflow and job file directly."""
     parser = CwlParser()
     args = parse_args()
-    parser.parse_workflow(args.wf_file, args.inputs)
+    parser.parse_workflow(generate_workflow_id(), args.wf_file, args.inputs)
 
 
 if __name__ == "__main__":
