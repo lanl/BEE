@@ -7,11 +7,11 @@ baseCommand: /makeflow-examples/blast/split_fasta
 
 inputs:
   query_granularity: 
-    type: string
+    type: int
     inputBinding:
       position: 1
   input_file:
-    type: string
+    type: File
     inputBinding:
       position: 2
 
