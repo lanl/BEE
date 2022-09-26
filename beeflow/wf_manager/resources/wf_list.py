@@ -46,10 +46,6 @@ def parse_workflow(workflow_dir, main_cwl, yaml_file, bolt_port):
     return wfi
 
 
-def create_dep_container():
-    """Create new dependency container if one does not currently exist."""
-
-
 # def initialize_wf_profiler(wf_name):
 #    # Initialize the workflow profiling code
 #    bee_workdir = wf_utils.get_bee_workdir()

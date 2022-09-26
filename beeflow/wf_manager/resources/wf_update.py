@@ -31,6 +31,7 @@ def archive_workflow(wf_id):
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
 
+    wf_db.update_workflow_state(wf_id, 'Archived')
     wf_utils.update_wf_status(wf_id, 'Archived')
 
     archive_dir = os.path.join(bee_workdir, 'archives')
@@ -69,6 +70,7 @@ class WFUpdate(Resource):
         wfi = wf_utils.get_workflow_interface(wf_id)
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
+        wf_db.update_task_state(task_id, wf_id, job_state)
         # wf_profiler.add_state_change(task, job_state)
 
         # Get metadata from update if available
@@ -111,7 +113,7 @@ class WFUpdate(Resource):
                 wf_id = wfi.workflow_id
                 archive_workflow(wf_id)
                 pid = wf_db.get_gdb_pid(wf_id)
-                #dep_manager.kill_gdb(pid)
+                dep_manager.kill_gdb(pid)
 
         resp = make_response(jsonify(status=f'Task {task_id} belonging to WF {wf_id} set to {job_state}'), 200)
         return resp

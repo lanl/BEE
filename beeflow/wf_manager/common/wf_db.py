@@ -4,7 +4,7 @@ import sqlite3
 from sqlite3 import Error
 from collections import namedtuple
 from beeflow.common.config_driver import BeeConfig as bc
-#bc.init()
+
 
 def create_connection():
     """Create a new connection with the workflow database."""
@@ -76,6 +76,7 @@ def get_table_length(table):
     rows = result[0][0]
     return rows
 
+
 def init_info():
     """Insert a new workflow into the database."""
     stmt = """INSERT INTO info (wfm_port, tm_port, sched_port, num_workflows)
@@ -115,7 +116,7 @@ def init_tables():
                        id INTEGER PRIMARY KEY,
                        wfm_port INTEGER,
                        tm_port INTEGER,
-                       sched_port INTEGER, 
+                       sched_port INTEGER,
                        num_workflows INTEGER
                        );"""
 
@@ -128,10 +129,8 @@ def init_tables():
         init_info()
 
 
-
-
 Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows")
- 
+
 
 def get_info():
     """"Return an info object containing port information."""
@@ -139,6 +138,7 @@ def get_info():
     result = get(stmt)
     info = Info(*result[0])
     return info
+
 
 def get_wfm_port():
     """Return workflow manager port."""
@@ -212,7 +212,7 @@ def add_workflow(workflow_id, name, status, run_dir, bolt_port, gdb_pid):
         # Initialize the database
         init_tables()
 
-    stmt = """INSERT INTO workflows (workflow_id, name, status, run_dir, 
+    stmt = """INSERT INTO workflows (workflow_id, name, status, run_dir,
                                         bolt_port, gdb_pid)
                                     VALUES(?, ?, ?, ?, ?, ?);"""
     run(stmt, [workflow_id, name, status, run_dir, bolt_port, gdb_pid])

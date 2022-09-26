@@ -9,7 +9,6 @@ import time
 import shutil
 import signal
 import subprocess
-import getpass
 
 import beeflow.common.log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
@@ -87,10 +86,6 @@ def setup_gdb_configs(mount_dir, bolt_port, http_port, https_port):
     This function needs to be run before each new invocation since the
     config file could have changed.
     """
-    #bolt_port = bc.get('graphdb', 'bolt_port')
-    #http_port = bc.get('graphdb', 'http_port')
-    #https_port = bc.get('graphdb', 'https_port')
-
     container_path = get_container_dir()
     confs_dir = os.path.join(mount_dir, "conf")
     os.makedirs(confs_dir, exist_ok=True)
@@ -101,19 +96,12 @@ def setup_gdb_configs(mount_dir, bolt_port, http_port, https_port):
     with open(gdb_configfile, "rt", encoding="utf8") as cfile:
         data = cfile.read()
 
-    bolt_config = '#dbms.connector.bolt.listen_address=:'
-    http_config = '#dbms.connector.http.listen_address=:'
-    https_config = '#dbms.connector.https.listen_address=:'
-
-    data = re.sub(r'#(dbms.connector.bolt.listen_address=):[0-9]*', rf'\1:{bolt_port}', data)
-    data = re.sub(r'#(dbms.connector.http.listen_address=):[0-9]*', rf'\1:{http_port}', data)
-    data = re.sub(r'#(dbms.connector.https.listen_address=):[0-9]*', rf'\1:{https_port}', data)
-    #data = data.replace("7687",
-    #                    "dbms.connector.bolt.listen_address=:" + str(bolt_port))
-    #data = data.replace("#dbms.connector.http.listen_address=:7474",
-    #                    "dbms.connector.http.listen_address=:" + str(http_port))
-    #data = data.replace("#dbms.connector.https.listen_address=:7473",
-    #                    "dbms.connector.https.listen_address=:" + str(https_port))
+    bolt_config = r'#(dbms.connector.bolt.listen_address=):[0-9]*'
+    data = re.sub(bolt_config, rf'\1:{http_port}', data)
+    http_config = r'#(dbms.connector.http.listen_address=):[0-9]*'
+    data = re.sub(http_config, rf'\1:{bolt_port}', data)
+    https_config = r'#(dbms.connector.https.listen_address=):[0-9]*'
+    data = re.sub(https_config, rf'\1:{https_port}', data)
     with open(gdb_configfile, "wt", encoding="utf8") as cfile:
         cfile.write(data)
 
@@ -170,7 +158,7 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
     if not reexecute:
         try:
             command = ['neo4j-admin', 'set-initial-password', str(db_password)]
-            proc = subprocess.run([
+            subprocess.run([
                 "ch-run",
                 "--set-env=" + container_path + "/ch/environment",
                 "-b", confs_dir + ":/var/lib/neo4j/conf",
@@ -187,25 +175,26 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
         command = ['neo4j', 'start']
         with subprocess.Popen(["ch-run",
                               "--set-env=" + container_path + "/ch/environment",
-                              "-b",
-                              confs_dir + ":/var/lib/neo4j/conf",
-                              "-b",
-                              data_dir + ":/data",
-                              "-b",
-                              logs_dir + ":/logs",
-                              "-b",
-                              run_dir + ":/var/lib/neo4j/run",
-                              "-b",
-                              certs_dir + ":/var/lib/neo4j/certificates",
-                              container_path,
-                              "--", *command
-                              ], stdout=subprocess.PIPE, stderr=subprocess.PIPE) as p:
-            output = p.stdout.read().decode('utf-8')
+                               "-b",
+                               confs_dir + ":/var/lib/neo4j/conf",
+                               "-b",
+                               data_dir + ":/data",
+                               "-b",
+                               logs_dir + ":/logs",
+                               "-b",
+                               run_dir + ":/var/lib/neo4j/run",
+                               "-b",
+                               certs_dir + ":/var/lib/neo4j/certificates",
+                               container_path,
+                               "--", *command
+                               ], stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+            output = proc.stdout.read().decode('utf-8')
             pid = re.search(r'pid ([0-9]*)', output).group(1)
             return pid
     except FileNotFoundError:
         dep_log.error("Neo4j failed to start.")
         return -1
+
 
 def wait_gdb(log):
     """Need to wait for the GDB. Currently, we're using the sleep time paramater.
@@ -214,15 +203,7 @@ def wait_gdb(log):
     """
     gdb_sleep_time = bc.get('graphdb', 'sleep_time')
     log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
-    #time.sleep(gdb_sleep_time)
-    time.sleep(10)
-
-
-#def remove_current_run():
-#    """Remove the current run directory."""
-#    run_dir = get_run_dir()
-#    if os.path.exists(run_dir):
-#        shutil.rmtree(run_dir, ignore_errors=True)
+    time.sleep(gdb_sleep_time)
 
 
 def remove_gdb():
@@ -244,10 +225,3 @@ def kill_gdb(pid):
         os.kill(pid, signal.SIGTERM)
     except OSError:
         dep_log.info('Process already killed')
-    # TERRIBLE Kludge until we can figure out a better way to get the PID
-    #user = getpass.getuser()
-    #process = subprocess.run([f"ps aux | grep {user} | grep [n]eo4j"], shell=True,
-    #                         stdout=subprocess.PIPE, check=False)
-    #if process.stdout.decode() != '':
-    #    gdb_pid = int(process.stdout.decode().split()[1])
-    #    kill_process(gdb_pid)

@@ -2,7 +2,6 @@
 
 from flask import Flask
 from flask_restful import Api
-from beeflow.common.config_driver import BeeConfig as bc
 
 from beeflow.wf_manager.resources.wf_list import WFList
 from beeflow.wf_manager.resources.wf_actions import WFActions
@@ -12,6 +11,7 @@ from beeflow.cli import log
 from beeflow.wf_manager.resources import wf_utils
 import beeflow.common.log as bee_logging
 from beeflow.wf_manager.common import wf_db
+
 
 def create_app():
     """Create flask app object and add REST endpoints."""
