@@ -31,9 +31,9 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow(self):
         """Test parsing of workflow with an input job file."""
-        cwl_wfi_file = "clamr-wf/clamr_wf.cwl"
-        cwl_job_yaml = "clamr-wf/clamr_job.yml"
-        cwl_job_json = "clamr-wf/clamr_job.json"
+        cwl_wfi_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
+        cwl_job_yaml = "examples/clamr-ffmpeg-build/clamr_job.yml"
+        cwl_job_json = "examples/clamr-ffmpeg-build/clamr_job.json"
 
         # Test workflow parsing with YAML input job file
         wfi = self.parser.parse_workflow(cwl_wfi_file, cwl_job_yaml)
@@ -48,7 +48,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_no_job(self):
         """Test parsing of a workflow without an input job file."""
-        cwl_wfi_file = "clamr-wf/clamr_wf.cwl"
+        cwl_wfi_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
 
         # Test workflow parsing without input job file
         wfi = self.parser.parse_workflow(cwl_wfi_file)
