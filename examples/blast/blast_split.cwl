@@ -19,8 +19,8 @@ outputs:
   split1:
     type: File
     outputBinding:
-      glob: /mnt/blast/small.fasta.0
+      glob: small.fasta.0
   split2:
     type: File
     outputBinding:
-      glob: /mnt/blast/small.fasta.1
+      glob: small.fasta.1

@@ -6,7 +6,7 @@ cwlVersion: v1.2
 baseCommand: /makeflow-examples/blast/cat_blast
 
 inputs:
-  output_filename: 
+  output_filename:
     type: string
     inputBinding:
       position: 1

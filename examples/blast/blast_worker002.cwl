@@ -5,7 +5,7 @@ cwlVersion: v1.2
 
 baseCommand: /makeflow-examples/blast/blastall
 
-stderr: /mnt/blast/input.fasta.1.err
+stderr: fasta.1.err
 
 inputs:
   program_name:
@@ -24,7 +24,7 @@ inputs:
     type: string
     inputBinding:
       prefix: -o
-  
+
 outputs:
   output:
     type: File

@@ -5,7 +5,7 @@ cwlVersion: v1.2
 
 baseCommand: /bin/cat
 
-stdout: /mnt/blast/output.fasta.err
+stdout: output.fasta.err
 
 inputs:
   input_file1:

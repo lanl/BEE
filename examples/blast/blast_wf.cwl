@@ -34,8 +34,7 @@ steps:
     out: [split1, split2]
     hints:
       DockerRequirement:
-        dockerFile: "examples/blast/Dockerfile"
-        beeflow:containerName: "blast-example"
+        beeflow:useContainer: "/usr/projects/beedev/blast-example.tar.gz"
 
   blast_worker001:
     run: blast_worker001.cwl
@@ -47,8 +46,7 @@ steps:
     out: [output, output_err]
     hints:
       DockerRequirement:
-        dockerFile: "examples/blast/Dockerfile"
-        beeflow:containerName: "blast-example"
+        beeflow:useContainer: "/usr/projects/beedev/blast-example.tar.gz"
 
   blast_worker002:
     run: blast_worker002.cwl
@@ -60,8 +58,7 @@ steps:
     out: [output, output_err]
     hints:
       DockerRequirement:
-        dockerFile: "examples/blast/Dockerfile"
-        beeflow:containerName: "blast-example"
+        beeflow:useContainer: "/usr/projects/beedev/blast-example.tar.gz"
 
   blast_output:
     run: blast_output.cwl
@@ -72,17 +69,15 @@ steps:
     out: [blast_output]
     hints:
       DockerRequirement:
-        dockerFile: "examples/blast/Dockerfile"
-        beeflow:containerName: "blast-example"
+        beeflow:useContainer: "/usr/projects/beedev/blast-example.tar.gz"
 
   blast_output_err:
     run: blast_output_err.cwl
-    in: 
+    in:
       input_file1: blast_worker001/output_err
       input_file2: blast_worker002/output_err
     out: [blast_output_err]
     hints:
       DockerRequirement:
-        dockerFile: "examples/blast/Dockerfile"
-        beeflow:containerName: "blast-example"
- 
+        beeflow:useContainer: "/usr/projects/beedev/blast-example.tar.gz"
+
