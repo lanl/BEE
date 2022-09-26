@@ -1,0 +1,4 @@
+FROM git.lanl.gov:5050/trandles/baseimages/centos-buildclamr:7
+
+RUN git clone https://github.com/lanl/CLAMR.git
+RUN cd CLAMR && cmake3 . && make

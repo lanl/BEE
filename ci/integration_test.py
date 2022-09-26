@@ -13,7 +13,7 @@ from beeflow.client import bee_client
 
 
 # Max time of each workflow
-TIMEOUT = 300
+TIMEOUT = 120
 
 
 class CIError(Exception):
@@ -349,12 +349,16 @@ def use_ctr_check_cleanup():
 
 # `dockerFile` workflow
 DF_WORKFLOW_PATH = os.path.join('/tmp', f'bee-df-workflow-{uuid.uuid4().hex}')
+# Copy the Dockerfile to the workdir path
+os.makedirs(DF_WORKFLOW_PATH)
+shutil.copy(DOCKER_FILE_PATH, os.path.join(DF_WORKFLOW_PATH, 'Dockerfile'))
+# Workflow tarball name
 DF_WORKFLOW_TARBALL = f'{DF_WORKFLOW_PATH}.tgz'
 DF_WORKDIR = os.path.expanduser(f'~/{uuid.uuid4().hex}')
 os.makedirs(DF_WORKDIR)
 DF_CONTAINER_NAME = 'docker_file_test'
 DF_DOCKER_REQUIREMENT = {
-    'dockerFile': DOCKER_FILE_PATH,
+    'dockerFile': 'Dockerfile',
     'beeflow:containerName': DF_CONTAINER_NAME,
 }
 DF_MAIN_INPUT = 'docker_file'

@@ -16,18 +16,21 @@ def get_bee_workdir():
     return os.path.expanduser('~/.beeflow')
 
 
-def get_workflows_dir():
-    """Get the workflows directory from beeflow."""
+def get_workflows_script_dir():
+    """Get the workflows script directory from beeflow."""
     bee_workdir = get_bee_workdir()
     workflows_dir = os.path.join(bee_workdir, 'workflows')
     return workflows_dir
 
 
+def get_workflow_script_dir(wf_id):
+    """Get the workflow script dir for a particular workflow."""
+    return os.path.join(get_workflows_script_dir(), wf_id)
+
+
 def create_wf_dir(wf_id):
     """Create the workflows directory."""
-    workflows_dir = get_workflows_dir()
-    workflow_dir = os.path.join(workflows_dir, wf_id)
-    os.makedirs(workflow_dir)
+    os.makedirs(get_workflow_script_dir(wf_id))
 
 
 def create_current_run_dir():
