@@ -320,7 +320,7 @@ def stop():
                  f'       Check the beeflow log: "{beeflow_log}".')
     # As long as it returned something, we should be good
     beeflow_log = log_fname('beeflow')
-    print('Beeflow has stopped. Check the log at "{beeflow_log}".')
+    print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
 def main():
