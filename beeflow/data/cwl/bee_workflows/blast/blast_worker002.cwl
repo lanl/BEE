@@ -29,6 +29,8 @@ outputs:
   output:
     type: File
     outputBinding:
-      glob: $(inputs.output_file)
+      glob: fasta.1.out
+# Was glob: $(inputs.output_file) but fails
+#
   output_err:
     type: stderr
