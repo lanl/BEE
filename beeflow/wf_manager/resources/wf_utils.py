@@ -8,6 +8,7 @@ from beeflow.wf_manager.common import wf_db
 
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_interface import WorkflowInterface
+from beeflow.common.connection import Connection
 
 
 def get_bee_workdir():
@@ -115,26 +116,27 @@ def get_workflow_interface():
     return wfi
 
 
-def tm_url():
-    """Get Task Manager url."""
-    tm_listen_port = bc.get('task_manager', 'listen_port')
-    task_manager = "bee_tm/v1/task/"
-    return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
+# Base URLs for the TM and the Scheduler
+TM_URL = "bee_tm/v1/task/"
+SCHED_URL = "bee_sched/v1/"
 
 
-def sched_url():
-    """Get Scheduler url."""
-    scheduler = "bee_sched/v1/"
-    sched_listen_port = bc.get('scheduler', 'listen_port')
-    return f'http://127.0.0.1:{sched_listen_port}/{scheduler}'
+def _connect_tm():
+    """Return a connection to the TM."""
+    return Connection(bc.get('task_manager', 'socket'))
+
+
+def _connect_scheduler():
+    """Return a connection to the Scheduler."""
+    return Connection(bc.get('scheduler', 'socket'))
 
 
 def _resource(component, tag=""):
     """Access Task Manager or Scheduler."""
     if component == "tm":
-        url = tm_url() + str(tag)
+        url = TM_URL + str(tag)
     elif component == "sched":
-        url = sched_url() + str(tag)
+        url = SCHED_URL + str(tag)
     return url
 
 
@@ -152,8 +154,9 @@ def submit_tasks_tm(log, tasks, allocation):
     names = [task.name for task in tasks]
     log.info(f"Submitted {names} to Task Manager")
     try:
-        resp = requests.post(_resource('tm', "submit/"), json={'tasks': tasks_json},
-                             timeout=5)
+        conn = _connect_tm()
+        resp = conn.post(_resource('tm', "submit/"), json={'tasks': tasks_json},
+                         timeout=5)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to task manager to submit tasks.')
         return
@@ -183,8 +186,9 @@ def submit_tasks_scheduler(log, tasks):
     sched_tasks = tasks_to_sched(tasks)
     # The workflow name will eventually be added to the wfi workflow object
     try:
-        resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks,
-                            timeout=5)
+        conn = _connect_scheduler()
+        resp = conn.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks,
+                        timeout=5)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to scheduler to submit tasks.')
         return "Did not work"

@@ -10,7 +10,7 @@ import jsonpickle
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.cli import log
+from beeflow.common.log import main_log as log
 
 
 def archive_workflow(wf_id):

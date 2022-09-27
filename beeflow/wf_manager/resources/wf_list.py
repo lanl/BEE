@@ -13,7 +13,7 @@ from flask import make_response, jsonify
 from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
 
-from beeflow.cli import log
+from beeflow.common.log import main_log as log
 # from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.common.parser import CwlParser
 

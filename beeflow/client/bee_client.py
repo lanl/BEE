@@ -16,6 +16,7 @@ import requests
 import typer
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.cli import NaturalOrderGroup
+from beeflow.common.connection import Connection
 
 
 # Length of a shortened workflow ID
@@ -29,6 +30,7 @@ _INTERACTIVE = False
 
 
 logging.basicConfig(level=logging.WARNING)
+WORKFLOW_MANAGER = 'bee_wfm/v1/jobs/'
 
 
 class ClientError(Exception):
@@ -51,11 +53,14 @@ def error_exit(msg):
         raise ClientError(msg) from None
 
 
+def _wfm_conn():
+    """Return a connection to the WFM."""
+    return Connection(bc.get('workflow_manager', 'socket'))
+
+
 def _url():
     """Return URL to the workflow manager end point."""
-    wfm_listen_port = bc.get('workflow_manager', 'listen_port')
-    workflow_manager = 'bee_wfm/v1/jobs'
-    return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
+    return WORKFLOW_MANAGER
 
 
 def _short_id(wf_id):
@@ -69,7 +74,8 @@ def _resource(tag=""):
 def check_short_id_collision():
     """Check short workflow IDs for colliions; increase short ID length if detected."""
     global short_id_len  #noqa: Not a constant
-    resp = requests.get(_url(), timeout=60)
+    conn = _wfm_conn()
+    resp = conn.get(_url(), timeout=60)
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit("Checking for ID collision failed: {resp.status_code}")
 
@@ -94,7 +100,8 @@ def match_short_id(wf_id):
     matched_ids = []
 
     try:
-        resp = requests.get(_url(), timeout=60)
+        conn = _wfm_conn()
+        resp = conn.get(_url(), timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
@@ -160,7 +167,8 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         'workflow_archive': wf_tarball
     }
     try:
-        resp = requests.post(_url(), data=data, files=files, timeout=60)
+        conn = _wfm_conn()
+        resp = conn.post(_url(), data=data, files=files, timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
@@ -182,7 +190,8 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Start a workflow with a workflow ID."""
     long_wf_id = wf_id
     try:
-        resp = requests.post(_resource(long_wf_id), timeout=60)
+        conn = _wfm_conn()
+        resp = conn.post(_resource(long_wf_id), timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
@@ -231,7 +240,8 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
 def listall():
     """List all worklfows."""
     try:
-        resp = requests.get(_url(), timeout=60)
+        conn = _wfm_conn()
+        resp = conn.get(_url(), timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
@@ -257,7 +267,8 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     # wf_id is a tuple with the short version and long version
     long_wf_id = wf_id
     try:
-        resp = requests.get(_resource(long_wf_id), timeout=60)
+        conn = _wfm_conn()
+        resp = conn.get(_resource(long_wf_id), timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
@@ -281,8 +292,9 @@ def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Pause a workflow (Running tasks will finish)."""
     long_wf_id = wf_id
     try:
-        resp = requests.patch(_resource(long_wf_id), json={'option': 'pause'},
-                              timeout=60)
+        conn = _wfm_conn()
+        resp = conn.patch(_resource(long_wf_id), json={'option': 'pause'},
+                          timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
@@ -295,9 +307,10 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Resume a paused workflow."""
     long_wf_id = wf_id
     try:
-        resp = requests.patch(_resource(long_wf_id),
-                              json={'wf_id': long_wf_id, 'option': 'resume'},
-                              timeout=60)
+        conn = _wfm_conn()
+        resp = conn.patch(_resource(long_wf_id),
+                          json={'wf_id': long_wf_id, 'option': 'resume'},
+                          timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
@@ -310,7 +323,8 @@ def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Cancel a workflow."""
     long_wf_id = wf_id
     try:
-        resp = requests.delete(_resource(long_wf_id), timeout=60)
+        conn = _wfm_conn()
+        resp = conn.delete(_resource(long_wf_id), timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
@@ -324,7 +338,8 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Copy an archived workflow."""
     long_wf_id = wf_id
     try:
-        resp = requests.patch(_url(), files={'wf_id': long_wf_id}, timeout=60)
+        conn = _wfm_conn()
+        resp = conn.patch(_url(), files={'wf_id': long_wf_id}, timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
@@ -349,8 +364,9 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
         'wf_name': wf_name.encode()
     }
     try:
-        resp = requests.put(_url(), data=data,
-                            files={'workflow_archive': wf_tarball}, timeout=60)
+        conn = _wfm_conn()
+        resp = conn.put(_url(), data=data,
+                        files={'workflow_archive': wf_tarball}, timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 

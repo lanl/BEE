@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 import os
 import jinja2
-from beeflow.cli import log
+from beeflow.common.log import main_log as log
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 
 
@@ -131,3 +131,6 @@ class Worker(ABC):
         :type job_id: int
         :rtype: string
         """
+
+# Ignore W0511: Ignore TODOs since we will want to address this later.
+# pylama:ignore=W0511

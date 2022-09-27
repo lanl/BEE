@@ -8,253 +8,326 @@ BEETaskManager, and all required supporting services. If any combination of
 services is specified using the appropriate flag(s) then ONLY those services
 will be started.
 """
-
-import argparse
+from contextlib import contextmanager
 import os
+import signal
 import subprocess
+import socket
 import sys
 import time
-import getpass
-from subprocess import PIPE
-from configparser import NoOptionError
-import beeflow.common.log as bee_logging
+
+import daemon
+import typer
+
 from beeflow.common.config_driver import BeeConfig as bc
-
-log = bee_logging.setup_logging(level='DEBUG')
-restd_log = bee_logging.setup_logging(level='DEBUG')
+from beeflow.common import cli_connection
 
 
-def get_script_path():
-    """Construct a path to beeflow script install tree."""
-    return os.path.dirname(os.path.realpath(__file__))
+class ComponentManager:
+    """Component manager class."""
+
+    def __init__(self):
+        """Construct the component manager."""
+        self.components = {}
+        self.procs = {}
+
+    def component(self, name, deps=None):
+        """Return a decorator function to be called."""
+
+        def wrap(fn):
+            """Add the component to the list."""
+            self.components[name] = {
+                'fn': fn,
+                'deps': deps,
+            }
+
+        return wrap
+
+    def _validate(self, base_components):
+        """Make sure that the components all exist and have valid deps."""
+        missing = [name for name in base_components if name not in self.components]
+        for component in self.components.values():
+            if component['deps'] is None:
+                continue
+            for dep in component['deps']:
+                if dep not in self.components:
+                    missing.append(dep)
+        if missing:
+            raise RuntimeError(f'Missing/unknown component(s): {",".join(missing)}')
+
+    def _find_order(self, base_components):
+        """Find the order of the dependencies to launch."""
+        s = base_components[:]
+        levels = {name: 0 for name in self.components}
+        while len(s) > 0:
+            name = s.pop()
+            if self.components[name]['deps'] is None:
+                continue
+            for dep in self.components[name]['deps']:
+                levels[dep] = max(levels[name] + 1, levels[dep])
+                # Detect a possible cycle
+                if levels[dep] > len(self.components):
+                    raise RuntimeError(f'There may be a cycle for the "{dep}" component')
+                s.append(dep)
+        levels = list(levels.items())
+        levels.sort(key=lambda t: t[1], reverse=True)
+        return [name for name, level in levels]
+
+    def run(self, base_components):
+        """Start and run everything."""
+        # Determine if there are any missing components listed
+        self._validate(base_components)
+        # Determine the order to launch components in (note: this should just ignore cycles)
+        order = self._find_order(base_components)
+        print(f'Launching components in order: {order}')
+        # Now launch the components
+        for name in order:
+            component = self.components[name]
+            self.procs[name] = component['fn']()
+
+    def poll(self):
+        """Poll each process to check for errors."""
+        for name, proc in self.procs.items():
+            returncode = proc.poll()
+            if returncode is not None:
+                log = log_fname(name)
+                print(f'Component "{name}" failed, check log "{log}"')
+
+    def status(self):
+        """Return the statuses for each process in a dict."""
+        return {
+            name: 'RUNNING' if proc.poll() is None else 'FAILED'
+            for name, proc in self.procs.items()
+        }
+
+    def kill(self):
+        """Kill all components."""
+        for name, proc in self.procs.items():
+            print(f'Killing {name}')
+            proc.terminate()
+
+
+MGR = ComponentManager()
+
+
+def launch_with_gunicorn(module, sock_path, *args, **kwargs):
+    """Launch a component with Gunicorn."""
+    # Setting the timeout to infinite, since sometimes the gdb can take too long
+    return subprocess.Popen(['gunicorn', module, '--timeout', '0', '-b', f'unix:{sock_path}'],
+                            *args, **kwargs)
+
+
+def log_path():
+    """Return the main log path."""
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+    return os.path.join(bee_workdir, 'logs')
+
+
+def log_fname(component):
+    """Determine the log file name for the given component."""
+    return os.path.join(log_path(), f'{component}.log')
+
+
+def open_log(component):
+    """Determine the log for the component, open and return it."""
+    log = log_fname(component)
+    return open(log, 'a', encoding='utf-8')
+
+
+@MGR.component('wf_manager', ('scheduler',))
+def start_wfm():
+    """Start the WFM."""
+    fp = open_log('wf_manager')
+    sock_path = bc.get('workflow_manager', 'socket')
+    return launch_with_gunicorn('beeflow.wf_manager.wf_manager:create_app()',
+                                sock_path, stdout=fp, stderr=fp)
+
+
+@MGR.component('task_manager', ('slurmrestd',))
+def start_task_manager():
+    """Start the TM."""
+    fp = open_log('task_manager')
+    sock_path = bc.get('task_manager', 'socket')
+    return launch_with_gunicorn('beeflow.task_manager:flask_app', sock_path, stdout=fp, stderr=fp)
+
+
+@MGR.component('scheduler', ())
+def start_scheduler():
+    """Start the scheduler."""
+    fp = open_log('scheduler')
+    sock_path = bc.get('scheduler', 'socket')
+    # Using a function here because of the funny way that the scheduler's written
+    return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()', sock_path, stdout=fp,
+                                stderr=fp)
 
 
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
-def start_slurm_restd(bc, args):
+@MGR.component('slurmrestd')
+def start_slurm_restd():
     """Start BEESlurmRestD. Returns a Popen process object."""
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    _ = bee_logging.save_log(bee_workdir=bee_workdir, log=restd_log,
-                             logfile='restd.log')
     slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
-    if args.config_only:
-        return None
     slurm_socket = bc.get('slurmrestd', 'slurm_socket')
     slurm_args = bc.get('slurmrestd', 'slurm_args')
     slurm_args = slurm_args if slurm_args is not None else ''
-    subprocess.Popen(['rm', '-f', slurm_socket])
-    log.info("Attempting to open socket: {}".format(slurm_socket))
-    return subprocess.Popen([f"slurmrestd {slurm_args} unix:{slurm_socket} > {slurmrestd_log} 2>&1"],
-                            stdout=PIPE, stderr=PIPE, shell=True)
+    subprocess.run(['rm', '-f', slurm_socket], check=True)
+    # log.info("Attempting to open socket: {}".format(slurm_socket))
+    fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
+    cmd = ['slurmrestd']
+    cmd.extend(slurm_args.split())
+    cmd.append(f'unix:{slurm_socket}')
+    return subprocess.Popen(cmd, stdout=fp, stderr=fp)
 
 
-def start_workflow_manager(bc, args, cli_log):
-    """Start BEEWorkflowManager. Returns a Popen process object."""
-    if args.config_only:
-        return None
+def handle_terminate(signum, stack): # noqa
+    """Handle a terminate signal."""
+    # Kill all subprocesses
+    MGR.kill()
+    sys.exit(1)
 
-    # Either use the userconfig file argument specified to beeflow,
-    # or assume the default path to ~/.config/beeflow/bee.conf.
-    if args.userconfig_file:
-        userconfig_file = args.userconfig_file
+
+class Beeflow:
+    """Beeflow class for handling the main loop."""
+
+    def __init__(self, mgr, base_components):
+        """Create the Beeflow class."""
+        self.mgr = mgr
+        self.base_components = base_components
+        self.quit = False
+
+    def loop(self):
+        """Run the main loop."""
+        print(f'Running on {socket.gethostname()}')
+        self.mgr.run(self.base_components)
+        sock_path = bc.get('DEFAULT', 'beeflow_socket')
+        with cli_connection.server(sock_path) as server:
+            while not self.quit:
+                # Handle a message from the client, if there is one
+                self.handle_client(server)
+                # Poll the components
+                self.mgr.poll()
+                time.sleep(1)
+        # Kill everything, if possible
+        self.mgr.kill()
+
+    def handle_client(self, server):
+        """Handle a message from the client."""
+        try:
+            client = server.accept()
+            if client is None:
+                return
+            msg = client.get()
+            resp = None
+            if msg['type'] == 'status':
+                resp = {
+                    'components': self.mgr.status(),
+                }
+                print('Returned status info.')
+            elif msg['type'] == 'quit':
+                self.quit = True
+                resp = 'shutting down'
+                print('Shutting down.')
+            client.put(resp)
+        except cli_connection.BeeflowConnectionError as err:
+            print(f'connection failed: {err}')
+
+
+def daemonize(base_components):
+    """Start beeflow as a daemon, monitoring all processes."""
+
+    @contextmanager
+    def pidfile_manager(fname):
+        """Manage the PID file.
+
+        Note: this doesn't lock anything like in PEP 3143. It just creates the pidfile,
+        then deletes it.
+        """
+        pid = os.getpid()
+        with open(fname, 'w', encoding='utf-8') as fp:
+            fp.write(str(pid))
+        try:
+            yield
+        finally:
+            os.remove(fname)
+
+    # Get the pidfile and check if it exists already
+    pidfile = bc.get('DEFAULT', 'beeflow_pidfile')
+    # Note: there is a possible race condition here, however unlikely
+    if os.path.exists(pidfile):
+        with open(pidfile, encoding='utf-8') as fp:
+            pid = fp.read()
+            raise RuntimeError(f'beeflow seems to already be running (PID {pid})')
+    # Now set signal handling, the log and finally daemonize
+    signal_map = {
+        signal.SIGINT: handle_terminate,
+        signal.SIGTERM: handle_terminate,
+    }
+    fp = open_log('beeflow')
+    with daemon.DaemonContext(signal_map=signal_map, stdout=fp, stderr=fp, stdin=fp,
+                              umask=0o002, pidfile=pidfile_manager(pidfile)):
+        Beeflow(MGR, base_components).loop()
+
+
+app = typer.Typer()
+
+
+@app.command()
+def start(foreground: bool = typer.Option(False, '--foreground', '-F',
+          help='run in the foreground')):
+    """Attempt to daemonize if not in debug and start all BEE components."""
+    # Create the log path if it doesn't exist yet
+    path = log_path()
+    os.makedirs(path, exist_ok=True)
+    base_components = ['wf_manager', 'task_manager', 'scheduler']
+    if foreground:
+        try:
+            Beeflow(MGR, base_components).loop()
+        except KeyboardInterrupt:
+            MGR.kill()
     else:
-        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", get_script_path() + "/wf_manager/wf_manager.py",
-                            userconfig_file], stdout=cli_log, stderr=cli_log)
+        daemonize(base_components)
 
 
-def start_task_manager(bc, args, cli_log):
-    """Start BEETaskManager. Returns a Popen process object."""
-    if args.config_only:
-        return None
-
-    # Either use the userconfig file argument specified to beeflow,
-    # or assume the default path to ~/.config/beeflow/bee.conf.
-    if args.userconfig_file:
-        userconfig_file = args.userconfig_file
-    else:
-        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", get_script_path() + "/task_manager.py",
-                            userconfig_file], stdout=cli_log, stderr=cli_log)
-
-
-def start_scheduler(bc, args, cli_log):
-    """Start BEEScheduler.
-
-    Start BEEScheduler and return the process object.
-    :rtype: instance of Popen
-    """
-    if args.config_only:
-        return None
-    # Either use the userconfig file argument specified to beeflow,
-    # or assume the default path to ~/.config/beeflow/bee.conf.
-    if args.userconfig_file:
-        userconfig_file = args.userconfig_file
-    else:
-        userconfig_file = os.path.expanduser('~/.config/beeflow/bee.conf')
-    return subprocess.Popen(["python", get_script_path() + "/scheduler/scheduler.py",
-                            '--config-file', userconfig_file],
-                            stdout=cli_log, stderr=cli_log)
+@app.command()
+def status():
+    """Check the status of beeflow and the components."""
+    sock_path = bc.get('DEFAULT', 'beeflow_socket')
+    resp = cli_connection.send(sock_path, {'type': 'status'})
+    if resp is None:
+        beeflow_log = log_fname('beeflow')
+        sys.exit('Cannot connect to the beeflow daemon, is it running? Check '
+                 f'the log at "{beeflow_log}".')
+    print('beeflow components:')
+    for comp, stat in resp['components'].items():
+        print(f'{comp} ... {stat}')
 
 
-def start_build(args, cli_log):
-    """Start builder.
-
-    Start build tool with task described as Dict.
-    :rtype: instance of Popen
-    """
-    print('args.build:', args.build)
-    userconfig_file = args.build[0]
-    build_args = args.build[1]
-    print(["python", "-m", "beeflow.common.build_interfaces",
-          userconfig_file, build_args],)
-    return subprocess.run(["python", "-m", "beeflow.common.build_interfaces",
-                          userconfig_file, build_args], check=False,
-                          stdout=cli_log, stderr=cli_log)
-
-
-def create_pid_file(proc, pid_file, bc):
-    """Create a new PID file."""
-    os.makedirs(bc.get('DEFAULT', 'bee_workdir'), exist_ok=True)
-    with open('{}/{}'.format(str(bc.get('DEFAULT', 'bee_workdir')),
-                             pid_file), 'w') as fp:
-        fp.write(str(proc.pid))
-
-
-def parse_args(args=sys.argv[1:]):
-    """Parse arguments."""
-    parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__,
-                                     formatter_class=argparse.RawTextHelpFormatter)
-
-    parser.add_argument("-d", "--debug", action="store_true",
-                        help="enable debugging output\nIf debug is specified all output will go to the console.\nOnly one BEE service may be launched by beeflow if debug is requested.")
-    parser.add_argument("--wfm", action="store_true", help="start the BEEWorkflowManager (implies --gdb)")
-    parser.add_argument("--tm", action="store_true", help="start the BEETaskManager")
-    parser.add_argument("--restd", action="store_true", help="start the Slurm REST daemon")
-    parser.add_argument("--sched", action="store_true", help="start the BEEScheduler")
-    parser.add_argument("--userconfig-file", help="specify the path to a user configuration file")
-    parser.add_argument("--bee-workdir", help="specify the path for BEE to store temporary files and artifacts")
-    parser.add_argument("--job-template", help="specify path of job template.")
-    parser.add_argument("--workload-scheduler", help="specify workload scheduler")
-    parser.add_argument("--build", metavar=("CONF_FILE", "TASK_ARGS"), nargs=2,
-                        help="build a container based on a task specification")
-    parser.add_argument("--config-only", action="store_true", help="create a valid configuration file, but don't launch bee services.")
-    parser.add_argument("--sleep-time", default=4, type=int,
-                        help="amount of time to sleep before checking processes")
-    return parser.parse_args(args)
+@app.command()
+def stop():
+    """Stop the current running beeflow daemon."""
+    stop_msg = ("\n** Please ensure all workflows are complete before stopping beeflow. **"
+                + "\n** Check the status of workflows by running 'bee_client listall'.    **"
+                + "\nAre you sure you want to kill beeflow components? [y/n] ")
+    ans = input(stop_msg)
+    if ans.lower() != 'y':
+        return
+    sock_path = bc.get('DEFAULT', 'beeflow_socket')
+    resp = cli_connection.send(sock_path, {'type': 'quit'})
+    if resp is None:
+        beeflow_log = log_fname('beeflow')
+        sys.exit("Error: beeflow is not running on this system. It could be "
+                 "running on a different front end.\n"
+                 f'       Check the beeflow log: "{beeflow_log}".')
+    # As long as it returned something, we should be good
+    beeflow_log = log_fname('beeflow')
+    print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
 def main():
-    """Execute beeflow components in logical sequence."""
-    args = parse_args()
-    start_all = not any([args.wfm, args.tm, args.restd, args.sched]) or all([args.wfm, args.tm, args.restd, args.sched])
-    if args.debug and not sum([args.wfm, args.tm,  args.restd, args.sched]) == 1:
-        print("DEBUG requested, exactly one service must be specified",
-              file=sys.stderr)
-        return 1
-    # Pass configuration file params to config_driver.py
-    config_params = {}
-    if args.userconfig_file:
-        config_params['userconfig'] = args.userconfig_file
-    if args.bee_workdir:
-        config_params['bee_workdir'] = args.bee_workdir
-    if args.workload_scheduler:
-        config_params['workload_scheduler'] = args.workload_scheduler
-    if args.job_template:
-        config_params['job_template'] = args.job_template
-    bc.init(**config_params)
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    # Setup logging based on args.debug
-    _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='beeflow.log')
-    if log is None:
-        # Something went wrong
-        return 1
-
-    # Set up a CLI log to log output from the subprocesses
-    if args.debug:
-        cli_log = sys.stdout
-    else:
-        cli_log_fname = os.path.join(os.path.join(bee_workdir, 'logs'), 'cli.log')
-        cli_log = open(cli_log_fname, 'w')
-    if args.build:
-        proc = start_build(args, cli_log)
-        if proc is None:
-            log.error('Builder failed to initialize. Exiting.')
-            return 1
-        create_pid_file(proc, 'builder.pid', bc)
-        log.info('Loading Builder...')
-        return 0
-    if args.config_only:
-        return 0
-    # Start all processes
-    wait_list = []  # List of processes to wait for
-    # Only start slurmrestd if workload_scheduler is Slurm (default)
-    workload_scheduler = bc.get('DEFAULT', 'workload_scheduler')
-    if workload_scheduler == 'Slurm':
-        if args.restd or start_all:
-            proc = start_slurm_restd(bc, args)
-            if not args.config_only:
-                if proc is None:
-                    log.error('slurmrestd failed to start. Exiting.')
-                    return 1
-                # Don't append the graph database to list of processes to wait for
-                log.info('Starting slurmrestd based on userconfig file.')
-    if args.sched or start_all:
-        proc = start_scheduler(bc, args, cli_log)
-        if not args.config_only:
-            if proc is None:
-                log.error('Scheduler failed to start. Exiting.')
-                print('Scheduler failed to start. Exiting.', file=sys.stderr)
-                return 1
-            create_pid_file(proc, 'sched.pid', bc)
-            wait_list.append(('Scheduler', proc))
-            log.info('Loading Scheduler')
-    if args.wfm or start_all:
-        proc = start_workflow_manager(bc, args, cli_log)
-        if not args.config_only:
-            if proc is None:
-                log.error('Workflow Manager failed to start. Exiting.')
-                return 1
-            create_pid_file(proc, 'wfm.pid', bc)
-            wait_list.append(('Workflow Manager', proc))
-            log.info('Loading Workflow Manager')
-    if args.tm or start_all:
-        proc = start_task_manager(bc, args, cli_log)
-        if not args.config_only:
-            if proc is None:
-                log.error('Task Manager failed to start. Exiting.')
-                return 1
-            create_pid_file(proc, 'tm.pid', bc)
-            wait_list.append(('Task Manager', proc))
-            log.info('Loading Task Manager')
-    if args.config_only:
-        return 0
-
-    time.sleep(args.sleep_time)
-    # Check if any processes have finished early
-    for name, proc in wait_list:
-        exit_code = proc.poll()
-        if exit_code is not None:
-            log.error(f'{name} failed to start. Exiting.')
-
-    # Wait for everything to finish, if debug, otherwise just exit now
-    if args.debug:
-        while len(wait_list) > 0:
-            name, proc = wait_list.pop()
-            exit_code = proc.wait()
-            if exit_code != 0:
-                log.error('Error running %s', name)
-
-    return 0
+    """Start the beeflow app."""
+    bc.init()
+    app()
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-# Ignoring C0103: bc is a common object in  beeflow. ignoring the snake case naming convention break
-# Ignoring W1202: fstring logging isn't causing us problems at the moment, and improves readability
-# Ignoring R1732: Should be using "with" context with Popen...but really we need to s/Popen/run/.
-#                 deferring this warning until we use the appropriate subprocess method.
-# Ignoring W0102: Dangerous default for args. Fix is beyond the scope of my PR. Deferring for now.
-# Ignoring E501,C0301: Long help string text is more readable than breaking stirngs up, perhaps.
-# Ignoring R091[1,5]: "Too many statements" is realted to code complexity. Distributed systems are
-#                     complex. Perhaps we should just accept the complexity.
-# pylama:ignore=C0103,W1202,R1732,W0102,E501,C0301,R0911,R0915
+if __name__ == '__main__':
+    main()

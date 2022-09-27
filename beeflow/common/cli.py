@@ -3,5 +3,8 @@ import click
 
 
 class NaturalOrderGroup(click.Group):
-    def list_commands(self, ctx):
+    """Natural ordering class for using with CLI code."""
+
+    def list_commands(self, ctx):  # noqa
+        """List the commands in order."""
         return self.commands.keys()

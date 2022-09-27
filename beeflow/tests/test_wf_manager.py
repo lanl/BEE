@@ -171,6 +171,4 @@ def test_resume_workflow(client, mocker, setup_teardown_workflow):
     resp = client().patch(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
     assert resp.json['status'] == 'Workflow Resumed'
     assert resp.status_code == 200
-
-# pylama:ignore=W0621
-# pylama:ignore=W0613
+# pylama:ignore=W0613,W0621
