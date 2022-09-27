@@ -76,6 +76,7 @@ class CwlParser:
         :type job: str
         :rtype: WorkflowInterface
         """
+        print(f'{workflow_id} {cwl} {job}')
         self.cwl = cwl_parser.load_document(cwl)
 
         if self.cwl.class_ != "Workflow":

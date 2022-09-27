@@ -15,7 +15,7 @@ class WFActions(Resource):
 
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
-        wfi = wf_utils.get_workflow_interface()
+        wfi = wf_utils.get_workflow_interface(wf_id)
         state = wfi.get_workflow_state()
         if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
             resp = make_response(jsonify(msg='Cannot start workflow it is '

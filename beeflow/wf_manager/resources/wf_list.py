@@ -5,7 +5,6 @@ This contains endpoints forsubmitting, starting, and reexecuting workflows.
 
 import os
 import shutil
-import tempfile
 import subprocess
 import jsonpickle
 
@@ -20,9 +19,10 @@ from beeflow.common.parser import CwlParser
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
 from beeflow.wf_manager.common import wf_db
+from beeflow.common import wf_data
 
 
-def parse_workflow(workflow_dir, main_cwl, yaml_file):
+def parse_workflow(wf_id, workflow_dir, main_cwl, yaml_file):
     """Run the parser."""
     parser = CwlParser()
     parse_msg = "Unable to parse workflow." \
@@ -32,22 +32,18 @@ def parse_workflow(workflow_dir, main_cwl, yaml_file):
     if yaml_file is not None:
         yaml_path = os.path.join(workflow_dir, yaml_file)
         try:
-            wfi = parser.parse_workflow(cwl_path, yaml_path)
+            wfi = parser.parse_workflow(wf_id, cwl_path, yaml_path)
         except AttributeError:
             log.error('Unable to parse')
             resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
             return resp
     else:
         try:
-            wfi = parser.parse_workflow(cwl_path)
+            wfi = parser.parse_workflow(wf_id, cwl_path)
         except AttributeError:
             resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
             return resp
     return wfi
-
-
-def create_dep_container():
-    """Create new dependency container if one does not currently exist."""
 
 
 # def initialize_wf_profiler(wf_name):
@@ -60,15 +56,15 @@ def create_dep_container():
 #    wf_profiler = WorkflowProfiler(wf_name, output_path)
 
 
-def extract_wf_temp(filename, workflow_archive):
-    """Extract a workflow into a temporary directory."""
-    # Make a temp directory to store the archive
-    tmp_path = tempfile.mkdtemp()
-    archive_path = os.path.join(tmp_path, filename)
+def extract_wf(wf_id, filename, workflow_archive):
+    """Extract a workflow into the workflow directory."""
+    wf_utils.create_workflow_dir(wf_id)
+    wf_dir = wf_utils.get_workflow_dir(wf_id)
+    archive_path = os.path.join(wf_dir, filename)
     workflow_archive.save(archive_path)
-    # Extract to tmp directory
-    subprocess.run(['tar', '-xf', archive_path, '-C', tmp_path], check=False)
-    return tmp_path
+    subprocess.run(['tar', '-xf', archive_path, '-C', wf_dir], check=False)
+    cwl_dir = os.path.join(wf_dir, filename.split('.')[0])
+    return cwl_dir
 
 
 class WFList(Resource):
@@ -110,8 +106,6 @@ class WFList(Resource):
         # None if not sent
         yaml_file = data['yaml']
 
-        dep_manager.kill_gdb()
-        dep_manager.remove_current_run()
         try:
             dep_manager.create_image()
         except dep_manager.NoContainerRuntime:
@@ -120,33 +114,13 @@ class WFList(Resource):
             resp = make_response(jsonify(msg=crt_message, status='error'), 418)
             return resp
 
-        # Remove the current run directory in the bee workdir
-
-        # Save the workflow temporarily to this folder for the parser
-        # This is a temporary measure until we can get the worflow ID before a parse
-        temp_dir = extract_wf_temp(wf_filename, wf_tarball)
+        wf_id = wf_data.generate_workflow_id()
+        wf_dir = extract_wf(wf_id, wf_filename, wf_tarball)
         dep_manager.start_gdb()
         dep_manager.wait_gdb(log, 10)
-
-        wf_path = os.path.join(temp_dir, wf_filename[:-4])
-        wfi = parse_workflow(wf_path, main_cwl, yaml_file)
-
+        wfi = parse_workflow(wf_id, wf_dir, main_cwl, yaml_file)
         # initialize_wf_profiler(wf_name)
         # Save the workflow to the workflow_id dir in the beeflow dir
-        wf_id = wfi.workflow_id
-        bee_workdir = wf_utils.get_bee_workdir()
-        workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
-        os.makedirs(workflow_dir)
-
-        # Copy workflow files to later archive
-        for workflow_file in os.listdir(temp_dir):
-            f_path = os.path.join(temp_dir, workflow_file)
-            if os.path.isfile(f_path):
-                shutil.copy(f_path, workflow_dir)
-
-        # We've parsed and added temp files to wf directory so we can chuck it
-        shutil.rmtree(temp_dir, ignore_errors=True)
-
         wf_utils.create_wf_metadata(wf_id, wf_name)
         _, tasks = wfi.get_workflow()
         for task in tasks:
@@ -164,15 +138,16 @@ class WFList(Resource):
                                location='form')
         reqparser.add_argument('wf_filename', type=str, required=True,
                                location='form')
+        reqparser.add_argument('workdir', type=str, required=True,
+                               location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
                                location='files')
-
         data = reqparser.parse_args()
         workflow_archive = data['workflow_archive']
         wf_filename = data['wf_filename']
         wf_name = data['wf_name']
+        wf_workdir = data['workdir']
 
-        dep_manager.kill_gdb()
         try:
             dep_manager.create_image()
         except dep_manager.NoContainerRuntime:
@@ -181,32 +156,33 @@ class WFList(Resource):
             resp = make_response(jsonify(msg=crt_message, status='error'), 418)
             return resp
 
-        # Remove the current run directory in the bee workdir
-        dep_manager.remove_current_run()
-
-        tmp_dir = extract_wf_temp(wf_filename, workflow_archive)
-
-        archive_dir = wf_filename.split('.')[0]
-        gdb_path = os.path.join(tmp_dir, archive_dir, 'gdb')
-        bee_workdir = wf_utils.get_bee_workdir()
-        gdb_workdir = os.path.join(bee_workdir, 'current_run')
-        shutil.copytree(gdb_path, gdb_workdir)
-        shutil.rmtree(tmp_dir)
+        wf_id = wf_data.generate_workflow_id()
+        extract_wf(wf_id, wf_filename, workflow_archive)
         # Launch new container with bindmounted GDB
         dep_manager.start_gdb(reexecute=True)
         dep_manager.wait_gdb(log, 10)
         wfi = wf_utils.get_workflow_interface()
+        wfi.reset_workflow()
+        #archive_dir = wf_filename.split('.')[0]
+        #gdb_path = os.path.join(tmp_dir, archive_dir, 'gdb')
+        #bee_workdir = wf_utils.get_bee_workdir()
+        #gdb_workdir = os.path.join(bee_workdir, 'current_run')
+        #shutil.copytree(gdb_path, gdb_workdir)
+        #shutil.rmtree(tmp_dir)
 
         # Reset the workflow state and generate a new workflow ID
-        wfi.reset_workflow()
-        wf_id = wfi.workflow_id
+        #wf_id = wfi.workflow_id
 
         # Save the workflow to the workflow_id dir
-        wf_id = wfi.workflow_id
-        workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
-        os.makedirs(workflow_dir)
+        #wf_id = wfi.workflow_id
+        # workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
+        #os.makedirs(workflow_dir)
         wf_utils.create_wf_metadata(wf_id, wf_name)
-
+        _, tasks = wfi.get_workflow()
+        for task in tasks:
+            metadata = wfi.get_task_metadata(task)
+            metadata['workdir'] = wf_workdir
+            wfi.set_task_metadata(task, metadata)
         # Return the wf_id and created
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
