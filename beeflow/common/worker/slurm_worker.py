@@ -50,7 +50,11 @@ class SlurmWorker(Worker):
             if resp.status_code != 200:
                 raise WorkerError(f'Failed to query job {job_id}')
             status = json.loads(resp.text)
-            job_state = status['job_state']
+            # For some versions of slurm, the job_state isn't included on failure
+            try:
+                job_state = status['job_state']
+            except KeyError as exc:
+                raise WorkerError(f'Failed to query job {job_id}') from exc
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
         return job_state
@@ -80,7 +84,16 @@ class SlurmWorker(Worker):
             resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
         except requests.exceptions.ConnectionError:
             return 'NOT_RESPONDING'
+        # For some reason, some versions of slurmrestd are not returning an
+        # HTTP error code, but just an error in the body
+        err = WorkerError(f'Unable to cancel job id {job_id}!')
         if resp.status_code != 200:
-            raise WorkerError(f'Unable to cancel job id {job_id}!')
+            raise err
+        try:
+            data = resp.json()
+            if 'error' in data:
+                raise err
+        except requests.exceptions.JSONDecodeError as exc:
+            raise err from exc
         job_state = "CANCELLED"
         return job_state
