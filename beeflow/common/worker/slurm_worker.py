@@ -93,7 +93,7 @@ class SlurmWorker(Worker):
             data = resp.json()
             if 'error' in data:
                 raise err
-        except requests.exceptions.JSONDecodeError as exc:
+        except requests.exceptions.JSONDecodeError as exc:  # noqa requests is not installed in CI
             raise err from exc
         job_state = "CANCELLED"
         return job_state
