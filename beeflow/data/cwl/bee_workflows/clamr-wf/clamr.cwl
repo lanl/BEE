@@ -76,7 +76,7 @@ outputs:
     outputBinding:
       # Glob can be either a constant string or have a wildcard 
       # TODO verify CWLs glob support
-      glob: $HOME/graphics_output/graph%05d.png
+      glob: graphics_output/graph%05d.png
   time_log:
     type: File
     outputBinding:
