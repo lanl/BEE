@@ -19,6 +19,7 @@
    contribute
    development
    wf_api
+   bee_cwl
 
 
 Indices and tables
