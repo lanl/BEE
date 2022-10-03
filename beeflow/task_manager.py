@@ -51,7 +51,12 @@ def connect_db(fn):
 
     def wrap(*pargs, **kwargs):
         """Wrap the function."""
-        with tm.open_db(DB_PATH) as db:
+        # Check for the TESTING_DB_PATH for running the unit tests
+        try:
+            db_path = flask_app.config['TESTING_DB_PATH']
+        except KeyError:
+            db_path = DB_PATH
+        with tm.open_db(db_path) as db:
             return fn(db, *pargs, **kwargs)
 
     return wrap
@@ -303,8 +308,8 @@ class TaskActions(Resource):
         cancel_msg = ""
         for job in db.job_queue:
             task_id = job['task'].id
-            job_id = job[task_id]['job_id']
-            name = job[task_id]['name']
+            job_id = job['job_id']
+            name = job['task'].name
             log.info(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
