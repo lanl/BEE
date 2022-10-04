@@ -231,7 +231,7 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
         shutil.move(tarball_path, package_path)
 
     if return_code != 0:
-        print("Package failed")
+        error_exit("Package failed")
     else:
         print(f"Package {tarball} created successfully")
 
