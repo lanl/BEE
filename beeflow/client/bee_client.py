@@ -211,7 +211,7 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
             ):
     """Package a workflow into a tarball."""
     if not os.path.isdir(wf_path):
-        print(f"{wf_path} is not a valid directory.")
+        sys.exit(f"{wf_path} is not a valid directory.")
 
     # Get the filename
     wf_dir = wf_path.name
