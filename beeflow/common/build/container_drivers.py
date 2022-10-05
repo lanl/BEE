@@ -6,6 +6,7 @@ All container-based build systems belong here.
 import os
 import shutil
 import subprocess
+import tempfile
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.log import main_log as log
 from beeflow.common.build.build_driver import BuildDriver
@@ -224,14 +225,20 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 pass
 
         # Out of excuses. Build the image.
-        log.info('Context directory configured. Beginning build.')
-        cmd = (f'ch-image build -t {self.container_name} --force '
-               f'-f {task_dockerfile} {context_dir}\n'
-               f'ch-convert -i ch-image -o tar {ch_build_addr} '
-               f'{self.container_archive}/{ch_build_addr}.tar.gz'
-               )
-        log.info(f'Executing: {cmd}')
-        return subprocess.run(cmd, check=True, shell=True)
+        with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8') as tmp:
+            # Write the dockerfile to the tempfile
+            tmp.write(task_dockerfile)
+            tmp.flush()
+            dockerfile_path = tmp.name
+            # Build and run the command
+            log.info('Context directory configured. Beginning build.')
+            cmd = (f'ch-image build -t {self.container_name} --force '
+                   f'-f {dockerfile_path} {context_dir}\n'
+                   f'ch-convert -i ch-image -o tar {ch_build_addr} '
+                   f'{self.container_archive}/{ch_build_addr}.tar.gz'
+                   )
+            log.info(f'Executing: {cmd}')
+            return subprocess.run(cmd, check=True, shell=True)
 
     def process_docker_import(self, param_import=None):
         """Get and process the CWL compliant dockerImport dockerRequirement.

@@ -42,7 +42,7 @@ class ClientError(Exception):
 
 
 def error_exit(msg):
-    """Raise error with message."""
+    """Print a message and exit or raise an error with that message."""
     caller_func = str.capitalize(inspect.stack()[1].function)
     msg = caller_func + ': ' + msg
     if _INTERACTIVE:
@@ -211,7 +211,7 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
             ):
     """Package a workflow into a tarball."""
     if not os.path.isdir(wf_path):
-        print(f"{wf_path} is not a valid directory.")
+        error_exit(f"{wf_path} is not a valid directory.")
 
     # Get the filename
     wf_dir = wf_path.name
@@ -231,7 +231,7 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
         shutil.move(tarball_path, package_path)
 
     if return_code != 0:
-        print("Package failed")
+        error_exit("Package failed")
     else:
         print(f"Package {tarball} created successfully")
 

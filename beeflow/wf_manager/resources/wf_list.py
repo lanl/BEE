@@ -134,8 +134,7 @@ class WFList(Resource):
         # initialize_wf_profiler(wf_name)
         # Save the workflow to the workflow_id dir in the beeflow dir
         wf_id = wfi.workflow_id
-        bee_workdir = wf_utils.get_bee_workdir()
-        workflow_dir = os.path.join(bee_workdir, 'workflows', wf_id)
+        workflow_dir = wf_utils.get_workflow_script_dir(wf_id)
         os.makedirs(workflow_dir)
 
         # Copy workflow files to later archive
