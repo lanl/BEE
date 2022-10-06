@@ -101,4 +101,13 @@ Suboption Name            Usage/Meaning/Requirements
 beeflow:MPIRequirement
 ----------------------
 
-...
+There are many different flags for running MPI jobs. Currently, BEE has implemented those choices through the use of a Jinja2-based template. We are exploring other ways to implement directly with the CWL files.
+
+There are some examples in ``beeflow/data/job_templates``. Check the bee configuration file (bee.conf) or type ``bee_cfg show`` for the current location of your job_template. Edit it for your particular needs. The default template for Slurm accepts the number of nodes and the number of tasks and submits corresponding #SBATCh directives for the job. You may also add other #SBATCH (or for LSF #BSUB) directives to your jinja file, to use particular partitions or for accounting purposes.
+
+An example ``beeflow:MPIRequirement`` in BEE is shown below::
+
+    beeflow:MPIRequirement:
+      nodes: 10
+      ntasks: 32
+
