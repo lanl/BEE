@@ -1,6 +1,5 @@
 Common Workflow Language (CWL)
 ******************************
-
 BEE workflows are written in the Common Workflow Language (CWL). CWL allows
 workflows to be written in a simple YAML format that can represent "steps" (or
 tasks) of a workflow as well as how those steps depend on each other. Each step
@@ -42,54 +41,61 @@ must be able to fulfill it, or raise an error indicating a failure. On the
 other hand if a hint is not supported, then it can safely be ignored by the
 implementation. Since the standard only includes a limited number of
 requirements, not all of which are useful for an HPC setting, we've added some
-extensions that are prefixed with ``beeflow:``.
+extensions that are prefixed with ``beeflow:``. Please specify beeflow extensions as hints in the steps of your CWL workflow specification.
 
 DockerRequirement
 -----------------
 
-A ``DockerRequirement`` is used to run a step with a container. BEE doesn't
+A ``DockerRequirement`` (a CWL standard specification) is used to run a step with a container. BEE does not
 support Docker, but it does support Charliecloud_ and also has limited support
 for Singularity_.
 
 .. _Charliecloud: https://hpc.github.io/charliecloud/
 .. _Singularity: https://apptainer.org/
 
-An example ``DockerRequirement`` in BEE is the below::
+An example ``DockerRequirement`` in BEE is shown below::
 
     DockerRequirement:
-        dockerFile: /some/path/to/source/Dockerfile
+        dockerFile: "dockerfile-name"
         beeflow:containerName: "some-container"
 
-This includes two suboptions, a ``dockerFile`` option that points to a location
-of a Dockerfile as well as an extension ``beeflow:containerName`` that gives the
+This example includes two suboptions, a ``dockerFile`` option that specifies the name of of a dockerfile as well as an extension ``beeflow:containerName`` that gives the
 name of the container to build. Below are some of the suboptions that BEE
 supports and how they can affect running a step with a container.
 
+.. |vspace| raw:: latex
+
+   \vspace{5mm}
+
+.. |br| raw:: html
+
+   <br />
+
+
 ========================= =========================================================
-Suboption Name            Meaning/Usage
+Suboption Name            Usage/Meaning/Requirements
 ========================= =========================================================
-``dockerPull``            Pull from a remote container repository. This would be in
-                          the same format you would do with a
-                          ``docker pull $container`` or a
-                          ``ch-image pull $container``.
+``dockerPull``            ``dockerPull: "container-image"`` |vspace| |br|
+                          Pull from a container repository.
+
 ``dockerLoad``            Not supported
-``dockerFile``            Takes a file path pointing to a ``Dockerfile`` to build
-                          with the container runtime. This will be built just
-                          before the step/task runs. Note that this also requires
-                          ``beeflow:containerName`` to specify a name to use for
-                          building.
+
+``dockerFile``            ``dockerFile: "dockerfile-name"`` |vspace| |br|
+                          Builds a container using the dockerfile. |vspace| |br|
+                          Requires: ``beeflow:containerName``
+
 ``dockerImport``          Not supported
 ``dockerImageId``         Not supported
 ``dockerOutputDirectory`` Not supported
-``beeflow:copyContainer`` This option takes the path of a Charliecloud tarball and
-                          will copy this into your ``container_archive`` location
-                          as specified in the bee.conf file.
-``beeflow:useContainer``  This is similar to the ``beeflow:copyContainer`` option
-                          above, but it does not copy the container into the
-                          ``container_archive``.
-``beeflow:containerName`` Give the name of a container to be used when building the
-                          container for a step. This is only valid when also used
-                          with the ``dockerFile`` option.
+
+``beeflow:copyContainer`` ``beeflow:copyContainer: "path-to-container-image"`` |vspace| |br|
+                          Copies image to ``container_archive`` (specified in bee.conf). Uses copy.
+
+``beeflow:useContainer``  ``beeflow:useContainer: "path-to-container-image"`` |vspace| |br|
+                          Executes using the specified image.
+
+``beeflow:containerName`` ``beeflow:containerName: "containerName"`` |vspace| |br|
+                          Specifies the container name. Used in conjunction with dockerFile.
 ========================= =========================================================
 
 beeflow:MPIRequirement
