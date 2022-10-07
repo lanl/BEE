@@ -2,6 +2,9 @@
 from collections import namedtuple
 from uuid import uuid4
 from copy import deepcopy
+import os
+
+from beeflow.common.container_path import convert_path
 
 # Workflow input parameter class
 InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
@@ -281,7 +284,13 @@ class Task:
                     if "restart_parameters" in hint.params:
                         command.append(hint.params["restart_parameters"])
                     # Ignoring "container_path" for now
-                    command.append(hint.params["bee_checkpoint_file__"])
+                    checkpoint_file = hint.params["bee_checkpoint_file__"]
+                    # Charliecloud default bind mounts (this should taken from
+                    # another requirement)
+                    bind_mounts = {
+                        os.getenv('HOME'): os.path.join('/home', os.getenv('USER')),
+                    }
+                    command.append(convert_path(checkpoint_file, bind_mounts))
                 break
 
         return command
