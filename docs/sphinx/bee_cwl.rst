@@ -59,9 +59,10 @@ An example ``DockerRequirement`` in BEE is shown below::
         dockerFile: "dockerfile-name"
         beeflow:containerName: "some-container"
 
-This example includes two suboptions, a ``dockerFile`` option that specifies the name of of a dockerfile as well as an extension ``beeflow:containerName`` that gives the
-name of the container to build. Below are some of the suboptions that BEE
-supports and how they can affect running a step with a container.
+This example includes two suboptions, a ``dockerFile`` option that specifies
+the name of of a dockerfile as well as an extension ``beeflow:containerName``
+that gives the name of the container to build. Below are some of the suboptions
+that BEE supports and how they can affect running a step with a container.
 
 .. |vspace| raw:: latex
 
@@ -101,13 +102,47 @@ Suboption Name            Usage/Meaning/Requirements
 beeflow:MPIRequirement
 ----------------------
 
-There are many different flags for running MPI jobs. Currently, BEE has implemented those choices through the use of a Jinja2-based template. We are exploring other ways to implement this directly with the CWL files.
+There are many different flags for running MPI jobs. Currently, BEE has
+implemented those choices through the use of a Jinja2-based template. We are
+exploring other ways to implement this directly with the CWL files.
 
-There are some examples in ``beeflow/data/job_templates``. Check the bee configuration file (bee.conf) or type ``bee_cfg show`` for the current location of your job_template. Edit it for your particular needs. The default template for Slurm accepts the number of nodes and the number of tasks and submits corresponding #SBATCH directives for the job. You may also add other #SBATCH (or for LSF #BSUB) directives to your jinja file, to use particular partitions or for accounting purposes.
+There are some examples in ``beeflow/data/job_templates``. Check the bee
+configuration file (bee.conf) or type ``bee_cfg show`` for the current location
+of your job_template. Edit it for your particular needs. The default template
+for Slurm accepts the number of nodes and the number of tasks and submits
+corresponding #SBATCH directives for the job. You may also add other #SBATCH
+(or for LSF #BSUB) directives to your jinja file, to use particular partitions
+or for accounting purposes.
 
 An example ``beeflow:MPIRequirement`` in BEE is shown below::
 
     beeflow:MPIRequirement:
       nodes: 10
       ntasks: 32
+
+beeflow:CheckpointRequirement
+-----------------------------
+
+BEE is designed to manage workflows that include long running scientific
+simulations, requiring checkpointing and restarting. We implemented the
+``beeflow:CheckpointRequirement`` for this purpose. If a step in a workflow
+includes this requirement and the task stops such as for a timelimit on the job
+a subtask will run to continue the simulation using the specified checkpoint
+file.
+
+An example ``beeflow:CheckpointRequirement`` in BEE is shown below::
+
+       beeflow:CheckpointRequirement:
+            enabled: true
+            file_path: checkpoint_output
+            container_path: checkpoint_output
+            file_regex: backup[0-9]*.crx
+            restart_parameters: -R
+            num_tries: 3
+
+For the above example ``file_path`` is the location of the checkpoint_file. The
+``file_regex`` specifies the regular expresion for the possible checkpoint
+filenames, the ``restart parameter`` will be added to the run command followed
+by the path to the checkpoint file, and ``num_tries`` specifies the maximum
+number of times the task will be restarted.
 
