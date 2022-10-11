@@ -197,6 +197,9 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.created:  # pylint: disable=no-member
+        if resp.status_code == 400:
+            data = resp.json()
+            error_exit(data['msg'])
         error_exit(f"Submit for {wf_name} failed. Please check the WF Manager.")
 
     check_short_id_collision()
