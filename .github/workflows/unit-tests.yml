@@ -1,0 +1,36 @@
+name: Unit tests
+
+on:
+  # For manual exec
+  # (https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
+  workflow_dispatch: {}
+  push:
+    branches: [main, develop]
+  pull_request:
+    types: [opened, synchronize, edited, labeled, unlabeled]
+    branches: [main, develop]
+
+env: {}
+
+jobs:
+  integration-test:
+    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP') || contains(github.event.pull_request.labels.*.name, 'lint-only')) }}
+    name: BEE Unit Tests
+    # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
+    # available on 20.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Dependency Install
+        run: ./ci/deps_install.sh
+      - name: Slurm Setup and Install
+        run: ./ci/slurm_start.sh
+      - name: BEE Install
+        run: ./ci/bee_install.sh
+      # TODO: Add the script for the unit tests here
+      - name: Unit tests
+        run: |
+          #!/bin/bash
+          . ./venv/bin/activate
+          . ./ci/env.sh
+          ./ci/unit_tests.sh
