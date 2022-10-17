@@ -24,10 +24,7 @@ class WFActions(Resource):
             return resp
         wfi.execute_workflow()
         tasks = wfi.get_ready_tasks()
-        # Submit ready tasks to the scheduler
-        allocation = wf_utils.submit_tasks_scheduler(log, tasks)  #NOQA
-        # Submit tasks to TM
-        wf_utils.submit_tasks_tm(log, tasks, allocation)
+        wf_utils.schedule_submit_tasks(log, tasks)
         wf_id = wfi.workflow_id
         wf_utils.update_wf_status(wf_id, 'Running')
         resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
@@ -82,8 +79,7 @@ class WFActions(Resource):
         elif option == 'resume' and wf_state == 'PAUSED':
             wfi.resume_workflow()
             tasks = wfi.get_ready_tasks()
-            allocation = wf_utils.submit_tasks_scheduler(log, tasks)
-            wf_utils.submit_tasks_tm(log, tasks, allocation)
+            wf_utils.schedule_submit_tasks(log, tasks)
             wf_utils.update_wf_status(wf_id, 'Running')
             log.info("Workflow Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)

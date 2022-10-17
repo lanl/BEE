@@ -200,3 +200,11 @@ def submit_tasks_scheduler(log, tasks):
         log.info(f"Something bad happened {resp.status_code}")
         return "Did not work"
     return resp.json()
+
+
+def schedule_submit_tasks(log, tasks):
+    """Schedule and then submit tasks to the TM."""
+    # Submit ready tasks to the scheduler
+    allocation = submit_tasks_scheduler(log, tasks)  #NOQA
+    # Submit tasks to TM
+    submit_tasks_tm(log, tasks, allocation)

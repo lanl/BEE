@@ -99,6 +99,7 @@ class Backfill(Algorithm):
     scheduling algorithm.
     """
 
+    @staticmethod
     def load(**kwargs):
         """Load algorithm configuration, if necessary."""
 
