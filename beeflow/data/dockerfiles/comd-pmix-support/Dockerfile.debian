@@ -1,0 +1,19 @@
+FROM debian:bullseye 
+
+RUN    apt-get update -y \
+    && apt-get install -y \
+                       autoconf \
+                       automake \
+                       coreutils \
+                       gcc \
+                       g++ \
+                       gfortran \
+                       git \
+                       make \
+                       rsync \
+                       wget
+
+# add /usr/local to linker search paths.
+RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/usrlocal.conf \
+ && echo "/usr/local/lib64" >> /etc/ld.so.conf.d/usrlocal.conf \
+ && ldconfig

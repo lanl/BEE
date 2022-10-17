@@ -1,0 +1,29 @@
+# Location of the jinja template file
+template_file: /home/jtronge/BEE/templates/dora.jinja
+# Private key file for logging onto the remote instance
+private_key_file: ...
+bee_user: debian
+# These ports may need to change to avoid conflicts
+wfm_listen_port: 5005
+tm_listen_port: 7777
+tm_launch_cmd: /bee/tm
+head_node: bee-server
+provider: openstack
+# Place all files that should be copied over with the `--copy` argument here
+copy_files:
+  - src: /home/jtronge/heat-transfer.tar.gz
+    dst: /home/debian
+  - src: /home/jtronge/clamr.tar.gz
+    dst: /home/debian
+  - src: /home/jtronge/ffmpeg.tar.gz
+    dst: /home/debian
+# Stack parameters to be passed to the heat stack on submission
+key_name: dora-bee-key
+public_net: external
+stack_name: test-bee-stack-2
+github_pat: ...
+git_branch: milestone-cloud-2
+https_proxy: ...
+http_proxy: ...
+no_proxy: ...
+nameservers: ...

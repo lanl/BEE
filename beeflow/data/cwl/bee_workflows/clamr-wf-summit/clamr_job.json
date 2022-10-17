@@ -1,0 +1,13 @@
+{
+  "grid_resolution": 32,
+  "max_levels": 3,
+  "time_steps": 5000,
+  "steps_between_outputs": 10,
+  "steps_between_graphics": 25,
+  "graphics_type": "png",
+  "input_format": "image2",
+  "frame_rate": 12,
+  "frame_size": "800x800",
+  "pixel_format": "yuv420p",
+  "output_filename": "CLAMR_movie.mp4"
+}
