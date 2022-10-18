@@ -45,16 +45,26 @@ You will need to setup the bee configuration file that will be located in:
 
     macOS:  ``~/Library/Application Support/beeflow/bee.conf``
 
-Before creating a bee.conf file you will need to know the path to your **BEE dependency container** and the type of workload scheduler (Slurm or LSF). (On LANL systems you may use the BEE provided container: **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**).
+Before creating a bee.conf file you will need to know the path to your **BEE
+dependency container** and the type of workload scheduler (Slurm or LSF). (On
+LANL systems you may use the BEE provided container:
+**/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**).
 
 Once you are ready type ``bee_cfg new``
 
-The bee.conf configuration file is a text file and you can edit it for your needs. You may show the contents by typing ``bee_cfg show``.
+The bee.conf configuration file is a text file and you can edit it for your
+needs. You may show the contents by typing ``bee_cfg show``. You may also want
+to take a look at the :ref:`Jinja file`, which is how submission scripts are
+generated. The default file is listed with the ``job_template`` option under
+the ``[task_manager]`` section.
 
 
-**Caution: The default for container_archive is in the home directory. Some systems have small quotas for home directories and containers can be large files.**
+**Caution: The default for container_archive is in the home directory. Some
+systems have small quotas for home directories and containers can be large
+files.**
 
-**bee_cfg** has other options including a configuration validator. For more information or help run: ``bee_cfg info`` or ``bee_cfg --help``
+**bee_cfg** has other options including a configuration validator. For more
+information or help run: ``bee_cfg info`` or ``bee_cfg --help``
 
 Starting up the BEE components:
 -------------------------------
@@ -101,6 +111,3 @@ Now stop the components.
 .. code-block::
 
     beeflow stop
-
-
-
