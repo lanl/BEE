@@ -154,7 +154,7 @@ An example ``beeflow:CheckpointRequirement`` in BEE is shown below::
             num_tries: 3
 
 For the above example ``file_path`` is the location of the checkpoint_file. The
-``file_regex`` specifies the regular expresion for the possible checkpoint
+``file_regex`` specifies the regular expression for the possible checkpoint
 filenames, the ``restart parameter`` will be added to the run command followed
-by the path to the checkpoint file, and ``num_tries`` specifies the maximum
+by the path to the latest checkpoint file, and ``num_tries`` specifies the maximum
 number of times the task will be restarted.
