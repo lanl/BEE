@@ -324,25 +324,22 @@ def stop():
     beeflow_log = log_fname('beeflow')
     print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
+@app.command()
+def version():
+    """Print out the current version of the app then exit"""
+    #Get the path with the pyproject.toml file
+    beeflow_dir_path = pathlib.Path(__file__).parent.parent.resolve()
+    with open(str(beeflow_dir_path) + "/pyproject.toml", "r") as versionf:
+        for line in versionf.readlines():
+            #Use a regular expression to search for the line that starts with the version
+            if re.search("^version =", line):
+                print(line.replace("\n",""))
+    exit()
 
-def main(
-        version: bool = typer.Option(False, help="Print out version")
-    ):
+    return
+
+def main():
     """Start the beeflow app."""
-
-    #Check to see if we used the version flag
-    if version:
-        #print out the current version of the app then exit
-        #Get the path with the pyproject.toml file
-        beeflow_dir_path = pathlib.Path(__file__).parent.parent.resolve()
-        with open(str(beeflow_dir_path) + "/pyproject.toml", "r") as versionf:
-            for line in versionf.readlines():
-                #Use a regular expression to search for the line that starts with the version
-                if re.search("^version =", line):
-                    print(line)
-        exit()
-
-
     bc.init()
     app()
 
