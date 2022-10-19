@@ -270,7 +270,7 @@ def daemonize(base_components):
         Beeflow(MGR, base_components).loop()
 
 
-app = typer.Typer()
+app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
@@ -324,17 +324,18 @@ def stop():
     beeflow_log = log_fname('beeflow')
     print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
-@app.command()
-def version():
-    """Print out the current version of the app then exit"""
-    #Get the path with the pyproject.toml file
-    beeflow_dir_path = pathlib.Path(__file__).parent.parent.resolve()
-    with open(str(beeflow_dir_path) + "/pyproject.toml", "r") as versionf:
-        for line in versionf.readlines():
-            #Use a regular expression to search for the line that starts with the version
-            if re.search("^version =", line):
-                print(line.replace("\n",""))
-    exit()
+@app.callback(invoke_without_command=True)
+def version(version : bool = False):
+    #Print out the current version of the app and then exit. 
+    if version:
+        #Get the path with the pyproject.toml file
+        beeflow_dir_path = pathlib.Path(__file__).parent.parent.resolve()
+        with open(str(beeflow_dir_path) + "/pyproject.toml", "r") as versionf:
+            for line in versionf.readlines():
+                #Use a regular expression to search for the line that starts with the version
+                if re.search("^version =", line):
+                    print(line.replace("\n",""))
+        exit()
 
     return
 
