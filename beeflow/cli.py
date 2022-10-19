@@ -327,7 +327,7 @@ def stop():
 
 @app.callback(invoke_without_command=True)
 def version_callback(version: bool = False):
-    """Beeflow"""
+    """Beeflow."""
     # Print out the current version of the app, and then exit
     # Note above docstring gets used in the help menu
     if version:
