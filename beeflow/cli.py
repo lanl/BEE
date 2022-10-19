@@ -15,6 +15,8 @@ import subprocess
 import socket
 import sys
 import time
+import pathlib
+import re
 
 import daemon
 import typer
@@ -323,8 +325,24 @@ def stop():
     print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
-def main():
+def main(
+        version: bool = typer.Option(False, help="Print out version")
+    ):
     """Start the beeflow app."""
+
+    #Check to see if we used the version flag
+    if version:
+        #print out the current version of the app then exit
+        #Get the path with the pyproject.toml file
+        beeflow_dir_path = pathlib.Path(__file__).parent.parent.resolve()
+        with open(str(beeflow_dir_path) + "/pyproject.toml", "r") as versionf:
+            for line in versionf.readlines():
+                #Use a regular expression to search for the line that starts with the version
+                if re.search("^version =", line):
+                    print(line)
+        exit()
+
+
     bc.init()
     app()
 
