@@ -15,7 +15,7 @@ from flask_restful import Resource, reqparse
 
 from beeflow.common.log import main_log as log
 # from beeflow.common.wf_profiler import WorkflowProfiler
-from beeflow.common.parser import CwlParser
+from beeflow.common.parser import CwlParser, CwlParseError
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
@@ -25,24 +25,13 @@ from beeflow.wf_manager.common import wf_db
 def parse_workflow(workflow_dir, main_cwl, yaml_file):
     """Run the parser."""
     parser = CwlParser()
-    parse_msg = "Unable to parse workflow." \
-                "Please check workflow manager."
 
     cwl_path = os.path.join(workflow_dir, main_cwl)
     if yaml_file is not None:
         yaml_path = os.path.join(workflow_dir, yaml_file)
-        try:
-            wfi = parser.parse_workflow(cwl_path, yaml_path)
-        except AttributeError:
-            log.error('Unable to parse')
-            resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
-            return resp
+        wfi = parser.parse_workflow(cwl_path, yaml_path)
     else:
-        try:
-            wfi = parser.parse_workflow(cwl_path)
-        except AttributeError:
-            resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
-            return resp
+        wfi = parser.parse_workflow(cwl_path)
     return wfi
 
 
@@ -129,7 +118,11 @@ class WFList(Resource):
         dep_manager.wait_gdb(log, 10)
 
         wf_path = os.path.join(temp_dir, wf_filename[:-4])
-        wfi = parse_workflow(wf_path, main_cwl, yaml_file)
+        try:
+            wfi = parse_workflow(wf_path, main_cwl, yaml_file)
+        except CwlParseError as err:
+            log.error('Failed to parse file')
+            return make_response(jsonify(msg=f'Parser: {err.args[0]}', status='error'), 400)
 
         # initialize_wf_profiler(wf_name)
         # Save the workflow to the workflow_id dir in the beeflow dir
