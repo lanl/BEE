@@ -61,7 +61,7 @@ By default when you run ``bee_cfg new``, a default template file will be
 generated for you, not unlike the one above.  The default template for Slurm
 accepts the number of nodes and the number of tasks and submits corresponding
 ``#SBATCH`` directives for the job. You may also add other ``#SBATCH`` (or for
-LSF ``#BSUB``) directives to your jinja file, to use particular partitions or
+LSF ``#BSUB``) directives to your jinja file, to use a specific partition or
 for accounting purposes.
 
 This default template should work fine for most workflows, so you really don't
@@ -87,3 +87,38 @@ Python code, except being delimited by ``{% .. %}``.
 Check the bee configuration file (bee.conf) or type ``bee_cfg show`` for the
 current location of your job_template. If you need to, edit it for your
 particular needs.
+
+.. _Multiple Workflows:
+
+Multiple Workflows
+---------------------
+
+BEE allows orchestration of multiple workflows. You can try running concurrent
+example workflows from :ref:`Simple example` with two different names and
+different output paths. Using the same example is over simplified
+but does demonstrate running concurrent workflows. You may have requirements
+where you run the same workflow with different inputs and paths for outputs or
+other variations. You could prepare a workflow with different yaml files and
+make submissions for each specification.  We suggest you use unique names for
+each workflow, but it isn't necessary since BEE assigns a unique workflow ID to
+each one.  For demonstration we show how you might run our simple example as
+two workflows with different names.
+
+The procedure would be to submit some workflows like the following:
+
+.. code-block::
+
+    mkdir results1
+    mkdir results2
+    bee_client submit cgt1 ./cat-grep-tar.tgz workflow.cwl input.yml results1
+    bee_client submit cgt2 ./cat-grep-tar.tgz workflow.cwl input.yml results2
+    bee_client listall
+
+.. code-block::
+
+    Name  ID      Status
+    cgt1  b33fd3  Pending
+    cgt2  9a378c  Pending
+
+You could then start each workflow with the ``bee_client start <WFID>`` command and query for the status of their tasks separately using ``bee_client query <WFID>``.
+

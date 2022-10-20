@@ -6,6 +6,7 @@ out a BEE workflow.
 
 Simple multi-step example (without container)
 =============================================
+.. _Simple example:
 
 cat-grep-tar workflow
 ---------------------
