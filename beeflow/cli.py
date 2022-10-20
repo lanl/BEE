@@ -15,6 +15,8 @@ import subprocess
 import socket
 import sys
 import time
+import pathlib
+import re
 
 import daemon
 import typer
@@ -268,7 +270,7 @@ def daemonize(base_components):
         Beeflow(MGR, base_components).loop()
 
 
-app = typer.Typer()
+app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
@@ -321,6 +323,22 @@ def stop():
     # As long as it returned something, we should be good
     beeflow_log = log_fname('beeflow')
     print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
+
+
+@app.callback(invoke_without_command=True)
+def version_callback(version: bool = False):
+    """Beeflow."""
+    # Print out the current version of the app, and then exit
+    # Note above docstring gets used in the help menu
+    if version:
+        # Get the path with the pyproject.toml file
+        beeflow_dir_path = pathlib.Path(__file__).parent.parent.resolve()
+        with open(str(beeflow_dir_path) + "/pyproject.toml", "r", encoding="utf-8") as versionf:
+            for line in versionf.readlines():
+                # Use a regular expression to search for the line that starts with the version
+                if re.search("^version =", line):
+                    print(line.replace("\n", ""))
+        sys.exit()
 
 
 def main():
