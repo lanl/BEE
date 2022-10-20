@@ -17,23 +17,29 @@
       <p id="add-warning" class="is-size-4 has-text-danger has-text-weight-bold" >Need to enter settings before adding workflow.</p>
       <form id="add-workflow_form">
         <div class="field">
-          <label class="label is-size-4">Workflow Name</label>
+          <label class="label is-size-4" for="add-wf_name">Workflow Name</label>
           <div class="control">
             <input class="input" type="text" id="add-wf_name" placeholder="Workflow">
           </div>
         </div>	
         <div class="field">
-          <label class="label is-size-4">Main CWL File</label>
+          <label class="label is-size-4" for="add-wf_cwl">Main CWL File</label>
           <div class="control">
             <input class="input" type="text" id="add-wf_cwl" placeholder="cwl file">
           </div>
         </div>	
         <div class="field">
-          <label class="label is-size-4">YAML File</label>
+          <label class="label is-size-4" for="add-wf_yaml">YAML File</label>
           <div class="control">
             <input class="input" type="text" id="add-wf_yaml" placeholder="yaml file">
           </div>
         </div>	
+        <div class="field">
+          <label class="label is-size-4" for="add-wf_workdir">Workdir</label>
+          <div class="control">
+            <input class="input" type="text" id="add-wf_workdir" placeholder="workdir">
+          </div>
+        </div>
 
         <!--
           <div class="select is-multiple">
@@ -92,7 +98,7 @@
         <h1 class="is-size-2">Re-execute Workflow</h1>
         <form id="reexecute-workflow_form">
           <div class="field">
-            <label class="label is-size-4">Workflow Name</label>
+            <label class="label is-size-4" for="reexecute-wf_name">Workflow Name</label>
             <div class="control">
               <input class="input" type="text" id="reexecute-wf_name" placeholder="Workflow Name">
             </div>
@@ -116,21 +122,27 @@
         <form id="settings-form">
           <h1 class="is-size-2">Settings</h1>
           <div class="field">
-            <label class="label is-size-4">Moniker</label>
+            <label class="label is-size-4" for="settings-hostname">Hostname</label>
+            <div class="control">
+              <input class="input" type="text" id="settings-hostname" placeholder="Hostname">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label is-size-4" for="settings-moniker">Moniker</label>
             <div class="control">
               <input class="input" type="text" id="settings-moniker" placeholder="Moniker">
             </div>
-          </div>	
+          </div>
           <div class="field">
-            <label class="label is-size-4">Bolt Port</label>
+            <label class="label is-size-4" for="settings-bolt_port">Bolt Port</label>
             <div class="control">
               <input class="input" type="text" id="settings-bolt_port" placeholder="Bolt Port">
             </div>
           </div>	
           <div class="field">
-            <label class="label is-size-4">WFM Port</label>
+            <label class="label is-size-4" for="settings-wfm_socket">WFM Socket</label>
             <div class="control">
-              <input class="input" type="text" id="settings-wfm_port" placeholder="WFM Port">
+              <input class="input" type="text" id="settings-wfm_socket" placeholder="WFM Socket">
             </div>
           </div>	
           <div class="field is-grouped">

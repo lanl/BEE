@@ -18,6 +18,7 @@ function startButton(button_id) {
 	button = document.getElementById(button_id);
 	// Create a click method listener for the button
 	button.addEventListener('click', e => {	
+        console.log('Clicked start');
 		wf.start_workflow();
         document.getElementById('start-wf_button').style.display = "none";
         document.getElementById('pause-wf_button').style.display = "inline";
@@ -29,6 +30,7 @@ function downloadButton(button_id) {
 	button = document.getElementById(button_id);
 	// Create a click method listener for the button
 	button.addEventListener('click', e => {	
+        console.log('Clicked download');
         // Breaks seperations of concerns add to button map and lookup
         console.log('Downloading')
 		wf.download_current_archive();
@@ -41,6 +43,7 @@ function pauseButton(button_id) {
 	button = document.getElementById(button_id);
 	// Create a click method listener for the button
 	button.addEventListener('click', e => {	
+        console.log('Clicked pause');
         // Breaks seperations of concerns add to button map and lookup
 		wf.pause_workflow();
         document.getElementById('pause-wf_button').style.display = "none";
@@ -176,8 +179,12 @@ class AddWorkflow extends Component {
             let name = document.getElementById('add-wf_name').value;
             let main_cwl = document.getElementById('add-wf_cwl').value;
             let yaml = document.getElementById('add-wf_yaml').value;
-            let tarball_path = document.getElementById('add-wf_tar').files[0].path;
-            wf.add_workflow(name, main_cwl, yaml, tarball_path);
+            let workdir = document.getElementById('add-wf_workdir').value;
+            console.log(document.getElementById('add-wf_tar'));
+            let file = document.getElementById('add-wf_tar').files[0];
+            let tarball_path = file.path;
+            let tarball_fname = file.name;
+            wf.add_workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname);
             // Reset the form
             document.getElementById('add-workflow_form').reset();
             document.getElementById('start-wf_button').style.display = "inline";
@@ -197,10 +204,11 @@ class Settings extends Component {
 
     setupFormListener() {
         this.form.addEventListener('click', e => {
+            let hostname = document.getElementById('settings-hostname').value;
             let moniker = document.getElementById('settings-moniker').value;
             let bolt_port = document.getElementById('settings-bolt_port').value;
-            let wfm_port = document.getElementById('settings-wfm_port').value;
-            config.init(moniker, bolt_port, wfm_port); 
+            let wfm_sock = document.getElementById('settings-wfm_socket').value;
+            config.init(hostname, moniker, bolt_port, wfm_sock);
             this.toggle_content();
             this.toggle_button();
         })

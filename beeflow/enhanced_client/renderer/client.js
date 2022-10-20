@@ -5,15 +5,34 @@ const Path = require('path');
 const fs = require('fs');
 const config = require('./config.js');
 
-workflow_manager = 'bee_wfm/v1/jobs'
+const workflow_manager = 'bee_wfm/v1/jobs';
 
 function _url() {
-    wfm_listen_port = 9999
-    return `http://127.0.0.1:${wfm_listen_port}/${workflow_manager}/`
+    wfm_listen_port = 9999;
+    return `http://127.0.0.1:${wfm_listen_port}/${workflow_manager}/`;
 }
 
 function _resource(tag='') {
-    return _url() + tag
+    return _url() + tag;
+}
+
+// Build a request config with some useful defaults
+function _build_config(method, url, data = null) {
+    let headers = {
+        'Authorization': 'Bearer ...',
+    };
+    if (data !== null) {
+        Object.assign(headers, data.getHeaders());
+    }
+    return {
+        method,
+        url,
+        headers,
+        adapter: require('axios/lib/adapters/http'),
+        data,
+        // Just in case 'no_proxy' is set incorrectly
+        proxy: false,
+    };
 }
 
 function start_workflow(wf_id) {
@@ -24,29 +43,21 @@ function start_workflow(wf_id) {
 
     })
     .catch(function (error) {
-
+        console.log(error);
+        alert("WFM communication failed");
     });
-
 }
 
 async function submit_workflow(workflow) {
 	var data = new FormData();
-    data.append('tarball', fs.createReadStream(workflow.tarball_path));	
+    data.append('workflow_archive', fs.createReadStream(workflow.tarball_path));
+    data.append('wf_filename', workflow.tarball_fname);
 	data.append('main_cwl', workflow.main_cwl);
     data.append('yaml', workflow.yaml);
-	data.append('name', workflow.name);
+    data.append('workdir', workflow.workdir);
+	data.append('wf_name', workflow.name);
 	
-    var config = {
-      method: 'post',
-      //url: 'http://127.0.0.1:9999/bee_wfm/v1/jobs/',
-      url: _resource(workflow.wf_id),
-      headers: { 
-        'Authorization': 'Bearer ...', 
-        ...data.getHeaders()
-      },
-	  adapter: require('axios/lib/adapters/http'),
-      data : data
-    };
+    let config = _build_config('post', _resource(workflow.wf_id), data)
     const results = axios(config)
     .then(function (response) {
         console.log(JSON.stringify(response.data));
@@ -58,7 +69,13 @@ async function submit_workflow(workflow) {
         return {wf_id, tasks};
     })
     .catch(function (error) {
-      //console.log(error);
+        console.log("Failed to communicate with WFM");
+        console.log(error);
+        console.log(error.response.data);
+        console.log(error.response.status);
+        console.log(error.response.headers);
+        // TODO: Is there a log where this data can be saved?
+        alert("WFM communication failed");
     });
     return results
 }
@@ -67,18 +84,8 @@ async function reexecute_workflow(workflow) {
 	var data = new FormData();
 	data.append('name', workflow.name);
     data.append('workflow_archive', fs.createReadStream(workflow.tarball_path));	
-	
-    var config = {
-      method: 'put',
-      //url: 'http://127.0.0.1:9999/bee_wfm/v1/jobs/',
-      url: _url(),
-      headers: { 
-        'Authorization': 'Bearer ...', 
-        ...data.getHeaders()
-      },
-	  adapter: require('axios/lib/adapters/http'),
-      data : data
-    };
+
+    let config = _build_config('put', _url(), data);
     const results = axios(config)
     .then(function (response) {
         console.log(JSON.stringify(response.data));
@@ -97,18 +104,7 @@ async function reexecute_workflow(workflow) {
 
 // Query the current state of a workflow's task.
 async function query_workflow(wf_id) {
-
-    var config = {
-      method: 'get',
-      //url: 'http://127.0.0.1:9999/bee_wfm/v1/jobs/',
-      url: _resource(wf_id),
-      headers: { 
-        'Authorization': 'Bearer ...', 
-      },
-	  adapter: require('axios/lib/adapters/http'),
-      params : { wf_id: wf_id }
-    };
-
+    let config = _build_config('get', _resource(wf_id));
     const results = axios(config)
     .then(function (response) {
         console.log(JSON.stringify(response.data));
@@ -123,7 +119,10 @@ async function query_workflow(wf_id) {
 }
 
 function cancel_workflow(wf_id) {
-    axios.delete(_resource(wf_id), {
+    axios({
+      method: 'delete',
+      url: _resource(wf_id),
+      proxy: false,
     })
     .then(function (response) {
         console.log(response.data);
@@ -135,15 +134,7 @@ function cancel_workflow(wf_id) {
 
 // Need to think about making this async
 function pause_workflow(wf_id) {
-    var config = {
-      method: 'patch',
-      url: _resource(wf_id),
-      headers: { 
-        'Authorization': 'Bearer ...', 
-      },
-	  adapter: require('axios/lib/adapters/http'),
-      data : {  'option': 'pause' }
-    };
+    let config = _build_config('patch', _resource(wf_id), {option: 'pause'});
 
     const results = axios(config)
     .then(function (response) {
@@ -157,15 +148,7 @@ function pause_workflow(wf_id) {
 
 // Need to think about making this async
 function resume_workflow(wf_id) {
-    var config = {
-      method: 'patch',
-      url: _resource(wf_id),
-      headers: { 
-        'Authorization': 'Bearer ...', 
-      },
-	  adapter: require('axios/lib/adapters/http'),
-      data: { 'option': 'resume' }
-    };
+    let config = _build_config('patch', _resource(wf_id), {option: 'resume'});
 
     const results = axios(config)
     .then(function (response) {
@@ -184,11 +167,12 @@ async function download_archive(wf_id) {
   
     const response = await axios({
       url,
-      method: 'PATCH',
+      method: 'patch',
       responseType: 'stream',
       data: {
           'wf_id': wf_id
-      }
+      },
+      proxy: false,
     })
   
     response.data.pipe(writer)
@@ -198,21 +182,7 @@ async function download_archive(wf_id) {
       writer.on('error', reject)
     })
 }
-// function resume_workflow(archive_path, wf_name) {
-// 
-// }
 
-//function list_workflows() {
-//    axios.get(_url())
-//    .then(function (response) {
-//        console.log(response.data);
-//    })
-//    .catch(function (error) {
-//        console.log(error);
-//    });
-//}
-//download_archive('dde31d54-af90-4097-8aac-95d3ab7c6ac0');
-//resume_workflow('1962b973-4292-4c39-98a1-c59fd7de9a5b');
 module.exports = { submit_workflow, query_workflow, start_workflow, 
                    pause_workflow, resume_workflow, cancel_workflow,
                    reexecute_workflow, download_archive }

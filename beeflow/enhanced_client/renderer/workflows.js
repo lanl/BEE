@@ -29,11 +29,13 @@ function initialize(wf_list_id) {
 
 class Workflow {
     // Constructor for workflow object
-    constructor(name, main_cwl, yaml, tarball_path) {
+    constructor(name, main_cwl, yaml, workdir, tarball_path, tarball_fname) {
         this.name = name;
         this.main_cwl = main_cwl;
         this.yaml = yaml;
+        this.workdir = workdir;
         this.tarball_path = tarball_path;
+        this.tarball_fname = tarball_fname;
         this.id = 'Pending';
         this.status = 'Pending';
     }
@@ -70,11 +72,11 @@ class WorkflowList {
 } 
 
 // Add a new workflow 
-function add_workflow(name, main_cwl, yaml, tarball_path) {
+function add_workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname) {
     // Submit workflow to workflow manager
     (async () => {
         // Create new WF object
-        let new_workflow = new Workflow(name, main_cwl, yaml, tarball_path);
+        let new_workflow = new Workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname);
         let {wf_id, tasks} = await client.submit_workflow(new_workflow);
 
         new_workflow.id = wf_id;

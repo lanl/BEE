@@ -2,11 +2,22 @@ const db = require('./database.js');
 const tunnel = require('./tunnel.js');
 config = null;
 
-function init(moniker, bolt_port, wfm_port) {
-    config = new Config(moniker, bolt_port, wfm_port);
-    db.add_config(moniker, bolt_port, wfm_port);
-    tunnel.start_tunnel(9999, wfm_port, moniker, 'fg-rfe1');
-    tunnel.start_tunnel(9995, bolt_port, moniker, 'fg-rfe1');
+function init(hostname, moniker, bolt_port, wfm_sock) {
+    config = new Config(hostname, moniker, bolt_port, wfm_sock);
+    db.add_config(moniker, bolt_port, wfm_sock);
+    // tunnel.start_tunnel(9999, moniker, hostname, remote_socket = wfm_sock);
+    // tunnel.start_tunnel(9995, moniker, hostname, remote_port = bolt_port);
+    let tun = new tunnel.Tunnel(hostname, moniker, [
+        {
+            local_port: 9999,
+            remote_socket: wfm_sock,
+        },
+        {
+            local_port: 9995,
+            remote_port: bolt_port,
+        },
+    ]);
+    tun.start();
 }
 
 function getWFMTunnel() {
@@ -23,10 +34,11 @@ function configLoaded() {
 }
 
 class Config {
-    constructor(moniker, bolt_port, wfm_port) {
+    constructor(hostname, moniker, bolt_port, wfm_sock) {
+        this.hostname = hostname;
         this.moniker = moniker;
         this.bolt_port = bolt_port;
-        this.wfm_port = wfm_port;
+        this.wfm_sock = wfm_sock;
     }
 }
 

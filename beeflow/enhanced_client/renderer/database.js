@@ -39,10 +39,11 @@ function init() {
     const config_stmt = db.prepare(`
 			CREATE TABLE IF NOT EXISTS config (
 				id INTEGER PRIMARY KEY,
+                hostname TEXT,
                 moniker TEXT,
                 resource TEXT,
                 bolt_port INTEGER,
-                wfm_port INTEGER
+                wfm_sock TEXT
           );`);
 
     const wf_info = workflow_stmt.run();
@@ -60,13 +61,13 @@ function add_wf(wf_id, name) {
 									percentage_complete, status, name)
                						VALUES(?, ?, ?, ?, ?, ?)`);
 	const info = stmt.run(wf_id, completed, archived, 
-								percentage_complete, status, name);
+                          percentage_complete, status, name);
 }
 
-function add_config(moniker, resource, bolt_port, wfm_port) {
-    const stmt = db.prepare(`INSERT INTO config (moniker, resource, bolt_port, wfm_port)
-                            VALUES(?, ?, ?, ?)`);
-    const info = stmt.run(moniker, resource, bolt_port, wfm_port);
+function add_config(hostname, moniker, resource, bolt_port, wfm_sock) {
+    const stmt = db.prepare(`INSERT INTO config (hostname, moniker, resource, bolt_port, wfm_sock)
+                            VALUES(?, ?, ?, ?, ?)`);
+    const info = stmt.run(hostname, moniker, resource, bolt_port, wfm_sock);
 }
 
 
