@@ -27,7 +27,7 @@ class MockWFI:
         """Resume a workflow."""
         return
 
-    def reset_workflow(self):
+    def reset_workflow(self, wf_id):
         """Reset a workflow."""
         return
 
@@ -105,8 +105,12 @@ def mock_create_image(): # noqa
 
 class MockCwlParser:
     """Mock the CWLParser."""
+    
+    def __init__(self, bolt_port):
+        self.bolt_port = bolt_port
 
-    def parse_workflow(self, cwl_path, yaml_file=None): # noqa
+
+    def parse_workflow(self, wf_id, cwl_path, yaml_file=None): # noqa
         """Parse the workflow."""
         return MockWFI()
 

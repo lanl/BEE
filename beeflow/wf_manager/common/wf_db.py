@@ -238,6 +238,7 @@ def get_workflow_state(workflow_id):
 def get_bolt_port(workflow_id):
     """Return the bolt port associated with a workflow."""
     stmt = "SELECT bolt_port FROM workflows WHERE workflow_id=?"
+    result = get(stmt, [workflow_id])
     result = get(stmt, [workflow_id])[0]
     bolt_port = result[0]
     return bolt_port
@@ -279,17 +280,18 @@ def add_task(task_id, workflow_id, name, status):
     """Add a task to the database associated with the workflow id specified."""
     stmt = "INSERT INTO tasks (task_id, workflow_id, name, resource, status,"\
            "slurm_id) VALUES(?, ?, ?, ?, ?, ?)"
-    run(stmt, [task_id, workflow_id, name, None, status, None])
+    run(stmt, [task_id, workflow_id, name, "", status, -1])
 
 
-Task = namedtuple("Task", "id task_id workflow_id resource status slurm_id "
-                  "name")
+Task = namedtuple("Task", "id task_id workflow_id name resource status"
+                  " slurm_id")
 
 
 def get_tasks(workflow_id):
     """Get all tasks associated with a particular workflow."""
     stmt = "SELECT * FROM tasks WHERE workflow_id=?"
     result = get(stmt, [workflow_id])
+    print(f'TASK {result}')
     tasks = [Task(*task) for task in result]
     return tasks
 
@@ -302,19 +304,18 @@ def delete_workflow(workflow_id):
 
 def update_task_state(task_id, workflow_id, status):
     """Update the state of a task."""
-    stmt = "UPDATE tasks SET status=? WHERE task_id=? AND workflow_id=? "\
-           "VALUES(?, ?, ?)"
+    stmt = "UPDATE tasks SET status=? WHERE task_id=? AND workflow_id=? "
     run(stmt, [status, task_id, workflow_id])
 
 
 def get_task(task_id, workflow_id):
     """Get a task associed with a workflow."""
-    stmt = "SELECT * FROM workflows WHERE task_id=? AND workflow_id=?"
+    stmt = "SELECT * FROM task WHERE task_id=? AND workflow_id=?"
     result = get(stmt, [task_id, workflow_id])
     return result
 
 
 def delete_task(task_id, workflow_id):
     """Delete a task associed with a workflow."""
-    stmt = "DELETE FROM workflows WHERE task_id=? AND workflow_id=?"
+    stmt = "DELETE FROM tasks WHERE task_id=? AND workflow_id=?"
     run(stmt, [task_id, workflow_id])

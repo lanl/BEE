@@ -17,28 +17,20 @@ from beeflow.cli import log
 
 def archive_workflow(wf_id):
     """Archive a workflow after completion."""
-    bee_workdir = wf_utils.get_bee_workdir()
-    #gdb_workdir = os.path.join(bee_workdir, 'current_run')
-    mount_dir = wf_db.get_run_dir(wf_id)
-    workflows_dir = os.path.join(bee_workdir, 'workflows')
-    workflow_dir = os.path.join(workflows_dir, wf_id)
-    #os.mkdir(workflow_dir + '/gdb')
-
-    # Archive GDB
-    #print(f"mount_dir: {mount_dir} dest: {workflow_dir + '/gdb'}")
-    shutil.copytree(mount_dir, workflow_dir + '/gdb')
     # Archive Config
+    workflow_dir = wf_utils.get_workflow_dir(wf_id)
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
 
     wf_db.update_workflow_state(wf_id, 'Archived')
     wf_utils.update_wf_status(wf_id, 'Archived')
 
+    bee_workdir = wf_utils.get_bee_workdir()
     archive_dir = os.path.join(bee_workdir, 'archives')
     os.makedirs(archive_dir, exist_ok=True)
-    # archive_path = os.path.join(archive_dir, wf_id + '_archive.tgz')
     archive_path = f'../archives/{wf_id}.tgz'
     # We use tar directly since tarfile is apparently very slow
+    workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
 
 

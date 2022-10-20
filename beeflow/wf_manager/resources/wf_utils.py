@@ -23,7 +23,13 @@ def get_workflows_dir():
     return workflows_dir
 
 
-def create_wf_dir(wf_id):
+def get_workflow_dir(wf_id):
+    """Get the workflows directory from beeflow."""
+    workflow_dir = os.path.join(get_workflows_dir(), wf_id)
+    return workflow_dir
+
+
+def create_workflow_dir(wf_id):
     """Create the workflows directory."""
     workflows_dir = get_workflows_dir()
     workflow_dir = os.path.join(workflows_dir, wf_id)

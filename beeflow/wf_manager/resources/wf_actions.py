@@ -38,18 +38,26 @@ class WFActions(Resource):
     def get(wf_id):
         """Check the database for the current status of all tasks."""
         tasks = wf_db.get_tasks(wf_id)
+        print(f'tasks wtf {tasks}')
         tasks_status = []
-        for task in tasks:
-            task_status.append(f"{task.name}--{wfi.get_task_state(task)}")
-            tasks_status = '\n'.join(tasks_status)
-            tasks_status = '\n'.join(tasks_status)
-            wf_status = wf_utils.read_wf_status(wf_id)
-        else:
+        if not tasks:
             log.info(f"Bad query for wf {wf_id}.")
             wf_status = 'No workflow with that ID is currently loaded'
-            tasks_status = 'Unavailable'
+            tasks_status.append('Unavailable')
             resp = make_response(jsonify(tasks_status=tasks_status,
                                  wf_status=wf_status, status='not found'), 404)
+
+        for task in tasks:
+            print(task)
+            tasks_status.append(f"{task.name}--{task.status}")
+            #tasks_status = '\n'.join(tasks_status)
+        tasks_status = '\n'.join(tasks_status)
+        wf_status = wf_utils.read_wf_status(wf_id)
+
+        print(f'task_status {tasks_status}')
+        resp = make_response(jsonify(tasks_status=tasks_status,
+                             wf_status=wf_status, status='ok'), 200)
+
         #wfi = wf_utils.get_workflow_interface(wf_id)
         #if wfi is not None:
         #    (_, tasks) = wfi.get_workflow()
@@ -87,7 +95,7 @@ class WFActions(Resource):
         if option == 'pause' and wf_state == 'RUNNING':
             wfi.pause_workflow()
             wf_utils.update_wf_status(wf_id, 'Paused')
-            wf_db.update_wf_status(wf_id, 'Paused')
+            wf_db.update_workflow_state(wf_id, 'Paused')
             log.info("Workflow Paused")
             resp = make_response(jsonify(status='Workflow Paused'), 200)
         elif option == 'resume' and wf_state == 'PAUSED':
@@ -96,7 +104,7 @@ class WFActions(Resource):
             allocation = wf_utils.submit_tasks_scheduler(log, tasks)
             wf_utils.submit_tasks_tm(wf_id, log, tasks, allocation)
             wf_utils.update_wf_status(wf_id, 'Running')
-            wf_db.update_wf_status(wf_id, 'Running')
+            wf_db.update_workflow_state(wf_id, 'Running')
             log.info("Workflow Paused")
             log.info("Workflow Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)
