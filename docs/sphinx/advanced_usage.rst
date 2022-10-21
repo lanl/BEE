@@ -1,5 +1,37 @@
 Advanced Usage
-**********************
+**************
+
+Command and Job Output
+----------------------
+
+When BEE submits steps of a workflow, by default the output from the underlying
+batch scheduler (Slurm, LSF, etc.) will be saved by BEE. This includes all
+output from other helping programs, such as the container runtime and the batch
+scheduler itself. Sometimes this output can be useful when diagnosing runtime
+failures. In most cases you shouldn't need to use this unless the error is
+outside of your program (this often includes environment-related and
+setup/installation issues).
+
+When using the default template (see `Jinja file`_), outputs from the batch
+script will go to files in
+``$bee_workdir/workflows/$workflow_id/$task_name-$task_id``:
+
+``$bee_workdir``
+    BEE's workdir, which is set in the bee.conf file and by default is
+    ``$HOME/.beeflow``
+``$workflow_id``
+    The same ID used to start the workflow
+``$task_id``
+    A randomly generated UUID which BEE uses to keep track of the task
+``$task_name``
+    The task/step name used within the workflow submission
+
+Within this directory, you can find the submission script and two output files
+for stderr (extensions ``.err``) and stdout (extension ``.out``).
+
+If something bad happens, such as if BEE fails unexpectedly, then you may want
+to wrap up these output files as well as BEE's general logs and send them to a
+BEE developer for further inspection.
 
 .. _Jinja file:
 
