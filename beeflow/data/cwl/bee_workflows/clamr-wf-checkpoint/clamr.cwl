@@ -76,11 +76,11 @@ outputs:
     outputBinding:
       # Glob can be either a constant string or have a wildcard 
       # TODO verify CWLs glob support
-      glob: $HOME/graphics_output/graph%05d.png
+      glob: graphics_output/graph%05d.png
   checkpoint_dir:
     type: Directory
     outputBinding:
-      glob: $HOME/checkpoint_output/backup%05d.crx
+      glob: checkpoint_output/backup%05d.crx
   time_log:
     type: File
     outputBinding:

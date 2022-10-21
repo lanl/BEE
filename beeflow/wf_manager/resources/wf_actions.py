@@ -2,8 +2,9 @@
 
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
-from beeflow.cli import log
+#from beeflow.cli import log
 from beeflow.wf_manager.common import wf_db
+from beeflow.common.log import main_log as log
 from beeflow.wf_manager.resources import wf_utils
 
 
@@ -25,10 +26,8 @@ class WFActions(Resource):
             return resp
         wfi.execute_workflow()
         tasks = wfi.get_ready_tasks()
-        # Submit ready tasks to the scheduler
-        allocation = wf_utils.submit_tasks_scheduler(log, tasks)  #NOQA
-        # Submit tasks to TM
-        wf_utils.submit_tasks_tm(wf_id, log, tasks, allocation)
+        wf_utils.schedule_submit_tasks(log, tasks)
+        wf_id = wfi.workflow_id
         wf_utils.update_wf_status(wf_id, 'Running')
         wf_db.update_workflow_state(wf_id, 'Running')
         resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
@@ -101,8 +100,7 @@ class WFActions(Resource):
         elif option == 'resume' and wf_state == 'PAUSED':
             wfi.resume_workflow()
             tasks = wfi.get_ready_tasks()
-            allocation = wf_utils.submit_tasks_scheduler(log, tasks)
-            wf_utils.submit_tasks_tm(wf_id, log, tasks, allocation)
+            wf_utils.schedule_submit_tasks(log, tasks)
             wf_utils.update_wf_status(wf_id, 'Running')
             wf_db.update_workflow_state(wf_id, 'Running')
             log.info("Workflow Paused")

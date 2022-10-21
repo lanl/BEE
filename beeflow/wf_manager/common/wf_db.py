@@ -3,13 +3,13 @@
 import sqlite3
 from sqlite3 import Error
 from collections import namedtuple
+import os
 from beeflow.common.config_driver import BeeConfig as bc
 
 
 def create_connection():
     """Create a new connection with the workflow database."""
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    db_file = bee_workdir + '/workflow.db'
+    db_file = os.path.join(bc.get('DEFAULT', 'bee_workdir'), 'workflow.db')
     conn = None
     try:
         conn = sqlite3.connect(db_file)

@@ -7,9 +7,13 @@
 import unittest
 
 from beeflow.common.config_driver import BeeConfig as bc
+
+bc.init()
+
 from beeflow.common.wf_data import (Requirement, Hint, InputParameter, OutputParameter,
                                     StepInput, StepOutput, generate_workflow_id)
 from beeflow.common.wf_interface import WorkflowInterface
+import gdb # noqa (this imports beeflow modules)
 
 
 class TestWorkflowInterface(unittest.TestCase):
@@ -17,12 +21,17 @@ class TestWorkflowInterface(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Initialize the Workflow interface."""
-        bc.init()
+        """Start the GDB and initialize the Workflow interface."""
+        gdb.start()
         cls.wfi = WorkflowInterface(user="neo4j",
                                     bolt_port=bc.get("graphdb", "bolt_port"),
                                     db_hostname=bc.get("graphdb", "hostname"),
                                     password=bc.get("graphdb", "dbpass"))
+
+    @classmethod
+    def tearDownClass(cls):
+        """Tear down method to stop the running GDB."""
+        gdb.stop()
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
@@ -208,7 +217,7 @@ class TestWorkflowInterface(unittest.TestCase):
                         Requirement("NetworkAccess", {"networkAccess": True})]
         hints = [Hint("ResourceRequirement", {"ramMin": 1024}),
                  Hint("NetworkAccess", {"networkAccess": True}),
-                 Hint("beeflow:CheckpointRequirement", {"file_path": "$HOME/checkpoint_output",
+                 Hint("beeflow:CheckpointRequirement", {"file_path": "checkpoint_output",
                                                         "container_path": "checkpoint_output",
                                                         "file_regex": "backup[0-9]*.crx",
                                                         "restart_parameters": "-R",
@@ -216,6 +225,7 @@ class TestWorkflowInterface(unittest.TestCase):
         stdout = "output.txt"
         stderr = "output-err.txt"
         test_checkpoint_file = "backup0.crx"
+        #test_checkpoint_file = "/backup0.crx"
 
         self.wfi.initialize_workflow(
             generate_workflow_id(), "test_workflow",
@@ -246,8 +256,9 @@ class TestWorkflowInterface(unittest.TestCase):
                          self.wfi.get_task_metadata(new_task))
 
         # Check that task command includes checkpoint file
+        print(new_task.command)
         self.assertListEqual(['ls', '-a', '-F', '-l', 'input.txt', '-R',
-                              'checkpoint_output/backup0.crx'], new_task.command)
+                              '/backup0.crx'], new_task.command)
 
         # Restart once again
         newer_task = self.wfi.restart_task(new_task, test_checkpoint_file)
@@ -268,7 +279,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Check that task command includes checkpoint file
         self.assertListEqual(['ls', '-a', '-F', '-l', 'input.txt', '-R',
-                              'checkpoint_output/backup0.crx'], newer_task.command)
+                              '/backup0.crx'], newer_task.command)
 
     def test_finalize_task(self):
         """Test finalization of completed tasks."""

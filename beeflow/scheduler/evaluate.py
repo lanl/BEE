@@ -110,7 +110,7 @@ def main():
             res_link = f'{link}/resources'
             wfl_link = f'{link}/workflows/{workflow_name}/jobs'
             # Generate the resources
-            requests.put(res_link, json=resources)
+            requests.put(res_link, json=resources, timeout=60)
 
             # Work with chunks of 512 tasks
             chunk_size = 10
@@ -121,7 +121,7 @@ def main():
                 print('Sending tasks from', i, 'to', i + j)
                 tasks_send = tasks[i:i + j]
                 arrival_time = time.time()
-                req = requests.put(wfl_link, json=tasks_send)
+                req = requests.put(wfl_link, json=tasks_send, timeout=60)
                 first_response_time = time.time()
                 response_time = first_response_time - arrival_time
                 task_sched = req.json()
@@ -210,6 +210,6 @@ if __name__ == '__main__':
 # Ignore R1732: This suggestion doesn't make sense since I'm trying to create a context manager
 #               object
 # Ignore W0511: See issue #333
-# Ignore R0915: Yes there are too many statements here, but this requires a
-#               redesign related to issue #333.
-# pylama:ignore=R1732,W0511,R0915
+# Ignore R0915, R0914: Yes there are too many statements and local variables here, but this
+#                      requires a redesign related to issue #333.
+# pylama:ignore=R1732,W0511,R0915,R0914

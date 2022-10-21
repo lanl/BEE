@@ -12,7 +12,7 @@ from flask_restful import Resource, reqparse
 from beeflow.wf_manager.common import wf_db
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
-from beeflow.cli import log
+from beeflow.common.log import main_log as log
 
 
 def archive_workflow(wf_id):
@@ -86,6 +86,19 @@ class WFUpdate(Resource):
             with open(task_output_path, 'w', encoding='utf8') as fp:
                 json.dump(json.loads(data['output']), fp, indent=4)
 
+        if 'task_info' in data and data['task_info'] is not None:
+            task_info = jsonpickle.decode(data['task_info'])
+            checkpoint_file = task_info['checkpoint_file']
+            new_task = wfi.restart_task(task, checkpoint_file)
+            if new_task is None:
+                log.info('No more restarts')
+                state = wfi.get_task_state(task)
+                return make_response(jsonify(status=f'Task {task_id} set to {job_state}'))
+            # Submit the restart task
+            tasks = [new_task]
+            wf_utils.schedule_submit_tasks(log, tasks)
+            return make_response(jsonify(status='Task {task_id} restarted'))
+
         if job_state in ('COMPLETED', 'FAILED'):
             for output in task.outputs:
                 if output.glob is not None:
@@ -95,8 +108,7 @@ class WFUpdate(Resource):
             tasks = wfi.finalize_task(task)
             state = wfi.get_workflow_state()
             if tasks and state != 'PAUSED':
-                allocation = wf_utils.submit_tasks_scheduler(log, tasks)
-                wf_utils.submit_tasks_tm(wf_id, log, tasks, allocation)
+                wf_utils.schedule_submit_tasks(log, tasks)
 
             if wfi.workflow_completed():
                 log.info("Workflow Completed")

@@ -99,6 +99,7 @@ class Backfill(Algorithm):
     scheduling algorithm.
     """
 
+    @staticmethod
     def load(**kwargs):
         """Load algorithm configuration, if necessary."""
 
@@ -354,4 +355,6 @@ def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
 #                 dependency.
 # Ignoring W0511: A number of these TODO's are hinted at in issue #333, but I don't want to remove
 #                 them from the code until this issue is fully addressed.
-# pylama:ignore=E0211,C0415,W0511
+# Ignoring R0903: Too few public methods, not sure how this calculated and this will be fixed with
+#                 issue #333
+# pylama:ignore=E0211,C0415,W0511,R0903

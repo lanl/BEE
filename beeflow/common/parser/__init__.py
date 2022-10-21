@@ -1,1 +1,3 @@
-from beeflow.common.parser.parser import CwlParser
+"""Init code for parser."""
+
+from beeflow.common.parser.parser import CwlParser # noqa

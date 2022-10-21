@@ -9,6 +9,7 @@ import jsonpickle
 from beeflow.wf_manager.common import wf_db
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_interface import WorkflowInterface
+from beeflow.common.connection import Connection
 
 
 def get_bee_workdir():
@@ -16,24 +17,21 @@ def get_bee_workdir():
     return os.path.expanduser('~/.beeflow')
 
 
-def get_workflows_dir():
-    """Get the workflows directory from beeflow."""
+def get_workflows_script_dir():
+    """Get the workflows script directory from beeflow."""
     bee_workdir = get_bee_workdir()
     workflows_dir = os.path.join(bee_workdir, 'workflows')
     return workflows_dir
 
 
-def get_workflow_dir(wf_id):
-    """Get the workflows directory from beeflow."""
-    workflow_dir = os.path.join(get_workflows_dir(), wf_id)
-    return workflow_dir
+def get_workflow_script_dir(wf_id):
+    """Get the workflow script dir for a particular workflow."""
+    return os.path.join(get_workflows_script_dir(), wf_id)
 
 
-def create_workflow_dir(wf_id):
+def create_wf_dir(wf_id):
     """Create the workflows directory."""
-    workflows_dir = get_workflows_dir()
-    workflow_dir = os.path.join(workflows_dir, wf_id)
-    os.makedirs(workflow_dir)
+    os.makedirs(get_workflow_script_dir(wf_id))
 
 
 def create_current_run_dir():
@@ -131,6 +129,15 @@ def tm_url():
     task_manager = "bee_tm/v1/task/"
     return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
 
+# Base URLs for the TM and the Scheduler
+TM_URL = "bee_tm/v1/task/"
+SCHED_URL = "bee_sched/v1/"
+
+
+def _connect_tm():
+    """Return a connection to the TM."""
+    return Connection(bc.get('task_manager', 'socket'))
+
 
 def sched_url():
     """Get Scheduler url."""
@@ -140,12 +147,17 @@ def sched_url():
     return f'http://127.0.0.1:{sched_listen_port}/{scheduler}'
 
 
+def _connect_scheduler():
+    """Return a connection to the Scheduler."""
+    return Connection(bc.get('scheduler', 'socket'))
+
+
 def _resource(component, tag=""):
     """Access Task Manager or Scheduler."""
     if component == "tm":
-        url = tm_url() + str(tag)
+        url = TM_URL + str(tag)
     elif component == "sched":
-        url = sched_url() + str(tag)
+        url = SCHED_URL + str(tag)
     return url
 
 
@@ -163,8 +175,9 @@ def submit_tasks_tm(wf_id, log, tasks, allocation):
     names = [task.name for task in tasks]
     log.info(f"Submitted {names} to Task Manager")
     try:
-        resp = requests.post(_resource('tm', "submit/"), json={'tasks': tasks_json},
-                             timeout=5)
+        conn = _connect_tm()
+        resp = conn.post(_resource('tm', "submit/"), json={'tasks': tasks_json},
+                         timeout=5)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to task manager to submit tasks.')
         return
@@ -194,8 +207,9 @@ def submit_tasks_scheduler(log, tasks):
     sched_tasks = tasks_to_sched(tasks)
     # The workflow name will eventually be added to the wfi workflow object
     try:
-        resp = requests.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks,
-                            timeout=5)
+        conn = _connect_scheduler()
+        resp = conn.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks,
+                        timeout=5)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to scheduler to submit tasks.')
         return "Did not work"
@@ -205,6 +219,7 @@ def submit_tasks_scheduler(log, tasks):
         return "Did not work"
     return resp.json()
 
+
 def get_open_port():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("",0))
@@ -213,3 +228,9 @@ def get_open_port():
     s.close()
     return port
 
+def schedule_submit_tasks(log, tasks):
+    """Schedule and then submit tasks to the TM."""
+    # Submit ready tasks to the scheduler
+    allocation = submit_tasks_scheduler(log, tasks)  #NOQA
+    # Submit tasks to TM
+    submit_tasks_tm(log, tasks, allocation)

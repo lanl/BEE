@@ -15,7 +15,7 @@ inputs:
     inputBinding:
       prefix: -i
       position: 2
-      valueFrom: $(self.path + "/graph%05d.png")
+      valueFrom: $("/graph%05d.png")
   frame_rate:
     type: int?
     inputBinding:

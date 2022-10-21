@@ -49,6 +49,7 @@ class CwlParser:
         Forms a connection to the graph database through the workflow interface.
         """
         self.cwl = None
+        self.path = None
         self.steps = []
         self.params = None
         self._wfi = None
@@ -64,24 +65,24 @@ class CwlParser:
         except configparser.NoSectionError:
             self._wfi = WorkflowInterface()
 
-    def parse_workflow(self, workflow_id, cwl, job=None):
+    def parse_workflow(self, workflow_id, cwl_path, job=None):
         """Parse a CWL Workflow file and load it into the graph database.
 
         Returns an instance of the WorkflowInterface.
 
-        :param cwl: the CWL file path
-        :type cwl: str
         :param workflow_id: the workflow ID
         :type workflow_id: str
+        :param cwl_path: the CWL file path
+        :type cwl_path: str
         :param job: the input job file (YAML or JSON)
         :type job: str
         :rtype: WorkflowInterface
         """
-        print(f'{workflow_id} {cwl} {job}')
-        self.cwl = cwl_parser.load_document(cwl)
+        self.path = cwl_path
+        self.cwl = cwl_parser.load_document(cwl_path)
 
         if self.cwl.class_ != "Workflow":
-            raise ValueError(f"{os.path.basename(cwl)} class must be Workflow")
+            raise ValueError(f"{os.path.basename(cwl_path)} class must be Workflow")
 
         if job:
             # Parse input job params into self.params
@@ -107,7 +108,7 @@ class CwlParser:
                                  f"{input_id}/{self.params[input_id]}")
             return self.params[input_id]
 
-        workflow_name = os.path.basename(cwl).split(".")[0]
+        workflow_name = os.path.basename(cwl_path).split(".")[0]
         workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
                                           resolve_input(input_, input_.type))
                            for input_ in self.cwl.inputs}
@@ -275,8 +276,7 @@ class CwlParser:
 
         return outputs
 
-    @staticmethod
-    def parse_requirements(requirements, as_hints=False):
+    def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
 
         :param requirements: the CWL requirements
@@ -290,7 +290,14 @@ class CwlParser:
             return reqs
         if as_hints:
             for req in requirements:
-                reqs.append(Hint(req["class"], {k: v for k, v in req.items() if k != "class"}))
+                items = {k: v for k, v in req.items() if k != "class"}
+                # Load in the dockerfile at parse time
+                if 'dockerFile' in items:
+                    base_path = os.path.dirname(self.path)
+                    path = os.path.join(base_path, items['dockerFile'])
+                    with open(path, encoding='utf-8') as fp:
+                        items['dockerFile'] = fp.read()
+                reqs.append(Hint(req['class'], items))
         else:
             for req in requirements:
                 reqs.append(Requirement(req.class_, {k: v for k, v in vars(req).items()
