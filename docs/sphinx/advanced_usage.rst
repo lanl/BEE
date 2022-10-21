@@ -10,7 +10,9 @@ output from other helping programs, such as the container runtime and the batch
 scheduler itself. Sometimes this output can be useful when diagnosing runtime
 failures. In most cases you shouldn't need to use this unless the error is
 outside of your program (this often includes environment-related and
-setup/installation issues).
+setup/installation issues). Note, to allow for better provenance, this output
+is also saved when archiving a workflow. This is also one reason why the
+specific path below should not be changed unless you know what you're doing.
 
 When using the default template (see `Jinja file`_), outputs from the batch
 script will go to files in
