@@ -13,7 +13,7 @@ from flask_restful import Resource, reqparse
 
 from beeflow.common.log import main_log as log
 # from beeflow.common.wf_profiler import WorkflowProfiler
-from beeflow.common.parser import CwlParser
+from beeflow.common.parser import CwlParser, CwlParseError
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
@@ -30,6 +30,7 @@ def parse_workflow(wf_id, workflow_dir, main_cwl, yaml_file, bolt_port):
     cwl_path = os.path.join(workflow_dir, main_cwl)
     if yaml_file is not None:
         yaml_path = os.path.join(workflow_dir, yaml_file)
+
         try:
             wfi = parser.parse_workflow(wf_id, cwl_path, yaml_path)
         except AttributeError:
@@ -42,6 +43,7 @@ def parse_workflow(wf_id, workflow_dir, main_cwl, yaml_file, bolt_port):
         except AttributeError:
             resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
             return resp
+
     return wfi
 
 
@@ -119,7 +121,6 @@ class WFList(Resource):
             resp = make_response(jsonify(msg=crt_message, status='error'), 418)
             return resp
 
-#<<<<<<< HEAD
         wf_id = wf_data.generate_workflow_id()
         wf_dir = extract_wf(wf_id, wf_filename, wf_tarball)
         bolt_port = wf_utils.get_open_port()
@@ -128,36 +129,14 @@ class WFList(Resource):
         gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
         wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
-        wfi = parse_workflow(wf_id, wf_dir, main_cwl, yaml_file, bolt_port)
+        try:
+            wfi = parse_workflow(wf_path, main_cwl, yaml_file)
+            wfi = parse_workflow(wf_id, wf_dir, main_cwl, yaml_file, bolt_port)
+        except CwlParseError as err:
+            log.error('Failed to parse file')
+            return make_response(jsonify(msg=f'Parser: {err.args[0]}', status='error'), 400)
         # initialize_wf_profiler(wf_name)
-#=======
-#        # Remove the current run directory in the bee workdir
-#
-#        # Save the workflow temporarily to this folder for the parser
-#        # This is a temporary measure until we can get the worflow ID before a parse
-#        temp_dir = extract_wf_temp(wf_filename, wf_tarball)
-#        dep_manager.start_gdb()
-#        dep_manager.wait_gdb(log, 10)
-#
-#        wf_path = os.path.join(temp_dir, wf_filename[:-4])
-#        wfi = parse_workflow(wf_path, main_cwl, yaml_file)
-#
-#        # initialize_wf_profiler(wf_name)
-#        # Save the workflow to the workflow_id dir in the beeflow dir
-#        wf_id = wfi.workflow_id
-#        workflow_dir = wf_utils.get_workflow_script_dir(wf_id)
-#        os.makedirs(workflow_dir)
-#
-#        # Copy workflow files to later archive
-#        for workflow_file in os.listdir(temp_dir):
-#            f_path = os.path.join(temp_dir, workflow_file)
-#            if os.path.isfile(f_path):
-#                shutil.copy(f_path, workflow_dir)
-#
-#        # We've parsed and added temp files to wf directory so we can chuck it
-#        shutil.rmtree(temp_dir, ignore_errors=True)
-#>>>>>>> develop
-
+        
         wf_utils.create_wf_metadata(wf_id, wf_name)
         _, tasks = wfi.get_workflow()
         for task in tasks:

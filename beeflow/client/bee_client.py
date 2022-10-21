@@ -8,11 +8,11 @@ import os
 import sys
 import logging
 import inspect
-import shutil
 import pathlib
-import subprocess
 import shutil
-import inspect
+import subprocess
+import textwrap
+import time
 import jsonpickle
 import requests
 import typer
@@ -45,21 +45,43 @@ class ClientError(Exception):
         self.args = args
 
 
-def error_exit(msg):
+def error_exit(msg, include_caller=True):
     """Print a message and exit or raise an error with that message."""
-    caller_func = str.capitalize(inspect.stack()[1].function)
-    msg = caller_func + ': ' + msg
+    if include_caller:
+        caller_func = str.capitalize(inspect.stack()[1].function)
+        msg = caller_func + ': ' + msg
     if _INTERACTIVE:
-        typer.secho(msg, fg=typer.colors.RED)
+        typer.secho(msg, fg=typer.colors.RED, file=sys.stderr)
         sys.exit(1)
     else:
         # Raise an error so that client libraries can handle it
         raise ClientError(msg) from None
 
 
+def error_handler(resp): # noqa (this is an error handler, it doesn't need to return an expression)
+    """Handle a 500 error in a response."""
+    if resp.status_code != 500:
+        return resp
+    data = resp.json()
+    if 'error' not in data:
+        return resp
+    error = data['error']
+    error_file = f'bee-error-{int(time.time())}.log'
+    # Save the args and exception info to the file
+    with open(error_file, 'w', encoding='utf-8') as fp:
+        fp.write(f'args: {" ".join(sys.argv)}\n')
+        fp.write(error)
+    msg = ('An error occurred with the WFM. Please save your workflow and the '
+           f'error log "{error_file}". If possible, please report this to the '
+           'BEE development team.')
+    msg = textwrap.fill(msg)
+    error_exit(msg, include_caller=False)
+
+
 def _wfm_conn():
     """Return a connection to the WFM."""
-    return Connection(bc.get('workflow_manager', 'socket'))
+    return Connection(bc.get('workflow_manager', 'socket'),
+                      error_handler=error_handler)
 
 
 def _url():
@@ -85,7 +107,7 @@ def check_short_id_collision():
     conn = _wfm_conn()
     resp = conn.get(_url(), timeout=60)
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit("Checking for ID collision failed: {resp.status_code}")
+        error_exit(f"Checking for ID collision failed: {resp.status_code}")
 
     workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
     if workflow_list:
@@ -181,6 +203,9 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.created:  # pylint: disable=no-member
+        if resp.status_code == 400:
+            data = resp.json()
+            error_exit(data['msg'])
         error_exit(f"Submit for {wf_name} failed. Please check the WF Manager.")
 
     check_short_id_collision()

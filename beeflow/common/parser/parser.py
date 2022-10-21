@@ -12,6 +12,7 @@ import json
 import os
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
+from schema_salad.exceptions import ValidationException  # noqa (pylama can't find the exception)
 
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_data import (InputParameter,
@@ -38,6 +39,14 @@ type_map = {
     "File": str,
     "Directory": str,
 }
+
+
+class CwlParseError(Exception):
+    """Parser error class."""
+
+    def __init__(self, *args):
+        """Create a parser error."""
+        self.args = args
 
 
 class CwlParser:
@@ -79,10 +88,13 @@ class CwlParser:
         :rtype: WorkflowInterface
         """
         self.path = cwl_path
-        self.cwl = cwl_parser.load_document(cwl_path)
+        try:
+            self.cwl = cwl_parser.load_document(cwl_path)
+        except ValidationException as err:
+            raise CwlParseError(*err.args) from None
 
         if self.cwl.class_ != "Workflow":
-            raise ValueError(f"{os.path.basename(cwl_path)} class must be Workflow")
+            raise CwlParseError(f"{os.path.basename(cwl_path)} class must be Workflow")
 
         if job:
             # Parse input job params into self.params
@@ -104,8 +116,8 @@ class CwlParser:
             if input_id not in self.params:
                 return None
             if not isinstance(self.params[input_id], type_map[type_]):
-                raise ValueError("Input/param types do not match: "
-                                 f"{input_id}/{self.params[input_id]}")
+                raise CwlParseError("Input/param types do not match: "
+                                    f"{input_id}/{self.params[input_id]}")
             return self.params[input_id]
 
         workflow_name = os.path.basename(cwl_path).split(".")[0]
@@ -144,7 +156,7 @@ class CwlParser:
             step_id = _shortname(step.id)
 
         if step_cwl.class_ != "CommandLineTool":
-            raise ValueError(f"Step {step.id} class must be CommandLineTool")
+            raise CwlParseError(f"Step {step.id} class must be CommandLineTool")
 
         step_name = os.path.basename(step_id).split(".")[0]
         step_command = step_cwl.baseCommand
@@ -177,13 +189,14 @@ class CwlParser:
             with open(job, encoding="utf-8") as fp:
                 self.params = json.load(fp)
         else:
-            raise ValueError("Unsupported input job file extension")
+            raise CwlParseError("Unsupported input job file extension (only .yml "
+                                "and .json supported)")
 
         for k, v in self.params.items():
             if not isinstance(k, str):
-                raise ValueError(f"Invalid input job key: {str(k)}")
+                raise CwlParseError(f"Invalid input job key: {str(k)}")
             if not isinstance(v, (str, int, float)):
-                raise ValueError(f"Invalid input job parameter type: {type(v)}")
+                raise CwlParseError(f"Invalid input job parameter type: {type(v)}")
 
     @staticmethod
     def parse_step_inputs(cwl_in, step_inputs):
@@ -206,7 +219,8 @@ class CwlParser:
             # be set by the GDB later
             if _shortname(step_input.id) not in source_map.keys():
                 if isinstance(step_input.type, str) and step_input.default is None:
-                    raise ValueError(f"required input {_shortname(step_input.id)} not satisfied")
+                    raise CwlParseError(f"required input {_shortname(step_input.id)} "
+                                        "not satisfied")
                 continue
 
             if isinstance(step_input.type, str):
@@ -252,14 +266,14 @@ class CwlParser:
         outputs = []
         for out in out_short:
             if out not in out_map.keys():
-                raise ValueError(f"specified step output {out} not produced by CommandLineTool")
+                raise CwlParseError(f"specified step output {out} not produced by CommandLineTool")
 
             output_type = out_map[out].type
             glob = None
             if output_type == "stdout":
                 if not stdout:
-                    raise ValueError((f"stdout capture required for step output {out} "
-                                      "but not specified by CommandLineTool"))
+                    raise CwlParseError(f"stdout capture required for step output {out} "
+                                        "but not specified by CommandLineTool")
                 # Fill in glob with value of stdout
                 glob = stdout
             elif output_type == "stderr":
@@ -294,9 +308,14 @@ class CwlParser:
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
                     base_path = os.path.dirname(self.path)
-                    path = os.path.join(base_path, items['dockerFile'])
-                    with open(path, encoding='utf-8') as fp:
-                        items['dockerFile'] = fp.read()
+                    docker_file = items['dockerFile']
+                    path = os.path.join(base_path, docker_file)
+                    try:
+                        with open(path, encoding='utf-8') as fp:
+                            items['dockerFile'] = fp.read()
+                    except FileNotFoundError:
+                        msg = f'Could not find the docker file: {docker_file}'
+                        raise CwlParseError(msg) from None
                 reqs.append(Hint(req['class'], items))
         else:
             for req in requirements:
