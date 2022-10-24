@@ -29,11 +29,12 @@ script will go to files in
     The task/step name used within the workflow submission
 
 Within this directory, you can find the submission script and two output files
-for stderr (extensions ``.err``) and stdout (extension ``.out``).
+for stderr (extension ``.err``) and stdout (extension ``.out``).
 
-If something bad happens, such as if BEE fails unexpectedly, then you may want
-to wrap up these output files as well as BEE's general logs and send them to a
-BEE developer for further inspection.
+If something bad happens, such as if BEE fails unexpectedly, then you may need
+to examine these output files. Sometimes the error may have to do with the
+environment or with a task's requirements. If you're unable to find the cause
+of the problem, then you should contact the BEE developers.
 
 .. _Jinja file:
 
