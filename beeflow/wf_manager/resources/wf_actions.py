@@ -26,7 +26,7 @@ class WFActions(Resource):
             return resp
         wfi.execute_workflow()
         tasks = wfi.get_ready_tasks()
-        wf_utils.schedule_submit_tasks(log, tasks)
+        wf_utils.schedule_submit_tasks(wf_id, log, tasks)
         wf_id = wfi.workflow_id
         wf_utils.update_wf_status(wf_id, 'Running')
         wf_db.update_workflow_state(wf_id, 'Running')
@@ -37,7 +37,6 @@ class WFActions(Resource):
     def get(wf_id):
         """Check the database for the current status of all tasks."""
         tasks = wf_db.get_tasks(wf_id)
-        print(f'tasks wtf {tasks}')
         tasks_status = []
         if not tasks:
             log.info(f"Bad query for wf {wf_id}.")
@@ -47,13 +46,11 @@ class WFActions(Resource):
                                  wf_status=wf_status, status='not found'), 404)
 
         for task in tasks:
-            print(task)
             tasks_status.append(f"{task.name}--{task.status}")
             #tasks_status = '\n'.join(tasks_status)
         tasks_status = '\n'.join(tasks_status)
         wf_status = wf_utils.read_wf_status(wf_id)
 
-        print(f'task_status {tasks_status}')
         resp = make_response(jsonify(tasks_status=tasks_status,
                              wf_status=wf_status, status='ok'), 200)
 
@@ -100,7 +97,7 @@ class WFActions(Resource):
         elif option == 'resume' and wf_state == 'PAUSED':
             wfi.resume_workflow()
             tasks = wfi.get_ready_tasks()
-            wf_utils.schedule_submit_tasks(log, tasks)
+            wf_utils.schedule_submit_tasks(wf_id, log, tasks)
             wf_utils.update_wf_status(wf_id, 'Running')
             wf_db.update_workflow_state(wf_id, 'Running')
             log.info("Workflow Paused")

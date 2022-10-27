@@ -21,10 +21,10 @@ TIMEOUT = 150
 # Extra slurmrestd arguments. This may be something to take on the command line
 SLURMRESTD_ARGS = bc.get('slurmrestd', 'slurm_args')
 GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
-                 requirements=[], inputs=[], outputs=[], stdout='',
+                 requirements=[], inputs=[], outputs=[], stdout='', stderr='',
                  workflow_id=uuid.uuid4().hex)
 BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[],
-                requirements=[], inputs=[], outputs=[], stdout='',
+                requirements=[], inputs=[], outputs=[], stdout='', stderr='',
                 workflow_id=uuid.uuid4().hex)
 
 

@@ -54,7 +54,6 @@ def get(stmt, params=None):
                 cursor.execute(stmt)
             result = cursor.fetchall()
         except Error as error:
-            print(f'Error in get: {error}')
             result = None
         return result
 
@@ -96,8 +95,7 @@ def init_tables():
                             status TEST NOT NULL,
                             run_dir STR,
                             bolt_port INTEGER,
-                            gdb_pid INTEGER
-                                                           );"""
+                            gdb_pid INTEGER);"""
 
     tasks_stmt = """CREATE TABLE IF NOT EXISTS tasks (
                     id INTEGER PRIMARY KEY,
@@ -212,9 +210,7 @@ def add_workflow(workflow_id, name, status, run_dir, bolt_port, gdb_pid):
         # Initialize the database
         init_tables()
 
-    stmt = """INSERT INTO workflows (workflow_id, name, status, run_dir,
-                                        bolt_port, gdb_pid)
-                                    VALUES(?, ?, ?, ?, ?, ?);"""
+    stmt = """INSERT INTO workflows (workflow_id, name, status, run_dir, bolt_port, gdb_pid) VALUES(?, ?, ?, ?, ?, ?);"""
     run(stmt, [workflow_id, name, status, run_dir, bolt_port, gdb_pid])
 
 
@@ -291,7 +287,6 @@ def get_tasks(workflow_id):
     """Get all tasks associated with a particular workflow."""
     stmt = "SELECT * FROM tasks WHERE workflow_id=?"
     result = get(stmt, [workflow_id])
-    print(f'TASK {result}')
     tasks = [Task(*task) for task in result]
     return tasks
 

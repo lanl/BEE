@@ -35,7 +35,8 @@ def generate_tasks(n):
     """Generate n tasks for testing."""
     return [
         Task(f'task-{i}', base_command=['ls', '/'], hints=[], requirements=[],
-             inputs=[], outputs=[], stdout=None, workflow_id=uuid.uuid4().hex)
+             inputs=[], outputs=[], stdout=None, stderr=None, 
+             workflow_id=uuid.uuid4().hex)
         for i in range(n)
     ]
 

@@ -17,21 +17,21 @@ def get_bee_workdir():
     return os.path.expanduser('~/.beeflow')
 
 
-def get_workflows_script_dir():
+def get_workflows_dir():
     """Get the workflows script directory from beeflow."""
     bee_workdir = get_bee_workdir()
     workflows_dir = os.path.join(bee_workdir, 'workflows')
     return workflows_dir
 
 
-def get_workflow_script_dir(wf_id):
+def get_workflow_dir(wf_id):
     """Get the workflow script dir for a particular workflow."""
-    return os.path.join(get_workflows_script_dir(), wf_id)
+    return os.path.join(get_workflows_dir(), wf_id)
 
 
-def create_wf_dir(wf_id):
+def create_workflow_dir(wf_id):
     """Create the workflows directory."""
-    os.makedirs(get_workflow_script_dir(wf_id))
+    os.makedirs(get_workflow_dir(wf_id))
 
 
 def create_current_run_dir():
@@ -228,9 +228,9 @@ def get_open_port():
     s.close()
     return port
 
-def schedule_submit_tasks(log, tasks):
+def schedule_submit_tasks(wf_id, log, tasks):
     """Schedule and then submit tasks to the TM."""
     # Submit ready tasks to the scheduler
     allocation = submit_tasks_scheduler(log, tasks)  #NOQA
     # Submit tasks to TM
-    submit_tasks_tm(log, tasks, allocation)
+    submit_tasks_tm(wf_id, log, tasks, allocation)

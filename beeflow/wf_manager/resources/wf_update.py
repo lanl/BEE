@@ -96,7 +96,7 @@ class WFUpdate(Resource):
                 return make_response(jsonify(status=f'Task {task_id} set to {job_state}'))
             # Submit the restart task
             tasks = [new_task]
-            wf_utils.schedule_submit_tasks(log, tasks)
+            wf_utils.schedule_submit_tasks(wf_id, log, tasks)
             return make_response(jsonify(status='Task {task_id} restarted'))
 
         if job_state in ('COMPLETED', 'FAILED'):
@@ -108,7 +108,7 @@ class WFUpdate(Resource):
             tasks = wfi.finalize_task(task)
             state = wfi.get_workflow_state()
             if tasks and state != 'PAUSED':
-                wf_utils.schedule_submit_tasks(log, tasks)
+                wf_utils.schedule_submit_tasks(wf_id, log, tasks)
 
             if wfi.workflow_completed():
                 log.info("Workflow Completed")

@@ -121,7 +121,6 @@ class WorkflowInterface:
         if hints is None:
             hints = []
 
-        print('IS THIS DOING SOMETHINGGGGG')
         task = Task(name, base_command, hints, requirements, inputs, outputs, stdout, stderr,
                     self._workflow_id)
         # Load the new task into the graph database
