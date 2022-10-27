@@ -3,8 +3,11 @@
 from abc import ABC, abstractmethod
 import os
 import jinja2
-from beeflow.common.log import main_log as log
+from beeflow.common import log as bee_logging
 from beeflow.common.crt_interface import ContainerRuntimeInterface
+
+
+log = bee_logging.setup(__name__)
 
 
 # Import all implemented container runtime drivers now
