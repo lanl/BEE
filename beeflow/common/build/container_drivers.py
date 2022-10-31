@@ -8,10 +8,12 @@ import shutil
 import subprocess
 import tempfile
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.log import main_log as log
+from beeflow.common import log as bee_logging
 from beeflow.common.build.build_driver import BuildDriver
-import beeflow.common.log as bee_logging
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
+
+
+log = bee_logging.setup(__name__)
 
 
 class ContainerBuildDriver(BuildDriver):
@@ -42,10 +44,6 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         :param kwargs: Dictionary of build system config options
         :type kwargs: set of build system parameters
         """
-        # Store build logs relative to bee_workdir.
-        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-        _ = bee_logging.save_log(bee_workdir=bee_workdir, log=log,
-                                 logfile='CharliecloudBuildDriver.log')
         # Store build container archive pased on config file or relative to bee_workdir if not set.
         container_archive = bc.get('builder', 'container_archive')
         self.container_archive = bc.resolve_path(container_archive)
