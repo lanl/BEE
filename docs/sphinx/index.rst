@@ -16,6 +16,7 @@
    installation
    examples
    bee_cwl
+   commands
    advanced_usage
    contribute
    development
