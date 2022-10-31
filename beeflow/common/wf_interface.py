@@ -6,7 +6,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 import re
 
 from beeflow.common.gdb_interface import GraphDatabaseInterface
-from beeflow.common.wf_data import Workflow, Task, generate_workflow_id
+from beeflow.common.wf_data import Workflow, Task
 
 
 class WorkflowInterface:
@@ -36,7 +36,8 @@ class WorkflowInterface:
             workflow, _ = self.get_workflow()
             self._workflow_id = workflow.id
 
-    def initialize_workflow(self, workflow_id, name, inputs, outputs, requirements=None, hints=None):
+    def initialize_workflow(self, workflow_id, name, inputs, outputs, requirements=None,
+                            hints=None):
         """Begin construction of a BEE workflow.
 
         :param workflow_id: the pre-generated workflow ID

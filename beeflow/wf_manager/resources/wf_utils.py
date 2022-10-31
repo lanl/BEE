@@ -55,14 +55,14 @@ def remove_wf_dir(wf_id):
     workflows_dir = os.path.join(bee_workdir, 'workflows', wf_id)
     if os.path.exists(workflows_dir):
         shutil.rmtree(workflows_dir)
-    #wf_db.delete_workflow(wf_id)
+    # wf_db.delete_workflow(wf_id)
 
 
 def create_wf_metadata(wf_id, wf_name):
     """Create workflow metadata files."""
     create_wf_name(wf_id, wf_name)
     create_wf_status(wf_id)
-    #wf_db.add_workflow(wf_id, wf_name, 'Pending')
+    # wf_db.add_workflow(wf_id, wf_name, 'Pending')
 
 
 def create_wf_name(wf_id, wf_name):
@@ -108,7 +108,7 @@ def create_wf_namefile(wf_name, wf_id):
         name.write(wf_name)
 
 
-def get_workflow_interface(wf_id):
+def get_workflow_interface(wf_id, log):
     """Instantiate and return workflow interface object."""
     bolt_port = wf_db.get_bolt_port(wf_id)
     try:
@@ -118,16 +118,17 @@ def get_workflow_interface(wf_id):
                                 password=bc.get("graphdb", "dbpass"))
     except KeyError:
         log.error('The default way to load WFI didnt work')
-        #wfi = WorkflowInterface()
+        # wfi = WorkflowInterface()
     return wfi
 
 
 def tm_url():
     """Get Task Manager url."""
-    #tm_listen_port = bc.get('task_manager', 'listen_port')
+    # tm_listen_port = bc.get('task_manager', 'listen_port')
     tm_listen_port = wf_db.get_tm_port()
     task_manager = "bee_tm/v1/task/"
     return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
+
 
 # Base URLs for the TM and the Scheduler
 TM_URL = "bee_tm/v1/task/"
@@ -142,7 +143,7 @@ def _connect_tm():
 def sched_url():
     """Get Scheduler url."""
     scheduler = "bee_sched/v1/"
-    #sched_listen_port = bc.get('scheduler', 'listen_port')
+    # sched_listen_port = bc.get('scheduler', 'listen_port')
     sched_listen_port = wf_db.get_sched_port()
     return f'http://127.0.0.1:{sched_listen_port}/{scheduler}'
 
@@ -165,7 +166,7 @@ def _resource(component, tag=""):
 # pylama:ignore=W0613
 def submit_tasks_tm(wf_id, log, tasks, allocation):
     """Submit a task to the task manager."""
-    wfi = get_workflow_interface(wf_id)
+    wfi = get_workflow_interface(wf_id, log)
     for task in tasks:
         metadata = wfi.get_task_metadata(task)
         task.workdir = metadata['workdir']
@@ -221,12 +222,14 @@ def submit_tasks_scheduler(log, tasks):
 
 
 def get_open_port():
+    """Return an open ephemeral port."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("",0))
+    s.bind(("", 0))
     s.listen(1)
     port = s.getsockname()[1]
     s.close()
     return port
+
 
 def schedule_submit_tasks(wf_id, log, tasks):
     """Schedule and then submit tasks to the TM."""

@@ -19,8 +19,6 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.wf_manager.resources import wf_utils
-from beeflow.wf_manager.common import wf_db
 
 # This must be imported before calling other parts of BEE
 bc.init()
@@ -67,10 +65,11 @@ def connect_db(fn):
 
 def _url():
     """Return  the url to the WFM."""
-    #workflow_manager = 'bee_wfm/v1/jobs/'
-    ##wfm_listen_port = bc.get('workflow_manager', 'listen_port')
-    #wfm_listen_port = wf_db.get_wfm_port()
-    #return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
+    # Saving this for whenever we need to run jobs across different machines
+    # workflow_manager = 'bee_wfm/v1/jobs/'
+    # #wfm_listen_port = bc.get('workflow_manager', 'listen_port')
+    # wfm_listen_port = wf_db.get_wfm_port()
+    # return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
     return 'bee_wfm/v1/jobs/'
 
 
@@ -79,18 +78,12 @@ def _resource(tag=""):
     return _url() + str(tag)
 
 
-#<<<<<<< HEAD
-#def update_task_state(workflow_id, task_id, job_state, **kwargs):
-#=======
 def _wfm_conn():
     """Get a new connection to the WFM."""
     return Connection(bc.get('workflow_manager', 'socket'))
 
 
-#def update_task_state(task_id, job_state, **kwargs):
 def update_task_state(workflow_id, task_id, job_state, **kwargs):
-#=======
-#>>>>>>> develop
     """Informs the workflow manager of the current state of a task."""
     data = {'wf_id': workflow_id, 'task_id': task_id, 'job_state': job_state}
     if 'metadata' in kwargs:
@@ -159,11 +152,6 @@ def submit_jobs(db):
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
             db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
-            # job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
-            # Update metadata
-            # task_metadata = gen_task_metadata(task, job_id)
-            # Need to
-            # task_metadata.replace("'", '"')
             # update_task_metadata(task.id, task_metadata)
         except Exception as err:
             # Set job state to failed

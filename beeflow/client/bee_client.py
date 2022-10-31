@@ -18,7 +18,6 @@ import requests
 import typer
 
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.wf_manager.common import wf_db
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
 
@@ -85,10 +84,10 @@ def _wfm_conn():
 
 
 def _url():
-#    """Returns URL to the workflow manager end point"""
-#    wfm_listen_port = wf_db.get_wfm_port()
-#    workflow_manager = 'bee_wfm/v1/jobs'
-#    return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
+    #    """Returns URL to the workflow manager end point"""
+    #    wfm_listen_port = wf_db.get_wfm_port()
+    #    workflow_manager = 'bee_wfm/v1/jobs'
+    #    return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
     """Return URL to the workflow manager end point."""
     return WORKFLOW_MANAGER
 
@@ -388,8 +387,8 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
               wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow archive'),
               workdir: pathlib.Path = typer.Argument(
                   ...,
-                  help='working directory for workflow containing input + output files'
-              )):
+                  help='working directory for workflow containing input + output files')
+              ):
     """Reexecute an archived workflow."""
     if os.path.exists(wf_path):
         wf_tarball = open(wf_path, 'rb')
@@ -398,7 +397,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 
     data = {
         'wf_filename': os.path.basename(wf_path).encode(),
-        'wf_name': wf_name.encode(), 
+        'wf_name': wf_name.encode(),
         'workdir': workdir
     }
     try:

@@ -22,6 +22,7 @@ from beeflow.common.wf_data import (InputParameter,
                                     Hint,
                                     Requirement,
                                     generate_workflow_id)
+from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.wf_interface import WorkflowInterface
 
 
@@ -65,7 +66,6 @@ class CwlParser:
 
         try:
             self._wfi = WorkflowInterface(user="neo4j",
-                                          #bolt_port=bc.get("graphdb", "bolt_port"),
                                           bolt_port=bolt_port,
                                           db_hostname=bc.get("graphdb", "hostname"),
                                           password=bc.get("graphdb", "dbpass"))
@@ -359,7 +359,8 @@ def parse_args(args=None):
 
 def main():
     """Run the parser on a CWL Workflow and job file directly."""
-    parser = CwlParser()
+    bolt_port = wf_utils.get_open_port()
+    parser = CwlParser(bolt_port)
     args = parse_args()
     parser.parse_workflow(generate_workflow_id(), args.wf_file, args.inputs)
 

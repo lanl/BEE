@@ -17,13 +17,15 @@ class TestParser(unittest.TestCase):
     def setUpClass(cls):
         """Start the GDB, initialize the CWL parser, which connects to the GDB."""
         gdb.start()
-        cls.parser = CwlParser()
+        bolt_port = 42
+        cls.parser = CwlParser(bolt_port)
         cls.wfi = cls.parser._wfi
 
     @classmethod
     def tearDownClass(cls):
         """Stop the GDB."""
-        gdb.stop()
+        pid = 23
+        gdb.stop(pid)
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
@@ -55,7 +57,7 @@ class TestParser(unittest.TestCase):
         """Test parsing of a workflow without an input job file."""
         cwl_wfi_file = "cf.cwl"
         workflow_id = generate_workflow_id()
-        #cwl_wfi_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
+        # cwl_wfi_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
 
         # Test workflow parsing without input job file
         wfi = self.parser.parse_workflow(workflow_id, cwl_wfi_file)

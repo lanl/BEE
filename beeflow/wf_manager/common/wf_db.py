@@ -53,7 +53,7 @@ def get(stmt, params=None):
             else:
                 cursor.execute(stmt)
             result = cursor.fetchall()
-        except Error as error:
+        except Error:
             result = None
         return result
 
@@ -62,14 +62,11 @@ def table_exists(table_name):
     """Return true if a table exists and false if not."""
     stmt = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';"
     result = get(stmt)
-    if len(result) != 0:
-        return True
-    else:
-        return False
+    return len(result) != 0
 
 
 def get_table_length(table):
-    """Returns the number of rows in a table."""
+    """Return the number of rows in a table."""
     stmt = f"SELECT COUNT(*) from {table}"
     result = get(stmt)
     rows = result[0][0]
@@ -131,7 +128,7 @@ Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows")
 
 
 def get_info():
-    """"Return an info object containing port information."""
+    """Return an info object containing port information."""
     stmt = "SELECT * FROM info"
     result = get(stmt)
     info = Info(*result[0])
@@ -210,7 +207,9 @@ def add_workflow(workflow_id, name, status, run_dir, bolt_port, gdb_pid):
         # Initialize the database
         init_tables()
 
-    stmt = """INSERT INTO workflows (workflow_id, name, status, run_dir, bolt_port, gdb_pid) VALUES(?, ?, ?, ?, ?, ?);"""
+    stmt = ("INSERT INTO workflows (workflow_id, name, status, run_dir, bolt_port, gdb_pid) "
+            "VALUES(?, ?, ?, ?, ?, ?);"
+            )
     run(stmt, [workflow_id, name, status, run_dir, bolt_port, gdb_pid])
 
 

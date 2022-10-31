@@ -16,7 +16,9 @@ from beeflow.common.wf_interface import WorkflowInterface
 import gdb # noqa (this imports beeflow modules)
 
 # The PID for the gdb instance
-gdb_pid = -1
+
+GDB_PID = -1
+
 
 class TestWorkflowInterface(unittest.TestCase):
     """Unit test case for the workflow interface."""
@@ -24,7 +26,7 @@ class TestWorkflowInterface(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Start the GDB and initialize the Workflow interface."""
-        gdb_pid = gdb.start()
+        GDB_PID = gdb.start() #noqa
         cls.wfi = WorkflowInterface(user="neo4j",
                                     bolt_port=bc.get("graphdb", "bolt_port"),
                                     db_hostname=bc.get("graphdb", "hostname"),
@@ -33,7 +35,7 @@ class TestWorkflowInterface(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """Tear down method to stop the running GDB."""
-        gdb.stop(gdb_pid)
+        gdb.stop(GDB_PID)
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
@@ -138,7 +140,8 @@ class TestWorkflowInterface(unittest.TestCase):
             self.wfi.set_task_state(task, "COMPLETED")
             self.assertEqual("COMPLETED", self.wfi.get_task_state(task))
 
-        self.wfi.reset_workflow()
+        workflow_id = 42
+        self.wfi.reset_workflow(workflow_id)
 
         # States should be reset, metadata should be deleted
         for task in tasks:
@@ -227,7 +230,7 @@ class TestWorkflowInterface(unittest.TestCase):
         stdout = "output.txt"
         stderr = "output-err.txt"
         test_checkpoint_file = "backup0.crx"
-        #test_checkpoint_file = "/backup0.crx"
+        # test_checkpoint_file = "/backup0.crx"
 
         self.wfi.initialize_workflow(
             generate_workflow_id(), "test_workflow",

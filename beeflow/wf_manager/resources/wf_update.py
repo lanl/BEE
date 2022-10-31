@@ -59,7 +59,7 @@ class WFUpdate(Resource):
         task_id = data['task_id']
         job_state = data['job_state']
 
-        wfi = wf_utils.get_workflow_interface(wf_id)
+        wfi = wf_utils.get_workflow_interface(wf_id, log)
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
         wf_db.update_task_state(task_id, wf_id, job_state)
@@ -119,5 +119,6 @@ class WFUpdate(Resource):
                 pid = wf_db.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
 
-        resp = make_response(jsonify(status=f'Task {task_id} belonging to WF {wf_id} set to {job_state}'), 200)
+        resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
+                                             f'{job_state}')), 200)
         return resp

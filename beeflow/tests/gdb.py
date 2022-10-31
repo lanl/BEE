@@ -4,11 +4,10 @@ from beeflow.wf_manager.common import dep_manager
 from beeflow.wf_manager.resources import wf_utils
 
 
-
 def start():
     """Start the GDB."""
-    #dep_manager.kill_gdb()
-    #dep_manager.remove_current_run()
+    # dep_manager.kill_gdb()
+    # dep_manager.remove_current_run()
     try:
         dep_manager.create_image()
     except dep_manager.NoContainerRuntime:
@@ -24,4 +23,4 @@ def start():
 def stop(pid):
     """Stop the GDB."""
     dep_manager.kill_gdb(pid)
-    #dep_manager.remove_current_run()
+    # dep_manager.remove_current_run()

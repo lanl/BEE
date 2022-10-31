@@ -27,9 +27,9 @@ class MockWFI:
         """Resume a workflow."""
         return
 
-    def reset_workflow(self, wf_id):
+    def reset_workflow(self, wf_id): #noqa
         """Reset a workflow."""
-        return
+        wf_id = 0 # noqa
 
     def get_dependent_tasks(self, task): # noqa
         """Get depdendent states."""
@@ -107,8 +107,9 @@ def mock_create_image(): # noqa
 
 class MockCwlParser:
     """Mock the CWLParser."""
-    
+
     def __init__(self, bolt_port):
+        """Need a port."""
         self.bolt_port = bolt_port
 
 

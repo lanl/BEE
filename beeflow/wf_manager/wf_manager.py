@@ -2,8 +2,6 @@
 
 from flask import Flask
 from beeflow.common.api import BeeApi
-# Need to double check if bc is actuallly needed here
-from beeflow.common.config_driver import BeeConfig as bc
 
 from beeflow.wf_manager.resources.wf_list import WFList
 from beeflow.wf_manager.resources.wf_actions import WFActions

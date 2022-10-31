@@ -4,7 +4,6 @@ import pathlib
 import pytest
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.wf_manager.common import dep_manager
 from beeflow.wf_manager.common import wf_db
 from beeflow.tests.mocks import MockWFI, MockCwlParser
 from beeflow.common.config_driver import BeeConfig as bc
@@ -55,6 +54,7 @@ def _url():
 def _resource(tag=""):
     """Return the url for the workflow manager endpoint."""
     return _url() + str(tag)
+
 
 # WFList Tests
 def test_submit_workflow(client, mocker, teardown_workflow):

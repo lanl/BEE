@@ -15,8 +15,7 @@ from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.log import main_log as log
 from beeflow.common.db import sched
 import beeflow.common.log as bee_logging
-from beeflow.wf_manager.common import wf_db
-from beeflow.wf_manager.resources import wf_utils
+
 
 sys.excepthook = bee_logging.catch_exception
 
@@ -68,7 +67,7 @@ class WorkflowJobHandler(Resource):
 
     @staticmethod
     @connect_db
-    def put(db, workflow_name):
+    def put(db):
         """Schedules a new list of independent tasks with available resources."""
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
@@ -144,8 +143,8 @@ def create_app():
     algorithms.load(**vars(conf))
 
     # Create the scheduler workdir, if necessary
-    #sched_listen_port = wf_utils.get_open_port()
-    #wf_db.set_sched_port(sched_listen_port)
+    # sched_listen_port = wf_utils.get_open_port()
+    # wf_db.set_sched_port(sched_listen_port)
     os.makedirs(conf.workdir, exist_ok=True)
     return flask_app
 

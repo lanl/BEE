@@ -67,11 +67,11 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
         subprocess.run(['tar', '-xf', archive_path, '-C', wf_dir], check=False)
         cwl_dir = os.path.join(wf_dir, filename.split('.')[0])
         return cwl_dir
-    else:
-        subprocess.run(['tar', '-xf', archive_path, '--strip-components=1', 
-                        '-C', wf_dir], check=False)
-        archive_dir = os.path.join(wf_dir, 'gdb')
-        return archive_dir
+
+    subprocess.run(['tar', '-xf', archive_path, '--strip-components=1',
+                    '-C', wf_dir], check=False)
+    archive_dir = os.path.join(wf_dir, 'gdb')
+    return archive_dir
 
 
 class WFList(Resource):
@@ -130,13 +130,13 @@ class WFList(Resource):
         wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
         try:
-            #wfi = parse_workflow(wf_path, main_cwl, yaml_file)
+            # wfi = parse_workflow(wf_path, main_cwl, yaml_file)
             wfi = parse_workflow(wf_id, wf_dir, main_cwl, yaml_file, bolt_port)
         except CwlParseError as err:
             log.error('Failed to parse file')
             return make_response(jsonify(msg=f'Parser: {err.args[0]}', status='error'), 400)
         # initialize_wf_profiler(wf_name)
-        
+
         wf_utils.create_wf_metadata(wf_id, wf_name)
         _, tasks = wfi.get_workflow()
         for task in tasks:
@@ -178,11 +178,11 @@ class WFList(Resource):
         bolt_port = wf_utils.get_open_port()
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
-        gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, 
+        gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port,
                                         https_port, reexecute=True)
         wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
-        wfi = wf_utils.get_workflow_interface(wf_id)
+        wfi = wf_utils.get_workflow_interface(wf_id, log)
         wfi.reset_workflow(wf_id)
         wf_utils.create_wf_metadata(wf_id, wf_name)
 

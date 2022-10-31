@@ -2,7 +2,6 @@
 
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
-#from beeflow.cli import log
 from beeflow.wf_manager.common import wf_db
 from beeflow.common.log import main_log as log
 from beeflow.wf_manager.resources import wf_utils
@@ -17,7 +16,7 @@ class WFActions(Resource):
 
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
-        wfi = wf_utils.get_workflow_interface(wf_id)
+        wfi = wf_utils.get_workflow_interface(wf_id, log)
         state = wfi.get_workflow_state()
         if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
             resp = make_response(jsonify(msg='Cannot start workflow it is '
@@ -47,30 +46,17 @@ class WFActions(Resource):
 
         for task in tasks:
             tasks_status.append(f"{task.name}--{task.status}")
-            #tasks_status = '\n'.join(tasks_status)
         tasks_status = '\n'.join(tasks_status)
         wf_status = wf_utils.read_wf_status(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,
                              wf_status=wf_status, status='ok'), 200)
-
-        #wfi = wf_utils.get_workflow_interface(wf_id)
-        #if wfi is not None:
-        #    (_, tasks) = wfi.get_workflow()
-        #    tasks_status = []
-        #    for task in tasks:
-        #        tasks_status.append(f"{task.name}--{wfi.get_task_state(task)}")
-        #    tasks_status = '\n'.join(tasks_status)
-        #    wf_status = wf_utils.read_wf_status(wf_id)
-        #    log.info("Returned workflow status.")
-        #    resp = make_response(jsonify(tasks_status=tasks_status,
-        #                         wf_status=wf_status, status='ok'), 200)
         return resp
 
     @staticmethod
     def delete(wf_id):
         """Cancel the workflow. Lets current tasks finish running."""
-        wfi = wf_utils.get_workflow_interface(wf_id)
+        wfi = wf_utils.get_workflow_interface(wf_id, log)
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()
@@ -86,7 +72,7 @@ class WFActions(Resource):
         self.reqparse.add_argument('option', type=str, location='json')
         option = self.reqparse.parse_args()['option']
 
-        wfi = wf_utils.get_workflow_interface()
+        wfi = wf_utils.get_workflow_interface(wf_id, log)
         wf_state = wfi.get_workflow_state()
         if option == 'pause' and wf_state == 'RUNNING':
             wfi.pause_workflow()
