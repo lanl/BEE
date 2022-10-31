@@ -92,7 +92,7 @@ Here is a small example of a Jinja submit file for Slurm::
     srun {{ cmd|join(' ') }}
     {% endfor %}
 
-By default when you run ``bee_cfg new``, a default template file will be
+By default when you run ``beecfg new``, a default template file will be
 generated for you, not unlike the one above.  The default template for Slurm
 accepts the number of nodes and the number of tasks and submits corresponding
 ``#SBATCH`` directives for the job. You may also add other ``#SBATCH`` (or for
@@ -119,7 +119,7 @@ Python code, except being delimited by ``{% .. %}``.
 .. _if: https://jinja.palletsprojects.com/en/3.1.x/templates/#if
 .. _for: https://jinja.palletsprojects.com/en/3.1.x/templates/#for
 
-Check the bee configuration file (bee.conf) or type ``bee_cfg show`` for the
+Check the bee configuration file (bee.conf) or type ``beecfg show`` for the
 current location of your job_template. If you need to, edit it for your
 particular needs.
 
@@ -145,9 +145,9 @@ The procedure would be to submit some workflows like the following:
 
     mkdir results1
     mkdir results2
-    bee_client submit cgt1 ./cat-grep-tar.tgz workflow.cwl input.yml results1
-    bee_client submit cgt2 ./cat-grep-tar.tgz workflow.cwl input.yml results2
-    bee_client listall
+    beeclient submit cgt1 ./cat-grep-tar.tgz workflow.cwl input.yml results1
+    beeclient submit cgt2 ./cat-grep-tar.tgz workflow.cwl input.yml results2
+    beeclient listall
 
 .. code-block::
 
@@ -155,5 +155,5 @@ The procedure would be to submit some workflows like the following:
     cgt1  b33fd3  Pending
     cgt2  9a378c  Pending
 
-You could then start each workflow with the ``bee_client start <WFID>`` command and query for the status of their tasks separately using ``bee_client query <WFID>``.
+You could then start each workflow with the ``beeclient start <WFID>`` command and query for the status of their tasks separately using ``beeclient query <WFID>``.
 

@@ -50,10 +50,10 @@ dependency container** and the type of workload scheduler (Slurm or LSF). (On
 LANL systems you may use the BEE provided container:
 **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**).
 
-Once you are ready type ``bee_cfg new``
+Once you are ready type ``beecfg new``
 
 The bee.conf configuration file is a text file and you can edit it for your
-needs. You may show the contents by typing ``bee_cfg show``. You may also want
+needs. You may show the contents by typing ``beecfg show``. You may also want
 to take a look at the :ref:`Jinja file`, which is how submission scripts are
 generated. The default file is listed with the ``job_template`` option under
 the ``[task_manager]`` section.
@@ -63,8 +63,8 @@ the ``[task_manager]`` section.
 systems have small quotas for home directories and containers can be large
 files.**
 
-**bee_cfg** has other options including a configuration validator. For more
-information or help run: ``bee_cfg info`` or ``bee_cfg --help``
+**beecfg** has other options including a configuration validator. For more
+information or help run: ``beecfg info`` or ``beecfg --help``
 
 Starting up the BEE components:
 -------------------------------
@@ -94,11 +94,11 @@ Some HPC systems have multiple front-ends. Run your workflows and components on 
 Stopping the BEE components:
 -------------------------------
 
-If at some point you would like to stop the beeflow components, you should first verify that all workflows are complete (archived). (If there are pending workflows, it is also fine to stop the components because you can restart beeflow later and start pending workflows with the "bee_client start" command).
+If at some point you would like to stop the beeflow components, you should first verify that all workflows are complete (archived). (If there are pending workflows, it is also fine to stop the components because you can restart beeflow later and start pending workflows with the "beeclient start" command).
 
 .. code-block::
 
-    bee_client listall
+    beeclient listall
 
 .. code-block::
 

@@ -61,8 +61,8 @@ sequence of commands:
 .. code-block::
 
     cd $WORKDIR_PATH
-    bee_client package examples/cat-grep-tar . # Tars up the workflow
-    bee_client submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
+    beeclient package examples/cat-grep-tar . # Tars up the workflow
+    beeclient submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
 
 This first command packages the workflow into a tarball, which makes it easy to
 pass everything over to the Workflow Manager and finally submits the workflow,
@@ -78,10 +78,10 @@ ID:
 
 .. code-block::
 
-    bee_client start $ID
+    beeclient start $ID
 
 Now the workflow should start up. While the workflow is running you can check
-the status by running a ``bee_client query $ID``. On completion, each step
+the status by running a ``beeclient query $ID``. On completion, each step
 should be in a ``COMPLETED`` state.
 
 After all steps have finished, you should see a number of files that have been
@@ -144,8 +144,8 @@ If you have not started the beeflow components, refer to Installation Guide.
 
 .. code-block::
 
-    bee_client package <path to BEE>/examples/clamr-ffmpeg-build .
-    bee_client submit clamr-example clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml .
+    beeclient package <path to BEE>/examples/clamr-ffmpeg-build .
+    beeclient submit clamr-example clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml .
 
 Output:
 
@@ -158,7 +158,7 @@ Start workflow using the workflow id from the output:
 
 .. code-block::
 
-    bee_client start fce80d # use the actual workflow id
+    beeclient start fce80d # use the actual workflow id
 
 Output:
 
@@ -174,7 +174,7 @@ pre-processing building phase and will only be performed once. In this example
 both steps use the container that is built in the pre-processing stage. Once
 the build has been completed the Charliecloud image will be in the container
 archive location specified in the builder section of the bee configuration
-file. You can list contents of the configuration file using ``bee_cfg list``.
+file. You can list contents of the configuration file using ``beecfg list``.
 
 The status of the workflow will progress to completion and can be queried as
 shown:
@@ -184,7 +184,7 @@ Check the status:
 
 .. code-block::
 
-    bee_client query fce80d
+    beeclient query fce80d
 
 Output:
 
@@ -198,7 +198,7 @@ Check the status:
 
 .. code-block::
 
-    bee_client query fce80d
+    beeclient query fce80d
 
 Output:
 
@@ -212,7 +212,7 @@ When completed:
 
 .. code-block::
 
-    bee_client query fce80d
+    beeclient query fce80d
 
 Output:
 
@@ -224,7 +224,7 @@ Output:
 
 The archived workflow with associated job outputs will be in the
 **bee_workdir** see the default section of your configuration file (to list
-configuration file contents run ``bee_cfg list``). This workflow also produces
+configuration file contents run ``beecfg list``). This workflow also produces
 output from CLAMR and ffmpeg in the directory where you submitted the workflow :
 
 .. code-block::
