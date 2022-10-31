@@ -1,7 +1,7 @@
 """Start up the workflow manager connecting all of the endpoints."""
 
 from flask import Flask
-from flask_restful import Api
+from beeflow.common.api import BeeApi
 from beeflow.common.config_driver import BeeConfig as bc
 
 from beeflow.wf_manager.resources.wf_list import WFList
@@ -16,7 +16,7 @@ import beeflow.common.log as bee_logging
 def create_app():
     """Create flask app object and add REST endpoints."""
     app = Flask(__name__)
-    api = Api(app)
+    api = BeeApi(app)
 
     # Add endpoints
     api.add_resource(WFList, '/bee_wfm/v1/jobs/')
