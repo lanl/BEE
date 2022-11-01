@@ -308,7 +308,7 @@ def status():
 def stop():
     """Stop the current running beeflow daemon."""
     stop_msg = ("\n** Please ensure all workflows are complete before stopping beeflow. **"
-                + "\n** Check the status of workflows by running 'bee_client listall'.    **"
+                + "\n** Check the status of workflows by running 'beeclient listall'.    **"
                 + "\nAre you sure you want to kill beeflow components? [y/n] ")
     ans = input(stop_msg)
     if ans.lower() != 'y':

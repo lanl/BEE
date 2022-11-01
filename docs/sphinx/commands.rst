@@ -1,15 +1,17 @@
 Commands
 ************
 
-There are two main commands that you should be familiar with to use BEE. Those are "beeflow" and "beeclient". Each of these have sub-commands to do various things with the client or daemon. 
+The main commands that you should be familiar with to use BEE are "**beeflow**" and "**beeclient**". Each of these have sub-commands to do various things with the client or daemon.
+The command "**beecfg**" is used to set up and validate your BEE configuration.
 
 
 beeflow
 ============
 
-beeflow is the command you will use to interact with the daemon process. The following are the options:
+**beeflow** is the command you will use to interact with the daemon process. The following are the options:
 
-``beeflow start``: Attempt to daemonize (if not in debug) and start all BEE components.
+``beeflow start``: Daemonize (if not in debug) and start all BEE components.
+
 
 Options:
   -F, --foreground  run in the foreground  [default: False]
@@ -24,7 +26,7 @@ Options:
 beeclient
 ===========
 
-beeclient is the command you will use to submit jobs and interact with your jobs. The following are the options:
+**beeclient** is the command you will use to submit workflows and interact with your workflows. The following are the options:
 
 ``beeclient submit``: Submit a new workflow.
 
@@ -77,5 +79,19 @@ Arguments:
 
 Arguments:
   WF_ID  [required]
+
+beecfg
+===========
+
+**beecfg** is the command you will use to configure BEE for your workflows.
+
+``beecfg validate``: Validate an existing configuration file.
+
+``beecfg info``: Display some info about bee.conf's various options.
+
+``beecfg new``: Create a new config file.
+
+``beecfg show``: Show the contents of current bee.conf.
+
 
 
