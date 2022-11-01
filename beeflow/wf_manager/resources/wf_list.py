@@ -13,13 +13,16 @@ from flask import make_response, jsonify
 from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
 
-from beeflow.common.log import main_log as log
+from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.common.parser import CwlParser, CwlParseError
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
 from beeflow.wf_manager.common import wf_db
+
+
+log = bee_logging.setup(__name__)
 
 
 def parse_workflow(workflow_dir, main_cwl, yaml_file):
