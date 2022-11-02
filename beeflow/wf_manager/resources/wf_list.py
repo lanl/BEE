@@ -6,6 +6,7 @@ This contains endpoints forsubmitting, starting, and reexecuting workflows.
 import os
 import subprocess
 import jsonpickle
+import traceback
 
 from flask import make_response, jsonify
 from werkzeug.datastructures import FileStorage
@@ -133,6 +134,7 @@ class WFList(Resource):
             # wfi = parse_workflow(wf_path, main_cwl, yaml_file)
             wfi = parse_workflow(wf_id, wf_dir, main_cwl, yaml_file, bolt_port)
         except CwlParseError as err:
+            traceback.print_exc()
             log.error('Failed to parse file')
             return make_response(jsonify(msg=f'Parser: {err.args[0]}', status='error'), 400)
         # initialize_wf_profiler(wf_name)

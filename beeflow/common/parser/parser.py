@@ -10,6 +10,7 @@ import sys
 import argparse
 import json
 import os
+import traceback
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException  # noqa (pylama can't find the exception)
@@ -91,6 +92,7 @@ class CwlParser:
         try:
             self.cwl = cwl_parser.load_document(cwl_path)
         except ValidationException as err:
+            traceback.print_exc()
             raise CwlParseError(*err.args) from None
 
         if self.cwl.class_ != "Workflow":
@@ -182,7 +184,7 @@ class CwlParser:
         :param job: the path of the input job file (YAML or JSON)
         :type job: str
         """
-        if job.endswith(".yml"):
+        if job.endswith(".yml") or job.endswith(".yaml"):
             with open(job, encoding="utf-8") as fp:
                 self.params = yaml.full_load(fp)
         elif job.endswith(".json"):
