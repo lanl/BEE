@@ -77,7 +77,7 @@ def send(path, msg):
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         try:
             s.connect(path)
-        except FileNotFoundError:
+        except (FileNotFoundError, ConnectionRefusedError):
             return None
         # Send everything
         _send_message(s, msg)
