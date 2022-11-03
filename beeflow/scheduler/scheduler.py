@@ -2,7 +2,6 @@
 """REST Interface for the BEE Scheduler."""
 
 import argparse
-import sys
 import os
 
 from flask import Flask, request
@@ -12,12 +11,11 @@ from beeflow.scheduler import algorithms
 from beeflow.scheduler import task
 from beeflow.scheduler import resource_allocation
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.log import main_log as log
 from beeflow.common.db import sched
-import beeflow.common.log as bee_logging
+from beeflow.common import log as bee_logging
 
 
-sys.excepthook = bee_logging.catch_exception
+log = bee_logging.setup(__name__)
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -136,8 +134,6 @@ def create_app():
     """Create the Flask app for the scheduler."""
     # TODO: Refactor this to actually create the app here
     conf = load_config_values()
-    workdir = bc.get('DEFAULT', 'bee_workdir')
-    bee_logging.save_log(bee_workdir=workdir, log=log, logfile='scheduler.log')
     flask_app.sched_conf = conf
     # Load algorithm data
     algorithms.load(**vars(conf))

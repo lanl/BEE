@@ -3,8 +3,11 @@
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.wf_manager.common import wf_db
-from beeflow.common.log import main_log as log
+from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
+
+
+log = bee_logging.setup(__name__)
 
 
 class WFActions(Resource):

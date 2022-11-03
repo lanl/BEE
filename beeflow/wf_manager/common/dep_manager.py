@@ -10,12 +10,12 @@ import shutil
 import signal
 import subprocess
 
-import beeflow.common.log as bee_logging
+from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.config_driver import BeeConfig as bc
 
 
-dep_log = bee_logging.setup_logging(level='DEBUG')
+dep_log = bee_logging.setup(__name__)
 
 
 class NoContainerRuntime(Exception):

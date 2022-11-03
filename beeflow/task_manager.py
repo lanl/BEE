@@ -25,16 +25,15 @@ bc.init()
 
 print(sys.argv)
 
-from beeflow.common.log import main_log as log
+from beeflow.common import log as bee_logging
 from beeflow.common.build_interfaces import build_main
-import beeflow.common.log as bee_logging
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.connection import Connection
 import beeflow.common.worker as worker_pkg
 from beeflow.common.db import tm
 
-sys.excepthook = bee_logging.catch_exception
 
+log = bee_logging.setup(__name__)
 
 runtime = bc.get('task_manager', 'container_runtime')
 

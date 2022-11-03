@@ -4,6 +4,7 @@ Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 """
 
 import abc
+import os
 import time
 
 from beeflow.scheduler import resource_allocation
@@ -270,6 +271,8 @@ class AlgorithmLogWrapper:
         results out to a log file.
         """
         self.cls.schedule_all(tasks, resources, **self.kwargs)
+        # Make the directory, just in case it doesn't exist already
+        os.makedirs(os.path.dirname(self.alloc_logfile), exist_ok=True)
         with open(self.alloc_logfile, 'a', encoding='utf-8') as fp:
             print('; Log start at', time.time(), file=fp)
             # curr_allocs = []

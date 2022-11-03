@@ -7,9 +7,7 @@ from beeflow.wf_manager.resources.wf_list import WFList
 from beeflow.wf_manager.resources.wf_actions import WFActions
 from beeflow.wf_manager.resources.wf_update import WFUpdate
 
-from beeflow.common.log import main_log as log
 from beeflow.wf_manager.resources import wf_utils
-import beeflow.common.log as bee_logging
 from beeflow.wf_manager.common import wf_db
 
 
@@ -28,7 +26,7 @@ def create_app():
 if __name__ == '__main__':
     flask_app = create_app()
     bee_workdir = wf_utils.get_bee_workdir()
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='wf_manager.log')
-    wfm_listen_port = wf_utils.get_open_port()
-    wf_db.set_wfm_port(wfm_listen_port)
-    flask_app.run(debug=False, port=str(wfm_listen_port))
+    # handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='wf_manager.log')
+    # wfm_listen_port = wf_utils.get_open_port()
+    # wf_db.set_wfm_port(wfm_listen_port)
+    # flask_app.run(debug=False, port=str(wfm_listen_port))
