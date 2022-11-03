@@ -8,7 +8,6 @@ from beeflow.wf_manager.resources.wf_actions import WFActions
 from beeflow.wf_manager.resources.wf_update import WFUpdate
 
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.wf_manager.common import wf_db
 
 
 def create_app():

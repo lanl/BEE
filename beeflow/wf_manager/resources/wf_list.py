@@ -5,8 +5,8 @@ This contains endpoints forsubmitting, starting, and reexecuting workflows.
 
 import os
 import subprocess
-import jsonpickle
 import traceback
+import jsonpickle
 
 from flask import make_response, jsonify
 from werkzeug.datastructures import FileStorage
@@ -22,6 +22,7 @@ from beeflow.wf_manager.common import wf_db
 from beeflow.common import wf_data
 
 log = bee_logging.setup(__name__)
+
 
 def parse_workflow(wf_id, workflow_dir, main_cwl, yaml_file, bolt_port):
     """Run the parser."""
