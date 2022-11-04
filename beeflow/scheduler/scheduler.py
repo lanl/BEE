@@ -17,7 +17,6 @@ from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
 
-
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
@@ -66,9 +65,8 @@ class WorkflowJobHandler(Resource):
 
     @staticmethod
     @connect_db
-    def put(db, workflow_name):
+    def put(db):
         """Schedules a new list of independent tasks with available resources."""
-        print('Scheduling', workflow_name)
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
@@ -141,6 +139,8 @@ def create_app():
     algorithms.load(**vars(conf))
 
     # Create the scheduler workdir, if necessary
+    # sched_listen_port = wf_utils.get_open_port()
+    # wf_db.set_sched_port(sched_listen_port)
     os.makedirs(conf.workdir, exist_ok=True)
     return flask_app
 
