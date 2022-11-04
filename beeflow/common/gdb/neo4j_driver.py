@@ -562,7 +562,7 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
     rec = task_record["t"]
     return Task(name=rec["name"], base_command=rec["base_command"], hints=hints,
                 requirements=requirements, inputs=inputs, outputs=outputs, stdout=rec["stdout"],
-                workflow_id=rec["workflow_id"], task_id=rec["id"])
+                stderr=rec["stderr"], workflow_id=rec["workflow_id"], task_id=rec["id"])
 
 
 def _reconstruct_metadata(metadata_record):

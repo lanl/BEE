@@ -37,6 +37,7 @@ log = bee_logging.setup(__name__)
 
 runtime = bc.get('task_manager', 'container_runtime')
 
+
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
@@ -63,6 +64,11 @@ def connect_db(fn):
 
 def _url():
     """Return  the url to the WFM."""
+    # Saving this for whenever we need to run jobs across different machines
+    # workflow_manager = 'bee_wfm/v1/jobs/'
+    # #wfm_listen_port = bc.get('workflow_manager', 'listen_port')
+    # wfm_listen_port = wf_db.get_wfm_port()
+    # return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
     return 'bee_wfm/v1/jobs/'
 
 
@@ -76,9 +82,9 @@ def _wfm_conn():
     return Connection(bc.get('workflow_manager', 'socket'))
 
 
-def update_task_state(task_id, job_state, **kwargs):
+def update_task_state(workflow_id, task_id, job_state, **kwargs):
     """Informs the workflow manager of the current state of a task."""
-    data = {'task_id': task_id, 'job_state': job_state}
+    data = {'wf_id': workflow_id, 'task_id': task_id, 'job_state': job_state}
     if 'metadata' in kwargs:
         kwargs['metadata'] = jsonpickle.encode(kwargs['metadata'])
 
@@ -145,11 +151,6 @@ def submit_jobs(db):
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
             db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
-            # job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
-            # Update metadata
-            # task_metadata = gen_task_metadata(task, job_id)
-            # Need to
-            # task_metadata.replace("'", '"')
             # update_task_metadata(task.id, task_metadata)
         except Exception as err:
             # Set job state to failed
@@ -161,7 +162,7 @@ def submit_jobs(db):
         finally:
             # Send the initial state to WFM
             # update_task_state(task.id, job_state, metadata=task_metadata)
-            update_task_state(task.id, job_state)
+            update_task_state(task.workflow_id, task.id, job_state)
 
 
 def get_task_checkpoint(task):
@@ -232,11 +233,11 @@ def update_jobs(db):
                     checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
                     log.info(f'Restart: {task.name} task_info: {task_info}')
-                    update_task_state(task.id, job_state, task_info=task_info)
+                    update_task_state(task.workflow_id, task.id, job_state, task_info=task_info)
                 else:
-                    update_task_state(task.id, job_state)
+                    update_task_state(task.workflow_id, task.id, job_state)
             else:
-                update_task_state(task.id, job_state)
+                update_task_state(task.workflow_id, task.id, job_state)
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
@@ -353,6 +354,7 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 #    # Flask logging
 #    flask_app.logger.addHandler(handler)
 #    flask_app.run(debug=False, port=str(tm_listen_port))
+
 # Ignoring CO413 beeflow modules must be loaded after bc.init()
 # Ignoring W0703: Catching general exception is ok for failed submit and cancel.
 # pylama:ignore=C0413,W0703
