@@ -1,7 +1,7 @@
 Getting Started - Example Workflows
 ***********************************
 
-If you have beeflow installed and the components running you are ready to try
+If you have beeflow installed and the components running, you are ready to try
 out a BEE workflow.
 
 Simple multi-step example (without container)
@@ -115,7 +115,7 @@ adaptive mesh refinement (AMR).
 
 The CLAMR workflow examples we introduce here are simple two step workflows
 that run a CLAMR simulation in step one, producing graphic images from periodic
-time steps. Then FFMPEG is run in step two to make a movie visualizing the
+time steps. Then, FFMPEG is run in step two to make a movie visualizing the
 progression of the simulation. We use these workflows for some of our
 integration tests and they are practical examples to help you start using BEE.
 The differences in the CLAMR workflows are the way the containers are used.
@@ -194,7 +194,7 @@ Output:
     clamr--READY
     ffmpeg--WAITING
 
-Check the status:
+As the clamr task goes from READY to RUNNING, let's check the status again:
 
 .. code-block::
 
@@ -208,7 +208,7 @@ Output:
     clamr--RUNNING
     ffmpeg--WAITING
 
-When completed:
+When the workflow has completed:
 
 .. code-block::
 
@@ -223,7 +223,7 @@ Output:
     ffmpeg--COMPLETED
 
 The archived workflow with associated job outputs will be in the
-**bee_workdir** see the default section of your configuration file (to list
+**bee_workdir**. See the default section of your configuration file (to list
 configuration file contents run ``beecfg list``). This workflow also produces
 output from CLAMR and ffmpeg in the directory where you submitted the workflow :
 
