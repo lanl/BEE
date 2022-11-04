@@ -90,11 +90,12 @@ def create_task(tx, task):
                     "SET t.workflow_id = $workflow_id "
                     "SET t.name = $name "
                     "SET t.base_command = $base_command "
-                    "SET t.stdout = $stdout")
+                    "SET t.stdout = $stdout "
+                    "SET t.stderr = $stderr")
 
     # Unpack requirements, hints dictionaries into flat list
     tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
-           base_command=task.base_command, stdout=task.stdout)
+           base_command=task.base_command, stdout=task.stdout, stderr=task.stderr)
 
 
 def create_task_hint_nodes(tx, task):

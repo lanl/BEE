@@ -22,10 +22,18 @@ Requirement = namedtuple("Requirement", ["class_", "params"])
 Hint = namedtuple("Hint", ["class_", "params"])
 
 
+def generate_workflow_id():
+    """Generate a unique workflow ID.
+
+    :rtype: str
+    """
+    return uuid4().hex
+
+
 class Workflow:
     """Data structure for holding data about a workflow."""
 
-    def __init__(self, name, hints, requirements, inputs, outputs, workflow_id=None):
+    def __init__(self, name, hints, requirements, inputs, outputs, workflow_id):
         """Store a workflow description.
 
         :param name: the workflow name
@@ -46,21 +54,8 @@ class Workflow:
         self.requirements = requirements
         self.inputs = inputs
         self.outputs = outputs
-
-        # Init Workflow ID as name-UUID if not given
-        if workflow_id:
-            self.id = workflow_id
-        else:
-            self.id = self.generate_workflow_id()
-
+        self.id = workflow_id
         self.state = "SUBMITTED"
-
-    def generate_workflow_id(self):
-        """Generate a unique workflow ID.
-
-        :rtype: str
-        """
-        return uuid4().hex
 
     def __eq__(self, other):
         """Test the equality of two workflows.
@@ -100,7 +95,7 @@ class Workflow:
 class Task:
     """Data structure for holding data about a single task."""
 
-    def __init__(self, name, base_command, hints, requirements, inputs, outputs, stdout,
+    def __init__(self, name, base_command, hints, requirements, inputs, outputs, stdout, stderr,
                  workflow_id, task_id=None, workdir=None):
         """Store a task description.
 
@@ -121,6 +116,8 @@ class Task:
         :type outputs: list of StepOutput
         :param stdout: the name of the file to which to redirect stdout
         :type stdout: str
+        :param stderr: the name of the file to which to redirect stderr
+        :type stderr: str
         :param workflow_id: the workflow ID
         :type workflow_id: str
         :param task_id: the task ID
@@ -135,17 +132,18 @@ class Task:
         self.inputs = inputs
         self.outputs = outputs
         self.stdout = stdout
+        self.stderr = stderr
         self.workflow_id = workflow_id
         self.workdir = workdir
 
         # Task ID as UUID if not given
         if task_id is None:
-            self.id = self.generate_workflow_id()
+            self.id = self.generate_task_id()
         else:
             self.id = task_id
 
-    def generate_workflow_id(self):
-        """Generate a unique workflow ID.
+    def generate_task_id(self):
+        """Generate a unique task ID.
 
         :rtype: str
         """
@@ -158,12 +156,12 @@ class Task:
         :type new_id: bool
         :rtype: Task
         """
-        task_id = self.generate_workflow_id() if new_id else self.id
+        task_id = self.generate_task_id() if new_id else self.id
         return Task(name=self.name, base_command=self.base_command,
                     hints=deepcopy(self.hints), requirements=deepcopy(self.requirements),
                     inputs=deepcopy(self.inputs), outputs=deepcopy(self.outputs),
-                    stdout=self.stdout, workflow_id=self.workflow_id, task_id=task_id,
-                    workdir=self.workdir)
+                    stdout=self.stdout, stderr=self.stderr, workflow_id=self.workflow_id,
+                    task_id=task_id, workdir=self.workdir)
 
     def get_requirement(self, req_type, req_param):
         """Get requirement from hints or requirements, prioritizing requirements over hints.
@@ -217,7 +215,9 @@ class Task:
                     and sorted(self.requirements) == sorted(other.requirements)
                     and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
                     and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort)
-                    and self.stdout == other.stdout)
+                    and self.stdout == other.stdout
+                    and self.stderr == other.stderr
+                    and self.workdir == other.workdir)
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
@@ -243,7 +243,7 @@ class Task:
         return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
                 f"hints={self.hints} requirements = {self.requirements} "
                 f"inputs={self.inputs} outputs={self.outputs} stdout={self.stdout} "
-                f"workflow_id={self.workflow_id}>")
+                f"stderr={self.stderr} workflow_id={self.workflow_id}> ")
 
     @property
     def command(self):
