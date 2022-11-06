@@ -117,7 +117,7 @@ class WFList(Resource):
         dep_manager.start_gdb()
         dep_manager.wait_gdb(log, 10)
 
-        #Remove an extension if one exists.
+        # Remove an extension if one exists.
         wf_filename = wf_filename.split(".")[0]
         wf_path = os.path.join(temp_dir, wf_filename)
         try:
