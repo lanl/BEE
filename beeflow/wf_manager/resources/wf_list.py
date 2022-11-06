@@ -117,8 +117,14 @@ class WFList(Resource):
         dep_manager.start_gdb()
         dep_manager.wait_gdb(log, 10)
 
-        wf_path = os.path.join(temp_dir, wf_filename[:-4])
+        #Remove an extension if one exists.
+        wf_filename = wf_filename.split(".")[0]
+        wf_path = os.path.join(temp_dir, wf_filename)
         try:
+            print("Debug: About to parse workflow")
+            print("wf_path = " + str(wf_path))
+            print("main_cwl = " + str(main_cwl))
+            print("yaml_file = " + str(yaml_file))
             wfi = parse_workflow(wf_path, main_cwl, yaml_file)
         except CwlParseError as err:
             log.error('Failed to parse file')
