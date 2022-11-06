@@ -10,6 +10,7 @@ import sys
 import argparse
 import json
 import os
+import traceback
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException  # noqa (pylama can't find the exception)
@@ -20,7 +21,9 @@ from beeflow.common.wf_data import (InputParameter,
                                     StepInput,
                                     StepOutput,
                                     Hint,
-                                    Requirement)
+                                    Requirement,
+                                    generate_workflow_id)
+from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.wf_interface import WorkflowInterface
 
 
@@ -51,7 +54,7 @@ class CwlParseError(Exception):
 class CwlParser:
     """Class for parsing CWL files."""
 
-    def __init__(self):
+    def __init__(self, bolt_port):
         """Initialize the CWL parser interface.
 
         Forms a connection to the graph database through the workflow interface.
@@ -64,7 +67,7 @@ class CwlParser:
 
         try:
             self._wfi = WorkflowInterface(user="neo4j",
-                                          bolt_port=bc.get("graphdb", "bolt_port"),
+                                          bolt_port=bolt_port,
                                           db_hostname=bc.get("graphdb", "hostname"),
                                           password=bc.get("graphdb", "dbpass"))
         except KeyError:
@@ -72,11 +75,13 @@ class CwlParser:
         except configparser.NoSectionError:
             self._wfi = WorkflowInterface()
 
-    def parse_workflow(self, cwl_path, job=None):
+    def parse_workflow(self, workflow_id, cwl_path, job=None):
         """Parse a CWL Workflow file and load it into the graph database.
 
         Returns an instance of the WorkflowInterface.
 
+        :param workflow_id: the workflow ID
+        :type workflow_id: str
         :param cwl_path: the CWL file path
         :type cwl_path: str
         :param job: the input job file (YAML or JSON)
@@ -87,6 +92,7 @@ class CwlParser:
         try:
             self.cwl = cwl_parser.load_document(cwl_path)
         except ValidationException as err:
+            traceback.print_exc()
             raise CwlParseError(*err.args) from None
 
         if self.cwl.class_ != "Workflow":
@@ -126,8 +132,8 @@ class CwlParser:
         workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
 
-        self._wfi.initialize_workflow(workflow_name, workflow_inputs, workflow_outputs,
-                                      workflow_requirements, workflow_hints)
+        self._wfi.initialize_workflow(workflow_id, workflow_name, workflow_inputs,
+                                      workflow_outputs, workflow_requirements, workflow_hints)
         for step in self.cwl.steps:
             self.parse_step(step)
 
@@ -157,16 +163,18 @@ class CwlParser:
         step_name = os.path.basename(step_id).split(".")[0]
         step_command = step_cwl.baseCommand
         step_inputs = self.parse_step_inputs(step.in_, step_cwl.inputs)
-        step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout)
+        step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout,
+                                               step_cwl.stderr)
         step_requirements = self.parse_requirements(step.requirements)
         step_requirements.extend(self.parse_requirements(step_cwl.requirements))
         step_hints = self.parse_requirements(step.hints, as_hints=True)
         step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
         step_stdout = step_cwl.stdout
+        step_stderr = step_cwl.stderr
 
         self._wfi.add_task(step_name, base_command=step_command, inputs=step_inputs,
                            outputs=step_outputs, requirements=step_requirements,
-                           hints=step_hints, stdout=step_stdout)
+                           hints=step_hints, stdout=step_stdout, stderr=step_stderr)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
@@ -176,7 +184,7 @@ class CwlParser:
         :param job: the path of the input job file (YAML or JSON)
         :type job: str
         """
-        if job.endswith(".yml"):
+        if job.endswith(".yml") or job.endswith(".yaml"):
             with open(job, encoding="utf-8") as fp:
                 self.params = yaml.full_load(fp)
         elif job.endswith(".json"):
@@ -236,7 +244,7 @@ class CwlParser:
         return inputs
 
     @staticmethod
-    def parse_step_outputs(cwl_out, step_outputs, stdout):
+    def parse_step_outputs(cwl_out, step_outputs, stdout, stderr):
         """Parse step outputs from CWL step output objects.
 
         :param cwl_out: the step outputs from the Workflow file
@@ -245,6 +253,8 @@ class CwlParser:
         :type step_outputs: list of CommandOutputParameter
         :param stdout: name of file to which stdout should be redirected
         :type stdout: str or None
+        :param stderr: name of file to which stderr should be redirected
+        :type stderr: str or None
         :rtype: list of StepOutput
         """
         out_short = list(map(_shortname, cwl_out))
@@ -268,6 +278,12 @@ class CwlParser:
                                         "but not specified by CommandLineTool")
                 # Fill in glob with value of stdout
                 glob = stdout
+            elif output_type == "stderr":
+                if not stderr:
+                    raise ValueError((f"stderr capture required for step output {out} "
+                                      "but not specified by CommandLineTool"))
+                # Fill in glob with value of stderr
+                glob = stderr
             else:
                 if out_map[out].outputBinding:
                     glob = out_map[out].outputBinding.glob
@@ -345,9 +361,10 @@ def parse_args(args=None):
 
 def main():
     """Run the parser on a CWL Workflow and job file directly."""
-    parser = CwlParser()
+    bolt_port = wf_utils.get_open_port()
+    parser = CwlParser(bolt_port)
     args = parse_args()
-    parser.parse_workflow(args.wf_file, args.inputs)
+    parser.parse_workflow(generate_workflow_id(), args.wf_file, args.inputs)
 
 
 if __name__ == "__main__":

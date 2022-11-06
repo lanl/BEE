@@ -7,8 +7,8 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 import uuid
-from typing import Optional
 import yaml
 import typer
 
@@ -17,7 +17,7 @@ from beeflow.client import bee_client
 
 
 # Max time of each workflow
-TIMEOUT = 120
+TIMEOUT = 90
 
 
 class CIError(Exception):
@@ -64,9 +64,11 @@ class Workflow:
         self.job_file = job_file
         self.workdir = workdir
         self.containers = containers
+        self.wf_id = None
+        self.tarball = None
 
     def run(self):
-        """Attempt to submit, start and run the workflow to completion."""
+        """Attempt to submit and start the workflow."""
         # Build all the containers first
         print('Building all containers')
         for ctr in self.containers:
@@ -74,24 +76,28 @@ class Workflow:
         try:
             tarball_dir = Path(self.path).parent
             tarball = f'{Path(self.path).name}.tgz'
-            tarball = tarball_dir / tarball
-            print('Creating the workflow tarball', tarball)
+            self.tarball = tarball_dir / tarball
+            print('Creating the workflow tarball', self.tarball)
             bee_client.package(Path(self.path), Path(tarball_dir))
-            print('Submitting workflow')
-            wf_id = bee_client.submit(self.name, tarball, self.main_cwl,
-                                      self.job_file, self.workdir)
-            bee_client.start(wf_id)
-            time.sleep(2)
-            t = 0
-            while bee_client.query(wf_id)[0] == 'Running' and t < TIMEOUT:
-                time.sleep(4)
-                t += 4
-            # Remove the generated tarball
-            os.remove(tarball)
+            print('Submitting and starting workflow')
+            self.wf_id = bee_client.submit(self.name, self.tarball, self.main_cwl,
+                                           self.job_file, self.workdir)
+            bee_client.start(self.wf_id)
         except bee_client.ClientError as error:
-            raise CIError(*error.args) from None
-        if t >= TIMEOUT:
-            raise CIError('timeout exceeded')
+            raise CIError(*error.args) from error
+
+    def running(self):
+        """Check if the workflow is running or not."""
+        return bee_client.query(self.wf_id)[0] == 'Running'
+
+    def status(self):
+        """Get the status of the workflow."""
+        return bee_client.query(self.wf_id)[0]
+
+    def cleanup(self):
+        """Clean up any leftover workflow data."""
+        # Remove the generated tarball
+        os.remove(self.tarball)
 
 
 class TestRunner:
@@ -103,6 +109,8 @@ class TestRunner:
 
     def add(self, test_case):
         """Decorate a test case and add it to the runner instance."""
+        # First turn it into a contextmanager
+        test_case = contextmanager(test_case)
         self.test_cases.append(test_case)
 
         def wrap():
@@ -115,6 +123,22 @@ class TestRunner:
         """Return a list of all the test names."""
         return [test_case.__name__ for test_case in self.test_cases]
 
+    def _run_workflows(self, workflows):
+        """Run a list of workflows to completion."""
+        # Start all workflows at once
+        for wfl in workflows:
+            wfl.run()
+        # Now run until all workflows are complete or until TIMEOUT is hit
+        t = 0
+        while t < TIMEOUT:
+            if all(not wfl.running() for wfl in workflows):
+                # All workflows have completed
+                break
+            time.sleep(2)
+            t += 2
+        if t >= TIMEOUT:
+            raise CIError('workflow timeout')
+
     def run(self, test_names=None):
         """Test run all test cases."""
         results = {}
@@ -126,19 +150,20 @@ class TestRunner:
             print('#' * len(msg))
             print(msg)
             print('-' * len(msg))
-            with test_case() as wfl:
-                try:
-                    wfl.run()
-                except CIError as error:
-                    results[wfl.name] = error
-                    print('------')
-                    print('FAILED')
-                    print('------')
-                else:
-                    results[wfl.name] = None
-                    print('------')
-                    print('PASSED')
-                    print('------')
+            try:
+                with test_case() as workflows:
+                    self._run_workflows(workflows)
+            except CIError as error:
+                traceback.print_exc()
+                results[test_case.__name__] = error
+                print('------')
+                print('FAILED')
+                print('------')
+            else:
+                results[test_case.__name__] = None
+                print('------')
+                print('PASSED')
+                print('------')
 
         print('######## WORKFLOW RESULTS ########')
         fails = sum(1 if result is not None else 0 for name, result in results.items())
@@ -185,15 +210,25 @@ def ch_image_list():
         raise CIError(f'failed when calling `ch-image list`: {err}') from err
 
 
+def ci_assert(predicate, msg):
+    """Assert that the predicate is True, or raise a CIError."""
+    if not predicate:
+        raise CIError(msg)
+
+
 def check_path_exists(path):
     """Check that the specified path exists."""
-    if not os.path.exists(path):
-        raise CIError(f'expected file "{path}" does not exist')
+    ci_assert(os.path.exists(path), f'expected file "{path}" does not exist')
 
 
 #
 # Inline workflow generation code
 #
+
+def yaml_dump(path, data):
+    """Dump this data as a yaml file at path."""
+    with open(path, 'w', encoding='utf-8') as fp:
+        yaml.dump(data, fp, Dumper=yaml.CDumper)
 
 
 def generate_builder_workflow(output_path, docker_requirement, main_input):
@@ -225,8 +260,7 @@ def generate_builder_workflow(output_path, docker_requirement, main_input):
             }
         },
     }
-    with open(os.path.join(output_path, main_cwl_file), 'w', encoding='utf-8') as fp:
-        yaml.dump(main_cwl_data, fp, Dumper=yaml.CDumper)
+    yaml_dump(os.path.join(output_path, main_cwl_file), main_cwl_data)
 
     step0_file = 'step0.cwl'
     step0_data = {
@@ -248,17 +282,78 @@ def generate_builder_workflow(output_path, docker_requirement, main_input):
         },
         'stdout': 'output.txt',
     }
-    with open(os.path.join(output_path, step0_file), 'w', encoding='utf-8') as fp:
-        yaml.dump(step0_data, fp, Dumper=yaml.CDumper)
+    yaml_dump(os.path.join(output_path, step0_file), step0_data)
 
     job_file = 'job.yml'
     job_data = {
         'main_input': main_input,
     }
-    with open(os.path.join(output_path, job_file), 'w', encoding='utf-8') as fp:
-        yaml.dump(job_data, fp, Dumper=yaml.CDumper)
+    yaml_dump(os.path.join(output_path, job_file), job_data)
 
     return (main_cwl_file, job_file)
+
+
+def generate_simple_workflow(output_path, fname):
+    """Generate a simple workflow."""
+    os.makedirs(output_path, exist_ok=True)
+
+    task0_cwl = 'task0.cwl'
+    main_cwl = 'main.cwl'
+    main_cwl_file = str(Path(output_path, main_cwl))
+    main_cwl_data = {
+        'cwlVersion': 'v1.0',
+        'class': 'Workflow',
+        'requirements': {},
+        'inputs': {
+            'in_fname': 'string',
+        },
+        'outputs': {
+            'out': {
+                'type': 'File',
+                'outputSource': 'task0/out',
+            },
+        },
+        'steps': {
+            'task0': {
+                'run': task0_cwl,
+                'in': {
+                    'fname': 'in_fname',
+                },
+                'out': ['out'],
+            },
+        },
+    }
+    yaml_dump(main_cwl_file, main_cwl_data)
+
+    task0_cwl_file = str(Path(output_path, task0_cwl))
+    task0_data = {
+        'cwlVersion': 'v1.0',
+        'class': 'CommandLineTool',
+        'baseCommand': 'touch',
+        'inputs': {
+            'fname': {
+                'type': 'string',
+                'inputBinding': {
+                    'position': 1,
+                },
+            },
+        },
+        'stdout': 'touch.log',
+        'outputs': {
+            'out': {
+                'type': 'stdout',
+            }
+        }
+    }
+    yaml_dump(task0_cwl_file, task0_data)
+
+    job_yaml = 'job.yaml'
+    job_file = str(Path(output_path, job_yaml))
+    job_data = {
+        'in_fname': fname,
+    }
+    yaml_dump(job_file, job_data)
+    return (main_cwl, job_yaml)
 
 
 BASE_CONTAINER = 'alpine'
@@ -284,7 +379,6 @@ if BASE_CONTAINER in ch_image_list():
 
 
 @TEST_RUNNER.add
-@contextmanager
 def copy_container():
     """Prepare, check results of using `beeflow:copyContainer` then do cleanup."""
     # `beeflow:copyContainer` workflow
@@ -303,7 +397,7 @@ def copy_container():
     workflow = Workflow('copy-container', workflow_path,
                         main_cwl=main_cwl, job_file=job_file, workdir=workdir,
                         containers=[container])
-    yield workflow
+    yield [workflow]
     # Ensure the output file was created
     path = os.path.join(workdir, main_input)
     check_path_exists(path)
@@ -323,7 +417,6 @@ def copy_container():
 
 
 @TEST_RUNNER.add
-@contextmanager
 def use_container():
     """Prepare, check results of using `beeflow:useContainer` and clean up."""
     # `beeflow:useContainer` workflow
@@ -345,19 +438,18 @@ def use_container():
     workflow = Workflow('use-container', workflow_path,
                         main_cwl=main_cwl, job_file=job_file,
                         workdir=container_workdir, containers=[container])
-    yield workflow
+    yield [workflow]
     path = os.path.join(container_workdir, main_input)
     check_path_exists(path)
     os.remove(path)
     # This container should not have been copied into the container archive
     container_archive = bc.get('builder', 'container_archive')
     basename = os.path.basename(container_path)
-    path = os.path.join(container_archive, basename)
-    if os.path.exists(path):
-        raise CIError(
-            f'the container "{basename}" was copied into the container archive, but shouldn\'t '
-            'have been'
-        )
+    path = Path(container_archive, basename)
+    ci_assert(
+        not path.exists(),
+        f'the container "{basename}" was copied into the container archive'
+    )
     ch_image_delete(BASE_CONTAINER)
     ch_image_delete(container_name)
     # Delete both the workflow path and the container generated
@@ -367,7 +459,6 @@ def use_container():
 
 
 @TEST_RUNNER.add
-@contextmanager
 def docker_file():
     """Ensure that the `dockerFile` example ran properly and then clean up."""
     # `dockerFile` workflow
@@ -391,7 +482,7 @@ def docker_file():
     workflow = Workflow('docker-file', workflow_path,
                         main_cwl=main_cwl, job_file=job_file, workdir=workdir,
                         containers=[])
-    yield workflow
+    yield [workflow]
     path = os.path.join(workdir, main_input)
     check_path_exists(path)
     os.remove(path)
@@ -403,8 +494,7 @@ def docker_file():
     os.remove(path)
     # Check that the container is listed
     images = ch_image_list()
-    if container_name not in images:
-        raise CIError(f'cannot find expected container "{container_name}"')
+    ci_assert(container_name in images, f'cannot find expected container "{container_name}"')
     ch_image_delete(BASE_CONTAINER)
     ch_image_delete(container_name)
     # Delete the generated workflow
@@ -413,7 +503,6 @@ def docker_file():
 
 
 @TEST_RUNNER.add
-@contextmanager
 def docker_pull():
     """Prepare, then check that the `dockerPull` option was successful."""
     # `dockerPull` workflow
@@ -433,7 +522,7 @@ def docker_pull():
     workflow = Workflow('docker-pull', workflow_path,
                         main_cwl=main_cwl, job_file=job_file, workdir=workdir,
                         containers=[])
-    yield workflow
+    yield [workflow]
     path = os.path.join(workdir, main_input)
     check_path_exists(path)
     os.remove(path)
@@ -444,12 +533,42 @@ def docker_pull():
     os.remove(path)
     # Check for the image with `ch-image list`
     images = ch_image_list()
-    if container_name not in images:
-        raise CIError(f'could not find expected container "{container_name}"')
+    ci_assert(container_name in images, f'could not find expected container "{container_name}"')
     ch_image_delete(container_name)
     # Delete the workflow path
     shutil.rmtree(workflow_path)
     shutil.rmtree(workdir)
+
+
+@TEST_RUNNER.add
+def multiple_workflows():
+    """Test running three different workflows at the same time."""
+    output_file = 'output_file'
+    workflow_data = []
+    workflows = []
+    for i in range(3):
+        random_dir = uuid.uuid4().hex
+        workdir = os.path.expanduser(f'~/{random_dir}')
+        os.makedirs(workdir)
+        workflow_path = Path('/tmp', random_dir)
+        main_cwl, job_file = generate_simple_workflow(workflow_path, output_file)
+        workflow = Workflow(f'multi-workflow-{i}', workflow_path,
+                            main_cwl=main_cwl, job_file=job_file,
+                            workdir=workdir, containers=[])
+        workflow_data.append({
+            'workdir': workdir,
+            'workflow_path': workflow_path,
+        })
+        workflows.append(workflow)
+    yield workflows
+    for wfl_info in workflow_data:
+        workdir = wfl_info['workdir']
+        workflow_path = wfl_info['workflow_path']
+        # Each test should have touched this file
+        path = Path(workdir, output_file)
+        check_path_exists(path)
+        shutil.rmtree(workdir)
+        shutil.rmtree(workflow_path)
 
 
 def test_input_callback(arg):
@@ -457,10 +576,10 @@ def test_input_callback(arg):
     return arg.split(',') if arg is not None else None
 
 
-def main(tests = typer.Option(None, '--tests', '-t',
+def main(tests = typer.Option(None, '--tests', '-t',  # noqa (conflict on '=' sign)
                               callback=test_input_callback,
                               help='tests run as comma-separated string'),
-         show_tests: bool = typer.Option(False, '--show-tests', '-s',
+         show_tests: bool = typer.Option(False, '--show-tests', '-s',  # noqa (conflict on '=' sign)
                                          help='show a list of all tests')):
     """Launch the integration tests."""
     if show_tests:
@@ -469,11 +588,11 @@ def main(tests = typer.Option(None, '--tests', '-t',
             print('*', test_name)
         sys.exit()
     # Run the workflows and then show completion results
-    RET = TEST_RUNNER.run(tests)
+    ret = TEST_RUNNER.run(tests)
     # ret = test_workflows(WORKFLOWS)
     # General clean up
     os.remove(DOCKER_FILE_PATH)
-    sys.exit(RET)
+    sys.exit(ret)
 
 
 if __name__ == '__main__':
