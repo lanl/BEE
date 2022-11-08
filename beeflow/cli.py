@@ -193,7 +193,7 @@ def handle_terminate(signum, stack): # noqa
     sys.exit(1)
 
 
-MIN_CHARLIECLOUD_VERSION = (0, 29)
+MIN_CHARLIECLOUD_VERSION = (0, 27)
 
 
 def version_str(version):
