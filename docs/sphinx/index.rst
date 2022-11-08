@@ -16,7 +16,9 @@
    installation
    examples
    bee_cwl
+   commands
    advanced_usage
+   error_logs
    contribute
    development
    wf_api

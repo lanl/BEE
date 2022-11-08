@@ -100,7 +100,7 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            sys.exit('Configuration file does not exist! Please try running `bee_cfg new`.')
+            sys.exit('Configuration file does not exist! Please try running `beecfg new`.')
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -540,7 +540,7 @@ class ConfigGenerator:
               '\n\nThe job template configured is:',
               f'\n\t{self.sections["task_manager"]["job_template"]}',
               '\n ** Include job options (such as account) required for this system.**')
-        print('\n(Try `bee_cfg info` to see more about each option)')
+        print('\n(Try `beecfg info` to see more about each option)')
         print(70 * '#')
 
 
@@ -597,9 +597,9 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
 @app.command()
 def show(path: str = typer.Argument(default=USERCONFIG_FILE,
                                     help='Path to config file')):
-    """Show the contents of the default bee.conf."""
+    """Show the contents of bee.conf."""
     if not os.path.exists(path):
-        print('The bee.conf does not exist yet. Please run `bee_cfg new`.')
+        print('The bee.conf does not exist yet. Please run `beecfg new`.')
         return
     print(f'# {path}')
     with open(path, encoding='utf-8') as fp:

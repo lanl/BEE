@@ -114,7 +114,7 @@ option).
 .. _paper: https://ieeexplore.ieee.org/document/9308116
 
 BEE's ``beeflow:MPIRequirement`` attempts to be as configurable as possible for
-running HPC jobs with MPI. Currently we use a special :ref:`Jinja file` that is
+running HPC jobs with MPI. Currently, we use a special :ref:`Jinja file` that is
 used as a template for generating submission scripts. All options in the
 ``beeflow:MPIRequirement`` get passed to the :ref:`Jinja file` template and can
 then be used to make step-level decisions for running MPI jobs. Note that we're
@@ -139,7 +139,7 @@ beeflow:CheckpointRequirement
 BEE is designed to manage workflows that include long running scientific
 simulations, requiring checkpointing and restarting. We implemented the
 ``beeflow:CheckpointRequirement`` for this purpose. If a step in a workflow
-includes this requirement and the task stops such as for a timelimit on the job
+includes this requirement and the task stops, such as for a timelimit on the job, 
 a subtask will run to continue the simulation using the specified checkpoint
 file.
 
