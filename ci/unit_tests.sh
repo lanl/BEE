@@ -9,7 +9,7 @@ failed_count=0
 total=0
 start_time=`date +%s`
 for tst in beeflow/tests/test_*.py; do
-    printf "--> Running $tst\n"
+    printf ">>> Running $tst <<<\n"
     pytest $tst
     result=$?
     # Ensure the step fails if one test fails

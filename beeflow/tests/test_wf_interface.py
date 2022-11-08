@@ -13,11 +13,7 @@ bc.init()
 from beeflow.common.wf_data import (Requirement, Hint, InputParameter, OutputParameter,
                                     StepInput, StepOutput, generate_workflow_id)
 from beeflow.common.wf_interface import WorkflowInterface
-import gdb # noqa (this imports beeflow modules)
-
-# The PID for the gdb instance
-
-GDB_PID = -1
+from beeflow.tests.mocks import MockGDBInterface
 
 
 class TestWorkflowInterface(unittest.TestCase):
@@ -26,38 +22,30 @@ class TestWorkflowInterface(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Start the GDB and initialize the Workflow interface."""
-        GDB_PID = gdb.start() #noqa
-        cls.wfi = WorkflowInterface(user="neo4j",
-                                    bolt_port=bc.get("graphdb", "bolt_port"),
-                                    db_hostname=bc.get("graphdb", "hostname"),
-                                    password=bc.get("graphdb", "dbpass"))
-
-    @classmethod
-    def tearDownClass(cls):
-        """Tear down method to stop the running GDB."""
-        gdb.stop(GDB_PID)
+        mock_gdb_iface = MockGDBInterface()
+        cls.wfi = WorkflowInterface(mock_gdb_iface)
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
         if self.wfi.workflow_initialized() and self.wfi.workflow_loaded():
             self.wfi.finalize_workflow()
 
-    def test_reconnect(self):
-        """Test workflow reconnection."""
-        workflow = self.wfi.initialize_workflow(
-            generate_workflow_id(), "test_workflow",
-            [InputParameter("test_input", "File", "input.txt")],
-            [OutputParameter("test_output", "File", "output.txt", "viz/output")])
+    # def test_reconnect(self):
+    #    """Test workflow reconnection."""
+    #    workflow = self.wfi.initialize_workflow(
+    #        generate_workflow_id(), "test_workflow",
+    #        [InputParameter("test_input", "File", "input.txt")],
+    #        [OutputParameter("test_output", "File", "output.txt", "viz/output")])
 
-        # Destroy connection object
-        self.wfi._gdb_interface._connection = None
-        # Re-establish connection
-        self.wfi.reconnect()
+    #    # Destroy connection object
+    #    self.wfi._gdb_interface._connection = None
+    #    # Re-establish connection
+    #    self.wfi.reconnect()
 
-        self.assertTrue(self.wfi.workflow_loaded())
-        gdb_workflow, _ = self.wfi.get_workflow()
-        self.assertEqual(workflow, gdb_workflow)
-        self.assertEqual(self.wfi._workflow_id, gdb_workflow.id)
+    #    self.assertTrue(self.wfi.workflow_loaded())
+    #    gdb_workflow, _ = self.wfi.get_workflow()
+    #    self.assertEqual(workflow, gdb_workflow)
+    #    self.assertEqual(self.wfi._workflow_id, gdb_workflow.id)
 
     def test_initialize_workflow(self):
         """Test workflow initialization.
@@ -229,8 +217,7 @@ class TestWorkflowInterface(unittest.TestCase):
                                                         "num_tries": 2})]
         stdout = "output.txt"
         stderr = "output-err.txt"
-        test_checkpoint_file = "backup0.crx"
-        # test_checkpoint_file = "/backup0.crx"
+        test_checkpoint_file = "/backup0.crx"
 
         self.wfi.initialize_workflow(
             generate_workflow_id(), "test_workflow",

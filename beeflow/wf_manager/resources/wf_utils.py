@@ -6,10 +6,16 @@ import socket
 import requests
 import jsonpickle
 
+from beeflow.common import log as bee_logging
 from beeflow.wf_manager.common import wf_db
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.gdb_interface import GraphDatabaseInterface
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
+
+
+log = bee_logging.setup(__name__)
 
 
 def get_bee_workdir():
@@ -108,14 +114,15 @@ def create_wf_namefile(wf_name, wf_id):
         name.write(wf_name)
 
 
-def get_workflow_interface(wf_id, log):
+def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
     bolt_port = wf_db.get_bolt_port(wf_id)
     try:
-        wfi = WorkflowInterface(user="neo4j",
-                                bolt_port=bolt_port,
-                                db_hostname=bc.get("graphdb", "hostname"),
-                                password=bc.get("graphdb", "dbpass"))
+        driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
+                             db_hostname=bc.get("graphdb", "hostname"),
+                             password=bc.get("graphdb", "dbpass"))
+        iface = GraphDatabaseInterface(driver)
+        wfi = WorkflowInterface(iface)
     except KeyError:
         log.error('The default way to load WFI didnt work')
         # wfi = WorkflowInterface()
@@ -164,9 +171,9 @@ def _resource(component, tag=""):
 
 # Submit tasks to the TM
 # pylama:ignore=W0613
-def submit_tasks_tm(wf_id, log, tasks, allocation):
+def submit_tasks_tm(wf_id, tasks, allocation):
     """Submit a task to the task manager."""
-    wfi = get_workflow_interface(wf_id, log)
+    wfi = get_workflow_interface(wf_id)
     for task in tasks:
         metadata = wfi.get_task_metadata(task)
         task.workdir = metadata['workdir']
@@ -203,7 +210,7 @@ def tasks_to_sched(tasks):
     return sched_tasks
 
 
-def submit_tasks_scheduler(log, tasks):
+def submit_tasks_scheduler(tasks):
     """Submit a list of tasks to the scheduler."""
     sched_tasks = tasks_to_sched(tasks)
     # The workflow name will eventually be added to the wfi workflow object
@@ -231,9 +238,9 @@ def get_open_port():
     return port
 
 
-def schedule_submit_tasks(wf_id, log, tasks):
+def schedule_submit_tasks(wf_id, tasks):
     """Schedule and then submit tasks to the TM."""
     # Submit ready tasks to the scheduler
-    allocation = submit_tasks_scheduler(log, tasks)  #NOQA
+    allocation = submit_tasks_scheduler(tasks)  #NOQA
     # Submit tasks to TM
-    submit_tasks_tm(wf_id, log, tasks, allocation)
+    submit_tasks_tm(wf_id, tasks, allocation)

@@ -4,7 +4,7 @@
 import unittest
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
-import gdb # noqa (this imports beeflow modules)
+from beeflow.tests.mocks import MockWFI
 
 # Disable protected member access warning
 # pylama:ignore=W0212
@@ -16,16 +16,12 @@ class TestParser(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Start the GDB, initialize the CWL parser, which connects to the GDB."""
-        gdb.start()
-        bolt_port = 42
-        cls.parser = CwlParser(bolt_port)
-        cls.wfi = cls.parser._wfi
+        cls.wfi = MockWFI()
+        cls.parser = CwlParser(cls.wfi)
 
     @classmethod
     def tearDownClass(cls):
         """Stop the GDB."""
-        pid = 23
-        gdb.stop(pid)
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
@@ -34,13 +30,10 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow(self):
         """Test parsing of workflow with an input job file."""
-        cwl_wfi_file = "clamr-wf/clamr_wf.cwl"
-        cwl_job_yaml = "clamr-wf/clamr_job.yml"
-        cwl_job_json = "clamr-wf/clamr_job.json"
+        cwl_wfi_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
+        cwl_job_yaml = "examples/clamr-ffmpeg-build/clamr_job.yml"
+        cwl_job_json = "examples/clamr-ffmpeg-build/clamr_job.json"
         workflow_id = generate_workflow_id()
-#        cwl_wfi_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
-#        cwl_job_yaml = "examples/clamr-ffmpeg-build/clamr_job.yml"
-#        cwl_job_json = "examples/clamr-ffmpeg-build/clamr_job.json"
 
         # Test workflow parsing with YAML input job file
         wfi = self.parser.parse_workflow(workflow_id, cwl_wfi_file, cwl_job_yaml)
@@ -55,7 +48,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_no_job(self):
         """Test parsing of a workflow without an input job file."""
-        cwl_wfi_file = "cf.cwl"
+        cwl_wfi_file = "beeflow/tests/cf.cwl"
         workflow_id = generate_workflow_id()
         # cwl_wfi_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
 

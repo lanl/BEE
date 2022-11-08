@@ -24,30 +24,15 @@ from beeflow.common import wf_data
 log = bee_logging.setup(__name__)
 
 
-def parse_workflow(wf_id, workflow_dir, main_cwl, yaml_file, bolt_port):
+def parse_workflow(wfi, wf_id, workflow_dir, main_cwl, yaml_file):
     """Run the parser."""
-    parser = CwlParser(bolt_port)
-    parse_msg = "Unable to parse workflow." \
-                "Please check workflow manager."
-
+    parser = CwlParser(wfi)
     cwl_path = os.path.join(workflow_dir, main_cwl)
     if yaml_file is not None:
         yaml_path = os.path.join(workflow_dir, yaml_file)
-
-        try:
-            wfi = parser.parse_workflow(wf_id, cwl_path, yaml_path)
-        except AttributeError:
-            log.error('Unable to parse')
-            resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
-            return resp
+        parser.parse_workflow(wf_id, cwl_path, yaml_path)
     else:
-        try:
-            wfi = parser.parse_workflow(wf_id, cwl_path)
-        except AttributeError:
-            resp = make_response(jsonify(msg=parse_msg, status='error'), 418)
-            return resp
-
-    return wfi
+        parser.parse_workflow(wf_id, cwl_path)
 
 
 # def initialize_wf_profiler(wf_name):
@@ -134,7 +119,8 @@ class WFList(Resource):
         dep_manager.wait_gdb(log)
         try:
             # wfi = parse_workflow(wf_path, main_cwl, yaml_file)
-            wfi = parse_workflow(wf_id, wf_dir, main_cwl, yaml_file, bolt_port)
+            wfi = wf_utils.get_workflow_interface(wf_id)
+            parse_workflow(wfi, wf_id, wf_dir, main_cwl, yaml_file)
         except CwlParseError as err:
             traceback.print_exc()
             log.error('Failed to parse file')
@@ -186,7 +172,7 @@ class WFList(Resource):
                                         https_port, reexecute=True)
         wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
-        wfi = wf_utils.get_workflow_interface(wf_id, log)
+        wfi = wf_utils.get_workflow_interface(wf_id)
         wfi.reset_workflow(wf_id)
         wf_utils.create_wf_metadata(wf_id, wf_name)
 

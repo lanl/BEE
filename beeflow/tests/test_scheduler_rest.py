@@ -2,16 +2,17 @@
 
 Tests of the REST interface for BEE Scheduler.
 """
-import os
-import subprocess
-import time
-import uuid
 import pytest
 
-from beeflow.common.connection import Connection
+from beeflow.scheduler.scheduler import create_app
 
 
 SCHEDULER_TEST_PORT = '5100'
+
+
+def endpoint(*pargs):
+    """Return the endpoint url for a resource."""
+    return '/'.join(['bee_sched/v1', *pargs])
 
 
 @pytest.fixture(scope='function')
@@ -20,24 +21,12 @@ def scheduler():
 
     Start a new scheduler as a subprocess for each test function.
     """
-    tmp_name = uuid.uuid4().hex
-    basename = os.path.join('/tmp', tmp_name)
-    socket = f'{basename}.sock'
-    db = f'{basename}.db'
-    env = os.environ
-    # Set the DB path in the environment
-    env['BEE_SCHED_DB_PATH'] = db
-    # Setup
-    proc = subprocess.Popen([
-        'gunicorn', 'beeflow.scheduler.scheduler:create_app()', '-b', f'unix:{socket}',
-    ], shell=False, env=env)
-    time.sleep(2)
-    try:
-        # Give control over to the test function
-        yield Connection(socket, prefix='bee_sched/v1')
-    finally:
-        # Teardown
-        proc.terminate()
+    app = create_app()
+    app.config.update({
+        'TESTING': True,
+    })
+    # Note: this just uses the default scheduler database
+    yield app.test_client()
 
 
 def test_schedule_job_no_resources(scheduler):
@@ -56,11 +45,10 @@ def test_schedule_job_no_resources(scheduler):
             'max_runtime': 1,
         },
     }
-    req = conn.put(f'workflows/{workflow_name}/jobs', json=[task1])
+    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=[task1])
 
-    print(req.text)
-    assert req.ok
-    data = req.json()
+    assert req.status_code == 200
+    data = req.json
     assert len(data) == 1
     assert data[0]['workflow_name'] == workflow_name
     assert data[0]['task_name'] == 'test-task'
@@ -82,10 +70,10 @@ def test_schedule_job_one_resource(scheduler):
         'id_': 'resource-1',
         'nodes': 10,
     }
-    req = conn.put('resources', json=[resource1])
+    req = conn.put(endpoint('resources'), json=[resource1])
 
-    assert req.ok
-    assert req.json() == 'created 1 resource(s)'
+    assert req.status_code == 200
+    assert req.json == 'created 1 resource(s)'
 
     workflow_name = 'test-workflow'
     task1 = {
@@ -95,10 +83,10 @@ def test_schedule_job_one_resource(scheduler):
             'max_runtime': 1,
         },
     }
-    req = conn.put(f'workflows/{workflow_name}/jobs', json=[task1])
+    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=[task1])
 
-    assert req.ok
-    data = req.json()
+    assert req.status_code == 200
+    data = req.json
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task'
@@ -128,10 +116,10 @@ def test_schedule_job_two_resources(scheduler):
         'id_': 'resource-2',
         'nodes': 64,
     }
-    req = conn.put('resources', json=[resource1, resource2])
+    req = conn.put(endpoint('resources'), json=[resource1, resource2])
 
-    assert req.ok
-    assert req.json() == 'created 2 resource(s)'
+    assert req.status_code == 200
+    assert req.json == 'created 2 resource(s)'
 
     workflow_name = 'test-workflow'
     task1 = {
@@ -141,10 +129,10 @@ def test_schedule_job_two_resources(scheduler):
             'max_runtime': 1,
         },
     }
-    req = conn.put(f'workflows/{workflow_name}/jobs', json=[task1])
+    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=[task1])
 
-    assert req.ok
-    data = req.json()
+    assert req.status_code == 200
+    data = req.json
     assert len(data) == 1
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task'
@@ -170,10 +158,10 @@ def test_schedule_multi_job_two_resources(scheduler):
         'id_': 'resource-1',
         'nodes': 16,
     }
-    req = conn.put('resources', json=[resource1, resource2])
+    req = conn.put(endpoint('resources'), json=[resource1, resource2])
 
-    assert req.ok
-    assert req.json() == 'created 2 resource(s)'
+    assert req.status_code == 200
+    assert req.json == 'created 2 resource(s)'
 
     workflow_name = 'test-workflow'
     task1 = {
@@ -198,11 +186,11 @@ def test_schedule_multi_job_two_resources(scheduler):
             'nodes': 16,
         },
     }
-    req = conn.put(f'workflows/{workflow_name}/jobs',
+    req = conn.put(endpoint('workflows', workflow_name, 'jobs'),
                    json=[task1, task2, task3])
 
-    assert req.ok
-    data = req.json()
+    assert req.status_code == 200
+    data = req.json
     assert len(data) == 3
     assert data[0]['workflow_name'] == 'test-workflow'
     assert data[0]['task_name'] == 'test-task-0'
