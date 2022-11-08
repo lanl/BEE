@@ -12,5 +12,5 @@ poetry.lock
 .vscode
 .env
 .venv
-docs/sphinx/_build
+_build
 dist
