@@ -65,7 +65,7 @@ class WorkflowJobHandler(Resource):
 
     @staticmethod
     @connect_db
-    def put(db):
+    def put(db, workflow_name):  # noqa ('workflow_name' may be used in the future)
         """Schedules a new list of independent tasks with available resources."""
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
@@ -96,9 +96,6 @@ def load_config_values():
     # Set the default config values
     conf = {
         'log': None,
-        'use_mars': False,
-        'mars_model': MODEL_FILE,
-        'mars_task_cnt': MARS_CNT,
         'alloc_logfile': None,
         'algorithm': None,
         'default_algorithm': None,
@@ -119,9 +116,6 @@ def load_config_values():
 
     conf = argparse.Namespace(**conf)
     log.info('Config = [')
-    log.info(f'\tuse_mars = {conf.use_mars}')
-    log.info(f'\tmars_model = {conf.mars_model}')
-    log.info(f'\tmars_task_cnt = {conf.mars_task_cnt}')
     log.info(f'\talloc_logfile = {conf.alloc_logfile}')
     log.info(f'\talgorithm = {conf.algorithm}')
     log.info(f'\tdefault_algorithm = {conf.default_algorithm}')

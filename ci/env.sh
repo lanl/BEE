@@ -1,7 +1,7 @@
 # Environment set up
 # Set up environment
-PYTHON=python3.8
-HOSTNAME=`python -c 'import socket; print(socket.gethostname())'`
+PYTHON=python3
+HOSTNAME=`$PYTHON -c 'import socket; print(socket.gethostname())'`
 # Everything is in /tmp for right now
 SLURMCTLD_PID=/tmp/slurmctld.pid
 SLURMD_PID=/tmp/slurmd.pid

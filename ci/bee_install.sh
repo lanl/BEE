@@ -3,6 +3,8 @@
 
 . ./ci/env.sh
 
+set -e
+
 # BEE Containers
 printf "\n\n"
 printf "**Setting up BEE containers**\n"
@@ -22,7 +24,7 @@ $PYTHON -m venv venv
 pip install --upgrade pip
 pip install poetry
 # Do a poetry install, making sure that all extras are added
-poetry install -E cloud_extras -E scheduler_extras || exit 1
+poetry install -E cloud_extras || exit 1
 
 # BEE Configuration
 mkdir -p ~/.config/beeflow
