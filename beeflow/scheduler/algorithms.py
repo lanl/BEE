@@ -248,7 +248,7 @@ def load(algorithm=None, **kwargs):  # noqa ('algorithm' may be used in the futu
     SJF.load(**kwargs)
 
 
-def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
+def choose(tasks, algorithm=None,
            default_algorithm=None, **kwargs):
     """Choose which algorithm to run at this point.
 
@@ -262,10 +262,6 @@ def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
     cls = algorithm_objects[default]
     if algorithm is not None:
         cls = algorithm_objects[algorithm]
-    # TODO: Correctly choose based on size of the workflow
-    if use_mars and len(tasks) >= int(mars_task_cnt):
-        cls = algorithm_objects['mars']
-
     return AlgorithmLogWrapper(cls, **kwargs)
 # Ignoring E0211: This is how the class is designed right now, we should think about changing this
 #                 however.

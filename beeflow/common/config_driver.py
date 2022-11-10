@@ -411,13 +411,6 @@ VALIDATOR.option('scheduler', 'log',
                  validator=str, info='scheduler log file')
 VALIDATOR.option('scheduler', 'socket', attrs={'default': DEFAULT_SCHED_SOCKET}, validator=str,
                  info='scheduler socket')
-VALIDATOR.option('scheduler', 'use_mars', attrs={'default': False}, validator=validate_bool,
-                 info='whether or not to use the MARS scheduler')
-VALIDATOR.option('scheduler', 'mars_model', attrs={'default': ''}, validator=str,
-                 info='location of MARS model')
-VALIDATOR.option('scheduler', 'mars_task_cnt', attrs={'default': 3},
-                 validator=validate_nonnegative_int,
-                 info='minimum number of tasks to cause the MARS scheduler to be invoked')
 VALIDATOR.option('scheduler', 'alloc_logfile',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler_alloc.log')},
                  validator=str, info='allocation logfile, to be used for later training')
@@ -426,8 +419,7 @@ VALIDATOR.option('scheduler', 'algorithm', attrs={'default': 'fcfs'}, choices=SC
                  info='scheduling algorithm to use')
 VALIDATOR.option('scheduler', 'default_algorithm', attrs={'default': 'fcfs'},
                  choices=SCHEDULER_ALGORITHMS,
-                 info=('default algorithm to use, when both MARS and this baseline '
-                       'algorithm are to be used'))
+                 info=('default algorithm to use'))
 VALIDATOR.option('scheduler', 'workdir',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'scheduler')},
                  validator=str,
