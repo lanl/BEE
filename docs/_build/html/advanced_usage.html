@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Usage &mdash; BEE: Build and Execution Environment  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Information and Error Logs" href="error_logs.html" />
+    <link rel="prev" title="Commands" href="commands.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> BEE: Build and Execution Environment<img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0rc1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Getting Started - Example Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bee_cwl.html">Common Workflow Language (CWL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Advanced Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#command-and-job-output">Command and Job Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#jinja-file-templating">Jinja File Templating</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multiple-workflows">Multiple Workflows</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="error_logs.html">Information and Error Logs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Developer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wf_api.html">BEEflow API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BEE: Build and Execution Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Advanced Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/advanced_usage.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="advanced-usage">
+<h1>Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permalink to this headline"></a></h1>
+<section id="command-and-job-output">
+<h2>Command and Job Output<a class="headerlink" href="#command-and-job-output" title="Permalink to this headline"></a></h2>
+<p>When BEE submits steps of a workflow, by default the output from the underlying
+batch scheduler (Slurm, LSF, etc.) will be saved by BEE. This includes all
+output from other helping programs, such as the container runtime and the batch
+scheduler itself. Sometimes this output can be useful when diagnosing runtime
+failures. In most cases you shouldn’t need to use this unless the error is
+outside of your program (this often includes environment-related and
+setup/installation issues). Note, to allow for better provenance, this output
+is also saved when archiving a workflow. This is also one reason why the
+specific path below should not be changed unless you know what you’re doing.</p>
+<p>When using the default template (see <a class="reference internal" href="#jinja-file">Jinja file</a>), outputs from the batch
+script will go to files in
+<code class="docutils literal notranslate"><span class="pre">$bee_workdir/workflows/$workflow_id/$task_name-$task_id</span></code>:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">$bee_workdir</span></code></dt><dd><p>BEE’s workdir, which is set in the bee.conf file and by default is
+<code class="docutils literal notranslate"><span class="pre">$HOME/.beeflow</span></code></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">$workflow_id</span></code></dt><dd><p>The same ID used to start the workflow</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">$task_id</span></code></dt><dd><p>A randomly generated UUID which BEE uses to keep track of the task</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">$task_name</span></code></dt><dd><p>The task/step name used within the workflow submission</p>
+</dd>
+</dl>
+<p>Within this directory, you can find the submission script and two output files
+for stderr (extension <code class="docutils literal notranslate"><span class="pre">.err</span></code>) and stdout (extension <code class="docutils literal notranslate"><span class="pre">.out</span></code>).</p>
+<p>If something bad happens, such as if BEE fails unexpectedly, then you may need
+to examine these output files. Sometimes the error may have to do with the
+environment or with a task’s requirements. If you’re unable to find the cause
+of the problem, then you should contact the BEE developers.</p>
+</section>
+<section id="jinja-file-templating">
+<span id="jinja-file"></span><h2>Jinja File Templating<a class="headerlink" href="#jinja-file-templating" title="Permalink to this headline"></a></h2>
+<p>When BEE launches a step of a workflow on an HPC system, the step and its
+metadata are given as input to a special template file. The generated output is
+used as the submission script for Slurm or LSF. While this allows a good deal
+of flexibility for different types of HPC jobs, it also makes it difficult to
+use. Currently, this section explains how it works and how you can configure
+the template file for the needs of your workflow, but please note that we’re
+also exploring different ways to do this, so this functionality may change in
+future releases.</p>
+<p>These templates use the <a class="reference external" href="https://jinja.palletsprojects.com/en/3.1.x/">Jinja2</a> templating library. While originally designed
+for templating HTML, it can also be used for generating any text file. It also
+has a simple Python-like syntax which should make it somewhat easy to work with
+for those already familiar with the language.</p>
+<p>See the <a class="reference external" href="https://jinja.palletsprojects.com/en/3.1.x/templates/">Jinja Template Documentation</a> for more information on the templating
+language and how to use it. There are also some example Jinja Files in
+<code class="docutils literal notranslate"><span class="pre">beeflow/data/job_templates</span></code>.</p>
+<p>Here is a small example of a Jinja submit file for Slurm:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+<span class="c1">#SBATCH --job-name={{task_name}}-{{task_id}}</span>
+<span class="c1">#SBATCH --output={{task_save_path}}/{{task_name}}-{{task_id}}.out</span>
+<span class="c1">#SBATCH --error={{task_save_path}}/{{task_name}}-{{task_id}}.err</span>
+<span class="p">{</span><span class="o">%</span> <span class="k">if</span> <span class="s1">&#39;beeflow:MPIRequirement&#39;</span> <span class="ow">in</span> <span class="n">hints</span> <span class="ow">and</span> <span class="s1">&#39;nodes&#39;</span> <span class="ow">in</span> <span class="n">hints</span><span class="p">[</span><span class="s1">&#39;beeflow:MPIRequirement&#39;</span><span class="p">]</span> <span class="o">%</span><span class="p">}</span>
+<span class="c1">#SBATCH -N {{ hints[&#39;beeflow:MPIRequirement&#39;][&#39;nodes&#39;] }}</span>
+<span class="p">{</span><span class="o">%</span> <span class="n">endif</span> <span class="o">%</span><span class="p">}</span>
+<span class="p">{</span><span class="o">%</span> <span class="k">if</span> <span class="s1">&#39;beeflow:MPIRequirement&#39;</span> <span class="ow">in</span> <span class="n">hints</span> <span class="ow">and</span> <span class="s1">&#39;ntasks&#39;</span> <span class="ow">in</span> <span class="n">hints</span><span class="p">[</span><span class="s1">&#39;beeflow:MPIRequirement&#39;</span><span class="p">]</span> <span class="o">%</span><span class="p">}</span>
+<span class="c1">#SBATCH -n {{ hints[&#39;beeflow:MPIRequirement&#39;][&#39;ntasks&#39;] }}</span>
+<span class="p">{</span><span class="o">%</span> <span class="n">endif</span> <span class="o">%</span><span class="p">}</span>
+
+<span class="p">{{</span> <span class="n">env_code</span> <span class="p">}}</span>
+
+<span class="c1"># pre commands</span>
+<span class="p">{</span><span class="o">%</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">pre_commands</span> <span class="o">%</span><span class="p">}</span>
+<span class="n">srun</span> <span class="p">{{</span> <span class="n">cmd</span><span class="o">|</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="p">}}</span>
+<span class="p">{</span><span class="o">%</span> <span class="n">endfor</span> <span class="o">%</span><span class="p">}</span>
+
+<span class="c1"># main command</span>
+<span class="n">srun</span> <span class="p">{{</span> <span class="n">main_command</span><span class="o">|</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="p">}}</span>
+
+<span class="c1"># post commands</span>
+<span class="p">{</span><span class="o">%</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">post_commands</span> <span class="o">%</span><span class="p">}</span>
+<span class="n">srun</span> <span class="p">{{</span> <span class="n">cmd</span><span class="o">|</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="p">}}</span>
+<span class="p">{</span><span class="o">%</span> <span class="n">endfor</span> <span class="o">%</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>By default when you run <code class="docutils literal notranslate"><span class="pre">beecfg</span> <span class="pre">new</span></code>, a default template file will be
+generated for you, not unlike the one above.  The default template for Slurm
+accepts the number of nodes and the number of tasks and submits corresponding
+<code class="docutils literal notranslate"><span class="pre">#SBATCH</span></code> directives for the job. You may also add other <code class="docutils literal notranslate"><span class="pre">#SBATCH</span></code> (or for
+LSF <code class="docutils literal notranslate"><span class="pre">#BSUB</span></code>) directives to your jinja file, to use a specific partition or
+for accounting purposes.</p>
+<p>This default template should work fine for most workflows, so you really don’t
+need to worry about editing it unless you need something extra. The important
+parts to note above, are where the template code is generating the <code class="docutils literal notranslate"><span class="pre">#SBATCH</span></code>
+directives by checking the contents of the <code class="docutils literal notranslate"><span class="pre">hints</span></code> variable and the code
+under the <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">main</span> <span class="pre">command</span></code> comment which is where the command for a step will
+be added. If you need to use a specific MPI type, then you may want to add
+<code class="docutils literal notranslate"><span class="pre">--mpi={type}</span></code> on the line under the <code class="docutils literal notranslate"><span class="pre">main</span> <span class="pre">command</span></code> comment. Or if you need
+something extra from the scheduler, then you may want to add it to the
+directives, or you can add the option on the main command itself.</p>
+<p>If you only need to apply some particular option to one step of a workflow,
+then you’ll need to use Jinja’s <a class="reference external" href="https://jinja.palletsprojects.com/en/3.1.x/templates/#if">if</a> construct to handle the case for that
+particular step and then for the other steps. There are also some other
+constructs, such as <a class="reference external" href="https://jinja.palletsprojects.com/en/3.1.x/templates/#for">for</a> loops, which may be useful for more complicated
+workflows. The good thing is that most of these behave and act like normal
+Python code, except being delimited by <code class="docutils literal notranslate"><span class="pre">{%</span> <span class="pre">..</span> <span class="pre">%}</span></code>.</p>
+<p>Check the bee configuration file (bee.conf) or type <code class="docutils literal notranslate"><span class="pre">beecfg</span> <span class="pre">show</span></code> for the
+current location of your job_template. If you need to, edit it for your
+particular needs.</p>
+</section>
+<section id="multiple-workflows">
+<span id="id1"></span><h2>Multiple Workflows<a class="headerlink" href="#multiple-workflows" title="Permalink to this headline"></a></h2>
+<p>BEE allows orchestration of multiple workflows. You can try running concurrent
+example workflows from <a class="reference internal" href="examples.html#simple-example"><span class="std std-ref">cat-grep-tar workflow</span></a> with two different names and
+different output paths. Using the same example is over simplified
+but does demonstrate running concurrent workflows. You may have requirements
+where you run the same workflow with different inputs and paths for outputs or
+other variations. You could prepare a workflow with different yaml files and
+make submissions for each specification.  We suggest you use unique names for
+each workflow, but it isn’t necessary since BEE assigns a unique workflow ID to
+each one.  For demonstration we show how you might run our simple example as
+two workflows with different names.</p>
+<p>The procedure would be to submit some workflows like the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">results1</span>
+<span class="n">mkdir</span> <span class="n">results2</span>
+<span class="n">beeclient</span> <span class="n">submit</span> <span class="n">cgt1</span> <span class="o">./</span><span class="n">cat</span><span class="o">-</span><span class="n">grep</span><span class="o">-</span><span class="n">tar</span><span class="o">.</span><span class="n">tgz</span> <span class="n">workflow</span><span class="o">.</span><span class="n">cwl</span> <span class="nb">input</span><span class="o">.</span><span class="n">yml</span> <span class="n">results1</span>
+<span class="n">beeclient</span> <span class="n">submit</span> <span class="n">cgt2</span> <span class="o">./</span><span class="n">cat</span><span class="o">-</span><span class="n">grep</span><span class="o">-</span><span class="n">tar</span><span class="o">.</span><span class="n">tgz</span> <span class="n">workflow</span><span class="o">.</span><span class="n">cwl</span> <span class="nb">input</span><span class="o">.</span><span class="n">yml</span> <span class="n">results2</span>
+<span class="n">beeclient</span> <span class="n">listall</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Name</span>  <span class="n">ID</span>      <span class="n">Status</span>
+<span class="n">cgt1</span>  <span class="n">b33fd3</span>  <span class="n">Pending</span>
+<span class="n">cgt2</span>  <span class="mi">9</span><span class="n">a378c</span>  <span class="n">Pending</span>
+</pre></div>
+</div>
+<p>You could then start each workflow with the <code class="docutils literal notranslate"><span class="pre">beeclient</span> <span class="pre">start</span> <span class="pre">&lt;WFID&gt;</span></code> command and query for the status of their tasks separately using <code class="docutils literal notranslate"><span class="pre">beeclient</span> <span class="pre">query</span> <span class="pre">&lt;WFID&gt;</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="commands.html" class="btn btn-neutral float-left" title="Commands" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="error_logs.html" class="btn btn-neutral float-right" title="Information and Error Logs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, BEE Development Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

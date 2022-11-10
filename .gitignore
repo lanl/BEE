@@ -13,4 +13,5 @@ poetry.lock
 .env
 .venv
 _build
+!docs/_build
 dist
