@@ -63,9 +63,6 @@ sleep_time = 10
 [scheduler]
 log = $BEE_WORKDIR/logs/scheduler.log
 socket = $HOME/scheduler.sock
-use_mars = False
-mars_model =
-mars_task_cnt = 3
 alloc_logfile = $BEE_WORKDIR/logs/scheduler_alloc.log
 algorithm = fcfs
 default_algorithm = fcfs

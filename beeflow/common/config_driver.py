@@ -414,7 +414,7 @@ VALIDATOR.option('scheduler', 'socket', attrs={'default': DEFAULT_SCHED_SOCKET},
 VALIDATOR.option('scheduler', 'alloc_logfile',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler_alloc.log')},
                  validator=str, info='allocation logfile, to be used for later training')
-SCHEDULER_ALGORITHMS = ('fcfs', 'mars', 'backfill', 'sjf')
+SCHEDULER_ALGORITHMS = ('fcfs', 'backfill', 'sjf')
 VALIDATOR.option('scheduler', 'algorithm', attrs={'default': 'fcfs'}, choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
 VALIDATOR.option('scheduler', 'default_algorithm', attrs={'default': 'fcfs'},

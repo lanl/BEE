@@ -70,7 +70,7 @@ class WorkflowJobHandler(Resource):
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
-        algorithm = algorithms.choose(tasks, **vars(flask_app.sched_conf))
+        algorithm = algorithms.choose(**vars(flask_app.sched_conf))
         algorithm.schedule_all(tasks, list(db.resources))
         return [t.encode() for t in tasks]
 

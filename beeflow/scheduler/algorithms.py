@@ -248,8 +248,7 @@ def load(algorithm=None, **kwargs):  # noqa ('algorithm' may be used in the futu
     SJF.load(**kwargs)
 
 
-def choose(tasks, algorithm=None,
-           default_algorithm=None, **kwargs):
+def choose(algorithm=None, default_algorithm=None, **kwargs):
     """Choose which algorithm to run at this point.
 
     Determine which algorithm class needs to run and return it.
