@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Common Workflow Language (CWL) &mdash; BEE: Build and Execution Environment  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Commands" href="commands.html" />
+    <link rel="prev" title="Getting Started - Example Workflows" href="examples.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> BEE: Build and Execution Environment<img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0rc1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Getting Started - Example Workflows</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Common Workflow Language (CWL)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#bee-specific-requirements-hints">BEE-Specific Requirements/Hints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dockerrequirement">DockerRequirement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#beeflow-mpirequirement">beeflow:MPIRequirement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#beeflow-checkpointrequirement">beeflow:CheckpointRequirement</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced_usage.html">Advanced Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="error_logs.html">Information and Error Logs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Developer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wf_api.html">BEEflow API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BEE: Build and Execution Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Common Workflow Language (CWL)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/bee_cwl.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="common-workflow-language-cwl">
+<h1>Common Workflow Language (CWL)<a class="headerlink" href="#common-workflow-language-cwl" title="Permalink to this headline"></a></h1>
+<p>BEE workflows are written in the Common Workflow Language (CWL). CWL allows
+workflows to be written in a simple YAML format that can represent “steps” (or
+tasks) of a workflow as well as how those steps depend on each other. Each step
+has a base command to be used along with inputs and outputs. Special options
+are used to indicate how those inputs and outputs can be used to form the
+actual command to be run on a system. In addition, requirements and hints are
+special options that determine what a particular step requires and the
+environment in which the step can run. Dependencies are expressed naturally
+through the inputs and outputs that flow between the tasks.</p>
+<p>In the past each workflow orchestration system would use a different workflow
+format, based on their needs at the time. Thus when someone would write a
+workflow for one system, it would be time consuming to port that workflow over
+to another system. This is one of the main reasons for creating the <a class="reference external" href="https://www.commonwl.org/">CWL</a> standard
+and today a number of workflow systems like BEE support it. By using this
+standard we hope to make it easier on users to both write and extend their
+workflows for different systems.</p>
+<p>BEE currently supports a subset of the CWL standard. On this page we’ll try to
+list any differences between the CWL standard and what BEE supports, as well as
+extensions that you might want to use.</p>
+<p>For general information about writing workflows please take a look at the
+<a class="reference external" href="https://www.commonwl.org/user_guide/">Common Workflow Language User Guide</a>. If you have more questions or are
+interested in particular details of CWL, then you might want to take a look at
+the <a class="reference external" href="https://www.commonwl.org/v1.2/">specification</a>.</p>
+<section id="bee-specific-requirements-hints">
+<h2>BEE-Specific Requirements/Hints<a class="headerlink" href="#bee-specific-requirements-hints" title="Permalink to this headline"></a></h2>
+<p>Requirements and hints are both used to help BEE configure the environment for
+each step. When a requirement is encountered in a workflow the workflow system
+must be able to fulfill it, or raise an error indicating a failure. On the
+other hand if a hint is not supported, then it can safely be ignored by the
+implementation. Since the standard only includes a limited number of
+requirements, not all of which are useful for an HPC setting, we’ve added some
+extensions that are prefixed with <code class="docutils literal notranslate"><span class="pre">beeflow:</span></code>. Please specify beeflow extensions as hints in the steps of your CWL workflow specification.</p>
+<section id="dockerrequirement">
+<h3>DockerRequirement<a class="headerlink" href="#dockerrequirement" title="Permalink to this headline"></a></h3>
+<p>A <code class="docutils literal notranslate"><span class="pre">DockerRequirement</span></code> (a CWL standard specification) is used to run a step with a container. BEE does not
+support Docker, but it does support <a class="reference external" href="https://hpc.github.io/charliecloud/">Charliecloud</a> and also has limited support
+for <a class="reference external" href="https://apptainer.org/">Singularity</a>.</p>
+<p>An example <code class="docutils literal notranslate"><span class="pre">DockerRequirement</span></code> in BEE is shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">DockerRequirement</span><span class="p">:</span>
+    <span class="n">dockerFile</span><span class="p">:</span> <span class="s2">&quot;dockerfile-name&quot;</span>
+    <span class="n">beeflow</span><span class="p">:</span><span class="n">containerName</span><span class="p">:</span> <span class="s2">&quot;some-container&quot;</span>
+</pre></div>
+</div>
+<p>This example includes two suboptions, a <code class="docutils literal notranslate"><span class="pre">dockerFile</span></code> option that specifies
+the name of of a dockerfile as well as an extension <code class="docutils literal notranslate"><span class="pre">beeflow:containerName</span></code>
+that gives the name of the container to build. Below are some of the suboptions
+that BEE supports and how they can affect running a step with a container.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 74%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Suboption Name</p></th>
+<th class="head"><p>Usage/Meaning/Requirements</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dockerPull</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dockerPull:</span> <span class="pre">&quot;container-image&quot;</span></code>  <br />
+Pull from a container repository.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dockerLoad</span></code></p></td>
+<td><p>Not supported</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dockerFile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dockerFile:</span> <span class="pre">&quot;dockerfile-name&quot;</span></code>  <br />
+Builds a container using the dockerfile.  <br />
+Requires: <code class="docutils literal notranslate"><span class="pre">beeflow:containerName</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dockerImport</span></code></p></td>
+<td><p>Not supported</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dockerImageId</span></code></p></td>
+<td><p>Not supported</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dockerOutputDirectory</span></code></p></td>
+<td><p>Not supported</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beeflow:copyContainer</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">beeflow:copyContainer:</span> <span class="pre">&quot;path-to-container-image&quot;</span></code>  <br />
+Copies image to <code class="docutils literal notranslate"><span class="pre">container_archive</span></code> (specified in bee.conf). Uses copy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">beeflow:useContainer</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">beeflow:useContainer:</span> <span class="pre">&quot;path-to-container-image&quot;</span></code>  <br />
+Executes using the specified image.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beeflow:containerName</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">beeflow:containerName:</span> <span class="pre">&quot;containerName&quot;</span></code>  <br />
+Specifies the container name. Used in conjunction with dockerFile.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="beeflow-mpirequirement">
+<h3>beeflow:MPIRequirement<a class="headerlink" href="#beeflow-mpirequirement" title="Permalink to this headline"></a></h3>
+<p>BEE also includes a special requirement for running MPI jobs. Note that CWL has
+also experimented with a cwltool specific hint (see their <a class="reference external" href="https://ieeexplore.ieee.org/document/9308116">paper</a>). The
+experimental extension includes basic support for running MPI jobs, but doesn’t
+include all of the options that are important for the HPC systems that BEE is
+designed to run on. For instance, many jobs will require some sort of mpi
+runtime information that needs to be passed to the underlying scheduler (such
+as the mpi type that needs to be passed to Slurm with the <code class="docutils literal notranslate"><span class="pre">--mpi={version}</span></code>
+option).</p>
+<p>BEE’s <code class="docutils literal notranslate"><span class="pre">beeflow:MPIRequirement</span></code> attempts to be as configurable as possible for
+running HPC jobs with MPI. Currently, we use a special <a class="reference internal" href="advanced_usage.html#jinja-file"><span class="std std-ref">Jinja File Templating</span></a> that is
+used as a template for generating submission scripts. All options in the
+<code class="docutils literal notranslate"><span class="pre">beeflow:MPIRequirement</span></code> get passed to the <a class="reference internal" href="advanced_usage.html#jinja-file"><span class="std std-ref">Jinja File Templating</span></a> template and can
+then be used to make step-level decisions for running MPI jobs. Note that we’re
+also exploring other ways to implement this directly from the options within
+the CWL files, instead of using a template file.</p>
+<p>An example <code class="docutils literal notranslate"><span class="pre">beeflow:MPIRequirement</span></code> in BEE is shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span><span class="p">:</span><span class="n">MPIRequirement</span><span class="p">:</span>
+  <span class="n">nodes</span><span class="p">:</span> <span class="mi">10</span>
+  <span class="n">ntasks</span><span class="p">:</span> <span class="mi">32</span>
+</pre></div>
+</div>
+<p>The values for <code class="docutils literal notranslate"><span class="pre">nodes</span></code> and  <code class="docutils literal notranslate"><span class="pre">ntasks</span></code> are then passed to the template and
+can be used to request the required resources from the underlying scheduler on
+submission.</p>
+<p>See our section on the <a class="reference internal" href="advanced_usage.html#jinja-file"><span class="std std-ref">Jinja File Templating</span></a> for more info on how this works currently.</p>
+</section>
+<section id="beeflow-checkpointrequirement">
+<h3>beeflow:CheckpointRequirement<a class="headerlink" href="#beeflow-checkpointrequirement" title="Permalink to this headline"></a></h3>
+<p>BEE is designed to manage workflows that include long running scientific
+simulations, requiring checkpointing and restarting. We implemented the
+<code class="docutils literal notranslate"><span class="pre">beeflow:CheckpointRequirement</span></code> for this purpose. If a step in a workflow
+includes this requirement and the task stops, such as for a timelimit on the job,
+a subtask will run to continue the simulation using the specified checkpoint
+file.</p>
+<p>An example <code class="docutils literal notranslate"><span class="pre">beeflow:CheckpointRequirement</span></code> in BEE is shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span><span class="p">:</span><span class="n">CheckpointRequirement</span><span class="p">:</span>
+     <span class="n">enabled</span><span class="p">:</span> <span class="n">true</span>
+     <span class="n">file_path</span><span class="p">:</span> <span class="n">checkpoint_output</span>
+     <span class="n">container_path</span><span class="p">:</span> <span class="n">checkpoint_output</span>
+     <span class="n">file_regex</span><span class="p">:</span> <span class="n">backup</span><span class="p">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span><span class="o">*.</span><span class="n">crx</span>
+     <span class="n">restart_parameters</span><span class="p">:</span> <span class="o">-</span><span class="n">R</span>
+     <span class="n">num_tries</span><span class="p">:</span> <span class="mi">3</span>
+</pre></div>
+</div>
+<p>For the above example <code class="docutils literal notranslate"><span class="pre">file_path</span></code> is the location of the checkpoint_file. The
+<code class="docutils literal notranslate"><span class="pre">file_regex</span></code> specifies the regular expression for the possible checkpoint
+filenames, the <code class="docutils literal notranslate"><span class="pre">restart</span> <span class="pre">parameter</span></code> will be added to the run command followed
+by the path to the latest checkpoint file, and <code class="docutils literal notranslate"><span class="pre">num_tries</span></code> specifies the maximum
+number of times the task will be restarted.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples.html" class="btn btn-neutral float-left" title="Getting Started - Example Workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="commands.html" class="btn btn-neutral float-right" title="Commands" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, BEE Development Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
