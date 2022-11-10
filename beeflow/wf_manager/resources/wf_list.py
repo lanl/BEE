@@ -132,6 +132,7 @@ class WFList(Resource):
         gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
         wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
+
         try:
             # wfi = parse_workflow(wf_path, main_cwl, yaml_file)
             wfi = parse_workflow(wf_id, wf_dir, main_cwl, yaml_file, bolt_port)
