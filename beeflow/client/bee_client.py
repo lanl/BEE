@@ -223,7 +223,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
     logging.info('Sumit workflow:  {resp.text}')
 
-    #Cleanup code
+    # Cleanup code
     os.remove(tarball_path)
     return wf_id
 
