@@ -177,9 +177,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         # Check to see if the wf_path is a tarball or a directory. Run package() if directory
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
-            bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-            print(bee_workdir)
-            print("type of bee_workdir: " + str(type(bee_workdir)))
+            bee_workdir = bc.get('DEFAULT', 'bee_workdir') + "/archives"
             package(wf_path, pathlib.Path(bee_workdir))
             wf_tarball = open(pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz"), 'rb')
         else:
