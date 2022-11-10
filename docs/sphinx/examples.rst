@@ -72,6 +72,15 @@ make sure to change $NAME to a name of your choice and $WORKDIR_PATH to the
 proper path that was created ealier. The submit command should have produced a
 short ID of 6-7 characters.
 
+Alternatively, you can also just do the following:
+
+.. code-block::
+
+    cd $WORKDIR_PATH
+    beeclient submit $NAME examples/cat-grep-tar workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
+
+This will automatically do the packaging and create an archive in the background to be submitted.
+
 The workflow has now been submitted, however nothing is happening yet. To start
 the workflow, you'll need to issue a start command along with the workflow
 ID:
