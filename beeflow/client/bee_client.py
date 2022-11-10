@@ -174,7 +174,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
            help='working directory for workflow containing input + output files',)):
     """Submit a new workflow."""
     if os.path.exists(wf_path):
-        #Check to see if the wf_path is a tarball or a directory. Run package() if directory
+        # Check to see if the wf_path is a tarball or a directory. Run package() if directory
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
             package(wf_path, pathlib.Path("/tmp"))
