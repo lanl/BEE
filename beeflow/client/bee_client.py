@@ -179,7 +179,8 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
             print("Detected directory instead of packaged workflow. Packaging Directory...")
             bee_workdir = bc.get('DEFAULT', 'bee_workdir') + "/archives"
             package(wf_path, pathlib.Path(bee_workdir))
-            wf_tarball = open(pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz"), 'rb')
+            tarball_path = pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz")
+            wf_tarball = open(tarball_path, 'rb')
         else:
             wf_tarball = open(wf_path, 'rb')
     else:
@@ -221,6 +222,9 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     typer.secho("Workflow submitted! Your workflow id is "
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
     logging.info('Sumit workflow:  {resp.text}')
+
+    #Cleanup code
+    os.remove(tarball_path)
     return wf_id
 
 
