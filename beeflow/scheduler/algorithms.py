@@ -8,7 +8,6 @@ import os
 import time
 
 from beeflow.scheduler import resource_allocation
-from beeflow.scheduler import mars_util
 
 
 class Algorithm(abc.ABC):
@@ -162,86 +161,6 @@ class Backfill(Algorithm):
             tasks = remaining
 
 
-class MARS(Algorithm):
-    """MARS Scheduler.
-
-    MARS Scheduler.
-    """
-
-    @staticmethod
-    def load(mars_model='model', **kwargs):
-        """MARS configuration loading.
-
-        :param mars_model: model file path
-        :type mars_model: str
-        """
-        # Only import the mars module if necessary
-        from beeflow.scheduler import mars
-        MARS.mod = mars
-        MARS.actor, MARS.critic = mars.load_models(mars_model)
-
-    @staticmethod
-    def policy(actor, _critic, task, tasks, possible_times):
-        """Evaluate the policy function to find a scheduling of the task.
-
-        Evaluate the policy function with the model task.
-        :param actor: actor used for scheduling
-        :type actor: instance of mars.ActorModel
-        :param critic: critic used during training
-        :type critic: instance of mars.CriticModel
-        :param task: task to get the scheduling policy for
-        :type task: instance of Task
-        :param possible_times: possible allocation times for the task
-        :type possible_times: list of int
-        :rtype: int, index of allocation to use
-        """
-        mars = MARS.mod
-        # No possible allocations
-        if not possible_times:
-            return -1
-        # Convert the task and possible_allocs into a vector
-        # for input into the policy function.
-        # TODO: Input should include the specific task
-        vec = mars_util.workflow2vec(task, tasks)
-        vec = mars.tf.constant([vec])
-        # Convert the result into an action index
-        actor_results = [float(n) for n in actor.call(vec)[0]]
-        i = actor_results.index(max(actor_results))
-        i = (float(i) / len(actor_results)) * (len(possible_times) - 1)
-        return int(i)
-
-    @staticmethod
-    def schedule_all(tasks, resources, _mars_model='model', **kwargs):
-        """Schedule a list of tasks on the given resources.
-
-        Schedule a full list of tasks on the given resources. Note: MARS.load()
-        must have been called previously.
-        :param tasks: list of tasks to schedule
-        :type tasks: list of instance of Task
-        :param resources: list of resources
-        :type resources: list of instance of Resource
-        :param _mars_model: the mars model path
-        :type _mars_model: str
-        """
-        allocator = resource_allocation.TaskAllocator(resources)
-        current_time = 0
-        for task in tasks:
-            start_times = [current_time]
-            start_times.extend(allocator.get_end_times())
-            possible_times = []
-            # Add each possible time for the task to start
-            for start_time in start_times:
-                if allocator.can_run_now(task.requirements, start_time):
-                    possible_times.append(start_time)
-            # Now choose the policy
-            pi = MARS.policy(MARS.actor, MARS.critic, task, tasks,
-                             possible_times)
-            if pi != -1:
-                allocs = allocator.allocate(task.requirements,
-                                            possible_times[pi])
-                task.allocations = allocs
-
-
 class AlgorithmLogWrapper:
     """Algorithm log wrapper class.
 
@@ -314,27 +233,22 @@ MEDIAN = 2
 
 algorithm_objects = {
     'fcfs': FCFS,
-    'mars': MARS,
     'backfill': Backfill,
     'sjf': SJF,
 }
 
 
-def load(use_mars=False, algorithm=None, **kwargs):
+def load(algorithm=None, **kwargs):  # noqa ('algorithm' may be used in the future)
     """Load data needed by the algorithms.
 
     Load data needed by algorithms, if necessary.
     """
     FCFS.load(**kwargs)
-    use_mars = use_mars == 'True' or use_mars is True
-    if use_mars or algorithm == 'mars':
-        MARS.load(**kwargs)
     Backfill.load(**kwargs)
     SJF.load(**kwargs)
 
 
-def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
-           default_algorithm=None, **kwargs):
+def choose(algorithm=None, default_algorithm=None, **kwargs):
     """Choose which algorithm to run at this point.
 
     Determine which algorithm class needs to run and return it.
@@ -347,15 +261,9 @@ def choose(tasks, use_mars=False, algorithm=None, mars_task_cnt=MEDIAN,
     cls = algorithm_objects[default]
     if algorithm is not None:
         cls = algorithm_objects[algorithm]
-    # TODO: Correctly choose based on size of the workflow
-    if use_mars and len(tasks) >= int(mars_task_cnt):
-        cls = algorithm_objects['mars']
-
     return AlgorithmLogWrapper(cls, **kwargs)
 # Ignoring E0211: This is how the class is designed right now, we should think about changing this
 #                 however.
-# Ignoring C0415: This is done on purpose to avoid importing MARS when we don't have the tensorflow
-#                 dependency.
 # Ignoring W0511: A number of these TODO's are hinted at in issue #333, but I don't want to remove
 #                 them from the code until this issue is fully addressed.
 # Ignoring R0903: Too few public methods, not sure how this calculated and this will be fixed with
