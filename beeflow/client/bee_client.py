@@ -167,14 +167,23 @@ app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGr
 
 @app.command()
 def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
-           wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow tarball'),
+           wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
            yaml: str = typer.Argument(..., help='filename of YAML file'),
            workdir: pathlib.Path = typer.Argument(...,
            help='working directory for workflow containing input + output files',)):
     """Submit a new workflow."""
+    tarball_path = ""
     if os.path.exists(wf_path):
-        wf_tarball = open(wf_path, 'rb')
+        # Check to see if the wf_path is a tarball or a directory. Run package() if directory
+        if os.path.isdir(wf_path):
+            print("Detected directory instead of packaged workflow. Packaging Directory...")
+            bee_workdir = bc.get('DEFAULT', 'bee_workdir') + "/archives"
+            package(wf_path, pathlib.Path(bee_workdir))
+            tarball_path = pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz")
+            wf_tarball = open(tarball_path, 'rb')
+        else:
+            wf_tarball = open(wf_path, 'rb')
     else:
         error_exit(f'Workflow tarball {wf_path} cannot be found')
 
@@ -214,6 +223,10 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     typer.secho("Workflow submitted! Your workflow id is "
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
     logging.info('Sumit workflow:  {resp.text}')
+
+    # Cleanup code
+    if tarball_path:
+        os.remove(tarball_path)
     return wf_id
 
 

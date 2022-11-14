@@ -32,7 +32,7 @@ beeclient
 
 Arguments:
   - WF_NAME, The workflow name  [required]
-  - WF_PATH, Path to the workflow tarball  [required]
+  - WF_PATH, Path to the workflow CWL tarball or directory  [required]
   - MAIN_CWL, filename of main CWL file  [required]
   - YAML, filename of YAML file  [required]
   - WORKDIR, working directory for workflow containing input + output files [required]
