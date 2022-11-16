@@ -7,9 +7,9 @@ import atexit
 import sys
 import hashlib
 import os
+from pathlib import Path
 import re
 import socket
-import string
 import traceback
 import jsonpickle
 
@@ -25,18 +25,18 @@ bc.init()
 
 print(sys.argv)
 
-from beeflow.common.log import main_log as log
+from beeflow.common import log as bee_logging
 from beeflow.common.build_interfaces import build_main
-import beeflow.common.log as bee_logging
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.connection import Connection
 import beeflow.common.worker as worker_pkg
 from beeflow.common.db import tm
 
-sys.excepthook = bee_logging.catch_exception
 
+log = bee_logging.setup(__name__)
 
 runtime = bc.get('task_manager', 'container_runtime')
+
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -64,6 +64,11 @@ def connect_db(fn):
 
 def _url():
     """Return  the url to the WFM."""
+    # Saving this for whenever we need to run jobs across different machines
+    # workflow_manager = 'bee_wfm/v1/jobs/'
+    # #wfm_listen_port = bc.get('workflow_manager', 'listen_port')
+    # wfm_listen_port = wf_db.get_wfm_port()
+    # return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}'
     return 'bee_wfm/v1/jobs/'
 
 
@@ -77,9 +82,9 @@ def _wfm_conn():
     return Connection(bc.get('workflow_manager', 'socket'))
 
 
-def update_task_state(task_id, job_state, **kwargs):
+def update_task_state(workflow_id, task_id, job_state, **kwargs):
     """Informs the workflow manager of the current state of a task."""
-    data = {'task_id': task_id, 'job_state': job_state}
+    data = {'wf_id': workflow_id, 'task_id': task_id, 'job_state': job_state}
     if 'metadata' in kwargs:
         kwargs['metadata'] = jsonpickle.encode(kwargs['metadata'])
 
@@ -146,11 +151,6 @@ def submit_jobs(db):
             log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
             # place job in queue to monitor
             db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
-            # job_queue.append({'task': task, 'job_id': job_id, 'job_state': job_state})
-            # Update metadata
-            # task_metadata = gen_task_metadata(task, job_id)
-            # Need to
-            # task_metadata.replace("'", '"')
             # update_task_metadata(task.id, task_metadata)
         except Exception as err:
             # Set job state to failed
@@ -162,18 +162,7 @@ def submit_jobs(db):
         finally:
             # Send the initial state to WFM
             # update_task_state(task.id, job_state, metadata=task_metadata)
-            update_task_state(task.id, job_state)
-
-
-def get_checkpoints(file_regex, file_path):
-    """Retrieve List of Checkpoint files."""
-    checkpoints = []
-    regex = re.compile(file_regex)
-    for _, _, checkpoint_files in os.walk(file_path):
-        for checkpoint_file in checkpoint_files:
-            if regex.match(checkpoint_file):
-                checkpoints.append(checkpoint_file)
-    return checkpoints
+            update_task_state(task.workflow_id, task.id, job_state)
 
 
 def get_task_checkpoint(task):
@@ -200,29 +189,25 @@ def get_task_checkpoint(task):
     return task_checkpoint
 
 
-def get_restart_file(task_checkpoint):
+def get_restart_file(task_checkpoint, task_workdir):
     """Find latest checkpoint file."""
-    checkpoint_file = ""
+    if 'file_regex' not in task_checkpoint:
+        raise RuntimeError('file_regex is required for checkpointing')
+    if 'file_path' not in task_checkpoint:
+        raise RuntimeError('file_path is required for checkpointing')
+    file_regex = task_checkpoint['file_regex']
+    file_path = Path(task_workdir, task_checkpoint['file_path'])
+    regex = re.compile(file_regex)
+    checkpoint_files = [
+        Path(file_path, fname) for fname in os.listdir(file_path)
+        if regex.match(fname)
+    ]
+    checkpoint_files.sort(key=os.path.getmtime)
     try:
-        file_regex = task_checkpoint['file_regex']
-    except (KeyError, TypeError):
-        file_regex = ""
-    try:
-        file_path = task_checkpoint['file_path']
-    except (KeyError, TypeError):
-        file_path = ""
-    if file_path != "":
-        # Replace environment variables
-        if "$" in file_path:
-            file_path = string.Template(file_path).substitute(os.environ)
-        checkpoints = get_checkpoints(file_regex, file_path)
-        # Find latest checkpoint file
-        checkpoints = [f'{file_path}/{file_name}' for file_name in checkpoints]
-        checkpoints.sort(key=os.path.getmtime)
-        checkpoint_file = checkpoints[-1]
-        log.info(f'Checkpoint file is {checkpoint_file}')
-        return os.path.basename(checkpoint_file)
-    return None
+        checkpoint_file = checkpoint_files[-1]
+        return str(checkpoint_file)
+    except IndexError:
+        raise RuntimeError('Missing checkpoint file for task') from None
 
 
 @connect_db
@@ -245,14 +230,14 @@ def update_jobs(db):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = get_task_checkpoint(task)
                 if task_checkpoint:
-                    checkpoint_file = get_restart_file(task_checkpoint)
+                    checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
                     log.info(f'Restart: {task.name} task_info: {task_info}')
-                    update_task_state(task.id, job_state, task_info=task_info)
+                    update_task_state(task.workflow_id, task.id, job_state, task_info=task_info)
                 else:
-                    update_task_state(task.id, job_state)
+                    update_task_state(task.workflow_id, task.id, job_state)
             else:
-                update_task_state(task.id, job_state)
+                update_task_state(task.workflow_id, task.id, job_state)
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
@@ -369,6 +354,7 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 #    # Flask logging
 #    flask_app.logger.addHandler(handler)
 #    flask_app.run(debug=False, port=str(tm_listen_port))
+
 # Ignoring CO413 beeflow modules must be loaded after bc.init()
 # Ignoring W0703: Catching general exception is ok for failed submit and cancel.
 # pylama:ignore=C0413,W0703

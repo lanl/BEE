@@ -11,8 +11,6 @@ import requests_unixsocket
 import requests
 
 from beeflow.common.worker.worker import (Worker, WorkerError)
-from beeflow.common.log import main_log as log
-import beeflow.common.log as bee_logging
 
 
 class SlurmWorker(Worker):
@@ -29,8 +27,6 @@ class SlurmWorker(Worker):
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
-        # Setup logger
-        bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='SlurmWorker.log')
 
     def write_script(self, task):
         """Build task script; returns filename of script."""

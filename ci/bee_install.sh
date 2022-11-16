@@ -3,6 +3,8 @@
 
 . ./ci/env.sh
 
+set -e
+
 # BEE Containers
 printf "\n\n"
 printf "**Setting up BEE containers**\n"
@@ -22,7 +24,7 @@ $PYTHON -m venv venv
 pip install --upgrade pip
 pip install poetry
 # Do a poetry install, making sure that all extras are added
-poetry install -E cloud_extras -E scheduler_extras || exit 1
+poetry install -E cloud_extras || exit 1
 
 # BEE Configuration
 mkdir -p ~/.config/beeflow
@@ -61,9 +63,6 @@ sleep_time = 10
 [scheduler]
 log = $BEE_WORKDIR/logs/scheduler.log
 socket = $HOME/scheduler.sock
-use_mars = False
-mars_model =
-mars_task_cnt = 3
 alloc_logfile = $BEE_WORKDIR/logs/scheduler_alloc.log
 algorithm = fcfs
 default_algorithm = fcfs

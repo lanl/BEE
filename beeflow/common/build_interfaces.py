@@ -13,9 +13,11 @@ import sys
 from subprocess import CalledProcessError
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.log import main_log as log
-import beeflow.common.log as bee_logging
+from beeflow.common import log as bee_logging
 from beeflow.common.build.build_driver import arg2task
+
+
+log = bee_logging.setup(__name__)
 
 
 def build_main(task):
