@@ -2,6 +2,7 @@
 
 Tests of the REST interface for BEE Scheduler.
 """
+import tempfile
 import pytest
 
 from beeflow.scheduler.scheduler import create_app
@@ -16,7 +17,7 @@ def endpoint(*pargs):
 
 
 @pytest.fixture(scope='function')
-def scheduler():
+def scheduler(mocker):
     """Fixture code to setup a new scheduler per test function.
 
     Start a new scheduler as a subprocess for each test function.
@@ -25,8 +26,9 @@ def scheduler():
     app.config.update({
         'TESTING': True,
     })
-    # Note: this just uses the default scheduler database
-    yield app.test_client()
+    with tempfile.NamedTemporaryFile() as fp:
+        mocker.patch('beeflow.scheduler.scheduler.get_db_path', return_value=fp.name)
+        yield app.test_client()
 
 
 def test_schedule_job_no_resources(scheduler):
