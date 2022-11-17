@@ -12,6 +12,7 @@ from beeflow.tests.mocks import MockWFI
 
 REPO_PATH = Path(*Path(__file__).parts[:-3])
 
+
 def find(path):
     """Find a path relative to the root of the repo."""
     return str(Path(REPO_PATH, path))
