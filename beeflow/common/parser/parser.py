@@ -5,7 +5,6 @@ tools in the graph database. This parser supports a subset of the CWL v1.0 stand
 inspired by the CWL parser written by the CWL parser written by the SABER team at John Hopkins
 University (see SABER project at https://github.com/aplbrain/saber).
 """
-import configparser
 import sys
 import argparse
 import json
@@ -24,7 +23,6 @@ from beeflow.common.wf_data import (InputParameter,
                                     Requirement,
                                     generate_workflow_id)
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.common.wf_interface import WorkflowInterface
 
 
 if not bc.ready():
@@ -54,26 +52,16 @@ class CwlParseError(Exception):
 class CwlParser:
     """Class for parsing CWL files."""
 
-    def __init__(self, bolt_port):
+    def __init__(self, wfi):
         """Initialize the CWL parser interface.
 
-        Forms a connection to the graph database through the workflow interface.
+        Sets the workflow interface for communication with the graph database.
         """
         self.cwl = None
         self.path = None
         self.steps = []
         self.params = None
-        self._wfi = None
-
-        try:
-            self._wfi = WorkflowInterface(user="neo4j",
-                                          bolt_port=bolt_port,
-                                          db_hostname=bc.get("graphdb", "hostname"),
-                                          password=bc.get("graphdb", "dbpass"))
-        except KeyError:
-            self._wfi = WorkflowInterface()
-        except configparser.NoSectionError:
-            self._wfi = WorkflowInterface()
+        self._wfi = wfi
 
     def parse_workflow(self, workflow_id, cwl_path, job=None):
         """Parse a CWL Workflow file and load it into the graph database.
@@ -361,10 +349,11 @@ def parse_args(args=None):
 
 def main():
     """Run the parser on a CWL Workflow and job file directly."""
-    bolt_port = wf_utils.get_open_port()
-    parser = CwlParser(bolt_port)
+    wf_id = generate_workflow_id()
+    wfi = wf_utils.get_workflow_interface(wf_id)
+    parser = CwlParser(wfi)
     args = parse_args()
-    parser.parse_workflow(generate_workflow_id(), args.wf_file, args.inputs)
+    parser.parse_workflow(wf_id, args.wf_file, args.inputs)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,9 @@ import pytest
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import wf_db
-from beeflow.tests.mocks import MockWFI, MockCwlParser
+from beeflow.tests.mocks import MockWFI, MockCwlParser, MockGDBInterface
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.wf_interface import WorkflowInterface
 
 # We use this as the test workflow id
 WF_ID = '42'
@@ -66,6 +67,8 @@ def test_submit_workflow(client, mocker, teardown_workflow):
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
     mocker.patch('beeflow.common.wf_data.generate_workflow_id', return_value='42')
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
+                 return_value=WorkflowInterface(MockGDBInterface()))
     mocker.patch('subprocess.run', return_value=True)
     script_path = pathlib.Path(__file__).parent.resolve()
     tarball = script_path / 'clamr-wf.tgz'
@@ -81,6 +84,7 @@ def test_submit_workflow(client, mocker, teardown_workflow):
 
     # Remove task added during the test
     wf_db.delete_task(42, WF_ID)
+    print(resp.json)
     assert resp.json['msg'] == 'Workflow uploaded'
 
 

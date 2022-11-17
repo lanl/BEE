@@ -24,17 +24,21 @@ api = Api(flask_app)
 bc.init()
 
 
-def connect_db(fn):
-    """Decorate a function for connecting to a database."""
+def get_db_path():
+    """Get the database path."""
     # Favor the environment variable if it exists
     path = os.getenv('BEE_SCHED_DB_PATH')
     if path is None:
         workdir = bc.get('DEFAULT', 'bee_workdir')
         path = os.path.join(workdir, 'sched.db')
+    return path
 
+
+def connect_db(fn):
+    """Decorate a function for connecting to a database."""
     def wrap(*pargs, **kwargs):
         """Decorate the function."""
-        with sched.open_db(path) as db:
+        with sched.open_db(get_db_path()) as db:
             return fn(db, *pargs, **kwargs)
 
     return wrap
