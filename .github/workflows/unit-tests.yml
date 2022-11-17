@@ -27,10 +27,5 @@ jobs:
         run: ./ci/slurm_start.sh
       - name: BEE Install
         run: ./ci/bee_install.sh
-      # TODO: Add the script for the unit tests here
       - name: Unit tests
-        run: |
-          #!/bin/bash
-          . ./venv/bin/activate
-          . ./ci/env.sh
-          ./ci/unit_tests.sh
+        run: ./ci/unit_tests.sh
