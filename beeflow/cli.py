@@ -9,14 +9,13 @@ services is specified using the appropriate flag(s) then ONLY those services
 will be started.
 """
 import os
-import pathlib
-import re
 import signal
 import subprocess
 import socket
 import sys
 import shutil
 import time
+import importlib.metadata
 
 import daemon
 import typer
@@ -359,14 +358,8 @@ def version_callback(version: bool = False):
     # Print out the current version of the app, and then exit
     # Note above docstring gets used in the help menu
     if version:
-        # Get the path with the pyproject.toml file
-        beeflow_dir_path = pathlib.Path(__file__).parent.parent.resolve()
-        with open(str(beeflow_dir_path) + "/pyproject.toml", "r", encoding="utf-8") as versionf:
-            for line in versionf.readlines():
-                # Use a regular expression to search for the line that starts with the version
-                if re.search("^version =", line):
-                    print(line.replace("\n", ""))
-        sys.exit()
+        version = importlib.metadata.version("hpc-beeflow")
+        print(version)
 
 
 def main():
