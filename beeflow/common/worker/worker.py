@@ -92,7 +92,9 @@ class Worker(ABC):
         main_command = crt_res.main_command[:]
         # Append a tee to a file if requested
         if task.stdout:
-            main_command.extend(['|', 'tee', task.stdout])
+            main_command.extend(['1>', task.stdout])
+        if task.stderr:
+            main_command.extend(['2>', task.stderr])
         # TODO: It seems to me that there might be a better way to save stdout,
         # but I think we might need further refactoring
         job_text = self.template.render(
