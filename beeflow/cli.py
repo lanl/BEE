@@ -9,8 +9,6 @@ services is specified using the appropriate flag(s) then ONLY those services
 will be started.
 """
 import os
-import pathlib
-import re
 import signal
 import subprocess
 import socket
@@ -362,6 +360,7 @@ def version_callback(version: bool = False):
     if version:
         version = importlib.metadata.version("hpc-beeflow")
         print(version)
+
 
 def main():
     """Start the beeflow app."""
