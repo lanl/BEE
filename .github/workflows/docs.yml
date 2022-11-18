@@ -3,7 +3,7 @@ name: Publish docs
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
 
 # Needed for publishing to Github Pages
 permissions:
