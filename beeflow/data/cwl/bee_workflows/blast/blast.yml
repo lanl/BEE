@@ -1,0 +1,18 @@
+# Parameters for blast_split.cwl
+input_file: small.fasta
+query_granularity: 100
+
+# Parameters for blast_worker001.cwl
+program_name: blastn
+database: nt/nt
+worker001_output: fasta.0.out
+
+# Parameters for blast_worker002.cwl
+# Same program_name and database
+worker002_output: fasta.1.out
+
+# Parameters for blast_output.cwl
+cat_output: output.fasta
+
+# Parameters for blast_output_err.cwl
+cat_output_err: output.fasta.err

@@ -20,8 +20,19 @@ Containers provide many benefits:
 * Functional testing can be performed on smaller, dissimilar machines--there is no real need to test on the actual HPC platform (performance testing obviously requires target hardware).
 
 
+BEE Sites
+=========
+
+* Documentation: `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`_
+
+* Github: `https://github.com/lanl/BEE <https://github.com/lanl/BEE>`_
 
 
+Contact
+=======
+
+
+For bugs and problems report, suggestions and other general questions regarding the BEE project, email questions to `bee-dev@lanl.gov <bee-dev@lanl.gov>`_.
 
 
 Contributing
@@ -35,13 +46,7 @@ If using `git --version` >= 2.9:
 Otherwise:
     cp .githooks/* .git/hooks/
 
-Using these git hooks will ensure your contributions adhere to style guidelines required for contribution. You will need to repeat these steps for every `BEE_Private` repo you clone.
-
-Mail List and Contact
-==========================
-
-
-For bugs and problems report, suggestions and other general questions regarding the BEE project, email questions to `bee-dev@lanl.gov <bee-dev@lanl.gov>`_. 
+Using these git hooks will ensure your contributions adhere to style guidelines required for contribution. You will need to repeat these steps for every `BEE` repo you clone.
 
 
 Release

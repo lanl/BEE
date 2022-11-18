@@ -52,7 +52,7 @@ steps:
     out: [clamr_stdout, outdir, time_log]
     hints:
         DockerRequirement:
-            dockerFile: "src/beeflow/data/dockerfiles/Dockerfile.clamr-ffmpeg"
+            dockerFile: "Dockerfile.clamr-ffmpeg"
             beeflow:containerName: "clamr-ffmpeg"
 
   ffmpeg:
@@ -71,5 +71,5 @@ steps:
     out: [movie]
     hints:
         DockerRequirement:
-            dockerFile: "src/beeflow/data/dockerfiles/Dockerfile.clamr-ffmpeg"
+            dockerFile: "Dockerfile.clamr-ffmpeg"
             beeflow:containerName: "clamr-ffmpeg"

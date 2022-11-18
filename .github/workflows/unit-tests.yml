@@ -27,20 +27,5 @@ jobs:
         run: ./ci/slurm_start.sh
       - name: BEE Install
         run: ./ci/bee_install.sh
-      # TODO: Add the script for the unit tests here
       - name: Unit tests
-        run: |
-          #!/bin/bash
-          . ./venv/bin/activate
-          . ./ci/env.sh
-          set +e
-          code=0
-          for test in src/beeflow/tests/test_*.py; do
-              pytest $test
-              result=$?
-              # Ensure the step fails if one test fails
-              if [ $result -ne 0 ]; then
-                  code=$result
-              fi
-          done
-          exit $code
+        run: ./ci/unit_tests.sh

@@ -1,0 +1,160 @@
+# Jinja2 template for creating an OpenStack Heat configuration file
+{% macro setup_script() %}
+#!/bin/sh
+# OpenStack BEE install script
+
+# Install Charliecloud
+install_charliecloud()
+{
+    local url=$1
+    cd /tmp
+    curl -O -L $url || exit 1
+    tar -xvf `basename $url`
+    local dir=`basename $url | rev | cut -d'.' -f3- | rev`
+    cd $dir
+    ./configure --prefix=/opt/$dir || exit 1
+    make && make install || exit 1
+    cat > /etc/profile.d/charliecloud.sh <<EOF
+export PATH=/opt/$dir/bin:\$PATH
+EOF
+}
+
+# Install BEE + dependencies
+install_bee()
+{
+    local auth_token=$1
+    local bee_dir=$2
+    local conf=$3
+    local git_branch=$4
+    mkdir -p $bee_dir
+    cd $bee_dir
+    git clone https://$auth_token:x-oauth-basic@github.com/lanl/BEE.git || exit 1
+    cd BEE
+    git checkout $git_branch
+    python3 -m venv venv
+    . venv/bin/activate
+    pip install --upgrade pip
+    pip install poetry
+    poetry update
+    poetry install
+
+    # Generate TM init script
+    # TODO: May need to start Redis here eventually
+    cat >> /bee/tm <<EOF
+#!/bin/sh
+. /etc/profile
+cd /bee/BEE
+. ./venv/bin/activate
+exec python -m beeflow.task_manager $conf
+EOF
+    chmod 755 /bee/tm
+}
+
+gen_conf()
+{
+    # local conf=/home/bee/.config/beeflow/bee.conf
+    local conf=$1
+    local wfm_listen_port=$2
+    local tm_listen_port=$3
+    cat >> $conf <<EOF
+[DEFAULT]
+bee_workdir = /home/{{ bee_user }}/.beeflow
+workload_scheduler = Simple
+[workflow_manager]
+listen_port = $wfm_listen_port
+log = /home/{{ bee_user }}/.beeflow/logs/wfm.log
+[task_manager]
+name = dora-tm
+listen_port = $tm_listen_port
+container_runtime = Charliecloud
+log = /home/{{ bee_user }}/.beeflow/logs/tm.log
+[charliecloud]
+setup = module load charliecloud
+image_mntdir = /tmp
+chrun_opts = --cd /home/{{ bee_user }}
+container_dir = /home/{{ bee_user }}
+EOF
+}
+
+# Setup Dora specific proxy and nameservers
+cat > /etc/profile.d/proxy.sh <<EOF
+export https_proxy={{ https_proxy }}
+export http_proxy={{ http_proxy }}
+export no_proxy={{ no_proxy }}
+EOF
+echo "" > /etc/resolv.conf
+for ns in `echo {{ nameservers }} | tr ',' ' '`; do
+    printf "nameserver $ns\n" >> /etc/resolv.conf
+done
+. /etc/profile
+
+# Install general deps
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y git curl vim tmux screen gcc make openmpi-bin libopenmpi-dev python3 python3-venv
+
+# Enable user namespaces
+/sbin/sysctl kernel.unprivileged_userns_clone=1
+
+install_charliecloud https://github.com/hpc/charliecloud/releases/download/v0.24/charliecloud-0.24.tar.gz
+install_bee {{ github_pat }} /bee /bee/bee.conf {{ git_branch }}
+gen_conf /bee/bee.conf {{ wfm_listen_port }} {{ tm_listen_port }}
+
+chown -R {{ bee_user }}:{{ bee_user }} /bee
+{% endmacro %}
+
+heat_template_version: 2013-05-23
+
+description: >
+  Template based on https://github.com/openstack/heat-templates/blob/master/hot/servers_in_new_neutron_net.yaml
+
+# parameters: {}
+resources:
+  private_net:
+    type: OS::Neutron::Net
+    properties:
+      name: bee-net
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_net }
+      cidr: '10.93.78.0/24'
+      gateway_ip: '10.93.78.1'
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: {{ public_net }}
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+  server:
+    type: OS::Nova::Server
+    properties:
+      name: {{ head_node }}
+      # Custom snapshot with everything preinstalled
+      image: 'debian-10-openstack-amd64'
+      flavor: 'm1.small'
+      # key_name: { get_param: key_name }
+      key_name: {{ key_name }}
+      networks:
+        - port: { get_resource: server_port }
+      # Careful of the indentation here
+      user_data: |
+        {{ setup_script()|trim()|indent(8) }}
+  server_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: private_net }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet }
+  server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {{ public_net }}
+      port_id: { get_resource: server_port }
+outputs:
+  server_public_ip:
+    value: { get_attr: [server_floating_ip, floating_ip_address] }
