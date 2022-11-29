@@ -25,10 +25,6 @@ inputs:
 
 outputs:
 # Outputs for all the steps
-# Check where we copy these probably at CWD
-# Files need to exist at end of workflow, but we aren't currently checking
-# We have function to get workflow_outputs
-# TODO add step to workflow_manager to confirm that each of these outputs exist
   clamr_stdout:
     type: File
     outputSource: clamr/clamr_stdout
@@ -38,6 +34,9 @@ outputs:
   clamr_movie:
     type: File
     outputSource: ffmpeg/movie
+  ffmpeg_stderr:
+    type: File
+    outputSource: ffmpeg/ffmpeg_stderr
 
 steps:
   clamr:
@@ -68,7 +67,7 @@ steps:
       # output_filename set in wf inputs
       output_file: output_filename
     # Multiple outputs can be in array
-    out: [movie]
+    out: [movie, ffmpeg_stderr]
     hints:
         DockerRequirement:
             dockerFile: "Dockerfile.clamr-ffmpeg"

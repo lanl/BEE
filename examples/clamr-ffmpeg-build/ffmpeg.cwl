@@ -4,6 +4,9 @@ class: CommandLineTool
 cwlVersion: v1.0
 
 baseCommand: ffmpeg -y
+
+stderr: ffmpeg_stderr.txt
+
 inputs:
   input_format:
     type: string?
@@ -42,3 +45,5 @@ outputs:
     outputBinding:
       glob: $(inputs.output_file)
       # glob: CLAMR_movie.mp4
+  ffmpeg_stderr:
+    type: stderr
