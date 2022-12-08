@@ -10,7 +10,10 @@ import getpass
 import requests_unixsocket
 import requests
 
+from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
+
+log = bee_logging.setup(__name__)
 
 
 class SlurmWorker(Worker):
@@ -28,14 +31,46 @@ class SlurmWorker(Worker):
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
 
+    def build_text(self, task):
+        """Build text for task script; use template if it exists."""
+        task_save_path = self.task_save_path(task)
+        crt_res = self.crt.run_text(task)
+        requirements = dict(task.requirements)
+        hints = dict(task.hints)
+        main_command = crt_res.main_command[:]
+        stdout_param = ['--output', task.stdout]
+        stderr_param = ['--error', task.stderr]
+        if task.stdout and task.stderr:
+            main_command = stdout_param + stderr_param + main_command
+        elif task.stdout:
+            main_command = stdout_param + main_command
+        elif task.stderr:
+            main_command = stderr_param + main_command
+
+        job_text = self.template.render(
+            task_save_path=task_save_path,
+            task_name=task.name,
+            task_id=task.id,
+            workflow_id=task.workflow_id,
+            env_code=crt_res.env_code,
+            pre_commands=crt_res.pre_commands,
+            main_command=main_command,
+            post_commands=crt_res.post_commands,
+            requirements=requirements,
+            hints=hints,
+        )
+        return job_text
+
     def write_script(self, task):
         """Build task script; returns filename of script."""
         task_text = self.build_text(task)
+
         task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
         with open(task_script, 'w', encoding='UTF-8') as script_f:
             script_f.write(task_text)
             script_f.close()
         return task_script
+
 
     @staticmethod
     def query_job(job_id, session, slurm_url):
