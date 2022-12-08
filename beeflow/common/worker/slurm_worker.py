@@ -71,7 +71,6 @@ class SlurmWorker(Worker):
             script_f.close()
         return task_script
 
-
     @staticmethod
     def query_job(job_id, session, slurm_url):
         """Query slurm for job status."""
