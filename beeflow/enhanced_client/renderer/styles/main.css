@@ -37,7 +37,7 @@ centerSection, workflowList, menu, div{
 
 .menu { 
     grid-area: menu; 
-    text-align: center;
+    text-align: left;
 }
 
 #welcomeMessage {

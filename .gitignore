@@ -13,5 +13,5 @@ poetry.lock
 .env
 .venv
 docs/sphinx/_build
-src/beeflow/enhanced_client/node_modules
 **/dist
+**/node_modules
