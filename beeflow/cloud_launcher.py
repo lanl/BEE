@@ -205,8 +205,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# Ignore R1732: Using a 'with' statement for resource allocation doesn't really apply here. We'd
-#               need to completely restructure the code to use it, but it's something to think
-#               about later on.
-# Ignore W0511: This TODO needs to be addressed later on, perhaps with a restructure of this code.
-# pylama:ignore=R1732,W0511
