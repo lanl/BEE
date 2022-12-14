@@ -19,7 +19,7 @@ class WFActions(Resource):
 
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
-        wfi = wf_utils.get_workflow_interface(wf_id, log)
+        wfi = wf_utils.get_workflow_interface(wf_id)
         state = wfi.get_workflow_state()
         if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
             resp = make_response(jsonify(msg='Cannot start workflow it is '
@@ -28,7 +28,7 @@ class WFActions(Resource):
             return resp
         wfi.execute_workflow()
         tasks = wfi.get_ready_tasks()
-        wf_utils.schedule_submit_tasks(wf_id, log, tasks)
+        wf_utils.schedule_submit_tasks(wf_id, tasks)
         wf_id = wfi.workflow_id
         wf_utils.update_wf_status(wf_id, 'Running')
         wf_db.update_workflow_state(wf_id, 'Running')
@@ -59,7 +59,7 @@ class WFActions(Resource):
     @staticmethod
     def delete(wf_id):
         """Cancel the workflow. Lets current tasks finish running."""
-        wfi = wf_utils.get_workflow_interface(wf_id, log)
+        wfi = wf_utils.get_workflow_interface(wf_id)
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()
@@ -75,7 +75,7 @@ class WFActions(Resource):
         self.reqparse.add_argument('option', type=str, location='json')
         option = self.reqparse.parse_args()['option']
 
-        wfi = wf_utils.get_workflow_interface(wf_id, log)
+        wfi = wf_utils.get_workflow_interface(wf_id)
         wf_state = wfi.get_workflow_state()
         if option == 'pause' and wf_state == 'RUNNING':
             wfi.pause_workflow()
@@ -86,7 +86,7 @@ class WFActions(Resource):
         elif option == 'resume' and wf_state == 'PAUSED':
             wfi.resume_workflow()
             tasks = wfi.get_ready_tasks()
-            wf_utils.schedule_submit_tasks(wf_id, log, tasks)
+            wf_utils.schedule_submit_tasks(wf_id, tasks)
             wf_utils.update_wf_status(wf_id, 'Running')
             wf_db.update_workflow_state(wf_id, 'Running')
             log.info("Workflow Paused")

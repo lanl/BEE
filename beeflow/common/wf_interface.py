@@ -5,36 +5,28 @@ Delegates its work to a GraphDatabaseInterface instance.
 
 import re
 
-from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.wf_data import Workflow, Task
 
 
 class WorkflowInterface:
     """Interface for manipulating workflows."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, gdb_interface):
         """Initialize the Workflow interface.
 
         Initializing this interface automatically attempts to
         connect to the graph database.
 
-        :param kwargs: arguments to be passed to the graph database
+        :param gdb_interface: the gdb interface
         """
-        self._gdb_interface = GraphDatabaseInterface()
         # Connect to the graph database
-        # In the future, we may want to grab args from a config file
-        self._gdb_interface.connect(**kwargs)
+        self._gdb_interface = gdb_interface
         # Store the Workflow ID in the interface to assign it to new task objects
         self._workflow_id = None
-        # Store the GDB credentials for reconnection if necessary
-        self._kwargs = kwargs
 
     def reconnect(self):
         """Reconnect to the graph database using stored credentials."""
-        self._gdb_interface.connect(**self._kwargs)
-        if self.workflow_loaded():
-            workflow, _ = self.get_workflow()
-            self._workflow_id = workflow.id
+        raise NotImplementedError()
 
     def initialize_workflow(self, workflow_id, name, inputs, outputs, requirements=None,
                             hints=None):

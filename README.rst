@@ -23,7 +23,7 @@ Containers provide many benefits:
 BEE Sites
 =========
 
-* Documentation: `https://bee.readthedocs.io <https://bee.readthedocs.io>`_
+* Documentation: `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`_
 
 * Github: `https://github.com/lanl/BEE <https://github.com/lanl/BEE>`_
 

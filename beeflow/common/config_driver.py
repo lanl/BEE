@@ -89,9 +89,7 @@ class BeeConfig:
         """
         global USERCONFIG_FILE
         if cls.CONFIG is not None:
-            raise RuntimeError(
-                'BeeConfig.init() has been called more than once. BeeConfig is a singleton class.'
-            )
+            return
         config = ConfigParser()
         if userconfig is not None:
             USERCONFIG_FILE = userconfig
