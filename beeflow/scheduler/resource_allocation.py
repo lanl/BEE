@@ -259,5 +259,3 @@ class Allocation(serializable.Serializable):
         :type data: dict
         """
         return Allocation(**data)
-# Ignore W0511: This is related to issue #333.
-# pylama:ignore=W0511
