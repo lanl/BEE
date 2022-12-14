@@ -134,6 +134,3 @@ class Worker(ABC):
         :type job_id: int
         :rtype: string
         """
-
-# Ignore W0511: Ignore TODOs since we will want to address this later.
-# pylama:ignore=W0511
