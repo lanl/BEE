@@ -577,4 +577,3 @@ def _reconstruct_metadata(metadata_record):
     rec = metadata_record["m"]
     return {key: val for key, val in rec.items() if key != "state"}
 
-# pylama:ignore=E1129
