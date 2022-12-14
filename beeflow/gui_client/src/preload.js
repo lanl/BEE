@@ -5,8 +5,6 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose API calls between the renderer and the background process
 contextBridge.exposeInMainWorld('beeflow', {
-  connect: (data) => ipcRenderer.invoke('connect', data),
-
   submitWorkflow: (data) => ipcRenderer.invoke('submitWorkflow', data),
   startWorkflow: (data) => ipcRenderer.invoke('startWorkflow', data),
   // deleteWorkflow: (data) => ipcRenderer.invoke('deleteWorkflow', data),

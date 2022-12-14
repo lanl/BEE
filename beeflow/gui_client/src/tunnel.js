@@ -25,7 +25,6 @@ export class Tunnel {
     }
     args.push(`${this.moniker}@${this.hostname}`);
 
-    console.log(`Launching 'ssh ${args.join(" ")}'`);
     const tunnel = spawn('ssh', args, {
         //stdio: ['ignore', out, err],
         stdio: 'ignore',
@@ -33,11 +32,8 @@ export class Tunnel {
         detach: true
       }
     );
+    console.log(`Launched 'ssh ${args.join(" ")}' (pid: ${tunnel.pid})`);
 
-    console.log(tunnel.pid);
-
-    process.on('exit', () => {
-      tunnel.kill();
-    });
+    return tunnel;
   }
 }

@@ -50,7 +50,11 @@ export class ValidatedForm extends React.Component {
     target.files[0].arrayBuffer()
       .then(data => {
         this.setState({
-          [name]: data,
+          [name]: {
+            path: file.path,
+            fname: file.name,
+            data,
+          },
         })
       })
       .catch(err => alert(err));

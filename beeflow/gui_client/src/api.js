@@ -1,23 +1,99 @@
+// import * as axios from 'axios';
+import fetch from 'node-fetch';
+import * as FormData from 'form-data';
+import * as fs from 'fs'
+import {Readable} from 'stream';
 import * as settings from './settings.js';
 import {Tunnel} from './tunnel.js';
 
 let workflows = [];
 
-// Connect to bee on the remote system
-export function connect(ev, data) {
-  return `connecting to ${data.moniker}@${data.hostname}`;
+// Start a cluster tunnel and invoke the callback, passing it wfmPort and
+// gdbPort. This then kills the tunnel on completion of the callback.
+function startClusterTunnel(clusterName, callback) {
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  return settings.read()
+    // Get the proper cluster config
+    .then(config => config.clusters.find(cluster => cluster.hostname == clusterName))
+    // Start the tunnel
+    .then(cluster => {
+      let tunnel = new Tunnel(cluster.hostname, cluster.moniker, [
+        {
+          localPort: wfmPort,
+          remoteSocket: cluster.wfmSocketPath,
+        },
+        {
+          localPort: gdbPort,
+          remotePort: cluster.gdbPort,
+        },
+      ]);
+      return tunnel.start();
+    })
+    // Wait 3 seconds
+    .then(tunnel => wait(3 * 1000).then(() => tunnel))
+    // Call the callback, and return a promise
+    .then(tunnel => {
+      let result = callback(wfmPort, gdbPort);
+      console.log(tunnel);
+      // Now kill the tunnel
+      tunnel.kill();
+      return result;
+    });
+}
+
+// Create a config for an axios call
+function request(method, url, body = null) {
+  let headers = {
+    'Authorization': 'Bearer ...',
+  };
+  if (body !== null) {
+    Object.assign(headers, body.getHeaders());
+  }
+  console.log(url);
+  let opts = {
+    method,
+    headers,
+    // adapter: require('axios/lib/adapters/http'),
+    body,
+    // For 'no_proxy', if set incorrectly
+    proxy: false,
+  };
+  return fetch(url, opts).then(resp => resp.json());
+}
+
+function resource(wfmPort, tag = '') {
+  return `http://127.0.0.1:${wfmPort}/bee_wfm/v1/jobs/${tag}`;
 }
 
 export function submitWorkflow(ev, data) {
   console.log('submitWorkflow()');
-  let wfID = workflows.length;
-  workflows.push({
-    wfID,
-    name: data.workflowName,
+  let result = startClusterTunnel(data.cluster, (wfmPort, gdbPort) => {
+    let formData = new FormData();
+    // formData.append('workflow_archive', Readable.from(new Uint8Array(data.tarball.data)));
+    formData.append('workflow_archive', fs.createReadStream(data.tarball.path));
+    formData.append('wf_filename', data.tarball.fname);
+    formData.append('main_cwl', data.mainCwl);
+    formData.append('yaml', data.yaml);
+    formData.append('workdir', data.workdir);
+    formData.append('wf_name', data.wfName);
+    return request('post', resource(wfmPort), formData);
+    // console.log(config);
+    // return fetch(config);
   });
-  return {
-    wfID,
-  };
+  return result
+    .then(data => {
+      let wfID = data['wf_id'];
+      console.log(`Submitted workflow ${wfID}`);
+      return {
+        wfID,
+        tasks: data['tasks'],
+      };
+    })
+    .catch(error => {
+      console.log(error);
+      return error;
+    });
 }
 
 export function startWorkflow(ev, data) {
@@ -92,7 +168,6 @@ export function connectCluster(ev, data) {
 
 // Initialize the API exposed to the browser in the main process
 export function initAPI(ipc) {
-  ipc.handle('connect', connect);
   ipc.handle('submitWorkflow', submitWorkflow);
   ipc.handle('startWorkflow', startWorkflow);
   ipc.handle('cancelWorkflow', cancelWorkflow);

@@ -228,7 +228,7 @@ let submitWorkflowFields = [
   {
     label: 'Workflow name',
     type: 'text',
-    name: 'workflowName',
+    name: 'wfName',
     regex: /\w+[\d\s\w]*/,
   },
   {
@@ -240,19 +240,19 @@ let submitWorkflowFields = [
   {
     label: 'Main workflow file',
     type: 'text',
-    name: 'Workflow file',
+    name: 'mainCwl',
     regex: /[\w\d-]+\.cwl/,
   },
   {
     label: 'YAML file',
     type: 'text',
-    name: 'yamlFile',
+    name: 'yaml',
     regex: /[\w\d-]+\.(yml|yaml)/,
   },
   {
     label: 'Workdir path',
     type: 'text',
-    name: 'workdirPath',
+    name: 'workdir',
     regex: /[\w\d-\/]+/,
   },
   {
