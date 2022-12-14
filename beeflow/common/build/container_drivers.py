@@ -423,5 +423,3 @@ class SingularityBuildDriver(ContainerBuildDriver):
         param_output_directory may be used to override DockerRequirement
         specs.
         """
-# Ignore W0231: linter doesn't know about abstract classes, it's ok to now call the parent __init__
-# pylama:ignore=W0231
