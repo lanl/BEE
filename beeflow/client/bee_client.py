@@ -440,9 +440,3 @@ def main():
 
 if __name__ == "__main__":
     app()
-
-# Pylint is reporting no member for requests.codes even when they exist
-#     ignoring them line by line
-# Ignore using with for open files; used to send command.
-# Ignore W0511: This is a TODO that should be addressed later
-# pylama:ignore=R1732,W0511
