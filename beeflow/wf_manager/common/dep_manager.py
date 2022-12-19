@@ -196,14 +196,12 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
         return -1
 
 
-def wait_gdb(log):
+def wait_gdb(sleep_time=3):
     """Need to wait for the GDB. Currently, we're using the sleep time paramater.
 
     We'd like to remove that in the future.
     """
-    gdb_sleep_time = bc.get('graphdb', 'sleep_time')
-    log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
-    time.sleep(gdb_sleep_time)
+    time.sleep(sleep_time)
 
 
 def remove_gdb():

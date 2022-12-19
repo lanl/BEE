@@ -13,13 +13,13 @@ from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
 
 from beeflow.common import log as bee_logging
-# from beeflow.common.wf_profiler import WorkflowProfiler
 from beeflow.common.parser import CwlParser, CwlParseError
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
 from beeflow.wf_manager.common import wf_db
 from beeflow.common import wf_data
+from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 
@@ -35,14 +35,22 @@ def parse_workflow(wfi, wf_id, workflow_dir, main_cwl, yaml_file):
         parser.parse_workflow(wf_id, cwl_path)
 
 
-# def initialize_wf_profiler(wf_name):
-#    # Initialize the workflow profiling code
-#    bee_workdir = wf_utils.get_bee_workdir()
-#    fname = '{}.json'.format(wf_name)
-#    profile_dir = os.path.join(bee_workdir, 'profiles')
-#    os.makedirs(profile_dir, exist_ok=True)
-#    output_path = os.path.join(profile_dir, fname)
-#    wf_profiler = WorkflowProfiler(wf_name, output_path)
+def new_workflow(wf_name, wf_tarball, wf_filename, state, reexecute=False):
+    """Initialize the gdb for the workflow and then create it."""
+    wf_id = wf_data.generate_workflow_id()
+    wf_dir = extract_wf(wf_id, wf_filename, wf_tarball, reexecute=reexecute)
+    bolt_port = wf_utils.get_open_port()
+    http_port = wf_utils.get_open_port()
+    https_port = wf_utils.get_open_port()
+    gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port,
+                                    reexecute=reexecute)
+    wf_db.add_workflow(wf_id, wf_name, state, wf_dir, bolt_port, http_port,
+                       https_port, gdb_pid)
+    # Wait for the gdb to come up
+    gdb_sleep_time = bc.get('graphdb', 'sleep_time')
+    log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
+    dep_manager.wait_gdb(gdb_sleep_time)
+    return wf_id, wf_dir
 
 
 def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
@@ -109,14 +117,7 @@ class WFList(Resource):
             resp = make_response(jsonify(msg=crt_message, status='error'), 418)
             return resp
 
-        wf_id = wf_data.generate_workflow_id()
-        wf_dir = extract_wf(wf_id, wf_filename, wf_tarball)
-        bolt_port = wf_utils.get_open_port()
-        http_port = wf_utils.get_open_port()
-        https_port = wf_utils.get_open_port()
-        gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
-        wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
-        dep_manager.wait_gdb(log)
+        wf_id, wf_dir = new_workflow(wf_name, wf_tarball, wf_filename, 'Pending')
 
         try:
             # wfi = parse_workflow(wf_path, main_cwl, yaml_file)
@@ -164,15 +165,9 @@ class WFList(Resource):
             resp = make_response(jsonify(msg=crt_message, status='error'), 418)
             return resp
 
-        wf_id = wf_data.generate_workflow_id()
-        wf_dir = extract_wf(wf_id, wf_filename, workflow_archive, reexecute=True)
-        bolt_port = wf_utils.get_open_port()
-        http_port = wf_utils.get_open_port()
-        https_port = wf_utils.get_open_port()
-        gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port,
-                                        https_port, reexecute=True)
-        wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
-        dep_manager.wait_gdb(log)
+        wf_id, _ = new_workflow(wf_name, workflow_archive, wf_filename,
+                                'Pending', reexecute=True)
+
         wfi = wf_utils.get_workflow_interface(wf_id)
         wfi.reset_workflow(wf_id)
         wf_utils.create_wf_metadata(wf_id, wf_name)

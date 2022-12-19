@@ -92,6 +92,8 @@ def init_tables():
                             status TEST NOT NULL,
                             run_dir STR,
                             bolt_port INTEGER,
+                            http_port INTEGER,
+                            https_port INTEGER,
                             gdb_pid INTEGER);"""
 
     tasks_stmt = """CREATE TABLE IF NOT EXISTS tasks (
@@ -201,16 +203,18 @@ def set_sched_port(new_port):
     run(stmt, [new_port])
 
 
-def add_workflow(workflow_id, name, status, run_dir, bolt_port, gdb_pid):
+def add_workflow(workflow_id, name, status, run_dir, bolt_port, http_port,
+                 https_port, gdb_pid):
     """Insert a new workflow into the database."""
     if not table_exists('workflows'):
         # Initialize the database
         init_tables()
 
-    stmt = ("INSERT INTO workflows (workflow_id, name, status, run_dir, bolt_port, gdb_pid) "
-            "VALUES(?, ?, ?, ?, ?, ?);"
-            )
-    run(stmt, [workflow_id, name, status, run_dir, bolt_port, gdb_pid])
+    stmt = ("INSERT INTO workflows (workflow_id, name, status, run_dir,"
+            "                       bolt_port, http_port, https_port, gdb_pid) "
+            "VALUES(?, ?, ?, ?, ?, ?, ?, ?);")
+    run(stmt, [workflow_id, name, status, run_dir, bolt_port, http_port,
+               https_port, gdb_pid])
 
 
 def update_workflow_state(workflow_id, status):
@@ -219,7 +223,8 @@ def update_workflow_state(workflow_id, status):
     run(stmt, [status, workflow_id])
 
 
-Workflow = namedtuple("Workflow", "id workflow_id name status run_dir bolt_port gdb_pid")
+Workflow = namedtuple("Workflow", ("id workflow_id name status run_dir bolt_port "
+                                   "http_port https_port gdb_pid"))
 
 
 def get_workflow_state(workflow_id):
@@ -233,10 +238,23 @@ def get_workflow_state(workflow_id):
 def get_bolt_port(workflow_id):
     """Return the bolt port associated with a workflow."""
     stmt = "SELECT bolt_port FROM workflows WHERE workflow_id=?"
-    result = get(stmt, [workflow_id])
     result = get(stmt, [workflow_id])[0]
     bolt_port = result[0]
     return bolt_port
+
+
+def get_http_port(workflow_id):
+    """Return the http port associated with the workflow."""
+    stmt = "SELECT http_port FROM workflows WHERE workflow_id=?"
+    result = get(stmt, [workflow_id])[0]
+    return result[0]
+
+
+def get_https_port(workflow_id):
+    """Return the https port associated with the workflow."""
+    stmt = "SELECT https_port FROM workflows WHERE workflow_id=?"
+    result = get(stmt, [workflow_id])[0]
+    return result[0]
 
 
 def get_gdb_pid(workflow_id):

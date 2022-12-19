@@ -134,8 +134,11 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
     wf_name = 'wf'
     wf_status = 'Pending'
     bolt_port = 3030
+    http_port = 3031
+    https_port = 3032
     gdb_pid = 12345
-    wf_db.add_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
+    wf_db.add_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, http_port,
+                       https_port, gdb_pid)
     wf_db.add_task(123, WF_ID, 'task', "WAITING")
     wf_db.add_task(124, WF_ID, 'task', "RUNNING")
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
