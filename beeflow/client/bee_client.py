@@ -440,3 +440,7 @@ def main():
 
 if __name__ == "__main__":
     app()
+
+# Ignore W0511: This allows us to have TODOs in the code
+# Ignore R1732: Significant code restructuring required to fix
+# pylama:ignore=W0511,R1732

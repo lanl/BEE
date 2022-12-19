@@ -142,5 +142,5 @@ def create_app():
     os.makedirs(conf.workdir, exist_ok=True)
     return flask_app
 
-# Ignore todo's or pylama fails
+# Ignore W0511: This allows us to have TODOs in the code
 # pylama:ignore=W0511

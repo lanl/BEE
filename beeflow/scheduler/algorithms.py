@@ -262,3 +262,6 @@ def choose(algorithm=None, default_algorithm=None, **kwargs):
     if algorithm is not None:
         cls = algorithm_objects[algorithm]
     return AlgorithmLogWrapper(cls, **kwargs)
+
+# Ignore W0511: This allows us to have TODOs in the code
+# pylama:ignore=W0511

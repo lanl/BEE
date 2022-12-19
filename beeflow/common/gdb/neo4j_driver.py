@@ -577,3 +577,5 @@ def _reconstruct_metadata(metadata_record):
     rec = metadata_record["m"]
     return {key: val for key, val in rec.items() if key != "state"}
 
+# Ignore E1129: External module is missing proper resource context manager methods.
+# pylama:ignore=E1129
