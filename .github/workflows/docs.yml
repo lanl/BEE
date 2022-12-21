@@ -2,8 +2,8 @@
 name: Publish docs
 
 on:
-  push:
-    branches: [main]
+  release:
+    types: [published]
 
 # Needed for publishing to Github Pages
 permissions:
