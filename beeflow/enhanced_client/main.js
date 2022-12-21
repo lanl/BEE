@@ -8,7 +8,7 @@ if (app.getGPUFeatureStatus().gpu_compositing.includes("disabled")) {
     app.disableHardwareAcceleration();
 }
 
-// Need global reference to window object so it doesn't 
+// Need global reference to window object so it doesn't
 // get garbage collected and close the window
 let mainWindow;
 
@@ -41,7 +41,7 @@ function createWindow () {
 // Create app window when ready
 app.on('ready', createWindow)
 
-// Close application when all windows are closed unless on macOS 
+// Close application when all windows are closed unless on macOS
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })

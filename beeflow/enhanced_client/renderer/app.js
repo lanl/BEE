@@ -13,7 +13,7 @@ var fs = require('fs');
 // Load up data from database
 database.init()
 
-// Initialize component objects and set listeners 
+// Initialize component objects and set listeners
 display.addComponent('welcomeMessage')
 display.addComponent('addWorkflow', 'add-wf_button', 'add-wf_submit')
 display.addComponent('deleteWorkflow', 'delete-wf_button', 'delete-wf_submit')

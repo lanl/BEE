@@ -22,9 +22,9 @@
   },
   "dependencies": {
     "axios": "^0.25.0",
-    "better-sqlite3": "^7.6.2",
     "bulma": "^0.9.3",
     "form-data": "^4.0.0",
+    "idb": "^7.1.1",
     "neo4j-driver": "^4.4.1",
     "neovis.js": "^2.0.0-alpha.9",
     "tunnel-ssh": "^4.1.6"

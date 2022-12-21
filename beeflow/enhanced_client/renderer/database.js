@@ -1,131 +1,133 @@
-const Database = require('better-sqlite3')
-//const sql = require('sqlite3')
-const fs = require('fs')
+// Database code using the window.localStorage object.
 
-let db = null
+const DB_NAME = 'BeeClient';
+const WORKFLOWS = 'workflows';
+const CLUSTERS = 'clusters';
+
+let store = window.localStorage;
+
+// *_key() functions are used to determine the key within the localStorage
+// object.
+
+function workflow_key(wf_id) {
+  return `workflows:${wf_id}`;
+}
+
+function is_workflow_key(key) {
+  return key.startsWith('workflows:');
+}
+
+function task_key(wf_id, task_id) {
+  return `tasks:${wf_id}:${task_id}`;
+}
+
+// Return true if this is a task for the given workflow
+function is_workflow_task_key(key, wf_id) {
+  return key.startsWith(`tasks:${wf_id}`);
+}
+
+function cluster_key(cluster_id) {
+  return `clusters:${cluster_id}`;
+}
 
 function init() {
-    // If the DB doesn't exist create it
-    db = new Database('data/app.db', { verbose: console.log });
-    // Create tables if they don't exist
-    const workflow_stmt = db.prepare(`
-            CREATE TABLE IF NOT EXISTS workflows (
-                id INTEGER PRIMARY KEY,
-                -- Set workflow ID to unique.
-                wf_id INTEGER UNIQUE,
-                name TEXT,
-                completed BOOLEAN,
-                archived BOOLEAN,
-                percentage_complete FLOAT,
-                status TEST NOT NULL
-            );`);
-    
-    const task_stmt = db.prepare(`
-			CREATE TABLE IF NOT EXISTS tasks (
-				id INTEGER PRIMARY KEY,
-				wf_id INTEGER NOT NULL,
-				task_id INTEGER UNIQUE,
-				completed BOOLEAN,
-				resource TEXT,
-				status TEXT,
-                name TEXT,
-				base_command TEXT,
-				FOREIGN KEY (wf_id)
-					REFERENCES workflows (wf_id)
-						ON DELETE CASCADE
-						ON UPDATE NO ACTION
-			);`);
-
-    const config_stmt = db.prepare(`
-			CREATE TABLE IF NOT EXISTS config (
-				id INTEGER PRIMARY KEY,
-                hostname TEXT,
-                moniker TEXT,
-                resource TEXT,
-                bolt_port INTEGER,
-                wfm_sock TEXT
-          );`);
-
-    const wf_info = workflow_stmt.run();
-    const task_info = task_stmt.run();
-    const config_info = config_stmt.run();
+  // TODO: Remove this?
 }
 
 // Add a WF
 function add_wf(wf_id, name) {
-    let completed = 'False';
-    let archived = 'False';
-    let percentage_complete = 0;
-    let status = 'Pending';
-    const stmt = db.prepare(`INSERT INTO workflows (wf_id, completed, archived, 
-									percentage_complete, status, name)
-               						VALUES(?, ?, ?, ?, ?, ?)`);
-	const info = stmt.run(wf_id, completed, archived, 
-                          percentage_complete, status, name);
+  let completed = 'False';
+  let archived = 'False';
+  let percentage_complete = 0;
+  let status = 'Pending';
+  store.setItem(workflow_key(wf_id), {
+    wf_id,
+    completed,
+    archived,
+    percentage_complete,
+    status,
+    name,
+  });
 }
 
+// Add a cluster configuration
 function add_config(hostname, moniker, resource, bolt_port, wfm_sock) {
-    const stmt = db.prepare(`INSERT INTO config (hostname, moniker, resource, bolt_port, wfm_sock)
-                            VALUES(?, ?, ?, ?, ?)`);
-    const info = stmt.run(hostname, moniker, resource, bolt_port, wfm_sock);
+  let id = store.getItem('next_cluster_id');
+  if (id === null) {
+    id = 0;
+  }
+  store.setItem(cluster_key(id), {
+    hostname,
+    moniker,
+    resource,
+    bolt_port,
+    wfm_sock,
+  });
+  // Increment the next id
+  store.setItem('next_cluster_id', id + 1);
+  return id;
 }
 
-
-// Get a parituclar wf 
+// Get a parituclar wf
 function get_wf(wf_id) {
-    const stmt = db.prepare('SELECT * FROM workflows WHERE wf_id=?');
-    const wf = stmt.get(42);
-    return wf;
+  return store.getItem(workflow_key(wf_id));
+}
+
+// Helper function to make it easier to iterate over elements of the store
+function for_each_element(check, body) {
+  for (let i = 0; i < store.length; i++) {
+    let key = store.key(i);
+    if (check(key)) {
+      body(key, store.getItem(key));
+    }
+  }
 }
 
 // Get all workflows in the system
 function get_workflows() {
-    const stmt = db.prepare('SELECT * FROM workflows');
-    const wf = stmt.all();
-    return wf; 
+  let workflows = [];
+  for_each_element(key => is_workflow(key), (key, workflow) => {
+    workflows.push(workflow);
+  });
+  return workflows;
 }
 
 // Get all tasks associated with a wf_id
 function get_tasks(wf_id) {
-    const stmt = db.prepare('SELECT * FROM tasks WHERE wf_id=?');
-    const tasks = stmt.all(wf_id);
-    return tasks; 
+  let tasks = [];
+  for_each_element(key => is_workflow_task_key(key, wf_id), (key, task) => {
+    tasks.push(task);
+  });
+  return tasks;
 }
 
 function update_task_state(task_id, wf_id, status) {
-    const stmt = db.prepare(`UPDATE tasks
-                             SET status=?
-                             WHERE task_id=? AND wf_id=? VALUES(?, ?, ?)`);
-    const task_info = stmt.run(status, task_id, wf_id);
+  let key = task_key(wf_id, task_id);
+  let task = store.getItem(key);
+  task.status = status;
+  store.setItem(key, task);
 }
 
-
 function delete_wf(wf_id) {
-    let stmt = db.prepare('DELETE FROM workflows WHERE wf_id=?');
-    const info = stmt.run(42);
+  // Note: this doesn't delete the tasks
+  store.removeItem(workflow_key(wf_id));
 }
 
 function add_task(task_id, wf_id, name, resource, base_command, status) {
-    const completed = 'False';
-    const stmt = db.prepare(`INSERT INTO tasks (wf_id, task_id, completed, 
-            resource, base_command, status, name) VALUES(?, ?, ?, ?, ?, ?, ?)`);
-    const task_info  = stmt.run(wf_id, task_id, completed, resource, base_command, status, name);
-    console.log(task_info);
+  let key = task_key(wf_id, task_id);
+  store.setItem(key, {
+    wf_id,
+    task_id,
+    completed,
+    resource,
+    base_command,
+    status,
+  });
 }
 
 function delete_task(wf_id, task_id) {
-    let sql = `DELETE FROM  workflows
-               WHERE task_id=task`;
+  store.removeItem(task_key(wf_id, task_id));
 }
 
-function close() {
-    db.close((err) => {
-        if (err) {
-          return console.error(err.message);
-        }
-         console.log('Close the database connection.');
-    });
-}
-
-module.exports = { init, add_wf, get_wf, get_workflows, get_tasks, delete_wf, 
+module.exports = { init, add_wf, get_wf, get_workflows, get_tasks, delete_wf,
                    add_config, add_task, delete_task }
