@@ -83,31 +83,14 @@ class Worker(ABC):
         task_save_path = self.task_save_path(task)
         os.makedirs(task_save_path, exist_ok=True)
 
+    @abstractmethod
     def build_text(self, task):
-        """Build text for task script; use template if it exists."""
-        task_save_path = self.task_save_path(task)
-        crt_res = self.crt.run_text(task)
-        requirements = dict(task.requirements)
-        hints = dict(task.hints)
-        main_command = crt_res.main_command[:]
-        # Append a tee to a file if requested
-        if task.stdout:
-            main_command.extend(['|', 'tee', task.stdout])
-        # TODO: It seems to me that there might be a better way to save stdout,
-        # but I think we might need further refactoring
-        job_text = self.template.render(
-            task_save_path=task_save_path,
-            task_name=task.name,
-            task_id=task.id,
-            workflow_id=task.workflow_id,
-            env_code=crt_res.env_code,
-            pre_commands=crt_res.pre_commands,
-            main_command=main_command,
-            post_commands=crt_res.post_commands,
-            requirements=requirements,
-            hints=hints,
-        )
-        return job_text
+        """Build text for task script; use template if it exists.
+
+        :param task: task that we're building a script for
+        :type task: Task
+        :rtype: string
+        """
 
     @abstractmethod
     def submit_task(self, task):
