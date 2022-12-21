@@ -38,4 +38,6 @@ def test_clear(temp_db):
 
     db.resources.clear()
     assert len(list(db.resources)) == 0
+# Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
+#               scope. This is how pytest fixtures work.
 # pylama:ignore=W0621
