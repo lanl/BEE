@@ -4,7 +4,8 @@ Publishing a new release
 1. Change the version in pyproject.toml and get this change merged into develop.
 2. On github site go to Settings; on the left under Code and Automation
    click on Branches; under Branch protection rules edit main;
-    check Allow specified actors to bypass required pull requests 
+    check Allow specified actors to bypass required pull requests; add yourself
+    and don'forget to save the setting
 2. Checkout main and merge develop into main. Make sure documentation will be 
    published upon push to main (.github/workflows/docs.yml) and push.
 3. Once merged, create a tag
@@ -12,7 +13,7 @@ Publishing a new release
    existing tags with ``git tag``. Finally do ``git push origin --tags`` to
    push the new tag.
 4. Create release.
-5. Follow step 2 but uncheck Allow specified actors to bypass
+5. Follow step 2 but uncheck Allow specified actors to bypass and don't forget save
 5. Finally, on the main branch, first run a ``poetry build`` and then a
    ``poetry publish``. The second command will ask for a username and password
    for PyPI.
