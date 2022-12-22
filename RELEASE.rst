@@ -6,7 +6,7 @@ Publishing a new release
 2. On github site go to Settings; on the left under Code and Automation
    click on Branches; under Branch protection rules edit main;
     check Allow specified actors to bypass required pull requests; add yourself
-    and don'forget to save the setting
+    and don't forget to save the setting
 3  Make sure documentation will be published upon push to main.
    See: .github/workflows/docs.yml
 4. Checkout develop and pull for latest version then
