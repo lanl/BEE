@@ -4,9 +4,7 @@ let config = null;
 
 function init(hostname, moniker, bolt_port, wfm_sock) {
   config = new Config(hostname, moniker, bolt_port, wfm_sock);
-  db.add_config(moniker, bolt_port, wfm_sock);
-  // tunnel.start_tunnel(9999, moniker, hostname, remote_socket = wfm_sock);
-  // tunnel.start_tunnel(9995, moniker, hostname, remote_port = bolt_port);
+  db.add_config(hostname, moniker, bolt_port, wfm_sock);
   let tun = new tunnel.Tunnel(hostname, moniker, [
     {
       local_port: 9999,

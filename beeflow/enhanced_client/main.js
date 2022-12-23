@@ -5,7 +5,7 @@ app.allowRendererProcessReuse = true
 
 // Used to handle error in MacOS systems
 if (app.getGPUFeatureStatus().gpu_compositing.includes("disabled")) {
-    app.disableHardwareAcceleration();
+  app.disableHardwareAcceleration();
 }
 
 // Need global reference to window object so it doesn't

@@ -4,13 +4,14 @@
  *
  * */
 
-components = new Map()
-buttons = new Map()
+components = new Map();
+buttons = new Map();
 // The current content displayed in the main window
-currentContent = null
+currentContent = null;
 
-const wf = require('./workflows.js')
-const config = require('./config.js')
+const wf = require('./workflows.js');
+const config = require('./config.js');
+const db = require('./database.js');
 
 // Add extra buttons unrelated to a component
 // Setup start button
@@ -101,6 +102,9 @@ class Component {
     throw new Error("Form listener needs to be implemented in child class");
   }
 
+  // Do something when the particular component is toggled
+  onToggle() {}
+
   // Listener for the left menu button. Toggles the main content with the
   // specific menu and sets its button to active.
   setupButtonListener() {
@@ -122,13 +126,15 @@ class Component {
       // Return to main window
       currentContent.style.display = 'inline';
     } else {
-      let temp_components = new Map(components)
+      let temp_components = new Map(components);
       temp_components.delete(this.component_id);
       for (let component of components.values()) {
         component.style.display = 'none';
       }
       this.element.style.display = 'inline';
       currentContent.style.display = 'none';
+      // Let the element do an update, if needed
+      this.onToggle();
     }
   }
 
@@ -250,8 +256,38 @@ class ReexecuteWorkflow extends Component {
   }
 }
 
+class SettingsList extends Component {
+  constructor(content_id, button_id, form_button_id) {
+    super(content_id, button_id, form_button_id);
+    let clearButton = document.querySelector('#clearButton');
+    clearButton.addEventListener('click', () => {
+      if (confirm('Are you sure you want to do this? This will delete everything.')) {
+        db.clear();
+        this.doUpdate();
+      }
+    });
+  }
+
+  doUpdate() {
+    // TODO: Fill other settings info
+    // Display the current list of cluster configs
+    let list = document.createElement('ul');
+    for (let cluster of db.get_cluster_configs()) {
+      let item = document.createElement('li');
+      item.innerText = `${cluster.moniker}@${cluster.hostname}`;
+      list.appendChild(item);
+    }
+    let configs = document.querySelector('#clusterConfigs');
+    configs.replaceChildren(list);
+  }
+
+  onToggle() {
+    this.doUpdate();
+  }
+}
+
 function initContent() {
-  currentContent = components.get("welcomeMessage")
+  currentContent = components.get("welcomeMessage");
 }
 
 // Component factory
@@ -268,6 +304,9 @@ function addComponent(content_id, button_id = null, form_button_id = null) {
     break;
   case 'settings':
     component = new Settings(content_id, button_id, form_button_id);
+    break;
+  case 'settingsList':
+    component = new SettingsList(content_id, button_id, form_button_id);
     break;
   default:
     // welcomeMessage and currentWorkflow just use Component

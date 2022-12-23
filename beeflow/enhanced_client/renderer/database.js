@@ -8,6 +8,10 @@ let store = window.localStorage;
 
 // *_key() functions are used to determine the key within the localStorage
 // object.
+//
+// Database objects are separated by using different key prefixes. For example,
+// a key prefixed with 'workflows:' is used for a workflow object.
+//
 
 function workflow_key(wf_id) {
   return `workflows:${wf_id}`;
@@ -30,47 +34,20 @@ function cluster_key(cluster_id) {
   return `clusters:${cluster_id}`;
 }
 
+function is_cluster_key(key) {
+  return key.startsWith('clusters:');
+}
+
+function encode(obj) {
+  return JSON.stringify(obj);
+}
+
+function decode(s) {
+  return JSON.parse(s);
+}
+
 function init() {
   // TODO: Remove this?
-}
-
-// Add a WF
-function add_wf(wf_id, name) {
-  let completed = 'False';
-  let archived = 'False';
-  let percentage_complete = 0;
-  let status = 'Pending';
-  store.setItem(workflow_key(wf_id), {
-    wf_id,
-    completed,
-    archived,
-    percentage_complete,
-    status,
-    name,
-  });
-}
-
-// Add a cluster configuration
-function add_config(hostname, moniker, resource, bolt_port, wfm_sock) {
-  let id = store.getItem('next_cluster_id');
-  if (id === null) {
-    id = 0;
-  }
-  store.setItem(cluster_key(id), {
-    hostname,
-    moniker,
-    resource,
-    bolt_port,
-    wfm_sock,
-  });
-  // Increment the next id
-  store.setItem('next_cluster_id', id + 1);
-  return id;
-}
-
-// Get a parituclar wf
-function get_wf(wf_id) {
-  return store.getItem(workflow_key(wf_id));
 }
 
 // Helper function to make it easier to iterate over elements of the store
@@ -83,11 +60,56 @@ function for_each_element(check, body) {
   }
 }
 
+// Add a WF
+function add_wf(wf_id, name) {
+  let wf = {
+    wf_id,
+    completed: 'False',
+    archived: 'False',
+    percentage_complete: 0,
+    status: 'Pending',
+    name,
+  };
+  store.setItem(workflow_key(wf_id), encode(wf));
+}
+
+// Add a cluster configuration
+function add_config(hostname, moniker, bolt_port, wfm_sock) {
+  let id = store.getItem('next_cluster_id');
+  if (id === null) {
+    id = 0;
+  }
+  let config = {
+    hostname,
+    moniker,
+    bolt_port,
+    wfm_sock,
+  };
+  store.setItem(cluster_key(id), encode(config));
+  // Increment the next id
+  store.setItem('next_cluster_id', id + 1);
+  return id;
+}
+
+// Get all saved cluster configs
+function get_cluster_configs() {
+  let clusters = [];
+  for_each_element(key => is_cluster_key(key), (key, cluster) => {
+    clusters.push(decode(cluster));
+  });
+  return clusters;
+}
+
+// Get a parituclar wf
+function get_wf(wf_id) {
+  return decode(store.getItem(workflow_key(wf_id)));
+}
+
 // Get all workflows in the system
 function get_workflows() {
   let workflows = [];
-  for_each_element(key => is_workflow(key), (key, workflow) => {
-    workflows.push(workflow);
+  for_each_element(key => is_workflow_key(key), (key, workflow) => {
+    workflows.push(decode(workflow));
   });
   return workflows;
 }
@@ -96,16 +118,16 @@ function get_workflows() {
 function get_tasks(wf_id) {
   let tasks = [];
   for_each_element(key => is_workflow_task_key(key, wf_id), (key, task) => {
-    tasks.push(task);
+    tasks.push(decode(task));
   });
   return tasks;
 }
 
 function update_task_state(task_id, wf_id, status) {
   let key = task_key(wf_id, task_id);
-  let task = store.getItem(key);
+  let task = decode(store.getItem(key));
   task.status = status;
-  store.setItem(key, task);
+  store.setItem(key, encode(task));
 }
 
 function delete_wf(wf_id) {
@@ -115,19 +137,26 @@ function delete_wf(wf_id) {
 
 function add_task(task_id, wf_id, name, resource, base_command, status) {
   let key = task_key(wf_id, task_id);
-  store.setItem(key, {
+  let task = {
     wf_id,
     task_id,
     completed,
     resource,
     base_command,
     status,
-  });
+  };
+  store.setItem(key, encode(task));
 }
 
 function delete_task(wf_id, task_id) {
   store.removeItem(task_key(wf_id, task_id));
 }
 
+// Delete everything
+function clear() {
+  store.clear();
+}
+
 module.exports = { init, add_wf, get_wf, get_workflows, get_tasks, delete_wf,
-                   add_config, add_task, delete_task }
+                   add_config, get_cluster_configs, add_task, delete_task,
+                   clear };

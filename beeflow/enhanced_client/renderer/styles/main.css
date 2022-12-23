@@ -1,8 +1,8 @@
 body {
   display: grid;
   grid-template-areas:
-    "header header header"
-    "menu centerSection workflowList";
+  "header header header"
+  "menu centerSection workflowList";
   grid-template-columns: 20% 1fr 20%;
   grid-template-rows: 0.05fr 0.95fr;
   grid-auto-columns: 1fr;
@@ -15,75 +15,56 @@ body {
 }
 
 centerSection, workflowList, menu, div{
-   padding: 0.5em; 
+  padding: 0.5em;
 }
 
 .header {
-    grid-area: header;
+  grid-area: header;
 }
 
-.centerSection { 
-    grid-area: centerSection; 
-    /*display: inline;*/
-    maight-right: auto;
-    float: none;
-    
+.centerSection {
+  grid-area: centerSection;
+  /*display: inline;*/
+  maight-right: auto;
+  float: none;
 }
 
-.workflowList { 
-    grid-area: workflowList; 
-    text-align: center;
+.workflowList {
+  grid-area: workflowList;
+  text-align: center;
 }
 
-.menu { 
-    grid-area: menu; 
-    text-align: center;
+.menu {
+  grid-area: menu;
+  text-align: center;
 }
 
 #welcomeMessage {
-    display: inline;
+  display: inline;
 }
 
-#currentWorkflow {
-    display: none;
-}
-
-#addWorkflow {
-    display: none;
-}
-
-
-#deleteWorkflow {
-    display: none;
-}
-
-
-#reexecuteWorkflow {
-    display: none;
-}
-
-
-#settings {
-    display: none;
+#currentWorkflow, #addWorkflow, #deleteWorkflow, #reexecuteWorkflow, #settings,
+  #settingsList {
+  display: none;
 }
 
 #viz {
-    width: 100%;
-    height: 350px;
+  width: 100%;
+  height: 350px;
 }
 
 #pause-wf_button {
-    display: none;
+  display: none;
 }
 
 #download-archive_button {
-    display: none;
+  display: none;
 }
 
 #resume-wf_button {
-    display: none;
+  display: none;
 }
 
 #add-warning {
-    display: none;
+  display: none;
 }
