@@ -1,11 +1,12 @@
 Getting Started - Example Workflows
 ***********************************
 
-If you have beeflow installed and the components running you are ready to try
+If you have beeflow installed and the components running, you are ready to try
 out a BEE workflow.
 
 Simple multi-step example (without container)
 =============================================
+.. _Simple example:
 
 cat-grep-tar workflow
 ---------------------
@@ -60,8 +61,8 @@ sequence of commands:
 .. code-block::
 
     cd $WORKDIR_PATH
-    bee_client package examples/cat-grep-tar . # Tars up the workflow
-    bee_client submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
+    beeclient package examples/cat-grep-tar . # Tars up the workflow
+    beeclient submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
 
 This first command packages the workflow into a tarball, which makes it easy to
 pass everything over to the Workflow Manager and finally submits the workflow,
@@ -71,16 +72,25 @@ make sure to change $NAME to a name of your choice and $WORKDIR_PATH to the
 proper path that was created ealier. The submit command should have produced a
 short ID of 6-7 characters.
 
+Alternatively, you can also just do the following:
+
+.. code-block::
+
+    cd $WORKDIR_PATH
+    beeclient submit $NAME examples/cat-grep-tar workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
+
+This will automatically do the packaging and create an archive in the background to be submitted.
+
 The workflow has now been submitted, however nothing is happening yet. To start
 the workflow, you'll need to issue a start command along with the workflow
 ID:
 
 .. code-block::
 
-    bee_client start $ID
+    beeclient start $ID
 
 Now the workflow should start up. While the workflow is running you can check
-the status by running a ``bee_client query $ID``. On completion, each step
+the status by running a ``beeclient query $ID``. On completion, each step
 should be in a ``COMPLETED`` state.
 
 After all steps have finished, you should see a number of files that have been
@@ -114,7 +124,7 @@ adaptive mesh refinement (AMR).
 
 The CLAMR workflow examples we introduce here are simple two step workflows
 that run a CLAMR simulation in step one, producing graphic images from periodic
-time steps. Then FFMPEG is run in step two to make a movie visualizing the
+time steps. Then, FFMPEG is run in step two to make a movie visualizing the
 progression of the simulation. We use these workflows for some of our
 integration tests and they are practical examples to help you start using BEE.
 The differences in the CLAMR workflows are the way the containers are used.
@@ -143,8 +153,8 @@ If you have not started the beeflow components, refer to Installation Guide.
 
 .. code-block::
 
-    bee_client package <path to BEE>/examples/clamr-ffmpeg-build .
-    bee_client submit clamr-example clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml .
+    beeclient package <path to BEE>/examples/clamr-ffmpeg-build .
+    beeclient submit clamr-example clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml .
 
 Output:
 
@@ -157,7 +167,7 @@ Start workflow using the workflow id from the output:
 
 .. code-block::
 
-    bee_client start fce80d # use the actual workflow id
+    beeclient start fce80d # use the actual workflow id
 
 Output:
 
@@ -173,7 +183,7 @@ pre-processing building phase and will only be performed once. In this example
 both steps use the container that is built in the pre-processing stage. Once
 the build has been completed the Charliecloud image will be in the container
 archive location specified in the builder section of the bee configuration
-file. You can list contents of the configuration file using ``bee_cfg list``.
+file. You can list contents of the configuration file using ``beecfg list``.
 
 The status of the workflow will progress to completion and can be queried as
 shown:
@@ -183,7 +193,7 @@ Check the status:
 
 .. code-block::
 
-    bee_client query fce80d
+    beeclient query fce80d
 
 Output:
 
@@ -193,11 +203,11 @@ Output:
     clamr--READY
     ffmpeg--WAITING
 
-Check the status:
+As the clamr task goes from READY to RUNNING, let's check the status again:
 
 .. code-block::
 
-    bee_client query fce80d
+    beeclient query fce80d
 
 Output:
 
@@ -207,11 +217,11 @@ Output:
     clamr--RUNNING
     ffmpeg--WAITING
 
-When completed:
+When the workflow has completed:
 
 .. code-block::
 
-    bee_client query fce80d
+    beeclient query fce80d
 
 Output:
 
@@ -222,8 +232,8 @@ Output:
     ffmpeg--COMPLETED
 
 The archived workflow with associated job outputs will be in the
-**bee_workdir** see the default section of your configuration file (to list
-configuration file contents run ``bee_cfg list``). This workflow also produces
+**bee_workdir**. See the default section of your configuration file (to list
+configuration file contents run ``beecfg list``). This workflow also produces
 output from CLAMR and ffmpeg in the directory where you submitted the workflow :
 
 .. code-block::

@@ -2,7 +2,6 @@
    sphinx-quickstart on Wed Aug 14 09:56:07 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
-
 .. include:: ../../README.rst
 
 .. note::
@@ -16,6 +15,10 @@
 
    installation
    examples
+   bee_cwl
+   commands
+   advanced_usage
+   error_logs
    contribute
    development
    wf_api

@@ -2,13 +2,20 @@
 
 import os
 import shutil
+import socket
 import requests
 import jsonpickle
-from beeflow.wf_manager.common import wf_db
 
+from beeflow.common import log as bee_logging
+from beeflow.wf_manager.common import wf_db
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.gdb_interface import GraphDatabaseInterface
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
+
+
+log = bee_logging.setup(__name__)
 
 
 def get_bee_workdir():
@@ -16,21 +23,21 @@ def get_bee_workdir():
     return os.path.expanduser('~/.beeflow')
 
 
-def get_workflows_script_dir():
+def get_workflows_dir():
     """Get the workflows script directory from beeflow."""
     bee_workdir = get_bee_workdir()
     workflows_dir = os.path.join(bee_workdir, 'workflows')
     return workflows_dir
 
 
-def get_workflow_script_dir(wf_id):
+def get_workflow_dir(wf_id):
     """Get the workflow script dir for a particular workflow."""
-    return os.path.join(get_workflows_script_dir(), wf_id)
+    return os.path.join(get_workflows_dir(), wf_id)
 
 
-def create_wf_dir(wf_id):
+def create_workflow_dir(wf_id):
     """Create the workflows directory."""
-    os.makedirs(get_workflow_script_dir(wf_id))
+    os.makedirs(get_workflow_dir(wf_id))
 
 
 def create_current_run_dir():
@@ -54,14 +61,14 @@ def remove_wf_dir(wf_id):
     workflows_dir = os.path.join(bee_workdir, 'workflows', wf_id)
     if os.path.exists(workflows_dir):
         shutil.rmtree(workflows_dir)
-    wf_db.delete_workflow(wf_id)
+    # wf_db.delete_workflow(wf_id)
 
 
 def create_wf_metadata(wf_id, wf_name):
     """Create workflow metadata files."""
     create_wf_name(wf_id, wf_name)
     create_wf_status(wf_id)
-    wf_db.add_workflow(wf_id, wf_name, 'Pending')
+    # wf_db.add_workflow(wf_id, wf_name, 'Pending')
 
 
 def create_wf_name(wf_id, wf_name):
@@ -107,16 +114,27 @@ def create_wf_namefile(wf_name, wf_id):
         name.write(wf_name)
 
 
-def get_workflow_interface():
+def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
+    bolt_port = wf_db.get_bolt_port(wf_id)
     try:
-        wfi = WorkflowInterface(user="neo4j",
-                                bolt_port=bc.get("graphdb", "bolt_port"),
-                                db_hostname=bc.get("graphdb", "hostname"),
-                                password=bc.get("graphdb", "dbpass"))
+        driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
+                             db_hostname=bc.get("graphdb", "hostname"),
+                             password=bc.get("graphdb", "dbpass"))
+        iface = GraphDatabaseInterface(driver)
+        wfi = WorkflowInterface(iface)
     except KeyError:
-        wfi = WorkflowInterface()
+        log.error('The default way to load WFI didnt work')
+        # wfi = WorkflowInterface()
     return wfi
+
+
+def tm_url():
+    """Get Task Manager url."""
+    # tm_listen_port = bc.get('task_manager', 'listen_port')
+    tm_listen_port = wf_db.get_tm_port()
+    task_manager = "bee_tm/v1/task/"
+    return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
 
 
 # Base URLs for the TM and the Scheduler
@@ -127,6 +145,14 @@ SCHED_URL = "bee_sched/v1/"
 def _connect_tm():
     """Return a connection to the TM."""
     return Connection(bc.get('task_manager', 'socket'))
+
+
+def sched_url():
+    """Get Scheduler url."""
+    scheduler = "bee_sched/v1/"
+    # sched_listen_port = bc.get('scheduler', 'listen_port')
+    sched_listen_port = wf_db.get_sched_port()
+    return f'http://127.0.0.1:{sched_listen_port}/{scheduler}'
 
 
 def _connect_scheduler():
@@ -145,9 +171,9 @@ def _resource(component, tag=""):
 
 # Submit tasks to the TM
 # pylama:ignore=W0613
-def submit_tasks_tm(log, tasks, allocation):
+def submit_tasks_tm(wf_id, tasks, allocation):
     """Submit a task to the task manager."""
-    wfi = get_workflow_interface()
+    wfi = get_workflow_interface(wf_id)
     for task in tasks:
         metadata = wfi.get_task_metadata(task)
         task.workdir = metadata['workdir']
@@ -184,7 +210,7 @@ def tasks_to_sched(tasks):
     return sched_tasks
 
 
-def submit_tasks_scheduler(log, tasks):
+def submit_tasks_scheduler(tasks):
     """Submit a list of tasks to the scheduler."""
     sched_tasks = tasks_to_sched(tasks)
     # The workflow name will eventually be added to the wfi workflow object
@@ -200,3 +226,21 @@ def submit_tasks_scheduler(log, tasks):
         log.info(f"Something bad happened {resp.status_code}")
         return "Did not work"
     return resp.json()
+
+
+def get_open_port():
+    """Return an open ephemeral port."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+def schedule_submit_tasks(wf_id, tasks):
+    """Schedule and then submit tasks to the TM."""
+    # Submit ready tasks to the scheduler
+    allocation = submit_tasks_scheduler(tasks)  #NOQA
+    # Submit tasks to TM
+    submit_tasks_tm(wf_id, tasks, allocation)

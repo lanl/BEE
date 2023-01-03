@@ -6,8 +6,6 @@ Builds command for submitting batch job.
 import subprocess
 
 from beeflow.common.worker.worker import Worker
-from beeflow.common.log import main_log as log
-import beeflow.common.log as bee_logging
 
 
 class LSFWorker(Worker):
@@ -16,8 +14,6 @@ class LSFWorker(Worker):
     def __init__(self, bee_workdir, **kwargs):
         """Create a new LSF Worker object."""
         super().__init__(bee_workdir, **kwargs)
-        # Setup logger
-        bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='LSFWorker.log')
 
         # Table of LSF states for translation to BEE states
         self.bee_states = {'PEND': 'PENDING',

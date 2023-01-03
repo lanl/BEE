@@ -4,9 +4,10 @@ import pathlib
 import pytest
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.wf_manager.common import dep_manager
-from beeflow.tests.mocks import MockWFI, MockCwlParser
+from beeflow.wf_manager.common import wf_db
+from beeflow.tests.mocks import MockWFI, MockCwlParser, MockGDBInterface
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.wf_interface import WorkflowInterface
 
 # We use this as the test workflow id
 WF_ID = '42'
@@ -39,8 +40,7 @@ def teardown_workflow():
 @pytest.fixture()
 def setup_teardown_workflow(teardown_workflow):
     """Set up and tear down for tests that use the workflow directory."""
-    dep_manager.remove_current_run()
-    wf_utils.create_wf_dir(WF_ID)
+    wf_utils.create_workflow_dir(WF_ID)
     wf_utils.create_wf_status(WF_ID)
     yield
 
@@ -63,11 +63,12 @@ def test_submit_workflow(client, mocker, teardown_workflow):
     mocker.patch('beeflow.wf_manager.resources.wf_list.CwlParser', new=MockCwlParser)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image',
                  return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.remove_current_run',
-                 return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
+    mocker.patch('beeflow.common.wf_data.generate_workflow_id', return_value='42')
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
+                 return_value=WorkflowInterface(MockGDBInterface()))
     mocker.patch('subprocess.run', return_value=True)
     script_path = pathlib.Path(__file__).parent.resolve()
     tarball = script_path / 'clamr-wf.tgz'
@@ -80,7 +81,11 @@ def test_submit_workflow(client, mocker, teardown_workflow):
             'workflow_archive': tarball_contents,
             'workdir': '.'
         })
-        assert resp.json['msg'] == 'Workflow uploaded'
+
+    # Remove task added during the test
+    wf_db.delete_task(42, WF_ID)
+    print(resp.json)
+    assert resp.json['msg'] == 'Workflow uploaded'
 
 
 def test_reexecute_workflow(client, mocker, teardown_workflow):
@@ -91,14 +96,10 @@ def test_reexecute_workflow(client, mocker, teardown_workflow):
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.shutil.copytree', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
+    mocker.patch('beeflow.common.wf_data.generate_workflow_id', return_value='42')
     mocker.patch('subprocess.run', return_value=True)
-
-    # Remove it if it was already created by another test
-    wf_utils.remove_current_run_dir()
-    wf_utils.create_current_run_dir()
 
     script_path = pathlib.Path(__file__).parent.resolve()
     tarball = script_path / '42.tgz'
@@ -106,10 +107,11 @@ def test_reexecute_workflow(client, mocker, teardown_workflow):
         resp = client().put('/bee_wfm/v1/jobs/', data={
                             'wf_filename': tarball,
                             'wf_name': 'clamr',
-                            'workflow_archive': tarball_contents
+                            'workflow_archive': tarball_contents,
+                            'workdir': '.'
                             })
 
-        wf_utils.remove_current_run_dir()
+        print(resp.json)
         assert resp.json['msg'] == 'Workflow uploaded'
 
 
@@ -129,7 +131,17 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
     """Test getting workflow status."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
+    wf_name = 'wf'
+    wf_status = 'Pending'
+    bolt_port = 3030
+    gdb_pid = 12345
+    wf_db.add_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
+    wf_db.add_task(123, WF_ID, 'task', "WAITING")
+    wf_db.add_task(124, WF_ID, 'task', "RUNNING")
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
+    wf_db.delete_workflow(WF_ID)
+    wf_db.delete_task(123, WF_ID)
+    wf_db.delete_task(124, WF_ID)
     assert 'RUNNING' in resp.json['tasks_status']
 
 
@@ -140,7 +152,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow):
 
     request = {'wf_id': WF_ID}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
-    assert resp.json['status'] == 'cancelled'
+    assert resp.json['status'] == 'Cancelled'
     assert resp.status_code == 202
 
 

@@ -89,9 +89,7 @@ class BeeConfig:
         """
         global USERCONFIG_FILE
         if cls.CONFIG is not None:
-            raise RuntimeError(
-                'BeeConfig.init() has been called more than once. BeeConfig is a singleton class.'
-            )
+            return
         config = ConfigParser()
         if userconfig is not None:
             USERCONFIG_FILE = userconfig
@@ -100,7 +98,7 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            sys.exit('Configuration file does not exist! Please try running `bee_cfg new`.')
+            sys.exit('Configuration file does not exist! Please try running `beecfg new`.')
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -411,23 +409,15 @@ VALIDATOR.option('scheduler', 'log',
                  validator=str, info='scheduler log file')
 VALIDATOR.option('scheduler', 'socket', attrs={'default': DEFAULT_SCHED_SOCKET}, validator=str,
                  info='scheduler socket')
-VALIDATOR.option('scheduler', 'use_mars', attrs={'default': False}, validator=validate_bool,
-                 info='whether or not to use the MARS scheduler')
-VALIDATOR.option('scheduler', 'mars_model', attrs={'default': ''}, validator=str,
-                 info='location of MARS model')
-VALIDATOR.option('scheduler', 'mars_task_cnt', attrs={'default': 3},
-                 validator=validate_nonnegative_int,
-                 info='minimum number of tasks to cause the MARS scheduler to be invoked')
 VALIDATOR.option('scheduler', 'alloc_logfile',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler_alloc.log')},
                  validator=str, info='allocation logfile, to be used for later training')
-SCHEDULER_ALGORITHMS = ('fcfs', 'mars', 'backfill', 'sjf')
+SCHEDULER_ALGORITHMS = ('fcfs', 'backfill', 'sjf')
 VALIDATOR.option('scheduler', 'algorithm', attrs={'default': 'fcfs'}, choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
 VALIDATOR.option('scheduler', 'default_algorithm', attrs={'default': 'fcfs'},
                  choices=SCHEDULER_ALGORITHMS,
-                 info=('default algorithm to use, when both MARS and this baseline '
-                       'algorithm are to be used'))
+                 info=('default algorithm to use'))
 VALIDATOR.option('scheduler', 'workdir',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'scheduler')},
                  validator=str,
@@ -540,7 +530,7 @@ class ConfigGenerator:
               '\n\nThe job template configured is:',
               f'\n\t{self.sections["task_manager"]["job_template"]}',
               '\n ** Include job options (such as account) required for this system.**')
-        print('\n(Try `bee_cfg info` to see more about each option)')
+        print('\n(Try `beecfg info` to see more about each option)')
         print(70 * '#')
 
 
@@ -597,9 +587,9 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
 @app.command()
 def show(path: str = typer.Argument(default=USERCONFIG_FILE,
                                     help='Path to config file')):
-    """Show the contents of the default bee.conf."""
+    """Show the contents of bee.conf."""
     if not os.path.exists(path):
-        print('The bee.conf does not exist yet. Please run `bee_cfg new`.')
+        print('The bee.conf does not exist yet. Please run `beecfg new`.')
         return
     print(f'# {path}')
     with open(path, encoding='utf-8') as fp:

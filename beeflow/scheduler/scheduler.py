@@ -2,7 +2,6 @@
 """REST Interface for the BEE Scheduler."""
 
 import argparse
-import sys
 import os
 
 from flask import Flask, request
@@ -12,11 +11,11 @@ from beeflow.scheduler import algorithms
 from beeflow.scheduler import task
 from beeflow.scheduler import resource_allocation
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.log import main_log as log
 from beeflow.common.db import sched
-import beeflow.common.log as bee_logging
+from beeflow.common import log as bee_logging
 
-sys.excepthook = bee_logging.catch_exception
+
+log = bee_logging.setup(__name__)
 
 flask_app = Flask(__name__)
 api = Api(flask_app)
@@ -25,17 +24,21 @@ api = Api(flask_app)
 bc.init()
 
 
-def connect_db(fn):
-    """Decorate a function for connecting to a database."""
+def get_db_path():
+    """Get the database path."""
     # Favor the environment variable if it exists
     path = os.getenv('BEE_SCHED_DB_PATH')
     if path is None:
         workdir = bc.get('DEFAULT', 'bee_workdir')
         path = os.path.join(workdir, 'sched.db')
+    return path
 
+
+def connect_db(fn):
+    """Decorate a function for connecting to a database."""
     def wrap(*pargs, **kwargs):
         """Decorate the function."""
-        with sched.open_db(path) as db:
+        with sched.open_db(get_db_path()) as db:
             return fn(db, *pargs, **kwargs)
 
     return wrap
@@ -66,13 +69,12 @@ class WorkflowJobHandler(Resource):
 
     @staticmethod
     @connect_db
-    def put(db, workflow_name):
+    def put(db, workflow_name):  # noqa ('workflow_name' may be used in the future)
         """Schedules a new list of independent tasks with available resources."""
-        print('Scheduling', workflow_name)
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
-        algorithm = algorithms.choose(tasks, **vars(flask_app.sched_conf))
+        algorithm = algorithms.choose(**vars(flask_app.sched_conf))
         algorithm.schedule_all(tasks, list(db.resources))
         return [t.encode() for t in tasks]
 
@@ -98,9 +100,6 @@ def load_config_values():
     # Set the default config values
     conf = {
         'log': None,
-        'use_mars': False,
-        'mars_model': MODEL_FILE,
-        'mars_task_cnt': MARS_CNT,
         'alloc_logfile': None,
         'algorithm': None,
         'default_algorithm': None,
@@ -121,9 +120,6 @@ def load_config_values():
 
     conf = argparse.Namespace(**conf)
     log.info('Config = [')
-    log.info(f'\tuse_mars = {conf.use_mars}')
-    log.info(f'\tmars_model = {conf.mars_model}')
-    log.info(f'\tmars_task_cnt = {conf.mars_task_cnt}')
     log.info(f'\talloc_logfile = {conf.alloc_logfile}')
     log.info(f'\talgorithm = {conf.algorithm}')
     log.info(f'\tdefault_algorithm = {conf.default_algorithm}')
@@ -136,13 +132,13 @@ def create_app():
     """Create the Flask app for the scheduler."""
     # TODO: Refactor this to actually create the app here
     conf = load_config_values()
-    workdir = bc.get('DEFAULT', 'bee_workdir')
-    bee_logging.save_log(bee_workdir=workdir, log=log, logfile='scheduler.log')
     flask_app.sched_conf = conf
     # Load algorithm data
     algorithms.load(**vars(conf))
 
     # Create the scheduler workdir, if necessary
+    # sched_listen_port = wf_utils.get_open_port()
+    # wf_db.set_sched_port(sched_listen_port)
     os.makedirs(conf.workdir, exist_ok=True)
     return flask_app
 

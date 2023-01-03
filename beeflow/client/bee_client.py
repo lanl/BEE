@@ -8,12 +8,15 @@ import os
 import sys
 import logging
 import inspect
-import shutil
 import pathlib
+import shutil
 import subprocess
+import textwrap
+import time
 import jsonpickle
 import requests
 import typer
+
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
@@ -41,24 +44,50 @@ class ClientError(Exception):
         self.args = args
 
 
-def error_exit(msg):
+def error_exit(msg, include_caller=True):
     """Print a message and exit or raise an error with that message."""
-    caller_func = str.capitalize(inspect.stack()[1].function)
-    msg = caller_func + ': ' + msg
+    if include_caller:
+        caller_func = str.capitalize(inspect.stack()[1].function)
+        msg = caller_func + ': ' + msg
     if _INTERACTIVE:
-        typer.secho(msg, fg=typer.colors.RED)
+        typer.secho(msg, fg=typer.colors.RED, file=sys.stderr)
         sys.exit(1)
     else:
         # Raise an error so that client libraries can handle it
         raise ClientError(msg) from None
 
 
+def error_handler(resp): # noqa (this is an error handler, it doesn't need to return an expression)
+    """Handle a 500 error in a response."""
+    if resp.status_code != 500:
+        return resp
+    data = resp.json()
+    if 'error' not in data:
+        return resp
+    error = data['error']
+    error_file = f'bee-error-{int(time.time())}.log'
+    # Save the args and exception info to the file
+    with open(error_file, 'w', encoding='utf-8') as fp:
+        fp.write(f'args: {" ".join(sys.argv)}\n')
+        fp.write(error)
+    msg = ('An error occurred with the WFM. Please save your workflow and the '
+           f'error log "{error_file}". If possible, please report this to the '
+           'BEE development team.')
+    msg = textwrap.fill(msg)
+    error_exit(msg, include_caller=False)
+
+
 def _wfm_conn():
     """Return a connection to the WFM."""
-    return Connection(bc.get('workflow_manager', 'socket'))
+    return Connection(bc.get('workflow_manager', 'socket'),
+                      error_handler=error_handler)
 
 
 def _url():
+    #    """Returns URL to the workflow manager end point"""
+    #    wfm_listen_port = wf_db.get_wfm_port()
+    #    workflow_manager = 'bee_wfm/v1/jobs'
+    #    return f'http://127.0.0.1:{wfm_listen_port}/{workflow_manager}/'
     """Return URL to the workflow manager end point."""
     return WORKFLOW_MANAGER
 
@@ -77,7 +106,7 @@ def check_short_id_collision():
     conn = _wfm_conn()
     resp = conn.get(_url(), timeout=60)
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit("Checking for ID collision failed: {resp.status_code}")
+        error_exit(f"Checking for ID collision failed: {resp.status_code}")
 
     workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
     if workflow_list:
@@ -138,14 +167,23 @@ app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGr
 
 @app.command()
 def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
-           wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow tarball'),
+           wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
            yaml: str = typer.Argument(..., help='filename of YAML file'),
            workdir: pathlib.Path = typer.Argument(...,
            help='working directory for workflow containing input + output files',)):
     """Submit a new workflow."""
+    tarball_path = ""
     if os.path.exists(wf_path):
-        wf_tarball = open(wf_path, 'rb')
+        # Check to see if the wf_path is a tarball or a directory. Run package() if directory
+        if os.path.isdir(wf_path):
+            print("Detected directory instead of packaged workflow. Packaging Directory...")
+            bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+            package(wf_path, pathlib.Path(bee_workdir))
+            tarball_path = pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz")
+            wf_tarball = open(tarball_path, 'rb')
+        else:
+            wf_tarball = open(wf_path, 'rb')
     else:
         error_exit(f'Workflow tarball {wf_path} cannot be found')
 
@@ -161,7 +199,7 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         'wf_filename': os.path.basename(wf_path).encode(),
         'main_cwl': main_cwl,
         'yaml': yaml,
-        'workdir': workdir,
+        'workdir': workdir
     }
     files = {
         'workflow_archive': wf_tarball
@@ -173,6 +211,9 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.created:  # pylint: disable=no-member
+        if resp.status_code == 400:
+            data = resp.json()
+            error_exit(data['msg'])
         error_exit(f"Submit for {wf_name} failed. Please check the WF Manager.")
 
     check_short_id_collision()
@@ -182,6 +223,10 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     typer.secho("Workflow submitted! Your workflow id is "
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
     logging.info('Sumit workflow:  {resp.text}')
+
+    # Cleanup code
+    if tarball_path:
+        os.remove(tarball_path)
     return wf_id
 
 
@@ -352,7 +397,11 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 @app.command()
 def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
-              wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow archive')):
+              wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow archive'),
+              workdir: pathlib.Path = typer.Argument(
+                  ...,
+                  help='working directory for workflow containing input + output files')
+              ):
     """Reexecute an archived workflow."""
     if os.path.exists(wf_path):
         wf_tarball = open(wf_path, 'rb')
@@ -361,7 +410,8 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 
     data = {
         'wf_filename': os.path.basename(wf_path).encode(),
-        'wf_name': wf_name.encode()
+        'wf_name': wf_name.encode(),
+        'workdir': workdir
     }
     try:
         conn = _wfm_conn()

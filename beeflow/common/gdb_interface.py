@@ -5,9 +5,8 @@ the abstract base class GraphDatabaseDriver. By default,
 this is the Neo4jDriver class.
 """
 
-import os
-import re
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
+from beeflow.common import expr
 
 
 class GraphDatabaseInterface:
@@ -23,8 +22,7 @@ class GraphDatabaseInterface:
         :type gdb_driver: subclass of GraphDatabaseDriver
         """
         # Store the GDB driver state
-        self._gdb_driver = gdb_driver
-        self._connection = None
+        self._connection = gdb_driver
 
     def __del__(self):
         """Disconnect from the graph database when interface deconstructs."""
@@ -36,8 +34,6 @@ class GraphDatabaseInterface:
 
         :param kwargs: arguments for initializing the graph database connection
         """
-        # Initialize the graph database driver
-        self._connection = self._gdb_driver(**kwargs)
 
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow in the graph database.
@@ -266,47 +262,14 @@ class GraphDatabaseInterface:
         input_pairs = {input.id: input.value for input in task.inputs}
         if output:
             step_output = self._connection.get_task_output(task, id_)
-            # Find all matches of string pattern $(inputs.foo), capturing value of foo
-            expr_pattern = r"\$\(inputs\.(\w+)\)"
-            match = re.findall(expr_pattern, step_output.glob)
-            if match:
-                # Split string up to get list of non-matching characters
-                split_pattern = r"\$\(inputs\.\w+\)"
-                split = re.split(split_pattern, step_output.glob)
-                values = []
-                for m in match:
-                    if m in input_pairs.keys():
-                        values.append(input_pairs[m])
-                    else:
-                        raise ValueError(f"reference to non-existent task input {m}")
-                # Construct string with evaluated inputs
-                eval_string = split[0]
-                for v, s in zip(values, split[1:]):
-                    eval_string += v + s
-                self._connection.set_task_output_glob(task, id_, eval_string)
+            val = expr.eval_output(input_pairs, step_output.glob)
+            if val is not None:
+                self._connection.set_task_output_glob(task, id_, val)
         else:
             step_input = self._connection.get_task_input(task, id_)
-            # Match any of the following patterns: self.path, inputs.foo, or "foo"
-            # in an expression of the form $(A + B) in the valueFrom field
-            expr_pattern = r'\$\((self\.path|inputs\.\w+|".+") \+ (self\.path|inputs\.\w+|".+")\)'
-            match = re.fullmatch(expr_pattern, step_input.value_from)
-            if match:
-                values = []
-                for m in match.groups():
-                    if m == "self.path":
-                        values.append(os.path.realpath(step_input.value))
-                    elif m.startswith("inputs."):
-                        if m[7:] in input_pairs.keys():
-                            values.append(input_pairs[m[7:]])
-                        else:
-                            raise ValueError(f"reference to non-existent task input {m[7:]}")
-                    else:
-                        # Pattern "foo" (strip quotes)
-                        values.append(m[1:-1])
-                self._connection.set_task_input_type(task, id_, "string")
-                self._connection.set_task_input(task, id_, values[0] + values[1])
-            else:
-                raise ValueError(f"unable to evaluate expression {step_input.value_from}")
+            val = expr.eval_input(input_pairs, step_input.value_from)
+            self._connection.set_task_input_type(task, id_, "string")
+            self._connection.set_task_input(task, id_, val)
 
     def workflow_completed(self):
         """Return true if all of a workflow's final tasks have completed, else false.
