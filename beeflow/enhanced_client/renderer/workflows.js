@@ -72,33 +72,33 @@ class WorkflowList {
 }
 
 // Add a new workflow
-function add_workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname) {
+async function add_workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname) {
   // Submit workflow to workflow manager
-  (async () => {
-    // Create new WF object
-    let new_workflow = new Workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname);
-    let {wf_id, tasks} = await client.submit_workflow(new_workflow);
+  // Create new WF object
+  let new_workflow = new Workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname);
+  let {wf_id, tasks} = await client.submit_workflow(new_workflow);
 
-    new_workflow.id = wf_id;
-    //workflows.add(wf_id, new_workflow);
-    // Add wf to the navigation list
-    workflow_list.add(new_workflow);
-    // Add to the database
-    db.add_wf(wf_id, name);
-    for (task_id in tasks) {
-      let name = tasks[task_id]['name'];
-      let base_command = tasks[task_id]['command'];
-      let task_status = tasks[task_id]['status'];
-      db.add_task(task_id, wf_id, name, config.resource, base_command, task_status);
-    }
+  new_workflow.id = wf_id;
+  //workflows.add(wf_id, new_workflow);
+  // Add wf to the navigation list
+  workflow_list.add(new_workflow);
+  // Add to the database
+  db.add_wf(wf_id, name);
+  for (task_id in tasks) {
+    let name = tasks[task_id]['name'];
+    let base_command = tasks[task_id]['command'];
+    let task_status = tasks[task_id]['status'];
+    db.add_task(task_id, wf_id, name, config.resource, base_command, task_status);
+  }
 
-    // Make this workflow appear in the main workflow section
-    set_current_workflow(new_workflow);
-    // Remove the welcome message if currently displayed
-    if (currentContent === welcomeMessage) {
-      currentContent = currentWorkflow;
-    }
-  })();
+  // Make this workflow appear in the main workflow section
+  set_current_workflow(new_workflow);
+  // Remove the welcome message if currently displayed
+  if (currentContent === welcomeMessage) {
+    currentContent = currentWorkflow;
+  }
+
+  return wf_id;
 }
 
 function start_workflow() {

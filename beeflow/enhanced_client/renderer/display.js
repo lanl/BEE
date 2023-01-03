@@ -162,16 +162,10 @@ class AddWorkflow extends Component {
     super(content_id, button_id, form_button_id);
   }
 
-    // Gets the workflow directory path
-    //get_actual_path(full_path, rel_path) {
-    //    let parent_dir = rel_path.split('/')[0];
-    //    let stopping_point = full_path.indexOf(rel_path) + parent_dir.length;
-    //    let actual_path = full_path.slice(0, stopping_point);
-    //    return actual_path;
-    //}
-
   setupFormListener() {
     this.form.addEventListener('click', async e => {
+      // Disable the button during submission
+      this.form.disabled = true;
       // Need to add checking for valid values
       // Get all the form contents then pass to add workflow function
       let name = document.getElementById('add-wf_name').value;
@@ -182,15 +176,23 @@ class AddWorkflow extends Component {
       let file = document.getElementById('add-wf_tar').files[0];
       let tarball_path = file.path;
       let tarball_fname = file.name;
-      wf.add_workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname);
-      // Reset the form
-      document.getElementById('add-workflow_form').reset();
-      document.getElementById('start-wf_button').style.display = "inline";
-      document.getElementById('pause-wf_button').style.display = "none";
-      document.getElementById('resume-wf_button').style.display = "none";
-      hideWelcome();
-      this.toggle_content();
-      this.toggle_button();
+      wf.add_workflow(name, main_cwl, yaml, workdir, tarball_path, tarball_fname)
+        .then(wf_id => {
+          // TODO: Do something with the WF ID.
+          // Reset the form
+          document.getElementById('add-workflow_form').reset();
+          document.getElementById('start-wf_button').style.display = "inline";
+          document.getElementById('pause-wf_button').style.display = "none";
+          document.getElementById('resume-wf_button').style.display = "none";
+          hideWelcome();
+          this.toggle_content();
+          this.toggle_button();
+          // Re-enable the button
+          this.disabled = false;
+        })
+        .catch(err => {
+          alert("An error occurred while adding a workflow");
+        })
     });
   }
 }
@@ -286,6 +288,17 @@ class SettingsList extends Component {
   }
 }
 
+class CurrentWorkflow extends Component {
+  constructor(content_id, button_id, form_button_id) {
+    super(content_id, button_id, form_button_id);
+    // TODO
+  }
+
+  onToggle() {
+    // TODO: Fill the settings based on current workflow ID
+  }
+}
+
 function initContent() {
   currentContent = components.get("welcomeMessage");
 }
@@ -308,6 +321,9 @@ function addComponent(content_id, button_id = null, form_button_id = null) {
   case 'settingsList':
     component = new SettingsList(content_id, button_id, form_button_id);
     break;
+  case 'currentWorkflow':
+    component = new CurrentWorkflow(content_id, button_id, form_button_id);
+    break;
   default:
     // welcomeMessage and currentWorkflow just use Component
     component = new Component(content_id, button_id, form_button_id);
@@ -322,5 +338,27 @@ function showWelcome() {
   document.getElementById('welcomeMessage').style.display = "inline";
 }
 
+// Initialize the workflow list
+function initWorkflows(container_id) {
+  // Dummy workflows
+  let workflows = [
+    {
+      name: 'clamr',
+    },
+    {
+      name: 'cat-grep-tar',
+    },
+  ];
+  let list = document.createElement('ul');
+  for (let workflow of workflows) {
+    let item = document.createElement('li');
+    item.innerText = workflow.name;
+    list.appendChild(item);
+  }
+  let container = document.getElementById(container_id);
+  container.replaceChildren(list);
+  // TODO
+}
+
 module.exports = { Component, addComponent, startButton, downloadButton, pauseButton, hideWelcome,
-                   resumeButton, updateButton, initContent, hideWelcome, showWelcome }
+                   resumeButton, updateButton, initContent, hideWelcome, showWelcome, initWorkflows }

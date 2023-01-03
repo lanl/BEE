@@ -17,6 +17,7 @@ display.addComponent('deleteWorkflow', 'delete-wf_button', 'delete-wf_submit');
 display.addComponent('reexecuteWorkflow', 'reexecute-wf_button', 'reexecute-wf_submit');
 display.addComponent('settingsList', 'settings-button');
 display.addComponent('settings', 'settings-create-button', 'settings-submit');
+display.addComponent('currentWorkflow');
 
 display.startButton('start-wf_button');
 display.resumeButton('resume-wf_button');
@@ -26,6 +27,7 @@ display.downloadButton('download-archive_button');
 
 // Initialize content
 display.initContent();
+display.initWorkflows('workflowList');
 
 // Load workflows from gdb
-workflows.initialize('workflowList');
+// workflows.initialize('workflowList');
