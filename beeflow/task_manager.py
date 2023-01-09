@@ -355,6 +355,5 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 #    flask_app.logger.addHandler(handler)
 #    flask_app.run(debug=False, port=str(tm_listen_port))
 
-# Ignoring CO413 beeflow modules must be loaded after bc.init()
 # Ignoring W0703: Catching general exception is ok for failed submit and cancel.
-# pylama:ignore=C0413,W0703
+# pylama:ignore=W0703

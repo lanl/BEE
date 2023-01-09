@@ -7,8 +7,6 @@ from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.tests.mocks import MockWFI
 
-# Disable protected member access warning
-# pylama:ignore=W0212
 
 REPO_PATH = Path(*Path(__file__).parts[:-3])
 
