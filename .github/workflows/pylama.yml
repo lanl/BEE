@@ -1,0 +1,22 @@
+name: PyLama Lint
+
+on:
+  # For manual exec
+  # (https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
+  workflow_dispatch: {}
+  push:
+    branches: [main, develop]
+  pull_request:
+    types: [opened, synchronize, edited]
+    branches: [main, develop]
+
+jobs:
+  pylama:
+    name: PyLama Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Lint
+        run: |
+          pip install pylama pylint 2>&1 >/dev/null
+          pylama beeflow/

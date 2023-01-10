@@ -1,0 +1,126 @@
+openapi: 3.0.3
+servers:
+  - url: /
+info:
+  title: BEE Scheduler API
+  description: BEE Scheduler API implementing efficient scheduling.
+  version: '0.1'
+paths:
+  '/bee_sched/v1/workflows/{workflow_name}/jobs':
+    summary: Scheduling management of workflow jobs
+    parameters:
+      - name: workflow_name
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Schedule a list of jobs
+      description: ''
+      operationId: schedule_workflow_jobs
+      responses:
+        default:
+          description: Default error sample response
+  /bee_sched/v1/resources:
+    summary: Manage resources used by the scheduler
+    put:
+      summary: Set the current resources of the scheduler.
+      description: ''
+      operationId: update_resources
+      responses:
+        default:
+          description: Default error sample response
+    get:
+      summary: Get the current resources available for scheduling
+      description: ''
+      operationId: get_resources
+      responses:
+        default:
+          description: Default error sample response
+components:
+  schemas:
+    ScheduleInput:
+      properties:
+        workflow:
+          $ref: '#/components/schemas/Workflow'
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cluster'
+        start_time:
+          type: integer
+      required:
+        - workflow
+        - clusters
+        - start_time
+    ScheduleResult:
+      properties:
+        name:
+          type: string
+        provision:
+          type: object
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+      required:
+        - name
+    Cluster:
+      properties:
+        name:
+          type: string
+        partitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Partition'
+      required:
+        - name
+        - partitions
+    TimeSlot:
+      properties:
+        task:
+          $ref: '#/components/schemas/Task'
+        start_time:
+          type: integer
+        runtime:
+          type: integer
+        partition:
+          $ref: '#/components/schemas/Partition'
+      required:
+        - start_time
+    Partition:
+      properties:
+        name:
+          type: string
+        total_cpus:
+          type: integer
+        total_nodes:
+          type: integer
+      required:
+        - name
+      example: {}
+    Workflow:
+      properties:
+        name:
+          type: string
+        levels:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/Task'
+      required:
+        - name
+        - levels
+      example: {}
+    Task:
+      properties:
+        name:
+          type: string
+        runtime:
+          type: integer
+        cpus:
+          type: integer
+        nodes:
+          type: integer
+      required:
+        - name
+        - runtime

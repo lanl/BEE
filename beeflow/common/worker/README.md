@@ -1,8 +1,6 @@
 At this point for any tasks that are submitted as jobs, the scripts are left at
 ~/.beeflow/worker/work-... see ToDo.md
 
-Some pylama errors are due to pyslurm.
-
 A job template ~/.beeflow/worker/job.template for specific batch type 
 requirements for the user (we may get rid of this once we fix requirements).
 

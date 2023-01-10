@@ -4,6 +4,7 @@ poetry.lock
 *.iso
 *.pyc
 *.egg-info
+*.out
 .python-version
 .DS_Store
 .idea
@@ -11,5 +12,5 @@ poetry.lock
 .vscode
 .env
 .venv
-doc-src/_build
-workflows/
+_build
+dist

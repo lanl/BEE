@@ -1,0 +1,20 @@
+FROM debian:stretch
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN    apt-get update \
+    && apt-get install -y apt-utils
+
+RUN apt-get install -y \
+		file \
+		g++ \
+		gcc \
+		gfortran \
+		less \
+		libdb5.3-dev \
+		make \
+		wget \
+		git \
+		openmpi-common \
+		libopenmpi-dev
+
