@@ -1,19 +1,23 @@
+// const {NeoVis} = require('neovis.js');
+
 let initialized = false;
 
-function draw() {
+function draw(containerId, boltPort) {
   var config = {
-    container_id: "viz",
-    server_url: "bolt://localhost:9995",
-    server_user: "neo4j",
-    server_password: "password"
+    containerId,
+    neo4j: {
+      serverUrl: `bolt://127.0.0.1:${boltPort}`,
+      serverUser: "neo4j",
+      serverPassword: "password",
+    },
   }
   var cypher = {
     labels: {
       "Task": {
-        caption: "name"
+        label: "name"
       },
       "Metadata": {
-        caption: "state"
+        label: "state"
       },
     },
     relationships: {
@@ -27,7 +31,7 @@ function draw() {
     hierarchical: true,
     hierarchical_sort_method: "directed",
     randomSeed: 0,
-    initial_cypher: "MATCH p=()-[r:DEPENDS_ON|:DESCRIBES]->() RETURN p",
+    initialCypher: "MATCH p=()-[r:DEPENDS_ON|:DESCRIBES]->() RETURN p",
   };
 
   var final = {
@@ -38,3 +42,5 @@ function draw() {
   viz.render();
   initialized = true;
 }
+
+module.exports = { draw };

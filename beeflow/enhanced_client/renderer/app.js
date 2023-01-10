@@ -1,6 +1,13 @@
 // Renderer script
 const {ipcRenderer} = require('electron');
 
+let viz = require('./viz.js');
+viz.draw('viz', 34273);
+
+let gdb = require('./gdb');
+gdb.run();
+
+/*
 var display = require('./display.js');
 var workflows = require('./workflows.js');
 var database = require('./database.js');
@@ -31,3 +38,4 @@ display.initWorkflows('workflowList');
 
 // Load workflows from gdb
 // workflows.initialize('workflowList');
+*/
