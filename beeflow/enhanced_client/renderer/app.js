@@ -1,41 +1,38 @@
 // Renderer script
 const {ipcRenderer} = require('electron');
 
-let viz = require('./viz.js');
-viz.draw('viz', 34273);
+// Helper function for showing an error message in the page sidebar
+function showErrorMessage(containerId, message) {
+  let div = document.createElement('div');
+  div.className = 'notification is-danger mb-4';
+  // Button to remove old error messages
+  let deleteButton = document.createElement('button');
+  deleteButton.className = 'delete';
+  deleteButton.addEventListener('click', ev => {
+    div.remove();
+  });
+  div.appendChild(deleteButton);
+  div.appendChild(document.createTextNode(message));
+  // Add it to the container
+  let container = document.getElementById(containerId);
+  container.appendChild(div);
+}
 
-let gdb = require('./gdb');
-gdb.run();
+const control = require('./control.js');
+control.setup({
+  showErrorMessage: (message) => showErrorMessage('error', message),
+  hostname: 'settings-hostname',
+  hostnameError: 'settings-hostname-error',
+  moniker: 'settings-moniker',
+  monikerError: 'settings-moniker-error',
+  boltPort: 'settings-bolt_port',
+  boltPortError: 'settings-bolt_port-error',
+  submitButton: 'settings-submit',
+  reloadButton: 'reload-button',
+  vizContainer: 'viz',
+});
 
 /*
-var display = require('./display.js');
-var workflows = require('./workflows.js');
-var database = require('./database.js');
-
-var fs = require('fs');
-
-// Load up data from database
-database.init();
-
-// Initialize component objects and set listeners
-display.addComponent('welcomeMessage');
-display.addComponent('addWorkflow', 'add-wf_button', 'add-wf_submit');
-display.addComponent('deleteWorkflow', 'delete-wf_button', 'delete-wf_submit');
-display.addComponent('reexecuteWorkflow', 'reexecute-wf_button', 'reexecute-wf_submit');
-display.addComponent('settingsList', 'settings-button');
-display.addComponent('settings', 'settings-create-button', 'settings-submit');
-display.addComponent('currentWorkflow');
-
-display.startButton('start-wf_button');
-display.resumeButton('resume-wf_button');
-display.pauseButton('pause-wf_button');
-display.updateButton('update-wf_button');
-display.downloadButton('download-archive_button');
-
-// Initialize content
-display.initContent();
-display.initWorkflows('workflowList');
-
-// Load workflows from gdb
-// workflows.initialize('workflowList');
+let viz = require('./viz.js');
+viz.draw('viz', 34273);
 */

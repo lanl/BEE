@@ -39,8 +39,16 @@ function draw(containerId, boltPort) {
     ...cypher
   };
   var viz = new NeoVis.default(final);
+  // Create a wrapper promise for handling errors
+  let p = new Promise((resolve, reject) => {
+    viz.registerOnEvent('error', err => {
+      reject(err);
+    });
+  });
+  // Start rendering
   viz.render();
   initialized = true;
+  return p;
 }
 
 module.exports = { draw };
