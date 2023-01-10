@@ -318,7 +318,7 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('Could sucessfully query workflow manager')
+        error_exit('Could not successfully query workflow manager')
 
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
@@ -330,6 +330,25 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
     logging.info('Query workflow:  {resp.text}')
     return wf_status, tasks_status
+
+
+@app.command()
+def metadata(wf_id: str = typer.Argument(..., callback=match_short_id)):
+    """Get metadata about a given workflow."""
+    try:
+        conn = _wfm_conn()
+        resp = conn.get(_resource(wf_id) + '/metadata', timeout=60)
+    except requests.exceptions.ConnectionError:
+        error_exit('Could not reach WF Manager.')
+
+    if resp.status_code != requests.codes.okay:
+        error_exit('Could not successfully query workflow manager')
+
+    # Print and or return the metadata
+    metadata = resp.json()
+    for key, value in metadata.items():
+        typer.echo(f'{key} = {value}')
+    return metadata
 
 
 @app.command()
