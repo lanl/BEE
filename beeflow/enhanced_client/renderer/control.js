@@ -31,7 +31,7 @@ function setup(opts) {
     hostnameError.innerText = "";
     monikerError.innerText = "";
     boltPortError.innerText = "";
-    // Check for empty values
+    // Check for empty inputs
     let ok = true;
     for (let [field, error, name] of validateFields) {
       if (field.value.trim().length == 0) {
@@ -51,8 +51,12 @@ function setup(opts) {
       moniker: moniker.value,
       port: boltPort.value,
     });
-    // Wait 3 seconds for the tunnel to set up
-    setTimeout(draw, 3000);
+    // Wait 10 seconds for the tunnel to set up
+    let message = opts.showMessage('Connecting...');
+    setTimeout(() => {
+      message.remove();
+      draw();
+    }, 10000);
   });
 
   reloadButton.addEventListener('click', ev => {
