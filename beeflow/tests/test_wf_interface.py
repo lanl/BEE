@@ -1,9 +1,6 @@
 #! /usr/bin/env python3
 """Unit test module for the BEE workflow interface module."""
 
-# Disable protected member access warning
-# pylama:ignore=W0212
-
 import unittest
 
 from beeflow.common.config_driver import BeeConfig as bc
@@ -661,3 +658,5 @@ class TestWorkflowInterface(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+# Ignore W0212: Access required for unit tests
+# pylama:ignore=W0212

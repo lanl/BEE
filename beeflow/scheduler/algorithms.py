@@ -262,10 +262,6 @@ def choose(algorithm=None, default_algorithm=None, **kwargs):
     if algorithm is not None:
         cls = algorithm_objects[algorithm]
     return AlgorithmLogWrapper(cls, **kwargs)
-# Ignoring E0211: This is how the class is designed right now, we should think about changing this
-#                 however.
-# Ignoring W0511: A number of these TODO's are hinted at in issue #333, but I don't want to remove
-#                 them from the code until this issue is fully addressed.
-# Ignoring R0903: Too few public methods, not sure how this calculated and this will be fixed with
-#                 issue #333
-# pylama:ignore=E0211,C0415,W0511,R0903
+
+# Ignore W0511: This allows us to have TODOs in the code
+# pylama:ignore=W0511

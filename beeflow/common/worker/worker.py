@@ -118,5 +118,5 @@ class Worker(ABC):
         :rtype: string
         """
 
-# Ignore W0511: Ignore TODOs since we will want to address this later.
+# Ignore W0511: This allows us to have TODOs in the code
 # pylama:ignore=W0511
