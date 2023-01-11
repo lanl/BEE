@@ -659,4 +659,5 @@ class TestWorkflowInterface(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 # Ignore W0212: Access required for unit tests
-# pylama:ignore=W0212
+# Ignore E402: "module level import not at top of file" - this is required for bee config
+# pylama:ignore=W0212,E402

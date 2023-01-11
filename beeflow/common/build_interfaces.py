@@ -82,4 +82,5 @@ if __name__ == '__main__':
     build_main(local_task)
 
 # Ignore W0703: Catching generic exception isn't a problem if we just want a descriptive report
-# pylama:ignore=W0703
+# Ignore C901: "'build_main' is too complex" - this function is just around 40 lines
+# pylama:ignore=W0703,C901

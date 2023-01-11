@@ -80,10 +80,10 @@ cloud_extras = ["google-api-python-client", "python-openstackclient", "python-he
 # Developer dependencies
 pycodestyle = { version = ">=2.5.0" }
 # Newer version of pydocstyle break pylama
-pydocstyle = "6.1.0"
-pyflakes = "2.1.1"
-pylama = "7.7.1"
-pylint = "2.3.1"
+pydocstyle = "6.1.1"
+pyflakes = "3.0.1"
+pylama = "8.4.1"
+pylint = "2.15.9"
 pytest = "6.0.0"
 pytest-mock = "3.3.1"
 # This is commented out until we can figure out why it's causing `poetry update` to loop forever
