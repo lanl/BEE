@@ -147,3 +147,5 @@ class ConfigOption:
                 raise ValueError(f"value must be one of {self.choices}; found '{value}'")
             return value
         return self._validator(value)
+# Ignore C901: "'ConfigValidator.validate' is too complex" - this function is under 40 LOC
+# pylama:ignore=C901

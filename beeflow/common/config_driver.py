@@ -603,3 +603,7 @@ def main():
 
 if __name__ == '__main__':
     app()
+# Ignore C901: "'ConfigGenerator.choose_values' is too complex" - I disagree, if
+#              it's just based on LOC, then there are a number `print()` functions
+#              that are increasing the line count
+# pylama:ignore=C901
