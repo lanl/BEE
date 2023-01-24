@@ -124,3 +124,6 @@ class WFUpdate(Resource):
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)
         return resp
+# Ignoring C901: "'WFUPdate.put' is too complex" - this requires a refactor (or
+#                maybe the LOC limit is too low)
+# pylama:ignore=C901
