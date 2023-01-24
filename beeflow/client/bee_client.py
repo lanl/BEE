@@ -57,7 +57,7 @@ def error_exit(msg, include_caller=True):
         raise ClientError(msg) from None
 
 
-def error_handler(resp): # noqa (this is an error handler, it doesn't need to return an expression)
+def error_handler(resp):  # noqa (this is an error handler, it doesn't need to return an expression)
     """Handle a 500 error in a response."""
     if resp.status_code != 500:
         return resp
@@ -240,7 +240,7 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
+    if resp.status_code != requests.codes.okay:  # noqa (pylama doesn't know about the okay value)
         error_exit(f"Starting {long_wf_id} failed."
                    f" Returned {resp.status_code}")
 
@@ -341,14 +341,14 @@ def metadata(wf_id: str = typer.Argument(..., callback=match_short_id)):
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
-    if resp.status_code != requests.codes.okay:
+    if resp.status_code != requests.codes.okay:  # noqa (pylama doesn't know about the okay member)
         error_exit('Could not successfully query workflow manager')
 
     # Print and or return the metadata
-    metadata = resp.json()
-    for key, value in metadata.items():
+    data = resp.json()
+    for key, value in data.items():
         typer.echo(f'{key} = {value}')
-    return metadata
+    return data
 
 
 @app.command()
