@@ -356,4 +356,6 @@ api.add_resource(TaskActions, '/bee_tm/v1/task/')
 #    flask_app.run(debug=False, port=str(tm_listen_port))
 
 # Ignoring W0703: Catching general exception is ok for failed submit and cancel.
-# pylama:ignore=W0703
+# Ignoring E402: "module level import is not at top of file" - this is required
+#                for the bee config
+# pylama:ignore=W0703,E402

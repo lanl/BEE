@@ -137,4 +137,6 @@ def test_no_slurmrestd(worker_iface):
 # Ignoring R1732: This is not what we need to do with the Popen of slurmrestd above;
 #                 using a with statement doesn't kill the process immediately but just
 #                 waits for it to complete and slurmrestd never will unless we kill it.
-# pylama:ignore=R1732
+# Ignoring E402: "module level import not at top of file" - this is required for
+#                bee config
+# pylama:ignore=R1732,E402
