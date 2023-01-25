@@ -19,7 +19,7 @@ log = bee_logging.setup(__name__)
 class SlurmWorker(Worker):
     """The Worker for systems where Slurm is the Work Load Manager."""
 
-    def __init__(self, bee_workdir, **kwargs):
+    def __init__(self, bee_workdir, openapi_version, **kwargs):
         """Create a new Slurm Worker object."""
         super().__init__(bee_workdir, **kwargs)
         # Pull slurm socket configs from kwargs (Uses getpass.getuser() instead
@@ -29,7 +29,7 @@ class SlurmWorker(Worker):
         self.session = requests_unixsocket.Session()
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
-        self.slurm_url = f"http+unix://{encoded_path}/slurm/v0.0.35"
+        self.slurm_url = f"http+unix://{encoded_path}/slurm/{openapi_version}"
 
     def build_text(self, task):
         """Build text for task script; use template if it exists."""
@@ -79,10 +79,10 @@ class SlurmWorker(Worker):
 
             if resp.status_code != 200:
                 raise WorkerError(f'Failed to query job {job_id}')
-            status = json.loads(resp.text)
+            data = json.loads(resp.text)
             # For some versions of slurm, the job_state isn't included on failure
             try:
-                job_state = status['job_state']
+                job_state = data['jobs'][0]['job_state']
             except KeyError as exc:
                 raise WorkerError(f'Failed to query job {job_id}') from exc
         except requests.exceptions.ConnectionError:

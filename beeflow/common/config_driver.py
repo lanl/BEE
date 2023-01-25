@@ -400,8 +400,8 @@ VALIDATOR.section('slurmrestd', info='Configuration section for Slurmrestd.',
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
 VALIDATOR.option('slurmrestd', 'slurm_socket', attrs={'default': DEFAULT_SLURMRESTD_SOCK},
                  info='socket location')
-VALIDATOR.option('slurmrestd', 'slurm_args', attrs={'default': '-s openapi/v0.0.35'},
-                 info='arguments for the slurmrestd binary')
+VALIDATOR.option('slurmrestd', 'openapi_version', attrs={'default': 'v0.0.37'},
+                 info='openapi version to use for slurmrestd')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
 VALIDATOR.option('scheduler', 'log',

@@ -174,8 +174,8 @@ def start_slurm_restd():
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
     slurm_socket = bc.get('slurmrestd', 'slurm_socket')
-    slurm_args = bc.get('slurmrestd', 'slurm_args')
-    slurm_args = slurm_args if slurm_args is not None else ''
+    openapi_version = bc.get('slurmrestd', 'openapi_version')
+    slurm_args = f'-s openapi/{openapi_version}'
     subprocess.run(['rm', '-f', slurm_socket], check=True)
     # log.info("Attempting to open socket: {}".format(slurm_socket))
     fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
@@ -206,6 +206,9 @@ def check_dependencies():
     # Check for Charliecloud and it's version
     if not shutil.which('ch-run'):
         warn('Charliecloud is not loaded. Please ensure that it is accessible on your path.')
+        sys.exit(1)
+    if not shutil.which('slurmrestd'):
+        warn('slurmrestd is not available. Please ensure that it is accessible on your path.')
         sys.exit(1)
     cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
                            check=True)
