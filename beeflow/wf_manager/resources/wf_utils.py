@@ -20,7 +20,7 @@ log = bee_logging.setup(__name__)
 
 def get_bee_workdir():
     """Get the bee workflow directory from the configuration file."""
-    return os.path.expanduser('~/.beeflow')
+    return bc.get('DEFAULT', 'bee_workdir')
 
 
 def get_workflows_dir():
