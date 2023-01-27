@@ -19,7 +19,7 @@ from beeflow.common.wf_data import Task
 # Timeout (seconds) for waiting on tasks
 TIMEOUT = 150
 # Extra slurmrestd arguments. This may be something to take on the command line
-SLURMRESTD_ARGS = bc.get('slurmrestd', 'slurm_args')
+OPENAPI_VERSION = bc.get('slurmrestd', 'openapi_version')
 GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
                  requirements=[], inputs=[], outputs=[], stdout='', stderr='',
                  workflow_id=uuid.uuid4().hex)
@@ -50,10 +50,11 @@ def setup_slurm_worker(fn):
         slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
         bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
         os.mkdir(bee_workdir)
-        proc = subprocess.Popen(f'slurmrestd {SLURMRESTD_ARGS} unix:{slurm_socket}', shell=True)
+        proc = subprocess.Popen(f'slurmrestd -s openapi/{OPENAPI_VERSION} unix:{slurm_socket}', shell=True)
         time.sleep(1)
         worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
                                        slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                                       openapi_version=OPENAPI_VERSION,
                                        job_template=bc.get('task_manager', 'job_template'))
         fn(worker_iface)
         time.sleep(1)
@@ -72,6 +73,7 @@ def setup_worker_iface(fn):
         os.mkdir(bee_workdir)
         worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
                                        slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                                       openapi_version=OPENAPI_VERSION,
                                        job_template=bc.get('task_manager', 'job_template'))
         fn(worker_iface)
 
