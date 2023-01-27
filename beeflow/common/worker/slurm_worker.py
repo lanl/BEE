@@ -121,6 +121,7 @@ class SlurmWorker(Worker):
             raise err
         try:
             data = resp.json()
+            print(data)
             if 'error' in data:
                 raise err
         except requests.exceptions.JSONDecodeError as exc:  # noqa requests is not installed in CI
