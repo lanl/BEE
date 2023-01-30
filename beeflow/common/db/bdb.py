@@ -5,6 +5,19 @@ from sqlite3 import Error
 from beeflow.common.config_driver import BeeConfig as bc
 bc.init()
 
+def connect_db(module):
+    """Connect to a SQLITE db."""
+    def _connect_db(fn):
+        def wrap(*pargs, **kwargs):
+            """Wrap the function."""
+            # Check for the TESTING_DB_PATH for running the unit tests
+            db_path = '/vast/home/rustyd/.beeflow/wfm.db'
+            with module.open_db(db_path) as db:
+                return fn(db, *pargs, **kwargs)
+        return wrap
+    return _connect_db
+
+
 def create_connection(db_file):
     """Create a new connection with the workflow database."""
     conn = None

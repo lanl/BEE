@@ -45,6 +45,7 @@ class WorkflowInfo:
 
 class Workflows:
     """Workflow database object""" 
+
     def __init__(self, db_file):
         self.Task = namedtuple("Task", "id task_id workflow_id name resource state"
                   " slurm_id")
@@ -54,7 +55,9 @@ class Workflows:
     def get_workflow(self, workflow_id):
         """Return a workflow object."""
         stmt = "SELECT * FROM workflows WHERE workflow_id=?"
+        #print(f'db_file: {self.db_file} stmt: {stmt} workflow_id: {workflow_id}')
         result = bdb.getone(self.db_file, stmt, [workflow_id])
+        #print(result)
         workflow = self.Workflow(*result)
         return workflow
 
@@ -67,6 +70,7 @@ class Workflows:
 
     def add_workflow(self, workflow_id, name, state, run_dir, bolt_port, gdb_pid):
         """Insert a new workflow into the database."""
+        print(f'{workflow_id} {type(workflow_id)} {name} {type(name)} {state} {type(state)} {run_dir} {type(run_dir)} {bolt_port} {type(bolt_port)} {gdb_pid} {type(gdb_pid)}')
         stmt = ("INSERT INTO workflows (workflow_id, name, state, run_dir, bolt_port, gdb_pid) "
                 "VALUES(?, ?, ?, ?, ?, ?);"
                 )
@@ -86,7 +90,7 @@ class Workflows:
         """Return the bolt port associated with a workflow."""
         stmt = "SELECT state FROM workflows WHERE workflow_id=?"
         result = bdb.getone(self.db_file, stmt, [workflow_id])
-        state = result[0]
+        state = result
         return state
 
     def add_task(self, task_id, workflow_id, name, state):
@@ -148,16 +152,6 @@ class WorkflowDB:
         self.db_file = db_file
         self._init_tables()
 
-    @property
-    def workflows(self):
-        """Get workflow info from the database."""
-        return Workflows(self.db_file)
-
-    @property
-    def info(self):
-        """Get workflow info from the database."""
-        return WorkflowInfo(self.db_file)
-
     def _init_tables(self):
         """Initalize the table if it doesn't exist."""
         workflows_stmt = """CREATE TABLE IF NOT EXISTS workflows (
@@ -200,8 +194,19 @@ class WorkflowDB:
                                             VALUES(?, ?, ?, ?);"""
             bdb.run(self.db_file, stmt, [-1, -1, -1, 0])
 
+    @property
+    def workflows(self):
+        """Get workflow info from the database."""
+        return Workflows(self.db_file)
+
+    @property
+    def info(self):
+        """Get workflow info from the database."""
+        return WorkflowInfo(self.db_file)
+
 
 @contextmanager
 def open_db(db_file):
     """Open a new database."""
     yield WorkflowDB(db_file)
+
