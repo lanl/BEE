@@ -82,6 +82,7 @@ class SlurmWorker(Worker):
             data = json.loads(resp.text)
             # For some versions of slurm, the job_state isn't included on failure
             try:
+                print(data)
                 job_state = data['jobs'][0]['job_state']
             except KeyError as exc:
                 raise WorkerError(f'Failed to query job {job_id}') from exc

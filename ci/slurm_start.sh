@@ -3,6 +3,10 @@
 
 . ./ci/env.sh
 
+printf "#### SLURM VERSION ####\n"
+srun -V
+printf "#######################\n"
+
 # Dump a new slurm.conf
 cat >> $SLURM_CONF <<EOF
 ClusterName=bee-ci
@@ -73,3 +77,7 @@ slurmd
 printf "#### SUPPORTED MPI ####\n"
 srun --mpi=list
 printf "#######################\n"
+printf "\n"
+printf "#### OPENAPI VERSIONS ####\n"
+slurmrestd -s list
+printf "##########################\n"
