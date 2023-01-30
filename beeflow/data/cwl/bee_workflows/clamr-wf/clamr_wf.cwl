@@ -38,6 +38,9 @@ outputs:
   clamr_movie:
     type: File
     outputSource: ffmpeg/movie
+  ffmpeg_stderr:
+    type: File
+    outputSource: ffmpeg/ffmpeg_stderr
 
 steps:
   clamr:
@@ -70,6 +73,6 @@ steps:
       # output_filename set in wf inputs
       output_file: output_filename
     # Multiple outputs can be in array
-    out: [movie]
+    out: [movie, ffmpeg_stderr]
     requirements:
         InlineJavascriptRequirement: {}

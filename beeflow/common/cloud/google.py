@@ -39,6 +39,3 @@ class GoogleProvider(provider.Provider):
             res = call.execute()
             print(res)
             time.sleep(2)
-# Ignore E1101: Pylama notes that self._api doesn't have an 'instances' member.
-#               I believe this is set at runtime by googleapiclient.
-# pylama:ignore=E1101
