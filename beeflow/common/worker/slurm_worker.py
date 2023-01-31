@@ -80,11 +80,12 @@ class SlurmWorker(Worker):
             if resp.status_code != 200:
                 raise WorkerError(f'Failed to query job {job_id}')
             data = json.loads(resp.text)
+            # Check for errors in the response
+            check_slurm_error(data, f'Failed to query job {job_id}')
             # For some versions of slurm, the job_state isn't included on failure
             try:
-                print(data)
                 job_state = data['jobs'][0]['job_state']
-            except KeyError as exc:
+            except (KeyError, IndexError) as exc:
                 raise WorkerError(f'Failed to query job {job_id}') from exc
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
@@ -117,15 +118,22 @@ class SlurmWorker(Worker):
             return 'NOT_RESPONDING'
         # For some reason, some versions of slurmrestd are not returning an
         # HTTP error code, but just an error in the body
-        err = WorkerError(f'Unable to cancel job id {job_id}!')
+        errmsg = f'Unable to cancel job id {job_id}!'
         if resp.status_code != 200:
-            raise err
+            raise WorkerError(f'{errmsg}: Bad response code: {resp.status_code}')
         try:
             data = resp.json()
-            print(data)
-            if 'error' in data:
-                raise err
+            check_slurm_error(data, errmsg)
         except requests.exceptions.JSONDecodeError as exc:  # noqa requests is not installed in CI
-            raise err from exc
+            raise WorkerError(errmsg) from exc
         job_state = "CANCELLED"
         return job_state
+
+
+def check_slurm_error(data, msg):
+    """Check for an error in a Slurm response."""
+    if 'errors' in data and data['errors']:
+        err = data['errors'][0]
+        desc = err['description']
+        errmsg = err['error']
+        raise WorkerError(f'{msg}: {errmsg} ({desc})')
