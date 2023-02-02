@@ -2,24 +2,31 @@
 #SBATCH --job-name={{task_name}}-{{task_id}}
 #SBATCH --output={{task_save_path}}/{{task_name}}-{{task_id}}.out
 #SBATCH --error={{task_save_path}}/{{task_name}}-{{task_id}}.err
-{% if 'beeflow:MPIRequirement' in hints and 'nodes' in hints['beeflow:MPIRequirement'] %}
-#SBATCH -N {{ hints['beeflow:MPIRequirement']['nodes'] }}
+#SBATCH --time={{ timeout }}
+#SBATCH -N {{ nodes }}
+#SBATCH -n {{ ntasks }}
+
+{# Macro around srun to make it easier to emit commands #}
+{% macro srun(cmd) %}
+{% if cmd.type == 'one-per-node' %}
+# Set both -N and -n to the same value to run one-per-node
+srun -N {{ nodes }} -n {{ nodes }} {{ cmd.args|join(' ') }}
+{% else %}
+srun {{ cmd.args|join(' ') }}
 {% endif %}
-{% if 'beeflow:MPIRequirement' in hints and 'ntasks' in hints['beeflow:MPIRequirement'] %}
-#SBATCH -n {{ hints['beeflow:MPIRequirement']['ntasks'] }}
-{% endif %}
+{% endmacro %}
 
 {{ env_code }}
 
 # pre commands
 {% for cmd in pre_commands %}
-srun {{ cmd|join(' ') }}
+{{ srun(cmd) }}
 {% endfor %}
 
 # main command
-srun {{ main_command|join(' ') }}
+srun --mpi={{ mpi_version }} {{ main_command_srun_args|join(' ') }} {{ main_command.args|join(' ') }}
 
 # post commands
 {% for cmd in post_commands %}
-srun {{ cmd|join(' ') }}
+{{ srun(cmd) }}
 {% endfor %}
