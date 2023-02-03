@@ -34,7 +34,7 @@ steps:
     out: [lulesh_stdout]
     hints:
       DockerRequirement:
-        beeflow:useContainer: /usr/projects/beedev/lulesh-x86_64.tgz
+        beeflow:useContainer: /usr/projects/beedev/mpi/lulesh-x86_64.tgz
         # dockerPull: "jtronge/lulesh"
         # See Dockerfile.lulesh-x86_64
       beeflow:MPIRequirement:
