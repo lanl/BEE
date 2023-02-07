@@ -294,10 +294,16 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     # Note: there is a possible race condition here, however unlikely
     if os.path.exists(sock_path):
         # Try to contact for a status
-        resp = cli_connection.send(sock_path, {'type': 'status'})
+        try:
+            resp = cli_connection.send(sock_path, {'type': 'status'})
+        except (ConnectionResetError, ConnectionRefusedError):
+            resp = None
         if resp is None:
             # Must be dead, so remove the socket path
-            os.remove(sock_path)
+            try:
+                os.remove(sock_path)
+            except FileNotFoundError:
+                pass
         else:
             # It's already running, so print an error and exit
             warn(f'Beeflow appears to be running. Check the beeflow log: "{beeflow_log}"')
@@ -353,6 +359,14 @@ def stop():
     # As long as it returned something, we should be good
     beeflow_log = log_fname('beeflow')
     print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
+
+
+@app.command()
+def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
+            help='run in the foreground')):
+    """Attempt to stop and restart the beeflow daemon."""
+    stop()
+    start(foreground)
 
 
 @app.callback(invoke_without_command=True)

@@ -166,12 +166,14 @@ app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGr
 
 
 @app.command()
-def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
-           wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow .tgz or dir'),
+def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
+           wf_path: pathlib.Path = typer.Argument(..., help='path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
            yaml: str = typer.Argument(..., help='filename of YAML file'),
            workdir: pathlib.Path = typer.Argument(...,
-           help='working directory for workflow containing input + output files',)):
+           help='working directory for workflow containing input + output files',),
+           no_start: bool = typer.Option(False, '--no-start', '-n',
+                                         help='do not start the workflow')):
     """Submit a new workflow."""
     tarball_path = ""
     if os.path.exists(wf_path):
@@ -227,6 +229,11 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     # Cleanup code
     if tarball_path:
         os.remove(tarball_path)
+
+    # Start the workflow
+    if not no_start:
+        start(wf_id)
+
     return wf_id
 
 
@@ -240,7 +247,10 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
+    if resp.status_code == 400:
+        error_exit("Could not start workflow. It may have already been started "
+                   "and ran to completion (or failure).")
+    elif resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit(f"Starting {long_wf_id} failed."
                    f" Returned {resp.status_code}")
 
