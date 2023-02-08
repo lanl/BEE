@@ -79,7 +79,7 @@ container_archive = $HOME/container_archive
 
 [slurmrestd]
 slurm_socket = /tmp/slurm.sock
-slurm_args = -s openapi/v0.0.35
+openapi_version = v0.0.37
 EOF
 printf "\n\n"
 printf "#### bee.conf ####\n"
