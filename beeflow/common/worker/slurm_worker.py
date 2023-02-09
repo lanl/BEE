@@ -62,8 +62,6 @@ class SlurmWorker(Worker):
             nodes=nodes,
             ntasks=ntasks,
             main_command_srun_args=main_command_srun_args,
-            # Default timeout
-            timeout='00:10',
             # Default MPI version
             mpi_version='pmi2',
         )

@@ -2,7 +2,6 @@
 #SBATCH --job-name={{task_name}}-{{task_id}}
 #SBATCH --output={{task_save_path}}/{{task_name}}-{{task_id}}.out
 #SBATCH --error={{task_save_path}}/{{task_name}}-{{task_id}}.err
-#SBATCH --time={{ timeout }}
 #SBATCH -N {{ nodes }}
 #SBATCH -n {{ ntasks }}
 
