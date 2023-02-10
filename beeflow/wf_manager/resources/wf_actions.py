@@ -6,6 +6,8 @@ from beeflow.wf_manager.common import wf_db
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
 
+from beeflow.common.db import wfm
+from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
 
@@ -17,7 +19,8 @@ class WFActions(Resource):
         """Initialize with passed json object."""
         self.reqparse = reqparse.RequestParser()
 
-    def post(self, wf_id):
+    @connect_db(wfm)
+    def post(db, self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
         wfi = wf_utils.get_workflow_interface(wf_id)
         state = wfi.get_workflow_state()
@@ -31,14 +34,17 @@ class WFActions(Resource):
         wf_utils.schedule_submit_tasks(wf_id, tasks)
         wf_id = wfi.workflow_id
         wf_utils.update_wf_status(wf_id, 'Running')
-        wf_db.update_workflow_state(wf_id, 'Running')
+        #wf_db.update_workflow_state(wf_id, 'Running')
+        db.workflows.update_workflow_state(wf_id, 'Running')
         resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
         return resp
 
     @staticmethod
-    def get(wf_id):
+    @connect_db(wfm)
+    def get(db, wf_id):
         """Check the database for the current status of all tasks."""
-        tasks = wf_db.get_tasks(wf_id)
+        #tasks = wf_db.get_tasks(wf_id)
+        tasks = db.workflows.get_tasks(wf_id)
         tasks_status = []
         if not tasks:
             log.info(f"Bad query for wf {wf_id}.")
@@ -48,7 +54,7 @@ class WFActions(Resource):
                                  wf_status=wf_status, status='not found'), 404)
 
         for task in tasks:
-            tasks_status.append(f"{task.name}--{task.status}")
+            tasks_status.append(f"{task.name}--{task.state}")
         tasks_status = '\n'.join(tasks_status)
         wf_status = wf_utils.read_wf_status(wf_id)
 
@@ -57,20 +63,24 @@ class WFActions(Resource):
         return resp
 
     @staticmethod
-    def delete(wf_id):
+    @connect_db(wfm)
+    def delete(db, wf_id):
         """Cancel the workflow. Lets current tasks finish running."""
         wfi = wf_utils.get_workflow_interface(wf_id)
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
             wfi.finalize_workflow()
         wf_utils.update_wf_status(wf_id, 'Cancelled')
-        wf_db.update_workflow_state(wf_id, 'Cancelled')
-        wf_db.delete_workflow(wf_id)
+        #wf_db.update_workflow_state(wf_id, 'Cancelled')
+        db.workflows.update_workflow_state(wf_id, 'Cancelled')
+        #wf_db.delete_workflow(wf_id)
+        db.workflows.delete_workflow(wf_id)
         log.info("Workflow cancelled")
         resp = make_response(jsonify(status='Cancelled'), 202)
         return resp
 
-    def patch(self, wf_id):
+    @connect_db(wfm)
+    def patch(db, self, wf_id):
         """Pause or resume workflow."""
         self.reqparse.add_argument('option', type=str, location='json')
         option = self.reqparse.parse_args()['option']
@@ -80,7 +90,8 @@ class WFActions(Resource):
         if option == 'pause' and wf_state == 'RUNNING':
             wfi.pause_workflow()
             wf_utils.update_wf_status(wf_id, 'Paused')
-            wf_db.update_workflow_state(wf_id, 'Paused')
+            #wf_db.update_workflow_state(wf_id, 'Paused')
+            db.workflows.update_workflow_state(wf_id, 'Paused')
             log.info("Workflow Paused")
             resp = make_response(jsonify(status='Workflow Paused'), 200)
         elif option == 'resume' and wf_state == 'PAUSED':
@@ -88,7 +99,8 @@ class WFActions(Resource):
             tasks = wfi.get_ready_tasks()
             wf_utils.schedule_submit_tasks(wf_id, tasks)
             wf_utils.update_wf_status(wf_id, 'Running')
-            wf_db.update_workflow_state(wf_id, 'Running')
+            #wf_db.update_workflow_state(wf_id, 'Running')
+            db.workflows.update_workflow_state(wf_id, 'Running')
             log.info("Workflow Paused")
             log.info("Workflow Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)

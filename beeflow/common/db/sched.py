@@ -3,7 +3,7 @@ from contextlib import contextmanager
 import sqlite3
 import jsonpickle
 
-import bdb
+from beeflow.common.db import bdb
 
 class Resources:
     """Resources wrapper class."""

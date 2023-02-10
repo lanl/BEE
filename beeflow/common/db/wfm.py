@@ -1,7 +1,9 @@
+"""Workflow Manager database code."""
+
 from collections import namedtuple
 from contextlib import contextmanager
 
-import bdb
+from beeflow.common.db import bdb
 
 class WorkflowInfo:
     """Workflow Info object."""
@@ -9,7 +11,6 @@ class WorkflowInfo:
         self.Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows")
         self.db_file = db_file
 
-    #Replace various set and get port functions with a single get_port/set_port function.
     def set_port(self, component, new_port):
         """Set port for the specified component."""
         stmt = f"UPDATE info set {component}_port=?"
@@ -55,9 +56,7 @@ class Workflows:
     def get_workflow(self, workflow_id):
         """Return a workflow object."""
         stmt = "SELECT * FROM workflows WHERE workflow_id=?"
-        #print(f'db_file: {self.db_file} stmt: {stmt} workflow_id: {workflow_id}')
         result = bdb.getone(self.db_file, stmt, [workflow_id])
-        #print(result)
         workflow = self.Workflow(*result)
         return workflow
 
@@ -70,7 +69,6 @@ class Workflows:
 
     def add_workflow(self, workflow_id, name, state, run_dir, bolt_port, gdb_pid):
         """Insert a new workflow into the database."""
-        print(f'{workflow_id} {type(workflow_id)} {name} {type(name)} {state} {type(state)} {run_dir} {type(run_dir)} {bolt_port} {type(bolt_port)} {gdb_pid} {type(gdb_pid)}')
         stmt = ("INSERT INTO workflows (workflow_id, name, state, run_dir, bolt_port, gdb_pid) "
                 "VALUES(?, ?, ?, ?, ?, ?);"
                 )
@@ -89,7 +87,7 @@ class Workflows:
     def get_workflow_state(self, workflow_id):
         """Return the bolt port associated with a workflow."""
         stmt = "SELECT state FROM workflows WHERE workflow_id=?"
-        result = bdb.getone(self.db_file, stmt, [workflow_id])
+        result = bdb.getone(self.db_file, stmt, [workflow_id])[0]
         state = result
         return state
 
@@ -147,7 +145,7 @@ class Workflows:
 
 class WorkflowDB:
     """Workflow manager database."""
-
+        
     def __init__(self, db_file):
         self.db_file = db_file
         self._init_tables()

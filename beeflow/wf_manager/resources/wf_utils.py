@@ -14,6 +14,8 @@ from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
 
+from beeflow.common.db import wfm
+from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
 
@@ -92,7 +94,6 @@ def update_wf_status(wf_id, status_msg):
     status_path = os.path.join(workflows_dir, 'bee_wf_status')
     with open(status_path, 'w', encoding="utf8") as status:
         status.write(status_msg)
-    wf_db.update_workflow_state(wf_id, status_msg)
 
 
 def read_wf_status(wf_id):
@@ -114,9 +115,11 @@ def create_wf_namefile(wf_name, wf_id):
         name.write(wf_name)
 
 
-def get_workflow_interface(wf_id):
+@connect_db(wfm)
+def get_workflow_interface(db, wf_id):
     """Instantiate and return workflow interface object."""
-    bolt_port = wf_db.get_bolt_port(wf_id)
+    #bolt_port = wf_db.get_bolt_port(wf_id)
+    bolt_port = db.workflows.get_bolt_port(wf_id)
     try:
         driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                              db_hostname=bc.get("graphdb", "hostname"),
@@ -129,10 +132,12 @@ def get_workflow_interface(wf_id):
     return wfi
 
 
-def tm_url():
+@connect_db(wfm)
+def tm_url(db):
     """Get Task Manager url."""
     # tm_listen_port = bc.get('task_manager', 'listen_port')
-    tm_listen_port = wf_db.get_tm_port()
+    #tm_listen_port = wf_db.get_tm_port()
+    tm_listen_port = db.info.get_port('tm')
     task_manager = "bee_tm/v1/task/"
     return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
 
@@ -147,11 +152,13 @@ def _connect_tm():
     return Connection(bc.get('task_manager', 'socket'))
 
 
-def sched_url():
+@connect_db(wfm)
+def sched_url(db):
     """Get Scheduler url."""
     scheduler = "bee_sched/v1/"
     # sched_listen_port = bc.get('scheduler', 'listen_port')
-    sched_listen_port = wf_db.get_sched_port()
+    #sched_listen_port = wf_db.get_sched_port()
+    sched_listen_port = db.info.get_port('sched')
     return f'http://127.0.0.1:{sched_listen_port}/{scheduler}'
 
 

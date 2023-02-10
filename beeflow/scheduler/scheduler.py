@@ -14,6 +14,7 @@ from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.db import sched
 from beeflow.common import log as bee_logging
 
+from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
 
@@ -34,21 +35,11 @@ def get_db_path():
     return path
 
 
-def connect_db(fn):
-    """Decorate a function for connecting to a database."""
-    def wrap(*pargs, **kwargs):
-        """Decorate the function."""
-        with sched.open_db(get_db_path()) as db:
-            return fn(db, *pargs, **kwargs)
-
-    return wrap
-
-
 class ResourcesHandler(Resource):
     """Resources handler."""
 
     @staticmethod
-    @connect_db
+    @connect_db(sched)
     def put(db):
         """Create a list of resources to use for allocation."""
         db.resources.clear()
@@ -58,7 +49,7 @@ class ResourcesHandler(Resource):
         return f'created {len(resources)} resource(s)'
 
     @staticmethod
-    @connect_db
+    @connect_db(sched)
     def get(db):
         """Get a list of all resources."""
         return [r.encode() for r in db.resources]
@@ -68,7 +59,7 @@ class WorkflowJobHandler(Resource):
     """Schedule jobs for a specific workflow with the current resources."""
 
     @staticmethod
-    @connect_db
+    @connect_db(sched)
     def put(db, workflow_name):  # noqa ('workflow_name' may be used in the future)
         """Schedules a new list of independent tasks with available resources."""
         data = request.json

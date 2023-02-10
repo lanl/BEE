@@ -9,22 +9,28 @@ import jsonpickle
 
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
-from beeflow.wf_manager.common import wf_db
+#from beeflow.wf_manager.common import wf_db
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
 from beeflow.common import log as bee_logging
 
+from beeflow.common.db import wfm
+from beeflow.common.db.bdb import connect_db
+
+
 log = bee_logging.setup(__name__)
 
 
-def archive_workflow(wf_id):
+@connect_db(wfm)
+def archive_workflow(db, wf_id):
     """Archive a workflow after completion."""
     # Archive Config
     workflow_dir = wf_utils.get_workflow_dir(wf_id)
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
 
-    wf_db.update_workflow_state(wf_id, 'Archived')
+    #wf_db.update_workflow_state(wf_id, 'Archived')
+    db.workflows.update_workflow_state(wf_id, 'Archived')
     wf_utils.update_wf_status(wf_id, 'Archived')
 
     bee_workdir = wf_utils.get_bee_workdir()
@@ -54,17 +60,20 @@ class WFUpdate(Resource):
                                    required=False)
         self.reqparse.add_argument('output', location='json', required=False)
 
-    def put(self):
+    @connect_db(wfm)
+    def put(db, self):
         """Update the state of a task from the task manager."""
         data = self.reqparse.parse_args()
         wf_id = data['wf_id']
         task_id = data['task_id']
         job_state = data['job_state']
+        log.inf(f'Received update from task manager {wf_id} {task_id} {job_state}')
 
         wfi = wf_utils.get_workflow_interface(wf_id)
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
-        wf_db.update_task_state(task_id, wf_id, job_state)
+        #wf_db.update_task_state(task_id, wf_id, job_state)
+        db.workflows.update_task_state(task_id, wf_id, job_state)
         # wf_profiler.add_state_change(task, job_state)
 
         # Get metadata from update if available
@@ -118,7 +127,8 @@ class WFUpdate(Resource):
                 # wf_profiler.save()
                 wf_id = wfi.workflow_id
                 archive_workflow(wf_id)
-                pid = wf_db.get_gdb_pid(wf_id)
+                #pid = wf_db.get_gdb_pid(wf_id)
+                pid = db.info.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
 
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
