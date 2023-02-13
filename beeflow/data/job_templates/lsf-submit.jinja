@@ -9,14 +9,14 @@
 
 # pre commands
 {% for cmd in pre_commands %}
-{{ cmd|join(' ') }}
+{{ cmd.args|join(' ') }}
 {% endfor %}
 
 # main command
-{{ main_command|join(' ') }}
+{{ main_command.args|join(' ') }}
 
 # post commands
 {% for cmd in post_commands %}
-{{ cmd|join(' ') }}
+{{ cmd.args|join(' ') }}
 {% endfor %}
 
