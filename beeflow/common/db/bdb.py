@@ -11,7 +11,8 @@ def connect_db(module):
         def wrap(*pargs, **kwargs):
             """Wrap the function."""
             # Check for the TESTING_DB_PATH for running the unit tests
-            db_path = '/vast/home/rustyd/.beeflow/' + module.__name__ + '.db'
+            db_name = module.__name__.split('.')[-1]
+            db_path = '/vast/home/rustyd/.beeflow/' + db_name + '.db'
             with module.open_db(db_path) as db:
                 return fn(db, *pargs, **kwargs)
         return wrap

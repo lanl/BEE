@@ -18,7 +18,6 @@ from beeflow.common.parser import CwlParser, CwlParseError
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
-#from beeflow.wf_manager.common import wf_db
 from beeflow.common import wf_data
 
 from beeflow.common.db import wfm
@@ -71,7 +70,6 @@ class WFList(Resource):
     @connect_db(wfm)
     def get(db, self):
         """Return list of workflows to client."""
-        #workflow_list = wf_db.get_workflows()
         workflow_list = db.workflows.get_workflows()
         info = []
         for wf_info in workflow_list:
@@ -121,7 +119,6 @@ class WFList(Resource):
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
         gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
-        #wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
 
@@ -141,7 +138,6 @@ class WFList(Resource):
             metadata = wfi.get_task_metadata(task)
             metadata['workdir'] = wf_workdir
             wfi.set_task_metadata(task, metadata)
-            #wf_db.add_task(task.id, wf_id, task.name, "WAITING")
             db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)

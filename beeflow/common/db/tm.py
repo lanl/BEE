@@ -67,7 +67,11 @@ class JobQueue:
         stmt = 'SELECT id, task, job_id, job_state FROM job_queue ORDER BY id ASC'
         result = bdb.getall(self.db_file, stmt)
         for j in result:
-            job = self.Job(*j)
+            id_ = j[0]
+            task = jsonpickle.decode(j[1])
+            job_id = j[2]
+            state = j[3]
+            job = self.Job(id_, task, job_id, state)
             yield job
 
     def count(self):

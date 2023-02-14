@@ -165,7 +165,7 @@ def submit_jobs(db):
         finally:
             # Send the initial state to WFM
             # update_task_state(task.id, job_state, metadata=task_metadata)
-            log.info(f'Sending update to workflow manager {job_state}')
+            log.info(f'Sending update to workflow manager STATE: {job_state} TASK_ID: {task.id} WF_ID {task.workflow_id}')
             update_task_state(task.workflow_id, task.id, job_state)
 
 
@@ -222,31 +222,28 @@ def update_jobs(db):
     for job in job_q:
         id_ = job.id
         task = job.task
-        job_id = job
-        job_state = worker.query_task(job_id)
+        job_id = job.job_id
+        job_state = job.job_state
+        new_job_state = worker.query_task(job_id)
 
         # If state changes update the WFM
-        if job_state != job['job_state']:
-            # log.info(f'{task.name} {job["job_state"]} -> {job_state}')
-            # job['job_state'] = job_state
-            db.job_queue.update_job_state(id_, job_state)
+        if job_state != new_job_state:
+            db.job_queue.update_job_state(job_id, new_job_state)
             if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = get_task_checkpoint(task)
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
-                    # log.info(f'Restart: {task.name} task_info: {task_info}')
-                    update_task_state(task.workflow_id, task.id, job_state, task_info=task_info)
+                    update_task_state(task.workflow_id, task.id, new_job_state, task_info=task_info)
                 else:
-                    update_task_state(task.workflow_id, task.id, job_state)
+                    update_task_state(task.workflow_id, task.id, new_job_state)
             else:
-                update_task_state(task.workflow_id, task.id, job_state)
+                update_task_state(task.workflow_id, task.id, new_job_state)
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
             db.job_queue.remove_by_id(id_)
-            log.info(f'Job {job_id} done {task.name}: removed from job status queue')
 
 
 def process_queues():
