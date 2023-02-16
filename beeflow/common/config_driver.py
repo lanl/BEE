@@ -351,7 +351,7 @@ VALIDATOR.option('task_manager', 'job_template',
                  info='job template to use for generating submission scripts',
                  validator=validate_file,
                  attrs={'init': job_template_init, 'default': join_path(CONF_DIR,
-                     'slurm-submit.jinja')})
+                        'slurm-submit.jinja')})
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
