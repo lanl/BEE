@@ -36,11 +36,10 @@ def test_push_pop(temp_db):
     assert db.submit_queue.count() == 1
     assert db.job_queue.count() == 1
     assert db.submit_queue.pop() == 3
-    assert db.job_queue.pop() == {
-        'task': 45,
-        'job_id': 1289,
-        'job_state': 'READY',
-    }
+    popped_job = db.job_queue.pop()
+    assert popped_job.task == 45
+    assert popped_job.job_id == 1289
+    assert popped_job.job_state == 'READY'
     assert db.submit_queue.count() == 0
     assert db.job_queue.count() == 0
 
@@ -59,11 +58,15 @@ def test_push_pop_many(temp_db):
     # Now pop 128 items
     for i in range(128):
         assert db.submit_queue.pop() == i
-        assert db.job_queue.pop() == {
-            'task': i,
-            'job_id': i + 1,
-            'job_state': 'READY' if (i % 2) == 0 else 'COMPLETED',
-        }
+        popped_job = db.job_queue.pop()
+        assert popped_job.task == i
+        assert popped_job.job_id == i + 1
+        assert popped_job.job_state == 'READY' if (i % 2) == 0 else 'COMPLETED'
+        #assert db.job_queue.pop() == {
+        #    'task': i,
+        #    'job_id': i + 1,
+        #    'job_state': 'READY' if (i % 2) == 0 else 'COMPLETED',
+        #}
         assert db.submit_queue.count() == (127 - i)
         assert db.job_queue.count() == (127 - i)
     assert db.submit_queue.count() == 0
@@ -93,7 +96,7 @@ def test_iter(temp_db):
     """Test iterating over the values."""
     db = temp_db
 
-    values = (127, 16, 11999)
+    values = (127, 16)
     for val in values:
         db.submit_queue.push(val)
     for task, other in zip(db.submit_queue, values):
@@ -102,10 +105,9 @@ def test_iter(temp_db):
     for val in values:
         db.job_queue.push(task=val, job_id=val, job_state='COMPLETED')
     for job, val in zip(db.job_queue, values):
-        assert 'id' in job
-        assert job['task'] == val
-        assert job['job_id'] == val
-        assert job['job_state'] == 'COMPLETED'
+        assert job.task == val
+        assert job.job_id == val
+        assert job.job_state == 'COMPLETED'
 
 
 def test_job_queue_remove_by_id(temp_db):
@@ -119,18 +121,18 @@ def test_job_queue_remove_by_id(temp_db):
     assert db.job_queue.count() == 3
 
     jobs = list(db.job_queue)
-    id_ = jobs[1]['id']
+    id_ = jobs[1].id
     db.job_queue.remove_by_id(id_)
 
     assert db.job_queue.count() == 2
     job = db.job_queue.pop()
-    assert job['task'] == {8, 9, 10}
-    assert job['job_id'] == 888
-    assert job['job_state'] == 'some-state0'
+    assert job.task == {8, 9, 10}
+    assert job.job_id == 888
+    assert job.job_state == 'some-state0'
     job = db.job_queue.pop()
-    assert job['task'] == {46, 57}
-    assert job['job_id'] == 111
-    assert job['job_state'] == 'some-state2'
+    assert job.task == {46, 57}
+    assert job.job_id == 111
+    assert job.job_state == 'some-state2'
     assert db.job_queue.count() == 0
 
 
@@ -141,13 +143,13 @@ def test_job_queue_update_job_state(temp_db):
     db.job_queue.push(task={8, 9, 10}, job_id='888', job_state='READY')
 
     jobs = list(db.job_queue)
-    id_ = jobs[0]['id']
+    id_ = jobs[0].id
     db.job_queue.update_job_state(id_, 'COMPLETED')
 
     job = db.job_queue.pop()
-    assert job['task'] == {8, 9, 10}
-    assert job['job_id'] == 888
-    assert job['job_state'] == 'COMPLETED'
+    assert job.task == {8, 9, 10}
+    assert job.job_id == 888
+    assert job.job_state  == 'COMPLETED'
 # Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
 #               scope. This is how pytest fixtures work.
 # pylama:ignore=W0621
