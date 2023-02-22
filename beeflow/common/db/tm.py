@@ -20,9 +20,19 @@ class SubmitQueue:
         stmt = 'SELECT task FROM submit_queue ORDER BY id ASC'
         result = bdb.getall(self.db_file, stmt)
         for j in result:
-            job = self.Job(*result)
-            task = jsonpickle.decode(job.task)
+            print(j)
+            task = jsonpickle.decode(j[0])
             yield task
+
+        #result = bdb.getall(self.db_file, stmt)
+        #for j in result:
+        #    id_ = j[0]
+        #    task = jsonpickle.decode(j[1])
+        #    job_id = j[2]
+        #    state = j[3]
+        #    job = self.Job(id_, task, job_id, state)
+        #    yield job
+
 
     def count(self):
         """Count the number of items in the submit queue."""
@@ -90,13 +100,15 @@ class JobQueue:
     def pop(self):
         """Pop the bottom element off the queue."""
         stmt = 'SELECT id, task, job_id, job_state FROM job_queue ORDER BY id ASC'
-        job = bdb.getone(self.db_file, stmt)
-        id_ = job['id']
-        task = jsonpickle.decode(job['task'])
-        job_id = job['job_id']
-        job_state = job['job_state']
+        result = bdb.getone(self.db_file, stmt)
+        #job = self.Job(
+        id_ = result[0]
+        task = jsonpickle.decode(result[1])
+        job_id = result[2]
+        state = result[3]
+        job = self.Job(id_, task, job_id, state)
         bdb.run(self.db_file, 'DELETE FROM job_queue WHERE id=?', [id_])
-        return {'task': task, 'job_id': job_id, 'job_state': job_state}
+        return job
 
     def update_job_state(self, id_, job_state):
         """Update the job_state."""

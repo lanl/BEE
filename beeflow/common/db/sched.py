@@ -15,19 +15,18 @@ class Resources:
     def __iter__(self):
         """Create an iterator over the resources."""
         stmt = 'SELECT id, resource FROM resources'
-        while True:
-            item = bdb.getone(self.db_file, stmt)
-            if item is None:
-                break
-            resource = jsonpickle.decode(item['resource'])
+        result = bdb.getall(self.db_file, stmt)
+        for r in result:
+            print(r)
+            resource = jsonpickle.decode(r[1])
             yield resource
 
     def extend(self, resources):
         """Add a list of new resources."""
         for resource in resources:
             data = jsonpickle.encode(resource)
-            bdb.run(self.db_file, 'INSERT INTO resources (resource) VALUES (:?)', [data])
-        #self._conn.commit()
+            stmt = 'INSERT INTO resources (resource) VALUES (?)'
+            bdb.run(self.db_file, stmt, [data])
 
     def clear(self):
         """Remove all resources."""
@@ -57,8 +56,6 @@ class SchedDB:
 
 
 @contextmanager
-def open_db(fname):
+def open_db(db_file):
     """Open and return a new database."""
-    with sqlite3.connect(fname) as conn:
-        conn.row_factory = sqlite3.Row
-        yield SchedDB(conn)
+    yield SchedDB(db_file)
