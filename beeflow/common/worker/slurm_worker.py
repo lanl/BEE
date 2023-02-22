@@ -36,16 +36,18 @@ class SlurmWorker(Worker):
         task_save_path = self.task_save_path(task)
         crt_res = self.crt.run_text(task)
         requirements = dict(task.requirements)
-        hints = dict(task.hints)
-        main_command = crt_res.main_command[:]
         stdout_param = ['--output', task.stdout]
         stderr_param = ['--error', task.stderr]
         if task.stdout and task.stderr:
-            main_command = stdout_param + stderr_param + main_command
+            main_command_srun_args = stdout_param + stderr_param
         elif task.stdout:
-            main_command = stdout_param + main_command
+            main_command_srun_args = stdout_param
         elif task.stderr:
-            main_command = stderr_param + main_command
+            main_command_srun_args = stderr_param
+        else:
+            main_command_srun_args = []
+        nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
+        ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
 
         job_text = self.template.render(
             task_save_path=task_save_path,
@@ -54,10 +56,14 @@ class SlurmWorker(Worker):
             workflow_id=task.workflow_id,
             env_code=crt_res.env_code,
             pre_commands=crt_res.pre_commands,
-            main_command=main_command,
+            main_command=crt_res.main_command,
             post_commands=crt_res.post_commands,
             requirements=requirements,
-            hints=hints,
+            nodes=nodes,
+            ntasks=ntasks,
+            main_command_srun_args=main_command_srun_args,
+            # Default MPI version
+            mpi_version='pmi2',
         )
         return job_text
 
@@ -93,9 +99,11 @@ class SlurmWorker(Worker):
 
     def submit_job(self, script, session, slurm_url):
         """Worker submits job-returns (job_id, job_state)."""
-        job_st = subprocess.check_output(['sbatch', '--parsable', script],
-                                         stderr=subprocess.STDOUT)
-        job_id = int(job_st)
+        res = subprocess.run(['sbatch', '--parsable', script], text=True,  # noqa if we use check=True here, then we can't see stderr
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode != 0:
+            raise WorkerError(f'Failed to submit job: {res.stderr}')
+        job_id = int(res.stdout)
         job_state = self.query_job(job_id, session, slurm_url)
         return job_id, job_state
 

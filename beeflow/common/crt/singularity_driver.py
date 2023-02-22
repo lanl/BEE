@@ -3,7 +3,7 @@
 Creates text for tasks using Singularity.
 """
 
-from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRuntimeResult)
+from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRuntimeResult, Command)
 from beeflow.common.build.build_driver import task2arg
 
 
@@ -30,6 +30,7 @@ class SingularityDriver(ContainerRuntimeDriver):
                 main_command = argv
             except (KeyError, TypeError):
                 pass
+        main_command = Command(main_command)
         # Change to the working directory
         env_code = ''
         if task.workdir is not None:

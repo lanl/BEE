@@ -16,6 +16,23 @@ class ContainerRuntimeResult:
         self.post_commands = post_commands
 
 
+class CommandType:
+    """Command types."""
+
+    DEFAULT = 'default'
+    ONE_PER_NODE = 'one-per-node'
+    ENV = 'env'
+
+
+class Command:
+    """Command in a batch script."""
+
+    def __init__(self, args, type_=CommandType.DEFAULT):
+        """Construct the command."""
+        self.args = args
+        self.type = type_
+
+
 class ContainerRuntimeDriver(ABC):
     """ContainerRuntimeDriver interface for generic container runtime."""
 
