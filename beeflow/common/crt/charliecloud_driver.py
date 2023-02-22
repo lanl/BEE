@@ -4,7 +4,8 @@ Creates text for tasks using Charliecloud.
 """
 
 import os
-from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRuntimeResult)
+from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRuntimeResult,
+                                           Command, CommandType)
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.build_driver import task2arg
 from beeflow.common.container_path import convert_path
@@ -89,7 +90,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
         if baremetal:
             return ContainerRuntimeResult(env_code=task_workdir_env, pre_commands=[],
-                                          main_command=[str(arg) for arg in task.command],
+                                          main_command=Command([str(arg) for arg in task.command]),
                                           post_commands=[])
 
         if task_container_name:
@@ -112,8 +113,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         env_code = ''.join([self.cc_setup if self.cc_setup else '', task_workdir_env])
         deployed_path = deployed_image_root + '/' + task_container_name
         pre_commands = [
-            f'mkdir -p {deployed_image_root}\n'.split(),
-            f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split()
+            Command(f'mkdir -p {deployed_image_root}\n'.split(), CommandType.ONE_PER_NODE),
+            Command(f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split(),
+                    CommandType.ONE_PER_NODE),
         ]
         # Need to convert the path from inside to outside base on the bind mounts
         extra_opts = ''
@@ -127,8 +129,9 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             extra_opts = f'--cd {ctr_workdir_path}'
         main_command = (f'ch-run {mpi_opt} {deployed_path} {self.chrun_opts} '
                         f'{extra_opts} -- {command}\n').split()
+        main_command = Command(main_command)
         post_commands = [
-            f'rm -rf {deployed_path}\n'.split(),
+            Command(f'rm -rf {deployed_path}\n'.split(), type_=CommandType.ONE_PER_NODE),
         ]
         return ContainerRuntimeResult(env_code, pre_commands, main_command, post_commands)
 
