@@ -1,0 +1,39 @@
+{
+  "name": "BEEViz",
+  "description": "Visualiztion client for the BEE workflow manager.",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "watch": "nodemon --exec electron .",
+    "reset": "git reset --hard",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "repository": "https://github.com/lanl/BEE_Private",
+  "keywords": [
+    "Workflows"
+  ],
+  "author": "BEE Team",
+  "devDependencies": {
+    "@electron-forge/cli": "^6.0.5",
+    "@electron-forge/maker-deb": "^6.0.5",
+    "@electron-forge/maker-rpm": "^6.0.5",
+    "@electron-forge/maker-squirrel": "^6.0.5",
+    "@electron-forge/maker-zip": "^6.0.5",
+    "electron": "^16.0.5",
+    "electron-rebuild": "^3.2.9"
+  },
+  "dependencies": {
+    "axios": "^0.25.0",
+    "bulma": "^0.9.3",
+    "electron-squirrel-startup": "^1.0.0",
+    "form-data": "^4.0.0",
+    "idb": "^7.1.1",
+    "neo4j-driver": "^4.4.1",
+    "neovis.js": "^2.0.2",
+    "tunnel-ssh": "^4.1.6"
+  }
+}

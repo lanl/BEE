@@ -22,6 +22,7 @@
    contribute
    development
    wf_api
+   visualization
 
 
 Indices and tables
