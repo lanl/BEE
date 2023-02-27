@@ -19,7 +19,7 @@ from beeflow.common.wf_data import Task
 # Timeout (seconds) for waiting on tasks
 TIMEOUT = 150
 # Extra slurmrestd arguments. This may be something to take on the command line
-OPENAPI_VERSION = bc.get('slurmrestd', 'openapi_version')
+OPENAPI_VERSION = bc.get('slurm', 'openapi_version')
 GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
                  requirements=[], inputs=[], outputs=[], stdout='', stderr='',
                  workflow_id=uuid.uuid4().hex)
