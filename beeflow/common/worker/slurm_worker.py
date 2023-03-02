@@ -158,7 +158,6 @@ class SlurmCLIWorker(BaseSlurmWorker):
         # Output is in a space-separated list of 'key=value' pairs
         pairs = res.stdout.split()
         key_vals = dict(parse_key_val(pair) for pair in pairs)
-        log.info(f'Job {job_id} info: {key_vals}')
         return key_vals['JobState']
 
     def cancel_task(self, job_id):
