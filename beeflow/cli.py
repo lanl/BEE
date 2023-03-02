@@ -304,7 +304,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     check_dependencies()
     sock_path = bc.get('DEFAULT', 'beeflow_socket')
     if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not NEED_SLURMRESTD:
-        print('Not using slurmrestd')
+        warn('Not using slurmrestd. Command-line interface will be used.')
     # Note: there is a possible race condition here, however unlikely
     if os.path.exists(sock_path):
         # Try to contact for a status
