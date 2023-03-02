@@ -51,7 +51,7 @@ workflow and copy over the input file ``lorem.txt``. I'll refer to this path in
 code samples as ``$WORKDIR_PATH``. Note that this is separate from the
 directory containing the workflow itself, which contains all the CWL files and
 the input YAML files. The workdir is where all of your input files should be
-stored before starting a workflow, as this will be the current working directoy
+stored before starting a workflow, as this will be the current working directory
 of all steps that are run. Output from each step will also be stored here.
 
 Once this workdir has been created and beeflow has been started, you are now
@@ -79,15 +79,8 @@ Alternatively, you can also just do the following:
     cd $WORKDIR_PATH
     beeclient submit $NAME examples/cat-grep-tar workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
 
-This will automatically do the packaging and create an archive in the background to be submitted.
-
-The workflow has now been submitted, however nothing is happening yet. To start
-the workflow, you'll need to issue a start command along with the workflow
-ID:
-
-.. code-block::
-
-    beeclient start $ID
+This will automatically do the packaging and create an archive in the
+background to be submitted.
 
 Now the workflow should start up. While the workflow is running you can check
 the status by running a ``beeclient query $ID``. On completion, each step
@@ -147,32 +140,26 @@ CWL for clamr step in examples/clamr-ffmpeg-build/clamr_wf.cwl
 
 
 
-Submit the CLAMR workflow from a directory of your choosing ($HOME) on the same
-front-end where you started the components.
-If you have not started the beeflow components, refer to Installation Guide.
+Next we'll submit the CLAMR workflow from a directory of your choosing ($HOME)
+on the same front-end where you started the components. If you have not started
+the beeflow components, refer to :ref:`installation`.
+
+In this example, instead of packaging up the workflow cwl files directory,
+we've just listed the full path. This should auto-detect the directory and
+package it for you. Compare this with the previous example. Other than the
+commands needed, this shouldn't affect the workflow in any way.
 
 .. code-block::
 
-    beeclient package <path to BEE>/examples/clamr-ffmpeg-build .
-    beeclient submit clamr-example clamr-ffmpeg-build.tgz clamr_wf.cwl clamr_job.yml .
+    beeclient submit clamr-example <path to BEE>/examples/clamr-ffmpeg-build clamr_wf.cwl clamr_job.yml .
 
 Output:
 
 .. code-block::
 
-   Workflow submitted! Your workflow id is fce80d.
-
-
-Start workflow using the workflow id from the output:
-
-.. code-block::
-
-    beeclient start fce80d # use the actual workflow id
-
-Output:
-
-.. code-block::
-
+    Detected directory instead of packaged workflow. Packaging Directory...
+    Package clamr-ffmpeg-build.tgz created successfully
+    Workflow submitted! Your workflow id is b94ff7.
     Started workflow!
 
 If this is the first time you've run the workflow it will build the container
