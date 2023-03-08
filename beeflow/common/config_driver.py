@@ -4,6 +4,7 @@ from configparser import ConfigParser
 import getpass
 import os
 import platform
+from pathlib import Path
 import random
 import shutil
 import sys
@@ -182,9 +183,13 @@ def validate_dir(path):
 
 def validate_make_dir(path):
     """Check if the dir exists and if not create it."""
-    os.makedirs(path, exist_ok=True)
-    if not os.path.isdir(path):
-        raise ValueError('path "{path}" is not a directory')
+    Path(path).mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def validate_parent_dir(path):
+    """Ensure that the parent dir of path exists, or create it."""
+    validate_make_dir(Path(path).parent)
     return path
 
 
@@ -204,6 +209,8 @@ def validate_nonnegative_int(value):
     return i
 
 
+# NOTE: You must use validate_bool for all boolean values (since just using
+#       bool, as in bool('False'), gives True for any string of length > 0)
 def validate_bool(value):
     """Validate a boolean value."""
     return str(value).lower() == 'true'
@@ -298,7 +305,6 @@ DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
 SOCKET_PATH = join_path(HOME_DIR, '.beeflow', 'sockets')
-os.makedirs(SOCKET_PATH, exist_ok=True)
 DEFAULT_WFM_SOCKET = join_path(SOCKET_PATH, 'wf_manager.sock')
 DEFAULT_TM_SOCKET = join_path(SOCKET_PATH, 'task_manager.sock')
 DEFAULT_SCHED_SOCKET = join_path(SOCKET_PATH, 'scheduler.sock')
@@ -321,22 +327,24 @@ VALIDATOR.option('DEFAULT', 'beeflow_pidfile',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'beeflow.pid')},
                  info='location of beeflow pidfile')
 VALIDATOR.option('DEFAULT', 'beeflow_socket',
+                 validator=validate_parent_dir,
                  attrs={'default': DEFAULT_BEEFLOW_SOCKET},
                  info='location of beeflow socket')
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
-VALIDATOR.option('workflow_manager', 'socket',
-                 attrs={'default': DEFAULT_WFM_SOCKET}, validator=str,
+VALIDATOR.option('workflow_manager', 'socket', validator=validate_parent_dir,
+                 attrs={'default': DEFAULT_WFM_SOCKET},
                  info='workflow manager port')
 # Task manager
 VALIDATOR.section('task_manager',
                   info='Task manager configuration and config of container to use.')
-VALIDATOR.option('task_manager', 'socket', attrs={'default': DEFAULT_TM_SOCKET}, validator=str,
-                 info='task manager listen port')
+VALIDATOR.option('task_manager', 'socket',
+                 attrs={'default': DEFAULT_TM_SOCKET},
+                 validator=validate_parent_dir, info='task manager listen port')
 VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charliecloud'},
                  choices=('Charliecloud', 'Singularity'),
                  info='container runtime to use for configuration')
-VALIDATOR.option('task_manager', 'runner_opts', validator=str, attrs={'default': ''},
+VALIDATOR.option('task_manager', 'runner_opts', attrs={'default': ''},
                  info='special runner options to pass to the runner opts')
 # Note: I've added a special attrs keyword which can include anything. In this
 # case it's being used to store a special 'init' function that can be used to
@@ -344,7 +352,8 @@ VALIDATOR.option('task_manager', 'runner_opts', validator=str, attrs={'default':
 VALIDATOR.option('task_manager', 'job_template',
                  info='job template to use for generating submission scripts',
                  validator=validate_file,
-                 attrs={'init': job_template_init, 'default': join_path(CONF_DIR, 'submit.jinja')})
+                 attrs={'init': job_template_init, 'default': join_path(CONF_DIR,
+                        'slurm-submit.jinja')})
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
@@ -365,7 +374,7 @@ def validate_chrun_opts(opts):
 VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': ''},
                  validator=validate_chrun_opts,
                  info='extra options to pass to ch-run')
-VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''}, validator=str,
+VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''},
                  info='extra Charliecloud setup to put in a job script')
 # Graph Database
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
@@ -395,23 +404,28 @@ VALIDATOR.option('builder', 'container_archive',
 VALIDATOR.option('builder', 'container_type', attrs={'default': 'charliecloud'},
                  info='container type to use')
 # Slurmrestd (depends on DEFAULT:workload_scheduler == Slurm)
-VALIDATOR.section('slurmrestd', info='Configuration section for Slurmrestd.',
+VALIDATOR.section('slurm', info='Configuration section for Slurm.',
                   depends_on=('DEFAULT', 'workload_scheduler', 'Slurm'))
+VALIDATOR.option('slurm', 'use_commands', validator=validate_bool,
+                 attrs={'default': shutil.which('slurmrestd') is None},
+                 info='if set, use slurm cli commands instead of slurmrestd')
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
-VALIDATOR.option('slurmrestd', 'slurm_socket', attrs={'default': DEFAULT_SLURMRESTD_SOCK},
+VALIDATOR.option('slurm', 'slurmrestd_socket', validator=validate_parent_dir,
+                 attrs={'default': DEFAULT_SLURMRESTD_SOCK},
                  info='socket location')
-VALIDATOR.option('slurmrestd', 'slurm_args', attrs={'default': '-s openapi/v0.0.35'},
-                 info='arguments for the slurmrestd binary')
+VALIDATOR.option('slurm', 'openapi_version', attrs={'default': 'v0.0.37'},
+                 info='openapi version to use for slurmrestd')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
 VALIDATOR.option('scheduler', 'log',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler.log')},
-                 validator=str, info='scheduler log file')
-VALIDATOR.option('scheduler', 'socket', attrs={'default': DEFAULT_SCHED_SOCKET}, validator=str,
+                 info='scheduler log file')
+VALIDATOR.option('scheduler', 'socket', validator=validate_parent_dir,
+                 attrs={'default': DEFAULT_SCHED_SOCKET},
                  info='scheduler socket')
 VALIDATOR.option('scheduler', 'alloc_logfile',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler_alloc.log')},
-                 validator=str, info='allocation logfile, to be used for later training')
+                 info='allocation logfile, to be used for later training')
 SCHEDULER_ALGORITHMS = ('fcfs', 'backfill', 'sjf')
 VALIDATOR.option('scheduler', 'algorithm', attrs={'default': 'fcfs'}, choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
@@ -420,7 +434,6 @@ VALIDATOR.option('scheduler', 'default_algorithm', attrs={'default': 'fcfs'},
                  info=('default algorithm to use'))
 VALIDATOR.option('scheduler', 'workdir',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'scheduler')},
-                 validator=str,
                  info='workdir to be used for the scheduler')
 
 

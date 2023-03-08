@@ -331,7 +331,9 @@ worker_kwargs = {
     'runner_opts': bc.get('task_manager', 'runner_opts'),
 }
 if WLS == 'Slurm':
-    worker_kwargs['slurm_socket'] = bc.get('slurmrestd', 'slurm_socket')
+    worker_kwargs['use_commands'] = bc.get('slurm', 'use_commands')
+    worker_kwargs['slurm_socket'] = bc.get('slurm', 'slurmrestd_socket')
+    worker_kwargs['openapi_version'] = bc.get('slurm', 'openapi_version')
 worker = WorkerInterface(worker_class, **worker_kwargs)
 
 api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')

@@ -24,6 +24,9 @@ from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import cli_connection
 
 
+bc.init()
+
+
 class ComponentManager:
     """Component manager class."""
 
@@ -140,6 +143,12 @@ def open_log(component):
     return open(log, 'a', encoding='utf-8')
 
 
+# Slurmrestd will be started only if we're running with Slurm and
+# slurm::use_commands is not True
+NEED_SLURMRESTD = (bc.get('DEFAULT', 'workload_scheduler') == 'Slurm'
+                   and not bc.get('slurm', 'use_commands'))
+
+
 @MGR.component('wf_manager', ('scheduler',))
 def start_wfm():
     """Start the WFM."""
@@ -149,7 +158,12 @@ def start_wfm():
                                 sock_path, stdout=fp, stderr=fp)
 
 
-@MGR.component('task_manager', ('slurmrestd',))
+TM_DEPS = []
+if NEED_SLURMRESTD:
+    TM_DEPS.append('slurmrestd')
+
+
+@MGR.component('task_manager', TM_DEPS)
 def start_task_manager():
     """Start the TM."""
     fp = open_log('task_manager')
@@ -168,21 +182,22 @@ def start_scheduler():
 
 
 # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
-@MGR.component('slurmrestd')
-def start_slurm_restd():
-    """Start BEESlurmRestD. Returns a Popen process object."""
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
-    slurm_socket = bc.get('slurmrestd', 'slurm_socket')
-    slurm_args = bc.get('slurmrestd', 'slurm_args')
-    slurm_args = slurm_args if slurm_args is not None else ''
-    subprocess.run(['rm', '-f', slurm_socket], check=True)
-    # log.info("Attempting to open socket: {}".format(slurm_socket))
-    fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
-    cmd = ['slurmrestd']
-    cmd.extend(slurm_args.split())
-    cmd.append(f'unix:{slurm_socket}')
-    return subprocess.Popen(cmd, stdout=fp, stderr=fp)
+if NEED_SLURMRESTD:
+    @MGR.component('slurmrestd')
+    def start_slurm_restd():
+        """Start BEESlurmRestD. Returns a Popen process object."""
+        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+        slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
+        slurm_socket = bc.get('slurm', 'slurmrestd_socket')
+        openapi_version = bc.get('slurm', 'openapi_version')
+        slurm_args = f'-s openapi/{openapi_version}'
+        subprocess.run(['rm', '-f', slurm_socket], check=True)
+        # log.info("Attempting to open socket: {}".format(slurm_socket))
+        fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
+        cmd = ['slurmrestd']
+        cmd.extend(slurm_args.split())
+        cmd.append(f'unix:{slurm_socket}')
+        return subprocess.Popen(cmd, stdout=fp, stderr=fp)
 
 
 def handle_terminate(signum, stack): # noqa
@@ -288,13 +303,21 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     beeflow_log = log_fname('beeflow')
     check_dependencies()
     sock_path = bc.get('DEFAULT', 'beeflow_socket')
+    if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not NEED_SLURMRESTD:
+        warn('Not using slurmrestd. Command-line interface will be used.')
     # Note: there is a possible race condition here, however unlikely
     if os.path.exists(sock_path):
         # Try to contact for a status
-        resp = cli_connection.send(sock_path, {'type': 'status'})
+        try:
+            resp = cli_connection.send(sock_path, {'type': 'status'})
+        except (ConnectionResetError, ConnectionRefusedError):
+            resp = None
         if resp is None:
             # Must be dead, so remove the socket path
-            os.remove(sock_path)
+            try:
+                os.remove(sock_path)
+            except FileNotFoundError:
+                pass
         else:
             # It's already running, so print an error and exit
             warn(f'Beeflow appears to be running. Check the beeflow log: "{beeflow_log}"')
@@ -352,6 +375,14 @@ def stop():
     print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
+@app.command()
+def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
+            help='run in the foreground')):
+    """Attempt to stop and restart the beeflow daemon."""
+    stop()
+    start(foreground)
+
+
 @app.callback(invoke_without_command=True)
 def version_callback(version: bool = False):
     """Beeflow."""
@@ -364,7 +395,6 @@ def version_callback(version: bool = False):
 
 def main():
     """Start the beeflow app."""
-    bc.init()
     app()
 
 
