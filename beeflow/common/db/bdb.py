@@ -5,18 +5,32 @@ from sqlite3 import Error
 from beeflow.common.config_driver import BeeConfig as bc
 bc.init()
 
-def connect_db(module):
-    """Connect to a SQLITE db."""
-    def _connect_db(fn):
-        def wrap(*pargs, **kwargs):
-            """Wrap the function."""
-            # Check for the TESTING_DB_PATH for running the unit tests
-            db_name = module.__name__.split('.')[-1]
-            db_path = '/vast/home/rustyd/.beeflow/' + db_name + '.db'
-            with module.open_db(db_path) as db:
-                return fn(db, *pargs, **kwargs)
-        return wrap
-    return _connect_db
+#def connect_db(module, db_name):
+#    """Connect to a SQLITE db."""
+#    def _connect_db(fn):
+#        def wrap(*pargs, **kwargs):
+#            """Wrap the function."""
+#            ## Check for the TESTING_DB_PATH for running the unit tests
+#            #try: 
+#            #    db_name = flask_app.config['TESTING_DB_PATH']
+#            #except KeyError:
+#            #    db_name = module.__name__.split('.')[-1]
+#            #    db_name = '/vast/home/rustyd/.beeflow/' + db_name + '.db'
+#            bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+#            db_path =  bee_workdir + '/' + db_name
+#            print(f'DB: {db_name}')
+#            with module.open_db(db_name) as db:
+#                return fn(db, *pargs, **kwargs)
+#        return wrap
+#    return _connect_db
+
+def connect_db(module, db_name):
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+    db_path =  bee_workdir + '/' + db_name
+    db = module.open_db(db_path)
+    return db
+    #return module.open_db(db_name)
+#    db
 
 
 def create_connection(db_file):

@@ -20,7 +20,6 @@ class SubmitQueue:
         stmt = 'SELECT task FROM submit_queue ORDER BY id ASC'
         result = bdb.getall(self.db_file, stmt)
         for j in result:
-            print(j)
             task = jsonpickle.decode(j[0])
             yield task
 
@@ -101,7 +100,6 @@ class JobQueue:
         """Pop the bottom element off the queue."""
         stmt = 'SELECT id, task, job_id, job_state FROM job_queue ORDER BY id ASC'
         result = bdb.getone(self.db_file, stmt)
-        #job = self.Job(
         id_ = result[0]
         task = jsonpickle.decode(result[1])
         job_id = result[2]
@@ -160,7 +158,7 @@ class TMDB:
         return JobQueue(self.db_file)
 
 
-@contextmanager
+####@contextmanager
 def open_db(db_file):
     """Open and return a new database."""
-    yield TMDB(db_file)
+    return TMDB(db_file)

@@ -4,12 +4,16 @@ from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
+#import beeflow.wf_manager.wf_manager as wf_manager
+import beeflow.wf_manager.wf_manager
 
-from beeflow.common.db import wfm
+from beeflow.common.db import wfm_db 
 from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
 
+
+DB_NAME = wf_utils.get_db_name()
 
 class WFActions(Resource):
     """Class to perform actions on existing workflows."""
@@ -18,9 +22,9 @@ class WFActions(Resource):
         """Initialize with passed json object."""
         self.reqparse = reqparse.RequestParser()
 
-    @connect_db(wfm)
-    def post(db, self, wf_id):
+    def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
+        db = connect_db(wfm_db, DB_NAME)
         wfi = wf_utils.get_workflow_interface(wf_id)
         state = wfi.get_workflow_state()
         if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
@@ -38,8 +42,8 @@ class WFActions(Resource):
         return resp
 
     @staticmethod
-    @connect_db(wfm)
-    def get(db, wf_id):
+    def get(wf_id):
+        db = connect_db(wfm_db, DB_NAME)
         """Check the database for the current status of all tasks."""
         tasks = db.workflows.get_tasks(wf_id)
         tasks_status = []
@@ -60,13 +64,14 @@ class WFActions(Resource):
         return resp
 
     @staticmethod
-    @connect_db(wfm)
-    def delete(db, wf_id):
+    def delete(wf_id):
         """Cancel the workflow. Lets current tasks finish running."""
+        """Start workflow. Send ready tasks to the task manager."""
+        db = connect_db(wfm_db, DB_NAME)
         wfi = wf_utils.get_workflow_interface(wf_id)
         # Remove all tasks currently in the database
         if wfi.workflow_loaded():
-            wfi.finalize_workflow()
+              wfi.finalize_workflow()
         wf_utils.update_wf_status(wf_id, 'Cancelled')
         db.workflows.update_workflow_state(wf_id, 'Cancelled')
         db.workflows.delete_workflow(wf_id)
@@ -74,9 +79,9 @@ class WFActions(Resource):
         resp = make_response(jsonify(status='Cancelled'), 202)
         return resp
 
-    @connect_db(wfm)
-    def patch(db, self, wf_id):
+    def patch(self, wf_id):
         """Pause or resume workflow."""
+        db = connect_db(wfm_db, DB_NAME)
         self.reqparse.add_argument('option', type=str, location='json')
         option = self.reqparse.parse_args()['option']
 

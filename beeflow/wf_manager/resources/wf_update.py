@@ -13,14 +13,14 @@ from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
 from beeflow.common import log as bee_logging
 
-from beeflow.common.db import wfm
+from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 
 
 log = bee_logging.setup(__name__)
 
+DB_NAME = wf_utils.get_db_name()
 
-@connect_db(wfm)
 def archive_workflow(db, wf_id):
     """Archive a workflow after completion."""
     # Archive Config
@@ -58,9 +58,9 @@ class WFUpdate(Resource):
                                    required=False)
         self.reqparse.add_argument('output', location='json', required=False)
 
-    @connect_db(wfm)
-    def put(db, self):
+    def put(self):
         """Update the state of a task from the task manager."""
+        db = connect_db(wfm, DB_NAME)
         data = self.reqparse.parse_args()
         wf_id = data['wf_id']
         task_id = data['task_id']

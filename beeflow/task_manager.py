@@ -44,23 +44,8 @@ api = Api(flask_app)
 
 # submit_queue = []  # tasks ready to be submitted
 # job_queue = []  # jobs that are being monitored
-DB_PATH = os.path.join(bc.get('DEFAULT', 'bee_workdir'), 'tm.db')
-
-
-#def connect_db(fn):
-#    """Connect to the TM database."""
-#
-#    def wrap(*pargs, **kwargs):
-#        """Wrap the function."""
-#        # Check for the TESTING_DB_PATH for running the unit tests
-#        try:
-#            db_path = flask_app.config['TESTING_DB_PATH']
-#        except KeyError:
-#            db_path = DB_PATH
-#        with tm.open_db(db_path) as db:
-#            return fn(db, *pargs, **kwargs)
-#
-#    return wrap
+DB_NAME = 'tm.db'
+#DB_PATH = os.path.join(bc.get('DEFAULT', 'bee_workdir'), 'tm.db')
 
 
 def _url():
@@ -138,9 +123,9 @@ def resolve_environment(task):
     build_main(task)
 
 
-@connect_db(tm)
-def submit_jobs(db):
+def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
+    db = connect_db(tm, DB_NAME)
     count = db.submit_queue.count()
     while db.submit_queue.count() >= 1:
         # Single value dictionary
@@ -214,9 +199,9 @@ def get_restart_file(task_checkpoint, task_workdir):
         raise RuntimeError('Missing checkpoint file for task') from None
 
 
-@connect_db(tm)
-def update_jobs(db):
+def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
+    db = connect_db(tm, DB_NAME)
     # Need to make a copy first
     job_q = list(db.job_queue)
     for job in job_q:
@@ -269,9 +254,10 @@ class TaskSubmit(Resource):
         """Intialize request."""
 
     @staticmethod
-    @connect_db(tm)
-    def post(db):
+    #@connect_db(tm, flask_app)
+    def post():
         """Receives task from WFM."""
+        db = connect_db(tm, DB_NAME)
         parser = reqparse.RequestParser()
         parser.add_argument('tasks', type=str, location='json')
         data = parser.parse_args()
@@ -287,14 +273,15 @@ class TaskActions(Resource):
     """Actions to take for tasks."""
 
     @staticmethod
-    @connect_db(tm)
-    def delete(db):
+    #@congect_db(tm, flask_app)
+    def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
+        db = connect_db(tm, DB_NAME)
         cancel_msg = ""
         for job in db.job_queue:
-            task_id = job['task'].id
-            job_id = job['job_id']
-            name = job['task'].name
+            task_id = job.task.id
+            job_id = job.job_id
+            name = job.task.name
             log.info(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)

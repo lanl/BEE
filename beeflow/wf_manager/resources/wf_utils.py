@@ -13,10 +13,15 @@ from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
 
-from beeflow.common.db import wfm
+from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
+
+def get_db_name():
+    """Returns db name."""
+    db_name = 'wfm.db'
+    return db_name
 
 
 def get_bee_workdir():
@@ -112,9 +117,9 @@ def create_wf_namefile(wf_name, wf_id):
         name.write(wf_name)
 
 
-@connect_db(wfm)
-def get_workflow_interface(db, wf_id):
+def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
+    db = connect_db(wfm_db, get_db_name())
     bolt_port = db.workflows.get_bolt_port(wf_id)
     try:
         driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
@@ -128,10 +133,10 @@ def get_workflow_interface(db, wf_id):
     return wfi
 
 
-@connect_db(wfm)
-def tm_url(db):
+def tm_url():
     """Get Task Manager url."""
     # tm_listen_port = bc.get('task_manager', 'listen_port')
+    db = connect_db(wfm_db, get_db_name())
     tm_listen_port = db.info.get_port('tm')
     task_manager = "bee_tm/v1/task/"
     return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
@@ -147,9 +152,9 @@ def _connect_tm():
     return Connection(bc.get('task_manager', 'socket'))
 
 
-@connect_db(wfm)
-def sched_url(db):
+def sched_url():
     """Get Scheduler url."""
+    db = connect_db(wfm_db, get_db_name())
     scheduler = "bee_sched/v1/"
     # sched_listen_port = bc.get('scheduler', 'listen_port')
     sched_listen_port = db.info.get_port('sched')

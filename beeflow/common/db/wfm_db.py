@@ -203,8 +203,8 @@ class WorkflowDB:
         return WorkflowInfo(self.db_file)
 
 
-@contextmanager
+#@contextmanager
 def open_db(db_file):
     """Open a new database."""
-    yield WorkflowDB(db_file)
+    return WorkflowDB(db_file)
 
