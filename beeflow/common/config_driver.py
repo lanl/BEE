@@ -209,6 +209,8 @@ def validate_nonnegative_int(value):
     return i
 
 
+# NOTE: You must use validate_bool for all boolean values (since just using
+#       bool, as in bool('False'), gives True for any string of length > 0)
 def validate_bool(value):
     """Validate a boolean value."""
     return str(value).lower() == 'true'
@@ -402,13 +404,16 @@ VALIDATOR.option('builder', 'container_archive',
 VALIDATOR.option('builder', 'container_type', attrs={'default': 'charliecloud'},
                  info='container type to use')
 # Slurmrestd (depends on DEFAULT:workload_scheduler == Slurm)
-VALIDATOR.section('slurmrestd', info='Configuration section for Slurmrestd.',
+VALIDATOR.section('slurm', info='Configuration section for Slurm.',
                   depends_on=('DEFAULT', 'workload_scheduler', 'Slurm'))
+VALIDATOR.option('slurm', 'use_commands', validator=validate_bool,
+                 attrs={'default': shutil.which('slurmrestd') is None},
+                 info='if set, use slurm cli commands instead of slurmrestd')
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
-VALIDATOR.option('slurmrestd', 'slurm_socket', validator=validate_parent_dir,
+VALIDATOR.option('slurm', 'slurmrestd_socket', validator=validate_parent_dir,
                  attrs={'default': DEFAULT_SLURMRESTD_SOCK},
                  info='socket location')
-VALIDATOR.option('slurmrestd', 'openapi_version', attrs={'default': 'v0.0.37'},
+VALIDATOR.option('slurm', 'openapi_version', attrs={'default': 'v0.0.37'},
                  info='openapi version to use for slurmrestd')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')

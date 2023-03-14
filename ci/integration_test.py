@@ -81,14 +81,14 @@ class Workflow:
             bee_client.package(Path(self.path), Path(tarball_dir))
             print('Submitting and starting workflow')
             self.wf_id = bee_client.submit(self.name, self.tarball, self.main_cwl,
-                                           self.job_file, self.workdir)
-            bee_client.start(self.wf_id)
+                                           self.job_file, self.workdir, no_start=False)
         except bee_client.ClientError as error:
             raise CIError(*error.args) from error
 
     def running(self):
-        """Check if the workflow is running or not."""
-        return bee_client.query(self.wf_id)[0] == 'Running'
+        """Check if the workflow is running or about to run."""
+        print(bee_client.query(self.wf_id))
+        return bee_client.query(self.wf_id)[0] in ('Running', 'Pending')
 
     def status(self):
         """Get the status of the workflow."""

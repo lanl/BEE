@@ -4,8 +4,7 @@ from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
-#import beeflow.wf_manager.wf_manager as wf_manager
-import beeflow.wf_manager.wf_manager
+from beeflow.common.gdb.neo4j_driver import Neo4JNotRunning
 
 from beeflow.common.db import wfm_db 
 from beeflow.common.db.bdb import connect_db
@@ -40,6 +39,27 @@ class WFActions(Resource):
         db.workflows.update_workflow_state(wf_id, 'Running')
         resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
         return resp
+#=======
+#        try:
+#            wfi = wf_utils.get_workflow_interface(wf_id)
+#            state = wfi.get_workflow_state()
+#            if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
+#                resp = make_response(jsonify(msg='Cannot start workflow it is '
+#                                     f'{state.lower()}.',
+#                                             status='ok'), 200)
+#                return resp
+#            wfi.execute_workflow()
+#            tasks = wfi.get_ready_tasks()
+#            wf_utils.schedule_submit_tasks(wf_id, tasks)
+#            wf_id = wfi.workflow_id
+#            wf_utils.update_wf_status(wf_id, 'Running')
+#            wf_db.update_workflow_state(wf_id, 'Running')
+#            resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
+#            return resp
+#        except Neo4JNotRunning:
+#            return make_response(jsonify(msg='Workflow has already completed',
+#                                         status='bad request'), 400)
+#>>>>>>> develop
 
     @staticmethod
     def get(wf_id):

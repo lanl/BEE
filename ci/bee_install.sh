@@ -77,8 +77,10 @@ container_output_path = /tmp
 container_type = charliecloud
 container_archive = $HOME/container_archive
 
-[slurmrestd]
-slurm_socket = /tmp/slurm.sock
+[slurm]
+# Just test slurmrestd in CI for now
+use_commands = False
+slurmrestd_socket = /tmp/slurm.sock
 openapi_version = v0.0.37
 EOF
 printf "\n\n"
