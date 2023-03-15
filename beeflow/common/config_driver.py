@@ -13,6 +13,7 @@ import typer
 
 from beeflow.common.config_validator import ConfigValidator
 from beeflow.common.cli import NaturalOrderGroup
+from beeflow.common.tab_completion import filepath_completion
 
 
 # System specific path set up
@@ -285,6 +286,12 @@ def bee_workdir_init(path, _cur_opts):
     return path
 
 
+def filepath_completion_input(*pargs, **kwargs):
+    """Input files/paths with tab completion."""
+    with filepath_completion():
+        return input(*pargs, **kwargs)
+
+
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
 # singleton class above.
@@ -322,7 +329,8 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Simp
 VALIDATOR.option('DEFAULT', 'use_archive', validator=validate_bool, attrs={'default': True},
                  info='use the BEE archiving functinality')
 VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validate_file,
-                 info='container image with BEE dependencies')
+                 info='container image with BEE dependencies',
+                 attrs={'input': filepath_completion_input})
 VALIDATOR.option('DEFAULT', 'beeflow_pidfile',
                  attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'beeflow.pid')},
                  info='location of beeflow pidfile')
@@ -481,6 +489,8 @@ class ConfigGenerator:
                     print_wrap(section.info)
                     print()
                     printed = True
+
+                # Check for a default value
                 if option.attrs is not None and 'default' in option.attrs:
                     default = option.attrs['default']
                     if option.attrs is not None and 'init' in option.attrs:
@@ -491,24 +501,36 @@ class ConfigGenerator:
                     print()
                     self.sections[sec_name][opt_name] = value
                     continue
-                value = None
-                # Input and then validate the value
-                while value is None:
-                    print_wrap(f'{opt_name} - {option.info}')
-                    if option.choices is not None:
-                        print(f'(allowed values: {",".join(option.choices)})')
-                    value = input(f'{opt_name}: ')
-                    # Call the init function if there is one
-                    if option.attrs is not None and 'init' in option.attrs:
-                        option.attrs['init'](value, self.sections)
-                    try:
-                        option.validate(value)
-                    except ValueError as err:
-                        print('ERROR:', err)
-                        value = None
+
+                # Input and validate the value
+                value = self._input_loop(opt_name, option)
+
                 print()
                 self.sections[sec_name][opt_name] = value
         return self
+
+    def _input_loop(self, opt_name, option):
+        """Run the input-validation loop."""
+        # Check if there's a special input function (this allows for tab completion)
+        inp = (option.attrs['input'] if option.attrs is not None
+               and 'input' in option.attrs else input)
+        # Start of input loop
+        value = None
+        while value is None:
+            print_wrap(f'{opt_name} - {option.info}')
+            if option.choices is not None:
+                print(f'(allowed values: {",".join(option.choices)})')
+            value = inp(f'{opt_name}: ')
+            # Call the init function if there is one
+            if option.attrs is not None and 'init' in option.attrs:
+                option.attrs['init'](value, self.sections)
+            # Validate the input
+            try:
+                option.validate(value)
+            except ValueError as err:
+                print('ERROR:', err)
+                value = None
+        return value
 
     def save(self):
         """Save the config to a file."""
