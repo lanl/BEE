@@ -1,6 +1,16 @@
 BEEflow API
 **************************
 
+BEEflow
+===========================
+.. automodule:: beeflow.cli
+   :members:
+
+BEEclient
+===========================
+.. automodule:: beeflow.client.bee_client
+   :members:
+
 Builder (Container)
 ===========================
 
@@ -19,9 +29,36 @@ Build Container Drivers
 .. automodule:: beeflow.common.build.container_drivers
    :members:
 
+Database
+===========================
+Task Manager Database
+---------------------
+.. automodule:: beeflow.common.db.tm
+   :members:
+
+Scheduler Database
+------------------
+.. automodule:: beeflow.common.db.sched
+   :members:
+
 Configuration
 ===========================
+Configuration Driver
+---------------------------
 .. automodule:: beeflow.common.config_driver
+   :members:
+
+Configuration Validator
+---------------------------
+.. automodule:: beeflow.common.config_validator
+   :members:
+
+Connection Communication
+===========================
+.. automodule:: beeflow.common.connection
+   :members:
+
+.. automodule:: beeflow.common.cli_connection
    :members:
 
 Container Runtime
@@ -42,6 +79,11 @@ Singularity Driver
 .. automodule:: beeflow.common.crt.singularity_driver
    :members:
 
+Container Path
+---------------------------
+.. automodule:: beeflow.common.container_path
+   :members:
+
 Container Runtime Interface
 ---------------------------
 .. automodule:: beeflow.common.crt_interface
@@ -49,6 +91,11 @@ Container Runtime Interface
 
 Graph Database
 ===========================
+
+Evaluate CWL expressions
+---------------------------
+.. automodule:: beeflow.common.expr
+   :members:
 
 Graph Database Driver
 ---------------------------
@@ -100,6 +147,12 @@ Slurm Worker
 .. automodule:: beeflow.common.worker.slurm_worker
    :members:
 
+Task Manager
+---------------------------
+.. automodule:: beeflow.task_manager
+   :members:
+
+
 Worker Interface
 ---------------------------
 .. automodule:: beeflow.common.worker_interface
@@ -115,3 +168,33 @@ Workflow Interface
 ==================
 .. automodule:: beeflow.common.wf_interface
    :members:
+
+Workflow Manager
+===========================
+.. automodule:: beeflow.wf_manager.wf_manager
+   :members:
+
+Workflow Manager Resources
+---------------------------
+.. automodule:: beeflow.wf_manager.resources.wf_actions
+   :members:
+.. automodule:: beeflow.wf_manager.resources.wf_list
+   :members:
+.. automodule:: beeflow.wf_manager.resources.wf_metadata
+   :members:
+.. automodule:: beeflow.wf_manager.resources.wf_update
+   :members:
+.. automodule:: beeflow.wf_manager.resources.wf_utils
+   :members:
+
+Workflow Manager Dependency Manager
+------------------------------------
+.. automodule:: beeflow.wf_manager.common.dep_manager
+   :members:
+
+Workflow Profiler
+------------------------------------
+.. automodule:: beeflow.common.wf_profiler
+   :members:
+
+
