@@ -25,22 +25,14 @@ api = Api(flask_app)
 bc.init()
 
 
-def get_db_path():
-    """Get the database path."""
-    # Favor the environment variable if it exists
-    path = os.getenv('BEE_SCHED_DB_PATH')
-    if path is None:
-        workdir = bc.get('DEFAULT', 'bee_workdir')
-        path = os.path.join(workdir, 'sched.db')
-    return path
-
+DB_NAME = 'sched.db'
 
 class ResourcesHandler(Resource):
     """Resources handler."""
 
     @staticmethod
-    @connect_db(sched)
-    def put(db):
+    def put():
+        db = connect_db(sched, DB_NAME)
         """Create a list of resources to use for allocation."""
         db.resources.clear()
         resources = [resource_allocation.Resource.decode(r)
@@ -49,8 +41,8 @@ class ResourcesHandler(Resource):
         return f'created {len(resources)} resource(s)'
 
     @staticmethod
-    @connect_db(sched)
-    def get(db):
+    def get():
+        db = connect_db(sched, DB_NAME)
         """Get a list of all resources."""
         return [r.encode() for r in db.resources]
 
@@ -59,8 +51,8 @@ class WorkflowJobHandler(Resource):
     """Schedule jobs for a specific workflow with the current resources."""
 
     @staticmethod
-    @connect_db(sched)
-    def put(db, workflow_name):  # noqa ('workflow_name' may be used in the future)
+    def put(workflow_name):  # noqa ('workflow_name' may be used in the future)
+        db = connect_db(sched, DB_NAME)
         """Schedules a new list of independent tasks with available resources."""
         data = request.json
         tasks = [task.Task.decode(t) for t in data]

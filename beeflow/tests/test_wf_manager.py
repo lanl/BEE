@@ -9,7 +9,7 @@ from beeflow.tests.mocks import MockWFI, MockCwlParser, MockGDBInterface
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_interface import WorkflowInterface
 
-from beeflow.common.db import wfm
+from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 
 # We use this as the test workflow id

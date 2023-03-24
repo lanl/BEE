@@ -27,7 +27,9 @@ def scheduler(mocker):
         'TESTING': True,
     })
     with tempfile.NamedTemporaryFile() as fp:
-        mocker.patch('beeflow.scheduler.scheduler.get_db_path', return_value=fp.name)
+        #mocker.patch('beeflow.scheduler.scheduler.get_db_path', return_value=fp.name)
+        #mocker.patch('beeflow.scheduler.scheduler.DB_NAME', return_value=fp.name)
+        mocker.patch('beeflow.scheduler.scheduler.DB_NAME', 'sched_test.db')
         yield app.test_client()
 
 

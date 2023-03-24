@@ -17,7 +17,6 @@ class Resources:
         stmt = 'SELECT id, resource FROM resources'
         result = bdb.getall(self.db_file, stmt)
         for r in result:
-            print(r)
             resource = jsonpickle.decode(r[1])
             yield resource
 
@@ -55,7 +54,6 @@ class SchedDB:
         return Resources(self.db_file)
 
 
-@contextmanager
 def open_db(db_file):
     """Open and return a new database."""
-    yield SchedDB(db_file)
+    return SchedDB(db_file)
