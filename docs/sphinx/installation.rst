@@ -36,6 +36,18 @@ BEE is a PyPI package that can be installed using pip. On an HPC cluster, you ma
 
     pip install hpc-beeflow
 
+If you do not already have a python environment, you may be able to use the following example to create one (note: beeflow-env can be any environment name you choose):
+
+.. code-block::
+
+    mkdir beeflow-env
+    python3 -m venv beeflow-env
+    source beeflow-env/bin/activate
+    pip install hpc-beeflow
+
+You will need to activate the environment with the command ``source beeflow-env/bin/activate`` and type ``deactivate`` when done.
+
+
 An alternative is to use a Poetry environment, but we suggest this only for contributors.
 For more information click on the Developer's Guide in this documentation.
 
