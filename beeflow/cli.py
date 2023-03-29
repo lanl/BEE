@@ -45,7 +45,7 @@ class ComponentManager:
             self.components[name] = {
                 'fn': fn,
                 'deps': deps,
-                'restarts': 0,
+                'restart_count': 0,
                 'failed': False,
             }
 
@@ -95,7 +95,7 @@ class ComponentManager:
 
     def poll(self):
         """Poll each process to check for errors, restart failed processes."""
-        for name in self.procs:
+        for name in self.procs:  # noqa no need to iterate with items() since self.procs may be set
             component = self.components[name]
             if component['failed']:
                 continue
@@ -103,14 +103,15 @@ class ComponentManager:
             if returncode is not None:
                 log = log_fname(name)
                 print(f'Component "{name}" failed, check log "{log}"')
-                if component['restarts'] >= MAX_RESTARTS:
-                    print(f'Component "{name}" has been restarted {MAX_RESTARTS} times, not restarting again')
+                if component['restart_count'] >= MAX_RESTARTS:
+                    print(f'Component "{name}" has been restarted {MAX_RESTARTS} '
+                          'times, not restarting again')
                     component['failed'] = True
                 else:
-                    restart = component['restarts']
-                    print(f'Attempting restart {restart} of "{name}"...')
+                    restart_count = component['restart_count']
+                    print(f'Attempting restart {restart_count} of "{name}"...')
                     self.procs[name] = component['fn']()
-                    component['restarts'] += 1
+                    component['restart_count'] += 1
 
     def status(self):
         """Return the statuses for each process in a dict."""
