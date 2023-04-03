@@ -1,8 +1,6 @@
 """Task Manager database code."""
 
 from collections import namedtuple
-from contextlib import contextmanager
-import sqlite3
 import jsonpickle
 
 from beeflow.common.db import bdb
@@ -10,13 +8,14 @@ from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
 
+
 class SubmitQueue:
     """Task Manager submit queue."""
 
     def __init__(self, db_file):
         """Construct a submit queue handler."""
         self.db_file = db_file
-        self.Job = namedtuple("Job", "id task")
+        self.Job = namedtuple("Job", "id task") #noqa Snake Case
 
     def __iter__(self):
         """Create an iterator for going over all elements."""
@@ -25,16 +24,6 @@ class SubmitQueue:
         for j in result:
             task = jsonpickle.decode(j[0])
             yield task
-
-        #result = bdb.getall(self.db_file, stmt)
-        #for j in result:
-        #    id_ = j[0]
-        #    task = jsonpickle.decode(j[1])
-        #    job_id = j[2]
-        #    state = j[3]
-        #    job = self.Job(id_, task, job_id, state)
-        #    yield job
-
 
     def count(self):
         """Count the number of items in the submit queue."""
@@ -72,7 +61,7 @@ class JobQueue:
     def __init__(self, db_file):
         """Construct a job queue handler."""
         self.db_file = db_file
-        self.Job = namedtuple("Task", "id task job_id job_state")
+        self.Job = namedtuple("Task", "id task job_id job_state") # noqa Snake Case
 
     def __iter__(self):
         """Create an iterator for going over all elements in the queue."""
@@ -139,7 +128,7 @@ class TMDB:
 
     def _init_tables(self):
         """Initialize the workflow tables."""
-        submit_queue_stmt  = """CREATE TABLE IF NOT EXISTS submit_queue(
+        submit_queue_stmt = """CREATE TABLE IF NOT EXISTS submit_queue(
                         id INTEGER PRIMARY KEY ASC,
                         task TEXT)"""
 
@@ -163,7 +152,6 @@ class TMDB:
         return JobQueue(self.db_file)
 
 
-####@contextmanager
 def open_db(db_file):
     """Open and return a new database."""
     return TMDB(db_file)

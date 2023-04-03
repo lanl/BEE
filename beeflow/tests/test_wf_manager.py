@@ -4,7 +4,6 @@ import pathlib
 import pytest
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
-#from beeflow.wf_manager.common import wf_db
 from beeflow.tests.mocks import MockWFI, MockCwlParser, MockGDBInterface
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_interface import WorkflowInterface
@@ -15,17 +14,13 @@ from beeflow.common.db.bdb import connect_db
 # We use this as the test workflow id
 WF_ID = '42'
 
-db_name = 'wfm_test.db'
+DB_NAME = 'wfm_test.db'
+
 
 @pytest.fixture
 def app():
     """Create a new flask app object."""
     flask_app = create_app()
-    #flask_app['TESTING'] = True
-    #flask_app.config.update({
-    #    "TESTING": True
-    #})
-
     yield flask_app
 
 
@@ -75,7 +70,7 @@ def test_submit_workflow(client, mocker, teardown_workflow):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=WorkflowInterface(MockGDBInterface()))
     mocker.patch('subprocess.run', return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_name', db_name)
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_DB_NAME', DB_NAME)
     script_path = pathlib.Path(__file__).parent.resolve()
     tarball = script_path / 'clamr-wf.tgz'
     with open(tarball, 'rb') as tarball_contents:
@@ -89,9 +84,7 @@ def test_submit_workflow(client, mocker, teardown_workflow):
         })
 
     # Remove task added during the test
-    db = connect_db(wfm_db, db_name)
-    #db.workflows.delete_task(42, WF_ID)
-    #wf_db.delete_task(42, WF_ID)
+    db = connect_db(wfm_db, DB_NAME) #noqa Ignore snake case
     assert resp.json['msg'] == 'Workflow uploaded'
 
 
@@ -105,8 +98,8 @@ def test_reexecute_workflow(client, mocker, teardown_workflow):
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
-    #mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_name', 'wfm_tmp.db')
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_name', db_name)
+    # mocker.patch('beeflow.wf_manager.resources.wf_utils.get_DB_NAME', 'wfm_tmp.db')
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_DB_NAME', DB_NAME)
     mocker.patch('beeflow.common.wf_data.generate_workflow_id', return_value='42')
     mocker.patch('subprocess.run', return_value=True)
 
@@ -131,8 +124,7 @@ def test_start_workflow(client, mocker):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_scheduler', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', return_value=None)
-    #mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_name', 'wfm_tmp.db')
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_name', db_name)
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_DB_NAME', DB_NAME)
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert resp.status_code == 200
 
@@ -141,32 +133,24 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
     """Test getting workflow status."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
-    #mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_name', 'wfm_tmp.db')
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_name', db_name)
-    mocker.patch('beeflow.wf_manager.resources.wf_actions.DB_NAME', db_name)
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_DB_NAME', DB_NAME)
+    mocker.patch('beeflow.wf_manager.resources.wf_actions.DB_NAME', DB_NAME)
     wf_name = 'wf'
     wf_status = 'Pending'
     bolt_port = 3030
     gdb_pid = 12345
-    db = connect_db(wfm_db, db_name)
-    #wf_db.add_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
-    #wf_db.add_task(123, WF_ID, 'task', "WAITING")
-    #wf_db.add_task(124, WF_ID, 'task', "RUNNING")
+    db = connect_db(wfm_db, DB_NAME)
 
     db.workflows.add_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
     db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
 
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
-    ##wf_db.delete_workflow(WF_ID)
-    ##wf_db.delete_task(123, WF_ID)
-    ##wf_db.delete_task(124, WF_ID)
 
     db.workflows.delete_workflow(WF_ID)
     db.workflows.delete_task(123, WF_ID)
     db.workflows.delete_task(124, WF_ID)
     assert 'RUNNING' in resp.json['tasks_status']
-    #assert False
 
 
 def test_cancel_workflow(client, mocker, setup_teardown_workflow):

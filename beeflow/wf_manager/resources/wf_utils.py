@@ -18,8 +18,9 @@ from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
 
+
 def get_db_name():
-    """Returns db name."""
+    """Return db name."""
     db_name = 'wfm.db'
     return db_name
 

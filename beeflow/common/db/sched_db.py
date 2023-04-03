@@ -1,9 +1,8 @@
 """Scheduler database code."""
-from contextlib import contextmanager
-import sqlite3
-import jsonpickle
 
+import jsonpickle
 from beeflow.common.db import bdb
+
 
 class Resources:
     """Resources wrapper class."""
@@ -16,8 +15,8 @@ class Resources:
         """Create an iterator over the resources."""
         stmt = 'SELECT id, resource FROM resources'
         result = bdb.getall(self.db_file, stmt)
-        for r in result:
-            resource = jsonpickle.decode(r[1])
+        for rslt in result:
+            resource = jsonpickle.decode(rslt[1])
             yield resource
 
     def extend(self, resources):
@@ -43,7 +42,7 @@ class SchedDB:
 
     def _init_tables(self):
         """Initialze the scheduler tables if they don't exist."""
-        resource_stmt= """CREATE TABLE IF NOT EXISTS resources(
+        resource_stmt = """CREATE TABLE IF NOT EXISTS resources(
                         id INTEGER PRIMARY KEY ASC,
                         resource TEXT);"""
         bdb.create_table(self.db_file, resource_stmt)

@@ -11,9 +11,7 @@ from beeflow.common.db import sched_db
 def temp_db():
     """Create a fixture for making a temporary datbase."""
     fname = tempfile.mktemp()
-    #db = connect_db(sched, DB_NAME)
     db = sched_db.open_db(fname)
-    #with sched.open_db(fname) as db:
     yield db
     os.remove(fname)
 

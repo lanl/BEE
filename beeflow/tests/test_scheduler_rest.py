@@ -2,11 +2,11 @@
 
 Tests of the REST interface for BEE Scheduler.
 """
-import tempfile
+import os
 import pytest
 
 from beeflow.scheduler.scheduler import create_app
-
+from beeflow.common.config_driver import BeeConfig as bc
 
 SCHEDULER_TEST_PORT = '5100'
 
@@ -26,11 +26,8 @@ def scheduler(mocker):
     app.config.update({
         'TESTING': True,
     })
-    with tempfile.NamedTemporaryFile() as fp:
-        #mocker.patch('beeflow.scheduler.scheduler.get_db_path', return_value=fp.name)
-        #mocker.patch('beeflow.scheduler.scheduler.DB_NAME', return_value=fp.name)
-        mocker.patch('beeflow.scheduler.scheduler.DB_NAME', 'sched_test.db')
-        yield app.test_client()
+    mocker.patch('beeflow.scheduler.scheduler.DB_NAME', 'sched_test.db')
+    yield app.test_client()
 
 
 def test_schedule_job_no_resources(scheduler):
@@ -216,6 +213,14 @@ def test_schedule_multi_job_two_resources(scheduler):
     # Ensure proper scheduled time
     assert data[2]['allocations'][0]['start_time'] < 6
 
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup(request):
+    """Cleanup database file after the tests complete."""
+    def delete_db():
+        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+        os.remove(f"{bee_workdir}/sched_test.db")
+    request.addfinalizer(delete_db)
 
 # Ignore R1732: This suggestion about using `with` doesn't apply here.
 # Ignore W0621: These are fixtures; it's supposed to work this way.

@@ -62,11 +62,6 @@ def test_push_pop_many(temp_db):
         assert popped_job.task == i
         assert popped_job.job_id == i + 1
         assert popped_job.job_state == 'READY' if (i % 2) == 0 else 'COMPLETED'
-        #assert db.job_queue.pop() == {
-        #    'task': i,
-        #    'job_id': i + 1,
-        #    'job_state': 'READY' if (i % 2) == 0 else 'COMPLETED',
-        #}
         assert db.submit_queue.count() == (127 - i)
         assert db.job_queue.count() == (127 - i)
     assert db.submit_queue.count() == 0
@@ -149,7 +144,7 @@ def test_job_queue_update_job_state(temp_db):
     job = db.job_queue.pop()
     assert job.task == {8, 9, 10}
     assert job.job_id == 888
-    assert job.job_state  == 'COMPLETED'
+    assert job.job_state == 'COMPLETED'
 # Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
 #               scope. This is how pytest fixtures work.
 # pylama:ignore=W0621

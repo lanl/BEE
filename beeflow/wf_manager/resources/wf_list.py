@@ -65,6 +65,8 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
 
 
 DB_NAME = wf_utils.get_db_name()
+
+
 class WFList(Resource):
     """Interacts with existing workflows."""
 

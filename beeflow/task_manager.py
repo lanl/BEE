@@ -44,6 +44,7 @@ api = Api(flask_app)
 
 DB_NAME = 'tm.db'
 
+
 def _url():
     """Return  the url to the WFM."""
     # Saving this for whenever we need to run jobs across different machines
@@ -213,8 +214,8 @@ def update_jobs():
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
-                    #update_task_state(task.workflow_id, task.id, new_job_state, task_info=task_info)
-                    update_task_state(task.workflow_id, task.id, new_job_state, task_info=task_info)
+                    update_task_state(task.workflow_id, task.id, new_job_state,
+                                      task_info=task_info)
                 else:
                     update_task_state(task.workflow_id, task.id, new_job_state)
             else:

@@ -1,14 +1,16 @@
 """Workflow Manager database code."""
 
 from collections import namedtuple
-from contextlib import contextmanager
 
 from beeflow.common.db import bdb
 
+
 class WorkflowInfo:
     """Workflow Info object."""
+
     def __init__(self, db_file):
-        self.Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows")
+        """Initialize Info and db file."""
+        self.Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows") # noqa Snake Case
         self.db_file = db_file
 
     def set_port(self, component, new_port):
@@ -18,7 +20,7 @@ class WorkflowInfo:
 
     def get_port(self, component):
         """Return port for the specified component."""
-        #Need to add code here to make sure we chose a valid component.
+        # Need to add code here to make sure we chose a valid component.
         stmt = f"SELECT {component}_port FROM info"
         result = bdb.getone(self.db_file, stmt)
         port = result
@@ -45,13 +47,15 @@ class WorkflowInfo:
 
 
 class Workflows:
-    """Workflow database object""" 
+    """Workflow database object."""
 
     def __init__(self, db_file):
-        self.Task = namedtuple("Task", "id task_id workflow_id name resource state"
-                  " slurm_id")
+        """Initialize Task, db_file, and Workflow object."""
+        self.Task = namedtuple("Task", "id task_id workflow_id name resource state" #noqa Snake Case
+                               " slurm_id")
         self.db_file = db_file
-        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir bolt_port gdb_pid")
+        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir bolt_port" #noqa
+                                   "gdb_pid")
 
     def get_workflow(self, workflow_id):
         """Return a workflow object."""
@@ -118,7 +122,6 @@ class Workflows:
         """Get a task associed with a workflow."""
         stmt = "SELECT * FROM tasks WHERE task_id=? AND workflow_id=?"
         result = bdb.getone(self.db_file, stmt, [task_id, workflow_id])
-        task = self.Task(*result)
         return result
 
     def get_bolt_port(self, workflow_id):
@@ -145,13 +148,14 @@ class Workflows:
 
 class WorkflowDB:
     """Workflow manager database."""
-        
+
     def __init__(self, db_file):
+        """Initialize tables and db file."""
         self.db_file = db_file
         self._init_tables()
 
     def _init_tables(self):
-        """Initalize the table if it doesn't exist."""
+        """Initialize the tables."""
         workflows_stmt = """CREATE TABLE IF NOT EXISTS workflows (
                                 id INTEGER PRIMARY KEY,
                                 -- Set workflow ID to unique.
@@ -203,8 +207,6 @@ class WorkflowDB:
         return WorkflowInfo(self.db_file)
 
 
-#@contextmanager
 def open_db(db_file):
     """Open a new database."""
     return WorkflowDB(db_file)
-

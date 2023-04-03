@@ -27,13 +27,14 @@ bc.init()
 
 DB_NAME = 'sched.db'
 
+
 class ResourcesHandler(Resource):
     """Resources handler."""
 
     @staticmethod
     def put():
-        db = connect_db(sched_db, DB_NAME)
         """Create a list of resources to use for allocation."""
+        db = connect_db(sched_db, DB_NAME)
         db.resources.clear()
         resources = [resource_allocation.Resource.decode(r)
                      for r in request.json]
@@ -42,8 +43,8 @@ class ResourcesHandler(Resource):
 
     @staticmethod
     def get():
-        db = connect_db(sched_db, DB_NAME)
         """Get a list of all resources."""
+        db = connect_db(sched_db, DB_NAME)
         return [r.encode() for r in db.resources]
 
 
@@ -52,8 +53,8 @@ class WorkflowJobHandler(Resource):
 
     @staticmethod
     def put(workflow_name):  # noqa ('workflow_name' may be used in the future)
-        db = connect_db(sched_db, DB_NAME)
         """Schedules a new list of independent tasks with available resources."""
+        db = connect_db(sched_db, DB_NAME)
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
