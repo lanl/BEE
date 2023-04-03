@@ -126,13 +126,14 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                 os.getenv('HOME'): os.path.join('/home', os.getenv('USER')),
             }
             ctr_workdir_path = convert_path(task.workdir, bind_mounts)
-            extra_opts = f'--cd {ctr_workdir_path}'
+            extra_opts = f'--home --cd {ctr_workdir_path}'
         main_command = (f'ch-run {mpi_opt} {deployed_path} {self.chrun_opts} '
                         f'{extra_opts} -- {command}\n').split()
         main_command = Command(main_command)
         post_commands = [
             Command(f'rm -rf {deployed_path}\n'.split(), type_=CommandType.ONE_PER_NODE),
         ]
+        log.info(f'CHARLIECLOUD: {main_command.args}')
         return ContainerRuntimeResult(env_code, pre_commands, main_command, post_commands)
 
     def build_text(self, userconfig, task):
