@@ -119,6 +119,7 @@ def create_wf_namefile(wf_name, wf_id):
 
 def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
+    print(f'DB_NAME {get_db_name}')
     db = connect_db(wfm_db, get_db_name())
     bolt_port = db.workflows.get_bolt_port(wf_id)
     try:

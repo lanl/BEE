@@ -4,15 +4,15 @@ import os
 
 import pytest
 
-from beeflow.common.db import tm
+from beeflow.common.db import tm_db
 
 
 @pytest.fixture
 def temp_db():
     """Pytest fixture for creating a temporary database."""
     fname = tempfile.mktemp()
-    with tm.open_db(fname) as db:
-        yield db
+    db = tm_db.open_db(fname)
+    yield db
     os.remove(fname)
 
 

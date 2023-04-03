@@ -11,7 +11,7 @@ from beeflow.scheduler import algorithms
 from beeflow.scheduler import task
 from beeflow.scheduler import resource_allocation
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.db import sched
+from beeflow.common.db import sched_db
 from beeflow.common import log as bee_logging
 
 from beeflow.common.db.bdb import connect_db
@@ -32,7 +32,7 @@ class ResourcesHandler(Resource):
 
     @staticmethod
     def put():
-        db = connect_db(sched, DB_NAME)
+        db = connect_db(sched_db, DB_NAME)
         """Create a list of resources to use for allocation."""
         db.resources.clear()
         resources = [resource_allocation.Resource.decode(r)
@@ -42,7 +42,7 @@ class ResourcesHandler(Resource):
 
     @staticmethod
     def get():
-        db = connect_db(sched, DB_NAME)
+        db = connect_db(sched_db, DB_NAME)
         """Get a list of all resources."""
         return [r.encode() for r in db.resources]
 
@@ -52,7 +52,7 @@ class WorkflowJobHandler(Resource):
 
     @staticmethod
     def put(workflow_name):  # noqa ('workflow_name' may be used in the future)
-        db = connect_db(sched, DB_NAME)
+        db = connect_db(sched_db, DB_NAME)
         """Schedules a new list of independent tasks with available resources."""
         data = request.json
         tasks = [task.Task.decode(t) for t in data]

@@ -31,7 +31,7 @@ from beeflow.common.build_interfaces import build_main
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.connection import Connection
 import beeflow.common.worker as worker_pkg
-from beeflow.common.db import tm
+from beeflow.common.db import tm_db
 
 
 log = bee_logging.setup(__name__)
@@ -42,11 +42,7 @@ runtime = bc.get('task_manager', 'container_runtime')
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-# submit_queue = []  # tasks ready to be submitted
-# job_queue = []  # jobs that are being monitored
 DB_NAME = 'tm.db'
-#DB_PATH = os.path.join(bc.get('DEFAULT', 'bee_workdir'), 'tm.db')
-
 
 def _url():
     """Return  the url to the WFM."""
@@ -125,12 +121,10 @@ def resolve_environment(task):
 
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
-    db = connect_db(tm, DB_NAME)
-    count = db.submit_queue.count()
+    db = connect_db(tm_db, DB_NAME)
     while db.submit_queue.count() >= 1:
         # Single value dictionary
         task = db.submit_queue.pop()
-        count = db.submit_queue.count()
         try:
             log.info(f'Resolving environment for task {task.name}')
             resolve_environment(task)
@@ -150,7 +144,6 @@ def submit_jobs():
         finally:
             # Send the initial state to WFM
             # update_task_state(task.id, job_state, metadata=task_metadata)
-            log.info(f'Sending update to workflow manager STATE: {job_state} TASK_ID: {task.id} WF_ID {task.workflow_id}')
             update_task_state(task.workflow_id, task.id, job_state)
 
 
@@ -201,7 +194,7 @@ def get_restart_file(task_checkpoint, task_workdir):
 
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
-    db = connect_db(tm, DB_NAME)
+    db = connect_db(tm_db, DB_NAME)
     # Need to make a copy first
     job_q = list(db.job_queue)
     for job in job_q:
@@ -213,13 +206,14 @@ def update_jobs():
 
         # If state changes update the WFM
         if job_state != new_job_state:
-            db.job_queue.update_job_state(job_id, new_job_state)
+            db.job_queue.update_job_state(id_, new_job_state)
             if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = get_task_checkpoint(task)
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
+                    #update_task_state(task.workflow_id, task.id, new_job_state, task_info=task_info)
                     update_task_state(task.workflow_id, task.id, new_job_state, task_info=task_info)
                 else:
                     update_task_state(task.workflow_id, task.id, new_job_state)
@@ -254,10 +248,9 @@ class TaskSubmit(Resource):
         """Intialize request."""
 
     @staticmethod
-    #@connect_db(tm, flask_app)
     def post():
         """Receives task from WFM."""
-        db = connect_db(tm, DB_NAME)
+        db = connect_db(tm_db, DB_NAME)
         parser = reqparse.RequestParser()
         parser.add_argument('tasks', type=str, location='json')
         data = parser.parse_args()
@@ -273,10 +266,9 @@ class TaskActions(Resource):
     """Actions to take for tasks."""
 
     @staticmethod
-    #@congect_db(tm, flask_app)
     def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
-        db = connect_db(tm, DB_NAME)
+        db = connect_db(tm_db, DB_NAME)
         cancel_msg = ""
         for job in db.job_queue:
             task_id = job.task.id

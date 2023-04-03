@@ -6,6 +6,9 @@ import sqlite3
 import jsonpickle
 
 from beeflow.common.db import bdb
+from beeflow.common import log as bee_logging
+
+log = bee_logging.setup(__name__)
 
 class SubmitQueue:
     """Task Manager submit queue."""
@@ -76,6 +79,8 @@ class JobQueue:
         stmt = 'SELECT id, task, job_id, job_state FROM job_queue ORDER BY id ASC'
         result = bdb.getall(self.db_file, stmt)
         for j in result:
+            log.info(f'RESULT {j}')
+            log.info('')
             id_ = j[0]
             task = jsonpickle.decode(j[1])
             job_id = j[2]

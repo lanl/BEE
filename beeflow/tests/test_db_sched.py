@@ -4,15 +4,17 @@ import os
 
 import pytest
 
-from beeflow.common.db import sched
+from beeflow.common.db import sched_db
 
 
 @pytest.fixture
 def temp_db():
     """Create a fixture for making a temporary datbase."""
     fname = tempfile.mktemp()
-    with sched.open_db(fname) as db:
-        yield db
+    #db = connect_db(sched, DB_NAME)
+    db = sched_db.open_db(fname)
+    #with sched.open_db(fname) as db:
+    yield db
     os.remove(fname)
 
 
