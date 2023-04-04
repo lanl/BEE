@@ -6,10 +6,8 @@ from beeflow.common.config_driver import BeeConfig as bc
 bc.init()
 
 
-def connect_db(module, db_name):
+def connect_db(module, db_path):
     """Return a DB object."""
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    db_path = bee_workdir + '/' + db_name
     db = module.open_db(db_path)
     return db
 

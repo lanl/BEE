@@ -42,8 +42,8 @@ runtime = bc.get('task_manager', 'container_runtime')
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-DB_NAME = 'tm.db'
-
+bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+db_path = bee_workdir + '/' + 'tm.db'
 
 def _url():
     """Return  the url to the WFM."""
@@ -122,7 +122,8 @@ def resolve_environment(task):
 
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
-    db = connect_db(tm_db, DB_NAME)
+    print(f'SUBMIT: {db_path}')
+    db = connect_db(tm_db, db_path)
     while db.submit_queue.count() >= 1:
         # Single value dictionary
         task = db.submit_queue.pop()
@@ -195,7 +196,7 @@ def get_restart_file(task_checkpoint, task_workdir):
 
 def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
-    db = connect_db(tm_db, DB_NAME)
+    db = connect_db(tm_db, db_path)
     # Need to make a copy first
     job_q = list(db.job_queue)
     for job in job_q:
@@ -251,7 +252,7 @@ class TaskSubmit(Resource):
     @staticmethod
     def post():
         """Receives task from WFM."""
-        db = connect_db(tm_db, DB_NAME)
+        db = connect_db(tm_db, db_path)
         parser = reqparse.RequestParser()
         parser.add_argument('tasks', type=str, location='json')
         data = parser.parse_args()
@@ -269,7 +270,7 @@ class TaskActions(Resource):
     @staticmethod
     def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
-        db = connect_db(tm_db, DB_NAME)
+        db = connect_db(tm_db, db_path)
         cancel_msg = ""
         for job in db.job_queue:
             task_id = job.task.id

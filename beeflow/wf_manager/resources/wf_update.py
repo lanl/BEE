@@ -15,11 +15,11 @@ from beeflow.common import log as bee_logging
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.common.config_driver import BeeConfig as bc
 
 
 log = bee_logging.setup(__name__)
-
-DB_NAME = wf_utils.get_db_name()
+db_path = wf_utils.get_db_path()
 
 
 def archive_workflow(db, wf_id):
@@ -61,7 +61,7 @@ class WFUpdate(Resource):
 
     def put(self):
         """Update the state of a task from the task manager."""
-        db = connect_db(wfm_db, DB_NAME)
+        db = connect_db(wfm_db, db_path)
         data = self.reqparse.parse_args()
         wf_id = data['wf_id']
         task_id = data['task_id']

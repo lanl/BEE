@@ -22,6 +22,7 @@ from beeflow.common import wf_data
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 
@@ -64,7 +65,7 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
     return archive_dir
 
 
-DB_NAME = wf_utils.get_db_name()
+db_path = wf_utils.get_db_path()
 
 
 class WFList(Resource):
@@ -72,7 +73,7 @@ class WFList(Resource):
 
     def get(self):
         """Return list of workflows to client."""
-        db = connect_db(wfm_db, DB_NAME)
+        db = connect_db(wfm_db, db_path)
         workflow_list = db.workflows.get_workflows()
         info = []
         for wf_info in workflow_list:
@@ -85,7 +86,7 @@ class WFList(Resource):
 
     def post(self):
         """Receive a workflow, parse it, and start up a neo4j instance for it."""
-        db = connect_db(wfm_db, DB_NAME)
+        db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
@@ -147,7 +148,7 @@ class WFList(Resource):
 
     def put(self):
         """Reexecute a workflow."""
-        db = connect_db(wfm_db, DB_NAME)
+        db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
