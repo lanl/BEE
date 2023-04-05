@@ -35,6 +35,29 @@ Contact
 For bugs and problems report, suggestions and other general questions regarding the BEE project, email questions to `bee-dev@lanl.gov <bee-dev@lanl.gov>`_.
 
 
+Contributors:
+==========================
+
+* Steven Anaya - `Boogie3D <https://github.com/Boogie3D>`_
+* Paul Bryant - `paulbry <https://github.com/paulbry>`_
+* Rusty Davis - `rstyd <https://github.com/rstyd>`_
+* Jieyang Chen - `JieyangChen7 <https://github.com/JieyangChen7>`_
+* Patricia Grubel - `pagrubel <https://github.com/pagrubel>`_
+* Qiang Guan - `guanxyz <https://github.com/guanxyz>`_
+* Ragini Gupta - `raginigupta6 <https://github.com/raginigupta6>`_
+* Andres Quan - `aquan9 <https://github.com/aquan9>`_
+* Quincy Wofford - `qwofford <https://github.com/qwofford>`_
+* Tim Randles - `trandles-lanl <https://github.com/trandles-lanl>`_
+* Jacob Tronge - `jtronge <https://github.com/jtronge>`_
+
+Concept and Design Contributors
+
+* James Ahrens
+* Allen McPherson
+* Li-Ta Lo
+* Louis Vernon
+
+
 Contributing
 ==========================
 

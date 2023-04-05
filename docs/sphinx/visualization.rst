@@ -30,7 +30,7 @@ connected to a VPN or uses a proxy, you may need to temporarily disable it.
 Also take a look at the README in that directory if you need more information.
 
 Running
-======
+=======
 
 From the frontend where BEE has been launched, you need to run ``beeclient
 metadata ${WF_ID}``, where ``WF_ID`` is the ID of a submitted workflow. You can

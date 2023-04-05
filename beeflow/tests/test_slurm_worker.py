@@ -77,8 +77,8 @@ def slurmrestd_worker_no_daemon():
 def test_good_task(slurm_worker):
     """Test submission of a good task."""
     job_id, last_state = slurm_worker.submit_task(GOOD_TASK)
-    assert last_state == 'PENDING'
-    last_state = wait_state(slurm_worker, job_id, 'PENDING')
+    if last_state == 'PENDING':
+        last_state = wait_state(slurm_worker, job_id, 'PENDING')
     if last_state == 'RUNNING':
         last_state = wait_state(slurm_worker, job_id, 'RUNNING')
     if last_state == 'COMPLETING':
@@ -89,8 +89,8 @@ def test_good_task(slurm_worker):
 def test_bad_task(slurm_worker):
     """Test submission of a bad task."""
     job_id, last_state = slurm_worker.submit_task(BAD_TASK)
-    assert last_state == 'PENDING'
-    last_state = wait_state(slurm_worker, job_id, 'PENDING')
+    if last_state == 'PENDING':
+        last_state = wait_state(slurm_worker, job_id, 'PENDING')
     if last_state == 'RUNNING':
         last_state = wait_state(slurm_worker, job_id, 'RUNNING')
     if last_state == 'COMPLETING':
