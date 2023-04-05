@@ -24,8 +24,9 @@ api = Api(flask_app)
 # We have to call bc.init() here due to how gunicorn works
 bc.init()
 
-
-DB_NAME = 'sched.db'
+bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+db_path = bee_workdir + '/' + 'sched.db'
+#db_path = 'sched.db'
 
 
 class ResourcesHandler(Resource):
@@ -34,7 +35,7 @@ class ResourcesHandler(Resource):
     @staticmethod
     def put():
         """Create a list of resources to use for allocation."""
-        db = connect_db(sched_db, DB_NAME)
+        db = connect_db(sched_db, db_path)
         db.resources.clear()
         resources = [resource_allocation.Resource.decode(r)
                      for r in request.json]
@@ -44,7 +45,7 @@ class ResourcesHandler(Resource):
     @staticmethod
     def get():
         """Get a list of all resources."""
-        db = connect_db(sched_db, DB_NAME)
+        db = connect_db(sched_db, db_path)
         return [r.encode() for r in db.resources]
 
 
@@ -54,7 +55,7 @@ class WorkflowJobHandler(Resource):
     @staticmethod
     def put(workflow_name):  # noqa ('workflow_name' may be used in the future)
         """Schedules a new list of independent tasks with available resources."""
-        db = connect_db(sched_db, DB_NAME)
+        db = connect_db(sched_db, db_path)
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
