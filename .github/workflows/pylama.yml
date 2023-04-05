@@ -15,7 +15,7 @@ jobs:
     name: PyLama Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Lint
         run: |
           pip install pylama==8.4.1 pyflakes==3.0.1 pylint==2.15.9 pydocstyle==6.1.1 2>&1 >/dev/null
