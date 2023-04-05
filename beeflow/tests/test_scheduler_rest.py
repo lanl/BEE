@@ -7,7 +7,6 @@ import tempfile
 import pytest
 
 from beeflow.scheduler.scheduler import create_app
-from beeflow.common.config_driver import BeeConfig as bc
 
 SCHEDULER_TEST_PORT = '5100'
 

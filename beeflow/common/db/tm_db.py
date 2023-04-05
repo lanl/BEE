@@ -21,8 +21,8 @@ class SubmitQueue:
         """Create an iterator for going over all elements."""
         stmt = 'SELECT task FROM submit_queue ORDER BY id ASC'
         result = bdb.getall(self.db_file, stmt)
-        for j in result:
-            task = jsonpickle.decode(j[0])
+        for rslt in result:
+            task = jsonpickle.decode(rslt[0])
             yield task
 
     def count(self):
@@ -68,8 +68,6 @@ class JobQueue:
         stmt = 'SELECT id, task, job_id, job_state FROM job_queue ORDER BY id ASC'
         result = bdb.getall(self.db_file, stmt)
         for j in result:
-            log.info(f'RESULT {j}')
-            log.info('')
             id_ = j[0]
             task = jsonpickle.decode(j[1])
             job_id = j[2]

@@ -123,7 +123,6 @@ def resolve_environment(task):
 
 def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
-    print(f'SUBMIT: {db_path}')
     db = connect_db(tm_db, db_path)
     while db.submit_queue.count() >= 1:
         # Single value dictionary

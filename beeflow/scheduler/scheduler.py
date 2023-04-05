@@ -26,7 +26,6 @@ bc.init()
 
 bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 db_path = bee_workdir + '/' + 'sched.db'
-#db_path = 'sched.db'
 
 
 class ResourcesHandler(Resource):
@@ -93,7 +92,6 @@ def load_config_values():
 
     for key in conf:
         conf[key] = bc.get('scheduler', key)
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     # Set some defaults
     if not conf['log']:
         conf['log'] = '/'.join([bee_workdir, 'logs', 'scheduler.log'])

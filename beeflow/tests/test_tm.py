@@ -1,4 +1,4 @@
-"""Unit tests for the task manager"""
+"""Unit tests for the task manager."""
 
 import tempfile
 import os
@@ -108,7 +108,6 @@ def test_remove_task(flask_client, mocker, temp_db):  # noqa
 
     response = flask_client.delete('/bee_tm/v1/task/')
 
-    print(f'response: {response.get_json()}')
     msg = response.get_json()['msg']
     status = response.status_code
     assert status == 200
