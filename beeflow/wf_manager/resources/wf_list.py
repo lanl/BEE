@@ -18,8 +18,10 @@ from beeflow.common.parser import CwlParser, CwlParseError
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
-from beeflow.wf_manager.common import wf_db
 from beeflow.common import wf_data
+
+from beeflow.common.db import wfm_db
+from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
 
@@ -62,16 +64,20 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
     return archive_dir
 
 
+db_path = wf_utils.get_db_path()
+
+
 class WFList(Resource):
     """Interacts with existing workflows."""
 
     def get(self):
         """Return list of workflows to client."""
-        workflow_list = wf_db.get_workflows()
+        db = connect_db(wfm_db, db_path)
+        workflow_list = db.workflows.get_workflows()
         info = []
         for wf_info in workflow_list:
             wf_id = wf_info.workflow_id
-            wf_status = wf_info.status
+            wf_status = wf_info.state
             wf_name = wf_info.name
             info.append([wf_name, wf_id, wf_status])
         resp = make_response(jsonify(workflow_list=jsonpickle.encode(info)), 200)
@@ -79,6 +85,7 @@ class WFList(Resource):
 
     def post(self):
         """Receive a workflow, parse it, and start up a neo4j instance for it."""
+        db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
@@ -115,11 +122,10 @@ class WFList(Resource):
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
         gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
-        wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
+        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
 
         try:
-            # wfi = parse_workflow(wf_path, main_cwl, yaml_file)
             wfi = wf_utils.get_workflow_interface(wf_id)
             parse_workflow(wfi, wf_id, wf_dir, main_cwl, yaml_file)
         except CwlParseError as err:
@@ -134,13 +140,14 @@ class WFList(Resource):
             metadata = wfi.get_task_metadata(task)
             metadata['workdir'] = wf_workdir
             wfi.set_task_metadata(task, metadata)
-            wf_db.add_task(task.id, wf_id, task.name, "WAITING")
+            db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
         return resp
 
     def put(self):
         """Reexecute a workflow."""
+        db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
@@ -171,7 +178,7 @@ class WFList(Resource):
         https_port = wf_utils.get_open_port()
         gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port,
                                         https_port, reexecute=True)
-        wf_db.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
+        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
         wfi = wf_utils.get_workflow_interface(wf_id)
         wfi.reset_workflow(wf_id)
