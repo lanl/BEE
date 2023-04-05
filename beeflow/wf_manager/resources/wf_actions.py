@@ -7,7 +7,6 @@ from beeflow.wf_manager.resources import wf_utils
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
-from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()

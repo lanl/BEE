@@ -51,9 +51,9 @@ class Workflows:
 
     def __init__(self, db_file):
         """Initialize Task, db_file, and Workflow object."""
-        self.Task = namedtuple("Task", "id task_id workflow_id name resource state slurm_id")
+        self.Task = namedtuple("Task", "id task_id workflow_id name resource state slurm_id") #noqa
         self.db_file = db_file
-        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir bolt_port gdb_pid")
+        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir bolt_port gdb_pid") #noqa
 
     def get_workflow(self, workflow_id):
         """Return a workflow object."""

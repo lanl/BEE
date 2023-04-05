@@ -15,7 +15,6 @@ from beeflow.common import log as bee_logging
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
-from beeflow.common.config_driver import BeeConfig as bc
 
 
 log = bee_logging.setup(__name__)
