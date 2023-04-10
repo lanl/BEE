@@ -4,6 +4,7 @@
 #SBATCH --error={{task_save_path}}/{{task_name}}-{{task_id}}.err
 #SBATCH -N {{ nodes }}
 #SBATCH -n {{ ntasks }}
+#SBATCH --open-mode=append
 
 set -e
 
