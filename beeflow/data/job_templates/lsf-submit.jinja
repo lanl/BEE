@@ -7,6 +7,8 @@
 #BSUB -nnodes 1
 {{ env_code }}
 
+set -e
+
 # pre commands
 {% for cmd in pre_commands %}
 {{ cmd.args|join(' ') }}

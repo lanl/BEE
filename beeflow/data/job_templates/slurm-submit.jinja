@@ -5,6 +5,8 @@
 #SBATCH -N {{ nodes }}
 #SBATCH -n {{ ntasks }}
 
+set -e
+
 {# Macro around srun to make it easier to emit commands #}
 {% macro srun(cmd) %}
 {% if cmd.type == 'one-per-node' %}

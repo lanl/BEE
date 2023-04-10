@@ -205,13 +205,15 @@ def update_jobs():
         job_id = job.job_id
         job_state = job.job_state
         new_job_state = worker.query_task(job_id)
+        log.info(f'Updating job: {new_job_state}')
 
         # If state changes update the WFM
         if job_state != new_job_state:
             db.job_queue.update_job_state(id_, new_job_state)
-            if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
+            if new_job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = get_task_checkpoint(task)
+                log.info(f'TIMELIMIT/TIMEOUT task_checkpoint: {task_checkpoint}')
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
