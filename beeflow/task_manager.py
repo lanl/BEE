@@ -20,17 +20,18 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from beeflow.common.config_driver import BeeConfig as bc
 
+from beeflow.common.db.bdb import connect_db
+
 # This must be imported before calling other parts of BEE
 bc.init()
 
-print(sys.argv)
 
 from beeflow.common import log as bee_logging
 from beeflow.common.build_interfaces import build_main
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.connection import Connection
 import beeflow.common.worker as worker_pkg
-from beeflow.common.db import tm
+from beeflow.common.db import tm_db
 
 
 log = bee_logging.setup(__name__)
@@ -41,25 +42,8 @@ runtime = bc.get('task_manager', 'container_runtime')
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-# submit_queue = []  # tasks ready to be submitted
-# job_queue = []  # jobs that are being monitored
-DB_PATH = os.path.join(bc.get('DEFAULT', 'bee_workdir'), 'tm.db')
-
-
-def connect_db(fn):
-    """Connect to the TM database."""
-
-    def wrap(*pargs, **kwargs):
-        """Wrap the function."""
-        # Check for the TESTING_DB_PATH for running the unit tests
-        try:
-            db_path = flask_app.config['TESTING_DB_PATH']
-        except KeyError:
-            db_path = DB_PATH
-        with tm.open_db(db_path) as db:
-            return fn(db, *pargs, **kwargs)
-
-    return wrap
+bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+db_path = bee_workdir + '/' + 'tm.db'
 
 
 def _url():
@@ -137,9 +121,9 @@ def resolve_environment(task):
     build_main(task)
 
 
-@connect_db
-def submit_jobs(db):
+def submit_jobs():
     """Submit all jobs currently in submit queue to the workload scheduler."""
+    db = connect_db(tm_db, db_path)
     while db.submit_queue.count() >= 1:
         # Single value dictionary
         task = db.submit_queue.pop()
@@ -210,40 +194,37 @@ def get_restart_file(task_checkpoint, task_workdir):
         raise RuntimeError('Missing checkpoint file for task') from None
 
 
-@connect_db
-def update_jobs(db):
+def update_jobs():
     """Check and update states of jobs in queue, remove completed jobs."""
+    db = connect_db(tm_db, db_path)
     # Need to make a copy first
     job_q = list(db.job_queue)
     for job in job_q:
-        id_ = job['id']
-        task = job['task']
-        job_id = job['job_id']
-        job_state = worker.query_task(job_id)
+        id_ = job.id
+        task = job.task
+        job_id = job.job_id
+        job_state = job.job_state
+        new_job_state = worker.query_task(job_id)
 
         # If state changes update the WFM
-        if job_state != job['job_state']:
-            log.info(f'{task.name} {job["job_state"]} -> {job_state}')
-            # job['job_state'] = job_state
-            db.job_queue.update_job_state(id_, job_state)
+        if job_state != new_job_state:
+            db.job_queue.update_job_state(id_, new_job_state)
             if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = get_task_checkpoint(task)
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
-                    log.info(f'Restart: {task.name} task_info: {task_info}')
-                    update_task_state(task.workflow_id, task.id, job_state, task_info=task_info)
+                    update_task_state(task.workflow_id, task.id, new_job_state,
+                                      task_info=task_info)
                 else:
-                    update_task_state(task.workflow_id, task.id, job_state)
+                    update_task_state(task.workflow_id, task.id, new_job_state)
             else:
-                update_task_state(task.workflow_id, task.id, job_state)
+                update_task_state(task.workflow_id, task.id, new_job_state)
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
             db.job_queue.remove_by_id(id_)
-            # job_queue.remove(job)
-            log.info(f'Job {job_id} done {task.name}: removed from job status queue')
 
 
 def process_queues():
@@ -254,7 +235,7 @@ def process_queues():
 
 if "pytest" not in sys.modules:
     scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
-    scheduler.add_job(func=process_queues, trigger="interval", seconds=8)
+    scheduler.add_job(func=process_queues, trigger="interval", seconds=30)
     scheduler.start()
 
     # This kills the scheduler when the process terminates
@@ -269,9 +250,9 @@ class TaskSubmit(Resource):
         """Intialize request."""
 
     @staticmethod
-    @connect_db
-    def post(db):
+    def post():
         """Receives task from WFM."""
+        db = connect_db(tm_db, db_path)
         parser = reqparse.RequestParser()
         parser.add_argument('tasks', type=str, location='json')
         data = parser.parse_args()
@@ -287,14 +268,14 @@ class TaskActions(Resource):
     """Actions to take for tasks."""
 
     @staticmethod
-    @connect_db
-    def delete(db):
+    def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
+        db = connect_db(tm_db, db_path)
         cancel_msg = ""
         for job in db.job_queue:
-            task_id = job['task'].id
-            job_id = job['job_id']
-            name = job['task'].name
+            task_id = job.task.id
+            job_id = job.job_id
+            name = job.task.name
             log.info(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)

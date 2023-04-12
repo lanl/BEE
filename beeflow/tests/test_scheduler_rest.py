@@ -2,11 +2,11 @@
 
 Tests of the REST interface for BEE Scheduler.
 """
+import os
 import tempfile
 import pytest
 
 from beeflow.scheduler.scheduler import create_app
-
 
 SCHEDULER_TEST_PORT = '5100'
 
@@ -26,9 +26,10 @@ def scheduler(mocker):
     app.config.update({
         'TESTING': True,
     })
-    with tempfile.NamedTemporaryFile() as fp:
-        mocker.patch('beeflow.scheduler.scheduler.get_db_path', return_value=fp.name)
-        yield app.test_client()
+    fname = tempfile.mktemp(suffix='.db')
+    mocker.patch('beeflow.scheduler.scheduler.db_path', fname)
+    yield app.test_client()
+    os.remove(fname)
 
 
 def test_schedule_job_no_resources(scheduler):
