@@ -234,42 +234,6 @@ def join_path(*pargs):
     return path
 
 
-def job_template_init(path, cur_opts):
-    """Job template init function.
-
-    :param path: chosen path of Jinja job template file
-    :param cur_opts: current chosen options from the config generator
-    :return: initialized Jinja template path
-    """
-    path = os.path.expanduser(path)
-    if os.path.exists(path):
-        return path
-    print('Check that options (like accounts)for your particular system are satisfied.')
-    if not check_yes(f'Do you want to write a default job template to:\n "{path}"?'):
-        return path
-    # Check for workload_scheduler in cur_opts (NB: this will need to be updated
-    # if the option name changes later on)
-    if 'DEFAULT' in cur_opts and 'workload_scheduler' in cur_opts['DEFAULT']:
-        template = cur_opts['DEFAULT']['workload_scheduler']
-    else:
-        template = check_choice('What template should be generated?', ('Slurm', 'LSF', 'Simple'))
-    template_files = {
-        'Slurm': 'slurm-submit.jinja',
-        'LSF': 'lsf-submit.jinja',
-    }
-    if template not in template_files:
-        raise NotImplementedError(f'generation of template file "{template}" is not implemented')
-    fname = template_files[template]
-    # I don't like how this is done, but there seems to be some difficulties
-    # with using the pkgutil.get_data() method and the importlib.resources
-    # module.
-    common = os.path.dirname(__file__)
-    beeflow = os.path.dirname(common)
-    file_path = join_path(beeflow, 'data', 'job_templates', fname)
-    shutil.copy(file_path, path)
-    return path
-
-
 def bee_workdir_init(path, _cur_opts):
     """BEE workdir init function.
 
@@ -354,14 +318,11 @@ VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charlie
                  info='container runtime to use for configuration')
 VALIDATOR.option('task_manager', 'runner_opts', attrs={'default': ''},
                  info='special runner options to pass to the runner opts')
-# Note: I've added a special attrs keyword which can include anything. In this
-# case it's being used to store a special 'init' function that can be used to
-# initialize the parameter when a user is generating a new configuration.
-VALIDATOR.option('task_manager', 'job_template',
-                 info='job template to use for generating submission scripts',
-                 validator=validate_file,
-                 attrs={'init': job_template_init, 'default': join_path(CONF_DIR,
-                        'slurm-submit.jinja')})
+
+# Note: The special attrs keyword can include anything. One use case is for
+# storing a special 'init' function that can be used to initialize the
+# parameter when a user is generating a new configuration.
+
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
@@ -562,8 +523,6 @@ class ConfigGenerator:
         print('Before running BEE, check defaults in the configuration file:',
               f'\n\t{self.fname}',
               '\n ** See documentation for values you should refrain from editing! **',
-              '\n\nThe job template configured is:',
-              f'\n\t{self.sections["task_manager"]["job_template"]}',
               '\n ** Include job options (such as account) required for this system.**')
         print('\n(Try `beecfg info` to see more about each option)')
         print(70 * '#')

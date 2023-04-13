@@ -114,14 +114,8 @@ option).
 .. _paper: https://ieeexplore.ieee.org/document/9308116
 
 BEE's ``beeflow:MPIRequirement`` attempts to be as configurable as possible for
-running HPC jobs with MPI. Currently, we use a special :ref:`Jinja file` that is
-used as a template for generating submission scripts. All options in the
-``beeflow:MPIRequirement`` get passed to the :ref:`Jinja file` template and can
-then be used to make step-level decisions for running MPI jobs. Note that we're
-also exploring other ways to implement this directly from the options within
-the CWL files, instead of using a template file.
-
-An example ``beeflow:MPIRequirement`` in BEE is shown below::
+running HPC jobs with MPI. An example ``beeflow:MPIRequirement`` in BEE is
+shown below::
 
     beeflow:MPIRequirement:
       nodes: 10
@@ -130,8 +124,6 @@ An example ``beeflow:MPIRequirement`` in BEE is shown below::
 The values for ``nodes`` and  ``ntasks`` are then passed to the template and
 can be used to request the required resources from the underlying scheduler on
 submission.
-
-See our section on the :ref:`Jinja file` for more info on how this works currently.
 
 beeflow:CheckpointRequirement
 -----------------------------

@@ -205,7 +205,6 @@ def update_jobs():
         job_id = job.job_id
         job_state = job.job_state
         new_job_state = worker.query_task(job_id)
-        log.info(f'Updating job: {new_job_state}')
 
         # If state changes update the WFM
         if job_state != new_job_state:
@@ -309,7 +308,6 @@ if worker_class is None:
 worker_kwargs = {
     'bee_workdir': bc.get('DEFAULT', 'bee_workdir'),
     'container_runtime': bc.get('task_manager', 'container_runtime'),
-    'job_template': bc.get('task_manager', 'job_template'),
     # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
     'runner_opts': bc.get('task_manager', 'runner_opts'),
 }

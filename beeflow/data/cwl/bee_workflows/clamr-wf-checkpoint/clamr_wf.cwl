@@ -65,7 +65,8 @@ steps:
             file_regex: backup[0-9]*.crx 
             restart_parameters: -R
             num_tries: 3
-            
+        beeflow:SchedulerRequirement:
+            timeLimit: 00:00:10
   ffmpeg:
     run: ffmpeg.cwl
     in:

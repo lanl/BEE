@@ -93,7 +93,6 @@ class WFUpdate(Resource):
                 json.dump(json.loads(data['output']), fp, indent=4)
 
         if 'task_info' in data and data['task_info'] is not None:
-            log.info(f'restarting with task_info: {data["task_info"]}')
             task_info = jsonpickle.decode(data['task_info'])
             checkpoint_file = task_info['checkpoint_file']
             new_task = wfi.restart_task(task, checkpoint_file)
@@ -127,6 +126,6 @@ class WFUpdate(Resource):
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)
         return resp
-# Ignoring C901: "'WFUPdate.put' is too complex" - this requires a refactor (or
-#                maybe the LOC limit is too low)
-# pylama:ignore=C901
+# Ignoring C901,R0915: "'WFUPdate.put' is too complex" - this requires a refactor
+#                      (or maybe the LOC limit is too low)
+# pylama:ignore=C901,R0915

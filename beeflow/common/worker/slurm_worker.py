@@ -20,10 +20,9 @@ class BaseSlurmWorker(Worker):
     """Base slurm worker code."""
 
     def build_text(self, task):
-        """Build text for task script; use template if it exists."""
+        """Build text for task script."""
         task_save_path = self.task_save_path(task)
         crt_res = self.crt.run_text(task)
-        requirements = dict(task.requirements)
         stdout_param = ['--output', task.stdout]
         stderr_param = ['--error', task.stderr]
         if task.stdout and task.stderr:
@@ -36,24 +35,48 @@ class BaseSlurmWorker(Worker):
             main_command_srun_args = []
         nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
+        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
+        time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
+                                          default='00:10:00')
 
-        job_text = self.template.render(
-            task_save_path=task_save_path,
-            task_name=task.name,
-            task_id=task.id,
-            workflow_id=task.workflow_id,
-            env_code=crt_res.env_code,
-            pre_commands=crt_res.pre_commands,
-            main_command=crt_res.main_command,
-            post_commands=crt_res.post_commands,
-            requirements=requirements,
-            nodes=nodes,
-            ntasks=ntasks,
-            main_command_srun_args=main_command_srun_args,
-            # Default MPI version
-            mpi_version='pmi2',
-        )
-        return job_text
+        # sbatch header
+        script = [
+            '#!/bin/bash',
+            f'#SBATCH --job-name={task.name}-{task.id}',
+            f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
+            f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
+            f'#SBATCH -N {nodes}',
+            f'#SBATCH -n {ntasks}',
+            '#SBATCH --open-mode=append',
+            f'#SBATCH --time={time_limit}',
+        ]
+
+        # Return immediately on error
+        script.append('set -e')
+        script.append(crt_res.env_code)
+
+        def srun(script_lines, script_cmd):
+            """Wrap a pre or post command with srun."""
+            cmd_args = ' '.join(script_cmd.args)
+            if script_cmd.type == 'one-per-node':
+                script.append(f'srun -N {nodes} -n {nodes} {cmd_args}')
+            else:
+                script_lines.append(f'srun {cmd_args}')
+
+        # Pre commands
+        for cmd in crt_res.pre_commands:
+            srun(script, cmd)
+
+        # Main command
+        srun_args = ' '.join(main_command_srun_args)
+        print(crt_res.main_command)
+        args = ' '.join(crt_res.main_command.args)
+        script.append(f'srun --mpi={mpi_version} {srun_args} {args}')
+
+        for cmd in crt_res.post_commands:
+            srun(script, cmd)
+
+        return '\n'.join(script)
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
