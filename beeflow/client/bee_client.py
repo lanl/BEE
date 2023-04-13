@@ -203,7 +203,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
             error_exit(f"Workflow CWL file \"{main_cwl}\" doesn't exist")
 
     # Make sure the yaml is an absolute path and exists unless wf_path is tarball
-    if os.path.isdir(wf_path) and yaml is not None:
+    if os.path.isdir(wf_path):
         yaml = os.path.expanduser(yaml)
         yaml = os.path.abspath(yaml)
         if not os.path.exists(yaml):
