@@ -45,13 +45,11 @@ class PyHpcBeeflow(PythonPackage):
     depends_on('py-python-daemon', type=('build','run'))
     depends_on('py-flask', type=('build','run'))
     depends_on('py-markupsafe', type=('build','run'))
-    depends_on('neo4j@4.0.0:', type=('build','run'))
+    depends_on('neo4j@3.5.16', type=('build','run'))
     depends_on('charliecloud', type=('build','run'))
     depends_on('py-pyyaml', type=('build','run'))
     depends_on('py-flask-restful', type=('build','run'))
-    depends_on('py-celery@4.4.7:', type=('build','run'))
     depends_on('py-redis', type=('build','run'))
-    depends_on('py-pylint', type=('build','run'))
     depends_on('py-apscheduler', type=('build','run'))
     
     depends_on('py-cwl-utils', type=('build','run'))
@@ -60,9 +58,8 @@ class PyHpcBeeflow(PythonPackage):
 
     def patch(self):
         # See https://python-poetry.org/docs/pyproject/#poetry-and-pep-517
-        with working_dir(self.build_directory):
-            if self.spec.satisfies('@:0.1.3'):
-                filter_file("poetry>=0.12", "poetry_core>=1.0.0", 'pyproject.toml')
-                filter_file(
-                    "poetry.masonry.api", "poetry.core.masonry.api", 'pyproject.toml'
-                )
+        if self.spec.satisfies('@:0.1.3'):
+            filter_file("poetry>=0.12", "poetry_core>=1.0.0", 'pyproject.toml')
+            filter_file(
+                "poetry.masonry.api", "poetry.core.masonry.api", 'pyproject.toml'
+            )
