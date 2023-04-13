@@ -195,20 +195,6 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
     if not os.path.exists(workdir):
         error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
 
-    # Make sure the main_cwl is an absolute path and exists unless wf_path is tarball
-    if os.path.isdir(wf_path):
-        main_cwl = os.path.expanduser(main_cwl)
-        main_cwl = os.path.abspath(main_cwl)
-        if not os.path.exists(main_cwl):
-            error_exit(f"Workflow CWL file \"{main_cwl}\" doesn't exist")
-
-    # Make sure the yaml is an absolute path and exists unless wf_path is tarball
-    if os.path.isdir(wf_path):
-        yaml = os.path.expanduser(yaml)
-        yaml = os.path.abspath(yaml)
-        if not os.path.exists(yaml):
-            error_exit(f"Workflow parameter YAML file \"{yaml}\" doesn't exist")
-
     # TODO: Can all of this information be sent as a file?
     data = {
         'wf_name': wf_name.encode(),
