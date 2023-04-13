@@ -126,6 +126,7 @@ def create_image():
     container_dir = get_container_dir()
     # Build new dependency container
     try:
+        # TODO add check that depo_image and container dir actually exists
         subprocess.run(["ch-convert", "-i", "tar", "-o", "dir",
                         str(dep_img), str(container_dir)],
                        stdout=sys.stdout, stderr=sys.stderr, check=True)
