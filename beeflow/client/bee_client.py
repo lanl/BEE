@@ -11,6 +11,7 @@ import inspect
 import pathlib
 import shutil
 import subprocess
+import tempfile
 import textwrap
 import time
 import jsonpickle
@@ -181,7 +182,22 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
             bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-            package(wf_path, pathlib.Path(bee_workdir))
+            # Copy main_cwl and yaml to tempdir and tar it up
+            tempdir = tempfile.mkdtemp()
+            os.rename(tempdir, os.path.dirname(tempdir) + "/" + wf_path.name)
+            tempdir = os.path.dirname(tempdir) + "/" + wf_path.name
+            tempdir_path = pathlib.Path(tempdir)
+            shutil.copytree(wf_path, tempdir_path, dirs_exist_ok=True)
+            main_cwl = os.path.expanduser(main_cwl)
+            main_cwl = os.path.abspath(main_cwl)
+            yaml = os.path.expanduser(yaml)
+            yaml = os.path.abspath(yaml)
+            if not pathlib.Path(tempdir + "/" + os.path.basename(main_cwl)).is_file():
+                shutil.copy2(main_cwl, tempdir_path)
+            if not pathlib.Path(tempdir + "/" + os.path.basename(yaml)).is_file():
+                shutil.copy2(yaml, tempdir_path)
+            package(tempdir_path, pathlib.Path(bee_workdir))
+            shutil.rmtree(tempdir_path)
             tarball_path = pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz")
             wf_tarball = open(tarball_path, 'rb')
         else:
@@ -199,8 +215,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
     data = {
         'wf_name': wf_name.encode(),
         'wf_filename': os.path.basename(wf_path).encode(),
-        'main_cwl': main_cwl,
-        'yaml': yaml,
+        'main_cwl': os.path.basename(main_cwl),
+        'yaml': os.path.basename(yaml),
         'workdir': workdir
     }
     files = {
