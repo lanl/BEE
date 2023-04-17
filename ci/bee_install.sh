@@ -39,6 +39,7 @@ use_archive = False
 bee_dep_image = $NEO4J_CONTAINER
 beeflow_pidfile = $HOME/beeflow.pid
 beeflow_socket = $HOME/beeflow.sock
+max_restarts = 2
 
 [task_manager]
 socket = $HOME/tm.sock
