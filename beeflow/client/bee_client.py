@@ -192,10 +192,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
             main_cwl = os.path.abspath(main_cwl)
             yaml = os.path.expanduser(yaml)
             yaml = os.path.abspath(yaml)
-            if not pathlib.Path(tempdir + "/" + os.path.basename(main_cwl)).is_file():
-                shutil.copy2(main_cwl, tempdir_path)
-            if not pathlib.Path(tempdir + "/" + os.path.basename(yaml)).is_file():
-                shutil.copy2(yaml, tempdir_path)
+            shutil.copy2(main_cwl, tempdir_path)
+            shutil.copy2(yaml, tempdir_path)
             package(tempdir_path, pathlib.Path(bee_workdir))
             shutil.rmtree(tempdir_path)
             tarball_path = pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz")
