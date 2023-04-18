@@ -25,6 +25,8 @@ from beeflow.common import cli_connection
 
 
 bc.init()
+# Max number of times a component can be restarted
+MAX_RESTARTS = bc.get('DEFAULT', 'max_restarts')
 
 
 class ComponentManager:
@@ -43,6 +45,8 @@ class ComponentManager:
             self.components[name] = {
                 'fn': fn,
                 'deps': deps,
+                'restart_count': 0,
+                'failed': False,
             }
 
         return wrap
@@ -90,12 +94,24 @@ class ComponentManager:
             self.procs[name] = component['fn']()
 
     def poll(self):
-        """Poll each process to check for errors."""
-        for name, proc in self.procs.items():
-            returncode = proc.poll()
+        """Poll each process to check for errors, restart failed processes."""
+        for name in self.procs:  # noqa no need to iterate with items() since self.procs may be set
+            component = self.components[name]
+            if component['failed']:
+                continue
+            returncode = self.procs[name].poll()
             if returncode is not None:
                 log = log_fname(name)
                 print(f'Component "{name}" failed, check log "{log}"')
+                if component['restart_count'] >= MAX_RESTARTS:
+                    print(f'Component "{name}" has been restarted {MAX_RESTARTS} '
+                          'times, not restarting again')
+                    component['failed'] = True
+                else:
+                    restart_count = component['restart_count']
+                    print(f'Attempting restart {restart_count} of "{name}"...')
+                    self.procs[name] = component['fn']()
+                    component['restart_count'] += 1
 
     def status(self):
         """Return the statuses for each process in a dict."""

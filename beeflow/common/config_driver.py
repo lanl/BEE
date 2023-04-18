@@ -302,6 +302,9 @@ VALIDATOR.option('DEFAULT', 'beeflow_socket',
                  validator=validate_parent_dir,
                  attrs={'default': DEFAULT_BEEFLOW_SOCKET},
                  info='location of beeflow socket')
+VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
+                 attrs={'default': 3},
+                 info='max number of times beeflow will restart a component on failure')
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
 VALIDATOR.option('workflow_manager', 'socket', validator=validate_parent_dir,
