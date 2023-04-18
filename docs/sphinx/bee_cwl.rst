@@ -97,6 +97,9 @@ Suboption Name            Usage/Meaning/Requirements
 
 ``beeflow:containerName`` ``beeflow:containerName: "containerName"`` |vspace| |br|
                           Specifies the container name. Used in conjunction with dockerFile.
+``beeflow:forceType``     ``beeflow:forceType: "forceType"`` |vspace| |br|
+                          Charliecloud specific option that |vspace| |br|
+                          corresponds to ``ch-image``'s ``--force`` argument.
 ========================= =========================================================
 
 beeflow:MPIRequirement
@@ -150,3 +153,13 @@ For the above example ``file_path`` is the location of the checkpoint_file. The
 filenames, the ``restart parameter`` will be added to the run command followed
 by the path to the latest checkpoint file, and ``num_tries`` specifies the maximum
 number of times the task will be restarted.
+
+beeflow:SchedulerRequirement
+----------------------------
+
+This requirement is designed for specifying additional information for a
+scheduler such as Slurm. Right now this only supports a ``timeLimit`` option
+and will need additional properties added later on. An example is shown below::
+
+    beeflow:SchedulerRequirement:
+      timeLimit: 00:00:10
