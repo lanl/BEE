@@ -212,6 +212,7 @@ def update_jobs():
             if new_job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = get_task_checkpoint(task)
+                log.info(f'state: {new_job_state}')
                 log.info(f'TIMELIMIT/TIMEOUT task_checkpoint: {task_checkpoint}')
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
