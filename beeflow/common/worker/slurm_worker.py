@@ -12,12 +12,19 @@ import requests
 
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
+from beeflow.common import validation
 
 log = bee_logging.setup(__name__)
 
 
 class BaseSlurmWorker(Worker):
     """Base slurm worker code."""
+
+    def __init__(self, default_account='', default_time_limit='', **kwargs):
+        """Initialize the base slurm worker."""
+        super().__init__(**kwargs)
+        self.default_account = default_account
+        self.default_time_limit = default_time_limit
 
     def build_text(self, task):
         """Build text for task script."""
@@ -37,7 +44,10 @@ class BaseSlurmWorker(Worker):
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
         mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
         time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
-                                          default='00:10:00')
+                                          default=self.default_time_limit)
+        time_limit = validation.time_limit(time_limit)
+        account = task.get_requirement('beeflow:SchedulerRequirement', 'account',
+                                       default=self.default_account)
 
         # sbatch header
         script = [
@@ -48,8 +58,11 @@ class BaseSlurmWorker(Worker):
             f'#SBATCH -N {nodes}',
             f'#SBATCH -n {ntasks}',
             '#SBATCH --open-mode=append',
-            f'#SBATCH --time={time_limit}',
         ]
+        if time_limit:
+            script.append(f'#SBATCH --time={time_limit}')
+        if account:
+            script.append(f'#SBATCH -A {account}')
 
         # Return immediately on error
         script.append('set -e')
@@ -110,7 +123,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
 
     def __init__(self, bee_workdir, openapi_version, **kwargs):
         """Create a new Slurmrestd Worker object."""
-        super().__init__(bee_workdir, **kwargs)
+        super().__init__(bee_workdir=bee_workdir, **kwargs)
         # Pull slurm socket configs from kwargs (Uses getpass.getuser() instead
         # of os.getlogin() because of an issue with using getlogin() without a
         # controlling terminal)

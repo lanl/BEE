@@ -157,9 +157,15 @@ number of times the task will be restarted.
 beeflow:SchedulerRequirement
 ----------------------------
 
-This requirement is designed for specifying additional information for a
-scheduler such as Slurm. Right now this only supports a ``timeLimit`` option
-and will need additional properties added later on. An example is shown below::
+This requirement is designed for specifying additional information that will be
+passed to a scheduler such as Slurm on job submission. It currently supports
+the ``timeLimit`` option and an optional ``account`` field which may be useful
+if running jobs with different accounts (if you want to run all workflows with
+the same account it's best to set this with the ``default_account`` option
+under the ``job`` section in the bee.conf file).
+
+An example is shown below::
 
     beeflow:SchedulerRequirement:
       timeLimit: 00:00:10
+      account: account12345

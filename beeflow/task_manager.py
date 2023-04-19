@@ -311,6 +311,8 @@ worker_kwargs = {
     'container_runtime': bc.get('task_manager', 'container_runtime'),
     # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
     'runner_opts': bc.get('task_manager', 'runner_opts'),
+    'default_account': bc.get('job', 'default_account'),
+    'default_time_limit': bc.get('job', 'default_time_limit'),
 }
 if WLS == 'Slurm':
     worker_kwargs['use_commands'] = bc.get('slurm', 'use_commands')

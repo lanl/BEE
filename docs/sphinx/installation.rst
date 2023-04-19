@@ -62,7 +62,8 @@ You will need to setup the bee configuration file that will be located in:
 Before creating a bee.conf file you will need to know the path to your **BEE
 dependency container** and the type of workload scheduler (Slurm or LSF). (On
 LANL systems you may use the BEE provided container:
-**/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**).
+**/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**). Depending on the system, you
+may also need to know an account name to use.
 
 Once you are ready type ``beecfg new``.
 

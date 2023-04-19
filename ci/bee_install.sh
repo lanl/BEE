@@ -46,8 +46,12 @@ runner_opts =
 
 [charliecloud]
 image_mntdir = /tmp
-chrun_opts =
+chrun_opts = --home
 setup =
+
+[job]
+default_account =
+default_time_limit =
 
 [graphdb]
 hostname = localhost
