@@ -1,7 +1,8 @@
 """Unit tests for dependency manager."""
 
-import os
 import io
+import os
+import tempfile
 
 import pytest
 from beeflow.wf_manager.common import dep_manager
@@ -40,6 +41,25 @@ def test_create_image_no_crt(mocker):
     with pytest.raises(dep_manager.NoContainerRuntime):
         dep_manager.create_image()
 
+
+def test_start_gdb_noreexecute(mocker):
+    """Test start gdb function."""
+    # Don't want the side effects of this command
+    mocker.patch('beeflow.wf_manager.common.dep_manager.setup_gdb_configs', 
+                 return_value=True)
+    # Need to mock this in case the tests are run before the config is setup
+    mocker.patch('beeflow.wf_manager.common.dep_manager.setup_gdb_configs', 
+                 return_value=True)
+
+    mocker.patch('beeflow.common.config_driver.BeeConfig.get', )
+    with tempfile.TemporaryDirectory() as mount_dir:
+        bolt_port = 8940
+        http_port = 8950
+        https_port = 8960
+        dep_manager.start_gdb(mount_dir, bolt_port, http_port, https_port, 
+                              reexecute=True)
+
+        
 
 #def test_make_dep_dir():
 #    pass
