@@ -184,8 +184,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
             bee_workdir = bc.get('DEFAULT', 'bee_workdir')
             # Copy main_cwl and yaml to tempdir and tar it up
             tempdir = tempfile.mkdtemp()
-            os.rename(tempdir, os.path.dirname(tempdir) + "/" + wf_path.name)
-            tempdir = os.path.dirname(tempdir) + "/" + wf_path.name
+            #os.rename(tempdir, os.path.dirname(tempdir) + "/" + wf_path.name)
+            #tempdir = os.path.dirname(tempdir) + "/" + wf_path.name
             tempdir_path = pathlib.Path(tempdir)
             shutil.copytree(wf_path, tempdir_path, dirs_exist_ok=True)
             main_cwl = os.path.expanduser(main_cwl)
