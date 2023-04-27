@@ -165,11 +165,6 @@ def match_short_id(wf_id):
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 
-def is_parent(parent, path):
-    """Returns true if the path is a child of the other path."""
-    parent = os.path.abspath(parent)
-    path = os.path.abspath(path)
-    return os.path.commonpath([parent]) == os.path.commonpath([parent, path])
 
 @app.command()
 def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
@@ -181,12 +176,17 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
            no_start: bool = typer.Option(False, '--no-start', '-n',
                                          help='do not start the workflow')):
     """Submit a new workflow."""
+    def is_parent(parent, path):
+        """Return true if the path is a child of the other path."""
+        parent = os.path.abspath(parent)
+        path = os.path.abspath(path)
+        return os.path.commonpath([parent]) == os.path.commonpath([parent, path])
+
     tarball_path = ""
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Run package() if directory
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
-            bee_workdir = bc.get('DEFAULT', 'bee_workdir')
             main_cwl_path = pathlib.Path(main_cwl).resolve()
             yaml_path = pathlib.Path(yaml).resolve()
 
@@ -195,15 +195,15 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
             if not yaml_path.exists():
                 error_exit(f'YAML file {yaml} does not exist')
 
-            cwl_indir = is_parent(wf_path, main_cwl_path) 
-            yaml_indir = is_parent(wf_path, yaml_path) 
+            cwl_indir = is_parent(wf_path, main_cwl_path)
+            yaml_indir = is_parent(wf_path, yaml_path)
             # The CWL and YAML file are already in the workflow directory
             # so we don't need to do anything
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
             if cwl_indir and yaml_indir:
                 package_path = package(wf_path, tempdir_path)
             else:
-                # Create a temp wf directory 
+                # Create a temp wf directory
                 tempdir_wf_path = pathlib.Path(tempdir_path / wf_path.name)
                 shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
                 if not cwl_indir:
@@ -318,8 +318,9 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
         error_exit("Package failed")
     else:
         print(f"Package {tarball} created successfully")
-    
+
     return package_path
+
 
 @app.command()
 def listall():
