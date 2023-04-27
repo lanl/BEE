@@ -167,7 +167,7 @@ app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGr
 
 
 @app.command()
-def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
+def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pylint:disable=R0915
            wf_path: pathlib.Path = typer.Argument(..., help='path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
            yaml: str = typer.Argument(..., help='filename of YAML file'),
