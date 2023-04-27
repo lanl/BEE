@@ -33,12 +33,12 @@ Database
 ===========================
 Task Manager Database
 ---------------------
-.. automodule:: beeflow.common.db.tm
+.. automodule:: beeflow.common.db.tm_db
    :members:
 
 Scheduler Database
 ------------------
-.. automodule:: beeflow.common.db.sched
+.. automodule:: beeflow.common.db.sched_db
    :members:
 
 Configuration
