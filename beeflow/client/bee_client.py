@@ -165,6 +165,11 @@ def match_short_id(wf_id):
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 
+def is_parent(parent, path):
+    """Returns true if the path is a child of the other path."""
+    parent = os.path.abspath(parent)
+    path = os.path.abspath(path)
+    return os.path.commonpath([parent]) == os.path.commonpath([parent, path])
 
 @app.command()
 def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
@@ -182,22 +187,32 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
             bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-            # Copy main_cwl and yaml to tempdir and tar it up
-            tempdir = tempfile.mkdtemp()
-            #os.rename(tempdir, os.path.dirname(tempdir) + "/" + wf_path.name)
-            #tempdir = os.path.dirname(tempdir) + "/" + wf_path.name
-            tempdir_path = pathlib.Path(tempdir)
-            shutil.copytree(wf_path, tempdir_path, dirs_exist_ok=True)
-            main_cwl = os.path.expanduser(main_cwl)
-            main_cwl = os.path.abspath(main_cwl)
-            yaml = os.path.expanduser(yaml)
-            yaml = os.path.abspath(yaml)
-            shutil.copy2(main_cwl, tempdir_path)
-            shutil.copy2(yaml, tempdir_path)
-            package(tempdir_path, pathlib.Path(bee_workdir))
+            main_cwl_path = pathlib.Path(main_cwl).resolve()
+            yaml_path = pathlib.Path(yaml).resolve()
+
+            if not main_cwl_path.exists():
+                error_exit(f'Main CWL file {main_cwl} does not exist')
+            if not yaml_path.exists():
+                error_exit(f'YAML file {yaml} does not exist')
+
+            cwl_indir = is_parent(wf_path, main_cwl_path) 
+            yaml_indir = is_parent(wf_path, yaml_path) 
+            # The CWL and YAML file are already in the workflow directory
+            # so we don't need to do anything
+            tempdir_path = pathlib.Path(tempfile.mkdtemp())
+            if cwl_indir and yaml_indir:
+                package_path = package(wf_path, tempdir_path)
+            else:
+                # Create a temp wf directory 
+                tempdir_wf_path = pathlib.Path(tempdir_path / wf_path.name)
+                shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
+                if not cwl_indir:
+                    shutil.copy2(main_cwl, tempdir_wf_path)
+                if not yaml_indir:
+                    shutil.copy2(yaml, tempdir_wf_path)
+                package_path = package(tempdir_wf_path, tempdir_path)
+            wf_tarball = open(package_path, 'rb')
             shutil.rmtree(tempdir_path)
-            tarball_path = pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz")
-            wf_tarball = open(tarball_path, 'rb')
         else:
             wf_tarball = open(wf_path, 'rb')
     else:
@@ -303,7 +318,8 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
         error_exit("Package failed")
     else:
         print(f"Package {tarball} created successfully")
-
+    
+    return package_path
 
 @app.command()
 def listall():
