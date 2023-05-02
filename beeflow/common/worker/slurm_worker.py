@@ -12,6 +12,7 @@ import requests
 
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
+from beeflow.common import validation
 
 log = bee_logging.setup(__name__)
 
@@ -19,11 +20,16 @@ log = bee_logging.setup(__name__)
 class BaseSlurmWorker(Worker):
     """Base slurm worker code."""
 
+    def __init__(self, default_account='', default_time_limit='', **kwargs):
+        """Initialize the base slurm worker."""
+        super().__init__(**kwargs)
+        self.default_account = default_account
+        self.default_time_limit = default_time_limit
+
     def build_text(self, task):
-        """Build text for task script; use template if it exists."""
+        """Build text for task script."""
         task_save_path = self.task_save_path(task)
         crt_res = self.crt.run_text(task)
-        requirements = dict(task.requirements)
         stdout_param = ['--output', task.stdout]
         stderr_param = ['--error', task.stderr]
         if task.stdout and task.stderr:
@@ -36,24 +42,54 @@ class BaseSlurmWorker(Worker):
             main_command_srun_args = []
         nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
+        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
+        time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
+                                          default=self.default_time_limit)
+        time_limit = validation.time_limit(time_limit)
+        account = task.get_requirement('beeflow:SchedulerRequirement', 'account',
+                                       default=self.default_account)
 
-        job_text = self.template.render(
-            task_save_path=task_save_path,
-            task_name=task.name,
-            task_id=task.id,
-            workflow_id=task.workflow_id,
-            env_code=crt_res.env_code,
-            pre_commands=crt_res.pre_commands,
-            main_command=crt_res.main_command,
-            post_commands=crt_res.post_commands,
-            requirements=requirements,
-            nodes=nodes,
-            ntasks=ntasks,
-            main_command_srun_args=main_command_srun_args,
-            # Default MPI version
-            mpi_version='pmi2',
-        )
-        return job_text
+        # sbatch header
+        script = [
+            '#!/bin/bash',
+            f'#SBATCH --job-name={task.name}-{task.id}',
+            f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
+            f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
+            f'#SBATCH -N {nodes}',
+            f'#SBATCH -n {ntasks}',
+            '#SBATCH --open-mode=append',
+        ]
+        if time_limit:
+            script.append(f'#SBATCH --time={time_limit}')
+        if account:
+            script.append(f'#SBATCH -A {account}')
+
+        # Return immediately on error
+        script.append('set -e')
+        script.append(crt_res.env_code)
+
+        def srun(script_lines, script_cmd):
+            """Wrap a pre or post command with srun."""
+            cmd_args = ' '.join(script_cmd.args)
+            if script_cmd.type == 'one-per-node':
+                script.append(f'srun -N {nodes} -n {nodes} {cmd_args}')
+            else:
+                script_lines.append(f'srun {cmd_args}')
+
+        # Pre commands
+        for cmd in crt_res.pre_commands:
+            srun(script, cmd)
+
+        # Main command
+        srun_args = ' '.join(main_command_srun_args)
+        print(crt_res.main_command)
+        args = ' '.join(crt_res.main_command.args)
+        script.append(f'srun --mpi={mpi_version} {srun_args} {args}')
+
+        for cmd in crt_res.post_commands:
+            srun(script, cmd)
+
+        return '\n'.join(script)
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
@@ -87,7 +123,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
 
     def __init__(self, bee_workdir, openapi_version, **kwargs):
         """Create a new Slurmrestd Worker object."""
-        super().__init__(bee_workdir, **kwargs)
+        super().__init__(bee_workdir=bee_workdir, **kwargs)
         # Pull slurm socket configs from kwargs (Uses getpass.getuser() instead
         # of os.getlogin() because of an issue with using getlogin() without a
         # controlling terminal)

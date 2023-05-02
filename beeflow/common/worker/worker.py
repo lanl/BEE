@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 import os
-import jinja2
 from beeflow.common import log as bee_logging
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 
@@ -51,29 +50,6 @@ class Worker(ABC):
         # Get BEE workdir from config file
         self.workdir = bee_workdir
 
-        # Get template for job
-        self.job_template = kwargs['job_template']
-        if self.job_template:
-            # Make sure that the file exists and is readable
-            try:
-                with open(self.job_template, 'r', encoding='UTF-8') as template_file:
-                    template_file.read()
-                log.info(f'Jobs will use template: {self.job_template}')
-            except ValueError as error:
-                raise RuntimeError(f'Cannot open {self.job_template}, {error}') from error
-            except FileNotFoundError as exc:
-                raise RuntimeError(f'Cannot find job template {self.job_template}') from exc
-            except PermissionError as error:
-                raise RuntimeError(f'Permission error {self.job_template}') from error
-        else:
-            raise RuntimeError('No job_template found for the worker class')
-
-    @property
-    def template(self):
-        """Load the template file."""
-        with open(self.job_template, encoding='UTF-8') as fp:
-            return jinja2.Template(fp.read())
-
     def task_save_path(self, task):
         """Return the task save path used for storing submission scripts output logs."""
         return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
@@ -85,7 +61,7 @@ class Worker(ABC):
 
     @abstractmethod
     def build_text(self, task):
-        """Build text for task script; use template if it exists.
+        """Build text for task script.
 
         :param task: task that we're building a script for
         :type task: Task

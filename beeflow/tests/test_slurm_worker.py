@@ -54,7 +54,6 @@ def slurm_worker(request):
     worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
                                    slurm_socket=slurm_socket, bee_workdir=bee_workdir,
                                    openapi_version=OPENAPI_VERSION,
-                                   job_template=bc.get('task_manager', 'job_template'),
                                    use_commands=request.param)
     yield worker_iface
     time.sleep(1)
@@ -70,7 +69,6 @@ def slurmrestd_worker_no_daemon():
     yield WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
                           slurm_socket=slurm_socket, bee_workdir=bee_workdir,
                           openapi_version=OPENAPI_VERSION,
-                          job_template=bc.get('task_manager', 'job_template'),
                           use_commands=False)
 
 

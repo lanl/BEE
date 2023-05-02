@@ -37,12 +37,8 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         Parse hints and requirements to determine target build
         system. Harvest relevant BeeConfig params in kwargs.
 
-        :param requirements: the workflow requirements
-        :type requirements: set of Requirement instances
-        :param hints: the workflow hints (optional requirements)
-        :type hints: set of Requirement instances
-        :param kwargs: Dictionary of build system config options
-        :type kwargs: set of build system parameters
+        :param task: the task to build for
+        :type task: Task
         """
         # Store build container archive pased on config file or relative to bee_workdir if not set.
         container_archive = bc.get('builder', 'container_archive')
@@ -222,6 +218,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             except FileNotFoundError:
                 pass
 
+        # Get the force type (uses seccomp by default)
+        force_type = self.task.get_requirement('DockerRequirement', 'beeflow:forceType', 'seccomp')
+
         # Out of excuses. Build the image.
         with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8') as tmp:
             # Write the dockerfile to the tempfile
@@ -230,7 +229,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             dockerfile_path = tmp.name
             # Build and run the command
             log.info('Context directory configured. Beginning build.')
-            cmd = (f'ch-image build -t {self.container_name} --force '
+            cmd = (f'ch-image build -t {self.container_name} --force {force_type} '
                    f'-f {dockerfile_path} {context_dir}\n'
                    f'ch-convert -i ch-image -o tar {ch_build_addr} '
                    f'{self.container_archive}/{ch_build_addr}.tar.gz'

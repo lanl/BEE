@@ -209,9 +209,11 @@ def update_jobs():
         # If state changes update the WFM
         if job_state != new_job_state:
             db.job_queue.update_job_state(id_, new_job_state)
-            if job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
+            if new_job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = get_task_checkpoint(task)
+                log.info(f'state: {new_job_state}')
+                log.info(f'TIMELIMIT/TIMEOUT task_checkpoint: {task_checkpoint}')
                 if task_checkpoint:
                     checkpoint_file = get_restart_file(task_checkpoint, task.workdir)
                     task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
@@ -307,9 +309,10 @@ if worker_class is None:
 worker_kwargs = {
     'bee_workdir': bc.get('DEFAULT', 'bee_workdir'),
     'container_runtime': bc.get('task_manager', 'container_runtime'),
-    'job_template': bc.get('task_manager', 'job_template'),
     # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
     'runner_opts': bc.get('task_manager', 'runner_opts'),
+    'default_account': bc.get('job', 'default_account'),
+    'default_time_limit': bc.get('job', 'default_time_limit'),
 }
 if WLS == 'Slurm':
     worker_kwargs['use_commands'] = bc.get('slurm', 'use_commands')

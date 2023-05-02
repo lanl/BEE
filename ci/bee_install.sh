@@ -28,8 +28,6 @@ poetry install -E cloud_extras || exit 1
 
 # BEE Configuration
 mkdir -p ~/.config/beeflow
-JOB_TEMPLATE=$HOME/.config/beeflow/submit.jinja
-cp beeflow/data/job_templates/slurm-submit.jinja $JOB_TEMPLATE
 cat >> ~/.config/beeflow/bee.conf <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
@@ -44,13 +42,16 @@ max_restarts = 2
 [task_manager]
 socket = $HOME/tm.sock
 container_runtime = Charliecloud
-job_template = $JOB_TEMPLATE
 runner_opts =
 
 [charliecloud]
 image_mntdir = /tmp
-chrun_opts =
+chrun_opts = --home
 setup =
+
+[job]
+default_account =
+default_time_limit =
 
 [graphdb]
 hostname = localhost
