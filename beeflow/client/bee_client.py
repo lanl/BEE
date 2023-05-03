@@ -11,6 +11,7 @@ import inspect
 import pathlib
 import shutil
 import subprocess
+import tempfile
 import textwrap
 import time
 import jsonpickle
@@ -166,7 +167,7 @@ app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGr
 
 
 @app.command()
-def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
+def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pylint:disable=R0915
            wf_path: pathlib.Path = typer.Argument(..., help='path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
            yaml: str = typer.Argument(..., help='filename of YAML file'),
@@ -175,15 +176,43 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
            no_start: bool = typer.Option(False, '--no-start', '-n',
                                          help='do not start the workflow')):
     """Submit a new workflow."""
+    def is_parent(parent, path):
+        """Return true if the path is a child of the other path."""
+        parent = os.path.abspath(parent)
+        path = os.path.abspath(path)
+        return os.path.commonpath([parent]) == os.path.commonpath([parent, path])
+
     tarball_path = ""
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Run package() if directory
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
-            bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-            package(wf_path, pathlib.Path(bee_workdir))
-            tarball_path = pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz")
-            wf_tarball = open(tarball_path, 'rb')
+            main_cwl_path = pathlib.Path(main_cwl).resolve()
+            yaml_path = pathlib.Path(yaml).resolve()
+
+            if not main_cwl_path.exists():
+                error_exit(f'Main CWL file {main_cwl} does not exist')
+            if not yaml_path.exists():
+                error_exit(f'YAML file {yaml} does not exist')
+
+            cwl_indir = is_parent(wf_path, main_cwl_path)
+            yaml_indir = is_parent(wf_path, yaml_path)
+            # The CWL and YAML file are already in the workflow directory
+            # so we don't need to do anything
+            tempdir_path = pathlib.Path(tempfile.mkdtemp())
+            if cwl_indir and yaml_indir:
+                package_path = package(wf_path, tempdir_path)
+            else:
+                # Create a temp wf directory
+                tempdir_wf_path = pathlib.Path(tempdir_path / wf_path.name)
+                shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
+                if not cwl_indir:
+                    shutil.copy2(main_cwl, tempdir_wf_path)
+                if not yaml_indir:
+                    shutil.copy2(yaml, tempdir_wf_path)
+                package_path = package(tempdir_wf_path, tempdir_path)
+            wf_tarball = open(package_path, 'rb')
+            shutil.rmtree(tempdir_path)
         else:
             wf_tarball = open(wf_path, 'rb')
     else:
@@ -199,8 +228,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),
     data = {
         'wf_name': wf_name.encode(),
         'wf_filename': os.path.basename(wf_path).encode(),
-        'main_cwl': main_cwl,
-        'yaml': yaml,
+        'main_cwl': os.path.basename(main_cwl),
+        'yaml': os.path.basename(yaml),
         'workdir': workdir
     }
     files = {
@@ -289,6 +318,8 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
         error_exit("Package failed")
     else:
         print(f"Package {tarball} created successfully")
+
+    return package_path
 
 
 @app.command()

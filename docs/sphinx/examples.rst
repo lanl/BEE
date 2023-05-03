@@ -18,8 +18,8 @@ stdout of this step is then passed as a file to two steps that ``grep`` for
 different words within the text. These can both be run in parallel. The final
 step takes the output files from the grep step and stores these into a tarball.
 
-These input values are stored in a YAML file within the workflow directory. As
-an example we have a default ``input.yml`` file that can be used. It contains:
+These input values are stored in a YAML file. As an example we have a default
+``input.yml`` file that can be used. It contains:
 
 .. code-block::
 
@@ -33,11 +33,11 @@ random words in the file. Finally an output tarball is generated with the name
 ``out.tgz``.
 
 Before running, make sure to take a look at the CWL files that form the
-workflow.  There is a main ``workflow.cwl`` file that stores the worfklow,
-specifies inputs and outputs and lists all of the workflow steps or tasks. Note
+workflow.  There is a main ``workflow.cwl`` file that specifies the workflow,
+inputs and outputs, and all of the workflow steps or tasks. Note
 that each of these steps specifies their step-specific inputs and outputs, as
 well as a ``run`` option, that in this case points to the CWL file that
-contains further information about how to execute the command. When creating a
+further specifies how to execute the command. When creating a
 workflow, you will need to create a similar workflow structure, explicitly list
 dependencies between steps and also describe how to run the steps on the
 system. For more information on writing a workflow please refer to the
@@ -77,7 +77,7 @@ Alternatively, you can also just do the following:
 .. code-block::
 
     cd $WORKDIR_PATH
-    beeclient submit $NAME examples/cat-grep-tar workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
+    beeclient submit $NAME examples/cat-grep-tar examples/workflow.cwl examples/input.yml $WORKDIR_PATH # Now submit the workflow
 
 This will automatically do the packaging and create an archive in the
 background to be submitted.
@@ -146,12 +146,14 @@ the beeflow components, refer to :ref:`installation`.
 
 In this example, instead of packaging up the workflow cwl files directory,
 we've just listed the full path. This should auto-detect the directory and
-package it for you. Compare this with the previous example. Other than the
-commands needed, this shouldn't affect the workflow in any way.
+package it for you. Additionally, if the main_cwl and yaml files are not in
+the workflow directory, they will be copied into a temporary copy of the
+workflow directory before packaging. Compare this with the previous example.
+Other than the commands needed, this shouldn't affect the workflow in any way.
 
 .. code-block::
 
-    beeclient submit clamr-example <path to BEE>/examples/clamr-ffmpeg-build clamr_wf.cwl clamr_job.yml .
+    beeclient submit clamr-example <path to BEE>/examples/clamr-ffmpeg-build <path to main_cwl>/clamr_wf.cwl <path to yaml>/clamr_job.yml .
 
 Output:
 
