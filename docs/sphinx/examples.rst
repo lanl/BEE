@@ -4,6 +4,16 @@ Getting Started - Example Workflows
 If you have beeflow installed and the components running, you are ready to try
 out a BEE workflow.
 
+It is not necessary to clone the BEE repository to run BEE. However, in order to
+have access to the files needed for the examples you will need a copy of the repository. If you have not already cloned it, run the following:
+
+.. code-block::
+
+    git clone https://github.com/lanl/BEE.git
+
+
+I will refer to the location of your local copy as ``$BEE_PATH``.
+
 Simple multi-step example (without container)
 =============================================
 .. _Simple example:
@@ -61,30 +71,35 @@ sequence of commands:
 .. code-block::
 
     cd $WORKDIR_PATH
-    beeclient package examples/cat-grep-tar . # Tars up the workflow
+    beeclient package $BEE_PATH/examples/cat-grep-tar . # Tars up the workflow
     beeclient submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
 
 This first command packages the workflow into a tarball, which makes it easy to
 pass everything over to the Workflow Manager and finally submits the workflow,
 specifying a name, the tarball path, the location of the CWL file, the yaml
 file and finally the workflow path containing lorem.txt. If you copy and paste
-make sure to change $NAME to a name of your choice and $WORKDIR_PATH to the
-proper path that was created ealier. The submit command should have produced a
-short ID of 6-7 characters.
+make sure to change $NAME to a name of your choice, $BEE_PATH to the path of the
+BEE repo, and $WORKDIR_PATH to the proper path that was created earlier. The
+submit command should have produced a short ID of 6-7 characters.
 
-Alternatively, you can also just do the following:
+Alternatively, you can skip packaging the workflow and submit using the path of
+the directory for the example by:
 
 .. code-block::
 
     cd $WORKDIR_PATH
-    beeclient submit $NAME examples/cat-grep-tar examples/workflow.cwl examples/input.yml $WORKDIR_PATH # Now submit the workflow
+    beeclient submit $NAME $BEE_PATH/examples/cat-grep-tar
+    $BEE_PATH/examples/workflow.cwl $BEE_PATH/examples/input.yml
+    $WORKDIR_PATH # Now submit the workflow
 
 This will automatically do the packaging and create an archive in the
 background to be submitted.
 
 Now the workflow should start up. While the workflow is running you can check
 the status by running a ``beeclient query $ID``. On completion, each step
-should be in a ``COMPLETED`` state.
+should be in a ``COMPLETED`` state. If you forgot to copy the lorem.txt file
+to $WORKDIR_PATH the cat step will be in the ``FAILED`` state and the error will
+be in the cat.err file.
 
 After all steps have finished, you should see a number of files that have been
 created in your $WORKDIR_PATH:
@@ -92,22 +107,24 @@ created in your $WORKDIR_PATH:
 .. code-block::
 
     cat.txt
+    cat.err
     lorem.txt
     occur0.txt
     occur1.txt
     out.tgz
 
-The ``cat.txt`` file is just a duplicate of ``lorem.txt``. The ``occur0.txt``
-and ``occur1.txt`` files were produced respectively by the ``grep0`` and
-``grep1`` steps.  ``out.tgz`` was produced by the final tar step. For this
-example, the cat step and the tar steps are not really necessary, since the
-file already exists in the input directory and on completion you don't
-necessarily need to have both of the ``occur*.txt`` files in a tarball. However,
-this is a useful sample of the features a real-world workflow might need to
-use.  For instance, the first step might be producing some sort of output from
-a calculation, instead of just copying the input to the output. The last step
-may also do some more processing to produce some sort of final file. If
-necessary, there can many more processing steps than this simple example shows.
+The ``cat.txt`` file is just a duplicate of ``lorem.txt`` and ``cat.err`` is
+the stderr output from the cat step. The ``occur0.txt`` and ``occur1.txt``
+files were produced respectively by the ``grep0`` and ``grep1`` steps.
+``out.tgz`` was produced by the final tar step. For this example, the cat step
+and the tar steps are not really necessary, since the file already exists in
+the input directory and on completion you don't necessarily need to have both
+of the ``occur*.txt`` files in a tarball. However, this is a useful sample of
+the features a real-world workflow might need to use.  For instance, the first
+step might be producing some sort of output from a calculation, instead of just
+copying the input to the output. The last step may also do some more processing
+to produce some sort of final file. If necessary, there can many more
+processing steps than this simple example shows.
 
 CLAMR workflow examples (containerized application)
 ========================================================
@@ -128,6 +145,7 @@ The differences in the CLAMR workflows are the way the containers are used.
 
 CLAMR build workflow
 --------------------
+
 The workflow is in **<path to BEE>/examples/clamr-ffmpeg-build**. You may want to explore the
 cwl files to understand the workflow specification for the example. Below is
 the clamr step with the DockerRequirement in hints that specifies to build a
