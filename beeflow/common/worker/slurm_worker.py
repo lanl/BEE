@@ -20,11 +20,12 @@ log = bee_logging.setup(__name__)
 class BaseSlurmWorker(Worker):
     """Base slurm worker code."""
 
-    def __init__(self, default_account='', default_time_limit='', **kwargs):
+    def __init__(self, default_account='', default_time_limit='', default_partition='', **kwargs):
         """Initialize the base slurm worker."""
         super().__init__(**kwargs)
         self.default_account = default_account
         self.default_time_limit = default_time_limit
+        self.default_partition = default_partition
 
     def build_text(self, task):
         """Build text for task script."""
@@ -48,6 +49,9 @@ class BaseSlurmWorker(Worker):
         time_limit = validation.time_limit(time_limit)
         account = task.get_requirement('beeflow:SchedulerRequirement', 'account',
                                        default=self.default_account)
+        partition = task.get_requirement('beeflow:SchedulerRequirement',
+                                         'partition',
+                                         default=self.default_partition)
 
         # sbatch header
         script = [
@@ -63,6 +67,8 @@ class BaseSlurmWorker(Worker):
             script.append(f'#SBATCH --time={time_limit}')
         if account:
             script.append(f'#SBATCH -A {account}')
+        if partition:
+            script.append(f'#SBATCH -p {partition}')
 
         # Return immediately on error
         script.append('set -e')

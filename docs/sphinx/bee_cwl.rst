@@ -159,13 +159,17 @@ beeflow:SchedulerRequirement
 
 This requirement is designed for specifying additional information that will be
 passed to a scheduler such as Slurm on job submission. It currently supports
-the ``timeLimit`` option and an optional ``account`` field which may be useful
-if running jobs with different accounts (if you want to run all workflows with
-the same account it's best to set this with the ``default_account`` option
-under the ``job`` section in the bee.conf file).
+the following options:
+
+* ``timeLimit`` - time limit for the job in the format that Slurm uses currently.
+* ``account`` - may be useful if running jobs with different accounts (if you
+  want to run all workflows with the same account it's best to set this with
+  the ``default_account`` option under the ``job`` section in the bee.conf file).
+* ``partition`` - partition to launch job with.
 
 An example is shown below::
 
     beeflow:SchedulerRequirement:
       timeLimit: 00:00:10
       account: account12345
+      partition: scaling
