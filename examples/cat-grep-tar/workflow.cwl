@@ -12,13 +12,16 @@ outputs:
   tarball:
     type: File
     outputSource: tar/tarball
+  cat_stderr:
+    type: File
+    outputSource: cat/cat_stderr
 
 steps:
   cat:
     run: cat.cwl
     in:
       input_file: input_file
-    out: [contents]
+    out: [contents, cat_stderr]
   grep0:
     run: grep0.cwl
     in:
