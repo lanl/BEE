@@ -2,7 +2,7 @@ Publishing a new release
 ************************
 
 1. Change the version in pyproject.toml and verify docs build;
-   and get this change merged into develop.
+   and get this change merged into develop. (You may want to the bypass as in step 2)
 2. On github site go to Settings; on the left under Code and Automation
    click on Branches; under Branch protection rules edit main;
     check Allow specified actors to bypass required pull requests; add yourself
