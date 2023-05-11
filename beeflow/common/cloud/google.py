@@ -19,7 +19,7 @@ class GoogleProvider(provider.Provider):
 
     def get_ext_ip_addr(self, node_name):
         """Get the external IP of this node (or None if no IP)."""
-        res = self._api.instances().get(instance=node_name,
+        res = self._api.instances().get(instance=node_name,  # noqa (can't find instances member)
                                         project=self.project,
                                         zone=self.zone).execute()
         try:
@@ -34,11 +34,8 @@ class GoogleProvider(provider.Provider):
         # This just creates instances one-by-one. There may be a better API call
         # to just create everything at once.
         for instance in config['instances']:
-            call = self._api.instances().insert(project=self.project,
+            call = self._api.instances().insert(project=self.project,  # noqa (can't find instances member)
                                                 zone=self.zone, body=instance)
             res = call.execute()
             print(res)
             time.sleep(2)
-# Ignore E1101: Pylama notes that self._api doesn't have an 'instances' member.
-#               I believe this is set at runtime by googleapiclient.
-# pylama:ignore=E1101

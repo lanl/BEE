@@ -4,15 +4,15 @@ import os
 
 import pytest
 
-from beeflow.common.db import sched
+from beeflow.common.db import sched_db
 
 
 @pytest.fixture
 def temp_db():
     """Create a fixture for making a temporary datbase."""
     fname = tempfile.mktemp()
-    with sched.open_db(fname) as db:
-        yield db
+    db = sched_db.open_db(fname)
+    yield db
     os.remove(fname)
 
 
@@ -38,4 +38,6 @@ def test_clear(temp_db):
 
     db.resources.clear()
     assert len(list(db.resources)) == 0
+# Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
+#               scope. This is how pytest fixtures work.
 # pylama:ignore=W0621

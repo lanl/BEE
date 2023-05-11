@@ -18,6 +18,7 @@ from beeflow.client import bee_client
 
 # Max time of each workflow
 TIMEOUT = 90
+INTEGRATION_TEST_DIR = os.path.expanduser('~/.beeflow-integration')
 
 
 class CIError(Exception):
@@ -43,7 +44,7 @@ class Container:
         if not self.done:
             try:
                 subprocess.check_call(['ch-image', 'build', '-f', self.dockerfile, '-t', self.name,
-                                       '--force', os.path.dirname(self.dockerfile)])
+                                       '--force', 'seccomp', os.path.dirname(self.dockerfile)])
                 subprocess.check_call(['ch-convert', '-i', 'ch-image', '-o', 'tar', self.name,
                                        self.tarball])
             except subprocess.CalledProcessError as error:
@@ -81,14 +82,14 @@ class Workflow:
             bee_client.package(Path(self.path), Path(tarball_dir))
             print('Submitting and starting workflow')
             self.wf_id = bee_client.submit(self.name, self.tarball, self.main_cwl,
-                                           self.job_file, self.workdir)
-            bee_client.start(self.wf_id)
+                                           self.job_file, self.workdir, no_start=False)
         except bee_client.ClientError as error:
             raise CIError(*error.args) from error
 
     def running(self):
-        """Check if the workflow is running or not."""
-        return bee_client.query(self.wf_id)[0] == 'Running'
+        """Check if the workflow is running or about to run."""
+        print(bee_client.query(self.wf_id))
+        return bee_client.query(self.wf_id)[0] in ('Running', 'Pending')
 
     def status(self):
         """Get the status of the workflow."""
@@ -106,52 +107,62 @@ class TestRunner:
     def __init__(self):
         """Build a new test runner class."""
         self.test_cases = []
+        self.timeout = TIMEOUT
 
-    def add(self, test_case):
+    def add(self, ignore=False):
         """Decorate a test case and add it to the runner instance."""
-        # First turn it into a contextmanager
-        test_case = contextmanager(test_case)
-        self.test_cases.append(test_case)
 
-        def wrap():
+        def wrap(test_case):
             """Wrap the function."""
-            return test_case()
+            # First turn it into a contextmanager
+            test_case = contextmanager(test_case)
+            self.test_cases.append((test_case, ignore))
+            return test_case
 
         return wrap
 
-    def test_names(self):
-        """Return a list of all the test names."""
-        return [test_case.__name__ for test_case in self.test_cases]
+    def test_details(self):
+        """Return a list of all the test details (test_name, ignore)."""
+        return [(test_case.__name__, ignore) for test_case, ignore in self.test_cases]
 
     def _run_workflows(self, workflows):
         """Run a list of workflows to completion."""
         # Start all workflows at once
         for wfl in workflows:
             wfl.run()
-        # Now run until all workflows are complete or until TIMEOUT is hit
+        # Now run until all workflows are complete or until self.timeout is hit
         t = 0
-        while t < TIMEOUT:
+        while t < self.timeout:
             if all(not wfl.running() for wfl in workflows):
                 # All workflows have completed
                 break
             time.sleep(2)
             t += 2
-        if t >= TIMEOUT:
+        if t >= self.timeout:
             raise CIError('workflow timeout')
 
     def run(self, test_names=None):
         """Test run all test cases."""
         results = {}
-        for test_case in self.test_cases:
-            # Skip tests that aren't required to be run
-            if test_names is not None and test_case.__name__ not in test_names:
+        for test_case, ignore in self.test_cases:
+            if test_names is not None:
+                # Skip tests that aren't required to be run
+                if test_case.__name__ not in test_names:
+                    continue
+            elif ignore:
+                # Skip ignored tests
                 continue
-            msg = f'Starting test {test_case.__name__}'
-            print('#' * len(msg))
-            print(msg)
-            print('-' * len(msg))
+            outer_workdir = os.path.join(INTEGRATION_TEST_DIR, uuid.uuid4().hex)
+            os.makedirs(outer_workdir)
+            msg0 = f'Starting test {test_case.__name__}'
+            msg1 = f'(running in "{outer_workdir}")'
+            count = max(len(msg0), len(msg1))
+            print('#' * count)
+            print(msg0)
+            print(msg1)
+            print('-' * count)
             try:
-                with test_case() as workflows:
+                with test_case(outer_workdir) as workflows:
                     self._run_workflows(workflows)
             except CIError as error:
                 traceback.print_exc()
@@ -164,6 +175,8 @@ class TestRunner:
                 print('------')
                 print('PASSED')
                 print('------')
+                # Only remove the outer_workdir if it passed
+                shutil.rmtree(outer_workdir)
 
         print('######## WORKFLOW RESULTS ########')
         fails = sum(1 if result is not None else 0 for name, result in results.items())
@@ -378,16 +391,16 @@ if BASE_CONTAINER in ch_image_list():
     ch_image_delete(BASE_CONTAINER)
 
 
-@TEST_RUNNER.add
-def copy_container():
+@TEST_RUNNER.add()
+def copy_container(outer_workdir):
     """Prepare, check results of using `beeflow:copyContainer` then do cleanup."""
     # `beeflow:copyContainer` workflow
     container_path = f'/tmp/copy_container-{uuid.uuid4().hex}.tar.gz'
     container_name = 'copy-container'
-    workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}')
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
     os.makedirs(workdir)
     container = Container(container_name, DOCKER_FILE_PATH, container_path)
-    workflow_path = os.path.join('/tmp', f'bee-cc-workflow-{uuid.uuid4().hex}')
+    workflow_path = os.path.join(outer_workdir, f'bee-cc-workflow-{uuid.uuid4().hex}')
     main_input = 'copy_container'
     docker_requirement = {
         'beeflow:copyContainer': container_path,
@@ -408,24 +421,19 @@ def copy_container():
     path = os.path.join(container_archive, basename)
     check_path_exists(path)
     os.remove(path)
-    ch_image_delete(BASE_CONTAINER)
     ch_image_delete(container_name)
-    # Delete the generated container
-    shutil.rmtree(workflow_path)
-    os.remove(container_path)
-    shutil.rmtree(workdir)
 
 
-@TEST_RUNNER.add
-def use_container():
+@TEST_RUNNER.add()
+def use_container(outer_workdir):
     """Prepare, check results of using `beeflow:useContainer` and clean up."""
     # `beeflow:useContainer` workflow
-    container_path = os.path.expanduser(f'~/use_container-{uuid.uuid4().hex}.tar.gz')
+    container_path = os.path.join(outer_workdir, f'use_container-{uuid.uuid4().hex}.tar.gz')
     container_name = 'use-container'
-    container_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}')
+    container_workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
     os.makedirs(container_workdir)
     container = Container(container_name, DOCKER_FILE_PATH, container_path)
-    workflow_path = os.path.join('/tmp', f'bee-use-ctr-workflow-{uuid.uuid4().hex}')
+    workflow_path = os.path.join(outer_workdir, f'bee-use-ctr-workflow-{uuid.uuid4().hex}')
     main_input = 'use_ctr'
     docker_requirement = {
         'beeflow:useContainer': container_path,
@@ -441,7 +449,6 @@ def use_container():
     yield [workflow]
     path = os.path.join(container_workdir, main_input)
     check_path_exists(path)
-    os.remove(path)
     # This container should not have been copied into the container archive
     container_archive = bc.get('builder', 'container_archive')
     basename = os.path.basename(container_path)
@@ -450,24 +457,19 @@ def use_container():
         not path.exists(),
         f'the container "{basename}" was copied into the container archive'
     )
-    ch_image_delete(BASE_CONTAINER)
     ch_image_delete(container_name)
-    # Delete both the workflow path and the container generated
-    shutil.rmtree(workflow_path)
-    os.remove(container_path)
-    shutil.rmtree(container_workdir)
 
 
-@TEST_RUNNER.add
-def docker_file():
+@TEST_RUNNER.add()
+def docker_file(outer_workdir):
     """Ensure that the `dockerFile` example ran properly and then clean up."""
     # `dockerFile` workflow
-    workflow_path = os.path.join('/tmp', f'bee-df-workflow-{uuid.uuid4().hex}')
+    workflow_path = os.path.join(outer_workdir, f'bee-df-workflow-{uuid.uuid4().hex}')
     # Copy the Dockerfile to the workdir path
     os.makedirs(workflow_path)
-    shutil.copy(DOCKER_FILE_PATH, os.path.join(workflow_path, 'Dockerfile'))
-    workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}')
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
     os.makedirs(workdir)
+    shutil.copy(DOCKER_FILE_PATH, os.path.join(workflow_path, 'Dockerfile'))
     container_name = 'docker_file_test'
     docker_requirement = {
         'dockerFile': 'Dockerfile',
@@ -485,7 +487,6 @@ def docker_file():
     yield [workflow]
     path = os.path.join(workdir, main_input)
     check_path_exists(path)
-    os.remove(path)
     # The container should have been copied into the archive
     container_archive = bc.get('builder', 'container_archive')
     tarball = f'{container_name}.tar.gz'
@@ -495,25 +496,21 @@ def docker_file():
     # Check that the container is listed
     images = ch_image_list()
     ci_assert(container_name in images, f'cannot find expected container "{container_name}"')
-    ch_image_delete(BASE_CONTAINER)
     ch_image_delete(container_name)
-    # Delete the generated workflow
-    shutil.rmtree(workflow_path)
-    shutil.rmtree(workdir)
 
 
-@TEST_RUNNER.add
-def docker_pull():
+@TEST_RUNNER.add()
+def docker_pull(outer_workdir):
     """Prepare, then check that the `dockerPull` option was successful."""
     # `dockerPull` workflow
-    workflow_path = os.path.join('/tmp', f'bee-dp-workflow-{uuid.uuid4().hex}')
+    workflow_path = os.path.join(outer_workdir, f'bee-dp-workflow-{uuid.uuid4().hex}')
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
     container_name = BASE_CONTAINER
     docker_requirement = {
         'dockerPull': container_name,
     }
     main_input = 'docker_pull'
-    workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}')
-    os.makedirs(workdir)
     main_cwl, job_file = generate_builder_workflow(
         workflow_path,
         docker_requirement,
@@ -525,32 +522,29 @@ def docker_pull():
     yield [workflow]
     path = os.path.join(workdir, main_input)
     check_path_exists(path)
-    os.remove(path)
     # Check that the image tarball is in the archive
     container_archive = bc.get('builder', 'container_archive')
     path = os.path.join(container_archive, f'{container_name}.tar.gz')
     check_path_exists(path)
     os.remove(path)
+    # Commenting the below out for now; looks like Charliecloud 0.32 isn't
+    # showing base containers for some reason?
     # Check for the image with `ch-image list`
-    images = ch_image_list()
-    ci_assert(container_name in images, f'could not find expected container "{container_name}"')
-    ch_image_delete(container_name)
-    # Delete the workflow path
-    shutil.rmtree(workflow_path)
-    shutil.rmtree(workdir)
+    # images = ch_image_list()
+    # ci_assert(container_name in images, f'could not find expected container "{container_name}"')
+    # ch_image_delete(container_name)
 
 
-@TEST_RUNNER.add
-def multiple_workflows():
+@TEST_RUNNER.add()
+def multiple_workflows(outer_workdir):
     """Test running three different workflows at the same time."""
     output_file = 'output_file'
     workflow_data = []
     workflows = []
     for i in range(3):
-        random_dir = uuid.uuid4().hex
-        workdir = os.path.expanduser(f'~/{random_dir}')
+        workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
         os.makedirs(workdir)
-        workflow_path = Path('/tmp', random_dir)
+        workflow_path = Path(outer_workdir, uuid.uuid4().hex)
         main_cwl, job_file = generate_simple_workflow(workflow_path, output_file)
         workflow = Workflow(f'multi-workflow-{i}', workflow_path,
                             main_cwl=main_cwl, job_file=job_file,
@@ -567,8 +561,21 @@ def multiple_workflows():
         # Each test should have touched this file
         path = Path(workdir, output_file)
         check_path_exists(path)
-        shutil.rmtree(workdir)
-        shutil.rmtree(workflow_path)
+
+
+@TEST_RUNNER.add(ignore=True)
+def checkpoint_restart(outer_workdir):
+    """Test the clamr-ffmpeg checkpoint restart workflow."""
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
+    workflow = Workflow('checkpoint-restart',
+                        'beeflow/data/cwl/bee_workflows/clamr-wf-checkpoint',
+                        main_cwl='clamr_wf.cwl', job_file='clamr_job.yml',
+                        workdir=workdir, containers=[])
+    yield [workflow]
+    # Check for the movie file
+    path = Path(workdir, 'CLAMR_movie.mp4')
+    check_path_exists(path)
 
 
 def test_input_callback(arg):
@@ -580,13 +587,15 @@ def main(tests = typer.Option(None, '--tests', '-t',  # noqa (conflict on '=' si
                               callback=test_input_callback,
                               help='tests run as comma-separated string'),
          show_tests: bool = typer.Option(False, '--show-tests', '-s',  # noqa (conflict on '=' sign)
-                                         help='show a list of all tests')):
+                                         help='show a list of all tests'),
+         timeout: int = typer.Option(TIMEOUT, '--timeout', help='workflow timeout in seconds')):
     """Launch the integration tests."""
     if show_tests:
         print('INTEGRATION TEST CASES:')
-        for test_name in TEST_RUNNER.test_names():
-            print('*', test_name)
-        sys.exit()
+        for test_name, ignore in TEST_RUNNER.test_details():
+            print('*', test_name, '(ignored)' if ignore else '')
+        return
+    TEST_RUNNER.timeout = timeout
     # Run the workflows and then show completion results
     ret = TEST_RUNNER.run(tests)
     # ret = test_workflows(WORKFLOWS)

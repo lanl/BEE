@@ -7,20 +7,29 @@ import requests
 import jsonpickle
 
 from beeflow.common import log as bee_logging
-from beeflow.wf_manager.common import wf_db
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
 
+from beeflow.common.db import wfm_db
+from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
 
 
+def get_db_path():
+    """Return db name."""
+    db_name = 'wfm.db'
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+    db_path = bee_workdir + '/' + db_name
+    return db_path
+
+
 def get_bee_workdir():
     """Get the bee workflow directory from the configuration file."""
-    return os.path.expanduser('~/.beeflow')
+    return bc.get('DEFAULT', 'bee_workdir')
 
 
 def get_workflows_dir():
@@ -61,14 +70,12 @@ def remove_wf_dir(wf_id):
     workflows_dir = os.path.join(bee_workdir, 'workflows', wf_id)
     if os.path.exists(workflows_dir):
         shutil.rmtree(workflows_dir)
-    # wf_db.delete_workflow(wf_id)
 
 
 def create_wf_metadata(wf_id, wf_name):
     """Create workflow metadata files."""
     create_wf_name(wf_id, wf_name)
     create_wf_status(wf_id)
-    # wf_db.add_workflow(wf_id, wf_name, 'Pending')
 
 
 def create_wf_name(wf_id, wf_name):
@@ -92,7 +99,6 @@ def update_wf_status(wf_id, status_msg):
     status_path = os.path.join(workflows_dir, 'bee_wf_status')
     with open(status_path, 'w', encoding="utf8") as status:
         status.write(status_msg)
-    wf_db.update_workflow_state(wf_id, status_msg)
 
 
 def read_wf_status(wf_id):
@@ -116,7 +122,8 @@ def create_wf_namefile(wf_name, wf_id):
 
 def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
-    bolt_port = wf_db.get_bolt_port(wf_id)
+    db = connect_db(wfm_db, get_db_path())
+    bolt_port = db.workflows.get_bolt_port(wf_id)
     try:
         driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                              db_hostname=bc.get("graphdb", "hostname"),
@@ -132,7 +139,8 @@ def get_workflow_interface(wf_id):
 def tm_url():
     """Get Task Manager url."""
     # tm_listen_port = bc.get('task_manager', 'listen_port')
-    tm_listen_port = wf_db.get_tm_port()
+    db = connect_db(wfm_db, get_db_path())
+    tm_listen_port = db.info.get_port('tm')
     task_manager = "bee_tm/v1/task/"
     return f'http://127.0.0.1:{tm_listen_port}/{task_manager}'
 
@@ -149,9 +157,10 @@ def _connect_tm():
 
 def sched_url():
     """Get Scheduler url."""
+    db = connect_db(wfm_db, get_db_path())
     scheduler = "bee_sched/v1/"
     # sched_listen_port = bc.get('scheduler', 'listen_port')
-    sched_listen_port = wf_db.get_sched_port()
+    sched_listen_port = db.info.get_port('sched')
     return f'http://127.0.0.1:{sched_listen_port}/{scheduler}'
 
 

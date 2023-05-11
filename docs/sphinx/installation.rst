@@ -1,3 +1,5 @@
+.. _installation:
+
 Installation Guide
 ******************
 
@@ -8,7 +10,7 @@ Requirements:
 
     * **Python version 3.8 (or greater)**
 
-    * `Charliecloud <https://hpc.github.io/charliecloud/>`_ **version 0.27 (or greater)**
+    * `Charliecloud <https://hpc.github.io/charliecloud/>`_ **version 0.32 (or greater)**
         Charliecloud is installed on Los Alamos National Laboratory (LANL) clusters and can be invoked using the `load module` command. Charliecloud is also easily installed in user space and requires no privilege to install. BEE runs dependencies from a Charliecloud container and uses Charliecloud to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.
 
 
@@ -34,6 +36,18 @@ BEE is a PyPI package that can be installed using pip. On an HPC cluster, you ma
 
     pip install hpc-beeflow
 
+If you do not already have a python environment, you may be able to use the following example to create one (note: beeflow-env can be any environment name you choose):
+
+.. code-block::
+
+    mkdir beeflow-env
+    python3 -m venv beeflow-env
+    source beeflow-env/bin/activate
+    pip install hpc-beeflow
+
+You will need to activate the environment with the command ``source beeflow-env/bin/activate`` and type ``deactivate`` when done.
+
+
 An alternative is to use a Poetry environment, but we suggest this only for contributors.
 For more information click on the Developer's Guide in this documentation.
 
@@ -48,23 +62,20 @@ You will need to setup the bee configuration file that will be located in:
 Before creating a bee.conf file you will need to know the path to your **BEE
 dependency container** and the type of workload scheduler (Slurm or LSF). (On
 LANL systems you may use the BEE provided container:
-**/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**).
+**/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**). Depending on the system, you
+may also need to know an account name to use.
 
-Once you are ready type ``beecfg new``
+Once you are ready type ``beecfg new``.
 
 The bee.conf configuration file is a text file and you can edit it for your
-needs. You may show the contents by typing ``beecfg show``. You may also want
-to take a look at the :ref:`Jinja file`, which is how submission scripts are
-generated. The default file is listed with the ``job_template`` option under
-the ``[task_manager]`` section.
-
+needs.
 
 **Caution: The default for container_archive is in the home directory. Some
 systems have small quotas for home directories and containers can be large
 files.**
 
 **beecfg** has other options including a configuration validator. For more
-information or help run: ``beecfg info`` or ``beecfg --help``
+information or help run: ``beecfg info`` or ``beecfg --help``.
 
 Starting up the BEE components:
 -------------------------------

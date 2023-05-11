@@ -97,6 +97,9 @@ Suboption Name            Usage/Meaning/Requirements
 
 ``beeflow:containerName`` ``beeflow:containerName: "containerName"`` |vspace| |br|
                           Specifies the container name. Used in conjunction with dockerFile.
+``beeflow:forceType``     ``beeflow:forceType: "forceType"`` |vspace| |br|
+                          Charliecloud specific option that |vspace| |br|
+                          corresponds to ``ch-image``'s ``--force`` argument.
 ========================= =========================================================
 
 beeflow:MPIRequirement
@@ -114,14 +117,8 @@ option).
 .. _paper: https://ieeexplore.ieee.org/document/9308116
 
 BEE's ``beeflow:MPIRequirement`` attempts to be as configurable as possible for
-running HPC jobs with MPI. Currently, we use a special :ref:`Jinja file` that is
-used as a template for generating submission scripts. All options in the
-``beeflow:MPIRequirement`` get passed to the :ref:`Jinja file` template and can
-then be used to make step-level decisions for running MPI jobs. Note that we're
-also exploring other ways to implement this directly from the options within
-the CWL files, instead of using a template file.
-
-An example ``beeflow:MPIRequirement`` in BEE is shown below::
+running HPC jobs with MPI. An example ``beeflow:MPIRequirement`` in BEE is
+shown below::
 
     beeflow:MPIRequirement:
       nodes: 10
@@ -130,8 +127,6 @@ An example ``beeflow:MPIRequirement`` in BEE is shown below::
 The values for ``nodes`` and  ``ntasks`` are then passed to the template and
 can be used to request the required resources from the underlying scheduler on
 submission.
-
-See our section on the :ref:`Jinja file` for more info on how this works currently.
 
 beeflow:CheckpointRequirement
 -----------------------------
@@ -158,3 +153,23 @@ For the above example ``file_path`` is the location of the checkpoint_file. The
 filenames, the ``restart parameter`` will be added to the run command followed
 by the path to the latest checkpoint file, and ``num_tries`` specifies the maximum
 number of times the task will be restarted.
+
+beeflow:SchedulerRequirement
+----------------------------
+
+This requirement is designed for specifying additional information that will be
+passed to a scheduler such as Slurm on job submission. It currently supports
+the following options:
+
+* ``timeLimit`` - time limit for the job in the format that Slurm uses currently.
+* ``account`` - may be useful if running jobs with different accounts (if you
+  want to run all workflows with the same account it's best to set this with
+  the ``default_account`` option under the ``job`` section in the bee.conf file).
+* ``partition`` - partition to launch job with.
+
+An example is shown below::
+
+    beeflow:SchedulerRequirement:
+      timeLimit: 00:00:10
+      account: account12345
+      partition: scaling

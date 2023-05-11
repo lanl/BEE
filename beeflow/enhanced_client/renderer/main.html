@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" content="HTML,CSS,JavaScript">
+    <title>BEE Viz</title>
+    <link type="text/css" rel="stylesheet" href="styles/main.css">
+    <link type="text/css" rel="stylesheet" href="styles/bulma.min.css">
+    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  </head>
+  <body>
+    <div class="columns">
+      <div class="column m-4" id="title">
+        <h1 class="title">
+          <span id="logo"></span>
+          BEE Viz
+        </h1>
+      </div>
+      <div class="column is-narrow m-4">
+        <button type="button" id="reload-button" class="button is-primary">Reload</button>
+      </div>
+    </div>
+
+    <div class="columns">
+    <div id="sidebar" class="column is-narrow">
+      <div id="messages"></div>
+      <article class="message is-large">
+        <div class="message-header">
+          <p>Welcome</p>
+        </div>
+
+        <div class="message-body">
+          Welcome to the BEE Viz. Use the form below to connect to BEE and
+          view a running workflow.
+        </div>
+      </article>
+      <form id="settings-form">
+        <h1 class="is-size-2">Connection Settings</h1>
+        <div class="field">
+          <label class="label is-size-4" for="settings-hostname">Hostname</label>
+          <div class="control">
+            <input class="input" type="text" id="settings-hostname" placeholder="Hostname">
+          </div>
+          <span id="settings-hostname-error" class="has-text-danger"></span>
+        </div>
+        <div class="field">
+          <label class="label is-size-4" for="settings-moniker">Moniker</label>
+          <div class="control">
+            <input class="input" type="text" id="settings-moniker" placeholder="Moniker">
+          </div>
+          <span id="settings-moniker-error" class="has-text-danger"></span>
+        </div>
+        <div class="field">
+          <label class="label is-size-4" for="settings-bolt_port">Bolt Port</label>
+          <div class="control">
+            <input class="input" type="number" id="settings-bolt_port" placeholder="Bolt Port">
+          </div>
+          <span id="settings-bolt_port-error" class="has-text-danger"></span>
+        </div>
+        <div class="field is-grouped">
+            <div class="control">
+            <button class="button is-link" id="settings-submit" type="button">Connect</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="viz" class="column"></div>
+    </div>
+
+    <!-- Needed for visualization (TODO: This should probably be downloaded here for offline)-->
+    <script src="https://unpkg.com/neovis.js@2.0.2"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

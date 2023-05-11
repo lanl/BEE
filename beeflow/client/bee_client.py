@@ -11,6 +11,7 @@ import inspect
 import pathlib
 import shutil
 import subprocess
+import tempfile
 import textwrap
 import time
 import jsonpickle
@@ -57,7 +58,7 @@ def error_exit(msg, include_caller=True):
         raise ClientError(msg) from None
 
 
-def error_handler(resp): # noqa (this is an error handler, it doesn't need to return an expression)
+def error_handler(resp):  # noqa (this is an error handler, it doesn't need to return an expression)
     """Handle a 500 error in a response."""
     if resp.status_code != 500:
         return resp
@@ -166,22 +167,52 @@ app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGr
 
 
 @app.command()
-def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
-           wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow .tgz or dir'),
+def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pylint:disable=R0915
+           wf_path: pathlib.Path = typer.Argument(..., help='path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(..., help='filename of main CWL file'),
            yaml: str = typer.Argument(..., help='filename of YAML file'),
            workdir: pathlib.Path = typer.Argument(...,
-           help='working directory for workflow containing input + output files',)):
+           help='working directory for workflow containing input + output files',),
+           no_start: bool = typer.Option(False, '--no-start', '-n',
+                                         help='do not start the workflow')):
     """Submit a new workflow."""
+    def is_parent(parent, path):
+        """Return true if the path is a child of the other path."""
+        parent = os.path.abspath(parent)
+        path = os.path.abspath(path)
+        return os.path.commonpath([parent]) == os.path.commonpath([parent, path])
+
     tarball_path = ""
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Run package() if directory
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
-            bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-            package(wf_path, pathlib.Path(bee_workdir))
-            tarball_path = pathlib.Path(bee_workdir + "/" + str(wf_path.name) + ".tgz")
-            wf_tarball = open(tarball_path, 'rb')
+            main_cwl_path = pathlib.Path(main_cwl).resolve()
+            yaml_path = pathlib.Path(yaml).resolve()
+
+            if not main_cwl_path.exists():
+                error_exit(f'Main CWL file {main_cwl} does not exist')
+            if not yaml_path.exists():
+                error_exit(f'YAML file {yaml} does not exist')
+
+            cwl_indir = is_parent(wf_path, main_cwl_path)
+            yaml_indir = is_parent(wf_path, yaml_path)
+            # The CWL and YAML file are already in the workflow directory
+            # so we don't need to do anything
+            tempdir_path = pathlib.Path(tempfile.mkdtemp())
+            if cwl_indir and yaml_indir:
+                package_path = package(wf_path, tempdir_path)
+            else:
+                # Create a temp wf directory
+                tempdir_wf_path = pathlib.Path(tempdir_path / wf_path.name)
+                shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
+                if not cwl_indir:
+                    shutil.copy2(main_cwl, tempdir_wf_path)
+                if not yaml_indir:
+                    shutil.copy2(yaml, tempdir_wf_path)
+                package_path = package(tempdir_wf_path, tempdir_path)
+            wf_tarball = open(package_path, 'rb')
+            shutil.rmtree(tempdir_path)
         else:
             wf_tarball = open(wf_path, 'rb')
     else:
@@ -197,8 +228,8 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     data = {
         'wf_name': wf_name.encode(),
         'wf_filename': os.path.basename(wf_path).encode(),
-        'main_cwl': main_cwl,
-        'yaml': yaml,
+        'main_cwl': os.path.basename(main_cwl),
+        'yaml': os.path.basename(yaml),
         'workdir': workdir
     }
     files = {
@@ -227,6 +258,11 @@ def submit(wf_name: str = typer.Argument(..., help='The workflow name'),
     # Cleanup code
     if tarball_path:
         os.remove(tarball_path)
+
+    # Start the workflow
+    if not no_start:
+        start(wf_id)
+
     return wf_id
 
 
@@ -240,7 +276,10 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
+    if resp.status_code == 400:
+        error_exit("Could not start workflow. It may have already been started "
+                   "and ran to completion (or failure).")
+    elif resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit(f"Starting {long_wf_id} failed."
                    f" Returned {resp.status_code}")
 
@@ -280,6 +319,8 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
     else:
         print(f"Package {tarball} created successfully")
 
+    return package_path
+
 
 @app.command()
 def listall():
@@ -318,7 +359,7 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('Could sucessfully query workflow manager')
+        error_exit('Could not successfully query workflow manager')
 
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
@@ -330,6 +371,25 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
     logging.info('Query workflow:  {resp.text}')
     return wf_status, tasks_status
+
+
+@app.command()
+def metadata(wf_id: str = typer.Argument(..., callback=match_short_id)):
+    """Get metadata about a given workflow."""
+    try:
+        conn = _wfm_conn()
+        resp = conn.get(_resource(wf_id) + '/metadata', timeout=60)
+    except requests.exceptions.ConnectionError:
+        error_exit('Could not reach WF Manager.')
+
+    if resp.status_code != requests.codes.okay:  # noqa (pylama doesn't know about the okay member)
+        error_exit('Could not successfully query workflow manager')
+
+    # Print and or return the metadata
+    data = resp.json()
+    for key, value in data.items():
+        typer.echo(f'{key} = {value}')
+    return data
 
 
 @app.command()
@@ -441,8 +501,6 @@ def main():
 if __name__ == "__main__":
     app()
 
-# Pylint is reporting no member for requests.codes even when they exist
-#     ignoring them line by line
-# Ignore using with for open files; used to send command.
-# Ignore W0511: This is a TODO that should be addressed later
-# pylama:ignore=R1732,W0511
+# Ignore W0511: This allows us to have TODOs in the code
+# Ignore R1732: Significant code restructuring required to fix
+# pylama:ignore=W0511,R1732

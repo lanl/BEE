@@ -11,9 +11,10 @@ from beeflow.scheduler import algorithms
 from beeflow.scheduler import task
 from beeflow.scheduler import resource_allocation
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.db import sched
+from beeflow.common.db import sched_db
 from beeflow.common import log as bee_logging
 
+from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
 
@@ -23,34 +24,17 @@ api = Api(flask_app)
 # We have to call bc.init() here due to how gunicorn works
 bc.init()
 
-
-def get_db_path():
-    """Get the database path."""
-    # Favor the environment variable if it exists
-    path = os.getenv('BEE_SCHED_DB_PATH')
-    if path is None:
-        workdir = bc.get('DEFAULT', 'bee_workdir')
-        path = os.path.join(workdir, 'sched.db')
-    return path
-
-
-def connect_db(fn):
-    """Decorate a function for connecting to a database."""
-    def wrap(*pargs, **kwargs):
-        """Decorate the function."""
-        with sched.open_db(get_db_path()) as db:
-            return fn(db, *pargs, **kwargs)
-
-    return wrap
+bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+db_path = bee_workdir + '/' + 'sched.db'
 
 
 class ResourcesHandler(Resource):
     """Resources handler."""
 
     @staticmethod
-    @connect_db
-    def put(db):
+    def put():
         """Create a list of resources to use for allocation."""
+        db = connect_db(sched_db, db_path)
         db.resources.clear()
         resources = [resource_allocation.Resource.decode(r)
                      for r in request.json]
@@ -58,9 +42,9 @@ class ResourcesHandler(Resource):
         return f'created {len(resources)} resource(s)'
 
     @staticmethod
-    @connect_db
-    def get(db):
+    def get():
         """Get a list of all resources."""
+        db = connect_db(sched_db, db_path)
         return [r.encode() for r in db.resources]
 
 
@@ -68,9 +52,9 @@ class WorkflowJobHandler(Resource):
     """Schedule jobs for a specific workflow with the current resources."""
 
     @staticmethod
-    @connect_db
-    def put(db, workflow_name):  # noqa ('workflow_name' may be used in the future)
+    def put(workflow_name):  # noqa ('workflow_name' may be used in the future)
         """Schedules a new list of independent tasks with available resources."""
+        db = connect_db(sched_db, db_path)
         data = request.json
         tasks = [task.Task.decode(t) for t in data]
         # Pick the scheduling algorithm
@@ -108,7 +92,6 @@ def load_config_values():
 
     for key in conf:
         conf[key] = bc.get('scheduler', key)
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
     # Set some defaults
     if not conf['log']:
         conf['log'] = '/'.join([bee_workdir, 'logs', 'scheduler.log'])
@@ -142,5 +125,5 @@ def create_app():
     os.makedirs(conf.workdir, exist_ok=True)
     return flask_app
 
-# Ignore todo's or pylama fails
+# Ignore W0511: This allows us to have TODOs in the code
 # pylama:ignore=W0511

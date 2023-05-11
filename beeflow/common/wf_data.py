@@ -163,19 +163,21 @@ class Task:
                     stdout=self.stdout, stderr=self.stderr, workflow_id=self.workflow_id,
                     task_id=task_id, workdir=self.workdir)
 
-    def get_requirement(self, req_type, req_param):
+    def get_requirement(self, req_type, req_param, default=None):
         """Get requirement from hints or requirements, prioritizing requirements over hints.
 
         :param req_type: the type of requirement (e.g. 'DockerRequirement')
         :type req_type: str
         :param req_param: the requirement parameter (e.g. 'dockerFile')
         :type req_param: str
+        :param default: default value if the requirement is not found
+        :type default: any
 
         When requirements are specified hints will be ignored.
         By default, tasks need not specify hints or requirements
         """
         requirements = dict(self.requirements)
-        requirement = None
+        requirement = default
         # Get value if specified in requirements
         try:
             # Try to get Requirement
@@ -192,7 +194,7 @@ class Task:
                 requirement = hints[req_type][req_param]
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No docker_req_param specified in task hints.
-                requirement = None
+                requirement = default
         return requirement
 
     def __eq__(self, other):
@@ -294,3 +296,7 @@ class Task:
                 break
 
         return command
+# Ignore C901: "'Task.command' is too complex" - right now this function is
+#              under 50 lines of code. If we add any more lines I think it
+#              might be best to break it up, but for now it seems fine.
+# pylama:ignore=C901

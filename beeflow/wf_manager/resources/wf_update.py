@@ -9,22 +9,26 @@ import jsonpickle
 
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
-from beeflow.wf_manager.common import wf_db
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
 from beeflow.common import log as bee_logging
 
+from beeflow.common.db import wfm_db
+from beeflow.common.db.bdb import connect_db
+
+
 log = bee_logging.setup(__name__)
+db_path = wf_utils.get_db_path()
 
 
-def archive_workflow(wf_id):
+def archive_workflow(db, wf_id):
     """Archive a workflow after completion."""
     # Archive Config
     workflow_dir = wf_utils.get_workflow_dir(wf_id)
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
 
-    wf_db.update_workflow_state(wf_id, 'Archived')
+    db.workflows.update_workflow_state(wf_id, 'Archived')
     wf_utils.update_wf_status(wf_id, 'Archived')
 
     bee_workdir = wf_utils.get_bee_workdir()
@@ -56,6 +60,7 @@ class WFUpdate(Resource):
 
     def put(self):
         """Update the state of a task from the task manager."""
+        db = connect_db(wfm_db, db_path)
         data = self.reqparse.parse_args()
         wf_id = data['wf_id']
         task_id = data['task_id']
@@ -64,8 +69,7 @@ class WFUpdate(Resource):
         wfi = wf_utils.get_workflow_interface(wf_id)
         task = wfi.get_task_by_id(task_id)
         wfi.set_task_state(task, job_state)
-        wf_db.update_task_state(task_id, wf_id, job_state)
-        # wf_profiler.add_state_change(task, job_state)
+        db.workflows.update_task_state(task_id, wf_id, job_state)
 
         # Get metadata from update if available
         if 'metadata' in data:
@@ -92,6 +96,7 @@ class WFUpdate(Resource):
             task_info = jsonpickle.decode(data['task_info'])
             checkpoint_file = task_info['checkpoint_file']
             new_task = wfi.restart_task(task, checkpoint_file)
+            db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             if new_task is None:
                 log.info('No more restarts')
                 state = wfi.get_task_state(task)
@@ -114,13 +119,13 @@ class WFUpdate(Resource):
 
             if wfi.workflow_completed():
                 log.info("Workflow Completed")
-                # Save the profile
-                # wf_profiler.save()
                 wf_id = wfi.workflow_id
-                archive_workflow(wf_id)
-                pid = wf_db.get_gdb_pid(wf_id)
+                archive_workflow(db, wf_id)
+                pid = db.workflows.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
-
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)
         return resp
+# Ignoring C901,R0915: "'WFUPdate.put' is too complex" - this requires a refactor
+#                      (or maybe the LOC limit is too low)
+# pylama:ignore=C901,R0915

@@ -53,11 +53,6 @@ steps:
       checkpoint_disk_interval: checkpoint_disk_interval
     out: [clamr_stdout, outdir, checkpoint_dir, time_log]
     hints:
-        DockerRequirement:
-            # TODO Sort this out
-            #dockerImport: clamr_img.tar.gz
-            #beeflow:copyContainer: clamr
-            beeflow:copyContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
         beeflow:CheckpointRequirement:
             enabled: true
             file_path: checkpoint_output
@@ -65,7 +60,11 @@ steps:
             file_regex: backup[0-9]*.crx 
             restart_parameters: -R
             num_tries: 3
-            
+        beeflow:SchedulerRequirement:
+            timeLimit: 00:00:10
+        DockerRequirement:
+            dockerFile: "Dockerfile.clamr-ffmpeg"
+            beeflow:containerName: "clamr-ffmpeg"
   ffmpeg:
     run: ffmpeg.cwl
     in:
@@ -82,3 +81,7 @@ steps:
     out: [movie]
     requirements:
         InlineJavascriptRequirement: {}
+    hints:
+        DockerRequirement:
+            dockerFile: "Dockerfile.clamr-ffmpeg"
+            beeflow:containerName: "clamr-ffmpeg"

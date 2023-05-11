@@ -28,8 +28,6 @@ poetry install -E cloud_extras || exit 1
 
 # BEE Configuration
 mkdir -p ~/.config/beeflow
-JOB_TEMPLATE=$HOME/.config/beeflow/submit.jinja
-cp beeflow/data/job_templates/slurm-submit.jinja $JOB_TEMPLATE
 cat >> ~/.config/beeflow/bee.conf <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
@@ -39,17 +37,22 @@ use_archive = False
 bee_dep_image = $NEO4J_CONTAINER
 beeflow_pidfile = $HOME/beeflow.pid
 beeflow_socket = $HOME/beeflow.sock
+max_restarts = 2
 
 [task_manager]
 socket = $HOME/tm.sock
 container_runtime = Charliecloud
-job_template = $JOB_TEMPLATE
 runner_opts =
 
 [charliecloud]
 image_mntdir = /tmp
-chrun_opts =
+chrun_opts = --home
 setup =
+
+[job]
+default_account =
+default_time_limit =
+default_partition =
 
 [graphdb]
 hostname = localhost
@@ -77,9 +80,11 @@ container_output_path = /tmp
 container_type = charliecloud
 container_archive = $HOME/container_archive
 
-[slurmrestd]
-slurm_socket = /tmp/slurm.sock
-slurm_args = -s openapi/v0.0.35
+[slurm]
+# Just test slurmrestd in CI for now
+use_commands = False
+slurmrestd_socket = /tmp/slurm.sock
+openapi_version = v0.0.37
 EOF
 printf "\n\n"
 printf "#### bee.conf ####\n"

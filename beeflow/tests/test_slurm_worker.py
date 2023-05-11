@@ -19,7 +19,7 @@ from beeflow.common.wf_data import Task
 # Timeout (seconds) for waiting on tasks
 TIMEOUT = 150
 # Extra slurmrestd arguments. This may be something to take on the command line
-SLURMRESTD_ARGS = bc.get('slurmrestd', 'slurm_args')
+OPENAPI_VERSION = bc.get('slurm', 'openapi_version')
 GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
                  requirements=[], inputs=[], outputs=[], stdout='', stderr='',
                  workflow_id=uuid.uuid4().hex)
@@ -42,99 +42,84 @@ def wait_state(worker_iface, job_id, state):
     return last_state
 
 
-def setup_slurm_worker(fn):
-    """Add a decorator to set up the worker interface and slurmrestd."""
-
-    def decorator():
-        """Decorate the input function."""
-        slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
-        bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
-        os.mkdir(bee_workdir)
-        proc = subprocess.Popen(f'slurmrestd {SLURMRESTD_ARGS} unix:{slurm_socket}', shell=True)
-        time.sleep(1)
-        worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
-                                       slurm_socket=slurm_socket, bee_workdir=bee_workdir,
-                                       job_template=bc.get('task_manager', 'job_template'))
-        fn(worker_iface)
-        time.sleep(1)
-        proc.kill()
-
-    return decorator
+@pytest.fixture(params=[True, False], ids=['slurm-commands', 'slurmrestd'])
+def slurm_worker(request):
+    """Slurm worker fixture."""
+    slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
+    bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
+    os.mkdir(bee_workdir)
+    proc = subprocess.Popen(f'slurmrestd -s openapi/{OPENAPI_VERSION} unix:{slurm_socket}',
+                            shell=True)
+    time.sleep(1)
+    worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
+                                   slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                                   openapi_version=OPENAPI_VERSION,
+                                   use_commands=request.param)
+    yield worker_iface
+    time.sleep(1)
+    proc.kill()
 
 
-def setup_worker_iface(fn):
-    """Add a decorator that creates the worker interface but not slurmrestd."""
-
-    def decorator():
-        """Decorate the input function."""
-        slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
-        bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
-        os.mkdir(bee_workdir)
-        worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
-                                       slurm_socket=slurm_socket, bee_workdir=bee_workdir,
-                                       job_template=bc.get('task_manager', 'job_template'))
-        fn(worker_iface)
-
-    return decorator
+@pytest.fixture
+def slurmrestd_worker_no_daemon():
+    """Fixture that creates the worker interface but not slurmrestd."""
+    slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
+    bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
+    os.mkdir(bee_workdir)
+    yield WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
+                          slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                          openapi_version=OPENAPI_VERSION,
+                          use_commands=False)
 
 
-@setup_slurm_worker
-def test_good_task(worker_iface):
+def test_good_task(slurm_worker):
     """Test submission of a good task."""
-    job_id, last_state = worker_iface.submit_task(GOOD_TASK)
-    assert last_state == 'PENDING'
-    last_state = wait_state(worker_iface, job_id, 'PENDING')
+    job_id, last_state = slurm_worker.submit_task(GOOD_TASK)
+    if last_state == 'PENDING':
+        last_state = wait_state(slurm_worker, job_id, 'PENDING')
     if last_state == 'RUNNING':
-        last_state = wait_state(worker_iface, job_id, 'RUNNING')
+        last_state = wait_state(slurm_worker, job_id, 'RUNNING')
     if last_state == 'COMPLETING':
-        last_state = wait_state(worker_iface, job_id, 'COMPLETING')
+        last_state = wait_state(slurm_worker, job_id, 'COMPLETING')
     assert last_state == 'COMPLETED'
 
 
-@setup_slurm_worker
-def test_bad_task(worker_iface):
+def test_bad_task(slurm_worker):
     """Test submission of a bad task."""
-    job_id, last_state = worker_iface.submit_task(BAD_TASK)
-    assert last_state == 'PENDING'
-    last_state = wait_state(worker_iface, job_id, 'PENDING')
+    job_id, last_state = slurm_worker.submit_task(BAD_TASK)
+    if last_state == 'PENDING':
+        last_state = wait_state(slurm_worker, job_id, 'PENDING')
     if last_state == 'RUNNING':
-        last_state = wait_state(worker_iface, job_id, 'RUNNING')
+        last_state = wait_state(slurm_worker, job_id, 'RUNNING')
     if last_state == 'COMPLETING':
-        last_state = wait_state(worker_iface, job_id, 'COMPLETING')
+        last_state = wait_state(slurm_worker, job_id, 'COMPLETING')
     assert last_state == 'FAILED'
 
 
-@setup_slurm_worker
-def test_query_bad_job_id(worker_iface):
+def test_query_bad_job_id(slurm_worker):
     """Test querying a bad job ID."""
     with pytest.raises(WorkerError):
-        worker_iface.query_task(888)
+        slurm_worker.query_task(888)
 
 
-@setup_slurm_worker
-def test_cancel_good_job(worker_iface):
+def test_cancel_good_job(slurm_worker):
     """Cancel a good job."""
-    job_id, _ = worker_iface.submit_task(GOOD_TASK)
-    job_state = worker_iface.cancel_task(job_id)
+    job_id, _ = slurm_worker.submit_task(GOOD_TASK)
+    job_state = slurm_worker.cancel_task(job_id)
     assert job_state == 'CANCELLED'
 
 
-# This test is broken in CI, but works locally. I'm commenting it out for now
-# @setup_slurm_worker
-# def test_cancel_bad_job_id(worker_iface):
-#    """Cancel a non-existent job."""
-#    with pytest.raises(WorkerError):
-#        worker_iface.cancel_task(888)
-
-
-@setup_worker_iface
-def test_no_slurmrestd(worker_iface):
+def test_no_slurmrestd(slurmrestd_worker_no_daemon):
     """Test without running slurmrestd."""
-    job_id, state = worker_iface.submit_task(GOOD_TASK)
+    worker = slurmrestd_worker_no_daemon
+    job_id, state = worker.submit_task(GOOD_TASK)
     assert state == 'NOT_RESPONDING'
-    assert worker_iface.query_task(job_id) == 'NOT_RESPONDING'
-    assert worker_iface.cancel_task(job_id) == 'NOT_RESPONDING'
+    assert worker.query_task(job_id) == 'NOT_RESPONDING'
+    assert worker.cancel_task(job_id) == 'NOT_RESPONDING'
 # Ignoring R1732: This is not what we need to do with the Popen of slurmrestd above;
 #                 using a with statement doesn't kill the process immediately but just
 #                 waits for it to complete and slurmrestd never will unless we kill it.
-# pylama:ignore=R1732
+# Ignoring E402: "module level import not at top of file" - this is required for
+#                bee config
+# Ignoring W0621: Redefinition of names is required for pytest
+# pylama:ignore=R1732,E402,W0621
