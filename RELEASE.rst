@@ -16,7 +16,7 @@ Publishing a new release
    that matches the version in pyproject.toml
 6. Follow step 2 but uncheck Allow specified actors to bypass and don't forget save
 7. Finally, on the main branch, first run a ``poetry build`` and then a
-   ``poetry publish``. The second command will ask for a username and password
+   ``poetry publish``. The second command will ask for a username and password (You may need to add the --username --password options to ``poetry build``)
    for PyPI.
 
 Check the documentation at: `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`_ 
