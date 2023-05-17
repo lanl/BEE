@@ -1,5 +1,6 @@
 """Flux worker interface."""
 
+import os
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
@@ -45,6 +46,9 @@ class FluxWorker(Worker):
         script = [
             '#!/bin/bash',
             'set -e',
+            'env',
+            'source ~/.bashrc',
+            'env',
             crt_res.env_code,
         ]
         # TODO: This doesn't handle MPI jobs yet
@@ -53,22 +57,32 @@ class FluxWorker(Worker):
         # output but I don't quite understand it.
         for cmd in crt_res.pre_commands:
             script.append(' '.join(cmd.args))
+        # Get resource requirements
+        nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
+        # TODO: 'ntasks' may not mean the same thing as with Slurm
+        ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
+        # TODO: What to do with the MPI version?
+        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
         # Set up the main command
-        args = ['flux', 'run']
+        args = ['flux', 'run', '-N', str(nodes), '-n', str(ntasks)]
         if task.stdout is not None:
             args.extend(['--output', task.stdout])
         if task.stderr is not None:
             args.extend(['--error', task.stderr])
         args.extend(crt_res.main_command.args)
+        log.info(args)
         # script.append(' '.join(crt_res.main_command.args))
         script.append(' '.join(args))
         for cmd in crt_res.post_commands:
             script.append(' '.join(cmd.args))
         script = '\n'.join(script)
-        jobspec = self.job.JobspecV1.from_batch_command(script, task.name)
+        jobspec = self.job.JobspecV1.from_batch_command(script, task.name,
+                                                        num_slots=ntasks,
+                                                        num_nodes=nodes)
         task_save_path = self.task_save_path(task)
         jobspec.stdout = f'{task_save_path}/{task.name}-{task.id}.out'
         jobspec.stderr = f'{task_save_path}/{task.name}-{task.id}.err'
+        jobspec.environment = dict(os.environ)
         # Save the script for later reference
         with open(f'{task_save_path}/{task.name}-{task.id}.sh', 'w') as fp:
             fp.write(script)
