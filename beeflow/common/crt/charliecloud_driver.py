@@ -108,9 +108,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         deployed_image_root = bc.get('builder', 'deployed_image_root')
 
         hints = dict(task.hints)
-        mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
+        # --join is only supported with Slurm (maybe this logic shouldn't be in here)
+        if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm':
+            mpi_opt = '--join' if 'beeflow:MPIRequirement' in hints else ''
+        else:
+            mpi_opt = ''
         command = ' '.join(task.command)
-        env_code = ''.join([self.cc_setup if self.cc_setup else '', task_workdir_env])
+        env_code = '\n'.join([self.cc_setup if self.cc_setup else '', task_workdir_env])
         deployed_path = deployed_image_root + '/' + task_container_name
         pre_commands = [
             Command(f'mkdir -p {deployed_image_root}\n'.split(), CommandType.ONE_PER_NODE),

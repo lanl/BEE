@@ -46,23 +46,26 @@ class FluxWorker(Worker):
         script = [
             '#!/bin/bash',
             'set -e',
-            'env',
-            'source ~/.bashrc',
-            'env',
             crt_res.env_code,
         ]
         # TODO: This doesn't handle MPI jobs yet
         # TODO: Should this entire model, saving stdout and stderr to files, be
         # redone for Flux? It seems to provide some sort of KVS for storing
         # output but I don't quite understand it.
-        for cmd in crt_res.pre_commands:
-            script.append(' '.join(cmd.args))
         # Get resource requirements
         nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
         # TODO: 'ntasks' may not mean the same thing as with Slurm
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
         # TODO: What to do with the MPI version?
         mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
+
+        for cmd in crt_res.pre_commands:
+            if cmd.type == 'one-per-node':
+                cmd_args = ['flux', 'run', '-N', str(nodes), '-n', str(nodes), ' '.join(cmd.args)]
+            else:
+                cmd_args = ['flux', 'run', ' '.join(cmd.args)]
+            script.append(' '.join(cmd_args))
+
         # Set up the main command
         args = ['flux', 'run', '-N', str(nodes), '-n', str(ntasks)]
         if task.stdout is not None:
@@ -73,8 +76,14 @@ class FluxWorker(Worker):
         log.info(args)
         # script.append(' '.join(crt_res.main_command.args))
         script.append(' '.join(args))
+
         for cmd in crt_res.post_commands:
-            script.append(' '.join(cmd.args))
+            if cmd.type == 'one-per-node':
+                cmd_args = ['flux', 'run', '-N', str(nodes), '-n', str(nodes), ' '.join(cmd.args)]
+            else:
+                cmd_args = ['flux', 'run', ' '.join(cmd.args)]
+            script.append(' '.join(cmd_args))
+
         script = '\n'.join(script)
         jobspec = self.job.JobspecV1.from_batch_command(script, task.name,
                                                         num_slots=ntasks,
