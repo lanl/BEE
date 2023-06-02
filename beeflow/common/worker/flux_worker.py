@@ -1,9 +1,8 @@
 """Flux worker interface."""
 
 import os
-from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import log as bee_logging
-from beeflow.common.worker.worker import (Worker, WorkerError)
+from beeflow.common.worker.worker import Worker
 
 log = bee_logging.setup(__name__)
 
@@ -30,8 +29,8 @@ class FluxWorker(Worker):
         """Initialize the flux worker object."""
         super().__init__(**kwargs)
         # Only try to import the Flux API if we need it
-        import flux
-        from flux import job
+        import flux   # noqa this is necessary since flux may not be installed
+        from flux import job  # noqa
         self.flux = flux
         self.job = job
 
@@ -57,7 +56,8 @@ class FluxWorker(Worker):
         # TODO: 'ntasks' may not mean the same thing as with Slurm
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
         # TODO: What to do with the MPI version?
-        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
+        # mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion',
+        #                                    default='pmi2')
 
         for cmd in crt_res.pre_commands:
             if cmd.type == 'one-per-node':
@@ -93,7 +93,7 @@ class FluxWorker(Worker):
         jobspec.stderr = f'{task_save_path}/{task.name}-{task.id}.err'
         jobspec.environment = dict(os.environ)
         # Save the script for later reference
-        with open(f'{task_save_path}/{task.name}-{task.id}.sh', 'w') as fp:
+        with open(f'{task_save_path}/{task.name}-{task.id}.sh', 'w', encoding='utf-8') as fp:
             fp.write(script)
         return jobspec
 
@@ -101,15 +101,15 @@ class FluxWorker(Worker):
         """Worker submits task; returns job_id, job_state."""
         log.info(f'Submitting task: {task.name}')
         jobspec = self.build_jobspec(task)
-        f = self.flux.Flux()
-        job_id = self.job.submit(f, jobspec)
+        flux = self.flux.Flux()
+        job_id = self.job.submit(flux, jobspec)
         return job_id, self.query_task(job_id)
 
     def cancel_task(self, job_id):
         """Cancel task with job_id; returns job_state."""
         log.info(f'Cancelling task with ID: {job_id}')
-        f = self.flux.Flux()
-        self.job.cancel(f, job_id)
+        flux = self.flux.Flux()
+        self.job.cancel(flux, job_id)
         return 'CANCELED'
 
     def query_task(self, job_id):
@@ -117,8 +117,8 @@ class FluxWorker(Worker):
         # TODO: How does Flux handle TIMEOUT/TIMELIMIT? They don't seem to have
         # a state for this
         log.info(f'Querying task with job_id: {job_id}')
-        f = self.flux.Flux()
-        info = self.job.get_job(f, job_id)
+        flux = self.flux.Flux()
+        info = self.job.get_job(flux, job_id)
         log.info(info)
 
         # TODO: May need to check for return codes other than 0 if
@@ -127,3 +127,6 @@ class FluxWorker(Worker):
 
         # Note: using 'status' here instead of 'state'
         return BEE_STATES[info['status']]
+# Ignoring W0511: TODO's are needed here to indicate parts of the code that may
+#                 need more work or thought
+# pylama:ignore=W0511
