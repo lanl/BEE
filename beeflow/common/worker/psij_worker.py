@@ -9,7 +9,7 @@ import urllib
 import getpass
 import requests_unixsocket
 import requests
-import psij
+from psij import Job, JobExecutor, JobSpec
 
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
@@ -18,7 +18,7 @@ from beeflow.common import validation
 log = bee_logging.setup(__name__)
 
 
-class PsijWorker(Worker):
+class PSIJWorker(Worker):
     """Main Psij worker class. """
     def __init__(self, **kwargs):
         """ Construct the psij worker """
@@ -47,6 +47,11 @@ class PsijWorker(Worker):
 
         return state_table[job_state]
 
+    def build_text(self, task):
+        """Build text for the task script."""
+        #Not needed for PSIJ
+        pass
+
     def submit_task(self, task):
         #Get the executable for the task
 
@@ -63,9 +68,12 @@ class PsijWorker(Worker):
         #Get the requirements for the task
         nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
-        partition = task.get_requirement('beeflow:SchedulerRequirement',
-        time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
-                                          default=self.default_time_limit)
+        partition = task.get_requirement('beeflow:SchedulerRequirement', 
+                                         'partition',
+                                         default=self.default_partition)
+        time_limit = task.get_requirement('beeflow:SchedulerRequirement', 
+                                        'timeLimit', 
+                                        default=self.default_time_limit)
         time_limit = validation.time_limit(time_limit)
         account = task.get_requirement('beeflow:SchedulerRequirement', 'account',
                                        default=self.default_account)
