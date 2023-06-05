@@ -3,11 +3,13 @@
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.worker.lsf_worker import LSFWorker
 from beeflow.common.worker.simple_worker import SimpleWorker
+from beeflow.common.worker.psij_worker import PSIJWorker
 
 
 supported_workload_schedulers = {
     'Slurm': SlurmWorker,
     'LSF': LSFWorker,
+    'PSIJ': PSIJWorker,
     'Simple': SimpleWorker,
 }
 
