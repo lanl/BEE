@@ -3,13 +3,15 @@ https://exaworks.org/psij
 Builds command for submitting jobs through psij.
 """
 
+import os
 import subprocess
 import json
 import urllib
 import getpass
 import requests_unixsocket
 import requests
-from psij import Job, JobExecutor, JobSpec, JobAttributes, ResourceSpec
+import datetime
+from psij import Job, JobExecutor, JobSpec, JobAttributes, ResourceSpecV1
 
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
@@ -28,6 +30,13 @@ class PSIJWorker(Worker):
         self.default_account = default_account
         self.default_time_limit = default_time_limit
         self.default_partition = default_partition
+
+        #verify that the time limit is in the correct format (datetime timedelta)
+        #TODO figure out what time format this value might arrive as
+        #TODO handle the above time format
+        if self.default_time_limit == "":
+            self.default_time_limit = datetime.timedelta(hours=4)
+
         
     def write_script(self, task):
         """Build task script; returns filename of script."""
@@ -48,7 +57,7 @@ class PSIJWorker(Worker):
                 'QUEUED': 'PENDING',
                 }
 
-        return state_table[job_state]
+        return state_table[job_state.value]
 
     def build_text(self, task):
         """Build text for the task script."""
@@ -62,24 +71,24 @@ class PSIJWorker(Worker):
         partition = task.get_requirement('beeflow:SchedulerRequirement', 
                                          'partition',
                                          default=self.default_partition)
+        #TODO we need to get this time limit validated/converted as a datetime timedelta
         time_limit = task.get_requirement('beeflow:SchedulerRequirement', 
                                         'timeLimit', 
                                         default=self.default_time_limit)
-        time_limit = validation.time_limit(time_limit)
         account = task.get_requirement('beeflow:SchedulerRequirement', 'account',
                                        default=self.default_account)
 
         #Apply all of the information gathered to the job spec and submit
         js = JobSpec(executable='/bin/sh', arguments=task.command)
         job_attributes = JobAttributes(queue_name=partition,duration=time_limit,project_name=account)
-        js.resource_spec = ResourceSpec(node_count=nodes, processes_per_node=(ntasks / nodes), process_count=ntasks)
+        js.resource_spec = ResourceSpecV1(node_count=nodes, processes_per_node=int(ntasks / nodes), process_count=ntasks)
         js.attributes = job_attributes
         job = Job(js)
         self.ex.submit(job)
-        self.jobs[job.native_id] = job
-        #TODO translate psi-j job status to beeflow job status
+        job_id = job.native_id
+        self.jobs[job_id] = job
         beeflow_state = self.translate_state(job.status.state)
-        return job.native_id,beeflow_state
+        return job_id,beeflow_state
 
     def cancel_task(self, job_id):
         self.jobs[job_id].cancel()
