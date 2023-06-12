@@ -56,6 +56,7 @@ class PSIJWorker(Worker):
                 0: 'PENDING',
                 1: 'PENDING',
                 }
+        print("translating state: " + str(job_state.value) )
 
         return state_table[job_state.value]
 
@@ -88,7 +89,7 @@ class PSIJWorker(Worker):
         js.attributes = job_attributes
         job = Job(js)
         self.ex.submit(job)
-        job_id = job.native_id
+        job_id = str(job.native_id)
         self.jobs[job_id] = job
         beeflow_state = self.translate_state(job.status.state)
         return job_id,beeflow_state
@@ -100,10 +101,12 @@ class PSIJWorker(Worker):
 
     def query_task(self, job_id):
         #TODO remove debug code
+        job_id = str(job_id)
         print("Querying task, jobs known: ")
         for key in self.jobs.keys():
             print(str(key))
         if job_id not in self.jobs:
+            print("Job ID: " + str(job_id) + " couldn't be found")
             return "NOT_RESPONDING"
 
         return self.translate_state(self.jobs[job_id].status.state)
