@@ -49,12 +49,12 @@ class PSIJWorker(Worker):
 
     def translate_state(self, job_state):
         state_table = {
-                'ACTIVE': 'RUNNING',
-                'CANCELED': 'CANCELLED',
-                'COMPLETED': 'COMPLETED',
-                'FAILED': 'FAILED',
-                'NEW': 'PENDING',
-                'QUEUED': 'PENDING',
+                2: 'RUNNING',
+                5: 'CANCELLED',
+                3: 'COMPLETED',
+                4: 'FAILED',
+                0: 'PENDING',
+                1: 'PENDING',
                 }
 
         return state_table[job_state.value]
@@ -79,9 +79,12 @@ class PSIJWorker(Worker):
                                        default=self.default_account)
 
         #Apply all of the information gathered to the job spec and submit
-        js = JobSpec(executable='/bin/sh', arguments=task.command)
+        js = JobSpec(executable=task.command[0], arguments=task.command[1:])
         job_attributes = JobAttributes(queue_name=partition,duration=time_limit,project_name=account)
         js.resource_spec = ResourceSpecV1(node_count=nodes, processes_per_node=int(ntasks / nodes), process_count=ntasks)
+        js.stdout_path = task.stdout
+        js.stderr_path = task.stderr
+        js.directory = task.workdir
         js.attributes = job_attributes
         job = Job(js)
         self.ex.submit(job)
@@ -96,5 +99,12 @@ class PSIJWorker(Worker):
         return job_state
 
     def query_task(self, job_id):
+        #TODO remove debug code
+        print("Querying task, jobs known: ")
+        for key in self.jobs.keys():
+            print(str(key))
+        if job_id not in self.jobs:
+            return "NOT_RESPONDING"
+
         return self.translate_state(self.jobs[job_id].status.state)
 
