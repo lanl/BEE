@@ -47,14 +47,15 @@ class FluxWorker(Worker):
             'set -e',
             crt_res.env_code,
         ]
-        # TODO: This doesn't handle MPI jobs yet
+
         # TODO: Should this entire model, saving stdout and stderr to files, be
         # redone for Flux? It seems to provide some sort of KVS for storing
         # output but I don't quite understand it.
+
         # Get resource requirements
         nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
         # TODO: 'ntasks' may not mean the same thing as with Slurm
-        ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
+        ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=nodes)
         # TODO: What to do with the MPI version?
         # mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion',
         #                                    default='pmi2')
@@ -74,7 +75,6 @@ class FluxWorker(Worker):
             args.extend(['--error', task.stderr])
         args.extend(crt_res.main_command.args)
         log.info(args)
-        # script.append(' '.join(crt_res.main_command.args))
         script.append(' '.join(args))
 
         for cmd in crt_res.post_commands:
