@@ -5,46 +5,46 @@ inputs:
   pnt: File
 
 outputs:
-  output-1-node:
+  output_1_node:
     type: File
-    outputSource: pennant-1-node/output
-  output-2-node:
+    outputSource: pennant_1_node/output
+  output_2_node:
     type: File
-    outputSource: pennant-2-node/output
-  output-4-node:
+    outputSource: pennant_2_node/output
+  output_4_node:
     type: File
-    outputSource: pennant-4-node/output
-  output-8-node:
+    outputSource: pennant_4_node/output
+  output_8_node:
     type: File
-    outputSource: pennant-8-node/output
+    outputSource: pennant_8_node/output
 
 steps:
-  pennant-1-node:
-    run: pennant.cwl
+  pennant_1_node:
+    run: pennant_1_node.cwl
     in:
       pnt: pnt
     out: [output]
     hints:
       beeflow:MPIRequirement:
         nodes: 1
-  pennant-2-node:
-    run: pennant.cwl
+  pennant_2_node:
+    run: pennant_2_node.cwl
     in:
       pnt: pnt
     out: [output]
     hints:
       beeflow:MPIRequirement:
         nodes: 2
-  pennant-4-node:
-    run: pennant.cwl
+  pennant_4_node:
+    run: pennant_4_node.cwl
     in:
       pnt: pnt
     out: [output]
     hints:
       beeflow:MPIRequirement:
         nodes: 4
-  pennant-8-node:
-    run: pennant.cwl
+  pennant_8_node:
+    run: pennant_8_node.cwl
     in:
       pnt: pnt
     out: [output]

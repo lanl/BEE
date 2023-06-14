@@ -7,7 +7,7 @@ inputs:
   pnt:
     type: File
     inputBinding: {}
-stdout: pennant.txt
+stdout: pennant_2_node.out
 outputs:
   output:
     type: stdout
