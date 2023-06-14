@@ -52,6 +52,7 @@ setup =
 [job]
 default_account =
 default_time_limit =
+default_partition =
 
 [graphdb]
 hostname = localhost

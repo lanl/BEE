@@ -284,6 +284,8 @@ VALIDATOR.option('job', 'default_account', validator=lambda val: val.strip(),
                  info='default account to launch jobs with (leave blank if none)')
 VALIDATOR.option('job', 'default_time_limit', validator=validation.time_limit,
                  info='default account time limit (leave blank if none)')
+VALIDATOR.option('job', 'default_partition', validator=lambda val: val.strip(),
+                 info='default partition to run jobs on (leave blank if none)')
 
 
 def validate_chrun_opts(opts):

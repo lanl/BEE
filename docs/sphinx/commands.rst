@@ -29,7 +29,10 @@ beeclient
 **beeclient** is the command you will use to submit workflows and interact with your workflows. The following are the options:
 
 ``beeclient submit``: Submit a new workflow. By default this will also start
-jobs immediately (unless passed the ``--no-start`` option).
+jobs immediately (unless passed the ``--no-start`` option). If either the MAIN_CWL or YAML
+files are not contained immediately inside of WF_PATH, then the WF_PATH directory will
+be copied into a temporary directory and the missing files will then be copied
+into the copied WF_PATH directory before packaging and submission.
 
 Arguments:
   - WF_NAME, The workflow name  [required]
