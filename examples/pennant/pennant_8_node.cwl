@@ -1,7 +1,7 @@
 cwlVersion: v1.0
 class: CommandLineTool
 
-baseCommand: pennant
+baseCommand: /PENNANT/build/pennant
 
 inputs:
   pnt:

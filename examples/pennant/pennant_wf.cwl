@@ -27,6 +27,8 @@ steps:
     hints:
       beeflow:MPIRequirement:
         nodes: 1
+      DockerRequirement:
+        beeflow:useContainer: "..."
   pennant_2_node:
     run: pennant_2_node.cwl
     in:
@@ -35,6 +37,8 @@ steps:
     hints:
       beeflow:MPIRequirement:
         nodes: 2
+      DockerRequirement:
+        beeflow:useContainer: "..."
   pennant_4_node:
     run: pennant_4_node.cwl
     in:
@@ -43,6 +47,8 @@ steps:
     hints:
       beeflow:MPIRequirement:
         nodes: 4
+      DockerRequirement:
+        beeflow:useContainer: "..."
   pennant_8_node:
     run: pennant_8_node.cwl
     in:
@@ -51,3 +57,5 @@ steps:
     hints:
       beeflow:MPIRequirement:
         nodes: 8
+      DockerRequirement:
+        beeflow:useContainer: "..."
