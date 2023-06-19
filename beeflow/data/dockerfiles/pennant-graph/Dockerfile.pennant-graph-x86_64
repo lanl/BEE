@@ -1,6 +1,7 @@
 # Build a container with matplotlib for graphing
+#
+# `ch-image build --force -f Dockerfile.pennant-graph-x86_64 -t pennant-graph .`
 FROM almalinux:8
-
 
 RUN dnf update \
  && dnf install -y \
@@ -23,3 +24,7 @@ RUN python3 -m venv /venv \
  && echo ". /venv/bin/activate" >> /etc/profile.d/venv.sh \
  && . /venv/bin/activate \
  && pip install matplotlib
+
+COPY graph_pennant.py graph_pennant.sh /
+
+RUN chmod 755 /graph_pennant.sh

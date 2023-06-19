@@ -1,5 +1,7 @@
+"""Graph the output of a PENNANT workflow."""
 import re
 import sys
+import matplotlib.pyplot as plt
 
 
 results = []
@@ -22,6 +24,17 @@ for fname in sys.argv[1:]:
             times.append(time)
     results.append({
         'pe_count': pe_count,
-        'times': times,
+        'average_wall_time': sum(times) / len(times),
     })
-print(results)
+
+# The node counts
+x = [str(result['pe_count']) for result in results]
+# Average wall for cycle
+y = [result['average_wall_time'] for result in results]
+fig, ax = plt.subplots()
+ax.plot(x, y)
+ax.set_title('PENNANT Workflow Run')
+ax.set_xlabel('Node count')
+ax.set_ylabel('Average wall time for cycle')
+# Save to a png file
+fig.savefig('graph.png')

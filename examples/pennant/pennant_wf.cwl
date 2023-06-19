@@ -17,6 +17,9 @@ outputs:
   output_8_node:
     type: File
     outputSource: pennant_8_node/output
+  image:
+    type: File
+    outputSource: graph/image
 
 steps:
   pennant_1_node:
@@ -57,5 +60,16 @@ steps:
     hints:
       beeflow:MPIRequirement:
         nodes: 8
+      DockerRequirement:
+        beeflow:useContainer: "..."
+  graph:
+    run: graph.cwl
+    in:
+      out1node: pennant_1_node/output
+      out2node: pennant_2_node/output
+      out4node: pennant_4_node/output
+      out8node: pennant_8_node/output
+    out: [image]
+    hints:
       DockerRequirement:
         beeflow:useContainer: "..."
