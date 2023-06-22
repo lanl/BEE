@@ -1,4 +1,4 @@
-cwlVersion: v1.0
+cwlVersion: v1.2
 class: Workflow
 
 inputs:
@@ -31,7 +31,7 @@ steps:
       beeflow:MPIRequirement:
         nodes: 1
       DockerRequirement:
-        beeflow:useContainer: "..."
+        beeflow:useContainer: "/usr/projects/beedev/pennant.tar.gz"
   pennant_2_node:
     run: pennant_2_node.cwl
     in:
@@ -41,7 +41,7 @@ steps:
       beeflow:MPIRequirement:
         nodes: 2
       DockerRequirement:
-        beeflow:useContainer: "..."
+        beeflow:useContainer: "/usr/projects/beedev/pennant.tar.gz"
   pennant_4_node:
     run: pennant_4_node.cwl
     in:
@@ -51,7 +51,7 @@ steps:
       beeflow:MPIRequirement:
         nodes: 4
       DockerRequirement:
-        beeflow:useContainer: "..."
+        beeflow:useContainer: "/usr/projects/beedev/pennant.tar.gz"
   pennant_8_node:
     run: pennant_8_node.cwl
     in:
@@ -61,7 +61,7 @@ steps:
       beeflow:MPIRequirement:
         nodes: 8
       DockerRequirement:
-        beeflow:useContainer: "..."
+        beeflow:useContainer: "/usr/projects/beedev/pennant.tar.gz"
   graph:
     run: graph.cwl
     in:
@@ -72,4 +72,4 @@ steps:
     out: [image]
     hints:
       DockerRequirement:
-        beeflow:useContainer: "..."
+        beeflow:useContainer: "/usr/projects/beedev/pennant-graph.tar.gz"
