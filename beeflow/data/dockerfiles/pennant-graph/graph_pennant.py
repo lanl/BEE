@@ -8,7 +8,7 @@ results = []
 for fname in sys.argv[1:]:
     pe_count = 0
     times = []
-    with open(fname) as fp:
+    with open(fname, encoding='utf-8') as fp:
         for line in fp:
             # Check for the PE count
             m_pe_count = re.match(r'Running on (\d+) MPI PE\(s\)', line)
@@ -38,3 +38,6 @@ ax.set_xlabel('Node count')
 ax.set_ylabel('Average wall time for cycle')
 # Save to a png file
 fig.savefig('graph.png')
+
+# Ignore C0103: This is just a simple script, not all globals should be UPPER_CASE here
+# pylama:ignore=C0103
