@@ -12,7 +12,6 @@ printf "\n\n"
 mkdir -p $HOME/img
 # Pull the neo4j container
 ch-image pull neo4j:3.5.22 || exit 1
-NEO4J_CONTAINER=$HOME/img/neo4j.tar.gz
 ch-convert -i ch-image -o tar neo4j:3.5.22 $NEO4J_CONTAINER || exit 1
 
 # BEE install

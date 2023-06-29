@@ -27,5 +27,7 @@ jobs:
         run: ./ci/slurm_start.sh
       - name: BEE Install
         run: ./ci/bee_install.sh
+      - name: BEE Config
+        run: ./ci/bee_slurm_config.sh
       - name: Unit tests
         run: ./ci/unit_tests.sh
