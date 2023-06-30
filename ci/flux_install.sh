@@ -35,7 +35,7 @@ sudo apt-get install -y \
     jq
 
 # Install flux-core
-git clone --depth 1 -b v${FLUX_VERSION} git@github.com:flux-framework/flux-core.git
+git clone --depth 1 -b v${FLUX_VERSION} https://github.com/flux-framework/flux-core.git
 (cd flux-core
  ./autogen.sh
  ./configure --prefix=/usr
