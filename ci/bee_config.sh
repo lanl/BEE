@@ -1,5 +1,5 @@
 #!/bin/sh
-# BEE Configuration for Slurm
+# BEE Configuration
 
 . ./ci/env.sh
 
@@ -8,7 +8,7 @@ cat >> ~/.config/beeflow/bee.conf <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
 bee_workdir = $BEE_WORKDIR
-workload_scheduler = Slurm
+workload_scheduler = $BATCH_SCHEDULER
 use_archive = False
 bee_dep_image = $NEO4J_CONTAINER
 beeflow_pidfile = $HOME/beeflow.pid
@@ -55,13 +55,18 @@ deployed_image_root = /tmp
 container_output_path = /tmp
 container_type = charliecloud
 container_archive = $HOME/container_archive
+EOF
 
+if [ "$BATCH_SCHEDULER" = "Slurm" ]; then
+    cat >> ~/.config/beeflow/bee.conf <<EOF
 [slurm]
 # Just test slurmrestd in CI for now
 use_commands = False
 slurmrestd_socket = /tmp/slurm.sock
 openapi_version = v0.0.37
 EOF
+fi
+
 printf "\n\n"
 printf "#### bee.conf ####\n"
 cat ~/.config/beeflow/bee.conf

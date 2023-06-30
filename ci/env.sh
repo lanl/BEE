@@ -23,3 +23,5 @@ BEE_WORKDIR=$HOME/.beeflow
 NEO4J_CONTAINER=$HOME/img/neo4j.tar.gz
 mkdir -p $BEE_WORKDIR
 export SLURM_CONF=~/slurm.conf
+# Flux variables
+FLUX_VERSION=0.51.0
