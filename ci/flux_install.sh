@@ -41,7 +41,8 @@ git clone --depth 1 -b v${FLUX_SECURITY_VERSION} https://github.com/flux-framewo
  ./autogen.sh
  ./configure --prefix=/usr
  make
- sudo make install)
+ sudo make install
+ sudo ldconfig)
 
 # Install flux-core
 git clone --depth 1 -b v${FLUX_CORE_VERSION} https://github.com/flux-framework/flux-core.git
@@ -49,7 +50,8 @@ git clone --depth 1 -b v${FLUX_CORE_VERSION} https://github.com/flux-framework/f
  ./autogen.sh
  ./configure --prefix=/usr
  make
- sudo make install)
+ sudo make install
+ sudo ldconfig)
 # Install the python API
 pip install --user wheel
 pip install --user flux-python==$FLUX_CORE_VERSION
