@@ -15,6 +15,7 @@ sudo apt-get install -y \
     libzmq3-dev \
     libczmq-dev \
     uuid-dev \
+    libjson-glib-dev \
     libjansson-dev \
     liblz4-dev \
     libarchive-dev \
