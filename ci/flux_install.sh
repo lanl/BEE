@@ -1,6 +1,7 @@
 #!/bin/sh
 # Install, set up, and start Flux
 
+set -e
 . ./ci/env.sh
 
 # Install dependencies as listed in https://github.com/flux-framework/flux-core/blob/master/scripts/install-deps-deb.sh
@@ -9,7 +10,7 @@ sudo apt-get install -y \
     automake \
     libtool \
     make \
-    p-config \
+    pkg-config \
     libc6-dev \
     libzmq3-dev \
     libczmq-dev \
