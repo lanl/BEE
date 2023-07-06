@@ -37,10 +37,10 @@ class TestWorkflowInterface(unittest.TestCase):
                  Hint("NetworkAccess", {"networkAccess": True})]
         workflow_id = generate_workflow_id()
         workflow = Workflow(
-                    "test_workflow", hints, requirements,
-                    [InputParameter("test_input", "File", "input.txt")],
-                    [OutputParameter("test_output", "File", "output.txt", "viz/output")],
-                    workflow_id)
+            "test_workflow", hints, requirements,
+            [InputParameter("test_input", "File", "input.txt")],
+            [OutputParameter("test_output", "File", "output.txt", "viz/output")],
+            workflow_id)
 
         self.wfi.initialize_workflow(workflow)
 
@@ -138,7 +138,7 @@ class TestWorkflowInterface(unittest.TestCase):
     def test_finalize_workflow(self):
         """Test workflow deletion from the graph database."""
         self.wfi.initialize_workflow(Workflow(
-             "test_workflow", None, None,
+            "test_workflow", None, None,
             [InputParameter("test_input", "File", "input.txt")],
             [OutputParameter("test_output", "File", "output.txt", "viz/output")],
             generate_workflow_id()))
@@ -234,7 +234,7 @@ class TestWorkflowInterface(unittest.TestCase):
             stdout=stdout,
             stderr=stderr,
             workflow_id=workflow_id)
-        
+
         self.wfi.add_task(task)
 
         # Restart the task, should create a new Task
@@ -331,7 +331,7 @@ class TestWorkflowInterface(unittest.TestCase):
             stdout=stdout,
             stderr=stderr,
             workflow_id=workflow_id)
-        
+
         self.wfi.add_task(task)
 
         self.assertEqual(task, self.wfi.get_task_by_id(task.id))
