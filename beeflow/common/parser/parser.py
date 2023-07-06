@@ -15,14 +15,15 @@ import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException  # noqa (pylama can't find the exception)
 
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.wf_data import (InputParameter,
+from beeflow.common.wf_data import (Workflow,
+                                    Task,
+                                    InputParameter,
                                     OutputParameter,
                                     StepInput,
                                     StepOutput,
                                     Hint,
                                     Requirement,
                                     generate_workflow_id)
-from beeflow.wf_manager.resources import wf_utils
 
 
 if not bc.ready():
@@ -52,7 +53,7 @@ class CwlParseError(Exception):
 class CwlParser:
     """Class for parsing CWL files."""
 
-    def __init__(self, wfi):
+    def __init__(self):
         """Initialize the CWL parser interface.
 
         Sets the workflow interface for communication with the graph database.
@@ -61,7 +62,6 @@ class CwlParser:
         self.path = None
         self.steps = []
         self.params = None
-        self._wfi = wfi
 
     def parse_workflow(self, workflow_id, cwl_path, job=None):
         """Parse a CWL Workflow file and load it into the graph database.
@@ -99,7 +99,7 @@ class CwlParser:
             :type input_: WorkflowInputParameter
             :param type_: the workflow input type
             :type type_: str
-            :rtype: str or int or float
+            :rtype: (Workflow, list of Task)
             """
             # Use parsed input parameter for input value if it exists
             input_id = _shortname(input_.id)
@@ -120,14 +120,13 @@ class CwlParser:
         workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
 
-        self._wfi.initialize_workflow(workflow_id, workflow_name, workflow_inputs,
-                                      workflow_outputs, workflow_requirements, workflow_hints)
-        for step in self.cwl.steps:
-            self.parse_step(step)
+        workflow = Workflow(workflow_name, workflow_hints, workflow_requirements, workflow_inputs,
+                            workflow_outputs, workflow_id)
+        tasks = [self.parse_step(step, workflow_id) for step in self.cwl.steps]
 
-        return self._wfi
+        return workflow, tasks
 
-    def parse_step(self, step):
+    def parse_step(self, step, workflow_id):
         """Parse a CWL step object.
 
         Calling this to parse a CommandLineTool file without a corresponding
@@ -135,6 +134,9 @@ class CwlParser:
 
         :param step: the CWL step object
         :type step: WorkflowStep
+        :param workflow_id: the workflow ID
+        :type workflow_id: str
+        :rtype: Task
         """
         # Parse CWL file specified by run field, else parse run field as inline CommandLineTool
         if isinstance(step.run, str):
@@ -160,9 +162,8 @@ class CwlParser:
         step_stdout = step_cwl.stdout
         step_stderr = step_cwl.stderr
 
-        self._wfi.add_task(step_name, base_command=step_command, inputs=step_inputs,
-                           outputs=step_outputs, requirements=step_requirements,
-                           hints=step_hints, stdout=step_stdout, stderr=step_stderr)
+        return Task(step_name, step_command, step_hints, step_requirements, step_inputs,
+                    step_outputs, step_stdout, step_stderr, workflow_id)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
@@ -294,7 +295,7 @@ class CwlParser:
             return reqs
         if as_hints:
             for req in requirements:
-                items = {k: v for k, v in req.items() if k != "class"}
+                items = {k: str(v) for k, v in req.items() if k != "class"}
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
                     base_path = os.path.dirname(self.path)
@@ -309,7 +310,7 @@ class CwlParser:
                 reqs.append(Hint(req['class'], items))
         else:
             for req in requirements:
-                reqs.append(Requirement(req.class_, {k: v for k, v in vars(req).items()
+                reqs.append(Requirement(req.class_, {k: str(v) for k, v in vars(req).items()
                                                      if k not in ("extension_fields",
                                                                   "loadingOptions", "class_")
                                                      and v is not None}))
@@ -350,10 +351,14 @@ def parse_args(args=None):
 def main():
     """Run the parser on a CWL Workflow and job file directly."""
     wf_id = generate_workflow_id()
-    wfi = wf_utils.get_workflow_interface(wf_id)
-    parser = CwlParser(wfi)
+    parser = CwlParser()
     args = parse_args()
-    parser.parse_workflow(wf_id, args.wf_file, args.inputs)
+    workflow, tasks = parser.parse_workflow(wf_id, args.wf_file, args.inputs)
+    print("Parsed workflow:")
+    print(workflow)
+
+    print("Parsed tasks:")
+    print(tasks)
 
 
 if __name__ == "__main__":

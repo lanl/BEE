@@ -121,9 +121,9 @@ class Task:
         :param workflow_id: the workflow ID
         :type workflow_id: str
         :param task_id: the task ID
-        :type task_id: str
+        :type task_id: str, optional
         :param workdir: the working directory from which to get and store data
-        :type workdir: path
+        :type workdir: path, optional
         """
         self.name = name
         self.base_command = base_command
