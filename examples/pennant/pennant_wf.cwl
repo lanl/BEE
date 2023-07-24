@@ -28,7 +28,7 @@ steps:
       beeflow:MPIRequirement:
         nodes: 1
       DockerRequirement:
-        beeflow:useContainer: "/g/g20/tronge1/img/pennant.tar.gz"
+        beeflow:useContainer: "$HOME/img/pennant.tar.gz"
   2_node:
     run: pennant_2_node.cwl
     in:
@@ -38,7 +38,7 @@ steps:
       beeflow:MPIRequirement:
         nodes: 2
       DockerRequirement:
-        beeflow:useContainer: "/g/g20/tronge1/img/pennant.tar.gz"
+        beeflow:useContainer: "$HOME/img/pennant.tar.gz"
   4_node:
     run: pennant_4_node.cwl
     in:
@@ -48,7 +48,7 @@ steps:
       beeflow:MPIRequirement:
         nodes: 4
       DockerRequirement:
-        beeflow:useContainer: "/g/g20/tronge1/img/pennant.tar.gz"
+        beeflow:useContainer: "$HOME/img/pennant.tar.gz"
   graph:
     run: graph.cwl
     in:
@@ -58,4 +58,4 @@ steps:
     out: [image]
     hints:
       DockerRequirement:
-        beeflow:useContainer: "/g/g20/tronge1/img/pennant-graph.tar.gz"
+        beeflow:useContainer: "$HOME/img/pennant-graph.tar.gz"
