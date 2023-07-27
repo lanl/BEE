@@ -12,7 +12,6 @@ printf "\n\n"
 mkdir -p $HOME/img
 # Pull the neo4j container
 ch-image pull neo4j:3.5.22 || exit 1
-NEO4J_CONTAINER=$HOME/img/neo4j.tar.gz
 ch-convert -i ch-image -o tar neo4j:3.5.22 $NEO4J_CONTAINER || exit 1
 
 # BEE install
@@ -22,63 +21,10 @@ printf "\n\n"
 $PYTHON -m venv venv
 . venv/bin/activate
 pip install --upgrade pip
-pip install poetry
+# pip install poetry
+# TODO: May want to use pip with specific version here
+curl -L https://install.python-poetry.org/ > install-poetry.sh
+chmod +x install-poetry.sh
+./install-poetry.sh
 # Do a poetry install, making sure that all extras are added
 poetry install -E cloud_extras || exit 1
-
-# BEE Configuration
-mkdir -p ~/.config/beeflow
-cat >> ~/.config/beeflow/bee.conf <<EOF
-# BEE CONFIGURATION FILE #
-[DEFAULT]
-bee_workdir = $BEE_WORKDIR
-workload_scheduler = Slurm
-use_archive = False
-bee_dep_image = $NEO4J_CONTAINER
-max_restarts = 2
-
-[task_manager]
-container_runtime = Charliecloud
-runner_opts =
-
-[charliecloud]
-image_mntdir = /tmp
-chrun_opts = --home
-setup =
-
-[job]
-default_account =
-default_time_limit =
-default_partition =
-
-[graphdb]
-hostname = localhost
-dbpass = password
-bolt_port = 7687
-http_port = 7474
-https_port = 7473
-gdb_image_mntdir = /tmp
-sleep_time = 10
-
-[scheduler]
-algorithm = fcfs
-default_algorithm = fcfs
-
-[workflow_manager]
-
-[builder]
-deployed_image_root = /tmp
-container_output_path = /tmp
-container_type = charliecloud
-container_archive = $HOME/container_archive
-
-[slurm]
-# Just test slurmrestd in CI for now
-use_commands = False
-openapi_version = v0.0.37
-EOF
-printf "\n\n"
-printf "#### bee.conf ####\n"
-cat ~/.config/beeflow/bee.conf
-printf "#### bee.conf ####\n"
-printf "\n\n"

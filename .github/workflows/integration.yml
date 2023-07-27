@@ -16,6 +16,11 @@ jobs:
   integration-test:
     if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP') || contains(github.event.pull_request.labels.*.name, 'lint-only')) }}
     name: BEE Integration Test
+    strategy:
+      matrix:
+        batch_scheduler: [Slurm, Flux]
+    env:
+      BATCH_SCHEDULER: ${{ matrix.batch_scheduler }}
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
     # available on 20.04
     runs-on: ubuntu-22.04
@@ -23,11 +28,11 @@ jobs:
       - uses: actions/checkout@v3
       - name: Dependency Install
         run: ./ci/deps_install.sh
-      - name: Slurm Setup and Install
-        run: ./ci/slurm_start.sh
+      - name: Batch Scheduler Install and Start
+        run: ./ci/batch_scheduler.sh
       - name: BEE Install
         run: ./ci/bee_install.sh
-      - name: BEE Start
-        run: ./ci/bee_start.sh
+      - name: BEE Config
+        run: ./ci/bee_config.sh
       - name: Integration Test
         run: ./ci/integration_test.sh

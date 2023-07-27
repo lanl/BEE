@@ -3,12 +3,22 @@
 . ./ci/env.sh
 . venv/bin/activate
 
-# Start the actual integration tests
-./ci/integration_test.py
-# Save the exit code for later
-EXIT_CODE=$?
+set +e
 
-# Output the logs
+case $BATCH_SCHEDULER in
+Slurm)
+    ./ci/inner_integration_test.sh
+    EXIT_CODE=$?
+    ;;
+Flux)
+    flux start --test-size=1 ./ci/inner_integration_test.sh
+    EXIT_CODE=$?
+    ;;
+*)
+    printf "ERROR: Invalid batch scheduler '%s'\n" "$BATCH_SCHEDULER"
+    ;;
+esac
+
 for log in $SLURMCTLD_LOG $SLURMD_LOG $MUNGE_LOG $BEE_WORKDIR/logs/*; do
     printf "\n\n"
     printf "#### $log ####\n"
