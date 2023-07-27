@@ -248,6 +248,14 @@ def check_dependencies():
         warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
         sys.exit(1)
+    # Check for the flux API
+    if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
+        try:
+            import flux  # noqa needed to check whether flux api is actually installed
+        except ModuleNotFoundError:
+            warn('Failed to import flux Python API. Please make sure you can '
+                 'use flux in your environment.')
+            sys.exit(1)
 
 
 class Beeflow:
