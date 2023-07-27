@@ -21,6 +21,7 @@ import typer
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
+from beeflow.common import paths
 
 
 # Length of a shortened workflow ID
@@ -80,7 +81,7 @@ def error_handler(resp):  # noqa (this is an error handler, it doesn't need to r
 
 def _wfm_conn():
     """Return a connection to the WFM."""
-    return Connection(bc.get('workflow_manager', 'socket'),
+    return Connection(paths.wfm_socket(),
                       error_handler=error_handler)
 
 
