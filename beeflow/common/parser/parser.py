@@ -281,6 +281,18 @@ class CwlParser:
 
         return outputs
 
+    def _read_requirement_file(self, key, items):
+        """Read in a requirement file and replace it in the parsed items."""
+        base_path = os.path.dirname(self.path)
+        fname = items[key]
+        path = os.path.join(base_path, fname)
+        try:
+            with open(path, encoding='utf-8') as fp:
+                items[key] = fp.read()
+        except FileNotFoundError:
+            msg = f'Could not find a file for {key}: {fname}'
+            raise CwlParseError(msg) from None
+
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
 
@@ -298,15 +310,9 @@ class CwlParser:
                 items = {k: str(v) for k, v in req.items() if k != "class"}
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
-                    base_path = os.path.dirname(self.path)
-                    docker_file = items['dockerFile']
-                    path = os.path.join(base_path, docker_file)
-                    try:
-                        with open(path, encoding='utf-8') as fp:
-                            items['dockerFile'] = fp.read()
-                    except FileNotFoundError:
-                        msg = f'Could not find the docker file: {docker_file}'
-                        raise CwlParseError(msg) from None
+                    self._read_requirement_file('dockerFile', items)
+                if 'beeflow:bindMounts' in items:
+                    self._read_requirement_file('beeflow:bindMounts', items)
                 reqs.append(Hint(req['class'], items))
         else:
             for req in requirements:

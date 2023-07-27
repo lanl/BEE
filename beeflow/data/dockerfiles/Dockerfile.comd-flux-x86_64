@@ -1,0 +1,123 @@
+# Based on example from @qwofford
+FROM almalinux:8
+
+RUN dnf install -y 'dnf-command(config-manager)' epel-release \
+ && dnf config-manager --set-enabled powertools epel \
+ && dnf install -y \
+                gcc \
+                gcc-c++ \
+                gcc-gfortran \
+                make \
+                git \
+                binutils \
+                libtool \
+                pkgconf \
+                autoconf \
+                automake \
+                ibacm \
+                libevent-devel \
+                libibumad-devel \
+                libibverbs-devel \
+                librdmacm-devel \
+                libibverbs-utils \
+                rdma-core \
+                numactl-devel \
+                perl \
+                cmake \
+                bzip2 \
+                ca-certificates \
+                wget \
+                autoconf \
+                automake \
+                libtool \
+                make \
+                pkgconfig \
+                glibc-devel \
+                zeromq-devel \
+                czmq-devel \
+                libuuid-devel \
+                jansson-devel \
+                lz4-devel \
+                libarchive-devel \
+                hwloc-devel \
+                sqlite-devel \
+                lua \
+                lua-devel \
+                lua-posix \
+                python3-devel \
+                python3-sphinx \
+                python3-cffi \
+                python3-yaml \
+                python3-jsonschema \
+                aspell \
+                aspell-en \
+                valgrind-devel \
+                mpich-devel \
+                jq \
+                ncurses-devel \
+ && dnf clean all
+
+ARG NUMJOBS=8
+
+# Build flux-core
+ARG FLUX_CORE_VERSION=0.50.0
+ARG FLUX_CORE_PREFIX=/usr
+RUN git clone https://github.com/flux-framework/flux-core.git \
+ && cd flux-core \
+ && git checkout v0.50.0 \
+ && ./autogen.sh \
+ && ./configure --prefix=${FLUX_CORE_PREFIX} \
+ && make -j${NUMJOBS} install \
+ && cd .. \
+ && rm -rf flux-core
+
+# Build UCX
+ARG UCX_VERSION=1.13.1
+ARG UCX_PREFIX=/usr/local
+RUN wget --no-check-certificate https://github.com/openucx/ucx/releases/download/v1.13.1/ucx-1.13.1.tar.gz \
+ && tar -xvf ucx-${UCX_VERSION}.tar.gz \
+ && cd ucx-${UCX_VERSION} \
+ && ./contrib/configure-release --prefix=${UCX_PREFIX} \
+ && make -j${NUMJOBS} install \
+ && cd ../ \
+ && rm -rf ucx-${UCX_VERSION}
+
+# Build PMI2 from Slurm
+ARG SLURM_VERSION=22.05.8
+ARG SLURM_PREFIX=/usr/local
+RUN wget --no-check-certificate https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2 \
+ && tar -xvf slurm-${SLURM_VERSION}.tar.bz2 \
+ && cd slurm-${SLURM_VERSION} \
+ && ./configure --prefix=${SLURM_PREFIX} \
+ && cd contribs/pmi2 \
+ && make -j${NUMJOBS} install \
+ && cd ../../../ \
+ && rm -rf slurm-${SLURM_VERSION}
+
+# Now build openmpi
+ARG OMPI_VERSION=4.1.4
+ARG OMPI_PREFIX=/usr/local
+RUN wget --no-check-certificate https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-${OMPI_VERSION}.tar.bz2 \
+ && tar -xvf openmpi-${OMPI_VERSION}.tar.bz2 \
+ && cd openmpi-${OMPI_VERSION} \
+ && CFLAGS=-O3 \
+    CXXFLAGS=-O3 \
+    ./configure --prefix=${OMPI_PREFIX} \
+                --with-slurm \
+                --with-flux-pmi \
+                --with-pmi=${SLURM_PREFIX} \
+                --with-pmix \
+                --with-ucx=${UCX_PREFIX} \
+                --disable-pty-support \
+                --enable-mca-no-build=btl-openib,plm-slurm \
+ && make -j${NUMJOBS} install \
+ && cd ../ \
+ && rm -rf openmpi-${OMPI_VERSION}
+RUN ldconfig
+
+# Build CoMD (the MPI version)
+ARG REPO=https://github.com/ECP-copa/CoMD.git
+RUN git clone $REPO && \
+    cd CoMD && \
+    cp src-mpi/Makefile.vanilla src-mpi/Makefile && \
+    make -C src-mpi
