@@ -54,7 +54,6 @@ if [ "$BATCH_SCHEDULER" = "Slurm" ]; then
 [slurm]
 # Just test slurmrestd in CI for now
 use_commands = False
-slurmrestd_socket = /tmp/slurm.sock
 openapi_version = v0.0.37
 EOF
 fi
