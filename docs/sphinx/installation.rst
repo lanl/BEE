@@ -65,7 +65,7 @@ LANL systems you may use the BEE provided container:
 **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**). Depending on the system, you
 may also need to know an account name to use.
 
-Once you are ready type ``beecfg new``.
+Once you are ready type ``beeflow config new``.
 
 The bee.conf configuration file is a text file and you can edit it for your
 needs.
@@ -75,7 +75,7 @@ systems have small quotas for home directories and containers can be large
 files.**
 
 **beecfg** has other options including a configuration validator. For more
-information or help run: ``beecfg info`` or ``beecfg --help``.
+information or help run: ``beeflow config info`` or ``beecfg --help``.
 
 Starting up the BEE components:
 -------------------------------
@@ -84,13 +84,13 @@ To start the components (scheduler, slurmrestd(SLURM only), workflow manager, an
 
 .. code-block::
 
-    beeflow start
+    beeflow core start
 
 To check the status of the bee components run:
 
 .. code-block::
 
-    beeflow status
+    beeflow core status
 
 .. code-block::
 
@@ -105,11 +105,11 @@ Some HPC systems have multiple front-ends. Run your workflows and components on 
 Stopping the BEE components:
 -------------------------------
 
-If at some point you would like to stop the beeflow components, you should first verify that all workflows are complete (archived). (If there are pending workflows, it is also fine to stop the components because you can restart beeflow later and start pending workflows with the "beeclient start" command).
+If at some point you would like to stop the beeflow components, you should first verify that all workflows are complete (archived). (If there are pending workflows, it is also fine to stop the components because you can restart beeflow later and start pending workflows with the "beeflow start" command).
 
 .. code-block::
 
-    beeclient listall
+    beeflow list
 
 .. code-block::
 
@@ -121,4 +121,4 @@ Now stop the components.
 
 .. code-block::
 
-    beeflow stop
+    beeflow core stop

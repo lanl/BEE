@@ -18,12 +18,16 @@ import jsonpickle
 import requests
 import typer
 
+from beeflow.common import config_driver
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 
+bc.init()
+
+from beeflow.client import core
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -166,6 +170,8 @@ def match_short_id(wf_id):
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
+app.add_typer(core.app, name='core')
+app.add_typer(config_driver.app, name='config')
 
 
 @app.command()
@@ -365,8 +371,8 @@ def unpackage(package_path, dest_path):
     return dest_path/wf_dir  # noqa: Not an arithmetic operation
 
 
-@app.command()
-def listall():
+@app.command('list')
+def list_workflows():
     """List all worklfows."""
     try:
         conn = _wfm_conn()
@@ -537,7 +543,6 @@ def main():
     """Execute bee_client."""
     global _INTERACTIVE
     _INTERACTIVE = True
-    bc.init()
     app()
 
 

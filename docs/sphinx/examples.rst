@@ -71,8 +71,8 @@ sequence of commands:
 .. code-block::
 
     cd $WORKDIR_PATH
-    beeclient package $BEE_PATH/examples/cat-grep-tar . # Tars up the workflow
-    beeclient submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
+    beeflow package $BEE_PATH/examples/cat-grep-tar . # Tars up the workflow
+    beeflow submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
 
 This first command packages the workflow into a tarball, which makes it easy to
 pass everything over to the Workflow Manager and finally submits the workflow,
@@ -88,7 +88,7 @@ the directory for the example by:
 .. code-block::
 
     cd $WORKDIR_PATH
-    beeclient submit $NAME $BEE_PATH/examples/cat-grep-tar
+    beeflow submit $NAME $BEE_PATH/examples/cat-grep-tar
     $BEE_PATH/examples/workflow.cwl $BEE_PATH/examples/input.yml
     $WORKDIR_PATH # Now submit the workflow
 
@@ -96,7 +96,7 @@ This will automatically do the packaging and create an archive in the
 background to be submitted.
 
 Now the workflow should start up. While the workflow is running you can check
-the status by running a ``beeclient query $ID``. On completion, each step
+the status by running a ``beeflow query $ID``. On completion, each step
 should be in a ``COMPLETED`` state. If you forgot to copy the lorem.txt file
 to $WORKDIR_PATH the cat step will be in the ``FAILED`` state and the error will
 be in the cat.err file.
@@ -171,7 +171,7 @@ Other than the commands needed, this shouldn't affect the workflow in any way.
 
 .. code-block::
 
-    beeclient submit clamr-example <path to BEE>/examples/clamr-ffmpeg-build <path to main_cwl>/clamr_wf.cwl <path to yaml>/clamr_job.yml .
+    beeflow submit clamr-example <path to BEE>/examples/clamr-ffmpeg-build <path to main_cwl>/clamr_wf.cwl <path to yaml>/clamr_job.yml .
 
 Output:
 
@@ -200,7 +200,7 @@ Check the status:
 
 .. code-block::
 
-    beeclient query fce80d
+    beeflow query fce80d
 
 Output:
 
@@ -214,7 +214,7 @@ As the clamr task goes from READY to RUNNING, let's check the status again:
 
 .. code-block::
 
-    beeclient query fce80d
+    beeflow query fce80d
 
 Output:
 
@@ -228,7 +228,7 @@ When the workflow has completed:
 
 .. code-block::
 
-    beeclient query fce80d
+    beeflow query fce80d
 
 Output:
 

@@ -100,7 +100,7 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            sys.exit('Configuration file does not exist! Please try running `beecfg new`.')
+            sys.exit('Configuration file does not exist! Please try running `beeflow config new`.')
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -482,11 +482,11 @@ class ConfigGenerator:
               f'\n\t{self.fname}',
               '\n ** See documentation for values you should refrain from editing! **',
               '\n ** Include job options (such as account) required for this system.**')
-        print('\n(Try `beecfg info` to see more about each option)')
+        print('\n(Try `beeflow config info` to see more about each option)')
         print(70 * '#')
 
 
-app = typer.Typer(no_args_is_help=False, add_completion=False, cls=NaturalOrderGroup)
+app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 
 
 @app.command()
@@ -541,20 +541,11 @@ def show(path: str = typer.Argument(default=USERCONFIG_FILE,
                                     help='Path to config file')):
     """Show the contents of bee.conf."""
     if not os.path.exists(path):
-        print('The bee.conf does not exist yet. Please run `beecfg new`.')
+        print('The bee.conf does not exist yet. Please run `beeflow config new`.')
         return
     print(f'# {path}')
     with open(path, encoding='utf-8') as fp:
         print(fp.read(), end='')
-
-
-def main():
-    """Entry point for config validation and help."""
-    app()
-
-
-if __name__ == '__main__':
-    app()
 # Ignore C901: "'ConfigGenerator.choose_values' is too complex" - I disagree, if
 #              it's just based on LOC, then there are a number `print()` functions
 #              that are increasing the line count
