@@ -222,12 +222,6 @@ DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
-SOCKET_PATH = join_path(HOME_DIR, '.beeflow', 'sockets')
-DEFAULT_WFM_SOCKET = join_path(SOCKET_PATH, 'wf_manager.sock')
-DEFAULT_TM_SOCKET = join_path(SOCKET_PATH, 'task_manager.sock')
-DEFAULT_SCHED_SOCKET = join_path(SOCKET_PATH, 'scheduler.sock')
-DEFAULT_BEEFLOW_SOCKET = join_path(SOCKET_PATH, 'beeflow.sock')
-
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 USER = getpass.getuser()
 # Create the validator
@@ -242,27 +236,14 @@ VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, attrs={'d
 VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validation.file_,
                  info='container image with BEE dependencies',
                  attrs={'input': filepath_completion_input})
-VALIDATOR.option('DEFAULT', 'beeflow_pidfile',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'beeflow.pid')},
-                 info='location of beeflow pidfile')
-VALIDATOR.option('DEFAULT', 'beeflow_socket',
-                 validator=validation.parent_dir,
-                 attrs={'default': DEFAULT_BEEFLOW_SOCKET},
-                 info='location of beeflow socket')
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
                  attrs={'default': 3},
                  info='max number of times beeflow will restart a component on failure')
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
-VALIDATOR.option('workflow_manager', 'socket', validator=validation.parent_dir,
-                 attrs={'default': DEFAULT_WFM_SOCKET},
-                 info='workflow manager port')
 # Task manager
 VALIDATOR.section('task_manager',
                   info='Task manager configuration and config of container to use.')
-VALIDATOR.option('task_manager', 'socket',
-                 attrs={'default': DEFAULT_TM_SOCKET},
-                 validator=validation.parent_dir, info='task manager listen port')
 VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charliecloud'},
                  choices=('Charliecloud', 'Singularity'),
                  info='container runtime to use for configuration')
@@ -337,31 +318,16 @@ VALIDATOR.option('slurm', 'use_commands', validator=validation.bool_,
                  attrs={'default': shutil.which('slurmrestd') is None},
                  info='if set, use slurm cli commands instead of slurmrestd')
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
-VALIDATOR.option('slurm', 'slurmrestd_socket', validator=validation.parent_dir,
-                 attrs={'default': DEFAULT_SLURMRESTD_SOCK},
-                 info='socket location')
 VALIDATOR.option('slurm', 'openapi_version', attrs={'default': 'v0.0.37'},
                  info='openapi version to use for slurmrestd')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
-VALIDATOR.option('scheduler', 'log',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler.log')},
-                 info='scheduler log file')
-VALIDATOR.option('scheduler', 'socket', validator=validation.parent_dir,
-                 attrs={'default': DEFAULT_SCHED_SOCKET},
-                 info='scheduler socket')
-VALIDATOR.option('scheduler', 'alloc_logfile',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler_alloc.log')},
-                 info='allocation logfile, to be used for later training')
 SCHEDULER_ALGORITHMS = ('fcfs', 'backfill', 'sjf')
 VALIDATOR.option('scheduler', 'algorithm', attrs={'default': 'fcfs'}, choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
 VALIDATOR.option('scheduler', 'default_algorithm', attrs={'default': 'fcfs'},
                  choices=SCHEDULER_ALGORITHMS,
                  info=('default algorithm to use'))
-VALIDATOR.option('scheduler', 'workdir',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'scheduler')},
-                 info='workdir to be used for the scheduler')
 
 
 def print_wrap(text, next_line_indent=''):
