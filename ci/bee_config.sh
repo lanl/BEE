@@ -11,12 +11,9 @@ bee_workdir = $BEE_WORKDIR
 workload_scheduler = $BATCH_SCHEDULER
 use_archive = False
 bee_dep_image = $NEO4J_CONTAINER
-beeflow_pidfile = $HOME/beeflow.pid
-beeflow_socket = $HOME/beeflow.sock
 max_restarts = 2
 
 [task_manager]
-socket = $HOME/tm.sock
 container_runtime = Charliecloud
 runner_opts =
 
@@ -40,15 +37,10 @@ gdb_image_mntdir = /tmp
 sleep_time = 10
 
 [scheduler]
-log = $BEE_WORKDIR/logs/scheduler.log
-socket = $HOME/scheduler.sock
-alloc_logfile = $BEE_WORKDIR/logs/scheduler_alloc.log
 algorithm = fcfs
 default_algorithm = fcfs
-workdir = $BEE_WORKDIR/scheduler
 
 [workflow_manager]
-socket = $HOME/wf_manager.sock
 
 [builder]
 deployed_image_root = /tmp
@@ -62,7 +54,6 @@ if [ "$BATCH_SCHEDULER" = "Slurm" ]; then
 [slurm]
 # Just test slurmrestd in CI for now
 use_commands = False
-slurmrestd_socket = /tmp/slurm.sock
 openapi_version = v0.0.37
 EOF
 fi

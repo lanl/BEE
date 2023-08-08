@@ -19,19 +19,14 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from beeflow.common.config_driver import BeeConfig as bc
-
-from beeflow.common.db.bdb import connect_db
-
-# This must be imported before calling other parts of BEE
-bc.init()
-
-
 from beeflow.common import log as bee_logging
 from beeflow.common.build_interfaces import build_main
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.connection import Connection
 import beeflow.common.worker as worker_pkg
 from beeflow.common.db import tm_db
+from beeflow.common.db.bdb import connect_db
+from beeflow.common import paths
 
 
 log = bee_logging.setup(__name__)
@@ -63,7 +58,7 @@ def _resource(tag=""):
 
 def _wfm_conn():
     """Get a new connection to the WFM."""
-    return Connection(bc.get('workflow_manager', 'socket'))
+    return Connection(paths.wfm_socket())
 
 
 def update_task_state(workflow_id, task_id, job_state, **kwargs):
@@ -318,7 +313,7 @@ for default_key in ['default_account', 'default_time_limit', 'default_partition'
 # Special slurm arguments
 if WLS == 'Slurm':
     worker_kwargs['use_commands'] = bc.get('slurm', 'use_commands')
-    worker_kwargs['slurm_socket'] = bc.get('slurm', 'slurmrestd_socket')
+    worker_kwargs['slurm_socket'] = paths.slurm_socket()
     worker_kwargs['openapi_version'] = bc.get('slurm', 'openapi_version')
 worker = WorkerInterface(worker_class, **worker_kwargs)
 

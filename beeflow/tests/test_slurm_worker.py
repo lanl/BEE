@@ -5,11 +5,6 @@ import subprocess
 import os
 import pytest
 from beeflow.common.config_driver import BeeConfig as bc
-
-
-bc.init()
-
-
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.worker.worker import WorkerError
 from beeflow.common.worker.slurm_worker import SlurmWorker

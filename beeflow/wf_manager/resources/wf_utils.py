@@ -12,7 +12,7 @@ from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
-
+from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 
@@ -152,7 +152,7 @@ SCHED_URL = "bee_sched/v1/"
 
 def _connect_tm():
     """Return a connection to the TM."""
-    return Connection(bc.get('task_manager', 'socket'))
+    return Connection(paths.tm_socket())
 
 
 def sched_url():
@@ -166,7 +166,7 @@ def sched_url():
 
 def _connect_scheduler():
     """Return a connection to the Scheduler."""
-    return Connection(bc.get('scheduler', 'socket'))
+    return Connection(paths.sched_socket())
 
 
 def _resource(component, tag=""):
