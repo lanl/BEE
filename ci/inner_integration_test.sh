@@ -9,9 +9,9 @@ set +e
 # BEE needs to be started here in order to access batch scheduler resources
 if [ "$BATCH_SCHEDULER" = "Slurm" ]; then
     # Slurmrestd will fail by default when running as `SlurmUser`
-    SLURMRESTD_SECURITY=disable_user_check beeflow start
+    SLURMRESTD_SECURITY=disable_user_check beeflow core start
 else
-    beeflow start
+    beeflow core start
 fi
 sleep 4
 
@@ -21,7 +21,7 @@ sleep 4
 EXIT_CODE=$?
 
 # Output the status logs
-beeflow status
+beeflow core status
 
 for log in $BEE_WORKDIR/logs/*.log; do
     printf "### $log ###\n"
