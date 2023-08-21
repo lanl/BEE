@@ -71,6 +71,7 @@ sequence of commands:
 .. code-block::
 
     cd $WORKDIR_PATH
+    cp $BEE_PATH/examples/cat-grep-tar/lorem.txt .
     beeflow package $BEE_PATH/examples/cat-grep-tar . # Tars up the workflow
     beeflow submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
 
@@ -88,9 +89,9 @@ the directory for the example by:
 .. code-block::
 
     cd $WORKDIR_PATH
-    beeflow submit $NAME $BEE_PATH/examples/cat-grep-tar
-    $BEE_PATH/examples/workflow.cwl $BEE_PATH/examples/input.yml
-    $WORKDIR_PATH # Now submit the workflow
+    cp -r $BEE_PATH/examples/cat-grep-tar . #Copy example directory
+    cp cat-grep-tar/lorem.txt .
+    beeflow submit $NAME cat-grep-tar cat-grep-tar/workflow.cwl cat-grep-tar/input.yml $WORKDIR_PATH # Submits the workflow
 
 This will automatically do the packaging and create an archive in the
 background to be submitted.
@@ -123,7 +124,7 @@ of the ``occur*.txt`` files in a tarball. However, this is a useful sample of
 the features a real-world workflow might need to use.  For instance, the first
 step might be producing some sort of output from a calculation, instead of just
 copying the input to the output. The last step may also do some more processing
-to produce some sort of final file. If necessary, there can many more
+to produce some sort of final file. If necessary, there can be many more
 processing steps than this simple example shows.
 
 CLAMR workflow examples (containerized application)
@@ -147,7 +148,8 @@ CLAMR build workflow
 --------------------
 
 The workflow is in **<path to BEE>/examples/clamr-ffmpeg-build**. You may want to explore the
-cwl files to understand the workflow specification for the example. Below is
+cwl files to understand the workflow specification for the example. The specification 
+for the build of clamr in this example is for X86 hardware. Below is
 the clamr step with the DockerRequirement in hints that specifies to build a
 container from a dockerfile using Charliecloud (the container runtime specified
 in the configuration file).
@@ -158,20 +160,23 @@ CWL for clamr step in examples/clamr-ffmpeg-build/clamr_wf.cwl
 
 
 
-Next we'll submit the CLAMR workflow from a directory of your choosing ($HOME)
+Next we'll submit the CLAMR workflow from a directory of your choosing,
+referred to as $WORKDIR_PATH,
 on the same front-end where you started the components. If you have not started
 the beeflow components, refer to :ref:`installation`.
 
 In this example, instead of packaging up the workflow cwl files directory,
 we've just listed the full path. This should auto-detect the directory and
-package it for you. Additionally, if the main_cwl and yaml files are not in
-the workflow directory, they will be copied into a temporary copy of the
+package it for you. Additionally, if you want to use a yaml file other than the one in
+the workflow directory, you may specify that path and it be will be copied into a temporary copy of the
 workflow directory before packaging. Compare this with the previous example.
 Other than the commands needed, this shouldn't affect the workflow in any way.
 
 .. code-block::
 
-    beeflow submit clamr-example <path to BEE>/examples/clamr-ffmpeg-build <path to main_cwl>/clamr_wf.cwl <path to yaml>/clamr_job.yml .
+    cd $WORKDIR_PATH
+    cp -r $BEE_PATH/examples/clamr-ffmpeg-build .
+    beeflow submit clamr-example clamr-ffmpeg-build clamr-ffmpeg-build/clamr_wf.cwl clamr-ffmpeg-build/clamr_job.yml $WORKDIR_PATH
 
 Output:
 
