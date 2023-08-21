@@ -167,10 +167,7 @@ the beeflow components, refer to :ref:`installation`.
 
 In this example, instead of packaging up the workflow cwl files directory,
 we've just listed the full path. This should auto-detect the directory and
-package it for you. Additionally, if you want to use a yaml file other than the one in
-the workflow directory, you may specify that path and it be will be copied into a temporary copy of the
-workflow directory before packaging. Compare this with the previous example.
-Other than the commands needed, this shouldn't affect the workflow in any way.
+package it for you.
 
 .. code-block::
 
