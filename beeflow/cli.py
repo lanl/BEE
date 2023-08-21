@@ -382,6 +382,43 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     stop()
     start(foreground)
 
+@app.command()
+def reset(help='Reset beeflow to a fresh install'):
+
+    #Check to see if the user is absolutely sure. Warning Message.
+    absolutely_sure = ""
+    while absolutely_sure != "y" or absolutely_sure != "n":
+        #Get the user's .beeflow directory
+        directory_to_delete = os.path.expanduser("~/.beeflow")
+        print(f"A reset will remove this directory: {directory_to_delete}")
+
+        absolutely_sure = input("""
+        Are you sure you want to reset?
+
+        A reset will delete the .beeflow directory which results in:
+        Removing the archive of workflows executed
+        Removing the archive of workflow containers
+        Reset all databases associated with the beeflow app
+        Removing all beeflow logs
+
+        Beeflow configuration files from bee_cfg will remain. 
+
+        Respond with yes(y)/no(n):  
+                """)
+        if absolutely_sure == "n" or absolutely_sure == "no":
+            #Exit out is the user didn't really mean to do a reset
+            exit()
+        if absolutely_sure == "y" or absolutely_sure == "yes":
+            if os.path.exists(directory_to_delete):
+                shutil.rmtree(directory_to_delete)
+                print(f"{directory_to_delete} has been removed.")
+                exit()
+            else:
+                print(f"{directory_to_delete} does not exist. Exiting.")
+                exit()
+        print("Please respond with either the letter (y) or (n).")
+
+
 
 @app.callback(invoke_without_command=True)
 def version_callback(version: bool = False):
