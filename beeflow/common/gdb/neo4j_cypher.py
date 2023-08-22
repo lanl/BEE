@@ -219,7 +219,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                             "WITH s, t, sources, collect(o.id) as outputs "
                             "WHERE any(input IN sources WHERE input IN outputs) "
                             "MERGE (s)-[:DEPENDS_ON]->(t)")
-        dependent_query = ("MATCH (s)<-[:OUTPUT_OF]-(o:Output) "
+        dependent_query = ("MATCH (s:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
                            "WITH s, collect(o.id) AS outputs "
                            "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
                            "WITH s, t, outputs, collect(i.source) as sources "
