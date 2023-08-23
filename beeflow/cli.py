@@ -383,13 +383,15 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     start(foreground)
 
 @app.command()
-def reset(help='Reset beeflow to a fresh install'):
+def reset(archive: bool = typer.Options(False, '--archive', '-a', help='Archive .beeflow before removal')):
 
     #Check to see if the user is absolutely sure. Warning Message.
     absolutely_sure = ""
     while absolutely_sure != "y" or absolutely_sure != "n":
         #Get the user's .beeflow directory
         directory_to_delete = os.path.expanduser("~/.beeflow")
+        if (archive):
+            shutil.copytree(directory_to_delete, directory_to_delete + ".backup")
         print(f"A reset will remove this directory: {directory_to_delete}")
 
         absolutely_sure = input("""
