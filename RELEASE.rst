@@ -26,3 +26,6 @@ Also upgrade the pip version in your python or anaconda environment and check th
 **WARNING**: Once a version is pushed to PyPI, it cannot be undone. You can
 'delete' the version from the package settings, but you can no longer publish
 an update to that same version.
+
+8. After the version is published change the version in develop to a pre-release of the next version 
+   (example new version will be 0.1.x edit pyproject.toml version to be 0.1.xrc1
