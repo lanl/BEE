@@ -218,14 +218,21 @@ def version_str(version):
     """Convert a version tuple to a string."""
     return '.'.join([str(part) for part in version])
 
+def load_charliecloud():
+    """Load the charliecloud module if it exists."""
+    subprocess.run('module load charliecloud', shell=True, check=True)
+
 
 def check_dependencies():
     """Check for various dependencies in the environment."""
     print('Checking dependencies...')
     # Check for Charliecloud and it's version
     if not shutil.which('ch-run'):
-        warn('Charliecloud is not loaded. Please ensure that it is accessible on your path.')
-        sys.exit(1)
+        # Try loading the Charliecloud module then test again
+        load_charliecloud()
+        if not shutil.which('ch-run'):
+            warn('Charliecloud is not loaded. Please ensure that it is accessible on your path.')
+            sys.exit(1)
     cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
                            check=True)
     version = cproc.stdout if cproc.stdout else cproc.stderr
