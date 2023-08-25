@@ -308,7 +308,7 @@ app = typer.Typer(no_args_is_help=True)
 @app.command()
 def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           help='run in the foreground')):
-    """Attempt to daemonize if not in debug and start all BEE components."""
+    """Start all BEE components."""
     mgr = init_components()
     beeflow_log = paths.log_fname('beeflow')
     check_dependencies()
