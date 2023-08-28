@@ -192,7 +192,7 @@ pre-processing building phase and will only be performed once. In this example
 both steps use the container that is built in the pre-processing stage. Once
 the build has been completed the Charliecloud image will be in the container
 archive location specified in the builder section of the bee configuration
-file. You can list contents of the configuration file using ``beecfg list``.
+file. You can list contents of the configuration file using ``bee config list``.
 
 The status of the workflow will progress to completion and can be queried as
 shown:
@@ -242,7 +242,7 @@ Output:
 
 The archived workflow with associated job outputs will be in the
 **bee_workdir**. See the default section of your configuration file (to list
-configuration file contents run ``beecfg list``). This workflow also produces
+configuration file contents run ``bee config list``). This workflow also produces
 output from CLAMR and ffmpeg in the directory where you submitted the workflow :
 
 .. code-block::

@@ -353,7 +353,7 @@ def unpackage(package_path, dest_path):
 
     if not package_str.endswith('.tgz'):
         # No cleanup, maybe we should rm dest_path?
-        error_exit("Invalid package name, please use the beeclient package command")
+        error_exit("Invalid package name, please use the beeflow package command")
     wf_dir = package_str[:-4]
 
     return_code = subprocess.run(['tar', '-C', dest_path, '-xf', package_path],
