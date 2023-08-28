@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "hpc-beeflow"
-version = "0.1.4"
-description = "A software package for containerizing HPC applications and managing job workflow"
+version = "0.1.5"
+description = "A software package for containerizing HPC applications and managing job workflows"
 
 
 authors = [
@@ -43,10 +43,8 @@ packages = [
 ]
 
 [tool.poetry.scripts]
-beeflow = 'beeflow.cli:main'
-beeclient = 'beeflow.client.bee_client:main'
+beeflow = 'beeflow.client.bee_client:main'
 beecloud = 'beeflow.cloud_launcher:main'
-beecfg = 'beeflow.common.config_driver:main'
 
 [tool.poetry.dependencies]
 # Python version (>=3.8.3, <3.11)

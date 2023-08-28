@@ -3,10 +3,6 @@
 
 import unittest
 
-from beeflow.common.config_driver import BeeConfig as bc
-
-bc.init()
-
 from beeflow.common.wf_data import (Workflow, Task, Requirement, Hint, InputParameter,
                                     OutputParameter, StepInput, StepOutput, generate_workflow_id)
 from beeflow.common.wf_interface import WorkflowInterface

@@ -21,9 +21,6 @@ log = bee_logging.setup(__name__)
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-# We have to call bc.init() here due to how gunicorn works
-bc.init()
-
 bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 db_path = bee_workdir + '/' + 'sched.db'
 
