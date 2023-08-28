@@ -18,10 +18,13 @@ import jsonpickle
 import requests
 import typer
 
-from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common import config_driver
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
-
+from beeflow.common import paths
+from beeflow.common.parser import CwlParser
+from beeflow.common.wf_data import generate_workflow_id
+from beeflow.client import core
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -80,7 +83,7 @@ def error_handler(resp):  # noqa (this is an error handler, it doesn't need to r
 
 def _wfm_conn():
     """Return a connection to the WFM."""
-    return Connection(bc.get('workflow_manager', 'socket'),
+    return Connection(paths.wfm_socket(),
                       error_handler=error_handler)
 
 
@@ -164,6 +167,8 @@ def match_short_id(wf_id):
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
+app.add_typer(core.app, name='core')
+app.add_typer(config_driver.app, name='config')
 
 
 @app.command()
@@ -195,6 +200,13 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             if not yaml_path.exists():
                 error_exit(f'YAML file {yaml} does not exist')
 
+            # Parse workflow
+            parser = CwlParser()
+            workflow_id = generate_workflow_id()
+            workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
+                                                    job=str(yaml_path))
+            tasks = [jsonpickle.encode(task) for task in tasks]
+
             cwl_indir = is_parent(wf_path, main_cwl_path)
             yaml_indir = is_parent(wf_path, yaml_path)
             # The CWL and YAML file are already in the workflow directory
@@ -214,6 +226,18 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             wf_tarball = open(package_path, 'rb')
             shutil.rmtree(tempdir_path)
         else:
+            # Untar and parse workflow
+            tempdir_path = pathlib.Path(tempfile.mkdtemp())
+            tempdir_wf_path = unpackage(wf_path, tempdir_path)
+            main_cwl_path = pathlib.Path(tempdir_wf_path / main_cwl).resolve()
+            yaml_path = pathlib.Path(tempdir_wf_path / yaml).resolve()
+
+            parser = CwlParser()
+            workflow_id = generate_workflow_id()
+            workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
+                                                    job=str(yaml_path))
+
+            shutil.rmtree(tempdir_path)
             wf_tarball = open(wf_path, 'rb')
     else:
         error_exit(f'Workflow tarball {wf_path} cannot be found')
@@ -228,9 +252,9 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     data = {
         'wf_name': wf_name.encode(),
         'wf_filename': os.path.basename(wf_path).encode(),
-        'main_cwl': os.path.basename(main_cwl),
-        'yaml': os.path.basename(yaml),
-        'workdir': workdir
+        'workdir': workdir,
+        'workflow': jsonpickle.encode(workflow),
+        'tasks': jsonpickle.encode(tasks, warn=True)
     }
     files = {
         'workflow_archive': wf_tarball
@@ -322,8 +346,30 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
     return package_path
 
 
-@app.command()
-def listall():
+def unpackage(package_path, dest_path):
+    """Unpackage a workflow tarball for parsing."""
+    package_str = str(package_path)
+    package_path = package_path.resolve()
+
+    if not package_str.endswith('.tgz'):
+        # No cleanup, maybe we should rm dest_path?
+        error_exit("Invalid package name, please use the beeflow package command")
+    wf_dir = package_str[:-4]
+
+    return_code = subprocess.run(['tar', '-C', dest_path, '-xf', package_path],
+                                 check=True).returncode
+    if return_code != 0:
+        # No cleanup, maybe we should rm dest_path?
+        error_exit("Unpackage failed")
+    else:
+        print(f"Package {package_str} unpackaged successfully")
+
+
+    return dest_path/wf_dir  # noqa: Not an arithmetic operation
+
+
+@app.command('list')
+def list_workflows():
     """List all worklfows."""
     try:
         conn = _wfm_conn()
@@ -494,7 +540,6 @@ def main():
     """Execute bee_client."""
     global _INTERACTIVE
     _INTERACTIVE = True
-    bc.init()
     app()
 
 

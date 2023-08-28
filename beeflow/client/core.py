@@ -22,11 +22,7 @@ import typer
 
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import cli_connection
-
-
-bc.init()
-# Max number of times a component can be restarted
-MAX_RESTARTS = bc.get('DEFAULT', 'max_restarts')
+from beeflow.common import paths
 
 
 class ComponentManager:
@@ -95,16 +91,18 @@ class ComponentManager:
 
     def poll(self):
         """Poll each process to check for errors, restart failed processes."""
+        # Max number of times a component can be restarted
+        max_restarts = bc.get('DEFAULT', 'max_restarts')
         for name in self.procs:  # noqa no need to iterate with items() since self.procs may be set
             component = self.components[name]
             if component['failed']:
                 continue
             returncode = self.procs[name].poll()
             if returncode is not None:
-                log = log_fname(name)
+                log = paths.log_fname(name)
                 print(f'Component "{name}" failed, check log "{log}"')
-                if component['restart_count'] >= MAX_RESTARTS:
-                    print(f'Component "{name}" has been restarted {MAX_RESTARTS} '
+                if component['restart_count'] >= max_restarts:
+                    print(f'Component "{name}" has been restarted {max_restarts} '
                           'times, not restarting again')
                     component['failed'] = True
                 else:
@@ -127,9 +125,6 @@ class ComponentManager:
             proc.terminate()
 
 
-MGR = ComponentManager()
-
-
 def warn(*pargs):
     """Print a red warning message."""
     typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
@@ -142,85 +137,70 @@ def launch_with_gunicorn(module, sock_path, *args, **kwargs):
                             *args, **kwargs)
 
 
-def log_path():
-    """Return the main log path."""
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    return os.path.join(bee_workdir, 'logs')
-
-
-def log_fname(component):
-    """Determine the log file name for the given component."""
-    return os.path.join(log_path(), f'{component}.log')
-
-
 def open_log(component):
     """Determine the log for the component, open and return it."""
-    log = log_fname(component)
+    log = paths.log_fname(component)
     return open(log, 'a', encoding='utf-8')
 
 
-# Slurmrestd will be started only if we're running with Slurm and
-# slurm::use_commands is not True
-NEED_SLURMRESTD = (bc.get('DEFAULT', 'workload_scheduler') == 'Slurm'
-                   and not bc.get('slurm', 'use_commands'))
+def need_slurmrestd():
+    """Check if slurmrestd is needed."""
+    return (bc.get('DEFAULT', 'workload_scheduler') == 'Slurm'
+            and not bc.get('slurm', 'use_commands'))
 
 
-@MGR.component('wf_manager', ('scheduler',))
-def start_wfm():
-    """Start the WFM."""
-    fp = open_log('wf_manager')
-    sock_path = bc.get('workflow_manager', 'socket')
-    return launch_with_gunicorn('beeflow.wf_manager.wf_manager:create_app()',
-                                sock_path, stdout=fp, stderr=fp)
+def init_components():
+    """Initialize the components and component manager."""
+    mgr = ComponentManager()
 
+    # Slurmrestd will be started only if we're running with Slurm and
+    # slurm::use_commands is not True
 
-TM_DEPS = []
-if NEED_SLURMRESTD:
-    TM_DEPS.append('slurmrestd')
+    @mgr.component('wf_manager', ('scheduler',))
+    def start_wfm():
+        """Start the WFM."""
+        fp = open_log('wf_manager')
+        return launch_with_gunicorn('beeflow.wf_manager.wf_manager:create_app()',
+                                    paths.wfm_socket(), stdout=fp, stderr=fp)
 
+    tm_deps = []
+    if need_slurmrestd():
+        tm_deps.append('slurmrestd')
 
-@MGR.component('task_manager', TM_DEPS)
-def start_task_manager():
-    """Start the TM."""
-    fp = open_log('task_manager')
-    sock_path = bc.get('task_manager', 'socket')
-    return launch_with_gunicorn('beeflow.task_manager:flask_app', sock_path, stdout=fp, stderr=fp)
+    @mgr.component('task_manager', tm_deps)
+    def start_task_manager():
+        """Start the TM."""
+        fp = open_log('task_manager')
+        return launch_with_gunicorn('beeflow.task_manager:flask_app', paths.tm_socket(),
+                                    stdout=fp, stderr=fp)
 
+    @mgr.component('scheduler', ())
+    def start_scheduler():
+        """Start the scheduler."""
+        fp = open_log('scheduler')
+        # Using a function here because of the funny way that the scheduler's written
+        return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
+                                    paths.sched_socket(), stdout=fp, stderr=fp)
 
-@MGR.component('scheduler', ())
-def start_scheduler():
-    """Start the scheduler."""
-    fp = open_log('scheduler')
-    sock_path = bc.get('scheduler', 'socket')
-    # Using a function here because of the funny way that the scheduler's written
-    return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()', sock_path, stdout=fp,
-                                stderr=fp)
+    # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
+    if need_slurmrestd():
+        @mgr.component('slurmrestd')
+        def start_slurm_restd():
+            """Start BEESlurmRestD. Returns a Popen process object."""
+            bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+            slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
+            openapi_version = bc.get('slurm', 'openapi_version')
+            slurm_args = f'-s openapi/{openapi_version}'
+            slurm_socket = paths.slurm_socket()
+            subprocess.run(['rm', '-f', slurm_socket], check=True)
+            # log.info("Attempting to open socket: {}".format(slurm_socket))
+            fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
+            cmd = ['slurmrestd']
+            cmd.extend(slurm_args.split())
+            cmd.append(f'unix:{slurm_socket}')
+            return subprocess.Popen(cmd, stdout=fp, stderr=fp)
 
-
-# Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
-if NEED_SLURMRESTD:
-    @MGR.component('slurmrestd')
-    def start_slurm_restd():
-        """Start BEESlurmRestD. Returns a Popen process object."""
-        bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-        slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
-        slurm_socket = bc.get('slurm', 'slurmrestd_socket')
-        openapi_version = bc.get('slurm', 'openapi_version')
-        slurm_args = f'-s openapi/{openapi_version}'
-        subprocess.run(['rm', '-f', slurm_socket], check=True)
-        # log.info("Attempting to open socket: {}".format(slurm_socket))
-        fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
-        cmd = ['slurmrestd']
-        cmd.extend(slurm_args.split())
-        cmd.append(f'unix:{slurm_socket}')
-        return subprocess.Popen(cmd, stdout=fp, stderr=fp)
-
-
-def handle_terminate(signum, stack): # noqa
-    """Handle a terminate signal."""
-    # Kill all subprocesses
-    MGR.kill()
-    sys.exit(1)
+    return mgr
 
 
 MIN_CHARLIECLOUD_VERSION = (0, 32)
@@ -248,6 +228,14 @@ def check_dependencies():
         warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
         sys.exit(1)
+    # Check for the flux API
+    if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
+        try:
+            import flux  # noqa needed to check whether flux api is actually installed
+        except ModuleNotFoundError:
+            warn('Failed to import flux Python API. Please make sure you can '
+                 'use flux in your environment.')
+            sys.exit(1)
 
 
 class Beeflow:
@@ -263,8 +251,7 @@ class Beeflow:
         """Run the main loop."""
         print(f'Running on {socket.gethostname()}')
         self.mgr.run(self.base_components)
-        sock_path = bc.get('DEFAULT', 'beeflow_socket')
-        with cli_connection.server(sock_path) as server:
+        with cli_connection.server(paths.beeflow_socket()) as server:
             while not self.quit:
                 # Handle a message from the client, if there is one
                 self.handle_client(server)
@@ -296,8 +283,14 @@ class Beeflow:
             print(f'connection failed: {err}')
 
 
-def daemonize(base_components):
+def daemonize(mgr, base_components):
     """Start beeflow as a daemon, monitoring all processes."""
+    def handle_terminate(signum, stack): # noqa
+        """Handle a terminate signal."""
+        # Kill all subprocesses
+        mgr.kill()
+        sys.exit(1)
+
     # Now set signal handling, the log and finally daemonize
     signal_map = {
         signal.SIGINT: handle_terminate,
@@ -306,7 +299,7 @@ def daemonize(base_components):
     fp = open_log('beeflow')
     with daemon.DaemonContext(signal_map=signal_map, stdout=fp, stderr=fp, stdin=fp,
                               umask=0o002):
-        Beeflow(MGR, base_components).loop()
+        Beeflow(mgr, base_components).loop()
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -315,11 +308,12 @@ app = typer.Typer(no_args_is_help=True)
 @app.command()
 def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           help='run in the foreground')):
-    """Attempt to daemonize if not in debug and start all BEE components."""
-    beeflow_log = log_fname('beeflow')
+    """Start all BEE components."""
+    mgr = init_components()
+    beeflow_log = paths.log_fname('beeflow')
     check_dependencies()
-    sock_path = bc.get('DEFAULT', 'beeflow_socket')
-    if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not NEED_SLURMRESTD:
+    sock_path = paths.beeflow_socket()
+    if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not need_slurmrestd():
         warn('Not using slurmrestd. Command-line interface will be used.')
     # Note: there is a possible race condition here, however unlikely
     if os.path.exists(sock_path):
@@ -340,27 +334,26 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
             sys.exit(1)
     print('Starting beeflow...')
     if not foreground:
-        print(f'Check "{beeflow_log}" or run `beeflow status` for more information.')
+        print(f'Check "{beeflow_log}" or run `beeflow core status` for more information.')
     # Create the log path if it doesn't exist yet
-    path = log_path()
+    path = paths.log_path()
     os.makedirs(path, exist_ok=True)
     base_components = ['wf_manager', 'task_manager', 'scheduler']
     if foreground:
         try:
-            Beeflow(MGR, base_components).loop()
+            Beeflow(mgr, base_components).loop()
         except KeyboardInterrupt:
-            MGR.kill()
+            mgr.kill()
     else:
-        daemonize(base_components)
+        daemonize(mgr, base_components)
 
 
 @app.command()
 def status():
     """Check the status of beeflow and the components."""
-    sock_path = bc.get('DEFAULT', 'beeflow_socket')
-    resp = cli_connection.send(sock_path, {'type': 'status'})
+    resp = cli_connection.send(paths.beeflow_socket(), {'type': 'status'})
     if resp is None:
-        beeflow_log = log_fname('beeflow')
+        beeflow_log = paths.log_fname('beeflow')
         warn('Cannot connect to the beeflow daemon, is it running? Check the '
              f'log at "{beeflow_log}".')
         sys.exit(1)
@@ -373,21 +366,20 @@ def status():
 def stop():
     """Stop the current running beeflow daemon."""
     stop_msg = ("\n** Please ensure all workflows are complete before stopping beeflow. **"
-                + "\n** Check the status of workflows by running 'beeclient listall'.    **"
+                + "\n** Check the status of workflows by running 'beeflow list'.    **"
                 + "\nAre you sure you want to kill beeflow components? [y/n] ")
     ans = input(stop_msg)
     if ans.lower() != 'y':
         return
-    sock_path = bc.get('DEFAULT', 'beeflow_socket')
-    resp = cli_connection.send(sock_path, {'type': 'quit'})
+    resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
     if resp is None:
-        beeflow_log = log_fname('beeflow')
+        beeflow_log = paths.log_fname('beeflow')
         warn('Error: beeflow is not running on this system. It could be '
              'running on a different front end.\n'
              f'       Check the beeflow log: "{beeflow_log}".')
         sys.exit(1)
     # As long as it returned something, we should be good
-    beeflow_log = log_fname('beeflow')
+    beeflow_log = paths.log_fname('beeflow')
     print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
@@ -407,12 +399,3 @@ def version_callback(version: bool = False):
     if version:
         version = importlib.metadata.version("hpc-beeflow")
         print(version)
-
-
-def main():
-    """Start the beeflow app."""
-    app()
-
-
-if __name__ == '__main__':
-    main()

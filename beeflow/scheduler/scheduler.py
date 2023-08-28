@@ -21,9 +21,6 @@ log = bee_logging.setup(__name__)
 flask_app = Flask(__name__)
 api = Api(flask_app)
 
-# We have to call bc.init() here due to how gunicorn works
-bc.init()
-
 bee_workdir = bc.get('DEFAULT', 'bee_workdir')
 db_path = bee_workdir + '/' + 'sched.db'
 
@@ -83,30 +80,23 @@ def load_config_values():
     """
     # Set the default config values
     conf = {
-        'log': None,
-        'alloc_logfile': None,
         'algorithm': None,
         'default_algorithm': None,
-        'workdir': None,
     }
 
     for key in conf:
         conf[key] = bc.get('scheduler', key)
     # Set some defaults
-    if not conf['log']:
-        conf['log'] = '/'.join([bee_workdir, 'logs', 'scheduler.log'])
-    if not conf['workdir']:
-        conf['workdir'] = os.path.join(bee_workdir, 'scheduler')
-    if not conf['alloc_logfile']:
-        conf['alloc_logfile'] = os.path.join(conf['workdir'],
-                                             ALLOC_LOGFILE)
+    conf['log'] = '/'.join([bee_workdir, 'logs', 'scheduler.log'])
+    conf['workdir'] = os.path.join(bee_workdir, 'scheduler')
+    conf['alloc_logfile'] = os.path.join(conf['workdir'], ALLOC_LOGFILE)
 
     conf = argparse.Namespace(**conf)
     log.info('Config = [')
-    log.info(f'\talloc_logfile = {conf.alloc_logfile}')
+    log.info(f'\talloc_logfile = {conf.alloc_logfile}')  # noqa pylama is wrong here
     log.info(f'\talgorithm = {conf.algorithm}')
     log.info(f'\tdefault_algorithm = {conf.default_algorithm}')
-    log.info(f'\tworkdir = {conf.workdir}')
+    log.info(f'\tworkdir = {conf.workdir}')  # noqa
     log.info(']')
     return conf
 
@@ -122,7 +112,7 @@ def create_app():
     # Create the scheduler workdir, if necessary
     # sched_listen_port = wf_utils.get_open_port()
     # wf_db.set_sched_port(sched_listen_port)
-    os.makedirs(conf.workdir, exist_ok=True)
+    os.makedirs(conf.workdir, exist_ok=True) # noqa
     return flask_app
 
 # Ignore W0511: This allows us to have TODOs in the code

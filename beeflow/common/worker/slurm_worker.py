@@ -42,7 +42,7 @@ class BaseSlurmWorker(Worker):
         else:
             main_command_srun_args = []
         nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
-        ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=1)
+        ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=nodes)
         mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
         time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
                                           default=self.default_time_limit)
@@ -144,6 +144,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
         try:
             resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
 
+            log.info(resp.text)
             if resp.status_code != 200:
                 raise WorkerError(f'Failed to query job {job_id}')
             data = json.loads(resp.text)

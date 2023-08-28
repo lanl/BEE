@@ -5,8 +5,6 @@ Delegates its work to a GraphDatabaseInterface instance.
 
 import re
 
-from beeflow.common.wf_data import Workflow, Task
-
 
 class WorkflowInterface:
     """Interface for manipulating workflows."""
@@ -28,36 +26,22 @@ class WorkflowInterface:
         """Reconnect to the graph database using stored credentials."""
         raise NotImplementedError()
 
-    def initialize_workflow(self, workflow_id, name, inputs, outputs, requirements=None,
-                            hints=None):
+    def initialize_workflow(self, workflow):
         """Begin construction of a BEE workflow.
 
-        :param workflow_id: the pre-generated workflow ID
-        :type workflow_id: str
-        :param name: the workflow name
-        :type name: str
-        :param inputs: the inputs to the workflow
-        :type inputs: list of InputParameter
-        :param outputs: the outputs of the workflow
-        :type outputs: list of OutputParameter
-        :param requirements: the workflow requirements
-        :type requirements: list of Requirement
-        :param hints: the workflow hints (optional requirements)
-        :type hints: list of Hint
-        :rtype: Workflow
+        :param workflow: the workflow object
+        :type workflow: Workflow
         """
         if self.workflow_loaded():
             raise RuntimeError("attempt to re-initialize existing workflow")
-        if requirements is None:
-            requirements = []
-        if hints is None:
-            hints = []
+        if workflow.requirements is None:
+            workflow.requirements = []
+        if workflow.hints is None:
+            workflow.hints = []
 
-        workflow = Workflow(name, hints, requirements, inputs, outputs, workflow_id)
-        self._workflow_id = workflow_id
+        self._workflow_id = workflow.id
         # Load the new workflow into the graph database
         self._gdb_interface.initialize_workflow(workflow)
-        return workflow
 
     def execute_workflow(self):
         """Begin execution of a BEE workflow."""
@@ -82,43 +66,24 @@ class WorkflowInterface:
         self._workflow_id = None
         self._gdb_interface.cleanup()
 
-    def add_task(self, name, base_command, inputs, outputs, requirements=None, hints=None,
-                 stdout=None, stderr=None):
+    def add_task(self, task):
         """Add a new task to a BEE workflow.
 
-        :param name: the name given to the task
-        :type name: str
-        :param base_command: the base command for the task
-        :type base_command: str or list of str
-        :param requirements: the task-specific requirements
-        :type requirements: list of Requirement
-        :param hints: the task-specific hints (optional requirements)
-        :type hints: list of Hint
-        :param inputs: the task inputs
-        :type inputs: list of StepInput
-        :param outputs: the task outputs
-        :type outputs: list of StepOutput
-        :param stdout: the name of the file to which to redirect stdout
-        :type stdout: str
-        :param stderr: the name of the file to which to redirect stderr
-        :type stderr: str
-        :rtype: Task
+        :param task: the name of the file to which to redirect stderr
+        :type task: Task
         """
         # Immutable default arguments
-        if inputs is None:
-            inputs = []
-        if outputs is None:
-            outputs = []
-        if requirements is None:
-            requirements = []
-        if hints is None:
-            hints = []
+        if task.inputs is None:
+            task.inputs = []
+        if task.outputs is None:
+            task.outputs = []
+        if task.requirements is None:
+            task.requirements = []
+        if task.hints is None:
+            task.hints = []
 
-        task = Task(name, base_command, hints, requirements, inputs, outputs, stdout, stderr,
-                    self._workflow_id)
         # Load the new task into the graph database
         self._gdb_interface.load_task(task)
-        return task
 
     def restart_task(self, task, checkpoint_file):
         """Restart a failed BEE workflow task.

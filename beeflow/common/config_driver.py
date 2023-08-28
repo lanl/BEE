@@ -78,16 +78,14 @@ class BeeConfig:
         )
 
     @classmethod
-    def ready(cls):
-        """Check if the class has been initialized."""
-        return cls.CONFIG is not None
-
-    @classmethod
     def init(cls, userconfig=None, **_kwargs):
         """Initialize BeeConfig class.
 
         We check the platform and read in system and user configuration files.
-        If the user configuration file doesn't exist we create it with a [DEFAULT] section.
+        Note that this only needs to be called if one needs to initialize the
+        config from a different file or with different keyword arguments. If
+        so, then this must be called before any calls to bc.get() are made,
+        since that call will initialize the config with default settings.
         """
         global USERCONFIG_FILE
         if cls.CONFIG is not None:
@@ -100,7 +98,7 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            sys.exit('Configuration file does not exist! Please try running `beecfg new`.')
+            sys.exit('Configuration file does not exist! Please try running `beeflow config new`.')
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -118,13 +116,13 @@ class BeeConfig:
     def get(cls, sec_name, opt_name):
         """Get a configuration value.
 
-        If this throws, then either BeeConfig has not been initialized or a
-        configuration value is missing from the definition. Default values
-        are built into the ConfigValidator class, so there is no need to
-        specify a default or a fallback here.
+        If this throws, then the configuration value is missing from the
+        definition. Initialize the config if not already initialized. Default
+        values are built into the ConfigValidator class, so there is no need
+        to specify a default or a fallback here.
         """
         if cls.CONFIG is None:
-            raise RuntimeError('BeeConfig has not been initialized')
+            cls.init()
         try:
             return cls.CONFIG[sec_name][opt_name] # noqa (this object is subscritable)
         except KeyError:
@@ -222,12 +220,6 @@ DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
-SOCKET_PATH = join_path(HOME_DIR, '.beeflow', 'sockets')
-DEFAULT_WFM_SOCKET = join_path(SOCKET_PATH, 'wf_manager.sock')
-DEFAULT_TM_SOCKET = join_path(SOCKET_PATH, 'task_manager.sock')
-DEFAULT_SCHED_SOCKET = join_path(SOCKET_PATH, 'scheduler.sock')
-DEFAULT_BEEFLOW_SOCKET = join_path(SOCKET_PATH, 'beeflow.sock')
-
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 USER = getpass.getuser()
 # Create the validator
@@ -235,34 +227,21 @@ VALIDATOR = ConfigValidator('BEE configuration file and validation information.'
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
 VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
                  attrs={'default': DEFAULT_BEE_WORKDIR}, validator=validation.make_dir)
-VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Simple'),
+VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  info='backend workload scheduler to interact with ')
 VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, attrs={'default': True},
                  info='use the BEE archiving functinality')
 VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validation.file_,
                  info='container image with BEE dependencies',
                  attrs={'input': filepath_completion_input})
-VALIDATOR.option('DEFAULT', 'beeflow_pidfile',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'beeflow.pid')},
-                 info='location of beeflow pidfile')
-VALIDATOR.option('DEFAULT', 'beeflow_socket',
-                 validator=validation.parent_dir,
-                 attrs={'default': DEFAULT_BEEFLOW_SOCKET},
-                 info='location of beeflow socket')
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
                  attrs={'default': 3},
                  info='max number of times beeflow will restart a component on failure')
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
-VALIDATOR.option('workflow_manager', 'socket', validator=validation.parent_dir,
-                 attrs={'default': DEFAULT_WFM_SOCKET},
-                 info='workflow manager port')
 # Task manager
 VALIDATOR.section('task_manager',
                   info='Task manager configuration and config of container to use.')
-VALIDATOR.option('task_manager', 'socket',
-                 attrs={'default': DEFAULT_TM_SOCKET},
-                 validator=validation.parent_dir, info='task manager listen port')
 VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charliecloud'},
                  choices=('Charliecloud', 'Singularity'),
                  info='container runtime to use for configuration')
@@ -337,31 +316,16 @@ VALIDATOR.option('slurm', 'use_commands', validator=validation.bool_,
                  attrs={'default': shutil.which('slurmrestd') is None},
                  info='if set, use slurm cli commands instead of slurmrestd')
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
-VALIDATOR.option('slurm', 'slurmrestd_socket', validator=validation.parent_dir,
-                 attrs={'default': DEFAULT_SLURMRESTD_SOCK},
-                 info='socket location')
 VALIDATOR.option('slurm', 'openapi_version', attrs={'default': 'v0.0.37'},
                  info='openapi version to use for slurmrestd')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
-VALIDATOR.option('scheduler', 'log',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler.log')},
-                 info='scheduler log file')
-VALIDATOR.option('scheduler', 'socket', validator=validation.parent_dir,
-                 attrs={'default': DEFAULT_SCHED_SOCKET},
-                 info='scheduler socket')
-VALIDATOR.option('scheduler', 'alloc_logfile',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'logs', 'scheduler_alloc.log')},
-                 info='allocation logfile, to be used for later training')
 SCHEDULER_ALGORITHMS = ('fcfs', 'backfill', 'sjf')
 VALIDATOR.option('scheduler', 'algorithm', attrs={'default': 'fcfs'}, choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
 VALIDATOR.option('scheduler', 'default_algorithm', attrs={'default': 'fcfs'},
                  choices=SCHEDULER_ALGORITHMS,
                  info=('default algorithm to use'))
-VALIDATOR.option('scheduler', 'workdir',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'scheduler')},
-                 info='workdir to be used for the scheduler')
 
 
 def print_wrap(text, next_line_indent=''):
@@ -482,11 +446,11 @@ class ConfigGenerator:
               f'\n\t{self.fname}',
               '\n ** See documentation for values you should refrain from editing! **',
               '\n ** Include job options (such as account) required for this system.**')
-        print('\n(Try `beecfg info` to see more about each option)')
+        print('\n(Try `beeflow config info` to see more about each option)')
         print(70 * '#')
 
 
-app = typer.Typer(no_args_is_help=False, add_completion=False, cls=NaturalOrderGroup)
+app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 
 
 @app.command()
@@ -541,20 +505,11 @@ def show(path: str = typer.Argument(default=USERCONFIG_FILE,
                                     help='Path to config file')):
     """Show the contents of bee.conf."""
     if not os.path.exists(path):
-        print('The bee.conf does not exist yet. Please run `beecfg new`.')
+        print('The bee.conf does not exist yet. Please run `beeflow config new`.')
         return
     print(f'# {path}')
     with open(path, encoding='utf-8') as fp:
         print(fp.read(), end='')
-
-
-def main():
-    """Entry point for config validation and help."""
-    app()
-
-
-if __name__ == '__main__':
-    app()
 # Ignore C901: "'ConfigGenerator.choose_values' is too complex" - I disagree, if
 #              it's just based on LOC, then there are a number `print()` functions
 #              that are increasing the line count

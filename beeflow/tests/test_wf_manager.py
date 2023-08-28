@@ -4,9 +4,12 @@ import tempfile
 import os
 import pathlib
 import pytest
+import jsonpickle
+
+from test_parser import WORKFLOW_GOLD, TASKS_GOLD
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.tests.mocks import MockWFI, MockCwlParser, MockGDBInterface
+from beeflow.tests.mocks import MockWFI, MockGDBInterface
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_interface import WorkflowInterface
 
@@ -69,7 +72,6 @@ def _resource(tag=""):
 # WFList Tests
 def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     """Test submitting a workflow."""
-    mocker.patch('beeflow.wf_manager.resources.wf_list.CwlParser', new=MockCwlParser)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image',
                  return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
@@ -85,12 +87,12 @@ def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     tarball = script_path / 'clamr-wf.tgz'
     with open(tarball, 'rb') as tarball_contents:
         resp = client().post('/bee_wfm/v1/jobs/', data={
-            'wf_name': 'clamr',
+            'wf_name': 'clamr'.encode(),
             'wf_filename': tarball,
-            'main_cwl': 'clamr_wf.cwl',
-            'yaml': 'clamr_job.yml',
-            'workflow_archive': tarball_contents,
-            'workdir': '.'
+            'workdir': '.',
+            'workflow': jsonpickle.encode(WORKFLOW_GOLD),
+            'tasks': jsonpickle.encode(TASKS_GOLD, warn=True),
+            'workflow_archive': tarball_contents
         })
 
     # Remove task added during the test
@@ -99,7 +101,6 @@ def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
 
 def test_reexecute_workflow(client, mocker, teardown_workflow, temp_db):
     """Test reexecuting a workflow."""
-    mocker.patch('beeflow.wf_manager.resources.wf_list.CwlParser', new=MockCwlParser)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image',
                  return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)

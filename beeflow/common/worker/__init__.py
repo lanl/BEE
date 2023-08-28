@@ -2,12 +2,14 @@
 
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.worker.lsf_worker import LSFWorker
+from beeflow.common.worker.flux_worker import FluxWorker
 from beeflow.common.worker.simple_worker import SimpleWorker
 
 
 supported_workload_schedulers = {
     'Slurm': SlurmWorker,
     'LSF': LSFWorker,
+    'Flux': FluxWorker,
     'Simple': SimpleWorker,
 }
 

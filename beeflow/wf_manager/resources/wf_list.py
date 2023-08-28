@@ -5,7 +5,6 @@ This contains endpoints forsubmitting, starting, and reexecuting workflows.
 
 import os
 import subprocess
-import traceback
 import jsonpickle
 
 from flask import make_response, jsonify
@@ -14,7 +13,6 @@ from flask_restful import Resource, reqparse
 
 from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler
-from beeflow.common.parser import CwlParser, CwlParseError
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.common import dep_manager
@@ -24,17 +22,6 @@ from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 
 log = bee_logging.setup(__name__)
-
-
-def parse_workflow(wfi, wf_id, workflow_dir, main_cwl, yaml_file):
-    """Run the parser."""
-    parser = CwlParser(wfi)
-    cwl_path = os.path.join(workflow_dir, main_cwl)
-    if yaml_file is not None:
-        yaml_path = os.path.join(workflow_dir, yaml_file)
-        parser.parse_workflow(wf_id, cwl_path, yaml_path)
-    else:
-        parser.parse_workflow(wf_id, cwl_path)
 
 
 # def initialize_wf_profiler(wf_name):
@@ -89,24 +76,25 @@ class WFList(Resource):
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
-        reqparser.add_argument('main_cwl', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('yaml', type=str, required=False,
-                               location='form')
         reqparser.add_argument('wf_filename', type=str, required=True,
                                location='form')
         reqparser.add_argument('workdir', type=str, required=True,
+                               location='form')
+        reqparser.add_argument('workflow', type=str, required=True,
+                               location='form')
+        reqparser.add_argument('tasks', type=str, required=True,
                                location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
                                location='files')
         data = reqparser.parse_args()
         wf_tarball = data['workflow_archive']
         wf_filename = data['wf_filename']
-        main_cwl = data['main_cwl']
         wf_name = data['wf_name']
         wf_workdir = data['workdir']
-        # None if not sent
-        yaml_file = data['yaml']
+        workflow = jsonpickle.decode(data['workflow'])
+        # May have to decode the list and task objects separately
+        tasks = [jsonpickle.decode(task) if isinstance(task, str) else task
+                 for task in jsonpickle.decode(data['tasks'])]
 
         try:
             dep_manager.create_image()
@@ -116,7 +104,7 @@ class WFList(Resource):
             resp = make_response(jsonify(msg=crt_message, status='error'), 418)
             return resp
 
-        wf_id = wf_data.generate_workflow_id()
+        wf_id = workflow.id
         wf_dir = extract_wf(wf_id, wf_filename, wf_tarball)
         bolt_port = wf_utils.get_open_port()
         http_port = wf_utils.get_open_port()
@@ -125,18 +113,14 @@ class WFList(Resource):
         db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
         dep_manager.wait_gdb(log)
 
-        try:
-            wfi = wf_utils.get_workflow_interface(wf_id)
-            parse_workflow(wfi, wf_id, wf_dir, main_cwl, yaml_file)
-        except CwlParseError as err:
-            traceback.print_exc()
-            log.error('Failed to parse file')
-            return make_response(jsonify(msg=f'Parser: {err.args[0]}', status='error'), 400)
+        wfi = wf_utils.get_workflow_interface(wf_id)
+        wfi.initialize_workflow(workflow)
+
         # initialize_wf_profiler(wf_name)
 
         wf_utils.create_wf_metadata(wf_id, wf_name)
-        _, tasks = wfi.get_workflow()
         for task in tasks:
+            wfi.add_task(task)
             metadata = wfi.get_task_metadata(task)
             metadata['workdir'] = wf_workdir
             wfi.set_task_metadata(task, metadata)

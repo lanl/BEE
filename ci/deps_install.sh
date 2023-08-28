@@ -6,6 +6,7 @@ sudo apt-get update
 sudo apt-get install -y slurmctld slurmd slurmrestd munge python3 python3-venv \
     curl build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev \
     libssl-dev libsqlite3-dev libreadline-dev libffi-dev libbz2-dev \
+    libmunge-dev \
     libyaml-dev # needed for PyYAML
 
 # Install most recent Charliecloud
