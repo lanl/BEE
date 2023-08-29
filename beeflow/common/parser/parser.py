@@ -102,15 +102,15 @@ class CwlParser:
             param = self.params[input_id]
             if isinstance(type_, InputArraySchema):
                 if not isinstance(param, type_map[type_.type]):
-                        raise CwlParseError("Input/param types do not match: "
-                                            f"{input_id}/{param}")
+                    raise CwlParseError("Input/param types do not match: "
+                                        f"{input_id}/{param}")
                 for val in param:
                     if not isinstance(val, type_map[type_.items]):
                         raise CwlParseError("Input/param types do not match: "
                                             f"{input_id}/{val}")
                 # Need to coerce list to tuple so it's hashable
                 return tuple(param)
-            elif not isinstance(param, type_map[type_]):
+            if not isinstance(param, type_map[type_]):
                 raise CwlParseError("Input/param types do not match: "
                                     f"{input_id}/{param}")
             return param
