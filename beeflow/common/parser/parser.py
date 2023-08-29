@@ -12,6 +12,7 @@ import os
 import traceback
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
+from cwl_utils.parser.cwl_v1_2 import InputArraySchema
 from schema_salad.exceptions import ValidationException  # noqa (pylama can't find the exception)
 
 from beeflow.common.wf_data import (Workflow,
@@ -34,6 +35,7 @@ type_map = {
     "double": float,
     "File": str,
     "Directory": str,
+    "array": list
 }
 
 
@@ -49,10 +51,7 @@ class CwlParser:
     """Class for parsing CWL files."""
 
     def __init__(self):
-        """Initialize the CWL parser interface.
-
-        Sets the workflow interface for communication with the graph database.
-        """
+        """Initialize the CWL parser interface."""
         self.cwl = None
         self.path = None
         self.steps = []
@@ -93,17 +92,28 @@ class CwlParser:
             :param input_: the workflow input name
             :type input_: WorkflowInputParameter
             :param type_: the workflow input type
-            :type type_: str
+            :type type_: str or InputArraySchema
             :rtype: (Workflow, list of Task)
             """
             # Use parsed input parameter for input value if it exists
             input_id = _shortname(input_.id)
             if input_id not in self.params:
                 return None
-            if not isinstance(self.params[input_id], type_map[type_]):
+            param = self.params[input_id]
+            if isinstance(type_, InputArraySchema):
+                if not isinstance(param, type_map[type_.type]):
+                        raise CwlParseError("Input/param types do not match: "
+                                            f"{input_id}/{param}")
+                for val in param:
+                    if not isinstance(val, type_map[type_.items]):
+                        raise CwlParseError("Input/param types do not match: "
+                                            f"{input_id}/{val}")
+                # Need to coerce list to tuple so it's hashable
+                return tuple(param)
+            elif not isinstance(param, type_map[type_]):
                 raise CwlParseError("Input/param types do not match: "
-                                    f"{input_id}/{self.params[input_id]}")
-            return self.params[input_id]
+                                    f"{input_id}/{param}")
+            return param
 
         workflow_name = os.path.basename(cwl_path).split(".")[0]
         workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
@@ -178,11 +188,9 @@ class CwlParser:
             raise CwlParseError("Unsupported input job file extension (only .yml "
                                 "and .json supported)")
 
-        for k, v in self.params.items():
+        for k in self.params.keys():
             if not isinstance(k, str):
                 raise CwlParseError(f"Invalid input job key: {str(k)}")
-            if not isinstance(v, (str, int, float)):
-                raise CwlParseError(f"Invalid input job parameter type: {type(v)}")
 
     @staticmethod
     def parse_step_inputs(cwl_in, step_inputs):
