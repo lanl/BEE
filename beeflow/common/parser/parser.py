@@ -116,7 +116,9 @@ class CwlParser:
             return param
 
         workflow_name = os.path.basename(cwl_path).split(".")[0]
-        workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
+        workflow_inputs = {InputParameter(_shortname(input_.id),
+                                          input_.type if isinstance(input_.type, str)
+                                          else input_.type.type,
                                           resolve_input(input_, input_.type))
                            for input_ in self.cwl.inputs}
         workflow_outputs = {OutputParameter(_shortname(output.id), output.type, None,
