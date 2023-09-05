@@ -222,8 +222,8 @@ def version_str(version):
 def load_charliecloud():
     """Load the charliecloud module if it exists."""
     lmod = os.environ.get('MODULESHOME')
-    from env_modules_python import module #noqa No need to import at top
     sys.path.insert(0, lmod + '/init')
+    from env_modules_python import module #noqa No need to import at top
     module("load", "charliecloud")
 
 
