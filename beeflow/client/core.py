@@ -388,4 +388,3 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     """Attempt to stop and restart the beeflow daemon."""
     stop()
     start(foreground)
-
