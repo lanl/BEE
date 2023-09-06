@@ -222,6 +222,10 @@ def check_dependencies():
                            check=True)
     version = cproc.stdout if cproc.stdout else cproc.stderr
     version = version.strip()
+    if 'pre' in version:
+        # Pre-release charliecloud in the format <version>~pre+<git_hash>
+        version = version.split('~')[0]
+    # Release versions are in the format 0.<version>
     version = tuple(int(part) for part in version.split('.'))
     print(f'Found Charliecloud {version_str(version)}')
     if version < MIN_CHARLIECLOUD_VERSION:
