@@ -1,14 +1,15 @@
 """Start up the workflow manager connecting all of the endpoints."""
 
 from flask import Flask
+from celery import Celery
 from beeflow.common.api import BeeApi
-
+from beeflow.common import paths
 from beeflow.wf_manager.resources.wf_list import WFList
 from beeflow.wf_manager.resources.wf_actions import WFActions
 from beeflow.wf_manager.resources.wf_metadata import WFMetadata
 from beeflow.wf_manager.resources.wf_update import WFUpdate
-
 from beeflow.wf_manager.resources import wf_utils
+
 
 
 def create_app():
@@ -21,6 +22,16 @@ def create_app():
     api.add_resource(WFActions, '/bee_wfm/v1/jobs/<string:wf_id>')
     api.add_resource(WFMetadata, '/bee_wfm/v1/jobs/<string:wf_id>/metadata')
     api.add_resource(WFUpdate, '/bee_wfm/v1/jobs/update/')
+
+    # Initialize celery app
+    celery_app = Celery(app.name)
+    celery_app.config_from_object({
+        'broker_url': f'redis+socket://{paths.redis_socket()}',
+        'result_backend': f'db+sqlite://{paths.celery_db()}',
+        'imports': ('beeflow.common.tasks',),
+    })
+    celery_app.set_default()
+    app.extensions['celery'] = celery_app
     return app
 
 

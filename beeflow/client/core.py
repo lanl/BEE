@@ -125,6 +125,7 @@ class ComponentManager:
             proc.terminate()
 
 
+
 def warn(*pargs):
     """Print a red warning message."""
     typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
@@ -156,7 +157,7 @@ def init_components():
     # Slurmrestd will be started only if we're running with Slurm and
     # slurm::use_commands is not True
 
-    @mgr.component('wf_manager', ('scheduler',))
+    @mgr.component('wf_manager', ('scheduler', 'celery'))
     def start_wfm():
         """Start the WFM."""
         fp = open_log('wf_manager')
@@ -181,6 +182,25 @@ def init_components():
         # Using a function here because of the funny way that the scheduler's written
         return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
                                     paths.sched_socket(), stdout=fp, stderr=fp)
+
+    @mgr.component('celery', ('redis',))
+    def celery():
+        """Start the celery task queue."""
+        log = open_log('celery')
+        return subprocess.Popen(['celery', '-A', 'beeflow.common.celery', 'worker'],
+                                stdout=log, stderr=log)
+
+    @mgr.component('redis', ())
+    def redis():
+        """Start redis."""
+        # Dump the config
+        with open(paths.redis_config(), 'w', encoding='utf-8') as fp:
+            print('maxmemory 2mb', file=fp)
+            print('unixsocket', paths.redis_socket(), file=fp)
+            print('unixsocketperm 700', file=fp)
+        cmd = ['redis-server', paths.redis_config()]
+        log = open_log('redis')
+        return subprocess.Popen(cmd, stdout=log, stderr=log)
 
     # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
     if need_slurmrestd():
