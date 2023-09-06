@@ -389,5 +389,3 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     stop()
     start(foreground)
 
-
-

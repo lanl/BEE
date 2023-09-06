@@ -536,6 +536,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     logging.info(f'ReExecute Workflow: {resp.text}')
     return wf_id
 
+
 @app.callback(invoke_without_command=True)
 def version_callback(version: bool = False):
     """Beeflow."""
@@ -544,6 +545,7 @@ def version_callback(version: bool = False):
     if version:
         version = importlib.metadata.version("hpc-beeflow")
         print(version)
+
 
 def main():
     """Execute bee_client."""
