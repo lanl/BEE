@@ -15,7 +15,6 @@ import socket
 import sys
 import shutil
 import time
-import importlib.metadata
 
 import daemon
 import typer
@@ -391,11 +390,4 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     start(foreground)
 
 
-@app.callback(invoke_without_command=True)
-def version_callback(version: bool = False):
-    """Beeflow."""
-    # Print out the current version of the app, and then exit
-    # Note above docstring gets used in the help menu
-    if version:
-        version = importlib.metadata.version("hpc-beeflow")
-        print(version)
+
