@@ -237,7 +237,7 @@ def check_dependencies():
         if not shutil.which('ch-run'):
             warn('Charliecloud is not loaded. Please ensure that it is accessible'
                  ' on your path.\nIf it\'s not installed on your system, please refer'
-                 ' to https://hpc.github.io/charliecloud/install.html.')
+                 ' to: \n https://hpc.github.io/charliecloud/install.html')
             sys.exit(1)
     cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
                            check=True)
