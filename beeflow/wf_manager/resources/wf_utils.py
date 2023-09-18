@@ -5,6 +5,7 @@ import shutil
 import socket
 import requests
 import jsonpickle
+from celery.result import AsyncResult
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -123,6 +124,14 @@ def create_wf_namefile(wf_name, wf_id):
 def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
     db = connect_db(wfm_db, get_db_path())
+    # Wait for the GDB
+    if db.workflows.get_workflow_state(wf_id) == 'Initializing':
+        task_id = db.workflows.get_init_task_id(wf_id)
+        result = AsyncResult(task_id)
+        # Wait until the workflow is initialized
+        gdb_pid, state = result.wait()
+        db.workflows.set_workflow_state(state)
+        db.workflows.set_gdb_pid(gdb_pid)
     bolt_port = db.workflows.get_bolt_port(wf_id)
     try:
         driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
@@ -253,3 +262,17 @@ def schedule_submit_tasks(wf_id, tasks):
     allocation = submit_tasks_scheduler(tasks)  #NOQA
     # Submit tasks to TM
     submit_tasks_tm(wf_id, tasks, allocation)
+
+
+def start_workflow(wf_id):
+    """Attempt to start the workflow, returning True if successful."""
+    wfi = get_workflow_interface(wf_id)
+    state = wfi.get_workflow_state()
+    if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
+        return False
+    wfi.execute_workflow()
+    tasks = wfi.get_ready_tasks()
+    wf_utils.schedule_submit_tasks(wf_id, tasks)
+    wf_id = wfi.workflow_id
+    wf_utils.update_wf_status(wf_id, 'Running')
+    return True

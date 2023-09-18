@@ -11,7 +11,6 @@ from beeflow.wf_manager.resources.wf_update import WFUpdate
 from beeflow.wf_manager.resources import wf_utils
 
 
-
 def create_app():
     """Create flask app object and add REST endpoints."""
     app = Flask(__name__)
@@ -28,7 +27,9 @@ def create_app():
     celery_app.config_from_object({
         'broker_url': f'redis+socket://{paths.redis_socket()}',
         'result_backend': f'db+sqlite://{paths.celery_db()}',
-        'imports': ('beeflow.common.tasks',),
+        'task_serializer': 'pickle',
+        'accept_content': ['application/json', 'application/x-python-serialize'],
+        # 'imports': ('beeflow.common.tasks',),
     })
     celery_app.set_default()
     app.extensions['celery'] = celery_app

@@ -22,20 +22,11 @@ class WFActions(Resource):
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
         db = connect_db(wfm_db, db_path)
-        wfi = wf_utils.get_workflow_interface(wf_id)
-        state = wfi.get_workflow_state()
-        if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
-            resp = make_response(jsonify(msg='Cannot start workflow it is '
-                                 f'{state.lower()}.',
-                                         status='ok'), 200)
-            return resp
-        wfi.execute_workflow()
-        tasks = wfi.get_ready_tasks()
-        wf_utils.schedule_submit_tasks(wf_id, tasks)
-        wf_id = wfi.workflow_id
-        wf_utils.update_wf_status(wf_id, 'Running')
-        db.workflows.update_workflow_state(wf_id, 'Running')
-        resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
+        if wf_utils.start_workflow(wf_id):
+            db.workflows.update_workflow_state(wf_id, 'Running')
+            resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
+        else:
+            resp = make_response(jsonify(msg='Cannot start workflow it is {state.lower()}.', status='ok'), 200)
         return resp
 
     @staticmethod

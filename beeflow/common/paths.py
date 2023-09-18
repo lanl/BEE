@@ -57,9 +57,17 @@ def _redis_root():
     os.makedirs(path, exist_ok=True)
     return path
 
+
 def redis_config():
     """Get the Redis config path."""
     return os.path.join(_redis_root(), 'redis.conf')
+
+
+def redis_data():
+    """Return the Redis data dir."""
+    path = os.path.join(_redis_root(), 'data')
+    os.makedirs(path, exist_ok=True)
+    return path
 
 
 def redis_socket():

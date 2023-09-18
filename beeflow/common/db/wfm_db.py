@@ -69,12 +69,12 @@ class Workflows:
         workflows = [self.Workflow(*workflow) for workflow in result]
         return workflows
 
-    def add_workflow(self, workflow_id, name, state, run_dir, bolt_port, gdb_pid):
+    def init_workflow(self, workflow_id, name, run_dir, bolt_port, http_port, https_port, init_task_id):
         """Insert a new workflow into the database."""
-        stmt = ("INSERT INTO workflows (workflow_id, name, state, run_dir, bolt_port, gdb_pid) "
+        stmt = ("INSERT INTO workflows (workflow_id, name, state, run_dir, bolt_port, http_port, https_port, gdb_pid, init_task_id) "
                 "VALUES(?, ?, ?, ?, ?, ?);"
                 )
-        bdb.run(self.db_file, stmt, [workflow_id, name, state, run_dir, bolt_port, gdb_pid])
+        bdb.run(self.db_file, stmt, [workflow_id, name, 'Initializing', run_dir, bolt_port, http_port, https_port, -1, init_task_id])
 
     def delete_workflow(self, workflow_id):
         """Delete a workflow from the database."""
@@ -162,7 +162,10 @@ class WorkflowDB:
                                 state TEST NOT NULL,
                                 run_dir STR,
                                 bolt_port INTEGER,
-                                gdb_pid INTEGER);"""
+                                http_port INTEGER,
+                                https_port INTEGER,
+                                gdb_pid INTEGER,
+                                init_task_id INTEGER);"""
 
         tasks_stmt = """CREATE TABLE IF NOT EXISTS tasks (
                         id INTEGER PRIMARY KEY,

@@ -1,3 +1,4 @@
+"""Module for celery configuration."""
 from beeflow.wf_manager.wf_manager import create_app
 
 

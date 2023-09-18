@@ -254,7 +254,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         'wf_filename': os.path.basename(wf_path).encode(),
         'workdir': workdir,
         'workflow': jsonpickle.encode(workflow),
-        'tasks': jsonpickle.encode(tasks, warn=True)
+        'tasks': jsonpickle.encode(tasks, warn=True),
+        'no_start': no_start,
     }
     files = {
         'workflow_archive': wf_tarball
@@ -282,10 +283,6 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     # Cleanup code
     if tarball_path:
         os.remove(tarball_path)
-
-    # Start the workflow
-    if not no_start:
-        start(wf_id)
 
     return wf_id
 

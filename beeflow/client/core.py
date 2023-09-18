@@ -125,7 +125,6 @@ class ComponentManager:
             proc.terminate()
 
 
-
 def warn(*pargs):
     """Print a red warning message."""
     typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
@@ -195,6 +194,7 @@ def init_components():
         """Start redis."""
         # Dump the config
         with open(paths.redis_config(), 'w', encoding='utf-8') as fp:
+            print('dir', paths.redis_data(), file=fp)
             print('maxmemory 2mb', file=fp)
             print('unixsocket', paths.redis_socket(), file=fp)
             print('unixsocketperm 700', file=fp)
