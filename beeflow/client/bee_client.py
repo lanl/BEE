@@ -395,17 +395,18 @@ def list_workflows():
 
 
 @app.command()
-def reset(archive: bool = typer.Option(False, '--archive', '-a', help='Archive .beeflow before removal')):
+def reset(archive: bool = typer.Option(False, '--archive', '-a',
+                                       help='Archive .beeflow before removal')):
     """ Delete the .beeflow directory """
-    #Check to see if the user is absolutely sure. Warning Message.
+    # Check to see if the user is absolutely sure. Warning Message.
     absolutely_sure = ""
     while absolutely_sure != "y" or absolutely_sure != "n":
-        #Get the user's .beeflow directory
+        # Get the user's .beeflow directory
         directory_to_delete = os.path.expanduser("~/.beeflow")
         print(f"A reset will remove this directory: {directory_to_delete}")
 
         absolutely_sure = input(
-"""
+            """
 Are you sure you want to reset?
 
 A reset will delete the .beeflow directory which results in:
@@ -414,16 +415,16 @@ Removing the archive of workflow containers
 Reset all databases associated with the beeflow app
 Removing all beeflow logs
 
-Beeflow configuration files from bee_cfg will remain. 
+Beeflow configuration files from bee_cfg will remain.
 
 Respond with yes(y)/no(n):  """)
         if absolutely_sure == "n" or absolutely_sure == "no":
-            #Exit out is the user didn't really mean to do a reset
+            # Exit out is the user didn't really mean to do a reset
             exit()
         if absolutely_sure == "y" or absolutely_sure == "yes":
-            #Stop all of the beeflow processes
+            # Stop all of the beeflow processes
             if os.path.exists(directory_to_delete):
-                #Save the .beeflow directory if the archive option was set
+                # Save the .beeflow directory if the archive option was set
                 if (archive):
                     shutil.copytree(directory_to_delete, directory_to_delete + ".backup")
                 shutil.rmtree(directory_to_delete)
