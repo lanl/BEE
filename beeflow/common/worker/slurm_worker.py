@@ -144,6 +144,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
         try:
             resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
 
+            log.info(resp.text)
             if resp.status_code != 200:
                 raise WorkerError(f'Failed to query job {job_id}')
             data = json.loads(resp.text)

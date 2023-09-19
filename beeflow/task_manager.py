@@ -19,11 +19,6 @@ from flask_restful import Resource, Api, reqparse
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from beeflow.common.config_driver import BeeConfig as bc
-
-# This must be imported before calling other parts of BEE
-bc.init()
-
-
 from beeflow.common import log as bee_logging
 from beeflow.common.build_interfaces import build_main
 from beeflow.common.worker_interface import WorkerInterface

@@ -2,8 +2,6 @@
 
 import sqlite3
 from sqlite3 import Error
-from beeflow.common.config_driver import BeeConfig as bc
-bc.init()
 
 
 def connect_db(module, db_path):

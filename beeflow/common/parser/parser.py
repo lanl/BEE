@@ -14,7 +14,6 @@ import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException  # noqa (pylama can't find the exception)
 
-from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_data import (Workflow,
                                     Task,
                                     InputParameter,
@@ -24,10 +23,6 @@ from beeflow.common.wf_data import (Workflow,
                                     Hint,
                                     Requirement,
                                     generate_workflow_id)
-
-
-if not bc.ready():
-    bc.init()
 
 
 # Map CWL types to Python types
