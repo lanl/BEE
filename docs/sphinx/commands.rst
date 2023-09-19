@@ -20,6 +20,8 @@ Options:
 
 ``beeflow core --version``: Display the version number of BEE.
 
+``beeflow core reset``: Stop the beeflow daemon and cleanup the .beeflow directory to start from a fresh install. 
+
 Submission and workflow commands
 ================================
 
