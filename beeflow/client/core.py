@@ -397,6 +397,8 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             """
 Are you sure you want to reset?
 
+A reset will shutdown beeflow and its components.
+
 A reset will delete the .beeflow directory which results in:
 Removing the archive of workflows executed.
 Removing the archive of workflow containers.
@@ -411,6 +413,14 @@ Respond with yes(y)/no(n):  """)
             sys.exit()
         if absolutely_sure in ("y", "yes"):
             # Stop all of the beeflow processes
+            resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
+            if resp is not None:
+                print("Beeflow has been shutdown.")
+                print("Waiting for components to cleanly stop.")
+                # This wait is essential. It takes a minute to shut down.
+                time.sleep(5)
+                
+            
             if os.path.exists(directory_to_delete):
                 # Save the .beeflow directory if the archive option was set
                 if archive:
