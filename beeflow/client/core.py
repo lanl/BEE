@@ -419,8 +419,7 @@ Respond with yes(y)/no(n):  """)
                 print("Waiting for components to cleanly stop.")
                 # This wait is essential. It takes a minute to shut down.
                 time.sleep(5)
-                
-            
+
             if os.path.exists(directory_to_delete):
                 # Save the .beeflow directory if the archive option was set
                 if archive:
