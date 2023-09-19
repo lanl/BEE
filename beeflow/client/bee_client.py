@@ -397,7 +397,7 @@ def list_workflows():
 @app.command()
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive .beeflow before removal')):
-    """ Delete the .beeflow directory """
+    """Delete the .beeflow directory."""
     # Check to see if the user is absolutely sure. Warning Message.
     absolutely_sure = ""
     while absolutely_sure != "y" or absolutely_sure != "n":
@@ -410,29 +410,29 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
 Are you sure you want to reset?
 
 A reset will delete the .beeflow directory which results in:
-Removing the archive of workflows executed
-Removing the archive of workflow containers
-Reset all databases associated with the beeflow app
-Removing all beeflow logs
+Removing the archive of workflows executed.
+Removing the archive of workflow containers.
+Reset all databases associated with the beeflow app.
+Removing all beeflow logs.
 
 Beeflow configuration files from bee_cfg will remain.
 
 Respond with yes(y)/no(n):  """)
-        if absolutely_sure == "n" or absolutely_sure == "no":
+        if absolutely_sure in ("n", "no"):
             # Exit out is the user didn't really mean to do a reset
-            exit()
-        if absolutely_sure == "y" or absolutely_sure == "yes":
+            sys.exit()
+        if absolutely_sure in ("y", "yes"):
             # Stop all of the beeflow processes
             if os.path.exists(directory_to_delete):
                 # Save the .beeflow directory if the archive option was set
-                if (archive):
+                if archive:
                     shutil.copytree(directory_to_delete, directory_to_delete + ".backup")
                 shutil.rmtree(directory_to_delete)
                 print(f"{directory_to_delete} has been removed.")
-                exit()
+                sys.exit()
             else:
                 print(f"{directory_to_delete} does not exist. Exiting.")
-                exit()
+                sys.exit()
         print("Please respond with either the letter (y) or (n).")
 
 
