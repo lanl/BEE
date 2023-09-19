@@ -133,6 +133,11 @@ def get_workflow_interface(wf_id):
         db.workflows.set_workflow_state(state)
         db.workflows.set_gdb_pid(gdb_pid)
     bolt_port = db.workflows.get_bolt_port(wf_id)
+    return get_workflow_interface_by_bolt_port(bolt_port)
+
+
+def get_workflow_interface_by_bolt_port(bolt_port):
+    """Return a workflow interface connection using just the bolt port."""
     try:
         driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                              db_hostname=bc.get("graphdb", "hostname"),

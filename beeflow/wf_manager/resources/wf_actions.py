@@ -45,7 +45,7 @@ class WFActions(Resource):
         for task in tasks:
             tasks_status.append(f"{task.name}--{task.state}")
         tasks_status = '\n'.join(tasks_status)
-        wf_status = wf_utils.read_wf_status(wf_id)
+        wf_status = db.workflows.get_workflow_state(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,
                              wf_status=wf_status, status='ok'), 200)

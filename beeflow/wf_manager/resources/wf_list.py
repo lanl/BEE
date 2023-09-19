@@ -53,7 +53,7 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
 
 
 @shared_task(ignore_result=True)
-def init_workflow(wf_dir, tasks, bolt_port, http_port, https_port, no_start):
+def init_workflow(workflow, wf_id, wf_name, wf_dir, wf_workdir, tasks, bolt_port, http_port, https_port, no_start):
     """Initialize the workflow in a separate process."""
     print('Initializing GDB and workflow...')
     try:
@@ -66,7 +66,8 @@ def init_workflow(wf_dir, tasks, bolt_port, http_port, https_port, no_start):
     gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
     dep_manager.wait_gdb(log)
 
-    wfi = wf_utils.get_workflow_interface(wf_id)
+    # wfi = wf_utils.get_workflow_interface(wf_id)
+    wfi = wf_utils.get_workflow_interface_by_bolt_port(bolt_port)
     wfi.initialize_workflow(workflow)
 
     # initialize_wf_profiler(wf_name)
@@ -139,7 +140,7 @@ class WFList(Resource):
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
 
-        result = init_workflow.delay(wf_dir, tasks, bolt_port, http_port, https_port, no_start)
+        result = init_workflow.delay(workflow, wf_id, wf_name, wf_dir, wf_workdir, tasks, bolt_port, http_port, https_port, no_start)
         db.workflows.init_workflow(wf_id, wf_name, wf_dir, bolt_port, http_port, https_port, init_task_id=result.id)
 
         for task in tasks:
@@ -181,7 +182,7 @@ class WFList(Resource):
         https_port = wf_utils.get_open_port()
 
 
-        result = init_workflow.delay(wf_dir, tasks, bolt_port, http_port, https_port, no_start=False)
+        result = init_workflow.delay(workflow, wf_id, wf_name, wf_dir, wf_workdir, tasks, bolt_port, http_port, https_port, no_start=False)
         db.workflows.init_workflow(wf_id, wf_name, wf_dir, bolt_port, http_port, https_port, init_task_id=result.id)
 
         # Return the wf_id and created

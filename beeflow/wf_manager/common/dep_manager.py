@@ -127,8 +127,7 @@ def create_image():
     # Build new dependency container
     try:
         subprocess.run(["ch-convert", "-i", "tar", "-o", "dir",
-                        str(dep_img), str(container_dir)],
-                       stdout=sys.stdout, stderr=sys.stderr, check=True)
+                        str(dep_img), str(container_dir)], check=True)
     except subprocess.CalledProcessError as error:
         dep_log.error(f"ch-convert failed: {error}")
         shutil.rmtree(container_dir)
@@ -166,7 +165,7 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
                 "-b", logs_dir + ":/logs",
                 "-b", run_dir + ":/var/lib/neo4j/run", container_path,
                 "--", *command
-            ], stdout=sys.stdout, stderr=sys.stderr, check=True)
+            ], check=True)
         except subprocess.CalledProcessError:
             dep_log.error("neo4j-admin set-initial-password failed")
             return -1
