@@ -15,7 +15,6 @@ import socket
 import sys
 import shutil
 import time
-import importlib.metadata
 
 import daemon
 import typer
@@ -222,8 +221,15 @@ def check_dependencies():
                            check=True)
     version = cproc.stdout if cproc.stdout else cproc.stderr
     version = version.strip()
-    version = tuple(int(part) for part in version.split('.'))
-    print(f'Found Charliecloud {version_str(version)}')
+    if 'pre' in version:
+        # Pre-release charliecloud in the format <version>~pre+<git_hash>
+        print(f'Found Charliecloud {version}')
+        version = version.split('~')[0]
+        version = tuple(int(part) for part in version.split('.'))
+    # Release versions are in the format 0.<version>
+    else:
+        version = tuple(int(part) for part in version.split('.'))
+        print(f'Found Charliecloud {version_str(version)}')
     if version < MIN_CHARLIECLOUD_VERSION:
         warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
@@ -389,13 +395,3 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     """Attempt to stop and restart the beeflow daemon."""
     stop()
     start(foreground)
-
-
-@app.callback(invoke_without_command=True)
-def version_callback(version: bool = False):
-    """Beeflow."""
-    # Print out the current version of the app, and then exit
-    # Note above docstring gets used in the help menu
-    if version:
-        version = importlib.metadata.version("hpc-beeflow")
-        print(version)
