@@ -1,7 +1,7 @@
 """Start up the workflow manager connecting all of the endpoints."""
 
 from flask import Flask
-from celery import Celery
+from celery import Celery # noqa (pylama can't find celery imports)
 from beeflow.common.api import BeeApi
 from beeflow.common import paths
 from beeflow.wf_manager.resources.wf_list import WFList

@@ -194,6 +194,8 @@ def init_components():
         """Start redis."""
         # Dump the config
         with open(paths.redis_config(), 'w', encoding='utf-8') as fp:
+            # Don't listen on TCP
+            print('port 0', file=fp)
             print('dir', paths.redis_data(), file=fp)
             print('maxmemory 2mb', file=fp)
             print('unixsocket', paths.redis_socket(), file=fp)

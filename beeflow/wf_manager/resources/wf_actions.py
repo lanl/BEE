@@ -26,7 +26,8 @@ class WFActions(Resource):
             db.workflows.update_workflow_state(wf_id, 'Running')
             resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
         else:
-            resp = make_response(jsonify(msg='Cannot start workflow it is {state.lower()}.', status='ok'), 200)
+            resp_body = jsonify(msg='Cannot start workflow it is {state.lower()}.', status='ok')
+            resp = make_response(resp_body, 200)
         return resp
 
     @staticmethod

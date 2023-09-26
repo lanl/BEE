@@ -5,7 +5,6 @@ import shutil
 import socket
 import requests
 import jsonpickle
-from celery.result import AsyncResult
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -126,12 +125,9 @@ def get_workflow_interface(wf_id):
     db = connect_db(wfm_db, get_db_path())
     # Wait for the GDB
     if db.workflows.get_workflow_state(wf_id) == 'Initializing':
-        task_id = db.workflows.get_init_task_id(wf_id)
-        result = AsyncResult(task_id)
-        # Wait until the workflow is initialized
-        gdb_pid, state = result.wait()
-        db.workflows.set_workflow_state(state)
-        db.workflows.set_gdb_pid(gdb_pid)
+        # TODO: Need to figure out what to do with requests while waiting for
+        # the gdb to come up
+        raise RuntimeError('Workflow is still initializing')
     bolt_port = db.workflows.get_bolt_port(wf_id)
     return get_workflow_interface_by_bolt_port(bolt_port)
 
@@ -277,7 +273,9 @@ def start_workflow(wf_id):
         return False
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
-    wf_utils.schedule_submit_tasks(wf_id, tasks)
+    schedule_submit_tasks(wf_id, tasks)
     wf_id = wfi.workflow_id
-    wf_utils.update_wf_status(wf_id, 'Running')
+    update_wf_status(wf_id, 'Running')
     return True
+# Ignoring W0511: TODOs need to be addressed later
+# pylama:ignore=W0511

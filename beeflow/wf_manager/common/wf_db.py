@@ -217,7 +217,7 @@ def add_workflow(workflow_id, name, status, run_dir, bolt_port, gdb_pid):
 def complete_gdb_init(workflow_id, gdb_pid):
     """Complete the GDB init process for a workflow."""
     stmt = "UPDATE workflows SET gdb_pid=?, status=? WHERE workflow_id = ?"
-    run(stmt, [gdb_port, 'Pending', workflow_id])
+    run(stmt, [gdb_pid, 'Pending', workflow_id])
 
 
 def init_workflow(workflow_id, name, run_dir, bolt_port, http_port, https_port, init_task_id):
@@ -226,11 +226,11 @@ def init_workflow(workflow_id, name, run_dir, bolt_port, http_port, https_port, 
         # Initialize the database
         init_tables()
 
-    stmt = ("INSERT INTO workflows "
-            "(workflow_id, name, status, run_dir, bolt_port, http_port, https_port, gdb_pid, init_task_id) "
-            "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);"
-            )
-    run(stmt, [workflow_id, name, 'Initializing', run_dir, bolt_port, http_port, https_port, -1, init_task_id])
+    stmt = """INSERT INTO workflows (workflow_id, name, status, run_dir, bolt_port,
+                                     http_port, https_port, gdb_pid, init_task_id)
+              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+    run(stmt, [workflow_id, name, 'Initializing', run_dir, bolt_port, http_port,
+               https_port, -1, init_task_id])
 
 
 def update_workflow_state(workflow_id, status):
