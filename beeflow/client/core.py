@@ -385,12 +385,12 @@ def stop():
 
 @app.command()
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
-                                       help='Archive .beeflow before removal')):
-    """Delete the .beeflow directory."""
+                                       help='Archive bee_workdir  before removal')):
+    """Delete the bee_workdir directory."""
     # Check to see if the user is absolutely sure. Warning Message.
     absolutely_sure = ""
     while absolutely_sure != "y" or absolutely_sure != "n":
-        # Get the user's .beeflow directory
+        # Get the user's bee_workdir directory
         directory_to_delete = os.path.expanduser(wf_utils.get_bee_workdir())
         print(f"A reset will remove this directory: {directory_to_delete}")
 
@@ -400,7 +400,7 @@ Are you sure you want to reset?
 
 A reset will shutdown beeflow and its components.
 
-A reset will delete the .beeflow directory which results in:
+A reset will delete the bee_workdir directory which results in:
 Removing the archive of workflows executed.
 Removing the archive of workflow containers.
 Reset all databases associated with the beeflow app.
@@ -422,7 +422,7 @@ Respond with yes(y)/no(n):  """)
                 time.sleep(5)
 
             if os.path.exists(directory_to_delete):
-                # Save the .beeflow directory if the archive option was set
+                # Save the bee_workdir directory if the archive option was set
                 if archive:
                     shutil.copytree(directory_to_delete, directory_to_delete + ".backup")
                 shutil.rmtree(directory_to_delete)
