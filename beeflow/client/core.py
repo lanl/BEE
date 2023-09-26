@@ -22,6 +22,7 @@ import typer
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import cli_connection
 from beeflow.common import paths
+from beeflow.wf_manager.resources import wf_utils
 
 
 class ComponentManager:
@@ -390,7 +391,7 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     absolutely_sure = ""
     while absolutely_sure != "y" or absolutely_sure != "n":
         # Get the user's .beeflow directory
-        directory_to_delete = os.path.expanduser("~/.beeflow")
+        directory_to_delete = os.path.expanduser(wf_utils.get_bee_workdir())
         print(f"A reset will remove this directory: {directory_to_delete}")
 
         absolutely_sure = input(
