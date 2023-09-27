@@ -210,13 +210,26 @@ def version_str(version):
     return '.'.join([str(part) for part in version])
 
 
+def load_charliecloud():
+    """Load the charliecloud module if it exists."""
+    lmod = os.environ.get('MODULESHOME')
+    sys.path.insert(0, lmod + '/init')
+    from env_modules_python import module #noqa No need to import at top
+    module("load", "charliecloud")
+
+
 def check_dependencies():
     """Check for various dependencies in the environment."""
     print('Checking dependencies...')
     # Check for Charliecloud and it's version
     if not shutil.which('ch-run'):
-        warn('Charliecloud is not loaded. Please ensure that it is accessible on your path.')
-        sys.exit(1)
+        # Try loading the Charliecloud module then test again
+        load_charliecloud()
+        if not shutil.which('ch-run'):
+            warn('Charliecloud is not loaded. Please ensure that it is accessible'
+                 ' on your path.\nIf it\'s not installed on your system, please refer'
+                 ' to: \n https://hpc.github.io/charliecloud/install.html')
+            sys.exit(1)
     cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
                            check=True)
     version = cproc.stdout if cproc.stdout else cproc.stderr
