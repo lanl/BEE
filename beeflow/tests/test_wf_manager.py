@@ -69,9 +69,19 @@ def _resource(tag=""):
     return _url() + str(tag)
 
 
+class MockTask:
+    """Mock task class for mocking celery."""
+
+    @staticmethod
+    def delay(*pargs, **kwargs):
+        """Mock a delay call to the celery backend."""
+        return None
+
+
 # WFList Tests
 def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     """Test submitting a workflow."""
+    mocker.patch('beeflow.wf_manager.resources.wf_list.init_workflow', new=MockTask)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image',
                  return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
@@ -92,7 +102,8 @@ def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
             'workdir': '.',
             'workflow': jsonpickle.encode(WORKFLOW_GOLD),
             'tasks': jsonpickle.encode(TASKS_GOLD, warn=True),
-            'workflow_archive': tarball_contents
+            'workflow_archive': tarball_contents,
+            'no_start': False
         })
 
     # Remove task added during the test
@@ -101,6 +112,7 @@ def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
 
 def test_reexecute_workflow(client, mocker, teardown_workflow, temp_db):
     """Test reexecuting a workflow."""
+    mocker.patch('beeflow.wf_manager.resources.wf_list.init_workflow', new=MockTask)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image',
                  return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
@@ -147,11 +159,11 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
     wf_name = 'wf'
-    wf_status = 'Pending'
     bolt_port = 3030
-    gdb_pid = 12345
+    http_port = 3333
+    https_port = 3455
 
-    temp_db.workflows.add_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
+    temp_db.workflows.init_workflow(WF_ID, wf_name, 'dir', bolt_port, http_port, https_port)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
 
