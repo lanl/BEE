@@ -125,8 +125,6 @@ def get_workflow_interface(wf_id):
     db = connect_db(wfm_db, get_db_path())
     # Wait for the GDB
     if db.workflows.get_workflow_state(wf_id) == 'Initializing':
-        # TODO: Need to figure out what to do with requests while waiting for
-        # the gdb to come up
         raise RuntimeError('Workflow is still initializing')
     bolt_port = db.workflows.get_bolt_port(wf_id)
     return get_workflow_interface_by_bolt_port(bolt_port)
@@ -277,5 +275,3 @@ def start_workflow(wf_id):
     wf_id = wfi.workflow_id
     update_wf_status(wf_id, 'Running')
     return True
-# Ignoring W0511: TODOs need to be addressed later
-# pylama:ignore=W0511
