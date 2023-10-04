@@ -193,6 +193,7 @@ def init_components():
     def redis():
         """Start redis."""
         data_dir = 'data'
+        os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
         conf_name = 'redis.conf'
         container_path = paths.redis_container()
         # If it exists, we assume that it actually has a valid container
