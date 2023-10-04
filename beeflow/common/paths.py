@@ -51,28 +51,21 @@ def log_fname(component):
     return os.path.join(log_path(), f'{component}.log')
 
 
-def _redis_root():
+def redis_root():
     """Get the redis root directory (create it if it doesn't exist)."""
     path = os.path.join(_workdir(), 'redis')
     os.makedirs(path, exist_ok=True)
     return path
 
 
-def redis_config():
-    """Get the Redis config path."""
-    return os.path.join(_redis_root(), 'redis.conf')
+def redis_container():
+    """Get the path to the unpacked Redis container."""
+    return os.path.join(_workdir(), 'redis_container')
 
 
-def redis_data():
-    """Return the Redis data dir."""
-    path = os.path.join(_redis_root(), 'data')
-    os.makedirs(path, exist_ok=True)
-    return path
-
-
-def redis_socket():
-    """Get the Redis socket path."""
-    return os.path.join(_redis_root(), 'redis.sock')
+def redis_sock_fname():
+    """Return the file name for the Redis socket."""
+    return 'redis.sock'
 
 
 def _celery_root():

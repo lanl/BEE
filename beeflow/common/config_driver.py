@@ -234,6 +234,9 @@ VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, attrs={'d
 VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validation.file_,
                  info='container image with BEE dependencies',
                  attrs={'input': filepath_completion_input})
+VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
+                 info='redis container image',
+                 attrs={'input': filepath_completion_input})
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
                  attrs={'default': 3},
                  info='max number of times beeflow will restart a component on failure')

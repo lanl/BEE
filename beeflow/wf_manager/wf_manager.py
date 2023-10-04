@@ -1,5 +1,6 @@
 """Start up the workflow manager connecting all of the endpoints."""
 
+import os
 from flask import Flask
 from celery import Celery # noqa (pylama can't find celery imports)
 from beeflow.common.api import BeeApi
@@ -24,8 +25,9 @@ def create_app():
 
     # Initialize celery app
     celery_app = Celery(app.name)
+    redis_socket = os.path.join(paths.redis_root(), paths.redis_sock_fname())
     celery_app.config_from_object({
-        'broker_url': f'redis+socket://{paths.redis_socket()}',
+        'broker_url': f'redis+socket://{redis_socket}',
         'result_backend': f'db+sqlite://{paths.celery_db()}',
         'task_serializer': 'pickle',
         'accept_content': ['application/json', 'application/x-python-serialize'],

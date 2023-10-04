@@ -192,17 +192,35 @@ def init_components():
     @mgr.component('redis', ())
     def redis():
         """Start redis."""
+        data_dir = 'data'
+        conf_name = 'redis.conf'
+        container_path = paths.redis_container()
+        # If it exists, we assume that it actually has a valid container
+        if not os.path.exists(container_path):
+            subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
+                                   bc.get('DEFAULT', 'redis_image'), container_path])
         # Dump the config
-        with open(paths.redis_config(), 'w', encoding='utf-8') as fp:
+        with open(os.path.join(paths.redis_root(), conf_name), 'w', encoding='utf-8') as fp:
             # Don't listen on TCP
             print('port 0', file=fp)
-            print('dir', paths.redis_data(), file=fp)
+            print('dir', os.path.join('/mnt', data_dir), file=fp)
             print('maxmemory 2mb', file=fp)
-            print('unixsocket', paths.redis_socket(), file=fp)
+            print('unixsocket', os.path.join('/mnt', paths.redis_sock_fname()), file=fp)
             print('unixsocketperm 700', file=fp)
-        cmd = ['redis-server', paths.redis_config()]
+        cmd = [
+            'ch-run',
+            f'--bind={paths.redis_root()}:/mnt',
+            container_path,
+            'redis-server',
+            '/mnt/redis.conf',
+        ]
         log = open_log('redis')
-        return subprocess.Popen(cmd, stdout=log, stderr=log)
+        # Ran into a strange "Failed to configure LOCALE for invalid locale name."
+        # from Redis, so setting LANG=C. This could have consequences for UTF-8
+        # strings.
+        env = dict(os.environ)
+        env['LANG'] = 'C'
+        return subprocess.Popen(cmd, env=env, stdout=log, stderr=log)
 
     # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
     if need_slurmrestd():
