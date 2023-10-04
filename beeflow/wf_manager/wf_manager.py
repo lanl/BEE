@@ -31,7 +31,6 @@ def create_app():
         'result_backend': f'db+sqlite://{paths.celery_db()}',
         'task_serializer': 'pickle',
         'accept_content': ['application/json', 'application/x-python-serialize'],
-        # 'imports': ('beeflow.common.tasks',),
     })
     celery_app.set_default()
     app.extensions['celery'] = celery_app

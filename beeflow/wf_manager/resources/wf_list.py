@@ -67,7 +67,6 @@ def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
     gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port, reexecute=reexecute)
     dep_manager.wait_gdb(log)
 
-    # wfi = wf_utils.get_workflow_interface(wf_id)
     wfi = wf_utils.get_workflow_interface_by_bolt_port(bolt_port)
     if reexecute:
         wfi.reset_workflow(wf_id)
@@ -89,8 +88,6 @@ def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
         db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
 
     db.workflows.update_gdb_pid(wf_id, gdb_pid)
-    # TODO: The state is duplicated in a couple places here
-    # TODO: Is this the right status/state?
     wf_utils.update_wf_status(wf_id, 'Waiting')
     db.workflows.update_workflow_state(wf_id, 'Waiting')
     if no_start:
@@ -216,6 +213,3 @@ class WFList(Resource):
         resp = make_response(jsonify(archive_file=archive_file,
                              archive_filename=archive_filename), 200)
         return resp
-# Ignoring W0511: There a number of TODOs here that need to be addressed at
-#                 some point
-# pylama:ignore=W0511
