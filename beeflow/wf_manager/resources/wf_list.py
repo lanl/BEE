@@ -97,6 +97,7 @@ def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
         log.info('Not starting workflow, as requested')
     else:
         log.info('Starting workflow')
+        db.workflows.update_workflow_state(wf_id, 'Running')
         wf_utils.start_workflow(wf_id)
 
 

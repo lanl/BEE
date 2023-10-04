@@ -265,6 +265,7 @@ def schedule_submit_tasks(wf_id, tasks):
 
 def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
+    db = connect_db(wfm_db, get_db_path())
     wfi = get_workflow_interface(wf_id)
     state = wfi.get_workflow_state()
     if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
@@ -274,4 +275,5 @@ def start_workflow(wf_id):
     schedule_submit_tasks(wf_id, tasks)
     wf_id = wfi.workflow_id
     update_wf_status(wf_id, 'Running')
+    db.workflows.update_workflow_state(wf_id, 'Running')
     return True
