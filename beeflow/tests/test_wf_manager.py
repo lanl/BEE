@@ -138,15 +138,37 @@ def test_reexecute_workflow(client, mocker, teardown_workflow, temp_db):
         assert resp.json['msg'] == 'Workflow uploaded'
 
 
+class MockDBWorkflowHandle:
+    """Mock DB workflow handle."""
+
+    def update_workflow_state(self, *pargs, **kwargs):
+        """Mock update a workflow."""
+
+
+class MockDB:
+    """Mock DB for workflow manager."""
+
+    @property
+    def workflows(self):
+        """Return a workflow handle."""
+        return MockDBWorkflowHandle()
+
+
+def mock_connect_db(*pargs, **kwargs):
+    """Mock a DB connection."""
+    return MockDB()
+
+
 # WFActions Tests
 def test_start_workflow(client, mocker, temp_db):
     """Test starting a workflow."""
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.connect_db', new=mock_connect_db)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_scheduler', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', return_value=None)
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', new=lambda: temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert resp.status_code == 200
