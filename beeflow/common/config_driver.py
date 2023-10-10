@@ -231,8 +231,8 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux
                  info='backend workload scheduler to interact with ')
 VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, attrs={'default': True},
                  info='use the BEE archiving functinality')
-VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validation.file_,
-                 info='container image with BEE dependencies',
+VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
+                 info='neo4j container image',
                  attrs={'input': filepath_completion_input})
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  info='redis container image',

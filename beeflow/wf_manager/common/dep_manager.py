@@ -113,7 +113,7 @@ def create_image():
     # Can throw an exception that needs to be handled by the caller
     check_container_runtime()
 
-    dep_img = bc.get('DEFAULT', 'bee_dep_image')
+    dep_img = bc.get('DEFAULT', 'neo4j_image')
 
     # Check for BEE dependency container directory:
     container_dir_exists = check_container_dir()
