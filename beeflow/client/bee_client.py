@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 import textwrap
 import time
+import importlib.metadata
 import jsonpickle
 import requests
 import typer
@@ -531,6 +532,16 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
     logging.info(f'ReExecute Workflow: {resp.text}')
     return wf_id
+
+
+@app.callback(invoke_without_command=True)
+def version_callback(version: bool = False):
+    """Beeflow."""
+    # Print out the current version of the app, and then exit
+    # Note above docstring gets used in the help menu
+    if version:
+        version = importlib.metadata.version("hpc-beeflow")
+        print(version)
 
 
 def main():

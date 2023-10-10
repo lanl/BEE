@@ -15,7 +15,6 @@ import socket
 import sys
 import shutil
 import time
-import importlib.metadata
 
 import daemon
 import typer
@@ -244,7 +243,7 @@ def init_components():
     return mgr
 
 
-MIN_CHARLIECLOUD_VERSION = (0, 32)
+MIN_CHARLIECLOUD_VERSION = (0, 34)
 
 
 def version_str(version):
@@ -252,19 +251,39 @@ def version_str(version):
     return '.'.join([str(part) for part in version])
 
 
+def load_charliecloud():
+    """Load the charliecloud module if it exists."""
+    lmod = os.environ.get('MODULESHOME')
+    sys.path.insert(0, lmod + '/init')
+    from env_modules_python import module #noqa No need to import at top
+    module("load", "charliecloud")
+
+
 def check_dependencies():
     """Check for various dependencies in the environment."""
     print('Checking dependencies...')
     # Check for Charliecloud and it's version
     if not shutil.which('ch-run'):
-        warn('Charliecloud is not loaded. Please ensure that it is accessible on your path.')
-        sys.exit(1)
+        # Try loading the Charliecloud module then test again
+        load_charliecloud()
+        if not shutil.which('ch-run'):
+            warn('Charliecloud is not loaded. Please ensure that it is accessible'
+                 ' on your path.\nIf it\'s not installed on your system, please refer'
+                 ' to: \n https://hpc.github.io/charliecloud/install.html')
+            sys.exit(1)
     cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
                            check=True)
     version = cproc.stdout if cproc.stdout else cproc.stderr
     version = version.strip()
-    version = tuple(int(part) for part in version.split('.'))
-    print(f'Found Charliecloud {version_str(version)}')
+    if 'pre' in version:
+        # Pre-release charliecloud in the format <version>~pre+<git_hash>
+        print(f'Found Charliecloud {version}')
+        version = version.split('~')[0]
+        version = tuple(int(part) for part in version.split('.'))
+    # Release versions are in the format 0.<version>
+    else:
+        version = tuple(int(part) for part in version.split('.'))
+        print(f'Found Charliecloud {version_str(version)}')
     if version < MIN_CHARLIECLOUD_VERSION:
         warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
@@ -430,13 +449,3 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     """Attempt to stop and restart the beeflow daemon."""
     stop()
     start(foreground)
-
-
-@app.callback(invoke_without_command=True)
-def version_callback(version: bool = False):
-    """Beeflow."""
-    # Print out the current version of the app, and then exit
-    # Note above docstring gets used in the help menu
-    if version:
-        version = importlib.metadata.version("hpc-beeflow")
-        print(version)

@@ -10,7 +10,7 @@ Requirements:
 
 * **Python version 3.8 (or greater)**
 
-* `Charliecloud <https://hpc.github.io/charliecloud/>`_ **version 0.32 (or greater)**
+* `Charliecloud <https://hpc.github.io/charliecloud/>`_ **version 0.34 (or greater)**
     Charliecloud is installed on Los Alamos National Laboratory (LANL) clusters and can be invoked via ``module load charliecloud`` before running beeflow. If you are on a system that does not have the module, `Charliecloud <https://hpc.github.io/charliecloud/>`_ is easily installed in user space and requires no privileges to install. To insure Charliecloud is available in subsequent runs add ``module load charliecloud`` (or if you installed it ``export PATH=<path_to_ch-run>:$PATH``) to your .bashrc (or other appropriate shell initialization file). BEE runs dependencies from a Charliecloud container and uses it to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.
 
 
