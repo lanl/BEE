@@ -449,3 +449,26 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     """Attempt to stop and restart the beeflow daemon."""
     stop()
     start(foreground)
+
+
+def pull_to_tar(ref, tarball):
+    """Pull a container from a registry and convert to tarball."""
+    subprocess.check_call(['ch-image', 'pull', ref])
+    subprocess.check_call(['ch-convert', '-i', 'ch-image', '-o', 'tar', ref, tarball])
+
+
+@app.command()
+def pull_deps():
+    """Pull required BEE containers and store in bee workdir."""
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+    neo4j_path = os.path.join(bee_workdir, 'neo4j.tar.gz')
+    pull_to_tar('neo4j:3.5.22', neo4j_path)
+    redis_path = os.path.join(bee_workdir, 'redis.tar.gz')
+    pull_to_tar('redis', redis_path)
+    print()
+    print('The BEE dependency containers have been successfully downloaded. '
+          'Please make sure to set the following options in your config:')
+    print()
+    print('[DEFAULT]')
+    print('neo4j_image =', neo4j_path)
+    print('redis_image =', redis_path)
