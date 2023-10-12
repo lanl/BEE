@@ -19,16 +19,7 @@ Requirements:
 
     For LANL systems, please use the containers supplied by the BEE team: **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**, **/usr/projects/BEE/redis.tar.gz**.
 
-    For other users, these containers can be pulled from Docker Hub and converted to a Charliecloud tarball using the following commands:
-
-.. code-block::
-
-        ch-image pull neo4j:3.5.22
-        ch-convert -o tar neo4j:3.5.22 neo4j-3-5-22.tar.gz
-        ch-image pull redis
-        ch-convert -o tar redis redis.tar.gz
-..
-
+    For other users, these containers can be pulled from Docker Hub (after following `Installation:`_ below) using ``beeflow core pull-deps``, which will download and report the container paths to be set in the config later.
 
 Installation:
 =============

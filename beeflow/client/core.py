@@ -458,12 +458,12 @@ def pull_to_tar(ref, tarball):
 
 
 @app.command()
-def pull_deps():
-    """Pull required BEE containers and store in bee workdir."""
-    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    neo4j_path = os.path.join(bee_workdir, 'neo4j.tar.gz')
+def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
+                                         help='directory to store containers in')):
+    """Pull required BEE containers and store in outdir."""
+    neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
     pull_to_tar('neo4j:3.5.22', neo4j_path)
-    redis_path = os.path.join(bee_workdir, 'redis.tar.gz')
+    redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
     print()
     print('The BEE dependency containers have been successfully downloaded. '
