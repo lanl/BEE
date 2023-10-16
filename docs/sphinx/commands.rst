@@ -20,6 +20,8 @@ Options:
 
 ``beeflow core --version``: Display the version number of BEE.
 
+``beeflow core pull-deps``: Pull BEE dependency containers
+
 Submission and workflow commands
 ================================
 

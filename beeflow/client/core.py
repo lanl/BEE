@@ -200,13 +200,15 @@ def init_components():
             subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
                                    bc.get('DEFAULT', 'redis_image'), container_path])
         # Dump the config
-        with open(os.path.join(paths.redis_root(), conf_name), 'w', encoding='utf-8') as fp:
-            # Don't listen on TCP
-            print('port 0', file=fp)
-            print('dir', os.path.join('/mnt', data_dir), file=fp)
-            print('maxmemory 2mb', file=fp)
-            print('unixsocket', os.path.join('/mnt', paths.redis_sock_fname()), file=fp)
-            print('unixsocketperm 700', file=fp)
+        conf_path = os.path.join(paths.redis_root(), conf_name)
+        if not os.path.exists(conf_path):
+            with open(conf_path, 'w', encoding='utf-8') as fp:
+                # Don't listen on TCP
+                print('port 0', file=fp)
+                print('dir', os.path.join('/mnt', data_dir), file=fp)
+                print('maxmemory 2mb', file=fp)
+                print('unixsocket', os.path.join('/mnt', paths.redis_sock_fname()), file=fp)
+                print('unixsocketperm 700', file=fp)
         cmd = [
             'ch-run',
             f'--bind={paths.redis_root()}:/mnt',
@@ -251,21 +253,14 @@ def version_str(version):
     return '.'.join([str(part) for part in version])
 
 
-def load_charliecloud():
-    """Load the charliecloud module if it exists."""
-    lmod = os.environ.get('MODULESHOME')
-    sys.path.insert(0, lmod + '/init')
-    from env_modules_python import module #noqa No need to import at top
-    module("load", "charliecloud")
-
-
-def check_dependencies():
-    """Check for various dependencies in the environment."""
-    print('Checking dependencies...')
-    # Check for Charliecloud and it's version
+def load_check_charliecloud():
+    """Load the charliecloud module if it exists and check the version."""
     if not shutil.which('ch-run'):
+        lmod = os.environ.get('MODULESHOME')
+        sys.path.insert(0, lmod + '/init')
+        from env_modules_python import module #noqa No need to import at top
+        module("load", "charliecloud")
         # Try loading the Charliecloud module then test again
-        load_charliecloud()
         if not shutil.which('ch-run'):
             warn('Charliecloud is not loaded. Please ensure that it is accessible'
                  ' on your path.\nIf it\'s not installed on your system, please refer'
@@ -288,6 +283,13 @@ def check_dependencies():
         warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
         sys.exit(1)
+
+
+def check_dependencies():
+    """Check for various dependencies in the environment."""
+    print('Checking dependencies...')
+    # Check for Charliecloud and its version
+    load_check_charliecloud()
     # Check for the flux API
     if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
         try:
@@ -461,6 +463,7 @@ def pull_to_tar(ref, tarball):
 def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
                                          help='directory to store containers in')):
     """Pull required BEE containers and store in outdir."""
+    load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
     pull_to_tar('neo4j:3.5.22', neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
