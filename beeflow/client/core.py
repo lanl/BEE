@@ -398,6 +398,9 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             """
 Are you sure you want to reset?
 
+Please ensure all workflows are complete before running a reset
+Check the status of workflows by running 'beeflow list'
+
 A reset will shutdown beeflow and its components.
 
 A reset will delete the bee_workdir directory which results in:
@@ -410,7 +413,7 @@ Beeflow configuration files from bee_cfg will remain.
 
 Respond with yes(y)/no(n):  """)
         if absolutely_sure in ("n", "no"):
-            # Exit out is the user didn't really mean to do a reset
+            # Exit out if the user didn't really mean to do a reset
             sys.exit()
         if absolutely_sure in ("y", "yes"):
             # Stop all of the beeflow processes
