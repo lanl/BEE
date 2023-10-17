@@ -8,24 +8,18 @@ This section describes how to install BEE and requirements for installation.
 Requirements:
 =============
 
-    * **Python version 3.8 (or greater)**
+* **Python version 3.8 (or greater)**
 
-    * `Charliecloud <https://hpc.github.io/charliecloud/>`_ **version 0.34 (or greater)**
-        Charliecloud is installed on Los Alamos National Laboratory (LANL) clusters and can be invoked via ``module load charliecloud`` before running beeflow. If you are on a system that does not have the module, `Charliecloud <https://hpc.github.io/charliecloud/>`_ is easily installed in user space and requires no privileges to install. To insure Charliecloud is available in subsequent runs add ``module load charliecloud`` (or if you installed it ``export PATH=<path_to_ch-run>:$PATH``) to your .bashrc (or other appropriate shell initialization file). BEE runs dependencies from a Charliecloud container and uses it to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.
-
-
-    * **BEE dependency container**:
-        If you are on a LANL system, you may use the dependency container supplied by the BEE team: **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**
-
-        At this time the only dependency needed in a container is **neo4j version 3.5.x**. To build the container for X86, invoke Charliecloud on the cluster where BEE components will be running to pull the graph database **neo4j** and create a Charliecloud tarball.
+* `Charliecloud <https://hpc.github.io/charliecloud/>`_ **version 0.34 (or greater)**
+    Charliecloud is installed on Los Alamos National Laboratory (LANL) clusters and can be invoked via ``module load charliecloud`` before running beeflow. If you are on a system that does not have the module, `Charliecloud <https://hpc.github.io/charliecloud/>`_ is easily installed in user space and requires no privileges to install. To insure Charliecloud is available in subsequent runs add ``module load charliecloud`` (or if you installed it ``export PATH=<path_to_ch-run>:$PATH``) to your .bashrc (or other appropriate shell initialization file). BEE runs dependencies from a Charliecloud container and uses it to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.
 
 
-.. code-block::
+* **Containers**:
+    Two Charliecloud dependency containers are currently required for BEE: one for the Neo4j graph database and another for Redis. The paths to these containers will need to be set in the BEE configuration later, using the ``neo4j_image`` and the ``redis_image`` options respectively. BEE only supports Neo4j 3.5.x. We are currently using the latest version of Redis supplied on Docker Hub (as of 2023).
 
-        ch-image pull neo4j:3.5.22
-        ch-convert -o tar neo4j:3.5.22 neo4j-3-5-22.tar.gz
+    For LANL systems, please use the containers supplied by the BEE team: **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**, **/usr/projects/BEE/redis.tar.gz**.
 
-..
+    For other users, these containers can be pulled from Docker Hub (after following `Installation:`_ below) using ``beeflow core pull-deps``, which will download and report the container paths to be set in the config later.
 
 Installation:
 =============
@@ -59,11 +53,7 @@ You will need to setup the bee configuration file that will be located in:
 
     macOS:  ``~/Library/Application Support/beeflow/bee.conf``
 
-Before creating a bee.conf file you will need to know the path to your **BEE
-dependency container** and the type of workload scheduler (Slurm or LSF). (On
-LANL systems you may use the BEE provided container:
-**/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**). Depending on the system, you
-may also need to know an account name to use.
+Before creating a bee.conf file you will need to know the path to the two required Charliecloud containers, one for Neo4j (``neo4j_image``) and Redis (``redis_image``). See `Requirements:`_ above for pulling these containers. Depending on the system, you may also need to know system-specific information, such as account information. You can leave some options blank if these are unnecessary.
 
 Once you are ready type ``beeflow config new``.
 
