@@ -21,6 +21,7 @@ MUNGE_KEY=/tmp/munge/munge.key
 NODE_CONFIG=`slurmd -C | head -n 1`
 BEE_WORKDIR=$HOME/.beeflow
 NEO4J_CONTAINER=$HOME/img/neo4j.tar.gz
+REDIS_CONTAINER=$HOME/img/redis.tar.gz
 mkdir -p $BEE_WORKDIR
 export SLURM_CONF=~/slurm.conf
 # Flux variables

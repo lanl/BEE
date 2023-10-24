@@ -4,7 +4,6 @@
 
 import os
 import re
-import sys
 import time
 import shutil
 import signal
@@ -114,7 +113,7 @@ def create_image():
     # Can throw an exception that needs to be handled by the caller
     check_container_runtime()
 
-    dep_img = bc.get('DEFAULT', 'bee_dep_image')
+    dep_img = bc.get('DEFAULT', 'neo4j_image')
 
     # Check for BEE dependency container directory:
     container_dir_exists = check_container_dir()
@@ -127,8 +126,7 @@ def create_image():
     # Build new dependency container
     try:
         subprocess.run(["ch-convert", "-i", "tar", "-o", "dir",
-                        str(dep_img), str(container_dir)],
-                       stdout=sys.stdout, stderr=sys.stderr, check=True)
+                        str(dep_img), str(container_dir)], check=True)
     except subprocess.CalledProcessError as error:
         dep_log.error(f"ch-convert failed: {error}")
         shutil.rmtree(container_dir)
@@ -166,7 +164,7 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
                 "-b", logs_dir + ":/logs",
                 "-b", run_dir + ":/var/lib/neo4j/run", container_path,
                 "--", *command
-            ], stdout=sys.stdout, stderr=sys.stderr, check=True)
+            ], check=True)
         except subprocess.CalledProcessError:
             dep_log.error("neo4j-admin set-initial-password failed")
             return -1

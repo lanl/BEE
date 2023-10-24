@@ -156,7 +156,7 @@ def init_components():
     # Slurmrestd will be started only if we're running with Slurm and
     # slurm::use_commands is not True
 
-    @mgr.component('wf_manager', ('scheduler',))
+    @mgr.component('wf_manager', ('scheduler', 'celery'))
     def start_wfm():
         """Start the WFM."""
         fp = open_log('wf_manager')
@@ -182,6 +182,49 @@ def init_components():
         return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
                                     paths.sched_socket(), stdout=fp, stderr=fp)
 
+    @mgr.component('celery', ('redis',))
+    def celery():
+        """Start the celery task queue."""
+        log = open_log('celery')
+        return subprocess.Popen(['celery', '-A', 'beeflow.common.celery', 'worker'],
+                                stdout=log, stderr=log)
+
+    @mgr.component('redis', ())
+    def redis():
+        """Start redis."""
+        data_dir = 'data'
+        os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
+        conf_name = 'redis.conf'
+        container_path = paths.redis_container()
+        # If it exists, we assume that it actually has a valid container
+        if not os.path.exists(container_path):
+            subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
+                                   bc.get('DEFAULT', 'redis_image'), container_path])
+        # Dump the config
+        conf_path = os.path.join(paths.redis_root(), conf_name)
+        if not os.path.exists(conf_path):
+            with open(conf_path, 'w', encoding='utf-8') as fp:
+                # Don't listen on TCP
+                print('port 0', file=fp)
+                print('dir', os.path.join('/mnt', data_dir), file=fp)
+                print('maxmemory 2mb', file=fp)
+                print('unixsocket', os.path.join('/mnt', paths.redis_sock_fname()), file=fp)
+                print('unixsocketperm 700', file=fp)
+        cmd = [
+            'ch-run',
+            f'--bind={paths.redis_root()}:/mnt',
+            container_path,
+            'redis-server',
+            '/mnt/redis.conf',
+        ]
+        log = open_log('redis')
+        # Ran into a strange "Failed to configure LOCALE for invalid locale name."
+        # from Redis, so setting LANG=C. This could have consequences for UTF-8
+        # strings.
+        env = dict(os.environ)
+        env['LANG'] = 'C'
+        return subprocess.Popen(cmd, env=env, stdout=log, stderr=log)
+
     # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
     if need_slurmrestd():
         @mgr.component('slurmrestd')
@@ -203,7 +246,7 @@ def init_components():
     return mgr
 
 
-MIN_CHARLIECLOUD_VERSION = (0, 32)
+MIN_CHARLIECLOUD_VERSION = (0, 34)
 
 
 def version_str(version):
@@ -211,23 +254,43 @@ def version_str(version):
     return '.'.join([str(part) for part in version])
 
 
-def check_dependencies():
-    """Check for various dependencies in the environment."""
-    print('Checking dependencies...')
-    # Check for Charliecloud and it's version
+def load_check_charliecloud():
+    """Load the charliecloud module if it exists and check the version."""
     if not shutil.which('ch-run'):
-        warn('Charliecloud is not loaded. Please ensure that it is accessible on your path.')
-        sys.exit(1)
+        lmod = os.environ.get('MODULESHOME')
+        sys.path.insert(0, lmod + '/init')
+        from env_modules_python import module #noqa No need to import at top
+        module("load", "charliecloud")
+        # Try loading the Charliecloud module then test again
+        if not shutil.which('ch-run'):
+            warn('Charliecloud is not loaded. Please ensure that it is accessible'
+                 ' on your path.\nIf it\'s not installed on your system, please refer'
+                 ' to: \n https://hpc.github.io/charliecloud/install.html')
+            sys.exit(1)
     cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
                            check=True)
     version = cproc.stdout if cproc.stdout else cproc.stderr
     version = version.strip()
-    version = tuple(int(part) for part in version.split('.'))
-    print(f'Found Charliecloud {version_str(version)}')
+    if 'pre' in version:
+        # Pre-release charliecloud in the format <version>~pre+<git_hash>
+        print(f'Found Charliecloud {version}')
+        version = version.split('~')[0]
+        version = tuple(int(part) for part in version.split('.'))
+    # Release versions are in the format 0.<version>
+    else:
+        version = tuple(int(part) for part in version.split('.'))
+        print(f'Found Charliecloud {version_str(version)}')
     if version < MIN_CHARLIECLOUD_VERSION:
         warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
         sys.exit(1)
+
+
+def check_dependencies():
+    """Check for various dependencies in the environment."""
+    print('Checking dependencies...')
+    # Check for Charliecloud and its version
+    load_check_charliecloud()
     # Check for the flux API
     if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
         try:
@@ -443,3 +506,27 @@ def restart(foreground: bool = typer.Option(False, '--foreground', '-F',
     """Attempt to stop and restart the beeflow daemon."""
     stop()
     start(foreground)
+
+
+def pull_to_tar(ref, tarball):
+    """Pull a container from a registry and convert to tarball."""
+    subprocess.check_call(['ch-image', 'pull', ref])
+    subprocess.check_call(['ch-convert', '-i', 'ch-image', '-o', 'tar', ref, tarball])
+
+
+@app.command()
+def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
+                                         help='directory to store containers in')):
+    """Pull required BEE containers and store in outdir."""
+    load_check_charliecloud()
+    neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
+    pull_to_tar('neo4j:3.5.22', neo4j_path)
+    redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
+    pull_to_tar('redis', redis_path)
+    print()
+    print('The BEE dependency containers have been successfully downloaded. '
+          'Please make sure to set the following options in your config:')
+    print()
+    print('[DEFAULT]')
+    print('neo4j_image =', neo4j_path)
+    print('redis_image =', redis_path)

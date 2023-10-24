@@ -10,7 +10,8 @@ cat >> ~/.config/beeflow/bee.conf <<EOF
 bee_workdir = $BEE_WORKDIR
 workload_scheduler = $BATCH_SCHEDULER
 use_archive = False
-bee_dep_image = $NEO4J_CONTAINER
+neo4j_image = $NEO4J_CONTAINER
+redis_image = $REDIS_CONTAINER
 max_restarts = 2
 
 [task_manager]
