@@ -17,6 +17,7 @@ max_restarts = 2
 [task_manager]
 container_runtime = Charliecloud
 runner_opts =
+background_interval = 2
 
 [charliecloud]
 image_mntdir = /tmp
