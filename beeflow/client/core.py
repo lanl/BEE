@@ -492,18 +492,18 @@ Respond with yes(y)/no(n):  """)
                 if archive:
                     if os.path.exists(directory_to_delete + "/logs"):
                         shutil.copytree(directory_to_delete + "/logs",
-                            directory_to_delete + ".backup/logs")
+                                        directory_to_delete + ".backup/logs")
                     if os.path.exists(directory_to_delete + "/container_archive"):
                         shutil.copytree(directory_to_delete + "/container_archive",
-                            directory_to_delete + ".backup/container_archive")
+                                        directory_to_delete + ".backup/container_archive")
                     if os.path.exists(directory_to_delete + "/archives"):
                         shutil.copytree(directory_to_delete + "/archives",
-                            directory_to_delete + ".backup/archives")
+                                        directory_to_delete + ".backup/archives")
                     if os.path.exists(directory_to_delete + "/workflows"):
                         shutil.copytree(directory_to_delete + "/workflows",
-                            directory_to_delete + ".backup/workflows")
+                                        directory_to_delete + ".backup/workflows")
                     print("Archive flag enabled,")
-                    print("Existing logs, container_archive, archives, and workflows backed up in:")
+                    print("Existing logs, containers, and workflows backed up in:")
                     print(f"{directory_to_delete}.backup")
                 shutil.rmtree(directory_to_delete)
                 print(f"{directory_to_delete} has been removed.")
