@@ -126,7 +126,7 @@ class WFUpdate(Resource):
                 archive_workflow(db, wf_id)
                 pid = db.workflows.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
-            #TODO handle the failed case
+            #handle the failed case
             if wf_state == 'FAILED':
                 log.info("Workflow Failed")
                 log.info("Shutting down GDB")
