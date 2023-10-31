@@ -22,6 +22,7 @@ import typer
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import cli_connection
 from beeflow.common import paths
+from beeflow.wf_manager.resources import wf_utils
 
 
 class ComponentManager:
@@ -443,6 +444,74 @@ def stop():
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
     print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
+
+
+@app.command()
+def reset(archive: bool = typer.Option(False, '--archive', '-a',
+                                       help='Archive bee_workdir  before removal')):
+    """Delete the bee_workdir directory."""
+    # Check to see if the user is absolutely sure. Warning Message.
+    absolutely_sure = ""
+    while absolutely_sure != "y" or absolutely_sure != "n":
+        # Get the user's bee_workdir directory
+        directory_to_delete = os.path.expanduser(wf_utils.get_bee_workdir())
+        print(f"A reset will remove this directory: {directory_to_delete}")
+
+        absolutely_sure = input(
+            """
+Are you sure you want to reset?
+
+Please ensure all workflows are complete before running a reset
+Check the status of workflows by running 'beeflow list'
+
+A reset will shutdown beeflow and its components.
+
+A reset will delete the bee_workdir directory which results in:
+Removing the archive of workflows executed.
+Removing the archive of workflow containers.
+Reset all databases associated with the beeflow app.
+Removing all beeflow logs.
+
+Beeflow configuration files from bee_cfg will remain.
+
+Respond with yes(y)/no(n):  """)
+        if absolutely_sure in ("n", "no"):
+            # Exit out if the user didn't really mean to do a reset
+            sys.exit()
+        if absolutely_sure in ("y", "yes"):
+            # Stop all of the beeflow processes
+            resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
+            if resp is not None:
+                print("Beeflow has been shutdown.")
+                print("Waiting for components to cleanly stop.")
+                # This wait is essential. It takes a minute to shut down.
+                time.sleep(5)
+
+            if os.path.exists(directory_to_delete):
+                # Save the bee_workdir directory if the archive option was set
+                if archive:
+                    if os.path.exists(directory_to_delete + "/logs"):
+                        shutil.copytree(directory_to_delete + "/logs",
+                                        directory_to_delete + ".backup/logs")
+                    if os.path.exists(directory_to_delete + "/container_archive"):
+                        shutil.copytree(directory_to_delete + "/container_archive",
+                                        directory_to_delete + ".backup/container_archive")
+                    if os.path.exists(directory_to_delete + "/archives"):
+                        shutil.copytree(directory_to_delete + "/archives",
+                                        directory_to_delete + ".backup/archives")
+                    if os.path.exists(directory_to_delete + "/workflows"):
+                        shutil.copytree(directory_to_delete + "/workflows",
+                                        directory_to_delete + ".backup/workflows")
+                    print("Archive flag enabled,")
+                    print("Existing logs, containers, and workflows backed up in:")
+                    print(f"{directory_to_delete}.backup")
+                shutil.rmtree(directory_to_delete)
+                print(f"{directory_to_delete} has been removed.")
+                sys.exit()
+            else:
+                print(f"{directory_to_delete} does not exist. Exiting.")
+                sys.exit()
+        print("Please respond with either the letter (y) or (n).")
 
 
 @app.command()

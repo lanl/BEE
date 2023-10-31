@@ -368,7 +368,7 @@ def unpackage(package_path, dest_path):
 
 @app.command('list')
 def list_workflows():
-    """List all worklfows."""
+    """List all workflows."""
     try:
         conn = _wfm_conn()
         resp = conn.get(_url(), timeout=60)
