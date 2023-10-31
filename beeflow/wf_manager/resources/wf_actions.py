@@ -4,6 +4,7 @@ from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.wf_manager.common import dep_manager
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
@@ -70,8 +71,10 @@ class WFActions(Resource):
             wfi.finalize_workflow()
         wf_utils.update_wf_status(wf_id, 'Cancelled')
         db.workflows.update_workflow_state(wf_id, 'Cancelled')
-        db.workflows.delete_workflow(wf_id)
-        log.info("Workflow cancelled")
+        log.info("Workflow Cancelled")
+        log.info("Shutting down GDB")
+        pid = db.workflows.get_gdb_pid(wf_id)
+        dep_manager.kill_gdb(pid)
         resp = make_response(jsonify(status='Cancelled'), 202)
         return resp
 
