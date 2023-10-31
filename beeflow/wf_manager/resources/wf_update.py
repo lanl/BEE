@@ -106,7 +106,7 @@ class WFUpdate(Resource):
             wf_utils.schedule_submit_tasks(wf_id, tasks)
             return make_response(jsonify(status='Task {task_id} restarted'))
 
-        #job_state refers to the state of the job in the resource manager (e.g. Slurm)
+        # job_state refers to the state of the job in the resource manager (e.g. Slurm)
         if job_state in ('COMPLETED', 'FAILED'):
             for output in task.outputs:
                 if output.glob is not None:
@@ -118,7 +118,6 @@ class WFUpdate(Resource):
             if tasks and wf_state != 'PAUSED':
                 wf_utils.schedule_submit_tasks(wf_id, tasks)
 
-            #if wf_state == 'COMPLETED':
             if wfi.workflow_completed():
                 log.info("Workflow Completed")
                 log.info("Shutting down GDB")
@@ -126,7 +125,7 @@ class WFUpdate(Resource):
                 archive_workflow(db, wf_id)
                 pid = db.workflows.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
-            #handle the failed case
+            # handle the failed case
             if wf_state == 'FAILED':
                 log.info("Workflow Failed")
                 log.info("Shutting down GDB")
