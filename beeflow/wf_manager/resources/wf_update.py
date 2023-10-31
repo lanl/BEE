@@ -99,7 +99,6 @@ class WFUpdate(Resource):
             db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             if new_task is None:
                 log.info('No more restarts')
-                state = wfi.get_task_state(task)
                 return make_response(jsonify(status=f'Task {task_id} set to {job_state}'))
             # Submit the restart task
             tasks = [new_task]
