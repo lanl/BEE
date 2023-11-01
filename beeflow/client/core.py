@@ -186,8 +186,17 @@ def init_components():
     def celery():
         """Start the celery task queue."""
         log = open_log('celery')
-        return subprocess.Popen(['celery', '-A', 'beeflow.common.celery', 'worker'],
+        # Setting --pool=solo to avoid preforking multiple processes
+        return subprocess.Popen(['celery', '-A', 'beeflow.common.celery', 'worker', '--pool=solo'],
                                 stdout=log, stderr=log)
+
+    # Run this before daemonizing in order to avoid slow background start
+    container_path = paths.redis_container()
+    # If it exists, we assume that it actually has a valid container
+    if not os.path.exists(container_path):
+        print('Unpacking Redis image...')
+        subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
+                               bc.get('DEFAULT', 'redis_image'), container_path])
 
     @mgr.component('redis', ())
     def redis():
@@ -196,10 +205,6 @@ def init_components():
         os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
         conf_name = 'redis.conf'
         container_path = paths.redis_container()
-        # If it exists, we assume that it actually has a valid container
-        if not os.path.exists(container_path):
-            subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
-                                   bc.get('DEFAULT', 'redis_image'), container_path])
         # Dump the config
         conf_path = os.path.join(paths.redis_root(), conf_name)
         if not os.path.exists(conf_path):
@@ -372,9 +377,9 @@ app = typer.Typer(no_args_is_help=True)
 def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           help='run in the foreground')):
     """Start all BEE components."""
+    check_dependencies()
     mgr = init_components()
     beeflow_log = paths.log_fname('beeflow')
-    check_dependencies()
     sock_path = paths.beeflow_socket()
     if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not need_slurmrestd():
         warn('Not using slurmrestd. Command-line interface will be used.')
