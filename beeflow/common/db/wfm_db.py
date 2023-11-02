@@ -53,7 +53,7 @@ class Workflows:
         """Initialize Task, db_file, and Workflow object."""
         self.Task = namedtuple("Task", "id task_id workflow_id name resource state slurm_id") #noqa
         self.db_file = db_file
-        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir bolt_port gdb_pid") #noqa
+        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir bolt_port http_port, https_port, gdb_pid") #noqa
 
     def get_workflow(self, workflow_id):
         """Return a workflow object."""
@@ -69,12 +69,12 @@ class Workflows:
         workflows = [self.Workflow(*workflow) for workflow in result]
         return workflows
 
-    def add_workflow(self, workflow_id, name, state, run_dir, bolt_port, gdb_pid):
+    def add_workflow(self, workflow_id, name, state, run_dir, bolt_port, http_port, https_port, gdb_pid):
         """Insert a new workflow into the database."""
-        stmt = ("INSERT INTO workflows (workflow_id, name, state, run_dir, bolt_port, gdb_pid) "
-                "VALUES(?, ?, ?, ?, ?, ?);"
+        stmt = ("INSERT INTO workflows (workflow_id, name, state, run_dir, bolt_port, http_port, https_port, gdb_pid) "
+                "VALUES(?, ?, ?, ?, ?, ?, ?, ?);"
                 )
-        bdb.run(self.db_file, stmt, [workflow_id, name, state, run_dir, bolt_port, gdb_pid])
+        bdb.run(self.db_file, stmt, [workflow_id, name, state, run_dir, bolt_port, http_port, https_port, gdb_pid])
 
     def delete_workflow(self, workflow_id):
         """Delete a workflow from the database."""
@@ -106,8 +106,12 @@ class Workflows:
 
     def update_task_state(self, task_id, workflow_id, state):
         """Update the state of a task."""
-        stmt = "UPDATE tasks SET state=? WHERE task_id=? AND workflow_id=? "
+        stmt = "UPDATE tasks SET state=? WHERE task_id=? AND workflow_id=?"
         bdb.run(self.db_file, stmt, [state, task_id, workflow_id])
+
+    def update_gdb_pid(self, gdb_pid, workflow_id):
+        stmt = "UPDATE workflows SET gdb_pid=? WHERE workflow_id=?"
+        bdb.run(self.db_file, stmt, [gdb_pid, workflow_id])
 
     def get_tasks(self, workflow_id):
         """Get all tasks associated with a particular workflow."""
@@ -128,6 +132,20 @@ class Workflows:
         result = bdb.getone(self.db_file, stmt, [workflow_id])[0]
         bolt_port = result
         return bolt_port
+
+    def get_http_port(self, workflow_id):
+        """Return the bolt port associated with a workflow."""
+        stmt = "SELECT http_port FROM workflows WHERE workflow_id=?"
+        result = bdb.getone(self.db_file, stmt, [workflow_id])[0]
+        http_port = result
+        return http_port
+
+    def get_https_port(self, workflow_id):
+        """Return the bolt port associated with a workflow."""
+        stmt = "SELECT https_port FROM workflows WHERE workflow_id=?"
+        result = bdb.getone(self.db_file, stmt, [workflow_id])[0]
+        https_port = result
+        return https_port
 
     def get_gdb_pid(self, workflow_id):
         """Return the bolt port associated with a workflow."""
@@ -162,6 +180,8 @@ class WorkflowDB:
                                 state TEST NOT NULL,
                                 run_dir STR,
                                 bolt_port INTEGER,
+                                http_port INTEGER, 
+                                https_port INTEGER,
                                 gdb_pid INTEGER);"""
 
         tasks_stmt = """CREATE TABLE IF NOT EXISTS tasks (

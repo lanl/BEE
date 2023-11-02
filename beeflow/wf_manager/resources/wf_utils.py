@@ -1,16 +1,18 @@
 """Utility functions for wf_manager resources."""
 
 import os
+import requests
 import shutil
 import socket
-import requests
+import time
 import jsonpickle
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb_interface import GraphDatabaseInterface
-from beeflow.common.gdb.neo4j_driver import Neo4jDriver
+from beeflow.common.gdb  import neo4j_driver
 from beeflow.common.wf_interface import WorkflowInterface
+from beeflow.wf_manager.common import dep_manager
 from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.db import wfm_db
@@ -123,16 +125,42 @@ def create_wf_namefile(wf_name, wf_id):
 def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
     db = connect_db(wfm_db, get_db_path())
+    log.error('Getting workflow interface')
     bolt_port = db.workflows.get_bolt_port(wf_id)
     try:
-        driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
+        driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                              db_hostname=bc.get("graphdb", "hostname"),
                              password=bc.get("graphdb", "dbpass"))
         iface = GraphDatabaseInterface(driver)
         wfi = WorkflowInterface(iface)
-    except KeyError:
-        log.error('The default way to load WFI didnt work')
-        # wfi = WorkflowInterface()
+    except neo4j_driver.Neo4jNotRunning:
+        # There are several possibilities here
+        # First check if the GDB is up
+        gdb_pid = db.workflows.get_gdb_pid(wf_id)
+        try:
+            log.error('Checking if the GDB is there')
+            # Not actually killing the GDB just checking if the PID is up
+            # Returns an exception if the GDB is running
+            os.kill(gdb_pid, 0)
+            # The GDB process is running so we'll kill it and restart it
+        except ProcessLookupError:
+            # The GDB process isn't running. Restart it
+            log.error('The GDB is currently down restarting it')
+            wf_dir = get_workflow_dir(wf_id)
+            http_port = db.workflows.get_http_port(wf_id)
+            https_port = db.workflows.get_https_port(wf_id)
+            gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
+            time.sleep(10)
+            db.workflows.update_gdb_pid(gdb_pid, wf_id)
+            driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
+                                 db_hostname=bc.get("graphdb", "hostname"),
+                                 password=bc.get("graphdb", "dbpass"))
+            iface = GraphDatabaseInterface(driver)
+            wfi = WorkflowInterface(iface)
+        except PermissionError:
+            # Something has gone wrong. The user has no perms for their gdb.
+            # Just note a fatal error and exit
+            log.error('Perms error for GDB. Please report this to BEE developers.')
     return wfi
 
 

@@ -110,7 +110,7 @@ class WFList(Resource):
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
         gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
-        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
+        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, http_port, https_port, gdb_pid)
         dep_manager.wait_gdb(log)
 
         wfi = wf_utils.get_workflow_interface(wf_id)
@@ -162,7 +162,7 @@ class WFList(Resource):
         https_port = wf_utils.get_open_port()
         gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port,
                                         https_port, reexecute=True)
-        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
+        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, http_port, https_port, gdb_pid)
         dep_manager.wait_gdb(log)
         wfi = wf_utils.get_workflow_interface(wf_id)
         wfi.reset_workflow(wf_id)
