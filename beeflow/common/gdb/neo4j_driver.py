@@ -24,7 +24,7 @@ DEFAULT_USER = "neo4j"
 DEFAULT_PASSWORD = "password"
 
 
-class Neo4JNotRunning(Exception):
+class Neo4jNotRunning(Exception):
     """Exception thrown when connection attempted while Neo4j is not running."""
 
 
@@ -54,8 +54,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
         except ServiceUnavailable as sue:
-            log.error("Neo4j database is unavailable")
-            raise Neo4JNotRunning("Neo4j database is unavailable") from sue
+            raise Neo4jNotRunning("Neo4j database is unavailable") from sue
 
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow stored in Neo4j.

@@ -49,7 +49,7 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
     subprocess.run(['tar', '-xf', archive_path, '--strip-components=1',
                     '-C', wf_dir], check=False)
     archive_dir = os.path.join(wf_dir, 'gdb')
-    return archive_dir
+    return archive_dir, cwl_dir
 
 
 @shared_task(ignore_result=True)
@@ -166,7 +166,7 @@ class WFList(Resource):
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
         reqparser.add_argument('wf_filename', type=str, required=True,
-                               location='form')
+                               locajion='form')
         reqparser.add_argument('workdir', type=str, required=True,
                                location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
