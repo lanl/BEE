@@ -201,13 +201,12 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             if not yaml_path.exists():
                 error_exit(f'YAML file {yaml} does not exist')
 
+            # Packaging in temp dir, after copying alternate cwl_main or yaml file
             cwl_indir = is_parent(wf_path, main_cwl_path)
             yaml_indir = is_parent(wf_path, yaml_path)
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
-            # If all files are in the wf_path use that for packaging
             if cwl_indir and yaml_indir:
                 package_path = package(wf_path, tempdir_path)
-            # If using alternate cwl and/or yaml copy and package from the temp dir
             else:
                 tempdir_wf_path = pathlib.Path(tempdir_path / wf_path.name)
                 shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
