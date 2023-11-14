@@ -190,11 +190,10 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
 
     tarball_path = ""
     if os.path.exists(wf_path):
-        # Check to see if the wf_path is a tarball or a directory.
-        # Run package() if directory
+        # Check to see if the wf_path is a tarball or a directory. Package if directory
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
-            main_cwl_path = pathlib.Pathmain_cwl).resolve()
+            main_cwl_path = pathlib.Path(main_cwl).resolve()
             yaml_path = pathlib.Path(yaml).resolve()
 
             if not main_cwl_path.exists():
@@ -202,46 +201,38 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             if not yaml_path.exists():
                 error_exit(f'YAML file {yaml} does not exist')
 
-            # Parse workflow after making the temp dir
-            #parser = CwlParser()
-            #workflow_id = generate_workflow_id()
-            #workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
-                                                    job=str(yaml_path))
-            #tasks = [jsonpickle.encode(task) for task in tasks]
-
-            cwl_in_dir = is_parent(wf_path, main_cwl_path)
-            yaml_in_dir = is_parent(wf_path, yaml_path)
+            cwl_indir = is_parent(wf_path, main_cwl_path)
+            yaml_indir = is_parent(wf_path, yaml_path)
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
-            # Check if the CWL and YAML file are already in the workflow directory
-            if cwl_in_dir and yaml_in_dir:
+            # If all files are in the wf_path use that for packaging
+            if cwl_indir and yaml_indir:
                 package_path = package(wf_path, tempdir_path)
+            # If using alternate cwl and/or yaml copy and package from the temp dir
             else:
-                # Create a temp wf directory
                 tempdir_wf_path = pathlib.Path(tempdir_path / wf_path.name)
                 shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
-                if not cwl_in_dir:
+                if not cwl_indir:
                     shutil.copy2(main_cwl, tempdir_wf_path)
-                if not yaml_in_dir:
+                if not yaml_indir:
                     shutil.copy2(yaml, tempdir_wf_path)
                 package_path = package(tempdir_wf_path, tempdir_path)
-            #wf_tarball = open(package_path, 'rb')
-            #shutil.rmtree(tempdir_path)
-
         else:
             package_path = wf_path
         # Untar and parse workflow
-        tempdir_path = pathlib.Path(tempfile.mkdtemp())
-        tempdir_wf_path = unpackage(package_path, tempdir_path)
-        main_cwl_path = pathlib.Path(tempdir_wf_path / main_cwl).resolve()
-        yaml_path = pathlib.Path(tempdir_wf_path / yaml).resolve()
-
+        untar_path = pathlib.Path(tempfile.mkdtemp())
+        untar_wf_path = unpackage(package_path, untar_path)
+        main_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
+        yaml_path = untar_wf_path / pathlib.Path(yaml).name
         parser = CwlParser()
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
                                                 job=str(yaml_path))
+        tasks = [jsonpickle.encode(task) for task in tasks]
 
-        shutil.rmtree(tempdir_path)
         wf_tarball = open(package_path, 'rb')
+        shutil.rmtree(untar_path)
+        if os.path.isdir(wf_path):
+            shutil.rmtree(tempdir_path)
     else:
         error_exit(f'Workflow tarball {wf_path} cannot be found')
 
@@ -354,7 +345,7 @@ def unpackage(package_path, dest_path):
     if not package_str.endswith('.tgz'):
         # No cleanup, maybe we should rm dest_path?
         error_exit("Invalid package name, please use the beeflow package command")
-    wf_dir = package_str[:-4]
+    wf_dir = pathlib.Path(package_path).stem
 
     return_code = subprocess.run(['tar', '-C', dest_path, '-xf', package_path],
                                  check=True).returncode
@@ -363,9 +354,7 @@ def unpackage(package_path, dest_path):
         error_exit("Unpackage failed")
     else:
         print(f"Package {package_str} unpackaged successfully")
-
-
-    return dest_path/wf_dir  # noqa: Not an arithmetic operation
+    return pathlib.Path(dest_path / wf_dir)
 
 
 @app.command('list')
