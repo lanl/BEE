@@ -17,7 +17,7 @@ class MockTask:
 
 
 class MockWFI:
-    """Mock worfklow interface object."""
+    """Mock workflow interface object."""
 
     def __init__(self):
         """Set the fake workflow id."""
