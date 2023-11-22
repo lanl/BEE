@@ -250,7 +250,7 @@ VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charlie
                  info='container runtime to use for configuration')
 VALIDATOR.option('task_manager', 'runner_opts', attrs={'default': ''},
                  info='special runner options to pass to the runner opts')
-VALIDATOR.option('task_manager', 'background_interval', attrs={'default': 10},
+VALIDATOR.option('task_manager', 'background_interval', attrs={'default': 5},
                  validator=int,
                  info='interval at which the task manager processes queues and updates states')
 
