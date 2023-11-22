@@ -74,11 +74,8 @@ class WFActions(Resource):
         log.info("Workflow Cancelled")
         log.info("Shutting down GDB")
         pid = db.workflows.get_gdb_pid(wf_id)
-        log.info("Made it past getting the gdb pid")
         dep_manager.kill_gdb(pid)
-        log.info("Made it past the kill_gdb")
         resp = make_response(jsonify(status='Cancelled'), 202)
-        log.info("Made it past the make_response")
         return resp
 
     def patch(self, wf_id):

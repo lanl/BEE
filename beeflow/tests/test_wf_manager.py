@@ -176,7 +176,6 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
     mocker.patch('beeflow.wf_manager.resources.wf_actions.dep_manager.kill_gdb', return_value=None)
 
-
     request = {'wf_id': WF_ID}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
     assert resp.json['status'] == 'Cancelled'
