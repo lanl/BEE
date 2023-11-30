@@ -150,6 +150,8 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     wf_status = 'Pending'
     bolt_port = 3030
     gdb_pid = 12345
+    http_port = 3333
+    https_port = 3455
     print(temp_db.workflows)
     assert False
 
