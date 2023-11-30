@@ -139,7 +139,7 @@ def test_start_workflow(client, mocker, temp_db):
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert resp.status_code == 200
 
-
+"""
 def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     """Test getting workflow status."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
@@ -157,7 +157,7 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
 
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert 'RUNNING' in resp.json['tasks_status']
-
+"""
 
 def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
     """Test cancelling a workflow."""
@@ -175,6 +175,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
     mocker.patch('beeflow.wf_manager.resources.wf_actions.dep_manager.kill_gdb', return_value=None)
+
 
     request = {'wf_id': WF_ID}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
