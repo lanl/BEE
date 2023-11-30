@@ -139,9 +139,9 @@ def test_start_workflow(client, mocker, temp_db):
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert resp.status_code == 200
 
-"""
+
 def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
-    #Test getting workflow status.
+    """Test getting workflow status."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
@@ -150,6 +150,8 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     wf_status = 'Pending'
     bolt_port = 3030
     gdb_pid = 12345
+    print(temp_db.workflows)
+    assert False
 
     temp_db.workflows.add_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
@@ -157,7 +159,7 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
 
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert 'RUNNING' in resp.json['tasks_status']
-"""
+
 
 def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
     """Test cancelling a workflow."""
@@ -170,6 +172,8 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
     wf_status = 'Pending'
     bolt_port = 3030
     gdb_pid = 12345
+    print(temp_db.workflows)
+    assert False
 
     temp_db.workflows.add_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
