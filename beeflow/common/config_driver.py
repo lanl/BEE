@@ -231,8 +231,11 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux
                  info='backend workload scheduler to interact with ')
 VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, attrs={'default': True},
                  info='use the BEE archiving functinality')
-VALIDATOR.option('DEFAULT', 'bee_dep_image', validator=validation.file_,
-                 info='container image with BEE dependencies',
+VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
+                 info='neo4j container image',
+                 attrs={'input': filepath_completion_input})
+VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
+                 info='redis container image',
                  attrs={'input': filepath_completion_input})
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
                  attrs={'default': 3},
@@ -247,6 +250,9 @@ VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charlie
                  info='container runtime to use for configuration')
 VALIDATOR.option('task_manager', 'runner_opts', attrs={'default': ''},
                  info='special runner options to pass to the runner opts')
+VALIDATOR.option('task_manager', 'background_interval', attrs={'default': 5},
+                 validator=int,
+                 info='interval at which the task manager processes queues and updates states')
 
 # Note: The special attrs keyword can include anything. One use case is for
 # storing a special 'init' function that can be used to initialize the

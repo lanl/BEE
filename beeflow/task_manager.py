@@ -232,7 +232,8 @@ def process_queues():
 
 if "pytest" not in sys.modules:
     scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
-    scheduler.add_job(func=process_queues, trigger="interval", seconds=30)
+    scheduler.add_job(func=process_queues, trigger="interval",
+                      seconds=bc.get('task_manager', 'background_interval'))
     scheduler.start()
 
     # This kills the scheduler when the process terminates

@@ -20,6 +20,14 @@ Options:
 
 ``beeflow core --version``: Display the version number of BEE.
 
+``beeflow core reset``: Stop the beeflow daemon and cleanup the bee_workdir directory to start from a fresh install. 
+
+Options:
+   ``--archive``, ``-a``, Backup logs, workflows, and containers in bee_workdir directory before removal. [optional]
+
+``beeflow core pull-deps``: Pull BEE dependency containers
+
+
 Submission and workflow commands
 ================================
 
