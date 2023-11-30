@@ -141,7 +141,7 @@ def test_start_workflow(client, mocker, temp_db):
 
 """
 def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
-    """Test getting workflow status."""
+    #Test getting workflow status.
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
