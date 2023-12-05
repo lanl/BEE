@@ -99,7 +99,7 @@ class WFUpdate(Resource):
             db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             if new_task is None:
                 log.info('No more restarts')
-                state = wfi.get_task_state(task)
+                wf_state = wfi.get_task_state(task)
                 return make_response(jsonify(status=f'Task {task_id} set to {job_state}'))
             # Submit the restart task
             tasks = [new_task]
@@ -113,8 +113,8 @@ class WFUpdate(Resource):
                 else:
                     wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
-            state = wfi.get_workflow_state()
-            if tasks and state != 'PAUSED':
+            wf_state = wfi.get_workflow_state()
+            if tasks and wf_state != 'PAUSED':
                 wf_utils.schedule_submit_tasks(wf_id, tasks)
 
             if wfi.workflow_completed():
@@ -123,6 +123,14 @@ class WFUpdate(Resource):
                 archive_workflow(db, wf_id)
                 pid = db.workflows.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
+            if wf_state == 'FAILED':
+                log.info("Workflow failed")
+                log.info("Shutting down GDB")
+                wf_id = wfi.workflow_id
+                archive_workflow(db, wf_id)
+                pid = db.workflows.get_gdb_pid(wf_id)
+                dep_manager.kill_gdb(pid)
+
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)
         return resp
