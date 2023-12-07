@@ -177,9 +177,10 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
            wf_path: pathlib.Path = typer.Argument(..., help='path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(...,
            help='filename of main CWL (if using CWL tarball), ' +
-                'path of main CWL (if using CWL directory)'),
+           'path of main CWL (if using CWL directory)'),
            yaml: str = typer.Argument(...,
-           help='yaml filename (if using CWL tarball), path of yaml file (if using CWL directory)'),
+           help='filename of yaml file (if using CWL tarball), ' +
+           'path of yaml file (if using CWL directory)'),
            workdir: pathlib.Path = typer.Argument(...,
            help='working directory for workflow containing input + output files',),
            no_start: bool = typer.Option(False, '--no-start', '-n',
