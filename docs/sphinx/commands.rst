@@ -42,8 +42,8 @@ into the copied WF_PATH directory before packaging and submission.
 Arguments:
   - WF_NAME, The workflow name  [required]
   - WF_PATH, Path to the workflow CWL tarball or directory  [required]
-  - MAIN_CWL, main CWL filename (using CWL tarball), path of main CWL file (using CWL directory) [required]
-  - YAML, yaml filename (using CWL tarball), path of yaml file (using CWL directory) [required]
+  - MAIN_CWL, main CWL filename (if using CWL tarball), path of main CWL file (if using CWL directory) [required]
+  - YAML, yaml filename (if using CWL tarball), path of yaml file (if using CWL directory) [required]
   - WORKDIR, working directory for workflow containing input + output files [required]
   - ``--no-start``, don't start the workflow immediately
 

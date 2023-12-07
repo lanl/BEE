@@ -176,9 +176,10 @@ app.add_typer(config_driver.app, name='config')
 def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pylint:disable=R0915
            wf_path: pathlib.Path = typer.Argument(..., help='path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(...,
-           help='main CWL filename (using CWL tarball), path of main CWL (using CWL directory)'),
+           help='filename of main CWL (if using CWL tarball), ' +
+                'path of main CWL (if using CWL directory)'),
            yaml: str = typer.Argument(...,
-           help='yaml filename (using CWL tarball), path of yaml file (using CWL directory)'),
+           help='yaml filename (if using CWL tarball), path of yaml file (if using CWL directory)'),
            workdir: pathlib.Path = typer.Argument(...,
            help='working directory for workflow containing input + output files',),
            no_start: bool = typer.Option(False, '--no-start', '-n',
