@@ -89,7 +89,7 @@ class Workflow:
     def running(self):
         """Check if the workflow is running or about to run."""
         print(bee_client.query(self.wf_id))
-        return bee_client.query(self.wf_id)[0] in ('Running', 'Pending')
+        return bee_client.query(self.wf_id)[0] in ('Initializing', 'Waiting', 'Running', 'Pending')
 
     def status(self):
         """Get the status of the workflow."""

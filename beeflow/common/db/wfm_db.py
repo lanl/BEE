@@ -53,7 +53,7 @@ class Workflows:
         """Initialize Task, db_file, and Workflow object."""
         self.Task = namedtuple("Task", "id task_id workflow_id name resource state slurm_id") #noqa
         self.db_file = db_file
-        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir bolt_port gdb_pid") #noqa
+        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir bolt_port http_port https_port gdb_pid") #noqa
 
     def get_workflow(self, workflow_id):
         """Return a workflow object."""
@@ -69,12 +69,13 @@ class Workflows:
         workflows = [self.Workflow(*workflow) for workflow in result]
         return workflows
 
-    def add_workflow(self, workflow_id, name, state, run_dir, bolt_port, gdb_pid):
+    def init_workflow(self, workflow_id, name, run_dir, bolt_port, http_port, https_port):
         """Insert a new workflow into the database."""
-        stmt = ("INSERT INTO workflows (workflow_id, name, state, run_dir, bolt_port, gdb_pid) "
-                "VALUES(?, ?, ?, ?, ?, ?);"
-                )
-        bdb.run(self.db_file, stmt, [workflow_id, name, state, run_dir, bolt_port, gdb_pid])
+        stmt = """INSERT INTO workflows (workflow_id, name, state, run_dir,
+                                         bolt_port, http_port, https_port, gdb_pid)
+                  VALUES(?, ?, ?, ?, ?, ?, ?, ?);"""
+        bdb.run(self.db_file, stmt, [workflow_id, name, 'Initializing', run_dir,
+                                     bolt_port, http_port, https_port, -1])
 
     def delete_workflow(self, workflow_id):
         """Delete a workflow from the database."""
@@ -136,6 +137,11 @@ class Workflows:
         gdb_pid = result
         return gdb_pid
 
+    def update_gdb_pid(self, workflow_id, gdb_pid):
+        """Update the gdb PID associated with a workflow."""
+        stmt = "UPDATE workflows SET gdb_pid=? WHERE workflow_id=?"
+        bdb.run(self.db_file, stmt, [gdb_pid, workflow_id])
+
     def get_run_dir(self, workflow_id):
         """Return the bolt port associated with a workflow."""
         stmt = "SELECT run_dir FROM workflows WHERE workflow_id=?"
@@ -162,6 +168,8 @@ class WorkflowDB:
                                 state TEST NOT NULL,
                                 run_dir STR,
                                 bolt_port INTEGER,
+                                http_port INTEGER,
+                                https_port INTEGER,
                                 gdb_pid INTEGER);"""
 
         tasks_stmt = """CREATE TABLE IF NOT EXISTS tasks (

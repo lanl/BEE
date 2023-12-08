@@ -10,6 +10,7 @@ import jsonpickle
 from flask import make_response, jsonify
 from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
+from celery import shared_task  # noqa (pylama can't find celery imports)
 
 from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler
@@ -51,6 +52,52 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
     return archive_dir
 
 
+@shared_task(ignore_result=True)
+def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
+                  https_port, no_start, workflow=None, tasks=None, reexecute=False):
+    """Initialize the workflow in a separate process."""
+    print('Initializing GDB and workflow...')
+    try:
+        dep_manager.create_image()
+    except dep_manager.NoContainerRuntime:
+        crt_message = "Charliecloud not installed in current environment."
+        log.error(crt_message)
+        return
+
+    gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port, reexecute=reexecute)
+    dep_manager.wait_gdb(log)
+
+    wfi = wf_utils.get_workflow_interface_by_bolt_port(bolt_port)
+    if reexecute:
+        wfi.reset_workflow(wf_id)
+    else:
+        wfi.initialize_workflow(workflow)
+
+    # initialize_wf_profiler(wf_name)
+
+    log.info('Setting workflow metadata')
+    wf_utils.create_wf_metadata(wf_id, wf_name)
+    db = connect_db(wfm_db, db_path)
+    if reexecute:
+        _, tasks = wfi.get_workflow()
+    for task in tasks:
+        wfi.add_task(task)
+        metadata = wfi.get_task_metadata(task)
+        metadata['workdir'] = wf_workdir
+        wfi.set_task_metadata(task, metadata)
+        db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
+
+    db.workflows.update_gdb_pid(wf_id, gdb_pid)
+    wf_utils.update_wf_status(wf_id, 'Waiting')
+    db.workflows.update_workflow_state(wf_id, 'Waiting')
+    if no_start:
+        log.info('Not starting workflow, as requested')
+    else:
+        log.info('Starting workflow')
+        db.workflows.update_workflow_state(wf_id, 'Running')
+        wf_utils.start_workflow(wf_id)
+
+
 db_path = wf_utils.get_db_path()
 
 
@@ -71,7 +118,7 @@ class WFList(Resource):
         return resp
 
     def post(self):
-        """Receive a workflow, parse it, and start up a neo4j instance for it."""
+        """Upload a workflow, initialize database, and start if required."""
         db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
@@ -84,6 +131,7 @@ class WFList(Resource):
                                location='form')
         reqparser.add_argument('tasks', type=str, required=True,
                                location='form')
+        reqparser.add_argument('no_start', type=str, required=True, location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
                                location='files')
         data = reqparser.parse_args()
@@ -91,43 +139,25 @@ class WFList(Resource):
         wf_filename = data['wf_filename']
         wf_name = data['wf_name']
         wf_workdir = data['workdir']
+        # Note we have to check for the 'true' string value
+        no_start = data['no_start'].lower() == 'true'
         workflow = jsonpickle.decode(data['workflow'])
         # May have to decode the list and task objects separately
         tasks = [jsonpickle.decode(task) if isinstance(task, str) else task
                  for task in jsonpickle.decode(data['tasks'])]
-
-        try:
-            dep_manager.create_image()
-        except dep_manager.NoContainerRuntime:
-            crt_message = "Charliecloud not installed in current environment."
-            log.error(crt_message)
-            resp = make_response(jsonify(msg=crt_message, status='error'), 418)
-            return resp
 
         wf_id = workflow.id
         wf_dir = extract_wf(wf_id, wf_filename, wf_tarball)
         bolt_port = wf_utils.get_open_port()
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
-        gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
-        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
-        dep_manager.wait_gdb(log)
 
-        wfi = wf_utils.get_workflow_interface(wf_id)
-        wfi.initialize_workflow(workflow)
+        db.workflows.init_workflow(wf_id, wf_name, wf_dir, bolt_port, http_port, https_port)
+        init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
+                            https_port, no_start, workflow=workflow, tasks=tasks)
 
-        # initialize_wf_profiler(wf_name)
-
-        wf_utils.create_wf_metadata(wf_id, wf_name)
-        for task in tasks:
-            wfi.add_task(task)
-            metadata = wfi.get_task_metadata(task)
-            metadata['workdir'] = wf_workdir
-            wfi.set_task_metadata(task, metadata)
-            db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
-        resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
+        return make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
-        return resp
 
     def put(self):
         """Reexecute a workflow."""
@@ -160,19 +190,11 @@ class WFList(Resource):
         bolt_port = wf_utils.get_open_port()
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
-        gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port,
-                                        https_port, reexecute=True)
-        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, gdb_pid)
-        dep_manager.wait_gdb(log)
-        wfi = wf_utils.get_workflow_interface(wf_id)
-        wfi.reset_workflow(wf_id)
-        wf_utils.create_wf_metadata(wf_id, wf_name)
 
-        _, tasks = wfi.get_workflow()
-        for task in tasks:
-            metadata = wfi.get_task_metadata(task)
-            metadata['workdir'] = wf_workdir
-            wfi.set_task_metadata(task, metadata)
+        db.workflows.init_workflow(wf_id, wf_name, wf_dir, bolt_port, http_port, https_port)
+        init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
+                            https_port, no_start=False, reexecute=True)
+
         # Return the wf_id and created
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)

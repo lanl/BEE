@@ -20,6 +20,14 @@ Options:
 
 ``beeflow core --version``: Display the version number of BEE.
 
+``beeflow core reset``: Stop the beeflow daemon and cleanup the bee_workdir directory to start from a fresh install. 
+
+Options:
+   ``--archive``, ``-a``, Backup logs, workflows, and containers in bee_workdir directory before removal. [optional]
+
+``beeflow core pull-deps``: Pull BEE dependency containers
+
+
 Submission and workflow commands
 ================================
 
@@ -34,8 +42,8 @@ into the copied WF_PATH directory before packaging and submission.
 Arguments:
   - WF_NAME, The workflow name  [required]
   - WF_PATH, Path to the workflow CWL tarball or directory  [required]
-  - MAIN_CWL, filename of main CWL file  [required]
-  - YAML, filename of YAML file  [required]
+  - MAIN_CWL, filename of main CWL (if using CWL tarball), path of main CWL (if using CWL directory) [required]
+  - YAML, filename of yaml file (if using CWL tarball), path of yaml file (if using CWL directory) [required]
   - WORKDIR, working directory for workflow containing input + output files [required]
   - ``--no-start``, don't start the workflow immediately
 
