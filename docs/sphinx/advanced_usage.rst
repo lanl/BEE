@@ -59,9 +59,9 @@ The procedure would be to submit some workflows like the following:
 
     mkdir results1
     mkdir results2
-    beeclient submit cgt1 ./cat-grep-tar.tgz workflow.cwl input.yml results1
-    beeclient submit cgt2 ./cat-grep-tar.tgz workflow.cwl input.yml results2
-    beeclient listall
+    beeflow submit cgt1 ./cat-grep-tar.tgz workflow.cwl input.yml results1
+    beeflow submit cgt2 ./cat-grep-tar.tgz workflow.cwl input.yml results2
+    beeflow list
 
 .. code-block::
 
@@ -69,5 +69,5 @@ The procedure would be to submit some workflows like the following:
     cgt1  b33fd3  Pending
     cgt2  9a378c  Pending
 
-You could then start each workflow with the ``beeclient start <WFID>`` command and query for the status of their tasks separately using ``beeclient query <WFID>``.
+You could then start each workflow with the ``beeflow start <WFID>`` command and query for the status of their tasks separately using ``beeflow query <WFID>``.
 

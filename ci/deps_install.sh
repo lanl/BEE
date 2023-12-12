@@ -10,9 +10,9 @@ sudo apt-get install -y slurmctld slurmd slurmrestd munge python3 python3-venv \
     libyaml-dev # needed for PyYAML
 
 # Install most recent Charliecloud
-curl -O -L https://github.com/hpc/charliecloud/releases/download/v0.32/charliecloud-0.32.tar.gz
-tar -xvf charliecloud-0.32.tar.gz
-(cd charliecloud-0.32
+curl -O -L https://github.com/hpc/charliecloud/releases/download/v0.34/charliecloud-0.34.tar.gz
+tar -xvf charliecloud-0.34.tar.gz
+(cd charliecloud-0.34
  ./configure --prefix=/usr
  make
  sudo make install)

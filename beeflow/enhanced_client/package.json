@@ -23,7 +23,7 @@
     "@electron-forge/maker-rpm": "^6.0.5",
     "@electron-forge/maker-squirrel": "^6.0.5",
     "@electron-forge/maker-zip": "^6.0.5",
-    "electron": "^16.0.5",
+    "electron": "^22.3.25",
     "electron-rebuild": "^3.2.9"
   },
   "dependencies": {

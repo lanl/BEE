@@ -71,8 +71,9 @@ sequence of commands:
 .. code-block::
 
     cd $WORKDIR_PATH
-    beeclient package $BEE_PATH/examples/cat-grep-tar . # Tars up the workflow
-    beeclient submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
+    cp $BEE_PATH/examples/cat-grep-tar/lorem.txt .
+    beeflow package $BEE_PATH/examples/cat-grep-tar . # Tars up the workflow
+    beeflow submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
 
 This first command packages the workflow into a tarball, which makes it easy to
 pass everything over to the Workflow Manager and finally submits the workflow,
@@ -88,15 +89,15 @@ the directory for the example by:
 .. code-block::
 
     cd $WORKDIR_PATH
-    beeclient submit $NAME $BEE_PATH/examples/cat-grep-tar
-    $BEE_PATH/examples/workflow.cwl $BEE_PATH/examples/input.yml
-    $WORKDIR_PATH # Now submit the workflow
+    cp -r $BEE_PATH/examples/cat-grep-tar . #Copy example directory
+    cp cat-grep-tar/lorem.txt .
+    beeflow submit $NAME cat-grep-tar cat-grep-tar/workflow.cwl cat-grep-tar/input.yml $WORKDIR_PATH # Submits the workflow
 
 This will automatically do the packaging and create an archive in the
 background to be submitted.
 
 Now the workflow should start up. While the workflow is running you can check
-the status by running a ``beeclient query $ID``. On completion, each step
+the status by running a ``beeflow query $ID``. On completion, each step
 should be in a ``COMPLETED`` state. If you forgot to copy the lorem.txt file
 to $WORKDIR_PATH the cat step will be in the ``FAILED`` state and the error will
 be in the cat.err file.
@@ -123,7 +124,7 @@ of the ``occur*.txt`` files in a tarball. However, this is a useful sample of
 the features a real-world workflow might need to use.  For instance, the first
 step might be producing some sort of output from a calculation, instead of just
 copying the input to the output. The last step may also do some more processing
-to produce some sort of final file. If necessary, there can many more
+to produce some sort of final file. If necessary, there can be many more
 processing steps than this simple example shows.
 
 CLAMR workflow examples (containerized application)
@@ -147,7 +148,8 @@ CLAMR build workflow
 --------------------
 
 The workflow is in **<path to BEE>/examples/clamr-ffmpeg-build**. You may want to explore the
-cwl files to understand the workflow specification for the example. Below is
+cwl files to understand the workflow specification for the example. The specification 
+for the build of clamr in this example is for X86 hardware. Below is
 the clamr step with the DockerRequirement in hints that specifies to build a
 container from a dockerfile using Charliecloud (the container runtime specified
 in the configuration file).
@@ -158,20 +160,20 @@ CWL for clamr step in examples/clamr-ffmpeg-build/clamr_wf.cwl
 
 
 
-Next we'll submit the CLAMR workflow from a directory of your choosing ($HOME)
+Next we'll submit the CLAMR workflow from a directory of your choosing,
+referred to as $WORKDIR_PATH,
 on the same front-end where you started the components. If you have not started
 the beeflow components, refer to :ref:`installation`.
 
 In this example, instead of packaging up the workflow cwl files directory,
 we've just listed the full path. This should auto-detect the directory and
-package it for you. Additionally, if the main_cwl and yaml files are not in
-the workflow directory, they will be copied into a temporary copy of the
-workflow directory before packaging. Compare this with the previous example.
-Other than the commands needed, this shouldn't affect the workflow in any way.
+package it for you.
 
 .. code-block::
 
-    beeclient submit clamr-example <path to BEE>/examples/clamr-ffmpeg-build <path to main_cwl>/clamr_wf.cwl <path to yaml>/clamr_job.yml .
+    cd $WORKDIR_PATH
+    cp -r $BEE_PATH/examples/clamr-ffmpeg-build .
+    beeflow submit clamr-example clamr-ffmpeg-build clamr-ffmpeg-build/clamr_wf.cwl clamr-ffmpeg-build/clamr_job.yml $WORKDIR_PATH
 
 Output:
 
@@ -190,7 +192,7 @@ pre-processing building phase and will only be performed once. In this example
 both steps use the container that is built in the pre-processing stage. Once
 the build has been completed the Charliecloud image will be in the container
 archive location specified in the builder section of the bee configuration
-file. You can list contents of the configuration file using ``beecfg list``.
+file. You can list contents of the configuration file using ``bee config show``.
 
 The status of the workflow will progress to completion and can be queried as
 shown:
@@ -200,7 +202,7 @@ Check the status:
 
 .. code-block::
 
-    beeclient query fce80d
+    beeflow query fce80d
 
 Output:
 
@@ -214,7 +216,7 @@ As the clamr task goes from READY to RUNNING, let's check the status again:
 
 .. code-block::
 
-    beeclient query fce80d
+    beeflow query fce80d
 
 Output:
 
@@ -228,7 +230,7 @@ When the workflow has completed:
 
 .. code-block::
 
-    beeclient query fce80d
+    beeflow query fce80d
 
 Output:
 
@@ -240,7 +242,7 @@ Output:
 
 The archived workflow with associated job outputs will be in the
 **bee_workdir**. See the default section of your configuration file (to list
-configuration file contents run ``beecfg list``). This workflow also produces
+configuration file contents run ``bee config show``). This workflow also produces
 output from CLAMR and ffmpeg in the directory where you submitted the workflow :
 
 .. code-block::

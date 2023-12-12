@@ -1,34 +1,31 @@
-Commands
-************
+Command Line Interface
+**********************
 
-The main commands that you should be familiar with to use BEE are "**beeflow**" and "**beeclient**". Each of these have sub-commands to do various things with the client or daemon.
-The command "**beecfg**" is used to set up and validate your BEE configuration.
+BEE is controlled by one "**beeflow**" command with sub-commands to do various operations with the client or daemon.
 
-
-beeflow
+BEE Daemon
 ============
 
-**beeflow** is the command you will use to interact with the daemon process. The following are the options:
+To interact with the daemon process you'll need to use the ``beeflow core`` sub-command. The following are the options:
 
-``beeflow start``: Daemonize (if not in debug) and start all BEE components.
-
+``beeflow core start``: Daemonize (if not in debug) and start all BEE components.
 
 Options:
   -F, --foreground  run in the foreground  [default: False]
 
 
-``beeflow status``: Check the status of beeflow and the components.
+``beeflow core status``: Check the status of beeflow and the components.
 
-``beeflow stop``: Stop the current running beeflow daemon.
+``beeflow core stop``: Stop the current running beeflow daemon.
 
-``beeflow --version``: Display the version number of BEE.
+``beeflow core --version``: Display the version number of BEE.
 
-beeclient
-===========
+Submission and workflow commands
+================================
 
-**beeclient** is the command you will use to submit workflows and interact with your workflows. The following are the options:
+This section shows what commands you can use to submit and interact with your workflows. The following are the major options:
 
-``beeclient submit``: Submit a new workflow. By default this will also start
+``beeflow submit``: Submit a new workflow. By default this will also start
 jobs immediately (unless passed the ``--no-start`` option). If either the MAIN_CWL or YAML
 files are not contained immediately inside of WF_PATH, then the WF_PATH directory will
 be copied into a temporary directory and the missing files will then be copied
@@ -42,62 +39,62 @@ Arguments:
   - WORKDIR, working directory for workflow containing input + output files [required]
   - ``--no-start``, don't start the workflow immediately
 
-``beeclient start``: Start a workflow with a workflow ID. Only needed if
-``beeclient submit`` was passed the ``--no-start`` option.
+``beeflow start``: Start a workflow with a workflow ID. Only needed if
+``beeflow submit`` was passed the ``--no-start`` option.
 
 Arguments:
   - WF_ID  [required]
 
-``beeclient package``: Package a workflow into a tarball.
+``beeflow package``: Package a workflow into a tarball.
 
 Arguments:
   - WF_PATH,       Path to the workflow package directory  [required]
   - PACKAGE_DEST,  Path for where the packaged workflow should be saved [required]
 
-``beeclient listall``: List all workflows
+``beeflow list``: List all workflows
 
-``beeclient query``: Get the status of a workflow.
+``beeflow query``: Get the status of a workflow.
 
 Arguments:
   - WF_ID  [required]
 
-``beeclient pause``: Pause a workflow (Running tasks will finish)
+``beeflow pause``: Pause a workflow (Running tasks will finish)
 
 Arguments:
   WF_ID  [required]
 
-``beeclient resume``: Resume a paused workflow.
+``beeflow resume``: Resume a paused workflow.
 
 Arguments:
   WF_ID  [required]
 
-``beeclient cancel``: Cancel a workflow.
+``beeflow cancel``: Cancel a workflow.
 
 Arguments:
   WF_ID  [required]
 
-``beeclient copy``: Copy an archived workflow.
+``beeflow copy``: Copy an archived workflow.
 
 Arguments:
   WF_ID  [required]
 
-``beeclient reexecute``: Reexecute an archived workflow.
+``beeflow reexecute``: Reexecute an archived workflow.
 
 Arguments:
   WF_ID  [required]
 
-beecfg
-===========
+Generating and Managing Configuration Files
+===========================================
 
-**beecfg** is the command you will use to configure BEE for your workflows.
+You can use the ``beeflow config`` sub-command to configure BEE for your workflows. The following are further options for this sub-command:
 
-``beecfg validate``: Validate an existing configuration file.
+``beeflow config validate``: Validate an existing configuration file.
 
-``beecfg info``: Display some info about bee.conf's various options.
+``beeflow config info``: Display some info about bee.conf's various options.
 
-``beecfg new``: Create a new config file.
+``beeflow config new``: Create a new config file.
 
-``beecfg show``: Show the contents of current bee.conf.
+``beeflow config show``: Show the contents of current bee.conf.
 
 
 

@@ -3,12 +3,12 @@ BEEflow API
 
 BEEflow
 ===========================
-.. automodule:: beeflow.cli
+.. automodule:: beeflow.client.bee_client
    :members:
 
-BEEclient
+BEEflow Core
 ===========================
-.. automodule:: beeflow.client.bee_client
+.. automodule:: beeflow.client.core
    :members:
 
 Builder (Container)

@@ -44,13 +44,6 @@ Each step in a workflow may include a reference to `DockerRequirement` in the CW
 A few examples to use for testing:
 ## CharliecloudBuildDriver Examples
 
-### Initialize BeeConfig for all the examples:
-
-```
-from beeflow.common.config_driver import BeeConfig as bc
-bc.init()
-```
-
 ### dockerPull
 ```
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver

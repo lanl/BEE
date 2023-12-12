@@ -14,17 +14,18 @@ import subprocess
 import tempfile
 import textwrap
 import time
+import importlib.metadata
 import jsonpickle
 import requests
 import typer
 
-from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common import config_driver
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
-
+from beeflow.client import core
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -167,6 +168,8 @@ def match_short_id(wf_id):
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
+app.add_typer(core.app, name='core')
+app.add_typer(config_driver.app, name='config')
 
 
 @app.command()
@@ -351,7 +354,7 @@ def unpackage(package_path, dest_path):
 
     if not package_str.endswith('.tgz'):
         # No cleanup, maybe we should rm dest_path?
-        error_exit("Invalid package name, please use the beeclient package command")
+        error_exit("Invalid package name, please use the beeflow package command")
     wf_dir = package_str[:-4]
 
     return_code = subprocess.run(['tar', '-C', dest_path, '-xf', package_path],
@@ -366,8 +369,8 @@ def unpackage(package_path, dest_path):
     return dest_path/wf_dir  # noqa: Not an arithmetic operation
 
 
-@app.command()
-def listall():
+@app.command('list')
+def list_workflows():
     """List all worklfows."""
     try:
         conn = _wfm_conn()
@@ -534,11 +537,20 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     return wf_id
 
 
+@app.callback(invoke_without_command=True)
+def version_callback(version: bool = False):
+    """Beeflow."""
+    # Print out the current version of the app, and then exit
+    # Note above docstring gets used in the help menu
+    if version:
+        version = importlib.metadata.version("hpc-beeflow")
+        print(version)
+
+
 def main():
     """Execute bee_client."""
     global _INTERACTIVE
     _INTERACTIVE = True
-    bc.init()
     app()
 
 

@@ -193,10 +193,6 @@ class TestRunner:
 TEST_RUNNER = TestRunner()
 
 
-# Initialize BEE's config system
-bc.init()
-
-
 #
 # Helper methods for running the test cases
 #

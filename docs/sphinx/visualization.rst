@@ -32,7 +32,7 @@ Also take a look at the README in that directory if you need more information.
 Running
 =======
 
-From the frontend where BEE has been launched, you need to run ``beeclient
+From the frontend where BEE has been launched, you need to run ``beeflow
 metadata ${WF_ID}``, where ``WF_ID`` is the ID of a submitted workflow. You can
 safely ignore all the information displayed here, except for the ``bolt_port``
 option which will be needed later.
