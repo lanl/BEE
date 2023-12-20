@@ -86,11 +86,12 @@ class Workflow:
         except bee_client.ClientError as error:
             raise CIError(*error.args) from error
 
+    @property
     def running(self):
         """Check if the workflow is running or about to run."""
-        print(bee_client.query(self.wf_id))
         return bee_client.query(self.wf_id)[0] in ('Initializing', 'Waiting', 'Running', 'Pending')
 
+    @property
     def status(self):
         """Get the status of the workflow."""
         return bee_client.query(self.wf_id)[0]
@@ -133,7 +134,7 @@ class TestRunner:
         # Now run until all workflows are complete or until self.timeout is hit
         t = 0
         while t < self.timeout:
-            if all(not wfl.running() for wfl in workflows):
+            if all(not wfl.running for wfl in workflows):
                 # All workflows have completed
                 break
             time.sleep(2)
@@ -176,7 +177,11 @@ class TestRunner:
                 print('PASSED')
                 print('------')
                 # Only remove the outer_workdir if it passed
-                shutil.rmtree(outer_workdir)
+                try:
+                    shutil.rmtree(outer_workdir)
+                except OSError as err:
+                    print(f'WARNING: Failed to remove {outer_workdir}')
+                    print(err)
 
         print('######## WORKFLOW RESULTS ########')
         fails = sum(1 if result is not None else 0 for name, result in results.items())
@@ -228,6 +233,11 @@ def ci_assert(predicate, msg):
 def check_path_exists(path):
     """Check that the specified path exists."""
     ci_assert(os.path.exists(path), f'expected file "{path}" does not exist')
+
+
+def check_completed(workflow):
+    """Ensure the workflow has a completed status."""
+    ci_assert(workflow.status == 'Archived', f'Bad workflow status {workflow.status}')
 
 
 #
@@ -407,6 +417,7 @@ def copy_container(outer_workdir):
                         main_cwl=main_cwl, job_file=job_file, workdir=workdir,
                         containers=[container])
     yield [workflow]
+    check_completed(workflow)
     # Ensure the output file was created
     path = os.path.join(workdir, main_input)
     check_path_exists(path)
@@ -443,6 +454,7 @@ def use_container(outer_workdir):
                         main_cwl=main_cwl, job_file=job_file,
                         workdir=container_workdir, containers=[container])
     yield [workflow]
+    check_completed(workflow)
     path = os.path.join(container_workdir, main_input)
     check_path_exists(path)
     # This container should not have been copied into the container archive
@@ -481,6 +493,7 @@ def docker_file(outer_workdir):
                         main_cwl=main_cwl, job_file=job_file, workdir=workdir,
                         containers=[])
     yield [workflow]
+    check_completed(workflow)
     path = os.path.join(workdir, main_input)
     check_path_exists(path)
     # The container should have been copied into the archive
@@ -516,6 +529,7 @@ def docker_pull(outer_workdir):
                         main_cwl=main_cwl, job_file=job_file, workdir=workdir,
                         containers=[])
     yield [workflow]
+    check_completed(workflow)
     path = os.path.join(workdir, main_input)
     check_path_exists(path)
     # Check that the image tarball is in the archive
@@ -551,6 +565,8 @@ def multiple_workflows(outer_workdir):
         })
         workflows.append(workflow)
     yield workflows
+    for workflow in workflows:
+        check_completed(workflow)
     for wfl_info in workflow_data:
         workdir = wfl_info['workdir']
         workflow_path = wfl_info['workflow_path']
@@ -569,9 +585,24 @@ def checkpoint_restart(outer_workdir):
                         main_cwl='clamr_wf.cwl', job_file='clamr_job.yml',
                         workdir=workdir, containers=[])
     yield [workflow]
+    check_completed(workflow)
     # Check for the movie file
     path = Path(workdir, 'CLAMR_movie.mp4')
     check_path_exists(path)
+
+
+@TEST_RUNNER.add(ignore=True)
+def checkpoint_restart_failure(outer_workdir):
+    """Test a checkpoint restart workflow that continues past 'num_retries'."""
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
+    workflow = Workflow('checkpoint-too-long',
+                        'beeflow/data/cwl/bee_workflows/checkpoint-too-long',
+                        main_cwl='workflow.cwl', job_file='input.yml',
+                        workdir=workdir, containers=[])
+    yield [workflow]
+    ci_assert(workflow.status == 'Failed',
+              f'Workflow did not fail as expected (final status: {workflow.status})')
 
 
 def test_input_callback(arg):
