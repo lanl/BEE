@@ -128,9 +128,9 @@ Additional documentation:
 * https://github.com/sdispater/poetry
 
 Running Tests
--------------
+==================
 
-BEE includes unit and integration tests that can be run locally.
+BEE includes unit and integration tests that can be run on a local system.
 
 To run the unit tests, make sure to install beeflow with ``poetry install -E cloud_extras``; the ``-E cloud_extras`` option forces Poetry to install extra dependencies required for some of the cloud API tests. After loading a shell with ``poetry shell``, you can run the unit tests with ``pytest beeflow/tests``.
 
