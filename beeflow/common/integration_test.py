@@ -200,7 +200,7 @@ def checkpoint_restart(outer_workdir):
     workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
     os.makedirs(workdir)
     workflow = utils.Workflow('checkpoint-restart',
-                              'beeflow/data/cwl/bee_workflows/clamr-wf-checkpoint',
+                              'ci/test_workflows/clamr-wf-checkpoint',
                               main_cwl='clamr_wf.cwl', job_file='clamr_job.yml',
                               workdir=workdir, containers=[])
     yield [workflow]
@@ -216,7 +216,7 @@ def checkpoint_restart_failure(outer_workdir):
     workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
     os.makedirs(workdir)
     workflow = utils.Workflow('checkpoint-too-long',
-                              'beeflow/data/cwl/bee_workflows/checkpoint-too-long',
+                              'ci/test_workflows/checkpoint-too-long',
                               main_cwl='workflow.cwl', job_file='input.yml',
                               workdir=workdir, containers=[])
     yield [workflow]
