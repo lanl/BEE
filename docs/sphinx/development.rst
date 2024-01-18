@@ -127,3 +127,11 @@ Additional documentation:
 
 * https://github.com/sdispater/poetry
 
+Running Tests
+==================
+
+BEE includes unit and integration tests that can be run on a local system.
+
+To run the unit tests, make sure to install beeflow with ``poetry install -E cloud_extras``; the ``-E cloud_extras`` option forces Poetry to install extra dependencies required for some of the cloud API tests. After loading a shell with ``poetry shell``, you can run the unit tests with ``pytest beeflow/tests``.
+
+For the integration tests, you'll first have to start beeflow with ``beeflow core start`` (see :ref:`command-line-interface`). Then, making sure that you have Charliecloud loaded in your environment, you can run ``./ci/integration_test.py`` to run the tests. The integration tests will create a directory ``~/.beeflow-integration`` to be used for storing temporary files as well as inspecting failure results. The script itself includes a number of options for running extra tests, details of which can be found through ``--help`` and other command line options.
