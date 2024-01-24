@@ -26,6 +26,7 @@ from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.client import core
+from beeflow.wf_manager.resources import wf_utils
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -338,6 +339,39 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
         print(f"Package {tarball} created successfully")
 
     return package_path
+
+
+@app.command()
+def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
+    """Remove a cancelled or archived workflow with a workflow ID."""
+    long_wf_id = wf_id
+
+    # Check status of workflow for Archived or Canncelled
+    try:
+        conn = _wfm_conn()
+        resp = conn.get(_resource(long_wf_id), timeout=60)
+    except requests.exceptions.ConnectionError:
+        error_exit('Could not reach WF Manager.')
+
+    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
+        error_exit('Could not successfully query workflow manager')
+
+    tasks_status = resp.json()['tasks_status']
+    wf_status = resp.json()['wf_status']
+    print(f"Workflow Status is {wf_status}")
+    if wf_status == 'Cancelled' or wf_status == 'Archived':
+        response = input(f"All stored information for workflow {_short_id(wf_id)} will be removed. Continue to remove? yes(y)/no(n): " )
+        if response in ("n", "no"):
+            sys.exit("Workflow not removed.")
+        elif response in ("y", "yes"):
+            bee_workdir = wf_utils.get_bee_workdir()
+            workflow_dir = f"{bee_workdir}/workflows/{wf_id}"
+            print(f"Removing {_short_id(wf_id)} {workflow_dir}")
+            shutil.rmtree(workflow_dir)
+    else:
+        print(f"{_short_id(wf_id)} may still be running; it must be cancelled before attempting removal.")
+
+    sys.exit()
 
 
 def unpackage(package_path, dest_path):
