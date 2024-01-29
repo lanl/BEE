@@ -23,6 +23,7 @@ class WFActions(Resource):
         """Start workflow. Send ready tasks to the task manager."""
         db = connect_db(wfm_db, db_path)
         wfi = wf_utils.get_workflow_interface(wf_id)
+        log.info('Starting workflow')
         state = wfi.get_workflow_state()
         if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
             resp = make_response(jsonify(msg='Cannot start workflow it is '
@@ -71,7 +72,6 @@ class WFActions(Resource):
         wf_utils.update_wf_status(wf_id, 'Cancelled')
         db.workflows.update_workflow_state(wf_id, 'Cancelled')
         db.workflows.delete_workflow(wf_id)
-        log.info("Workflow cancelled")
         resp = make_response(jsonify(status='Cancelled'), 202)
         return resp
 
@@ -82,6 +82,7 @@ class WFActions(Resource):
         option = self.reqparse.parse_args()['option']
 
         wfi = wf_utils.get_workflow_interface(wf_id)
+        log.info('Pausing/resuming workflow')
         wf_state = wfi.get_workflow_state()
         if option == 'pause' and wf_state == 'RUNNING':
             wfi.pause_workflow()

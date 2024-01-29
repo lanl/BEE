@@ -112,6 +112,15 @@ def read_wf_status(wf_id):
         wf_status = status.readline()
     return wf_status
 
+def read_wf_name(wf_id):
+    """Read workflow name metadata file."""
+    bee_workdir = get_bee_workdir()
+    workflows_dir = os.path.join(bee_workdir, 'workflows', wf_id)
+    status_path = os.path.join(workflows_dir, 'bee_wf_name')
+    with open(status_path, 'r', encoding="utf8") as status:
+        wf_name = status.readline()
+    return wf_name
+
 
 def create_wf_namefile(wf_name, wf_id):
     """Create workflow name metadata file."""
@@ -125,7 +134,6 @@ def create_wf_namefile(wf_name, wf_id):
 def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
     db = connect_db(wfm_db, get_db_path())
-    log.error('Getting workflow interface')
     bolt_port = db.workflows.get_bolt_port(wf_id)
     try:
         driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
@@ -138,7 +146,6 @@ def get_workflow_interface(wf_id):
         # First check if the GDB is up
         gdb_pid = db.workflows.get_gdb_pid(wf_id)
         try:
-            log.error('Checking if the GDB is there')
             # Not actually killing the GDB just checking if the PID is up
             # Returns an exception if the GDB is running
             os.kill(gdb_pid, 0)
@@ -146,17 +153,20 @@ def get_workflow_interface(wf_id):
         except ProcessLookupError:
             # The GDB process isn't running. Restart it
             log.error('The GDB is currently down restarting it')
-            wf_dir = get_workflow_dir(wf_id)
-            http_port = db.workflows.get_http_port(wf_id)
-            https_port = db.workflows.get_https_port(wf_id)
-            gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port)
-            time.sleep(10)
-            db.workflows.update_gdb_pid(gdb_pid, wf_id)
-            driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
-                                 db_hostname=bc.get("graphdb", "hostname"),
-                                 password=bc.get("graphdb", "dbpass"))
-            iface = GraphDatabaseInterface(driver)
-            wfi = WorkflowInterface(iface)
+                wf_dir = get_workflow_dir(wf_id)
+                http_port = db.workflows.get_http_port(wf_id)
+                https_port = db.workflows.get_https_port(wf_id)
+                wf_name = read_wf_name(wf_id)
+                config_dir = wf_dir + '/' + wf_name + '-wf'
+                gdb_pid = dep_manager.start_gdb(config_dir, bolt_port, http_port, https_port, reexecute=True)
+                time.sleep(10)
+                db.workflows.update_gdb_pid(gdb_pid, wf_id)
+                driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
+                                     db_hostname=bc.get("graphdb", "hostname"),
+                                     password=bc.get("graphdb", "dbpass"))
+                iface = GraphDatabaseInterface(driver)
+                wfi = WorkflowInterface(iface)
+                wfi.get_workflow()
         except PermissionError:
             # Something has gone wrong. The user has no perms for their gdb.
             # Just note a fatal error and exit

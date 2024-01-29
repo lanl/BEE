@@ -48,7 +48,7 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
     subprocess.run(['tar', '-xf', archive_path, '--strip-components=1',
                     '-C', wf_dir], check=False)
     archive_dir = os.path.join(wf_dir, 'gdb')
-    return archive_dir
+    return archive_dir, cwl_dir
 
 
 db_path = wf_utils.get_db_path()
@@ -136,7 +136,7 @@ class WFList(Resource):
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
         reqparser.add_argument('wf_filename', type=str, required=True,
-                               location='form')
+                               locajion='form')
         reqparser.add_argument('workdir', type=str, required=True,
                                location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
@@ -162,7 +162,8 @@ class WFList(Resource):
         https_port = wf_utils.get_open_port()
         gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port,
                                         https_port, reexecute=True)
-        db.workflows.add_workflow(wf_id, wf_name, 'Pending', wf_dir, bolt_port, http_port, https_port, gdb_pid)
+        db.workflows.add_workflow(wf_id, wf_name, wf_filename, 'Pending', wf_dir,
+                                  bolt_port, http_port, https_port, gdb_pid)
         dep_manager.wait_gdb(log)
         wfi = wf_utils.get_workflow_interface(wf_id)
         wfi.reset_workflow(wf_id)
