@@ -151,22 +151,21 @@ def get_workflow_interface(wf_id):
             os.kill(gdb_pid, 0)
             # The GDB process is running so we'll kill it and restart it
         except ProcessLookupError:
-            # The GDB process isn't running. Restart it
             log.error('The GDB is currently down restarting it')
-                wf_dir = get_workflow_dir(wf_id)
-                http_port = db.workflows.get_http_port(wf_id)
-                https_port = db.workflows.get_https_port(wf_id)
-                wf_name = read_wf_name(wf_id)
-                config_dir = wf_dir + '/' + wf_name + '-wf'
-                gdb_pid = dep_manager.start_gdb(config_dir, bolt_port, http_port, https_port, reexecute=True)
-                time.sleep(10)
-                db.workflows.update_gdb_pid(gdb_pid, wf_id)
-                driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
-                                     db_hostname=bc.get("graphdb", "hostname"),
-                                     password=bc.get("graphdb", "dbpass"))
-                iface = GraphDatabaseInterface(driver)
-                wfi = WorkflowInterface(iface)
-                wfi.get_workflow()
+            wf_dir = get_workflow_dir(wf_id)
+            http_port = db.workflows.get_http_port(wf_id)
+            https_port = db.workflows.get_https_port(wf_id)
+            wf_name = read_wf_name(wf_id)
+            config_dir = wf_dir + '/' + wf_name + '-wf'
+            gdb_pid = dep_manager.start_gdb(config_dir, bolt_port, http_port, https_port, reexecute=True)
+            time.sleep(10)
+            db.workflows.update_gdb_pid(gdb_pid, wf_id)
+            driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
+                                 db_hostname=bc.get("graphdb", "hostname"),
+                                 password=bc.get("graphdb", "dbpass"))
+            iface = GraphDatabaseInterface(driver)
+            wfi = WorkflowInterface(iface)
+            wfi.get_workflow()
         except PermissionError:
             # Something has gone wrong. The user has no perms for their gdb.
             # Just note a fatal error and exit
