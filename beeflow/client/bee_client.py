@@ -359,17 +359,22 @@ def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
     print(f"Workflow Status is {wf_status}")
-    if wf_status == 'Cancelled' or wf_status == 'Archived':
+    if wf_status in ('Cancelled', 'Archived'):
         response = input(f"All stored information for workflow {_short_id(wf_id)} will be removed. Continue to remove? yes(y)/no(n): " )
         if response in ("n", "no"):
             sys.exit("Workflow not removed.")
         elif response in ("y", "yes"):
-            bee_workdir = wf_utils.get_bee_workdir()
-            workflow_dir = f"{bee_workdir}/workflows/{wf_id}"
-            print(f"Removing {_short_id(wf_id)} {workflow_dir}")
-            shutil.rmtree(workflow_dir)
+             try:
+                 conn = _wfm_conn()
+                 resp = conn.delete(_resource(long_wf_id), json={'option': 'remove'}, timeout=60)
+             except requests.exceptions.ConnectionError:
+                 error_exit('Could not reach WF Manager.')
+             if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
+                 error_exit('WF Manager could not remove workflow.')
+             typer.secho("Workflow removed!", fg=typer.colors.GREEN)
+             logging.info(f'Remove workflow: {resp.text}')
     else:
-        print(f"{_short_id(wf_id)} may still be running; it must be cancelled before attempting removal.")
+        print(f"{_short_id(wf_id)} may still be running.\nThe workflow must be cancelled before attempting removal.")
 
     sys.exit()
 
@@ -501,7 +506,8 @@ def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
-        resp = conn.delete(_resource(long_wf_id), timeout=60)
+        resp = conn.delete(_resource(long_wf_id), json={'option': 'cancel'}, timeout=60)
+
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
