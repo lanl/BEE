@@ -96,11 +96,11 @@ class WFUpdate(Resource):
             task_info = jsonpickle.decode(data['task_info'])
             checkpoint_file = task_info['checkpoint_file']
             new_task = wfi.restart_task(task, checkpoint_file)
-            db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             if new_task is None:
                 log.info('No more restarts')
                 wf_state = wfi.get_task_state(task)
                 return make_response(jsonify(status=f'Task {task_id} set to {job_state}'))
+            db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             # Submit the restart task
             tasks = [new_task]
             wf_utils.schedule_submit_tasks(wf_id, tasks)
