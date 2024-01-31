@@ -1,7 +1,7 @@
 {
   "grid_resolution": 32,
   "max_levels": 3,
-  "time_steps": 80000,
+  "time_steps": 150000,
   "steps_between_outputs": 10,
   "steps_between_graphics": 25,
   "graphics_type": "png",
