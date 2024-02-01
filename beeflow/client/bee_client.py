@@ -168,6 +168,20 @@ def match_short_id(wf_id):
     return None
 
 
+def get_wf_status(wf_id):
+        """ Get workflow status."""
+        try:
+            conn = _wfm_conn()
+            resp = conn.get(_resource(wf_id), timeout=60)
+        except requests.exceptions.ConnectionError:
+            error_exit('Could not reach WF Manager.')
+
+        if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
+            error_exit('Could not successfully query workflow manager')
+
+        tasks_status = resp.json()['tasks_status']
+        return resp.json()['wf_status']
+
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 app.add_typer(core.app, name='core')
 app.add_typer(config_driver.app, name='config')
@@ -346,21 +360,12 @@ def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Remove a cancelled or archived workflow with a workflow ID."""
     long_wf_id = wf_id
 
-    # Check status of workflow for Archived or Canncelled
-    try:
-        conn = _wfm_conn()
-        resp = conn.get(_resource(long_wf_id), timeout=60)
-    except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
-
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('Could not successfully query workflow manager')
-
-    tasks_status = resp.json()['tasks_status']
-    wf_status = resp.json()['wf_status']
+    wf_status = get_wf_status(wf_id)
     print(f"Workflow Status is {wf_status}")
     if wf_status in ('Cancelled', 'Archived'):
-        response = input(f"All stored information for workflow {_short_id(wf_id)} will be removed. Continue to remove? yes(y)/no(n): " )
+        verfiy = """f"All stored information for workflow {_short_id(wf_id)} will be removed."
+        Continue to remove? yes(y)/no(n): """
+        response = input(verify)
         if response in ("n", "no"):
             sys.exit("Workflow not removed.")
         elif response in ("y", "yes"):
@@ -374,7 +379,8 @@ def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
              typer.secho("Workflow removed!", fg=typer.colors.GREEN)
              logging.info(f'Remove workflow: {resp.text}')
     else:
-        print(f"{_short_id(wf_id)} may still be running.\nThe workflow must be cancelled before attempting removal.")
+        print(f"{_short_id(wf_id)} may still be running.")
+        print("The workflow must be cancelled before attempting removal.")
 
     sys.exit()
 
@@ -504,16 +510,20 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
 def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Cancel a workflow."""
     long_wf_id = wf_id
-    try:
-        conn = _wfm_conn()
-        resp = conn.delete(_resource(long_wf_id), json={'option': 'cancel'}, timeout=60)
+    wf_status = get_wf_status(wf_id)
+    if wf_status == "Initializing":
+        print(f"Workflow is {wf_status}, please retry cancel later.")
+    else:
+        try:
+            conn = _wfm_conn()
+            resp = conn.delete(_resource(long_wf_id), json={'option': 'cancel'}, timeout=60)
 
-    except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
-    if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
-        error_exit('WF Manager could not cancel workflow.')
-    typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
-    logging.info(f'Cancel workflow: {resp.text}')
+        except requests.exceptions.ConnectionError:
+            error_exit('Could not reach WF Manager.')
+        if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
+            error_exit('WF Manager could not cancel workflow.')
+        typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
+        logging.info(f'Cancel workflow: {resp.text}')
 
 
 @app.command()
