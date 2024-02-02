@@ -402,7 +402,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
             sys.exit(1)
     print('Starting beeflow...')
     if not foreground:
-        print(f'Run `beeflow core status` for more information.')
+        print('Run `beeflow core status` for more information.')
     # Create the log path if it doesn't exist yet
     path = paths.log_path()
     os.makedirs(path, exist_ok=True)
