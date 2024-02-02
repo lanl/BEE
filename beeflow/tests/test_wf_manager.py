@@ -215,6 +215,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
     assert resp.json['status'] == 'Cancelled'
     assert resp.status_code == 202
 
+
 def test_remove_workflow(client, mocker, setup_teardown_workflow, temp_db):
     """Test cancelling a workflow."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
