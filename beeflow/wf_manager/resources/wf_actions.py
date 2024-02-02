@@ -86,7 +86,6 @@ class WFActions(Resource):
                 os.remove(archive_path)
         return resp
 
-
     def patch(self, wf_id):
         """Pause or resume workflow."""
         db = connect_db(wfm_db, db_path)

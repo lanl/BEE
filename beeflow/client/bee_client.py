@@ -168,7 +168,7 @@ def match_short_id(wf_id):
 
 
 def get_wf_status(wf_id):
-    """ Get workflow status."""
+    """Get workflow status."""
     try:
         conn = _wfm_conn()
         resp = conn.get(_resource(wf_id), timeout=60)
@@ -179,6 +179,7 @@ def get_wf_status(wf_id):
         error_exit('Could not successfully query workflow manager')
 
     return resp.json()['wf_status']
+
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 app.add_typer(core.app, name='core')
