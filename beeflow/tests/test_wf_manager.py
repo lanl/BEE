@@ -217,7 +217,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
 
 
 def test_remove_workflow(client, mocker, setup_teardown_workflow, temp_db):
-    """Test cancelling a workflow."""
+    """Test removing a workflow."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
