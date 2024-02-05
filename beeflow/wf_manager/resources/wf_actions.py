@@ -56,7 +56,7 @@ class WFActions(Resource):
         return resp
 
     def delete(self, wf_id):
-        """Cancel the workflow. Lets current tasks finish running."""
+        """Cancel or delete the workflow. For cancel, current tasks finish running."""
         self.reqparse.add_argument('option', type=str, location='json')
         option = self.reqparse.parse_args()['option']
         db = connect_db(wfm_db, db_path)
