@@ -10,7 +10,7 @@ from mocks import MockWorkerCompletion, MockWorkerSubmission
 
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.db import tm_db
-import beeflow.task_manager as tm
+import beeflow.task_manager.task_manager as tm
 from beeflow.common.wf_data import Task
 import beeflow
 
@@ -18,7 +18,7 @@ import beeflow
 @pytest.fixture
 def flask_client():
     """Client lets us run flask queries."""
-    app = tm.flask_app
+    app = tm.create_app()
     client = app.test_client()
     yield client
 
@@ -45,9 +45,9 @@ def temp_db():
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_submit_task(flask_client, mocker, temp_db):  # noqa
     """Create a workflow and get the ID back."""
-    mocker.patch('beeflow.task_manager.worker',
-                 new_callable=MockWorkerSubmission)
-    mocker.patch('beeflow.task_manager.db_path', temp_db.db_file)
+    mocker.patch('beeflow.task_manager.utils.worker_interface',
+                 MockWorkerSubmission)
+    mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
     # Generate a task
     tasks = generate_tasks(1)
     tasks_json = jsonpickle.encode(tasks)
@@ -55,12 +55,12 @@ def test_submit_task(flask_client, mocker, temp_db):  # noqa
     response = flask_client.post('/bee_tm/v1/task/submit/',
                                  json={'tasks': tasks_json})
 
-    mocker.patch('beeflow.task_manager.worker',
-                 new_callable=MockWorkerSubmission)
+    mocker.patch('beeflow.task_manager.utils.worker_interface',
+                 MockWorkerSubmission)
 
     # Patch the connection object for WFM communication
     mocker.patch('beeflow.common.connection.Connection.put', mock_put)
-    beeflow.task_manager.process_queues()
+    beeflow.task_manager.background.process_queues()
 
     msg = response.get_json()['msg']
     status = response.status_code
@@ -81,14 +81,14 @@ def test_submit_task(flask_client, mocker, temp_db):  # noqa
 def test_completed_task(flask_client, mocker, temp_db): # noqa
     """Tests how the task manager processes a completed task."""
     # 42 is the sample task ID
-    mocker.patch('beeflow.task_manager.worker',
-                 new_callable=MockWorkerCompletion)
+    mocker.patch('beeflow.task_manager.utils.worker_interface',
+                 MockWorkerCompletion)
     # Patch the connection object for WFM communication
     mocker.patch('beeflow.common.connection.Connection.put', mock_put)
-    mocker.patch('beeflow.task_manager.db_path', temp_db.db_file)
+    mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
 
     # This should notice the job is complete and empty the job_queue
-    beeflow.task_manager.process_queues()
+    beeflow.task_manager.background.process_queues()
     job_queue = list(temp_db.job_queue)
     assert len(job_queue) == 0
 
@@ -102,9 +102,9 @@ def test_remove_task(flask_client, mocker, temp_db):  # noqa
     temp_db.job_queue.push(task=task2, job_id=2, job_state='PENDING')
     temp_db.job_queue.push(task=task3, job_id=3, job_state='PENDING')
 
-    mocker.patch('beeflow.task_manager.worker',
-                 new_callable=MockWorkerCompletion)
-    mocker.patch('beeflow.task_manager.db_path', temp_db.db_file)
+    mocker.patch('beeflow.task_manager.utils.worker_interface',
+                 MockWorkerCompletion)
+    mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
 
     response = flask_client.delete('/bee_tm/v1/task/')
 

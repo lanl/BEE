@@ -171,8 +171,8 @@ def init_components():
     def start_task_manager():
         """Start the TM."""
         fp = open_log('task_manager')
-        return launch_with_gunicorn('beeflow.task_manager:flask_app', paths.tm_socket(),
-                                    stdout=fp, stderr=fp)
+        return launch_with_gunicorn('beeflow.task_manager.task_manager:create_app()',
+                                    paths.tm_socket(), stdout=fp, stderr=fp)
 
     @mgr.component('scheduler', ())
     def start_scheduler():
