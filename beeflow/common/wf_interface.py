@@ -5,6 +5,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 
 import re
 
+
 class WorkflowInterface:
     """Interface for manipulating workflows."""
 
@@ -102,7 +103,8 @@ class WorkflowInterface:
                     hint.params["num_tries"] -= 1
                     hint.params["bee_checkpoint_file__"] = checkpoint_file
                     break
-                self.set_task_state(task, f"FAILED")
+                self.set_task_state(task, "FAILED")
+                self.set_workflow_state("FAILED")
                 return None
         else:
             raise ValueError("invalid task for checkpoint restart")

@@ -69,7 +69,6 @@ def wfm_conn():
 
 class CheckpointRestartError(Exception):
     """Exception to be thrown on checkpoint-restart failure."""
-    pass
 
 
 def get_restart_file(task_checkpoint, task_workdir):
