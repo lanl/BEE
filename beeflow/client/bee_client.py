@@ -26,6 +26,7 @@ from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.client import core
+from beeflow.wf_manager.resources import wf_utils
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -280,6 +281,20 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     # Cleanup code
     if tarball_path:
         os.remove(tarball_path)
+
+    # Store provided arguments in text file for future reference
+    wf_dir = wf_utils.get_workflow_dir(wf_id)
+    sub_wf_dir = wf_dir + "/submit_command_args.txt"
+
+    f = open(sub_wf_dir, "w")
+    f.write("beeflow submit wf_name wf_path main_cwl yaml workdir\n")
+    f.write("wf_name: " + str(wf_name) + "\n")
+    f.write("wf_path: " + str(wf_path) + "\n")
+    f.write("main_cwl: " + str(main_cwl) + "\n")
+    f.write("yaml: " + str(yaml) + "\n")
+    f.write("workdir: " + str(workdir) + "\n")
+    f.write("wf_id: " + str(wf_id))
+    f.close()
 
     return wf_id
 
