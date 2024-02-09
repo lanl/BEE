@@ -19,6 +19,7 @@ import time
 import daemon
 import typer
 
+from beeflow.client import bee_client
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import cli_connection
 from beeflow.common import paths
@@ -455,6 +456,16 @@ def stop():
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
     """Delete the bee_workdir directory."""
+    # Check status of workflows; do not reset if there are Running workflows"
+    workflow_list = bee_client.get_wf_list()
+    if any('Running' in sublist for sublist in workflow_list):
+        exit_str=("Running workflows exist.\n" +
+                "If you still  want to reset, cancel running workflows using:\n" +
+               "'beeflow cancel <wf_id>'.")
+        sys.exit(exit_str)
+    elif any('Initializing' in sublist for sublist in workflow_list):
+        print ("There are 'Initializing' workflows. Reset may fail. Check 'beeflow list'i")
+
     # Check to see if the user is absolutely sure. Warning Message.
     absolutely_sure = ""
     while absolutely_sure != "y" or absolutely_sure != "n":
@@ -510,8 +521,13 @@ Respond with yes(y)/no(n):  """)
                     print("Archive flag enabled,")
                     print("Existing logs, containers, and workflows backed up in:")
                     print(f"{directory_to_delete}.backup")
-                shutil.rmtree(directory_to_delete)
-                print(f"{directory_to_delete} has been removed.")
+                # ...
+                try:
+                    shutil.rmtree(directory_to_delete)
+                except OSError as error:
+                    print(f"Unable to remove {directory_to_delete}.\n {error}")
+                else:
+                    print(f"{directory_to_delete} has been removed.")
                 sys.exit()
             else:
                 print(f"{directory_to_delete} does not exist. Exiting.")
