@@ -157,8 +157,8 @@ def get_workflow_interface(wf_id):
                 http_port = db.workflows.get_http_port(wf_id)
                 https_port = db.workflows.get_https_port(wf_id)
                 wf_name = read_wf_name(wf_id)
-                config_dir = wf_dir + '/' + wf_name + '-wf'
-                gdb_pid = dep_manager.start_gdb(config_dir, bolt_port, http_port, https_port, reexecute=True)
+                run_dir = db.workflows.get_run_dir(wf_id)
+                gdb_pid = dep_manager.start_gdb(run_dir, bolt_port, http_port, https_port, reexecute=True)
                 time.sleep(10)
                 db.workflows.update_gdb_pid(gdb_pid, wf_id)
                 driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
