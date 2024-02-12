@@ -49,3 +49,37 @@ def log_path():
 def log_fname(component):
     """Determine the log file name for the given component."""
     return os.path.join(log_path(), f'{component}.log')
+
+
+def redis_root():
+    """Get the redis root directory (create it if it doesn't exist)."""
+    path = os.path.join(_workdir(), 'redis')
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def redis_container():
+    """Get the path to the unpacked Redis container."""
+    return os.path.join(_workdir(), 'redis_container')
+
+
+def redis_sock_fname():
+    """Return the file name for the Redis socket."""
+    return 'redis.sock'
+
+
+def _celery_root():
+    """Get the celery root directory (create it if it doesn't exist)."""
+    path = os.path.join(_workdir(), 'celery')
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def celery_config():
+    """Return the celery config path."""
+    return os.path.join(_celery_root(), 'celery.py')
+
+
+def celery_db():
+    """Return the celery db path."""
+    return os.path.join(_celery_root(), 'celery.db')

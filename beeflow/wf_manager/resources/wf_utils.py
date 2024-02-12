@@ -134,7 +134,15 @@ def create_wf_namefile(wf_name, wf_id):
 def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
     db = connect_db(wfm_db, get_db_path())
+    # Wait for the GDB
+    if db.workflows.get_workflow_state(wf_id) == 'Initializing':
+        raise RuntimeError('Workflow is still initializing')
     bolt_port = db.workflows.get_bolt_port(wf_id)
+    return get_workflow_interface_by_bolt_port(bolt_port, wf_id=wf_id)
+
+
+def get_workflow_interface_by_bolt_port(bolt_port, wf_id=None):
+    """Return a workflow interface connection using just the bolt port."""
     try:
         driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                              db_hostname=bc.get("graphdb", "hostname"),
@@ -142,8 +150,10 @@ def get_workflow_interface(wf_id):
         iface = GraphDatabaseInterface(driver)
         wfi = WorkflowInterface(iface)
     except neo4j_driver.Neo4jNotRunning:
+        log.info("Something is wrong")
         # There are several possibilities here
         # First check if the GDB is up
+        db = connect_db(wfm_db, get_db_path())
         gdb_pid = db.workflows.get_gdb_pid(wf_id)
         try:
             # Not actually killing the GDB just checking if the PID is up
@@ -152,23 +162,18 @@ def get_workflow_interface(wf_id):
             # The GDB process is running so we'll kill it and restart it
         except ProcessLookupError:
             log.error('The GDB is currently down restarting it')
-            try:
-                wf_dir = get_workflow_dir(wf_id)
-                http_port = db.workflows.get_http_port(wf_id)
-                https_port = db.workflows.get_https_port(wf_id)
-                wf_name = read_wf_name(wf_id)
-                run_dir = db.workflows.get_run_dir(wf_id)
-                gdb_pid = dep_manager.start_gdb(run_dir, bolt_port, http_port, https_port, reexecute=True)
-                time.sleep(10)
-                db.workflows.update_gdb_pid(gdb_pid, wf_id)
-                driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
-                                     db_hostname=bc.get("graphdb", "hostname"),
-                                     password=bc.get("graphdb", "dbpass"))
-                iface = GraphDatabaseInterface(driver)
-                wfi = WorkflowInterface(iface)
-                wfi.get_workflow()
-            except Exception as e:
-                log.inf(f'RestartError: {e}')
+            http_port = db.workflows.get_http_port(wf_id)
+            https_port = db.workflows.get_https_port(wf_id)
+            run_dir = db.workflows.get_run_dir(wf_id)
+            gdb_pid = dep_manager.start_gdb(run_dir, bolt_port, http_port, https_port, reexecute=True)
+            time.sleep(10)
+            db.workflows.update_gdb_pid(wf_id, gdb_pid)
+            driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
+                                 db_hostname=bc.get("graphdb", "hostname"),
+                                 password=bc.get("graphdb", "dbpass"))
+            iface = GraphDatabaseInterface(driver)
+            wfi = WorkflowInterface(iface)
+            wfi.get_workflow()
         except PermissionError:
             # Something has gone wrong. The user has no perms for their gdb.
             # Just note a fatal error and exit
@@ -293,3 +298,19 @@ def schedule_submit_tasks(wf_id, tasks):
     allocation = submit_tasks_scheduler(tasks)  #NOQA
     # Submit tasks to TM
     submit_tasks_tm(wf_id, tasks, allocation)
+
+
+def start_workflow(wf_id):
+    """Attempt to start the workflow, returning True if successful."""
+    db = connect_db(wfm_db, get_db_path())
+    wfi = get_workflow_interface(wf_id)
+    state = wfi.get_workflow_state()
+    if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
+        return False
+    wfi.execute_workflow()
+    tasks = wfi.get_ready_tasks()
+    schedule_submit_tasks(wf_id, tasks)
+    wf_id = wfi.workflow_id
+    update_wf_status(wf_id, 'Running')
+    db.workflows.update_workflow_state(wf_id, 'Running')
+    return True

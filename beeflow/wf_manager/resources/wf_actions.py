@@ -7,6 +7,7 @@ from beeflow.wf_manager.resources import wf_utils
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.wf_manager.common import dep_manager
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
@@ -22,21 +23,13 @@ class WFActions(Resource):
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
         db = connect_db(wfm_db, db_path)
-        wfi = wf_utils.get_workflow_interface(wf_id)
-        log.info('Starting workflow')
-        state = wfi.get_workflow_state()
-        if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
-            resp = make_response(jsonify(msg='Cannot start workflow it is '
-                                 f'{state.lower()}.',
-                                         status='ok'), 200)
-            return resp
-        wfi.execute_workflow()
-        tasks = wfi.get_ready_tasks()
-        wf_utils.schedule_submit_tasks(wf_id, tasks)
-        wf_id = wfi.workflow_id
-        wf_utils.update_wf_status(wf_id, 'Running')
-        db.workflows.update_workflow_state(wf_id, 'Running')
-        resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
+        log.info(f'Starting workflow: {wf_id}')
+        if wf_utils.start_workflow(wf_id):
+            db.workflows.update_workflow_state(wf_id, 'Running')
+            resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
+        else:
+            resp_body = jsonify(msg='Cannot start workflow it is {state.lower()}.', status='ok')
+            resp = make_response(resp_body, 200)
         return resp
 
     @staticmethod
@@ -45,7 +38,9 @@ class WFActions(Resource):
         db = connect_db(wfm_db, db_path)
         tasks = db.workflows.get_tasks(wf_id)
         tasks_status = []
-        if not tasks:
+        wf_state = db.workflows.get_workflow_state(wf_id)
+
+        if not tasks and wf_state != "Initializing":
             log.info(f"Bad query for wf {wf_id}.")
             wf_status = 'No workflow with that ID is currently loaded'
             tasks_status.append('Unavailable')
@@ -55,7 +50,7 @@ class WFActions(Resource):
         for task in tasks:
             tasks_status.append(f"{task.name}--{task.state}")
         tasks_status = '\n'.join(tasks_status)
-        wf_status = wf_utils.read_wf_status(wf_id)
+        wf_status = db.workflows.get_workflow_state(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,
                              wf_status=wf_status, status='ok'), 200)
@@ -71,7 +66,10 @@ class WFActions(Resource):
             wfi.finalize_workflow()
         wf_utils.update_wf_status(wf_id, 'Cancelled')
         db.workflows.update_workflow_state(wf_id, 'Cancelled')
-        db.workflows.delete_workflow(wf_id)
+        log.info("Workflow cancelled")
+        log.info("Shutting down gdb")
+        pid = db.workflows.get_gdb_pid(wf_id)
+        dep_manager.kill_gdb(pid)
         resp = make_response(jsonify(status='Cancelled'), 202)
         return resp
 

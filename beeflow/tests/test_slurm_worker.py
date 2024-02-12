@@ -1,5 +1,6 @@
 """Tests of the Slurm worker."""
 import uuid
+import shutil
 import time
 import subprocess
 import os
@@ -41,7 +42,7 @@ def wait_state(worker_iface, job_id, state):
 def slurm_worker(request):
     """Slurm worker fixture."""
     slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
-    bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
+    bee_workdir = os.path.expanduser(f'/tmp/{uuid.uuid4().hex}.tmp')
     os.mkdir(bee_workdir)
     proc = subprocess.Popen(f'slurmrestd -s openapi/{OPENAPI_VERSION} unix:{slurm_socket}',
                             shell=True)
@@ -53,18 +54,20 @@ def slurm_worker(request):
     yield worker_iface
     time.sleep(1)
     proc.kill()
+    shutil.rmtree(bee_workdir)
 
 
 @pytest.fixture
 def slurmrestd_worker_no_daemon():
     """Fixture that creates the worker interface but not slurmrestd."""
     slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
-    bee_workdir = os.path.expanduser(f'~/{uuid.uuid4().hex}.tmp')
+    bee_workdir = os.path.expanduser(f'/tmp/{uuid.uuid4().hex}.tmp')
     os.mkdir(bee_workdir)
     yield WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
                           slurm_socket=slurm_socket, bee_workdir=bee_workdir,
                           openapi_version=OPENAPI_VERSION,
                           use_commands=False)
+    shutil.rmtree(bee_workdir)
 
 
 def test_good_task(slurm_worker):

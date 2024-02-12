@@ -92,7 +92,8 @@ def init_tables():
                             status TEST NOT NULL,
                             run_dir STR,
                             bolt_port INTEGER,
-                            gdb_pid INTEGER);"""
+                            gdb_pid INTEGER,
+                            init_task_id INTEGER);"""
 
     tasks_stmt = """CREATE TABLE IF NOT EXISTS tasks (
                     id INTEGER PRIMARY KEY,
@@ -213,6 +214,25 @@ def add_workflow(workflow_id, name, status, run_dir, bolt_port, gdb_pid):
     run(stmt, [workflow_id, name, status, run_dir, bolt_port, gdb_pid])
 
 
+def complete_gdb_init(workflow_id, gdb_pid):
+    """Complete the GDB init process for a workflow."""
+    stmt = "UPDATE workflows SET gdb_pid=?, status=? WHERE workflow_id = ?"
+    run(stmt, [gdb_pid, 'Pending', workflow_id])
+
+
+def init_workflow(workflow_id, name, run_dir, bolt_port, http_port, https_port, init_task_id):
+    """Insert a new workflow into the database."""
+    if not table_exists('workflows'):
+        # Initialize the database
+        init_tables()
+
+    stmt = """INSERT INTO workflows (workflow_id, name, status, run_dir, bolt_port,
+                                     http_port, https_port, gdb_pid, init_task_id)
+              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+    run(stmt, [workflow_id, name, 'Initializing', run_dir, bolt_port, http_port,
+               https_port, -1, init_task_id])
+
+
 def update_workflow_state(workflow_id, status):
     """Update the status in a workflow in the database."""
     stmt = "UPDATE workflows SET status=? WHERE workflow_id=?"
@@ -245,6 +265,13 @@ def get_gdb_pid(workflow_id):
     result = get(stmt, [workflow_id])[0]
     gdb_pid = result[0]
     return gdb_pid
+
+
+def get_init_task_id(workflow_id):
+    """Return the task ID for the GDB initialization."""
+    stmt = "SELECT init_task_id FROM workflows WHERE workflow_id=?"
+    result = get(stmt, [workflow_id])[0]
+    return result[0]
 
 
 def get_run_dir(workflow_id):
