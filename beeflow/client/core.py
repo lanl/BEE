@@ -182,6 +182,19 @@ def init_components():
         return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
                                     paths.sched_socket(), stdout=fp, stderr=fp)
 
+    #TODO make sure that all of this makes sense. 
+    #TODO figure out where the ComponentManager is running all this
+    #TODO figure out what this launch with gunicorn thing is
+    #TODO figure out what this paths object is for
+
+    @mgr.component('remote_api', ('wf_manager', 'task_manager'))
+    def start_remote_API():
+        """Start the remote API."""
+        fp = open_log('remote_api')
+        return launch_with_gunicorn('beeflow.remote.remote:create_app()',
+                                   paths.remote_socket(), stdout=fp, stderr=fp)
+
+
     @mgr.component('celery', ('redis',))
     def celery():
         """Start the celery task queue."""
@@ -429,6 +442,10 @@ def status():
     for comp, stat in resp['components'].items():
         print(f'{comp} ... {stat}')
 
+@app.command()
+def connect():
+    """Connect to another instance of beeflow."""
+    #TODO
 
 @app.command()
 def stop():

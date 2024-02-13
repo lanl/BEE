@@ -29,6 +29,10 @@ def tm_socket():
     """Get the socket path for the Task Manager."""
     return os.path.join(_sockdir(), 'task_manager.sock')
 
+def remote_socket():
+    """Get the socket path for the Remote API"""
+    return os.path.join(_sockdir(), 'remote.sock')
+
 
 def sched_socket():
     """Get the scheduler socket."""
