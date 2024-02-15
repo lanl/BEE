@@ -59,7 +59,7 @@ EOF
 fi
 
 printf "\n\n"
-printf "#### bee.conf ####\n"
+printf "#### %s ####\n" $BEE_CONFIG
 cat $BEE_CONFIG
-printf "#### bee.conf ####\n"
+printf "#### %s ####\n" $BEE_CONFIG
 printf "\n\n"
