@@ -89,10 +89,14 @@ def update_jobs():
                 log.info(f'state: {new_job_state}')
                 log.info(f'TIMELIMIT/TIMEOUT task_checkpoint: {task_checkpoint}')
                 if task_checkpoint:
-                    checkpoint_file = utils.get_restart_file(task_checkpoint, task.workdir)
-                    task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
-                    update_task_state(task.workflow_id, task.id, new_job_state,
-                                      task_info=task_info)
+                    try:
+                        checkpoint_file = utils.get_restart_file(task_checkpoint, task.workdir)
+                        task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
+                        update_task_state(task.workflow_id, task.id, new_job_state,
+                                          task_info=task_info)
+                    except utils.CheckpointRestartError as err:
+                        log.error(f'Checkpoint restart failed for {task.name} ({task.id}): {err}')
+                        update_task_state(task.workflow_id, task.id, 'FAILED')
                 else:
                     update_task_state(task.workflow_id, task.id, new_job_state)
             else:

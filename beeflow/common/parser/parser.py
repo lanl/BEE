@@ -307,7 +307,13 @@ class CwlParser:
             return reqs
         if as_hints:
             for req in requirements:
-                items = {k: str(v) for k, v in req.items() if k != "class"}
+                items = {}
+                for k, v in req.items():
+                    if k != 'class':
+                        if isinstance(v, (int, float)):
+                            items[k] = v
+                        else:
+                            items[k] = str(v)
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
