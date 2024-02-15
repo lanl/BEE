@@ -287,13 +287,13 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     sub_wf_dir = wf_dir + "/submit_command_args.txt"
 
     f_name = open(sub_wf_dir, "w", encoding="utf-8")
-    f_name.write("beeflow submit wf_name wf_path main_cwl yaml workdir\n")
-    f_name.write("wf_name: " + str(wf_name) + "\n")
-    f_name.write("wf_path: " + str(wf_path) + "\n")
-    f_name.write("main_cwl: " + str(main_cwl) + "\n")
-    f_name.write("yaml: " + str(yaml) + "\n")
-    f_name.write("workdir: " + str(workdir) + "\n")
-    f_name.write("wf_id: " + str(wf_id))
+    f_name.write(f"beeflow submit wf_name wf_path main_cwl yaml workdir\n")
+    f_name.write(f"wf_name: {str(wf_name)}\n")
+    f_name.write(f"wf_path: {str(wf_path)}\n")
+    f_name.write(f"main_cwl: {str(main_cwl)}\n")
+    f_name.write(f"yaml: {str(yaml)}\n")
+    f_name.write(f"workdir: {str(workdir)}\n")
+    f_name.write(f"wf_id: {str(wf_id)}")
     f_name.close()
 
     return wf_id
