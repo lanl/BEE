@@ -1,8 +1,6 @@
 #!/bin/sh
 # Setup and install BEE.
 
-. ./ci/env.sh
-
 set -e
 
 # BEE Containers
