@@ -16,13 +16,31 @@ app = FastAPI()
 @app.get("/")
 def read_root():
     """Get Connection info"""
-    #TODO
-    return {"Hello": "World"}
+    #Update this root endpoint with a very brief documentation of the various other endpoints.
+    return {"Endpoint info": "
+            You have reached the beeflow core API.
+            Detailed documentation is available here: https://lanl.github.io/BEE/
+            The following endpoints are available:
+            /core/status: Get status information about all of the core beeflow components
+            "}
 
 @app.get("/workflows/status/{wfid}")
 def get_wf_status(wfid: str):
     #TODO
     pass
+
+@app.get("/droppoint")
+def get_drop_point():
+    """ Transmit the location to be used for the storage of workflow tarballs """
+    #TODO
+    pass
+
+@app.get("/owner")
+def get_owner():
+    """ Transmit the owner of this beeflow instance """
+    #TODO
+    pass
+
 
 @app.get("/submit/{filename}")
 def submit_new_wf(filename: str):
