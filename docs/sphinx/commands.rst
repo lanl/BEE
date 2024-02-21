@@ -83,6 +83,11 @@ Arguments:
 Arguments:
   WF_ID  [required]
 
+``beeflow remove``: Remove cancelled or archived workflow and it's information.
+
+Arguments:
+  WF_ID  [required]
+
 ``beeflow copy``: Copy an archived workflow.
 
 Arguments:
