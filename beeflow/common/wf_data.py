@@ -197,6 +197,36 @@ class Task:
                 requirement = default
         return requirement
 
+    def get_full_requirement(self, req_type):
+        """Get the full requirement (or hint) for this task, if it has one.
+
+        :param req_type: the type of requirement (e.g. 'DockerRequirement')
+        :type req_type: str
+
+        This prefers requirements over hints. Returns None if no hint or
+        requirement found.
+        """
+        result = None
+        hints = dict(self.hints)
+        try:
+            # Try to get Hints
+            hint = hints[req_type]
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No task hint specified.
+            hint = None
+        try:
+            # Try to get Requirements
+            req = self.requirements[req_type]
+        except (KeyError, TypeError):
+            # Task Requirements are not mandatory. No task requirement specified.
+            req = None
+        # Prefer requirements over hints
+        if req:
+            result = req
+        elif hint:
+            result = hint
+        return result
+
     def __eq__(self, other):
         """Test the equality of two tasks.
 

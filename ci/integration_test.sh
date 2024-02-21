@@ -1,6 +1,5 @@
 #!/bin/sh
 
-. ./ci/env.sh
 . venv/bin/activate
 
 set +e

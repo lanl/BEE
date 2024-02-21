@@ -141,6 +141,11 @@ class CwlParser:
         else:
             step_cwl = step.run
             step_id = _shortname(step.id)
+            # step_input.id needs to have its step.id prefix stripped
+            for step_input in step_cwl.inputs:
+                step_shortname = _shortname(step_input.id)
+                step_input.id = step_input.id.replace(step_shortname,
+                                                      step_shortname.split("/")[-1])
 
         if step_cwl.class_ != "CommandLineTool":
             raise CwlParseError(f"Step {step.id} class must be CommandLineTool")
@@ -302,7 +307,13 @@ class CwlParser:
             return reqs
         if as_hints:
             for req in requirements:
-                items = {k: str(v) for k, v in req.items() if k != "class"}
+                items = {}
+                for k, v in req.items():
+                    if k != 'class':
+                        if isinstance(v, (int, float)):
+                            items[k] = v
+                        else:
+                            items[k] = str(v)
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
