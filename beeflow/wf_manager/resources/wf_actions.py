@@ -78,10 +78,8 @@ class WFActions(Resource):
             resp = make_response(jsonify(status='Removed'), 202)
             bee_workdir = wf_utils.get_bee_workdir()
             workflow_dir = f"{bee_workdir}/workflows/{wf_id}"
-            print(f"Removing {wf_id} {workflow_dir}")
             shutil.rmtree(workflow_dir, ignore_errors=True)
-            archive_path = f"{bee_workdir}/archives/{wf_id}"
-            print(f"Removing {wf_id} {archive_path}")
+            archive_path = f"{bee_workdir}/archives/{wf_id}.tgz"
             if os.path.exists(archive_path):
                 os.remove(archive_path)
         return resp

@@ -162,7 +162,7 @@ def match_short_id(wf_id):
             long_wf_id = matched_ids[0]
             return long_wf_id
     else:
-        print("There are currently no workflows.")
+        sys.exit("There are currently no workflows.")
 
     return None
 
