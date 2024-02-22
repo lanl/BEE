@@ -2,7 +2,7 @@
 # Developed on Chicoma @lanl
 # Patricia Grubel <pagrubel@lanl.gov>
 
-FROM debian:11
+FROM debian:10
 
 
 RUN apt-get update && \
