@@ -25,6 +25,7 @@ class WFActions(Resource):
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
         db = connect_db(wfm_db, db_path)
+        log.info(f'Starting workflow: {wf_id}')
         if wf_utils.start_workflow(wf_id):
             db.workflows.update_workflow_state(wf_id, 'Running')
             resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
@@ -39,7 +40,9 @@ class WFActions(Resource):
         db = connect_db(wfm_db, db_path)
         tasks = db.workflows.get_tasks(wf_id)
         tasks_status = []
-        if not tasks:
+        wf_state = db.workflows.get_workflow_state(wf_id)
+
+        if not tasks and wf_state != "Initializing":
             log.info(f"Bad query for wf {wf_id}.")
             wf_status = 'No workflow with that ID is currently loaded'
             tasks_status.append('Unavailable')
@@ -91,6 +94,7 @@ class WFActions(Resource):
         option = self.reqparse.parse_args()['option']
 
         wfi = wf_utils.get_workflow_interface(wf_id)
+        log.info('Pausing/resuming workflow')
         wf_state = wfi.get_workflow_state()
         if option == 'pause' and wf_state == 'RUNNING':
             wfi.pause_workflow()

@@ -140,9 +140,9 @@ def create_image():
 
 def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
     """Start the graph database."""
-    setup_gdb_configs(mount_dir, bolt_port, http_port, https_port)
     # We need to rerun the mount step before each start
     if not reexecute:
+        setup_gdb_configs(mount_dir, bolt_port, http_port, https_port)
         setup_gdb_mounts(mount_dir)
 
     db_password = bc.get('graphdb', 'dbpass')

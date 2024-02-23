@@ -49,7 +49,7 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
     subprocess.run(['tar', '-xf', archive_path, '--strip-components=1',
                     '-C', wf_dir], check=False)
     archive_dir = os.path.join(wf_dir, 'gdb')
-    return archive_dir
+    return archive_dir, cwl_dir
 
 
 @shared_task(ignore_result=True)
@@ -76,8 +76,8 @@ def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
     # initialize_wf_profiler(wf_name)
 
     log.info('Setting workflow metadata')
-    wf_utils.create_wf_metadata(wf_id, wf_name)
     db = connect_db(wfm_db, db_path)
+    wf_utils.create_wf_metadata(wf_id, wf_name)
     if reexecute:
         _, tasks = wfi.get_workflow()
     for task in tasks:
@@ -119,7 +119,6 @@ class WFList(Resource):
 
     def post(self):
         """Upload a workflow, initialize database, and start if required."""
-        db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
@@ -152,7 +151,8 @@ class WFList(Resource):
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
 
-        db.workflows.init_workflow(wf_id, wf_name, wf_dir, bolt_port, http_port, https_port)
+        db = connect_db(wfm_db, db_path)
+        db.workflows.init_workflow(wf_id, wf_name, wf_dir, bolt_port, http_port, https_port, -1)
         init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
                             https_port, no_start, workflow=workflow, tasks=tasks)
 
@@ -161,12 +161,11 @@ class WFList(Resource):
 
     def put(self):
         """Reexecute a workflow."""
-        db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
                                location='form')
         reqparser.add_argument('wf_filename', type=str, required=True,
-                               location='form')
+                               locajion='form')
         reqparser.add_argument('workdir', type=str, required=True,
                                location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
@@ -191,7 +190,8 @@ class WFList(Resource):
         http_port = wf_utils.get_open_port()
         https_port = wf_utils.get_open_port()
 
-        db.workflows.init_workflow(wf_id, wf_name, wf_dir, bolt_port, http_port, https_port)
+        db = connect_db(wfm_db, db_path)
+        db.workflows.init_workflow(wf_id, wf_name, wf_dir, bolt_port, http_port, https_port, -1)
         init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
                             https_port, no_start=False, reexecute=True)
 

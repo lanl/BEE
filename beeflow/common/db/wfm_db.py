@@ -4,7 +4,6 @@ from collections import namedtuple
 
 from beeflow.common.db import bdb
 
-
 class WorkflowInfo:
     """Workflow Info object."""
 
@@ -69,13 +68,13 @@ class Workflows:
         workflows = [self.Workflow(*workflow) for workflow in result]
         return workflows
 
-    def init_workflow(self, workflow_id, name, run_dir, bolt_port, http_port, https_port):
+    def init_workflow(self, workflow_id, name, run_dir, bolt_port, http_port, https_port, gdb_pid):
         """Insert a new workflow into the database."""
         stmt = """INSERT INTO workflows (workflow_id, name, state, run_dir,
                                          bolt_port, http_port, https_port, gdb_pid)
                   VALUES(?, ?, ?, ?, ?, ?, ?, ?);"""
         bdb.run(self.db_file, stmt, [workflow_id, name, 'Initializing', run_dir,
-                                     bolt_port, http_port, https_port, -1])
+                                     bolt_port, http_port, https_port, gdb_pid])
 
     def delete_workflow(self, workflow_id):
         """Delete a workflow from the database."""
@@ -107,7 +106,7 @@ class Workflows:
 
     def update_task_state(self, task_id, workflow_id, state):
         """Update the state of a task."""
-        stmt = "UPDATE tasks SET state=? WHERE task_id=? AND workflow_id=? "
+        stmt = "UPDATE tasks SET state=? WHERE task_id=? AND workflow_id=?"
         bdb.run(self.db_file, stmt, [state, task_id, workflow_id])
 
     def get_tasks(self, workflow_id):
@@ -129,6 +128,20 @@ class Workflows:
         result = bdb.getone(self.db_file, stmt, [workflow_id])[0]
         bolt_port = result
         return bolt_port
+
+    def get_http_port(self, workflow_id):
+        """Return the bolt port associated with a workflow."""
+        stmt = "SELECT http_port FROM workflows WHERE workflow_id=?"
+        result = bdb.getone(self.db_file, stmt, [workflow_id])[0]
+        http_port = result
+        return http_port
+
+    def get_https_port(self, workflow_id):
+        """Return the bolt port associated with a workflow."""
+        stmt = "SELECT https_port FROM workflows WHERE workflow_id=?"
+        result = bdb.getone(self.db_file, stmt, [workflow_id])[0]
+        https_port = result
+        return https_port
 
     def get_gdb_pid(self, workflow_id):
         """Return the bolt port associated with a workflow."""
