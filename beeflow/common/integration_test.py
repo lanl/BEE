@@ -194,6 +194,20 @@ def multiple_workflows(outer_workdir):
         utils.check_path_exists(path)
 
 
+@TEST_RUNNER.add()
+def build_failure(outer_workdir):
+    """Test running a workflow with a bad container."""
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
+    workflow = utils.Workflow('build-failure', 'ci/test_workflows/build-failure',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_workflow_failed(workflow)
+    # Only one task
+    util.ci_assert(workflow.task_states[0][2] == 'BUILD_FAILED')
+
+
 @TEST_RUNNER.add(ignore=True)
 def checkpoint_restart(outer_workdir):
     """Test the clamr-ffmpeg checkpoint restart workflow."""
@@ -220,8 +234,7 @@ def checkpoint_restart_failure(outer_workdir):
                               main_cwl='workflow.cwl', job_file='input.yml',
                               workdir=workdir, containers=[])
     yield [workflow]
-    utils.ci_assert(workflow.status == 'Failed',
-                    f'Workflow did not fail as expected (final status: {workflow.status})')
+    utils.check_workflow_failed(workflow)
 
 
 def test_input_callback(arg):
