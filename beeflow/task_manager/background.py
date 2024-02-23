@@ -7,6 +7,7 @@ import traceback
 import jsonpickle
 from beeflow.task_manager import utils
 from beeflow.common import log as bee_logging
+from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build_interfaces import build_main
 
 
@@ -49,6 +50,10 @@ def submit_task(db, worker, task):
         # place job in queue to monitor
         db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
         # update_task_metadata(task.id, task_metadata)
+    except ContainerBuildError as err:
+        job_state = 'BUILD_FAIL'
+        log.error(f'Failed to build container for {task.name}: {err}')
+        log.error(f'{task.name} state: {job_state}')
     except Exception as err:  # noqa (we have to catch everything here)
         # Set job state to failed
         job_state = 'SUBMIT_FAIL'

@@ -205,7 +205,9 @@ def build_failure(outer_workdir):
     yield [workflow]
     utils.check_workflow_failed(workflow)
     # Only one task
-    util.ci_assert(workflow.task_states[0][2] == 'BUILD_FAILED')
+    task_state = workflow.task_states[0][2]
+    utils.ci_assert(task_state == 'BUILD_FAIL',
+                    f'task was not in state BUILD_FAIL as expected: {task_state}')
 
 
 @TEST_RUNNER.add(ignore=True)

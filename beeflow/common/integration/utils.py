@@ -238,10 +238,10 @@ def check_path_exists(path):
 
 def check_completed(workflow):
     """Ensure the workflow has a completed status."""
-    ci_assert(workflow.status == 'Archived', f'Bad workflow status {workflow.status}')
+    ci_assert(workflow.status == 'Archived', f'bad workflow status {workflow.status}')
 
 
 def check_workflow_failed(workflow):
     """Ensure that the workflow completed in a Failed state."""
     ci_assert(workflow.status == 'Failed',
-              f'Workflow did not fail as expected (final status: {workflow.status})')
+              f'workflow did not fail as expected (final status: {workflow.status})')
