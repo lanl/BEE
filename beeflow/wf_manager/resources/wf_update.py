@@ -108,13 +108,14 @@ class WFUpdate(Resource):
             wf_utils.schedule_submit_tasks(wf_id, tasks)
             return make_response(jsonify(status='Task {task_id} restarted'))
 
-        if job_state in ('COMPLETED', 'FAILED'):
+        if job_state == 'COMPLETED':
             for output in task.outputs:
                 if output.glob is not None:
                     wfi.set_task_output(task, output.id, output.glob)
                 else:
                     wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
+            log.info(f'next tasks to run: {tasks}')
             wf_state = wfi.get_workflow_state()
             if tasks and wf_state != 'PAUSED':
                 wf_utils.schedule_submit_tasks(wf_id, tasks)
@@ -125,13 +126,20 @@ class WFUpdate(Resource):
                 archive_workflow(db, wf_id)
                 pid = db.workflows.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
-            if wf_state == 'FAILED':
-                log.info("Workflow failed")
-                log.info("Shutting down GDB")
-                wf_id = wfi.workflow_id
-                archive_workflow(db, wf_id)
-                pid = db.workflows.get_gdb_pid(wf_id)
-                dep_manager.kill_gdb(pid)
+
+        # If the job failed and it doesn't include a checkpoint-restart hint,
+        # then fail the entire workflow
+        if job_state == 'FAILED':
+            wfi.set_workflow_state('FAILED')
+            wf_utils.update_wf_status(wf_id, 'Failed')
+            db.workflows.update_workflow_state(wf_id, 'Failed')
+            log.info("Workflow failed")
+            log.info("Shutting down GDB")
+            wf_id = wfi.workflow_id
+            # Should failed workflows be archived?
+            # archive_workflow(db, wf_id)
+            pid = db.workflows.get_gdb_pid(wf_id)
+            dep_manager.kill_gdb(pid)
 
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)

@@ -287,7 +287,10 @@ class Task:
         nonpositional_inputs = []
         for input_ in self.inputs:
             if input_.value is None:
-                raise ValueError("trying to construct command for task with missing input value")
+                raise ValueError(
+                    ("trying to construct command for task with missing input value "
+                     f"(id: {input_.id})")
+                )
 
             if input_.position is not None:
                 positional_inputs.append(input_)

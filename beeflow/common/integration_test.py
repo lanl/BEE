@@ -194,6 +194,21 @@ def multiple_workflows(outer_workdir):
         utils.check_path_exists(path)
 
 
+@TEST_RUNNER.add()
+def test_failure_dependent_tasks(outer_workdir):
+    """Test that dependent tasks don't run after a failure."""
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
+    workflow = utils.Workflow('failure-dependent-tasks',
+                              'ci/test_workflows/failure-dependent-tasks',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.ci_assert(workflow.status == 'Failed',
+                    f'Workflow did not fail as expected (final status: {workflow.status})')
+    # TODO: Check task statuses
+
+
 @TEST_RUNNER.add(ignore=True)
 def checkpoint_restart(outer_workdir):
     """Test the clamr-ffmpeg checkpoint restart workflow."""
