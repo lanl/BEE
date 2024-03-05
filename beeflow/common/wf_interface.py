@@ -8,6 +8,7 @@ from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
 
+
 class WorkflowInterface:
     """Interface for manipulating workflows."""
 
@@ -112,7 +113,7 @@ class WorkflowInterface:
         else:
             log.error("invalid task for checkpoint restart")
             raise ValueError("invalid task for checkpoint restart")
-        
+
         new_task = task.copy(new_id=True)
         # Pattern match on task name
         # Append (1) if not in name already
