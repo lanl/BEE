@@ -19,6 +19,7 @@ import time
 import daemon
 import typer
 
+from beeflow.client import bee_client
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import cli_connection
 from beeflow.common import paths
@@ -454,7 +455,22 @@ def stop():
 @app.command()
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
-    """Delete the bee_workdir directory."""
+    """Stop all components and delete the bee_workdir directory."""
+    # Check workflow states: Do not reset if any are Intializing or Running.
+    workflow_list = bee_client.get_wf_list()
+    if any('Running' in sublist for sublist in workflow_list):
+        sys.exit(
+            """
+            Some workflows are still running to list workflow states use:
+            'beeflow list'
+
+            If you still want to reset, first cancel running workflows using:
+            'beeflow cancel <wf_id>'
+            """)
+
+    elif any('Initializing' in sublist for sublist in workflow_list):
+        sys.exit("Some workflows are 'Initializing', reset failed. Check 'beeflow list'")
+
     # Check to see if the user is absolutely sure. Warning Message.
     absolutely_sure = ""
     while absolutely_sure != "y" or absolutely_sure != "n":
@@ -464,22 +480,19 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
 
         absolutely_sure = input(
             """
-Are you sure you want to reset?
+            Are you sure you want to reset?
 
-Please ensure all workflows are complete before running a reset
-Check the status of workflows by running 'beeflow list'
+            A reset will:
+               Shutdown beeflow and all BEE components.
+               Delete the bee_workdir directory which results in:
+                   Removing the archive of all workflows.
+                   Removing the archive of workflow containers
+                       (unless container_archive is configured elsewhere).
+                   Reset all databases associated with the beeflow app.
+                   Removing all beeflow logs.
+               Beeflow configuration files from bee_cfg will not be deleted.
 
-A reset will shutdown beeflow and its components.
-
-A reset will delete the bee_workdir directory which results in:
-Removing the archive of workflows executed.
-Removing the archive of workflow containers.
-Reset all databases associated with the beeflow app.
-Removing all beeflow logs.
-
-Beeflow configuration files from bee_cfg will remain.
-
-Respond with yes(y)/no(n):  """)
+            Respond with yes(y)/no(n):  """)
         if absolutely_sure in ("n", "no"):
             # Exit out if the user didn't really mean to do a reset
             sys.exit()
