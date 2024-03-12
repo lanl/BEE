@@ -221,12 +221,15 @@ DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
+DEFAULT_BEE_DROPPOINT = join_path(HOME_DIR, '.beeflow/droppoint')
 USER = getpass.getuser()
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
 VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
                  attrs={'default': DEFAULT_BEE_WORKDIR}, validator=validation.make_dir)
+VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop point',
+                 attrs={'default': DEFAULT_BEE_DROPPOINT}, validator=validation.make_dir)
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  info='backend workload scheduler to interact with ')
 VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, attrs={'default': True},
