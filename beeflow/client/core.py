@@ -25,6 +25,12 @@ from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.wf_manager.resources import wf_utils
 
+from beeflow.common.db import wfm_db
+from beeflow.common.db.bdb import connect_db
+from beeflow.wf_manager.common import dep_manager
+
+db_path = wf_utils.get_db_path()
+
 
 class ComponentManager:
     """Component manager class."""
@@ -432,12 +438,16 @@ def status():
 
 
 @app.command()
-def stop():
+def stop(query='yes'):
     """Stop the current running beeflow daemon."""
-    stop_msg = ("\n** Please ensure all workflows are complete before stopping beeflow. **"
-                + "\n** Check the status of workflows by running 'beeflow list'.    **"
-                + "\nAre you sure you want to kill beeflow components? [y/n] ")
-    ans = input(stop_msg)
+    print(f"query is {query}")
+    if query == 'yes':
+        stop_msg = ("\n** Please ensure all workflows are complete before stopping beeflow. **"
+                    + "\n** Check the status of workflows by running 'beeflow list'.    **"
+                    + "\nAre you sure you want to kill beeflow components? [y/n] ")
+        ans = input(stop_msg)
+    else:
+        ans = 'y'
     if ans.lower() != 'y':
         return
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
@@ -449,7 +459,8 @@ def stop():
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
-    print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
+    if (query != "quiet"):
+        print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
 @app.command()
@@ -458,28 +469,22 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     """Stop all components and delete the bee_workdir directory."""
     # Check workflow states: Do not reset if any are Intializing or Running.
     workflow_list = bee_client.get_wf_list()
-    if any('Running' in sublist for sublist in workflow_list):
-        sys.exit(
-            """
-            Some workflows are still running to list workflow states use:
-            'beeflow list'
-
-            If you still want to reset, first cancel running workflows using:
-            'beeflow cancel <wf_id>'
-            """)
-
-    elif any('Initializing' in sublist for sublist in workflow_list):
-        sys.exit("Some workflows are 'Initializing', reset failed. Check 'beeflow list'")
-
-    # Check to see if the user is absolutely sure. Warning Message.
+    print(f"workflow_list is {workflow_list}")
+    caution = ""
+    active_states = {'Running', 'Paused', 'Initializing'}
+    if set([item for row in workflow_list for item in row]).intersection(active_states):
+           caution = """
+                 **********************************************************
+                 Caution: There are active workflows! They will be removed!
+                          Try 'beeflow list' to view them.
+                 **********************************************************
+                   """
     absolutely_sure = ""
     while absolutely_sure != "y" or absolutely_sure != "n":
         # Get the user's bee_workdir directory
         directory_to_delete = os.path.expanduser(wf_utils.get_bee_workdir())
-        print(f"A reset will remove this directory: {directory_to_delete}")
-
-        absolutely_sure = input(
-            """
+        print(f"\nA reset will remove this directory: {directory_to_delete}")
+        query_text = """
             Are you sure you want to reset?
 
             A reset will:
@@ -492,18 +497,32 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                    Removing all beeflow logs.
                Beeflow configuration files from bee_cfg will not be deleted.
 
-            Respond with yes(y)/no(n):  """)
+            """
+        absolutely_sure = input(f"{query_text} {caution} Respond with yes(y)/no(n): ")
         if absolutely_sure in ("n", "no"):
             # Exit out if the user didn't really mean to do a reset
             sys.exit()
         if absolutely_sure in ("y", "yes"):
+            # First remove all running or paused workflows
+            workflow_list = bee_client.get_wf_list()
+            print(f"workflow_list is {workflow_list}")
+            db = connect_db(wfm_db, db_path)
+            for name, wf_id, status in workflow_list:
+                if status in active_states:
+                    print(f"active {name} {wf_id} {status}")
+                    pid = db.workflows.get_gdb_pid(wf_id)
+                    if (pid > 0):
+                        dep_manager.kill_gdb(pid)
+                        print(f"killed {name} {wf_id} {status} {pid}")
             # Stop all of the beeflow processes
-            resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
-            if resp is not None:
-                print("Beeflow has been shutdown.")
-                print("Waiting for components to cleanly stop.")
-                # This wait is essential. It takes a minute to shut down.
-                time.sleep(5)
+            stop("quiet")
+            #resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
+            #print(f"resp is {resp}")
+            #if resp is not None:
+            print("Beeflow is shutting down.")
+            print("Waiting for components to cleanly stop.")
+            # This wait is essential. It takes a minute to shut down.
+            time.sleep(5)
 
             if os.path.exists(directory_to_delete):
                 # Save the bee_workdir directory if the archive option was set
@@ -523,12 +542,15 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                     print("Archive flag enabled,")
                     print("Existing logs, containers, and workflows backed up in:")
                     print(f"{directory_to_delete}.backup")
-                shutil.rmtree(directory_to_delete)
-                print(f"{directory_to_delete} has been removed.")
-                sys.exit()
+                try:
+                     shutil.rmtree(directory_to_delete)
+                except OSError as err:
+                     print(f"Attempted to remove {directory_to_delete} {err.strerror}.")
+                else:
+                     print(f"{directory_to_delete} has been removed.")
             else:
                 print(f"{directory_to_delete} does not exist. Exiting.")
-                sys.exit()
+            sys.exit()
         print("Please respond with either the letter (y) or (n).")
 
 
