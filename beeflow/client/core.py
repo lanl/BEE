@@ -440,7 +440,6 @@ def status():
 @app.command()
 def stop(query='yes'):
     """Stop the current running beeflow daemon."""
-    print(f"query is {query}")
     if query == 'yes':
         stop_msg = ("\n** Please ensure all workflows are complete before stopping beeflow. **"
                     + "\n** Check the status of workflows by running 'beeflow list'.    **"
@@ -459,8 +458,9 @@ def stop(query='yes'):
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
-    if (query != "quiet"):
+    if (query == "no"):
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
+
 
 
 @app.command()
@@ -469,9 +469,8 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     """Stop all components and delete the bee_workdir directory."""
     # Check workflow states: Do not reset if any are Intializing or Running.
     workflow_list = bee_client.get_wf_list()
-    print(f"workflow_list is {workflow_list}")
     caution = ""
-    active_states = {'Running', 'Paused', 'Initializing'}
+    active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
     if set([item for row in workflow_list for item in row]).intersection(active_states):
            caution = """
                  **********************************************************
@@ -480,6 +479,7 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                  **********************************************************
                    """
     absolutely_sure = ""
+    initializing_wf = False
     while absolutely_sure != "y" or absolutely_sure != "n":
         # Get the user's bee_workdir directory
         directory_to_delete = os.path.expanduser(wf_utils.get_bee_workdir())
@@ -505,20 +505,20 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
         if absolutely_sure in ("y", "yes"):
             # First remove all running or paused workflows
             workflow_list = bee_client.get_wf_list()
-            print(f"workflow_list is {workflow_list}")
             db = connect_db(wfm_db, db_path)
             for name, wf_id, status in workflow_list:
                 if status in active_states:
-                    print(f"active {name} {wf_id} {status}")
+                    if status == 'Initializing':
+                            time.sleep(10)
                     pid = db.workflows.get_gdb_pid(wf_id)
+                    print(f"{wf_id} {pid}")
                     if (pid > 0):
                         dep_manager.kill_gdb(pid)
-                        print(f"killed {name} {wf_id} {status} {pid}")
+                        print(f"killing {pid}")
+                    elif status == 'Initializing':
+                        initializing_wf = True
             # Stop all of the beeflow processes
             stop("quiet")
-            #resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
-            #print(f"resp is {resp}")
-            #if resp is not None:
             print("Beeflow is shutting down.")
             print("Waiting for components to cleanly stop.")
             # This wait is essential. It takes a minute to shut down.
@@ -542,10 +542,22 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                     print("Archive flag enabled,")
                     print("Existing logs, containers, and workflows backed up in:")
                     print(f"{directory_to_delete}.backup")
+                    print(f"{os.listdir(directory_to_delete)}")
                 try:
                      shutil.rmtree(directory_to_delete)
                 except OSError as err:
-                     print(f"Attempted to remove {directory_to_delete} {err.strerror}.")
+                     #Check if only nfs mounts are causing the problem (ignore)
+                     dir_list = os.listdir(directory_to_delete)
+                     nfs_list = [x for x in dir_list if x.startswith('.nfs')]
+                     if dir_list and (dir_list != nfs_list):
+                         print(f"Unable to remove {directory_to_delete} \n {err.strerror}")
+                         if initializing_wf:
+                             text = """
+                             Reset failed due to Initializing workflow(s).
+                             To clear things up, you should repeat the reset, now by:
+                                   `beeflow core start` followed by `beeflow core reset`
+                             """
+                             print(text)
                 else:
                      print(f"{directory_to_delete} has been removed.")
             else:
