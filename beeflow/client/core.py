@@ -14,6 +14,7 @@ import subprocess
 import socket
 import sys
 import shutil
+import datetime
 import time
 
 import daemon
@@ -462,43 +463,53 @@ def stop(query='yes'):
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
-
 @app.command()
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
     """Stop all components and delete the bee_workdir directory."""
-    # Check workflow states: Do not reset if any are Intializing or Running.
+    # Text for various situations
+    init_fail_text = """
+    Reset failed due to Initializing workflow(s).
+    To clear things up, you should repeat the reset, now by executing:
+
+        `beeflow core start`
+        `beeflow core reset`
+    """
+    active_wf_caution = """
+    **************************************************************
+      Caution: There are active workflows! They will be removed!
+      Try 'beeflow list' to view them.
+    **************************************************************
+    """
+    reset_info = """
+    A reset will:
+        Shutdown beeflow and all BEE components.
+        Delete the bee_workdir directory which results in:
+            Removing the archive of all workflows.
+            Removing the archive of workflow containers
+                (unless container_archive is configured elsewhere).
+            Reset all databases associated with the beeflow app.
+            Removing all beeflow logs.
+        Beeflow configuration files from bee_cfg will not be deleted.
+    """
+
+    # Check workflow states; warn if there are active states.
     workflow_list = bee_client.get_wf_list()
     caution = ""
     active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
     if set([item for row in workflow_list for item in row]).intersection(active_states):
-           caution = """
-                 **********************************************************
-                 Caution: There are active workflows! They will be removed!
-                          Try 'beeflow list' to view them.
-                 **********************************************************
-                   """
+        caution = active_wf_caution
     absolutely_sure = ""
     initializing_wf = False
+    dir_to_delete = os.path.expanduser(wf_utils.get_bee_workdir())
+    warn(f"\n    A reset will remove this directory: {dir_to_delete}\n")
+    if archive:
+        print("    Archive flag is set: logs, workflows and containers will be backed up.")
+    print(reset_info)
+    warn(f"{caution}\nAre you sure you want to reset?")
     while absolutely_sure != "y" or absolutely_sure != "n":
         # Get the user's bee_workdir directory
-        directory_to_delete = os.path.expanduser(wf_utils.get_bee_workdir())
-        print(f"\nA reset will remove this directory: {directory_to_delete}")
-        query_text = """
-            Are you sure you want to reset?
-
-            A reset will:
-               Shutdown beeflow and all BEE components.
-               Delete the bee_workdir directory which results in:
-                   Removing the archive of all workflows.
-                   Removing the archive of workflow containers
-                       (unless container_archive is configured elsewhere).
-                   Reset all databases associated with the beeflow app.
-                   Removing all beeflow logs.
-               Beeflow configuration files from bee_cfg will not be deleted.
-
-            """
-        absolutely_sure = input(f"{query_text} {caution} Respond with yes(y)/no(n): ")
+        absolutely_sure = input("Respond with yes(y)/no(n): ")
         if absolutely_sure in ("n", "no"):
             # Exit out if the user didn't really mean to do a reset
             sys.exit()
@@ -508,15 +519,13 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             db = connect_db(wfm_db, db_path)
             for name, wf_id, status in workflow_list:
                 if status in active_states:
-                    if status == 'Initializing':
-                            time.sleep(10)
                     pid = db.workflows.get_gdb_pid(wf_id)
-                    print(f"{wf_id} {pid}")
                     if (pid > 0):
                         dep_manager.kill_gdb(pid)
-                        print(f"killing {pid}")
                     elif status == 'Initializing':
                         initializing_wf = True
+            if initializing_wf:
+                time.sleep(10)
             # Stop all of the beeflow processes
             stop("quiet")
             print("Beeflow is shutting down.")
@@ -524,44 +533,36 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             # This wait is essential. It takes a minute to shut down.
             time.sleep(5)
 
-            if os.path.exists(directory_to_delete):
+            if os.path.exists(dir_to_delete):
                 # Save the bee_workdir directory if the archive option was set
                 if archive:
-                    if os.path.exists(directory_to_delete + "/logs"):
-                        shutil.copytree(directory_to_delete + "/logs",
-                                        directory_to_delete + ".backup/logs")
-                    if os.path.exists(directory_to_delete + "/container_archive"):
-                        shutil.copytree(directory_to_delete + "/container_archive",
-                                        directory_to_delete + ".backup/container_archive")
-                    if os.path.exists(directory_to_delete + "/archives"):
-                        shutil.copytree(directory_to_delete + "/archives",
-                                        directory_to_delete + ".backup/archives")
-                    if os.path.exists(directory_to_delete + "/workflows"):
-                        shutil.copytree(directory_to_delete + "/workflows",
-                                        directory_to_delete + ".backup/workflows")
-                    print("Archive flag enabled,")
-                    print("Existing logs, containers, and workflows backed up in:")
-                    print(f"{directory_to_delete}.backup")
-                    print(f"{os.listdir(directory_to_delete)}")
+                    archive_dirs = ['logs', 'container_archive', 'archives', 'workflows']
+                    date_str = f"{datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')}"
+                    backup_dir = f"{dir_to_delete}.{date_str}"
+                    for archive_dir in archive_dirs:
+                        try:
+                            shutil.copytree(f"{dir_to_delete}/{archive_dir}",
+                                            f"{backup_dir}/{archive_dir}")
+                        except FileNotFoundError:
+                            pass
+                    print("Archive flag enabled.",
+                          "Existing logs, containers, and workflows backed up in:\n"
+                          f"{backup_dir}")
                 try:
-                     shutil.rmtree(directory_to_delete)
+                    shutil.rmtree(dir_to_delete)
                 except OSError as err:
-                     #Check if only nfs mounts are causing the problem (ignore)
-                     dir_list = os.listdir(directory_to_delete)
-                     nfs_list = [x for x in dir_list if x.startswith('.nfs')]
-                     if dir_list and (dir_list != nfs_list):
-                         print(f"Unable to remove {directory_to_delete} \n {err.strerror}")
-                         if initializing_wf:
-                             text = """
-                             Reset failed due to Initializing workflow(s).
-                             To clear things up, you should repeat the reset, now by:
-                                   `beeflow core start` followed by `beeflow core reset`
-                             """
-                             print(text)
+                    # Check if only nfs mounts are causing the problem (ignore)
+                    dir_list = os.listdir(dir_to_delete)
+                    nfs_list = [x for x in dir_list if x.startswith('.nfs')]
+                    if dir_list and (dir_list != nfs_list):
+                        print(f"Unable to remove {dir_to_delete} \n {err.strerror}")
+                        # Often initializing workflows cause a problem
+                        if initializing_wf:
+                            warn(init_fail_text)
                 else:
-                     print(f"{directory_to_delete} has been removed.")
+                     print(f"{dir_to_delete} has been removed.")
             else:
-                print(f"{directory_to_delete} does not exist. Exiting.")
+                print(f"{dir_to_delete} does not exist. Exiting.")
             sys.exit()
         print("Please respond with either the letter (y) or (n).")
 
