@@ -464,7 +464,7 @@ def stop(query='yes'):
 
 
 def kill_active_workflows(active_states, workflow_list):
-    """ Kill workflows with active states."""
+    """Kill workflows with active states."""
     db = connect_db(wfm_db, db_path)
     success = True
     for name, wf_id, state in workflow_list:
@@ -480,7 +480,7 @@ def kill_active_workflows(active_states, workflow_list):
 
 
 def archive_dir(dir_to_archive):
-    """ Archive directories for archive flag in reset."""
+    """Archive directories for archive flag in reset."""
     archive_dirs = ['logs', 'container_archive', 'archives', 'workflows']
     date_str = f"{datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')}"
     backup_dir = f"{dir_to_archive}.{date_str}"
@@ -512,7 +512,6 @@ def handle_rm_error(err, dir_to_check, wf_list):
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
     """Stop all components and delete the bee_workdir directory."""
-
     # Check workflow states; warn if there are active states.
     workflow_list = bee_client.get_wf_list()
     active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
