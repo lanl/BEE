@@ -87,3 +87,10 @@ def celery_config():
 def celery_db():
     """Return the celery db path."""
     return os.path.join(_celery_root(), 'celery.db')
+
+def droppoint_root():
+    """Get the root directory for the current droppoint"""
+    bee_droppoint = bc.get('DEFAULT', 'bee_droppoint')
+    #path = os.path.join(_workdir(), 'droppoint')
+    #os.makedirs(path, exist_ok=True)
+    return bee_droppoint

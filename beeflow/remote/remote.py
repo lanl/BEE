@@ -4,11 +4,12 @@ This script manages an API that allows the remote submission and viewing of jobs
 """
 
 
-from fastapi import FastAPI
 from beeflow.common import cli_connection
 from beeflow.common import paths
 
+from fastapi import FastAPI
 import sys
+import os
 import uvicorn
 
 app = FastAPI()
@@ -17,12 +18,14 @@ app = FastAPI()
 def read_root():
     """Get Connection info"""
     #Update this root endpoint with a very brief documentation of the various other endpoints.
-    return {"Endpoint info": "
+    return {"Endpoint info": 
+            """
             You have reached the beeflow core API.
             Detailed documentation is available here: https://lanl.github.io/BEE/
             The following endpoints are available:
             /core/status: Get status information about all of the core beeflow components
-            "}
+            """
+            }
 
 @app.get("/workflows/status/{wfid}")
 def get_wf_status(wfid: str):
@@ -31,15 +34,15 @@ def get_wf_status(wfid: str):
 
 @app.get("/droppoint")
 def get_drop_point():
-    """ Transmit the location to be used for the storage of workflow tarballs """
-    #TODO
-    pass
+    """ Transmit the scp location to be used for the storage of workflow tarballs """
+    return paths.droppoint_root()
+    
 
 @app.get("/owner")
 def get_owner():
     """ Transmit the owner of this beeflow instance """
-    #TODO
-    pass
+    user_name = os.getenv('USER') or os.getenv('USERNAME')
+    return user_name
 
 
 @app.get("/submit/{filename}")
@@ -48,11 +51,6 @@ def submit_new_wf(filename: str):
     #TODO How are we going to get the workflow tarball onto the instance?
     pass
 
-@app.get("/upload/{file}")
-def upload_tarball(file: str):
-    """Upload a tarball file"""
-    #TODO We might need to do this in pieces if the file is really big. Lets see if FASTAPI already has something for that
-    pass
 
 @app.get("/cleanup")
 def cleanup_wf_directory():
@@ -75,7 +73,5 @@ def get_core_status():
 
 def create_app():
     """ Start the web-server for the API with uvicorn """
-    #TODO decide what port we're using for the long term. I set it to port 7777 temporarily because I thought it would be 
-    #funny if we showed up on nmap scans by our OPFOR as a terraria server. This port only seems to be used by various video games
-    #according to the references I found so it might be ideal for HPC purposes.
-    uvicorn.run("beeflow.remote.remote:app", host="127.0.0.1", port=7777, reload=True)
+    #TODO decide what port we're using for the long term. I set it to port 7777 temporarily
+    uvicorn.run("beeflow.remote.remote:app", host="0.0.0.0", port=7777, reload=True)
