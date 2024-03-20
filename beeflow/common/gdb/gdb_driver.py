@@ -1,9 +1,6 @@
 """Abstract base class for the handling of workflow DAGs."""
 
 from abc import ABC, abstractmethod
-from beeflow.common import log as bee_logging
-
-log = bee_logging.setup(__name__)
 
 
 class GraphDatabaseDriver(ABC):

@@ -4,9 +4,6 @@ Delegates its work to a GraphDatabaseInterface instance.
 """
 
 import re
-from beeflow.common import log as bee_logging
-
-log = bee_logging.setup(__name__)
 
 
 class WorkflowInterface:
@@ -36,7 +33,6 @@ class WorkflowInterface:
         :type workflow: Workflow
         """
         if self.workflow_loaded():
-            log.error("attempt to re-initialize existing workflow")
             raise RuntimeError("attempt to re-initialize existing workflow")
         if workflow.requirements is None:
             workflow.requirements = []
@@ -111,7 +107,6 @@ class WorkflowInterface:
                 self.set_workflow_state("FAILED")
                 return None
         else:
-            log.error("invalid task for checkpoint restart")
             raise ValueError("invalid task for checkpoint restart")
 
         new_task = task.copy(new_id=True)
