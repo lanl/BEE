@@ -1,4 +1,8 @@
-"""Configuration validation."""
+"""Config validation code."""
+
+from beeflow.common import log as bee_logging
+
+log = bee_logging.setup(__name__)
 
 
 class ConfigError(Exception):
@@ -18,43 +22,69 @@ class ConfigValidator:
     def validate(self, conf):
         """Validate a config and return a new config with defaults and values converted."""
         new_conf = {}
-        # first validate each option
+        errors = []
+
+        self._validate_existing_options(conf, new_conf, errors)
+        self._check_required_options(conf, new_conf, errors)
+
+        # Bundle up all the errors into one exception
+        if errors:
+            message = ['Config validation failed:\n']
+            message.extend(f'    * {error}\n' for error in errors)
+            raise ConfigError(''.join(message))
+
+        return new_conf
+
+    def _validate_existing_options(self, conf, new_conf, errors):
+        """Validate existing options within the config."""
+        # First validate each option
         for sec_name in conf:
-            new_conf[sec_name] = {}
             section = conf[sec_name]
             if sec_name not in self._sections:
-                raise ValueError(f'section "{sec_name}" is not defined')
-            # check that this section is valid in this context
+                log.warning(f'config contains invalid section "{sec_name}"')
+                continue
+            new_conf[sec_name] = {}
+            # Check that this section is valid in this context
             dep = self._sections[sec_name].depends_on
             if not self._validate_section(conf, depends_on=dep):
-                raise ValueError(
+                errors.append(
                     f"section '{sec_name}' requires that {dep[0]}::{dep[1]} == '{dep[2]}'"
                 )
-            # validate each option
+                continue
+            # Validate each option
             for opt_name in section:
                 key = (sec_name, opt_name)
                 if key not in self._options:
-                    raise ValueError(
-                        f"option '{opt_name}' in section '{sec_name}' is not defined"
-                    )
+                    log.warning(f"option {sec_name}::{opt_name} is not a valid option")
+                    continue
                 option = self._options[key]
                 try:
                     new_conf[sec_name][opt_name] = option.validate(section[opt_name])
                 except ValueError as err:
-                    raise ValueError(
-                        f'{sec_name}::{opt_name}: {err.args[0]}'
-                    ) from None
-        # then check required options
-        for key in self._options:
-            if not self._validate_section(conf, self._sections[key[0]].depends_on):
-                # skip invalid sections
-                continue
-            if key[0] not in conf or key[1] not in conf[key[0]]:
-                raise ValueError(
-                    f"option '{key[1]}' in section '{key[0]}' is required but has not been set"
-                )
+                    errors.append(f'{sec_name}::{opt_name}: {err.args[0]}')
 
-        return new_conf
+    def _check_required_options(self, conf, new_conf, errors):
+        """Check for required options and set defaults as necessary."""
+        # Then check required options
+        for sec_name, opt_name in self._options:
+            key = (sec_name, opt_name)
+            if not self._validate_section(conf, self._sections[sec_name].depends_on):
+                # Skip invalid sections
+                continue
+            if sec_name not in conf or opt_name not in conf[sec_name]:
+                default = self._options[key].default
+                if default is None:
+                    errors.append(
+                        f'option {sec_name}::{opt_name} is required but has not been set'
+                    )
+                    continue
+                # Set the default, but warn the user
+                log.warning('option {sec_name}::{opt_name} is missing, setting to default '
+                            f'"{default}"; please check that that is correct and update the '
+                            'config')
+                if sec_name not in new_conf:
+                    new_conf[sec_name] = {}
+                new_conf[sec_name][opt_name] = default
 
     def _validate_section(self, conf, depends_on):
         """Ensure that this section is valid in this context (check depends relations)."""
@@ -62,7 +92,7 @@ class ConfigValidator:
             return True
         if depends_on[0] not in conf or depends_on[1] not in conf[depends_on[0]]:
             return False
-        # value must match for the section to be valid
+        # Value must match for the section to be valid
         return conf[depends_on[0]][depends_on[1]] == depends_on[2]
 
     def is_section_valid(self, cur_conf, sec_name):
@@ -78,7 +108,7 @@ class ConfigValidator:
         if sec_name in self._sections:
             raise ConfigError(f"section '{sec_name}' has already been defined")
         self._sections[sec_name] = ConfigSection(info, depends_on=depends_on)
-        # save insertion order
+        # Save insertion order
         self._section_order.append(sec_name)
 
     def option(self, sec_name, opt_name, *args, **kwargs):
@@ -87,9 +117,7 @@ class ConfigValidator:
             raise ConfigError(f"section '{sec_name}' has not been defined")
         key = (sec_name, opt_name)
         if key in self._options:
-            raise ConfigError(
-                f"option '{opt_name}' in section '{sec_name}' has already been defined"
-            )
+            raise ConfigError(f'option {sec_name}::{opt_name} has already been defined')
         try:
             self._options[key] = ConfigOption(*args, **kwargs)
         except ConfigError as err:
@@ -132,12 +160,14 @@ class ConfigSection:
 class ConfigOption:
     """Config option/validation class."""
 
-    def __init__(self, info, validator=str, choices=None, attrs=None):
+    def __init__(self, info, validator=str, choices=None, default=None, input_fn=None):
         """Construct the config option class."""
         self.info = info
         self.choices = choices
-        # attrs is designed to hold any extra attribute that could be useful
-        self.attrs = attrs
+        # Default value, if None the option is required
+        self.default = default
+        # Function used to set the option from user input at config generation time
+        self.input_fn = input_fn
         self._validator = validator
 
     def validate(self, value):
@@ -147,5 +177,3 @@ class ConfigOption:
                 raise ValueError(f"value must be one of {self.choices}; found '{value}'")
             return value
         return self._validator(value)
-# Ignore C901: "'ConfigValidator.validate' is too complex" - this function is under 40 LOC
-# pylama:ignore=C901
