@@ -25,10 +25,6 @@ inputs:
 
 outputs:
 # Outputs for all the steps
-# Check where we copy these probably at CWD
-# Files need to exist at end of workflow, but we aren't currently checking
-# We have function to get workflow_outputs
-# TODO add step to workflow_manager to confirm that each of these outputs exist
   clamr_stdout:
     type: File
     outputSource: clamr/clamr_stdout
@@ -55,14 +51,12 @@ steps:
     out: [clamr_stdout, outdir, time_log]
     hints:
         beeflow:ScriptRequirement:
-            enabled: true    
-            pre_script_path: "pre_run.sh"
-            post_script_path: "post_run.sh"
+            enabled: true
+            pre_script: "pre_run.sh"
+            post_script: "post_run.sh"
         DockerRequirement:
-            # TODO Sort this out
-            #dockerImport: clamr_img.tar.gz
-            #beeflow:copyContainer: clamr
-            beeflow:copyContainer: "/usr/projects/beedev/clamr/clamr-toss.tar.gz"
+            dockerFile: "Dockerfile.clamr-ffmpeg"
+            beeflow:containerName: "clamr-ffmpeg"
 
   ffmpeg:
     run: ffmpeg.cwl
@@ -78,5 +72,7 @@ steps:
       output_file: output_filename
     # Multiple outputs can be in array
     out: [movie, ffmpeg_stderr]
-    requirements:
-        InlineJavascriptRequirement: {}
+    hints:
+        DockerRequirement:
+            dockerFile: "Dockerfile.clamr-ffmpeg"
+            beeflow:containerName: "clamr-ffmpeg"

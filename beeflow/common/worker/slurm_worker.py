@@ -54,12 +54,14 @@ class BaseSlurmWorker(Worker):
                                          'partition',
                                          default=self.default_partition)
 
-        scripts_enabled = task.get_requirement('beeflow:ScriptRequirement', 'enabled')
-        # We use StringIO here to properly break the script up into lines with readlines
-        pre_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
-                                 'pre_script_path')).readlines()
-        post_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
-                                  'post_script_path')).readlines()
+        scripts_enabled = task.get_requirement('beeflow:ScriptRequirement', 'enabled',
+                                               default=False)
+        if scripts_enabled:
+            # We use StringIO here to properly break the script up into lines with readlines
+            pre_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
+                                     'pre_script')).readlines()
+            post_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
+                                      'post_script')).readlines()
         # sbatch header
         script = [
             '#!/bin/bash',

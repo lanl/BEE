@@ -173,3 +173,29 @@ An example is shown below::
       timeLimit: 00:00:10
       account: account12345
       partition: scaling
+
+beeflow:ScriptRequirement
+-------------------------
+
+Some tasks may require small additional commands for setup or teardown such as
+loading modules, setting up checkpointing files, or cleaning up after a run.
+The script requirement enables this by adding shell scripts that will run before
+and after a task. The script must be within the workflow directory.The shell
+interpreter will be set to  whatever is in the ``$SHELL`` environment variable
+on the system e.g. if ``$SHELL`` is ``/bin/bash``, it will run the script as
+bash. The pre_script is run before a task and the post_script is run after.
+Currently, we only support running scripts outside of a container. We are
+considering adding container support in the future.
+
+ScriptRequirement currently supports the following options:
+
+* ``enabled`` - Enables pre/post script support
+* ``pre_script`` - Path to the pre_script relative to the workflow directory. 
+* ``post_script`` - Path to the post_script relative to the workflow directory.
+
+An example ``beeflow:ScriptRequirement`` is shown below::
+
+    beeflow:ScriptRequirement:
+      enabled: True
+      pre_script: before.sh
+      post_script: after.sh

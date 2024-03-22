@@ -3,9 +3,8 @@
 class: CommandLineTool
 cwlVersion: v1.0
 
-baseCommand: /clamr/CLAMR-master/clamr_cpuonly
+baseCommand: /CLAMR/clamr_cpuonly
 # This is the stdout field which makes all stdout be captured in this file
-# stderr is not currently implemented but it is also a thing
 stdout: clamr_stdout.txt
 # Arguments to the command
 inputs:
@@ -62,21 +61,11 @@ inputs:
 outputs:
   # Captures stdout. Name is arbitrary.
   clamr_stdout:
-    # type is syntactic sugar to just grab the output file defined above
-    # stdout:
-    #     type: File
-    #     outputBinding: 
-    #       glob: clamr_stdout.txt
-    #     stdout is easy shorthand
     type: stdout
   outdir:
-    # directory is just another type. Scan the files for a directory with the name specified in glob
-    # If you add a wildcard, it'd do expansion
     type: Directory
     outputBinding:
-      # Glob can be either a constant string or have a wildcard 
-      # TODO verify CWLs glob support
-      glob: ./graphics_output/graph%05d.png
+      glob: graphics_output/graph%05d.png
   time_log:
     type: File
     outputBinding:
