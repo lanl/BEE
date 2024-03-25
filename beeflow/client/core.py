@@ -236,6 +236,7 @@ def init_components():
         # strings.
         env = dict(os.environ)
         env['LANG'] = 'C'
+        env['LC_ALL'] = 'C'
         return subprocess.Popen(cmd, env=env, stdout=log, stderr=log)
 
     # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
