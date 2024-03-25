@@ -252,7 +252,7 @@ def init_components():
     return mgr
 
 
-MIN_CHARLIECLOUD_VERSION = (0, 33)
+MIN_CHARLIECLOUD_VERSION = (0, 34)
 
 
 def version_str(version):
