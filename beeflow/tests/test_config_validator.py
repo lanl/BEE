@@ -6,10 +6,10 @@ from beeflow.common.config_validator import ConfigValidator, ConfigError
 def test_empty():
     """Test an empty config."""
     validator = ConfigValidator(description='empty test case')
-    assert validator.validate({}) == {} # noqa
-    # It should not allow any extra keys
-    with pytest.raises(ValueError):
-        validator.validate({'key': {}})
+    assert validator.validate({}) == {} # noqa (suggestion is wrong for this case)
+    # Invalid sections and options should just print a warning rather than fail
+    assert validator.validate({'bad_section': {}}) == {} # noqa (suggestion is wrong for this case)
+    assert validator.validate({'bad_section': {'bad_option'}}) == {} # noqa (suggestion is wrong for this case)
 
 
 def test_two():
@@ -25,11 +25,11 @@ def test_two():
 
     assert validator.validate(conf) == valid_conf
     # Test missing sections and values
-    with pytest.raises(ValueError):
+    with pytest.raises(ConfigError):
         validator.validate({'section1': {'key0': 'abc'}})
-    with pytest.raises(ValueError):
+    with pytest.raises(ConfigError):
         validator.validate({})
-    with pytest.raises(ValueError):
+    with pytest.raises(ConfigError):
         validator.validate({'section2': {'key0': 'something'}})
 
 
@@ -41,7 +41,7 @@ def test_choices():
 
     assert (validator.validate({'section0': {'choice-key': 'B'}})
             == {'section0': {'choice-key': 'B'}}) # noqa
-    with pytest.raises(ValueError):
+    with pytest.raises(ConfigError):
         assert validator.validate({'section0': {'choice-key': 'E'}})
 
 
@@ -54,9 +54,9 @@ def test_depends_on():
     validator.section('two', info='section two', depends_on=('one', 'key', 'A'))
     validator.option('two', 'some-key', info='some other config value dependent on [one] key == A')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ConfigError):
         assert validator.validate({'one': {'key': 'B'}, 'two': {}})
-    with pytest.raises(ValueError):
+    with pytest.raises(ConfigError):
         validator.validate({'one': {'key': 'A'}})
     assert (validator.validate({'one': {'key': 'A'}, 'two': {'some-key': '123'}})
             == {'one': {'key': 'A'}, 'two': {'some-key': '123'}}) # noqa
@@ -71,7 +71,7 @@ def test_depends_on_order():
     validator.section('one', info='section one')
     validator.option('one', 'key', choices=('A', 'B'), info='choice-based option')
 
-    # Sections must be listed in dependency order, so if section two dependends
+    # Sections must be listed in dependency order, so if section two depends
     # on section one, then section one must be listed first, then section two
     sections = validator.sections
     assert sections[0][0] == 'one'
@@ -130,13 +130,12 @@ def test_missing_section():
                          info='defining an option, but the section is not defined')
 
 
-def test_option_attr():
-    """Test adding attributes to a section option."""
-    validator = ConfigValidator(description='option with attribute')
+def test_option_default():
+    """Test setting a default value for an option."""
+    validator = ConfigValidator(description='default option validator')
 
     validator.section('abc', info='some section')
-    validator.option('abc', 'test', info='some option with attributes', attrs={'key': 1})
+    validator.option('abc', 'test', info='some option with attributes', validator=int, default=1)
 
-    opt_name, option = validator.options('abc')[0]
-    assert opt_name == 'test'
-    assert option.attrs == {'key': 1}
+    assert validator.validate({}) == {'abc': {'test': 1}}
+    assert validator.validate({'abc': {'test': 3}}) == {'abc': {'test': 3}}
