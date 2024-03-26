@@ -44,16 +44,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
     def run_text(self, task):  # noqa
         """Create text for Charliecloud batch script."""
-        log.info(f'WORKDIRR BEFORE: {task.workdir}')
         os.makedirs(self.container_archive, exist_ok=True)
-        log.info(f'Build container archive directory is: {self.container_archive}')
 
         use_container = None
         task_container_name = task.get_requirement('DockerRequirement', 'beeflow:containerName')
         bind_mounts = task.get_requirement('DockerRequirement', 'beeflow:bindMounts')
         bind_mounts = (yaml.load(bind_mounts, Loader=yaml.SafeLoader)
                        if bind_mounts is not None else {})
-        log.info(f'BIND_MOUNTS: {bind_mounts}')
 
         baremetal = False
         if task_container_name is None:
