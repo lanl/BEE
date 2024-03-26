@@ -45,6 +45,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
     def run_text(self, task):  # noqa
         """Create text for Charliecloud batch script."""
         os.makedirs(self.container_archive, exist_ok=True)
+        log.info(f'Build container archive directory is: {self.container_archive}')
 
         use_container = None
         task_container_name = task.get_requirement('DockerRequirement', 'beeflow:containerName')
