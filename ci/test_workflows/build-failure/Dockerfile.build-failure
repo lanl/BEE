@@ -1,0 +1,3 @@
+FROM some_nonexistent_container
+
+RUN touch /file

@@ -99,6 +99,7 @@ class WFUpdate(Resource):
             if new_task is None:
                 log.info('No more restarts')
                 wf_state = wfi.get_workflow_state()
+                wfi.set_workflow_state('Failed')
                 wf_utils.update_wf_status(wf_id, 'Failed')
                 db.workflows.update_workflow_state(wf_id, 'Failed')
                 return make_response(jsonify(status=f'Task {task_id} set to {job_state}'))
@@ -132,6 +133,12 @@ class WFUpdate(Resource):
                 archive_workflow(db, wf_id)
                 pid = db.workflows.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
+
+        if job_state == 'BUILD_FAIL':
+            log.error(f'Workflow failed due to failed container build for task {task.name}')
+            wfi.set_workflow_state('Failed')
+            wf_utils.update_wf_status(wf_id, 'Failed')
+            db.workflows.update_workflow_state(wf_id, 'Failed')
 
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)

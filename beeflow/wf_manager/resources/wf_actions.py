@@ -42,13 +42,11 @@ class WFActions(Resource):
         if not tasks:
             log.info(f"Bad query for wf {wf_id}.")
             wf_status = 'No workflow with that ID is currently loaded'
-            tasks_status.append('Unavailable')
             resp = make_response(jsonify(tasks_status=tasks_status,
                                  wf_status=wf_status, status='not found'), 404)
 
         for task in tasks:
-            tasks_status.append(f"{task.name}--{task.state}")
-        tasks_status = '\n'.join(tasks_status)
+            tasks_status.append((task.id, task.name, task.state))
         wf_status = db.workflows.get_workflow_state(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,

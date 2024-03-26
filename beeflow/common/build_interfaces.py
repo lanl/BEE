@@ -14,7 +14,7 @@ from subprocess import CalledProcessError
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import log as bee_logging
-from beeflow.common.build.build_driver import arg2task
+from beeflow.common.build.utils import arg2task, ContainerBuildError
 
 
 log = bee_logging.setup(__name__)
@@ -47,9 +47,11 @@ def build_main(task):
                 return_code = return_obj.returncode
             except AttributeError:
                 return_code = int(return_obj)
-        except CalledProcessError:
+        except CalledProcessError as error:
             return_code = 1
-            log.warning(f'There was a problem executing {op_dict["op_name"]}!')
+            raise ContainerBuildError(
+                f'There was a problem executing {op_dict["op_name"]}!'
+            ) from error
         # Case 1: Not the last operation spec'd, but is a terminal operation.
         if op_dict["op_terminal"] and return_code == 0:
             op_values = [None, None, None, True]
