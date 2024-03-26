@@ -44,6 +44,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
 
     def run_text(self, task):  # noqa
         """Create text for Charliecloud batch script."""
+        log.info(f'WORKDIRR BEFORE: {task.workdir}')
         os.makedirs(self.container_archive, exist_ok=True)
         log.info(f'Build container archive directory is: {self.container_archive}')
 
@@ -52,6 +53,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         bind_mounts = task.get_requirement('DockerRequirement', 'beeflow:bindMounts')
         bind_mounts = (yaml.load(bind_mounts, Loader=yaml.SafeLoader)
                        if bind_mounts is not None else {})
+        log.info(f'BIND_MOUNTS: {bind_mounts}')
 
         baremetal = False
         if task_container_name is None:
@@ -127,13 +129,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         ]
         # Need to convert the path from inside to outside base on the bind mounts
         extra_opts = ''
+        ctr_workdir_path = os.path.join('/mnt/', '9')
         if task.workdir is not None:
             # Only setting it for $HOME right now
             bind_mounts = {
                 # Charliecloud bindmounts $HOME to /home/$USER by default
-                os.getenv('HOME'): os.path.join('/home', os.getenv('USER')),
+                task.workdir: ctr_workdir_path
             }
-            ctr_workdir_path = convert_path(task.workdir, bind_mounts)
             extra_opts = f'--cd {ctr_workdir_path}'
         bind_mount_opts = ' '.join(f'-b {path_a}:{path_b}'
                                    for path_a, path_b in bind_mounts.items())
