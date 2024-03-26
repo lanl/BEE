@@ -3,6 +3,7 @@
 Builds command for submitting batch job.
 """
 
+import io
 import subprocess
 import json
 import urllib
@@ -53,6 +54,14 @@ class BaseSlurmWorker(Worker):
                                          'partition',
                                          default=self.default_partition)
 
+        scripts_enabled = task.get_requirement('beeflow:ScriptRequirement', 'enabled',
+                                               default=False)
+        if scripts_enabled:
+            # We use StringIO here to properly break the script up into lines with readlines
+            pre_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
+                                     'pre_script')).readlines()
+            post_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
+                                      'post_script')).readlines()
         # sbatch header
         script = [
             '#!/bin/bash',
@@ -83,17 +92,25 @@ class BaseSlurmWorker(Worker):
                 script_lines.append(f'srun {cmd_args}')
 
         # Pre commands
+        if scripts_enabled:
+            for cmd in pre_script:
+                script.append(cmd)
+
         for cmd in crt_res.pre_commands:
             srun(script, cmd)
 
         # Main command
         srun_args = ' '.join(main_command_srun_args)
-        print(crt_res.main_command)
         args = ' '.join(crt_res.main_command.args)
         script.append(f'srun --mpi={mpi_version} {srun_args} {args}')
 
+        # Post commands
         for cmd in crt_res.post_commands:
             srun(script, cmd)
+
+        if scripts_enabled:
+            for cmd in post_script:
+                script.append(cmd)
 
         return '\n'.join(script)
 
