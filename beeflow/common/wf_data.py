@@ -4,8 +4,6 @@ from uuid import uuid4
 from copy import deepcopy
 import os
 
-from beeflow.common.container_path import convert_path
-
 # Workflow input parameter class
 InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
 # Workflow output parameter class
@@ -319,10 +317,11 @@ class Task:
                     checkpoint_file = hint.params["bee_checkpoint_file__"]
                     # Charliecloud default bind mounts (this should taken from
                     # another requirement)
+                    ctr_workdir_path = os.path.join('/mnt/', '9')
                     bind_mounts = {
-                        os.getenv('HOME'): os.path.join('/home', os.getenv('USER')),
+                        task.workdir: ctr_workdir_path
                     }
-                    command.append(convert_path(checkpoint_file, bind_mounts))
+                    command.append(ctr_workdir_path)
                 break
 
         return command
