@@ -9,7 +9,6 @@ from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRunt
                                            Command, CommandType)
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.build_driver import task2arg
-from beeflow.common.container_path import convert_path
 from beeflow.common import log as bee_logging
 
 
@@ -125,7 +124,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             Command(f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split(),
                     CommandType.ONE_PER_NODE),
         ]
-        # Need to convert the path from inside to outside base on the bind mounts
         extra_opts = ''
         ctr_workdir_path = os.path.join('/mnt/', '9')
         if task.workdir is not None:
