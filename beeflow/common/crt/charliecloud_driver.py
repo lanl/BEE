@@ -127,13 +127,13 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         ]
         # Need to convert the path from inside to outside base on the bind mounts
         extra_opts = ''
+        ctr_workdir_path = os.path.join('/mnt/', '9')
         if task.workdir is not None:
             # Only setting it for $HOME right now
             bind_mounts = {
                 # Charliecloud bindmounts $HOME to /home/$USER by default
-                os.getenv('HOME'): os.path.join('/home', os.getenv('USER')),
+                task.workdir: ctr_workdir_path
             }
-            ctr_workdir_path = convert_path(task.workdir, bind_mounts)
             extra_opts = f'--cd {ctr_workdir_path}'
         bind_mount_opts = ' '.join(f'-b {path_a}:{path_b}'
                                    for path_a, path_b in bind_mounts.items())
