@@ -321,7 +321,7 @@ class Task:
                     bind_mounts = {
                         task.workdir: ctr_workdir_path
                     }
-                    command.append(ctr_workdir_path))
+                    command.append(ctr_workdir_path)
                 break
 
         return command
