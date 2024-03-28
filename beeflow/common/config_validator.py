@@ -79,7 +79,7 @@ class ConfigValidator:
                     )
                     continue
                 # Set the default, but warn the user
-                log.warning('option {sec_name}::{opt_name} is missing, setting to default '
+                log.warning(f'option {sec_name}::{opt_name} is missing, setting to default '
                             f'"{default}"; please check that that is correct and update the '
                             'config')
                 if sec_name not in new_conf:
