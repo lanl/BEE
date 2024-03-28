@@ -91,6 +91,11 @@ class Workflow:
         """Get the status of the workflow."""
         return bee_client.query(self.wf_id)[0]
 
+    @property
+    def task_states(self):
+        """Get the task states of the workflow."""
+        return bee_client.query(self.wf_id)[1]
+
     def cleanup(self):
         """Clean up any leftover workflow data."""
         # Remove the generated tarball
@@ -233,4 +238,10 @@ def check_path_exists(path):
 
 def check_completed(workflow):
     """Ensure the workflow has a completed status."""
-    ci_assert(workflow.status == 'Archived', f'Bad workflow status {workflow.status}')
+    ci_assert(workflow.status == 'Archived', f'bad workflow status {workflow.status}')
+
+
+def check_workflow_failed(workflow):
+    """Ensure that the workflow completed in a Failed state."""
+    ci_assert(workflow.status == 'Failed',
+              f'workflow did not fail as expected (final status: {workflow.status})')

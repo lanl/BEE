@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import log as bee_logging
+from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build.build_driver import BuildDriver
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
 
@@ -125,8 +126,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # If Requirement is set but not specified, and param empty, do nothing and error.
         if self.task.requirements == {} and not addr:
-            log.error("dockerPull set but no image path specified.")
-            return 1
+            raise ContainerBuildError("dockerPull set but no image path specified.")
         # If no image specified and no image required, nothing to do.
         if not task_addr and not addr:
             log.info('No image specified and no image required, nothing to do.')
@@ -170,8 +170,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         log.warning('Charliecloud does not have the concept of a layered image tarball.')
         log.warning('Did you mean to use dockerImport?')
         if req_dockerload:
-            log.warning('dockerLoad specified as requirement.')
-            return 1
+            raise ContainerBuildError('dockerLoad is not supported')
         return 0
 
     def process_docker_file(self, task_dockerfile=None, force=False):
@@ -185,14 +184,14 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # beeflow:containerName is always processed before dockerFile, so safe to assume it exists
         # otherwise, raise an error.
         if self.container_name is None:
-            log.error("dockerFile may not be specified without beeflow:containerName")
-            return 1
+            raise ContainerBuildError(
+                "dockerFile may not be specified without beeflow:containerName"
+            )
 
         # Need dockerfile in order to build, else fail
         task_dockerfile = self.get_docker_req('dockerFile')
         if not task_dockerfile:
-            log.error("dockerFile not specified as task attribute or parameter.")
-            return 1
+            raise ContainerBuildError("dockerFile not specified as task attribute or parameter.")
 
         # Create context directory to use as Dockerfile context, use container name so user
         # can prep the directory with COPY sources as needed.
@@ -281,7 +280,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # If task and parameter still doesn't specify ImageId, consider this an error.
         if not self.docker_image_id:
             return 0
-        return 1
+        raise ContainerBuildError('dockerImageId is required but not found')
 
     def process_docker_output_directory(self, param_output_directory=None):
         """Get and process the CWL compliant dockerOutputDirectory dockerRequirement.
@@ -308,8 +307,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Need container_path to know how dockerfile should be named, else fail
         task_container_path = self.get_docker_req('beeflow:copyContainer')
         if not task_container_path:
-            log.error("beeflow:copyContainer: You must specify the path to an existing container.")
-            return 1
+            raise ContainerBuildError(
+                "beeflow:copyContainer: You must specify the path to an existing container."
+            )
 
         if self.container_name:
             copy_target = '/'.join([self.container_archive, self.container_name + '.tar.gz'])
@@ -345,8 +345,9 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         """
         task_container_name = self.get_docker_req('beeflow:containerName')
         if not task_container_name and self.docker_image_id is None:
-            log.error("beeflow:containerName: You must specify the containerName or dockerImageId")
-            return 1
+            raise ContainerBuildError(
+                "beeflow:containerName: You must specify the containerName or dockerImageId"
+            )
         self.container_name = task_container_name
         log.info(f'Setting container_name to: {self.container_name}')
         return 0

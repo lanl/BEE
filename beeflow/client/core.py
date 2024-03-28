@@ -517,6 +517,7 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     # Check workflow states; warn if there are active states.
     workflow_list = bee_client.get_wf_list()
     active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
+    caution = ""
     if {item for row in workflow_list for item in row}.intersection(active_states):
         caution = """
         **************************************************************

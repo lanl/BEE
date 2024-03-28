@@ -190,7 +190,8 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
 
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
-    assert 'RUNNING' in resp.json['tasks_status']
+    tasks_status = resp.json['tasks_status']
+    assert tasks_status[0][2] == 'RUNNING' or tasks_status[1][2] == 'RUNNING'
 
 
 def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):

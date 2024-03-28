@@ -24,7 +24,6 @@ from beeflow.common.wf_data import (Workflow,
                                     Requirement,
                                     generate_workflow_id)
 
-
 # Map CWL types to Python types
 type_map = {
     "string": str,
@@ -317,6 +316,10 @@ class CwlParser:
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
+                if 'pre_script' in items and items['enabled']:
+                    self._read_requirement_file('pre_script', items)
+                if 'post_script' in items and items['enabled']:
+                    self._read_requirement_file('post_script', items)
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)
                 reqs.append(Hint(req['class'], items))
