@@ -96,6 +96,11 @@ class Workflow:
         """Get the task states of the workflow."""
         return bee_client.query(self.wf_id)[1]
 
+    def get_task_state_by_name(self, name):
+        """Get the state of a task by name."""
+        task_states = self.task_states
+        return [task_state for _, task_name, task_state in task_states if task_name == name][0]
+
     def cleanup(self):
         """Clean up any leftover workflow data."""
         # Remove the generated tarball
