@@ -1,13 +1,16 @@
 Publishing a new release
 ************************
 
-1. Change the version in pyproject.toml and verify docs build;
-   and get this change merged into develop. (You may want to set the bypass as in step 2)
+Verify all current changes in develop run correctly on nightly tests.
+
+1. Start a branch named Release-0.x.x  Change the version in pyproject.toml and verify docs build, add to HISTORY.md for this release,
+   and get this change merged into develop. (You may want to set the bypass as in step 2 on develop).
+
 2. On github site go to Settings; on the left under Code and Automation
    click on Branches; under Branch protection rules edit main;
     check Allow specified actors to bypass required pull requests; add yourself
     and don't forget to save the setting
-3  Make sure documentation will be published upon push to main.
+3. Make sure documentation will be published upon push to main.
    See: .github/workflows/docs.yml
 4. Checkout develop and pull for latest version then
    checkout main and merge develop into main. Verify documentation was published.
