@@ -12,6 +12,9 @@ from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.gdb import neo4j_cypher as tx
 from beeflow.common.wf_data import (Workflow, Task, Requirement, Hint,
                                     InputParameter, OutputParameter, StepInput, StepOutput)
+from beeflow.common import log as bee_logging
+
+log = bee_logging.setup(__name__)
 
 # Default Neo4j authentication
 # We may want to instead get these from a config at some point
@@ -51,6 +54,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
         except ServiceUnavailable as sue:
+            log.error("Neo4j database is unavailable")
             raise Neo4JNotRunning("Neo4j database is unavailable") from sue
 
     def initialize_workflow(self, workflow):

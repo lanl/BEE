@@ -26,6 +26,7 @@ from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.client import core
+from beeflow.wf_manager.resources import wf_utils
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -105,15 +106,25 @@ def _resource(tag=""):
     return _url() + str(tag)
 
 
+def get_wf_list():
+    """Get the list of all workflows."""
+    try:
+        conn = _wfm_conn()
+        resp = conn.get(_url(), timeout=60)
+    except requests.exceptions.ConnectionError:
+        error_exit('Could not reach WF Manager.')
+
+    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
+        error_exit('WF Manager did not return workflow list')
+
+    logging.info('List Jobs:  {resp.text}')
+    return jsonpickle.decode(resp.json()['workflow_list'])
+
+
 def check_short_id_collision():
     """Check short workflow IDs for colliions; increase short ID length if detected."""
     global short_id_len  #noqa: Not a constant
-    conn = _wfm_conn()
-    resp = conn.get(_url(), timeout=60)
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit(f"Checking for ID collision failed: {resp.status_code}")
-
-    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    workflow_list = get_wf_list()
     if workflow_list:
         while short_id_len < MAX_ID_LEN:
             id_list = [_short_id(job[1]) for job in workflow_list]
@@ -132,18 +143,7 @@ def check_short_id_collision():
 def match_short_id(wf_id):
     """Match user-provided short workflow ID to full workflow IDs."""
     matched_ids = []
-
-    try:
-        conn = _wfm_conn()
-        resp = conn.get(_url(), timeout=60)
-    except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
-
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit(f'Could not match ID: {wf_id}. Code {resp.status_code}')
-        # raise ApiError("GET /jobs".format(resp.status_code))
-
-    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    workflow_list = get_wf_list()
     if workflow_list:
         for job in workflow_list:
             if job[1].startswith(wf_id):
@@ -162,9 +162,23 @@ def match_short_id(wf_id):
             long_wf_id = matched_ids[0]
             return long_wf_id
     else:
-        print("There are currently no workflows.")
+        sys.exit("There are currently no workflows.")
 
     return None
+
+
+def get_wf_status(wf_id):
+    """Get workflow status."""
+    try:
+        conn = _wfm_conn()
+        resp = conn.get(_resource(wf_id), timeout=60)
+    except requests.exceptions.ConnectionError:
+        error_exit('Could not reach WF Manager.')
+
+    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
+        error_exit('Could not successfully query workflow manager')
+
+    return resp.json()['wf_status']
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
@@ -281,6 +295,19 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     if tarball_path:
         os.remove(tarball_path)
 
+    # Store provided arguments in text file for future reference
+    wf_dir = wf_utils.get_workflow_dir(wf_id)
+    sub_wf_dir = wf_dir + "/submit_command_args.txt"
+
+    f_name = open(sub_wf_dir, "w", encoding="utf-8")
+    f_name.write(f"wf_name: {wf_name}\n")
+    f_name.write(f"wf_path: {wf_path}\n")
+    f_name.write(f"main_cwl: {main_cwl}\n")
+    f_name.write(f"yaml: {yaml}\n")
+    f_name.write(f"workdir: {workdir}\n")
+    f_name.write(f"wf_id: {wf_id}")
+    f_name.close()
+
     return wf_id
 
 
@@ -340,6 +367,36 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
     return package_path
 
 
+@app.command()
+def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
+    """Remove cancelled, paused, or archived workflow with a workflow ID."""
+    long_wf_id = wf_id
+
+    wf_status = get_wf_status(wf_id)
+    print(f"Workflow Status is {wf_status}")
+    if wf_status in ('Cancelled', 'Archived', 'Paused'):
+        verify = f"All stored information for workflow {_short_id(wf_id)} will be removed."
+        verify += "\nContinue to remove? yes(y)/no(n): """
+        response = input(verify)
+        if response in ("n", "no"):
+            sys.exit("Workflow not removed.")
+        elif response in ("y", "yes"):
+            try:
+                conn = _wfm_conn()
+                resp = conn.delete(_resource(long_wf_id), json={'option': 'remove'}, timeout=60)
+            except requests.exceptions.ConnectionError:
+                error_exit('Could not reach WF Manager.')
+            if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
+                error_exit('WF Manager could not remove workflow.')
+            typer.secho("Workflow removed!", fg=typer.colors.GREEN)
+            logging.info(f'Remove workflow: {resp.text}')
+    else:
+        print(f"{_short_id(wf_id)} may still be running.")
+        print("The workflow must be cancelled before attempting removal.")
+
+    sys.exit()
+
+
 def unpackage(package_path, dest_path):
     """Unpackage a workflow tarball for parsing."""
     package_str = str(package_path)
@@ -363,17 +420,7 @@ def unpackage(package_path, dest_path):
 @app.command('list')
 def list_workflows():
     """List all workflows."""
-    try:
-        conn = _wfm_conn()
-        resp = conn.get(_url(), timeout=60)
-    except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
-
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('WF Manager did not return workflow list')
-
-    logging.info('List Jobs:  {resp.text}')
-    workflow_list = jsonpickle.decode(resp.json()['workflow_list'])
+    workflow_list = get_wf_list()
     if workflow_list:
         typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
 
@@ -401,11 +448,9 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
-    if tasks_status == 'Unavailable':
-        typer.echo(wf_status)
-    else:
-        typer.echo(wf_status)
-        typer.echo(tasks_status)
+    typer.echo(wf_status)
+    for _task_id, task_name, task_state in tasks_status:
+        typer.echo(f'{task_name}--{task_state}')
 
     logging.info('Query workflow:  {resp.text}')
     return wf_status, tasks_status
@@ -463,17 +508,24 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 @app.command()
 def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
-    """Cancel a workflow."""
+    """Cancel a paused or running workflow."""
     long_wf_id = wf_id
-    try:
-        conn = _wfm_conn()
-        resp = conn.delete(_resource(long_wf_id), timeout=60)
-    except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
-    if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
-        error_exit('WF Manager could not cancel workflow.')
-    typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
-    logging.info(f'Cancel workflow: {resp.text}')
+    wf_status = get_wf_status(wf_id)
+    if wf_status in ('Running', 'Paused'):
+        try:
+            conn = _wfm_conn()
+            resp = conn.delete(_resource(long_wf_id), json={'option': 'cancel'}, timeout=60)
+
+        except requests.exceptions.ConnectionError:
+            error_exit('Could not reach WF Manager.')
+        if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
+            error_exit('WF Manager could not cancel workflow.')
+        typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
+        logging.info(f'Cancel workflow: {resp.text}')
+    elif wf_status == "Intializing":
+        print(f"Workflow is {wf_status}, try cancel later.")
+    else:
+        print(f"Workflow is {wf_status} cannot cancel.")
 
 
 @app.command()

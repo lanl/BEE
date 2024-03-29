@@ -35,6 +35,10 @@ elif _SYSTEM == 'Windows':
 else:
     raise RuntimeError(f'System "{_SYSTEM}" is not supported')
 
+BEE_CONFIG = os.getenv('BEE_CONFIG')
+if BEE_CONFIG is not None:
+    USERCONFIG_FILE = BEE_CONFIG
+
 
 class BeeConfig:
     r"""Class to manage and store all BEE configuration.

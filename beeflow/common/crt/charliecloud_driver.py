@@ -8,7 +8,7 @@ import yaml
 from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRuntimeResult,
                                            Command, CommandType)
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.build.build_driver import task2arg
+from beeflow.common.build.utils import task2arg
 from beeflow.common.container_path import convert_path
 from beeflow.common import log as bee_logging
 

@@ -5,6 +5,9 @@ poetry.lock
 *.pyc
 *.egg-info
 *.out
+*.tgz
+*.tar.gz
+*.log
 .python-version
 .DS_Store
 .idea

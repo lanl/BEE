@@ -96,11 +96,14 @@ class WFUpdate(Resource):
             task_info = jsonpickle.decode(data['task_info'])
             checkpoint_file = task_info['checkpoint_file']
             new_task = wfi.restart_task(task, checkpoint_file)
-            db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             if new_task is None:
                 log.info('No more restarts')
-                wf_state = wfi.get_task_state(task)
+                wf_state = wfi.get_workflow_state()
+                wfi.set_workflow_state('Failed')
+                wf_utils.update_wf_status(wf_id, 'Failed')
+                db.workflows.update_workflow_state(wf_id, 'Failed')
                 return make_response(jsonify(status=f'Task {task_id} set to {job_state}'))
+            db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             # Submit the restart task
             tasks = [new_task]
             wf_utils.schedule_submit_tasks(wf_id, tasks)
@@ -130,6 +133,12 @@ class WFUpdate(Resource):
                 archive_workflow(db, wf_id)
                 pid = db.workflows.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
+
+        if job_state == 'BUILD_FAIL':
+            log.error(f'Workflow failed due to failed container build for task {task.name}')
+            wfi.set_workflow_state('Failed')
+            wf_utils.update_wf_status(wf_id, 'Failed')
+            db.workflows.update_workflow_state(wf_id, 'Failed')
 
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)

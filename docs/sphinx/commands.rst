@@ -1,3 +1,5 @@
+.. _command-line-interface:
+
 Command Line Interface
 **********************
 
@@ -77,6 +79,11 @@ Arguments:
   WF_ID  [required]
 
 ``beeflow cancel``: Cancel a workflow.
+
+Arguments:
+  WF_ID  [required]
+
+``beeflow remove``: Remove cancelled or archived workflow and it's information.
 
 Arguments:
   WF_ID  [required]
