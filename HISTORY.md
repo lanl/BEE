@@ -55,3 +55,14 @@ Major features: adds the capability to include post- and pre-processing scripts 
 - Fix Checkpoint/Restart capability
 - Add testing for Checkpoint/Restart 
 - Adds capability to reset the beeflow files (deletes all artifacts) especially useful for developers.
+
+0.1.8
+
+Features: Fixes sphinx version to enable publishing documentation, now includes
+          CI for testing documentation builds
+
+- Update sphinx version, update actions and release docs (#812)
+- Add separate action for testing docs
+- Fix beeflow config new error
+
+
