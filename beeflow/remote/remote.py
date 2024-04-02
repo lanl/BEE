@@ -6,6 +6,7 @@ This script manages an API that allows the remote submission and viewing of jobs
 
 from beeflow.common import cli_connection
 from beeflow.common import paths
+from beeflow.client import bee_client
 
 from fastapi import FastAPI
 import sys
@@ -20,10 +21,10 @@ def read_root():
     #Update this root endpoint with a very brief documentation of the various other endpoints.
     return {"Endpoint info": 
             """
-            You have reached the beeflow core API.
-            Detailed documentation is available here: https://lanl.github.io/BEE/
-            The following endpoints are available:
-            /core/status: Get status information about all of the core beeflow components
+You have reached the beeflow core API.
+Detailed documentation is available here: https://lanl.github.io/BEE/
+The following endpoints are available:
+/core/status: Get status information about all of the core beeflow components
             """
             }
 
@@ -48,8 +49,21 @@ def get_owner():
 @app.get("/submit/{filename}")
 def submit_new_wf(filename: str):
     """Submit a new workflow with a tarball for the workflow at a given path"""
-    #TODO How are we going to get the workflow tarball onto the instance?
+    #TODO Establish a way to submit workflows with configuration files included to reduce parameters.
     pass
+
+@app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}/{workdir}")
+def submit_new_wf_long(tarball_name: str):
+    """Submit a new workflow with a tarball for the workflow at a given path"""
+    #Append the droppoint path to the tarball_name
+    workflow_path = paths.droppoint_root() + "/" + tarball_name
+
+    try:
+        bee_client.submit(wf_name, workflow_path, main_cwl_file, job_file, workdir, no_start=False)
+        return "Submitted new workflow " + wf_name
+    except bee_client.ClientError as error:
+        return error
+
 
 
 @app.get("/cleanup")
@@ -74,4 +88,6 @@ def get_core_status():
 def create_app():
     """ Start the web-server for the API with uvicorn """
     #TODO decide what port we're using for the long term. I set it to port 7777 temporarily
-    uvicorn.run("beeflow.remote.remote:app", host="0.0.0.0", port=7777, reload=True)
+    config = uvicorn.Config("beeflow.remote.remote:app", host="0.0.0.0", port=7777, reload=True, log_level="info")
+    server = uvicorn.Server(config)
+    server.run()
