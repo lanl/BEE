@@ -45,6 +45,8 @@ def get_owner():
     user_name = os.getenv('USER') or os.getenv('USERNAME')
     return user_name
 
+####################### BELOW API METHODS SHOULD REQUIRE API KEY ##################
+
 
 @app.get("/submit/{filename}")
 def submit_new_wf(filename: str):
@@ -72,6 +74,11 @@ def submit_new_wf_long(tarball_name: str):
     except bee_client.ClientError as error:
         return error
 
+@app.get("/showdrops")
+def show_drops():
+    """Give a list of the workflows that have been placed in the dropbox"""
+    #TODO
+    pass
 
 
 @app.get("/cleanup")
