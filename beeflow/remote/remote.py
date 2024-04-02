@@ -52,14 +52,22 @@ def submit_new_wf(filename: str):
     #TODO Establish a way to submit workflows with configuration files included to reduce parameters.
     pass
 
-@app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}/{workdir}")
+@app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}/")
 def submit_new_wf_long(tarball_name: str):
-    """Submit a new workflow with a tarball for the workflow at a given path"""
+    """Submit a new workflow with a tarball for the workflow at a given path
+        This makes the following assumptions:
+        The workflow tarball should be at <DROPPOINT_PATH>/<tarball name>
+        The workdir should be at <DROPPOINT_PATH>/<tarball name>-workdir
+    """
     #Append the droppoint path to the tarball_name
     workflow_path = paths.droppoint_root() + "/" + tarball_name
+    #Make a workdir path
+    workdir_path = paths.droppoint_root() + "/" + tarball_name.replace(".tgz","") + "-workdir"
+    #Make sure that the directory exists, if not create it with owner-only permissions
+    os.mkdir(workdir_path, mode=0o700)
 
     try:
-        bee_client.submit(wf_name, workflow_path, main_cwl_file, job_file, workdir, no_start=False)
+        bee_client.submit(wf_name, workflow_path, main_cwl_file, job_file, workdir_path, no_start=False)
         return "Submitted new workflow " + wf_name
     except bee_client.ClientError as error:
         return error
