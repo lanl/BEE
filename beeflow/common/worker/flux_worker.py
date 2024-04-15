@@ -112,8 +112,8 @@ class FluxWorker(Worker):
         jobspec.stderr = f'{task_save_path}/{task.name}-{task.id}.err'
         jobspec.environment = dict(os.environ)
         # Save the script for later reference
-        with open(f'{task_save_path}/{task.name}-{task.id}.sh', 'w', encoding='utf-8') as file_path:
-            file_path.write(script)
+        with open(f'{task_save_path}/{task.name}-{task.id}.sh', 'w', encoding='utf-8') as f_path:
+            f_path.write(script)
         return jobspec
 
     def submit_task(self, task):
