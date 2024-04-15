@@ -21,15 +21,16 @@ log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
 
 
-def archive_workflow(db, wf_id):
+def archive_workflow(db, wf_id, final_state=None):
     """Archive a workflow after completion."""
     # Archive Config
     workflow_dir = wf_utils.get_workflow_dir(wf_id)
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
 
-    db.workflows.update_workflow_state(wf_id, 'Archived')
-    wf_utils.update_wf_status(wf_id, 'Archived')
+    wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
+    db.workflows.update_workflow_state(wf_id, wf_state)
+    wf_utils.update_wf_status(wf_id, wf_state)
 
     bee_workdir = wf_utils.get_bee_workdir()
     archive_dir = os.path.join(bee_workdir, 'archives')
@@ -143,23 +144,19 @@ class WFUpdate(Resource):
         # If the job failed and it doesn't include a checkpoint-restart hint,
         # then fail the entire workflow
         if job_state == 'FAILED':
-            wfi.set_workflow_state('FAILED')
-            wf_utils.update_wf_status(wf_id, 'Failed')
-            db.workflows.update_workflow_state(wf_id, 'Failed')
             set_dependent_tasks_dep_fail(db, wfi, wf_id, task)
             log.info("Workflow failed")
             log.info("Shutting down GDB")
             wf_id = wfi.workflow_id
-            # Should failed workflows be archived?
-            # archive_workflow(db, wf_id)
+            archive_workflow(db, wf_id, final_state='Failed')
             pid = db.workflows.get_gdb_pid(wf_id)
             dep_manager.kill_gdb(pid)
 
         if job_state == 'BUILD_FAIL':
             log.error(f'Workflow failed due to failed container build for task {task.name}')
-            wfi.set_workflow_state('Failed')
-            wf_utils.update_wf_status(wf_id, 'Failed')
-            db.workflows.update_workflow_state(wf_id, 'Failed')
+            archive_workflow(db, wf_id, final_state='Failed')
+            pid = db.workflows.get_gdb_pid(wf_id)
+            dep_manager.kill_gdb(pid)
 
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)

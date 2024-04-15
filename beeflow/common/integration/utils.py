@@ -248,5 +248,5 @@ def check_completed(workflow):
 
 def check_workflow_failed(workflow):
     """Ensure that the workflow completed in a Failed state."""
-    ci_assert(workflow.status == 'Failed',
+    ci_assert(workflow.status == 'Archived/Failed',
               f'workflow did not fail as expected (final status: {workflow.status})')
