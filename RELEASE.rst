@@ -18,12 +18,24 @@ Verify all current changes in develop run correctly on nightly tests.
 5. Once merged, on github web interface create a release and tag based on main branch
    that matches the version in pyproject.toml
 6. Follow step 2 but uncheck Allow specified actors to bypass and don't forget save
-7. Finally, on the main branch, first run a ``poetry build`` and then a
-   ``poetry publish``. The second command will ask for a username and password (You may need to add the --username --password options to ``poetry build``)
-   for PyPI.
+7. Log into your PYPI account and get a token for hpc-beeflow via:
+
+        > Your projects > hpc-beeflow > Manage > Settings > Create a token
+
+8. Finally, on the command line: checkout the main branch and make sure you pull the latest verison
+
+   Then publish by:
+       ``poetry build``
+
+       ``poetry publish -u __token__ -p pypi-<long-token>``
+
 
 Check the documentation at: `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`_ 
+
 Also upgrade the pip version in your python or anaconda environment and check the version:
+
+ `` pip install --upgrade pip``
+
  `` pip install --upgrade hpc-beeflow``
 
 **WARNING**: Once a version is pushed to PyPI, it cannot be undone. You can
@@ -31,4 +43,5 @@ Also upgrade the pip version in your python or anaconda environment and check th
 an update to that same version.
 
 8. After the version is published change the version in develop to a pre-release of the next version 
-   (example new version will be 0.1.x edit pyproject.toml version to be 0.1.xrc1
+   (example new version will be 0.1.x edit pyproject.toml version to be 0.1.Xdev
+

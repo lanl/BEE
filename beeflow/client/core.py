@@ -30,8 +30,6 @@ from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 from beeflow.wf_manager.common import dep_manager
 
-db_path = wf_utils.get_db_path()
-
 
 class ComponentManager:
     """Component manager class."""
@@ -467,6 +465,7 @@ def stop(query='yes'):
 
 def kill_active_workflows(active_states, workflow_list):
     """Kill workflows with active states."""
+    db_path = wf_utils.get_db_path()
     db = connect_db(wfm_db, db_path)
     success = True
     for name, wf_id, state in workflow_list:
