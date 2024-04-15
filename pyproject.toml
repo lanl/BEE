@@ -70,6 +70,8 @@ typer = "^0.5.0"
 # Seems to be required for Flux
 cffi = "^1.15.1"
 celery = { version = "^5.3.4", extras = ["redis", "sqlalchemy"] }
+# Fix for poetry/docutils related bug
+docutils = "0.18.1"
 
 # Cloud optional dependencies
 google-api-python-client = { version = "^2.66.0", optional = true }
