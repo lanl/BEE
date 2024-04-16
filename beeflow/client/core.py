@@ -590,7 +590,7 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
     """Pull required BEE containers and store in outdir."""
     load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
-    pull_to_tar('neo4j:3.5.22', neo4j_path)
+    pull_to_tar('neo4j:5.17', neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
     print()
