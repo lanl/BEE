@@ -110,10 +110,6 @@ class Workflows:
         stmt = "UPDATE tasks SET state=? WHERE task_id=? AND workflow_id=?"
         bdb.run(self.db_file, stmt, [state, task_id, workflow_id])
 
-    def update_gdb_pid(self, gdb_pid, workflow_id):
-        stmt = "UPDATE workflows SET gdb_pid=? WHERE workflow_id=?"
-        bdb.run(self.db_file, stmt, [gdb_pid, workflow_id])
-
     def get_tasks(self, workflow_id):
         """Get all tasks associated with a particular workflow."""
         stmt = "SELECT * FROM tasks WHERE workflow_id=?"
@@ -186,18 +182,19 @@ class WorkflowDB:
                                 state TEST NOT NULL,
                                 run_dir STR,
                                 bolt_port INTEGER,
-                                http_port INTEGER, 
+                                http_port INTEGER,
                                 https_port INTEGER,
                                 gdb_pid INTEGER);"""
 
         tasks_stmt = """CREATE TABLE IF NOT EXISTS tasks (
                         id INTEGER PRIMARY KEY,
-                        task_id INTEGER UNIQUE,
+                        task_id INTEGER,
                         workflow_id INTEGER NOT NULL,
                         name TEXT,
                         resource TEXT,
                         state TEXT,
                         slurm_id INTEGER,
+                        UNIQUE(task_id, workflow_id) ON CONFLICT ABORT,
                         FOREIGN KEY (workflow_id)
                             REFERENCES workflows (workflow_id)
                                 ON DELETE CASCADE

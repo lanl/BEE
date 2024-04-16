@@ -1,16 +1,16 @@
 """Utility functions for wf_manager resources."""
 
 import os
-import requests
 import shutil
 import socket
 import time
+import requests
 import jsonpickle
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb_interface import GraphDatabaseInterface
-from beeflow.common.gdb  import neo4j_driver
+from beeflow.common.gdb import neo4j_driver
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.wf_manager.common import dep_manager
 from beeflow.common.connection import Connection
@@ -112,6 +112,7 @@ def read_wf_status(wf_id):
         wf_status = status.readline()
     return wf_status
 
+
 def read_wf_name(wf_id):
     """Read workflow name metadata file."""
     bee_workdir = get_bee_workdir()
@@ -138,20 +139,22 @@ def get_workflow_interface(wf_id):
     if db.workflows.get_workflow_state(wf_id) == 'Initializing':
         raise RuntimeError('Workflow is still initializing')
     bolt_port = db.workflows.get_bolt_port(wf_id)
-    return get_workflow_interface_by_bolt_port(bolt_port)
+    return get_workflow_interface_by_bolt_port(wf_id, bolt_port)
 
 
-def get_workflow_interface_by_bolt_port(bolt_port):
+def get_workflow_interface_by_bolt_port(wf_id, bolt_port):
     """Return a workflow interface connection using just the bolt port."""
     try:
         driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
-                             db_hostname=bc.get("graphdb", "hostname"),
-                             password=bc.get("graphdb", "dbpass"))
+                                          db_hostname=bc.get("graphdb", "hostname"),
+                                          password=bc.get("graphdb", "dbpass"))
         iface = GraphDatabaseInterface(driver)
         wfi = WorkflowInterface(iface)
     except neo4j_driver.Neo4jNotRunning:
+        log.info("Neo4j Appears to be Down")
         # There are several possibilities here
         # First check if the GDB is up
+        db = connect_db(wfm_db, get_db_path())
         gdb_pid = db.workflows.get_gdb_pid(wf_id)
         try:
             # Not actually killing the GDB just checking if the PID is up
@@ -160,23 +163,19 @@ def get_workflow_interface_by_bolt_port(bolt_port):
             # The GDB process is running so we'll kill it and restart it
         except ProcessLookupError:
             log.error('The GDB is currently down restarting it')
-            try:
-                wf_dir = get_workflow_dir(wf_id)
-                http_port = db.workflows.get_http_port(wf_id)
-                https_port = db.workflows.get_https_port(wf_id)
-                wf_name = read_wf_name(wf_id)
-                run_dir = db.workflows.get_run_dir(wf_id)
-                gdb_pid = dep_manager.start_gdb(run_dir, bolt_port, http_port, https_port, reexecute=True)
-                time.sleep(10)
-                db.workflows.update_gdb_pid(gdb_pid, wf_id)
-                driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
-                                     db_hostname=bc.get("graphdb", "hostname"),
-                                     password=bc.get("graphdb", "dbpass"))
-                iface = GraphDatabaseInterface(driver)
-                wfi = WorkflowInterface(iface)
-                wfi.get_workflow()
-            except Exception as e:
-                log.inf(f'RestartError: {e}')
+            http_port = db.workflows.get_http_port(wf_id)
+            https_port = db.workflows.get_https_port(wf_id)
+            run_dir = db.workflows.get_run_dir(wf_id)
+            gdb_pid = dep_manager.start_gdb(run_dir, bolt_port, http_port, https_port,
+                                            reexecute=True)
+            time.sleep(10)
+            db.workflows.update_gdb_pid(wf_id, gdb_pid)
+            driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
+                                              db_hostname=bc.get("graphdb", "hostname"),
+                                              password=bc.get("graphdb", "dbpass"))
+            iface = GraphDatabaseInterface(driver)
+            wfi = WorkflowInterface(iface)
+            wfi.get_workflow()
         except PermissionError:
             # Something has gone wrong. The user has no perms for their gdb.
             # Just note a fatal error and exit
