@@ -1,44 +1,18 @@
-# Based on https://github.com/actions/starter-workflows/blob/main/pages/static.yml
-name: Publish docs
+name: Build Docs
 
 on:
+  workflow_dispatch: {}
   push:
-    branches: [main]
-
-# Needed for publishing to Github Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+    branches: [main, develop]
+  pull_request:
+    types: [opened, synchronize, edited]
+    branches: [main, develop]
 
 jobs:
-  publish:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  docs:
+    name: Build Docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: BEE Install
-        run: |
-          sudo apt-get update
-          sudo apt-get install python3 python3-venv curl build-essential \
-            zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libsqlite3-dev \
-            libreadline-dev libffi-dev libbz2-dev libyaml-dev
-          curl -sSL https://install.python-poetry.org | python3 -
-          poetry update
-          poetry install
-      - name: Build Docs
-        run: |
-          poetry run make -C docs/sphinx html
-      - name: Upload
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: docs/sphinx/_build/html
-      - name: Publish
-        id: deployment
-        uses: actions/deploy-pages@v1
+      - uses: actions/checkout@v4
+      - name: Install BEE and Build Docs
+        run: ./ci/docs.sh
