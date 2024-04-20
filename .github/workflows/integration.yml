@@ -14,7 +14,7 @@ env: {}
 
 jobs:
   integration-test:
-    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP') || contains(github.event.pull_request.labels.*.name, 'lint-only')) }}
+    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
     name: BEE Integration Test
     strategy:
       matrix:
