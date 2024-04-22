@@ -83,6 +83,7 @@ To check the status of the bee components run:
     beeflow core status
 
 .. code-block::
+
     beeflow components:
     redis ... RUNNING
     scheduler ... RUNNING
