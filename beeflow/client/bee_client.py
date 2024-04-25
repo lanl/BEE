@@ -374,7 +374,7 @@ def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
     wf_status = get_wf_status(wf_id)
     print(f"Workflow Status is {wf_status}")
-    if wf_status in ('Cancelled', 'Archived', 'Paused'):
+    if wf_status in ('Cancelled', 'Paused') or 'Archived' in wf_status:
         verify = f"All stored information for workflow {_short_id(wf_id)} will be removed."
         verify += "\nContinue to remove? yes(y)/no(n): """
         response = input(verify)
