@@ -126,13 +126,12 @@ class WFUpdate(Resource):
                 else:
                     wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
-            log.info(f'next tasks to run: {tasks}')
             wf_state = wfi.get_workflow_state()
             if tasks and wf_state != 'PAUSED':
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
             if wfi.workflow_completed():
-                log.info("Workflow Completed")
+                log.info(f"Workflow {wf_id} Completed")
                 wf_id = wfi.workflow_id
                 archive_workflow(db, state_update.wf_id)
                 pid = db.workflows.get_gdb_pid(state_update.wf_id)

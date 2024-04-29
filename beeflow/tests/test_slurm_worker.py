@@ -7,7 +7,6 @@ import os
 import pytest
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.worker_interface import WorkerInterface
-from beeflow.common.worker.worker import WorkerError
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.wf_data import Task
 
@@ -96,8 +95,8 @@ def test_bad_task(slurm_worker):
 
 def test_query_bad_job_id(slurm_worker):
     """Test querying a bad job ID."""
-    with pytest.raises(WorkerError):
-        slurm_worker.query_task(888)
+    job_state = slurm_worker.query_task(888)
+    assert job_state == 'ZOMBIE'
 
 
 def test_cancel_good_job(slurm_worker):

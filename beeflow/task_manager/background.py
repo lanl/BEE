@@ -30,7 +30,7 @@ def submit_task(db, worker, task):
         resolve_environment(task)
         log.info(f'Environment preparation complete for task {task.name}')
         job_id, job_state = worker.submit_task(task)
-        log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
+        log.info(f"Job Submitted '{task.name}' job_id: {job_id} job_state: {job_state}")
         # place job in queue to monitor
         db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
         # update_task_metadata(task.id, task_metadata)
@@ -75,10 +75,10 @@ def update_jobs(db):
         # If state changes update the WFM
         if job_state != new_job_state:
             db.job_queue.update_job_state(id_, new_job_state)
+            log.info(f"Job Updated '{task.name}' job_id: {job_id} job_state: {new_job_state}")
             if new_job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = task.get_full_requirement('beeflow:CheckpointRequirement')
-                log.info(f'state: {new_job_state}')
                 log.info(f'TIMELIMIT/TIMEOUT task_checkpoint: {task_checkpoint}')
                 if task_checkpoint:
                     try:
@@ -94,7 +94,6 @@ def update_jobs(db):
             # States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
             elif new_job_state in ('BOOT_FAIL', 'NODE_FAIL', 'OUT_OF_MEMORY', 'PREEMPTED'):
                 # Don't update wfm, just resubmit
-                log.info(f'Task {task.name} in state {new_job_state}')
                 log.info(f'Resubmitting task {task.name}')
                 db.job_queue.remove_by_id(id_)
                 job_state = submit_task(db, worker, task)

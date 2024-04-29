@@ -14,6 +14,9 @@ import requests
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
+from beeflow.common.worker.utils import get_state_sacct
+from beeflow.common.worker.utils import parse_key_val
+
 
 log = bee_logging.setup(__name__)
 
@@ -160,17 +163,19 @@ class SlurmrestdWorker(BaseSlurmWorker):
         """Worker queries job; returns job_state."""
         try:
             resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
-
-            if resp.status_code != 200:
-                raise WorkerError(f'Failed to query job {job_id}')
-            data = json.loads(resp.text)
-            # Check for errors in the response
-            check_slurm_error(data, f'Failed to query job {job_id}')
-            # For some versions of slurm, the job_state isn't included on failure
-            try:
-                job_state = data['jobs'][0]['job_state']
-            except (KeyError, IndexError) as exc:
-                raise WorkerError(f'Failed to query job {job_id}') from exc
+            if resp.status_code == 200:
+                data = json.loads(resp.text)
+                # Check for errors in the response
+                check_slurm_error(data, f'Failed to query job {job_id}, slurm error.')
+                # For some versions of slurm, the job_state isn't included on failure
+                try:
+                    job_state = data['jobs'][0]['job_state']
+                except (KeyError, IndexError) as exc:
+                    job_state = 'ZOMBIE'
+                    raise WorkerError(f'Failed to query job {job_id}') from exc
+            else:
+                # If slurmrestd does not find job make last attempt with sacct command
+                job_state = get_state_sacct(job_id)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
         return job_state
@@ -200,24 +205,19 @@ class SlurmCLIWorker(BaseSlurmWorker):
 
     def query_task(self, job_id):
         """Query job state for the task."""
-        # Use scontrol since it gives a lot of useful info
+        # Use scontrol since it gives a lot of useful info; may want to save info
         try:
             res = subprocess.run(['scontrol', 'show', 'job', str(job_id)],
                                  text=True, check=True, stdout=subprocess.PIPE)
         except subprocess.CalledProcessError:
-            raise WorkerError(
-                f'Failed to query job {job_id}'
-            ) from None
-
-        def parse_key_val(pair):
-            """Parse the key-value pair."""
-            i = pair.find('=')
-            return (pair[:i], pair[i + 1:])
-
-        # Output is in a space-separated list of 'key=value' pairs
-        pairs = res.stdout.split()
-        key_vals = dict(parse_key_val(pair) for pair in pairs)
-        return key_vals['JobState']
+            # If show job cannot find job get state using sacct (not same info)
+            job_state = get_state_sacct(job_id)
+        else:
+            # Output is in a space-separated list of 'key=value' pairs
+            pairs = res.stdout.split()
+            key_vals = dict(parse_key_val(pair) for pair in pairs)
+            job_state = key_vals['JobState']
+        return job_state
 
     def cancel_task(self, job_id):
         """Cancel task with job_id; returns job_state."""
