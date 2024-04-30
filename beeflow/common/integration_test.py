@@ -194,6 +194,43 @@ def multiple_workflows(outer_workdir):
         utils.check_path_exists(path)
 
 
+@TEST_RUNNER.add()
+def build_failure(outer_workdir):
+    """Test running a workflow with a bad container."""
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
+    workflow = utils.Workflow('build-failure', 'ci/test_workflows/build-failure',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_workflow_failed(workflow)
+    # Only one task
+    task_state = workflow.task_states[0][2]
+    utils.ci_assert(task_state == 'BUILD_FAIL',
+                    f'task was not in state BUILD_FAIL as expected: {task_state}')
+
+
+@TEST_RUNNER.add()
+def dependent_tasks_fail(outer_workdir):
+    """Test that dependent tasks don't run after a failure."""
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
+    workflow = utils.Workflow('failure-dependent-tasks',
+                              'ci/test_workflows/failure-dependent-tasks',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_workflow_failed(workflow)
+    # Check each task state
+    fail_state = workflow.get_task_state_by_name('fail')
+    utils.ci_assert(fail_state == 'FAILED',
+                    f'task fail did not fail as expected: {fail_state}')
+    for task in ['dependent0', 'dependent1', 'dependent2']:
+        task_state = workflow.get_task_state_by_name(task)
+        utils.ci_assert(task_state == 'DEP_FAIL',
+                        f'task {task} did not get state DEP_FAIL as expected: {task_state}')
+
+
 @TEST_RUNNER.add(ignore=True)
 def checkpoint_restart(outer_workdir):
     """Test the clamr-ffmpeg checkpoint restart workflow."""
@@ -220,8 +257,7 @@ def checkpoint_restart_failure(outer_workdir):
                               main_cwl='workflow.cwl', job_file='input.yml',
                               workdir=workdir, containers=[])
     yield [workflow]
-    utils.ci_assert(workflow.status == 'Failed',
-                    f'Workflow did not fail as expected (final status: {workflow.status})')
+    utils.check_workflow_failed(workflow)
 
 
 def test_input_callback(arg):

@@ -15,9 +15,9 @@ Requirements:
 
 
 * **Containers**:
-    Two Charliecloud dependency containers are currently required for BEE: one for the Neo4j graph database and another for Redis. The paths to these containers will need to be set in the BEE configuration later, using the ``neo4j_image`` and the ``redis_image`` options respectively. BEE only supports Neo4j 3.5.x. We are currently using the latest version of Redis supplied on Docker Hub (as of 2023).
+    Two Charliecloud dependency containers are currently required for BEE: one for the Neo4j graph database and another for Redis. The paths to these containers will need to be set in the BEE configuration later, using the ``neo4j_image`` and the ``redis_image`` options respectively. BEE only supports Neo4j 5.x. We are currently using the latest version of Redis supplied on Docker Hub (as of 2023).
 
-    For LANL systems, please use the containers supplied by the BEE team: **/usr/projects/BEE/neo4j-3-5-17-ch.tar.gz**, **/usr/projects/BEE/redis.tar.gz**.
+    For LANL systems, please use the containers supplied by the BEE team: **/usr/projects/BEE/neo4j-5-17.tar.gz**, **/usr/projects/BEE/redis.tar.gz**.
 
     For other users, these containers can be pulled from Docker Hub (after following `Installation:`_ below) using ``beeflow core pull-deps``, which will download and report the container paths to be set in the config later.
 
@@ -85,7 +85,9 @@ To check the status of the bee components run:
 .. code-block::
 
     beeflow components:
+    redis ... RUNNING
     scheduler ... RUNNING
+    celery ... RUNNING
     slurmrestd ... RUNNING
     wf_manager ... RUNNING
     task_manager ... RUNNING

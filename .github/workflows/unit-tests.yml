@@ -14,7 +14,7 @@ env: {}
 
 jobs:
   integration-test:
-    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP') || contains(github.event.pull_request.labels.*.name, 'lint-only')) }}
+    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
     name: BEE Unit Tests
     env:
       # Unit tests are only run with Slurm right now
@@ -23,14 +23,15 @@ jobs:
     # available on 20.04
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - name: Dependency Install
-        run: ./ci/deps_install.sh
-      - name: Slurm Setup and Install
-        run: ./ci/slurm_start.sh
-      - name: BEE Install
-        run: ./ci/bee_install.sh
-      - name: BEE Config
-        run: ./ci/bee_config.sh
+      - uses: actions/checkout@v4
+      - name: Install and Configure
+        run: |
+          . ./ci/env.sh
+          ./ci/deps_install.sh
+          ./ci/batch_scheduler.sh
+          ./ci/bee_install.sh
+          ./ci/bee_config.sh
       - name: Unit tests
-        run: ./ci/unit_tests.sh
+        run: |
+          . ./ci/env.sh
+          ./ci/unit_tests.sh

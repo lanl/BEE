@@ -42,6 +42,7 @@ Contributors:
 * Paul Bryant - `paulbry <https://github.com/paulbry>`_
 * Rusty Davis - `rstyd <https://github.com/rstyd>`_
 * Jieyang Chen - `JieyangChen7 <https://github.com/JieyangChen7>`_
+* Krishna Chilleri - `Krishna Chilleri <https://github.com/kchilleri>`_
 * Patricia Grubel - `pagrubel <https://github.com/pagrubel>`_
 * Qiang Guan - `guanxyz <https://github.com/guanxyz>`_
 * Ragini Gupta - `raginigupta6 <https://github.com/raginigupta6>`_
@@ -85,9 +86,8 @@ License can be found `here <https://github.com/lanl/BEE/blob/master/LICENSE>`_
 Publications
 ==========================
 
+- An HPC-Container Based Continuous Integration Tool for Detecting Scaling and Performance Issues in HPC Applications, IEEE Transactions on Services Computing, 2024, `DOI: 10.1109/TSC.2023.3337662 <https://doi.ieeecomputersociety.org/10.1109/TSC.2023.3337662>`_
 - BEE Orchestrator: Running Complex Scientific Workflows on Multiple Systems, HiPC, 2021, `DOI: 10.1109/HiPC53243.2021.00052 <https://doi.org/10.1109/HiPC53243.2021.00052>`_
 - "BeeSwarm: Enabling Parallel Scaling Performance Measurement in Continuous Integration for HPC Applications", ASE, 2021, `DOI: 10.1109/ASE51524.2021.9678805 <https://www.computer.org/csdl/proceedings-article/ase/2021/033700b136/1AjTjgnW2pa#:~:text=10.1109/ASE51524.2021.9678805>`_
 - "BeeFlow: A Workflow Management System for In Situ Processing across HPC and Cloud Systems", ICDCS, 2018, `DOI: 10.1109/ICDCS.2018.00103 <https://ieeexplore.ieee.org/abstract/document/8416366>`_
 - "Build and execution environment (BEE): an encapsulated environment enabling HPC applications running everywhere", IEEE BigData, 2018, `DOI: 10.1109/BigData.2018.8622572 <https://ieeexplore.ieee.org/document/8622572>`_
-
-

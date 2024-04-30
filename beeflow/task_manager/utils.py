@@ -67,22 +67,31 @@ def wfm_conn():
     return Connection(paths.wfm_socket())
 
 
+class CheckpointRestartError(Exception):
+    """Exception to be thrown on checkpoint-restart failure."""
+
+
 def get_restart_file(task_checkpoint, task_workdir):
     """Find latest checkpoint file."""
     if 'file_regex' not in task_checkpoint:
-        raise RuntimeError('file_regex is required for checkpointing')
+        raise CheckpointRestartError('file_regex is required for checkpointing')
     if 'file_path' not in task_checkpoint:
-        raise RuntimeError('file_path is required for checkpointing')
+        raise CheckpointRestartError('file_path is required for checkpointing')
     file_regex = task_checkpoint['file_regex']
     file_path = Path(task_workdir, task_checkpoint['file_path'])
     regex = re.compile(file_regex)
-    checkpoint_files = [
-        Path(file_path, fname) for fname in os.listdir(file_path)
-        if regex.match(fname)
-    ]
+    try:
+        checkpoint_files = [
+            Path(file_path, fname) for fname in os.listdir(file_path)
+            if regex.match(fname)
+        ]
+    except FileNotFoundError:
+        raise CheckpointRestartError(
+            f'Checkpoint file_path ("{file_path}") not found'
+        ) from None
     checkpoint_files.sort(key=os.path.getmtime)
     try:
         checkpoint_file = checkpoint_files[-1]
         return str(checkpoint_file)
     except IndexError:
-        raise RuntimeError('Missing checkpoint file for task') from None
+        raise CheckpointRestartError('Missing checkpoint file for task') from None

@@ -1,10 +1,8 @@
 #!/bin/sh
 # BEE Configuration
 
-. ./ci/env.sh
-
-mkdir -p ~/.config/beeflow
-cat >> ~/.config/beeflow/bee.conf <<EOF
+mkdir -p $(dirname $BEE_CONFIG)
+cat >> $BEE_CONFIG <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
 bee_workdir = $BEE_WORKDIR
@@ -48,20 +46,20 @@ default_algorithm = fcfs
 deployed_image_root = /tmp
 container_output_path = /tmp
 container_type = charliecloud
-container_archive = $HOME/container_archive
+container_archive = $BEE_WORKDIR/container_archive
 EOF
 
 if [ "$BATCH_SCHEDULER" = "Slurm" ]; then
-    cat >> ~/.config/beeflow/bee.conf <<EOF
+    cat >> $BEE_CONFIG <<EOF
 [slurm]
 # Just test slurmrestd in CI for now
 use_commands = False
-openapi_version = v0.0.37
+openapi_version = $OPENAPI_VERSION
 EOF
 fi
 
 printf "\n\n"
-printf "#### bee.conf ####\n"
-cat ~/.config/beeflow/bee.conf
-printf "#### bee.conf ####\n"
+printf "#### %s ####\n" $BEE_CONFIG
+cat $BEE_CONFIG
+printf "#### %s ####\n" $BEE_CONFIG
 printf "\n\n"

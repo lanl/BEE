@@ -1,6 +1,9 @@
 """Neo4j/Cypher transaction functions used by the Neo4jDriver class."""
 
 from re import fullmatch
+from beeflow.common import log as bee_logging
+
+log = bee_logging.setup(__name__)
 
 
 def create_workflow_node(tx, workflow):
@@ -236,11 +239,11 @@ def get_task_by_id(tx, task_id):
 
     :param task_id: the task's ID
     :type task_id: str
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     task_query = "MATCH (t:Task {id: $task_id}) RETURN t"
 
-    return tx.run(task_query, task_id=task_id).single()
+    return tx.run(task_query, task_id=task_id).single()['t']
 
 
 def get_task_hints(tx, task_id):
@@ -248,11 +251,11 @@ def get_task_hints(tx, task_id):
 
     :param task_id: the task's ID
     :type task_id: str
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     hints_query = "MATCH (:Task {id: $task_id})<-[:HINT_OF]-(h:Hint) RETURN h"
 
-    return tx.run(hints_query, task_id=task_id)
+    return [rec['h'] for rec in tx.run(hints_query, task_id=task_id)]
 
 
 def get_task_requirements(tx, task_id):
@@ -260,11 +263,11 @@ def get_task_requirements(tx, task_id):
 
     :param task_id: the task's ID
     :type task_id: str
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     reqs_query = "MATCH (:Task {id: $task_id})<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
 
-    return tx.run(reqs_query, task_id=task_id)
+    return [rec['r'] for rec in tx.run(reqs_query, task_id=task_id)]
 
 
 def get_task_inputs(tx, task_id):
@@ -272,11 +275,11 @@ def get_task_inputs(tx, task_id):
 
     :param task_id: the task's ID
     :type task_id: str
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     inputs_query = "MATCH (:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) RETURN i"
 
-    return tx.run(inputs_query, task_id=task_id)
+    return [rec['i'] for rec in tx.run(inputs_query, task_id=task_id)]
 
 
 def get_task_outputs(tx, task_id):
@@ -284,71 +287,71 @@ def get_task_outputs(tx, task_id):
 
     :param task_id: the task's ID
     :type task_id: str
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     outputs_query = "MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) RETURN o"
 
-    return tx.run(outputs_query, task_id=task_id)
+    return [rec['o'] for rec in tx.run(outputs_query, task_id=task_id)]
 
 
 def get_workflow_description(tx):
     """Get the workflow description from the Neo4j database.
 
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     workflow_desc_query = "MATCH (w:Workflow) RETURN w"
 
-    return tx.run(workflow_desc_query).single()
+    return tx.run(workflow_desc_query).single()['w']
 
 
 def get_workflow_tasks(tx):
     """Get workflow tasks from the Neo4j database.
 
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     workflow_query = "MATCH (t:Task) RETURN t"
 
-    return tx.run(workflow_query)
+    return [rec['t'] for rec in tx.run(workflow_query)]
 
 
 def get_workflow_requirements(tx):
     """Get workflow requirements from the Neo4j database.
 
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     requirements_query = "MATCH (:Workflow)<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
 
-    return tx.run(requirements_query)
+    return [rec['r'] for rec in tx.run(requirements_query)]
 
 
 def get_workflow_hints(tx):
     """Get workflow hints from the Neo4j database.
 
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     hints_query = "MATCH (:Workflow)<-[:HINT_OF]-(h:Hint) RETURN h"
 
-    return tx.run(hints_query)
+    return [rec['h'] for rec in tx.run(hints_query)]
 
 
 def get_workflow_inputs(tx):
     """Get workflow inputs from the Neo4j database.
 
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     inputs_query = "MATCH (:Workflow)<-[:INPUT_OF]-(i:Input) RETURN i"
 
-    return tx.run(inputs_query)
+    return [rec['i'] for rec in tx.run(inputs_query)]
 
 
 def get_workflow_outputs(tx):
     """Get workflow outputs from the Neo4j database.
 
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     outputs_query = "MATCH (:Workflow)<-[:OUTPUT_OF]-(o:Output) RETURN o"
 
-    return tx.run(outputs_query)
+    return [rec['o'] for rec in tx.run(outputs_query)]
 
 
 def get_workflow_state(tx):
@@ -375,11 +378,11 @@ def set_workflow_state(tx, state):
 def get_ready_tasks(tx):
     """Get all tasks that are ready to execute.
 
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     get_ready_query = "MATCH (:Metadata {state: 'READY'})-[:DESCRIBES]->(t:Task) RETURN t"
 
-    return tx.run(get_ready_query)
+    return [rec['t'] for rec in tx.run(get_ready_query)]
 
 
 def get_dependent_tasks(tx, task):
@@ -387,11 +390,11 @@ def get_dependent_tasks(tx, task):
 
     :param task: the task whose dependencies to obtain
     :type task: Task
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     dependents_query = "MATCH (t:Task)-[:DEPENDS_ON]->(:Task {id: $task_id}) RETURN t"
 
-    return tx.run(dependents_query, task_id=task.id)
+    return [rec['t'] for rec in tx.run(dependents_query, task_id=task.id)]
 
 
 def get_task_state(tx, task):
@@ -425,11 +428,11 @@ def get_task_metadata(tx, task):
 
     :param task: the task whose metadata to get
     :type task: Task
-    :rtype: BoltStatementResult
+    :rtype: neo4j.Result
     """
     metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) RETURN m"
 
-    return tx.run(metadata_query, task_id=task.id).single()
+    return dict(tx.run(metadata_query, task_id=task.id).single()['m'])
 
 
 def set_task_metadata(tx, task, metadata):
@@ -463,7 +466,7 @@ def get_task_input(tx, task, input_id):
     input_query = ("MATCH (t:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
                    "RETURN i")
 
-    return tx.run(input_query, task_id=task.id, input_id=input_id).single()
+    return dict(tx.run(input_query, task_id=task.id, input_id=input_id).single()['i'])
 
 
 def set_task_input(tx, task, input_id, value):
@@ -493,7 +496,7 @@ def get_task_output(tx, task, output_id):
     output_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
                     "RETURN o")
 
-    return tx.run(output_query, task_id=task.id, output_id=output_id).single()
+    return dict(tx.run(output_query, task_id=task.id, output_id=output_id).single()['o'])
 
 
 def set_task_output(tx, task, output_id, value):

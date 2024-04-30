@@ -6,12 +6,15 @@ either standardized or read from a config file.
 """
 
 from neo4j import GraphDatabase as Neo4jDatabase
-from neobolt.exceptions import ServiceUnavailable
+from neo4j.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.gdb import neo4j_cypher as tx
 from beeflow.common.wf_data import (Workflow, Task, Requirement, Hint,
                                     InputParameter, OutputParameter, StepInput, StepOutput)
+from beeflow.common import log as bee_logging
+
+log = bee_logging.setup(__name__)
 
 # Default Neo4j authentication
 # We may want to instead get these from a config at some point
@@ -51,6 +54,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
         except ServiceUnavailable as sue:
+            log.error("Neo4j database is unavailable")
             raise Neo4JNotRunning("Neo4j database is unavailable") from sue
 
     def initialize_workflow(self, workflow):
@@ -303,7 +307,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: StepInput
         """
         input_record = self._read_transaction(tx.get_task_input, task=task, input_id=input_id)
-        return _reconstruct_task_input(input_record["i"])
+        return _reconstruct_task_input(input_record)
 
     def set_task_input(self, task, input_id, value):
         """Set the value of a task input.
@@ -326,7 +330,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: StepOutput
         """
         output_record = self._read_transaction(tx.get_task_output, task=task, output_id=output_id)
-        return _reconstruct_task_output(output_record["o"])
+        return _reconstruct_task_output(output_record)
 
     def set_task_output(self, task, output_id, value):
         """Set the value of a task output.
@@ -397,13 +401,13 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             trecords = list(task_records)
             hint_records = [session.read_transaction(tx.get_task_hints,
-                            task_id=rec["t"]["id"]) for rec in trecords]
+                            task_id=rec["id"]) for rec in trecords]
             req_records = [session.read_transaction(tx.get_task_requirements,
-                           task_id=rec["t"]["id"]) for rec in trecords]
+                           task_id=rec["id"]) for rec in trecords]
             input_records = [session.read_transaction(tx.get_task_inputs,
-                             task_id=rec["t"]["id"]) for rec in trecords]
+                             task_id=rec["id"]) for rec in trecords]
             output_records = [session.read_transaction(tx.get_task_outputs,
-                              task_id=rec["t"]["id"]) for rec in trecords]
+                              task_id=rec["id"]) for rec in trecords]
 
         hints = [_reconstruct_hints(hint_record) for hint_record in hint_records]
         reqs = [_reconstruct_requirements(req_record) for req_record in req_records]
@@ -443,9 +447,8 @@ def _reconstruct_requirements(req_records):
     :type req_records: BoltStatementResult
     :rtype: list of Requirement
     """
-    recs = [req_record["r"] for req_record in req_records]
     return [Requirement(rec["class"], {k: v for k, v in rec.items() if k != "class"})
-            for rec in recs]
+            for rec in req_records]
 
 
 def _reconstruct_hints(hint_records):
@@ -455,8 +458,8 @@ def _reconstruct_hints(hint_records):
     :type hint_records: BoltStatementResult
     :rtype: list of Hint
     """
-    recs = [hint_record["h"] for hint_record in hint_records]
-    return [Hint(rec["class"], {k: v for k, v in rec.items() if k != "class"}) for rec in recs]
+    return [Hint(rec["class"], {k: v for k, v in rec.items() if k != "class"})
+            for rec in hint_records]
 
 
 def _reconstruct_workflow_inputs(input_records):
@@ -466,8 +469,7 @@ def _reconstruct_workflow_inputs(input_records):
     :type input_records: BoltStatementResult
     :rtype: list of InputParameter
     """
-    recs = [input_record["i"] for input_record in input_records]
-    return [InputParameter(rec["id"], rec["type"], rec["value"]) for rec in recs]
+    return [InputParameter(rec["id"], rec["type"], rec["value"]) for rec in input_records]
 
 
 def _reconstruct_workflow_outputs(output_records):
@@ -477,8 +479,8 @@ def _reconstruct_workflow_outputs(output_records):
     :type output_records: BoltStatementResult
     :rtype: list of OutputParameter
     """
-    recs = [output_record["o"] for output_record in output_records]
-    return [OutputParameter(rec["id"], rec["type"], rec["value"], rec["source"]) for rec in recs]
+    return [OutputParameter(rec["id"], rec["type"], rec["value"], rec["source"])
+            for rec in output_records]
 
 
 def _reconstruct_task_inputs(input_records):
@@ -488,8 +490,7 @@ def _reconstruct_task_inputs(input_records):
     :type input_records: BoltStatementResult
     :rtype: list of StepInput
     """
-    recs = [input_record["i"] for input_record in input_records]
-    return [_reconstruct_task_input(rec) for rec in recs]
+    return [_reconstruct_task_input(rec) for rec in input_records]
 
 
 def _reconstruct_task_input(rec):
@@ -510,8 +511,7 @@ def _reconstruct_task_outputs(output_records):
     :type output_records: BoltStatementResult
     :rtype: list of StepOutput
     """
-    recs = [output_record["o"] for output_record in output_records]
-    return [_reconstruct_task_output(rec) for rec in recs]
+    return [_reconstruct_task_output(rec) for rec in output_records]
 
 
 def _reconstruct_task_output(rec):
@@ -539,9 +539,8 @@ def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
     :type outputs: list of OutputParameter
     :rtype: Workflow
     """
-    rec = workflow_record["w"]
-    return Workflow(name=rec["name"], hints=hints, requirements=requirements, inputs=inputs,
-                    outputs=outputs, workflow_id=rec["id"])
+    return Workflow(name=workflow_record["name"], hints=hints, requirements=requirements,
+                    inputs=inputs, outputs=outputs, workflow_id=workflow_record["id"])
 
 
 def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
@@ -559,10 +558,10 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
     :type outputs: list of StepOutput
     :rtype: Task
     """
-    rec = task_record["t"]
-    return Task(name=rec["name"], base_command=rec["base_command"], hints=hints,
-                requirements=requirements, inputs=inputs, outputs=outputs, stdout=rec["stdout"],
-                stderr=rec["stderr"], workflow_id=rec["workflow_id"], task_id=rec["id"])
+    return Task(name=task_record["name"], base_command=task_record["base_command"],
+                hints=hints, requirements=requirements, inputs=inputs, outputs=outputs,
+                stdout=task_record["stdout"], stderr=task_record["stderr"],
+                workflow_id=task_record["workflow_id"], task_id=task_record["id"])
 
 
 def _reconstruct_metadata(metadata_record):
@@ -574,8 +573,7 @@ def _reconstruct_metadata(metadata_record):
     :type keys: iterable of str
     :rtype: dict
     """
-    rec = metadata_record["m"]
-    return {key: val for key, val in rec.items() if key != "state"}
+    return {key: val for key, val in metadata_record.items() if key != "state"}
 
 # Ignore E1129: External module is missing proper resource context manager methods.
 # pylama:ignore=E1129

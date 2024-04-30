@@ -21,15 +21,16 @@ log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
 
 
-def archive_workflow(db, wf_id):
+def archive_workflow(db, wf_id, final_state=None):
     """Archive a workflow after completion."""
     # Archive Config
     workflow_dir = wf_utils.get_workflow_dir(wf_id)
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
 
-    db.workflows.update_workflow_state(wf_id, 'Archived')
-    wf_utils.update_wf_status(wf_id, 'Archived')
+    wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
+    db.workflows.update_workflow_state(wf_id, wf_state)
+    wf_utils.update_wf_status(wf_id, wf_state)
 
     bee_workdir = wf_utils.get_bee_workdir()
     archive_dir = os.path.join(bee_workdir, 'archives')
@@ -38,6 +39,25 @@ def archive_workflow(db, wf_id):
     # We use tar directly since tarfile is apparently very slow
     workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
+
+
+def archive_fail_workflow(db, wf_id):
+    """Archive and fail a workflow."""
+    archive_workflow(db, wf_id, final_state='Failed')
+    pid = db.workflows.get_gdb_pid(wf_id)
+    dep_manager.kill_gdb(pid)
+
+
+def set_dependent_tasks_dep_fail(db, wfi, wf_id, task):
+    """Recursively set all dependent task states of this task to DEP_FAIL."""
+    # List of tasks whose states have already been updated
+    set_tasks = [task]
+    while len(set_tasks) > 0:
+        dep_tasks = wfi.get_dependent_tasks(set_tasks.pop())
+        for dep_task in dep_tasks:
+            wfi.set_task_state(dep_task, 'DEP_FAIL')
+            db.workflows.update_task_state(dep_task.id, wf_id, 'DEP_FAIL')
+        set_tasks.extend(dep_tasks)
 
 
 class WFUpdate(Resource):
@@ -96,23 +116,24 @@ class WFUpdate(Resource):
             task_info = jsonpickle.decode(data['task_info'])
             checkpoint_file = task_info['checkpoint_file']
             new_task = wfi.restart_task(task, checkpoint_file)
-            db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             if new_task is None:
                 log.info('No more restarts')
-                wf_state = wfi.get_task_state(task)
+                archive_fail_workflow(db, wf_id)
                 return make_response(jsonify(status=f'Task {task_id} set to {job_state}'))
+            db.workflows.add_task(new_task.id, wf_id, new_task.name, "WAITING")
             # Submit the restart task
             tasks = [new_task]
             wf_utils.schedule_submit_tasks(wf_id, tasks)
             return make_response(jsonify(status='Task {task_id} restarted'))
 
-        if job_state in ('COMPLETED', 'FAILED'):
+        if job_state == 'COMPLETED':
             for output in task.outputs:
                 if output.glob is not None:
                     wfi.set_task_output(task, output.id, output.glob)
                 else:
                     wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
+            log.info(f'next tasks to run: {tasks}')
             wf_state = wfi.get_workflow_state()
             if tasks and wf_state != 'PAUSED':
                 wf_utils.schedule_submit_tasks(wf_id, tasks)
@@ -123,13 +144,19 @@ class WFUpdate(Resource):
                 archive_workflow(db, wf_id)
                 pid = db.workflows.get_gdb_pid(wf_id)
                 dep_manager.kill_gdb(pid)
-            if wf_state == 'FAILED':
-                log.info("Workflow failed")
-                log.info("Shutting down GDB")
-                wf_id = wfi.workflow_id
-                archive_workflow(db, wf_id)
-                pid = db.workflows.get_gdb_pid(wf_id)
-                dep_manager.kill_gdb(pid)
+
+        # If the job failed and it doesn't include a checkpoint-restart hint,
+        # then fail the entire workflow
+        if job_state == 'FAILED':
+            set_dependent_tasks_dep_fail(db, wfi, wf_id, task)
+            log.info("Workflow failed")
+            log.info("Shutting down GDB")
+            wf_id = wfi.workflow_id
+            archive_fail_workflow(db, wf_id)
+
+        if job_state == 'BUILD_FAIL':
+            log.error(f'Workflow failed due to failed container build for task {task.name}')
+            archive_fail_workflow(db, wf_id)
 
         resp = make_response(jsonify(status=(f'Task {task_id} belonging to WF {wf_id} set to'
                                              f'{job_state}')), 200)

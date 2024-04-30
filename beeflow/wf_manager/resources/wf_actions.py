@@ -1,4 +1,6 @@
 """This module contains the workflow action endpoints."""
+import shutil
+import os
 
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
@@ -40,34 +42,44 @@ class WFActions(Resource):
         if not tasks:
             log.info(f"Bad query for wf {wf_id}.")
             wf_status = 'No workflow with that ID is currently loaded'
-            tasks_status.append('Unavailable')
             resp = make_response(jsonify(tasks_status=tasks_status,
                                  wf_status=wf_status, status='not found'), 404)
 
         for task in tasks:
-            tasks_status.append(f"{task.name}--{task.state}")
-        tasks_status = '\n'.join(tasks_status)
+            tasks_status.append((task.id, task.name, task.state))
         wf_status = db.workflows.get_workflow_state(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,
                              wf_status=wf_status, status='ok'), 200)
         return resp
 
-    @staticmethod
-    def delete(wf_id):
-        """Cancel the workflow. Lets current tasks finish running."""
+    def delete(self, wf_id):
+        """Cancel or delete the workflow. For cancel, current tasks finish running."""
+        self.reqparse.add_argument('option', type=str, location='json')
+        option = self.reqparse.parse_args()['option']
         db = connect_db(wfm_db, db_path)
-        wfi = wf_utils.get_workflow_interface(wf_id)
-        # Remove all tasks currently in the database
-        if wfi.workflow_loaded():
-            wfi.finalize_workflow()
-        wf_utils.update_wf_status(wf_id, 'Cancelled')
-        db.workflows.update_workflow_state(wf_id, 'Cancelled')
-        log.info("Workflow cancelled")
-        log.info("Shutting down gdb")
-        pid = db.workflows.get_gdb_pid(wf_id)
-        dep_manager.kill_gdb(pid)
-        resp = make_response(jsonify(status='Cancelled'), 202)
+        if option == "cancel":
+            wfi = wf_utils.get_workflow_interface(wf_id)
+            # Remove all tasks currently in the database
+            if wfi.workflow_loaded():
+                wfi.finalize_workflow()
+            wf_utils.update_wf_status(wf_id, 'Cancelled')
+            db.workflows.update_workflow_state(wf_id, 'Cancelled')
+            log.info("Workflow cancelled")
+            log.info("Shutting down gdb")
+            pid = db.workflows.get_gdb_pid(wf_id)
+            dep_manager.kill_gdb(pid)
+            resp = make_response(jsonify(status='Cancelled'), 202)
+        elif option == "remove":
+            log.info(f"Removing workflow {wf_id}.")
+            db.workflows.delete_workflow(wf_id)
+            resp = make_response(jsonify(status='Removed'), 202)
+            bee_workdir = wf_utils.get_bee_workdir()
+            workflow_dir = f"{bee_workdir}/workflows/{wf_id}"
+            shutil.rmtree(workflow_dir, ignore_errors=True)
+            archive_path = f"{bee_workdir}/archives/{wf_id}.tgz"
+            if os.path.exists(archive_path):
+                os.remove(archive_path)
         return resp
 
     def patch(self, wf_id):
