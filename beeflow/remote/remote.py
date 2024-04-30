@@ -36,7 +36,9 @@ def get_wf_status(wfid: str):
 @app.get("/droppoint")
 def get_drop_point():
     """ Transmit the scp location to be used for the storage of workflow tarballs """
-    return paths.droppoint_root()
+    output = {}
+    output["droppoint"] = str(paths.droppoint_root())
+    return output
     
 
 @app.get("/owner")
@@ -54,25 +56,31 @@ def submit_new_wf(filename: str):
     #TODO Establish a way to submit workflows with configuration files included to reduce parameters.
     pass
 
-@app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}/")
-def submit_new_wf_long(tarball_name: str):
+@app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}")
+def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_file:str):
     """Submit a new workflow with a tarball for the workflow at a given path
         This makes the following assumptions:
         The workflow tarball should be at <DROPPOINT_PATH>/<tarball name>
         The workdir should be at <DROPPOINT_PATH>/<tarball name>-workdir
     """
+    output = {}
     #Append the droppoint path to the tarball_name
     workflow_path = paths.droppoint_root() + "/" + tarball_name
     #Make a workdir path
     workdir_path = paths.droppoint_root() + "/" + tarball_name.replace(".tgz","") + "-workdir"
     #Make sure that the directory exists, if not create it with owner-only permissions
-    os.mkdir(workdir_path, mode=0o700)
+    if not os.path.exists(workdir_path):
+        os.makedirs(workdir_path, mode=0o700)
+
+    print(workflow_path)
 
     try:
-        bee_client.submit(wf_name, workflow_path, main_cwl_file, job_file, workdir_path, no_start=False)
-        return "Submitted new workflow " + wf_name
+        bee_client.submit(wf_name, tarball_name, main_cwl_file, job_file, workdir_path, no_start=False)
+        output["result"] = "Submitted new workflow" + str(wf_name)
+        return output
     except bee_client.ClientError as error:
-        return error
+        output["error"] = str(error)
+        return output
 
 @app.get("/showdrops")
 def show_drops():
