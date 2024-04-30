@@ -11,6 +11,7 @@ from beeflow.client import bee_client
 from fastapi import FastAPI
 import sys
 import os
+import pathlib
 import uvicorn
 
 app = FastAPI()
@@ -72,10 +73,17 @@ def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_
     if not os.path.exists(workdir_path):
         os.makedirs(workdir_path, mode=0o700)
 
-    print(workflow_path)
+    #Validate the path to the tarball. 
+    if not os.path.exists(workflow_path):
+        output["error"] = "The workflow tarball name provided was not found in the drop point."
+        return output
+
+    #Convert the paths to pathlib paths. 
+    workflow_path = pathlib.Path(workflow_path)
+    workdir_path = pathlib.Path(workdir_path)
 
     try:
-        bee_client.submit(wf_name, tarball_name, main_cwl_file, job_file, workdir_path, no_start=False)
+        bee_client.submit(wf_name, workflow_path, main_cwl_file, job_file, workdir_path, no_start=False)
         output["result"] = "Submitted new workflow" + str(wf_name)
         return output
     except bee_client.ClientError as error:
