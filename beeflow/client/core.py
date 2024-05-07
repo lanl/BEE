@@ -189,12 +189,11 @@ def init_components():
                                     paths.sched_socket(), stdout=fp, stderr=fp)
 
     @mgr.component('remote_api', ('wf_manager', 'task_manager'))
-    def start_remote_API():
+    def start_remote_api():
         """Start the remote API."""
         fp = open_log('remote_api')
         return launch_with_gunicorn('beeflow.remote.remote:create_app()',
-                                   paths.remote_socket(), stdout=fp, stderr=fp)
-
+                                    paths.remote_socket(), stdout=fp, stderr=fp)
 
     @mgr.component('celery', ('redis',))
     def celery():
@@ -443,6 +442,7 @@ def status():
     print('beeflow components:')
     for comp, stat in resp['components'].items():
         print(f'{comp} ... {stat}')
+
 
 @app.command()
 def stop(query='yes'):
