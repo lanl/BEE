@@ -1,9 +1,7 @@
-"""
-This script manages an API that allows the remote submission and viewing of jobs, and Beeflow's state.
-"""
-from fastapi import FastAPI
+""" This script manages an API that allows the remote submission of jobs."""
 import os
 import pathlib
+from fastapi import FastAPI
 import uvicorn
 
 from beeflow.common import cli_connection
@@ -12,6 +10,7 @@ from beeflow.client import bee_client
 
 
 app = FastAPI()
+
 
 @app.get("/")
 def read_root():
@@ -24,11 +23,13 @@ Detailed documentation is available here: https://lanl.github.io/BEE/
             """
             }
 
+
 @app.get("/workflows/status/{wfid}")
 def get_wf_status(wfid: str):
     """ WIP - This endpoint is planned to give you a status on an actively running workflow."""
     #TODO
     pass
+
 
 @app.get("/droppoint")
 def get_drop_point():
@@ -46,14 +47,13 @@ def get_owner():
     user_name = os.getenv('USER') or os.getenv('USERNAME')
     return user_name
 
-####################### BELOW API METHODS SHOULD REQUIRE API KEY ##################
-
 
 @app.get("/submit/{filename}")
 def submit_new_wf(filename: str):
     """Submit a new workflow with a tarball for the workflow at a given path."""
     #TODO Establish a way to submit workflows with configuration files included to reduce parameters.
     pass
+
 
 @app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}")
 def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_file:str):
@@ -88,6 +88,7 @@ def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_
         output["error"] = str(error)
         return output
 
+
 @app.get("/showdrops")
 def show_drops():
     """WIP: This endpoint is planned to give a list of the workflows that have been placed in the drop point."""
@@ -96,6 +97,7 @@ def show_drops():
 @app.get("/cleanup")
 def cleanup_wf_directory():
     """WIP: This endpoint is planned to delete all the temporarily stored workflow tarballs."""
+
 
 @app.get("/core/status/")
 def get_core_status():
@@ -109,6 +111,7 @@ def get_core_status():
     for comp, stat in resp['components'].items():
         output[comp] = stat
     return output
+
 
 def create_app():
     """ Start the web-server for the API with uvicorn."""
