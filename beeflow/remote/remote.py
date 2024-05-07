@@ -1,4 +1,4 @@
-""" This script manages an API that allows the remote submission of jobs."""
+"""This script manages an API that allows the remote submission of jobs."""
 import os
 import pathlib
 from fastapi import FastAPI
@@ -15,19 +15,12 @@ app = FastAPI()
 @app.get("/")
 def read_root():
     """Get REST Connection info."""
-    #Update this root endpoint with a very brief documentation of the various other endpoints.
-    return {"Endpoint info": 
-            """
-You have reached the beeflow core API.
-Detailed documentation is available here: https://lanl.github.io/BEE/
-            """
-            }
+    return {"Endpoint info": "You have reached the beeflow core API. Detailed documentation is available here: https://lanl.github.io/BEE/"}
 
 
-@app.get("/workflows/status/{wfid}")
-def get_wf_status(wfid: str):
+@app.get("/workflows/status/")
+def get_wf_status():
     """ WIP - This endpoint is planned to give you a status on an actively running workflow."""
-    #TODO
     pass
 
 
@@ -50,14 +43,14 @@ def get_owner():
 
 @app.get("/submit/{filename}")
 def submit_new_wf(filename: str):
-    """Submit a new workflow with a tarball for the workflow at a given path."""
-    #TODO Establish a way to submit workflows with configuration files included to reduce parameters.
+    """WIP: Submit a new workflow with a tarball for the workflow at a given path."""
     pass
 
 
 @app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}")
 def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_file:str):
     """Submit a new workflow with a tarball for the workflow at a given path.
+
         This makes the following assumptions:\n
         The workflow tarball should be at <DROPPOINT_PATH>/<tarball name>\n
         The workdir should be at <DROPPOINT_PATH>/<tarball name>-workdir and should have the required input files
@@ -105,7 +98,6 @@ def get_core_status():
     output = {}
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'status'})
     if resp is None:
-        beeflow_log = paths.log_fname('beeflow')
         output["error"] = 'Cannot connect to the beeflow daemon, is it running?'
         return output
     for comp, stat in resp['components'].items():
@@ -116,6 +108,10 @@ def get_core_status():
 def create_app():
     """ Start the web-server for the API with uvicorn."""
     #TODO decide what port we're using for the long term. I set it to port 7777 temporarily
-    config = uvicorn.Config("beeflow.remote.remote:app", host="0.0.0.0", port=7777, reload=True, log_level="info")
+    config = uvicorn.Config("beeflow.remote.remote:app", 
+            host="0.0.0.0",
+            port=7777,
+            reload=True,
+            log_level="info")
     server = uvicorn.Server(config)
     server.run()
