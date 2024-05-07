@@ -24,19 +24,20 @@ def read_root():
             """
 You have reached the beeflow core API.
 Detailed documentation is available here: https://lanl.github.io/BEE/
-The following endpoints are available:
-/core/status: Get status information about all of the core beeflow components
             """
             }
 
 @app.get("/workflows/status/{wfid}")
 def get_wf_status(wfid: str):
+    """ WIP - This endpoint is planned to give you a status on an actively running workflow """
     #TODO
     pass
 
 @app.get("/droppoint")
 def get_drop_point():
-    """ Transmit the scp location to be used for the storage of workflow tarballs """
+    """ Transmit the scp location to be used for the storage of workflow tarballs.
+        Users are required to ensure that this directory has the appropriate permissions.
+    """
     output = {}
     output["droppoint"] = str(paths.droppoint_root())
     return output
@@ -60,9 +61,9 @@ def submit_new_wf(filename: str):
 @app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}")
 def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_file:str):
     """Submit a new workflow with a tarball for the workflow at a given path
-        This makes the following assumptions:
-        The workflow tarball should be at <DROPPOINT_PATH>/<tarball name>
-        The workdir should be at <DROPPOINT_PATH>/<tarball name>-workdir
+        This makes the following assumptions:\n
+        The workflow tarball should be at <DROPPOINT_PATH>/<tarball name>\n
+        The workdir should be at <DROPPOINT_PATH>/<tarball name>-workdir and should have the required input files
     """
     output = {}
     #Append the droppoint path to the tarball_name
@@ -92,14 +93,14 @@ def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_
 
 @app.get("/showdrops")
 def show_drops():
-    """Give a list of the workflows that have been placed in the dropbox"""
+    """WIP: This endpoint is planned to give a list of the workflows that have been placed in the drop point"""
     #TODO
     pass
 
 
 @app.get("/cleanup")
 def cleanup_wf_directory():
-    """Delete all the temporarily stored workflow tarballs"""
+    """WIP: This endpoint is planned to delete all the temporarily stored workflow tarballs"""
     #TODO
     pass
 
