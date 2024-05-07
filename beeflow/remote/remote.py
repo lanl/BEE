@@ -1,24 +1,21 @@
-
-"""remote_manager.py
-This script manages an API that allows the remote submission and viewing of jobs, and Beeflow's state
 """
-
+This script manages an API that allows the remote submission and viewing of jobs, and Beeflow's state.
+"""
+from fastapi import FastAPI
+import os
+import pathlib
+import uvicorn
 
 from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.client import bee_client
 
-from fastapi import FastAPI
-import sys
-import os
-import pathlib
-import uvicorn
 
 app = FastAPI()
 
 @app.get("/")
 def read_root():
-    """Get Connection info"""
+    """Get REST Connection info."""
     #Update this root endpoint with a very brief documentation of the various other endpoints.
     return {"Endpoint info": 
             """
@@ -29,7 +26,7 @@ Detailed documentation is available here: https://lanl.github.io/BEE/
 
 @app.get("/workflows/status/{wfid}")
 def get_wf_status(wfid: str):
-    """ WIP - This endpoint is planned to give you a status on an actively running workflow """
+    """ WIP - This endpoint is planned to give you a status on an actively running workflow."""
     #TODO
     pass
 
@@ -45,7 +42,7 @@ def get_drop_point():
 
 @app.get("/owner")
 def get_owner():
-    """ Transmit the owner of this beeflow instance """
+    """ Transmit the owner of this beeflow instance."""
     user_name = os.getenv('USER') or os.getenv('USERNAME')
     return user_name
 
@@ -54,13 +51,13 @@ def get_owner():
 
 @app.get("/submit/{filename}")
 def submit_new_wf(filename: str):
-    """Submit a new workflow with a tarball for the workflow at a given path"""
+    """Submit a new workflow with a tarball for the workflow at a given path."""
     #TODO Establish a way to submit workflows with configuration files included to reduce parameters.
     pass
 
 @app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}")
 def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_file:str):
-    """Submit a new workflow with a tarball for the workflow at a given path
+    """Submit a new workflow with a tarball for the workflow at a given path.
         This makes the following assumptions:\n
         The workflow tarball should be at <DROPPOINT_PATH>/<tarball name>\n
         The workdir should be at <DROPPOINT_PATH>/<tarball name>-workdir and should have the required input files
@@ -93,16 +90,12 @@ def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_
 
 @app.get("/showdrops")
 def show_drops():
-    """WIP: This endpoint is planned to give a list of the workflows that have been placed in the drop point"""
-    #TODO
-    pass
+    """WIP: This endpoint is planned to give a list of the workflows that have been placed in the drop point."""
 
 
 @app.get("/cleanup")
 def cleanup_wf_directory():
-    """WIP: This endpoint is planned to delete all the temporarily stored workflow tarballs"""
-    #TODO
-    pass
+    """WIP: This endpoint is planned to delete all the temporarily stored workflow tarballs."""
 
 @app.get("/core/status/")
 def get_core_status():
@@ -118,7 +111,7 @@ def get_core_status():
     return output
 
 def create_app():
-    """ Start the web-server for the API with uvicorn """
+    """ Start the web-server for the API with uvicorn."""
     #TODO decide what port we're using for the long term. I set it to port 7777 temporarily
     config = uvicorn.Config("beeflow.remote.remote:app", host="0.0.0.0", port=7777, reload=True, log_level="info")
     server = uvicorn.Server(config)
