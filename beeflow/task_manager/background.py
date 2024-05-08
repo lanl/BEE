@@ -14,22 +14,6 @@ from beeflow.common.build_interfaces import build_main
 log = bee_logging.setup(__name__)
 
 
-def update_task_state(workflow_id, task_id, job_state, **kwargs):
-    """Informs the workflow manager of the current state of a task."""
-    data = {'wf_id': workflow_id, 'task_id': task_id, 'job_state': job_state}
-    if 'metadata' in kwargs:
-        kwargs['metadata'] = jsonpickle.encode(kwargs['metadata'])
-
-    if 'task_info' in kwargs:
-        kwargs['task_info'] = jsonpickle.encode(kwargs['task_info'])
-
-    data.update(kwargs)
-    conn = utils.wfm_conn()
-    resp = conn.put(utils.wfm_resource_url("update/"), json=data)
-    if resp.status_code != 200:
-        log.warning("WFM not responding when sending task update.")
-
-
 def resolve_environment(task):
     """Use build interface to create a valid environment.
 
@@ -66,20 +50,18 @@ def submit_task(db, worker, task):
     return job_state
 
 
-def submit_jobs():
+def submit_jobs(db):
     """Submit all jobs currently in submit queue to the workload scheduler."""
-    db = utils.connect_db()
     worker = utils.worker_interface()
     while db.submit_queue.count() >= 1:
         # Single value dictionary
         task = db.submit_queue.pop()
         job_state = submit_task(db, worker, task)
-        update_task_state(task.workflow_id, task.id, job_state)
+        db.update_queue.push(task.workflow_id, task.id, job_state)
 
 
-def update_jobs():
+def update_jobs(db):
     """Check and update states of jobs in queue, remove completed jobs."""
-    db = utils.connect_db()
     worker = utils.worker_interface()
     # Need to make a copy first
     job_q = list(db.job_queue)
@@ -102,13 +84,13 @@ def update_jobs():
                     try:
                         checkpoint_file = utils.get_restart_file(task_checkpoint, task.workdir)
                         task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
-                        update_task_state(task.workflow_id, task.id, new_job_state,
-                                          task_info=task_info)
+                        db.update_queue.push(task.workflow_id, task.id, new_job_state,
+                                             task_info=task_info)
                     except utils.CheckpointRestartError as err:
                         log.error(f'Checkpoint restart failed for {task.name} ({task.id}): {err}')
-                        update_task_state(task.workflow_id, task.id, 'FAILED')
+                        db.update_queue.push(task.workflow_id, task.id, 'FAILED')
                 else:
-                    update_task_state(task.workflow_id, task.id, new_job_state)
+                    db.update_queue.push(task.workflow_id, task.id, new_job_state)
             # States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
             elif new_job_state in ('BOOT_FAIL', 'NODE_FAIL', 'OUT_OF_MEMORY', 'PREEMPTED'):
                 # Don't update wfm, just resubmit
@@ -116,9 +98,9 @@ def update_jobs():
                 log.info(f'Resubmitting task {task.name}')
                 db.job_queue.remove_by_id(id_)
                 job_state = submit_task(db, worker, task)
-                update_task_state(task.workflow_id, task.id, job_state)
+                db.update_queue.push(task.workflow_id, task.id, job_state)
             else:
-                update_task_state(task.workflow_id, task.id, new_job_state)
+                db.update_queue.push(task.workflow_id, task.id, new_job_state)
 
         if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
@@ -127,5 +109,21 @@ def update_jobs():
 
 def process_queues():
     """Look for newly submitted jobs and update status of scheduled jobs."""
-    submit_jobs()
-    update_jobs()
+    db = utils.connect_db()
+
+    # Submit and update jobs
+    submit_jobs(db)
+    update_jobs(db)
+
+    # Attempt to send a batch of task updates to the wfm, otherwise keep the
+    # updates for later
+    state_updates = jsonpickle.encode(db.update_queue.updates())
+    conn = utils.wfm_conn()
+    resp = conn.put(utils.wfm_resource_url("update/"), json={'state_updates': state_updates})
+    if resp.status_code == 200:
+        # The workflow manager received the updates, so clear the queue
+        db.update_queue.clear()
+    else:
+        log.info(resp.json()['error'])
+        # Something bad happened so keep the udpates until the next round
+        log.warning("WFM not responding when sending task updates.")
