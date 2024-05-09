@@ -1,14 +1,15 @@
 #!/bin/sh
 # Set up and start the batch scheduler
 
-case $BATCH_SCHEDULER in
-Slurm)
+case $BEE_WORKER in
+Slurmrestd|SlurmCommands)
     ./ci/slurm_start.sh
     ;;
 Flux)
     ./ci/flux_install.sh
     ;;
 *)
-    printf "ERROR: Invalid batch scheduler '%s'\n" "$BATCH_SCHEDULER"
+    printf "ERROR: Invalid worker type '%s'\n" "$BEE_WORKER"
+    exit 1
     ;;
 esac

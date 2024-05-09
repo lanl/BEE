@@ -7,12 +7,15 @@
 set +e
 
 # BEE needs to be started here in order to access batch scheduler resources
-if [ "$BATCH_SCHEDULER" = "Slurm" ]; then
+case $BEE_WORKER in
+Slurmrestd)
     # Slurmrestd will fail by default when running as `SlurmUser`
     SLURMRESTD_SECURITY=disable_user_check beeflow core start
-else
+    ;;
+*)
     beeflow core start
-fi
+    ;;
+esac
 sleep 4
 
 # Start the actual integration tests
