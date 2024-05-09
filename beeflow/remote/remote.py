@@ -20,13 +20,13 @@ def read_root():
 
 @app.get("/workflows/status/")
 def get_wf_status():
-    """ WIP - This endpoint is planned to give you a status on an actively running workflow."""
-    pass
+    """WIP - This endpoint is planned to give you a status on an actively running workflow."""
 
 
 @app.get("/droppoint")
 def get_drop_point():
-    """ Transmit the scp location to be used for the storage of workflow tarballs.
+    """Transmit the scp location to be used for the storage of workflow tarballs.
+
         Users are required to ensure that this directory has the appropriate permissions.
     """
     output = {}
@@ -36,7 +36,7 @@ def get_drop_point():
 
 @app.get("/owner")
 def get_owner():
-    """ Transmit the owner of this beeflow instance."""
+    """Transmit the owner of this beeflow instance."""
     user_name = os.getenv('USER') or os.getenv('USERNAME')
     return user_name
 
@@ -44,7 +44,6 @@ def get_owner():
 @app.get("/submit/{filename}")
 def submit_new_wf(filename: str):
     """WIP: Submit a new workflow with a tarball for the workflow at a given path."""
-    pass
 
 
 @app.get("/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}")
@@ -53,23 +52,24 @@ def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_
 
         This makes the following assumptions:\n
         The workflow tarball should be at <DROPPOINT_PATH>/<tarball name>\n
-        The workdir should be at <DROPPOINT_PATH>/<tarball name>-workdir and should have the required input files
+        The workdir should be at <DROPPOINT_PATH>/<tarball name>-workdir and
+        should have the required input files.
     """
     output = {}
-    #Append the droppoint path to the tarball_name
+    # Append the droppoint path to the tarball_name
     workflow_path = paths.droppoint_root() + "/" + tarball_name
-    #Make a workdir path
-    workdir_path = paths.droppoint_root() + "/" + tarball_name.replace(".tgz","") + "-workdir"
-    #Make sure that the directory exists, if not create it with owner-only permissions
+    # Make a workdir path
+    workdir_path = paths.droppoint_root() + "/" + tarball_name.replace(".tgz", "") + "-workdir"
+    # Make sure that the directory exists, if not create it with owner-only permissions
     if not os.path.exists(workdir_path):
         os.makedirs(workdir_path, mode=0o700)
 
-    #Validate the path to the tarball. 
+    # Validate the path to the tarball. 
     if not os.path.exists(workflow_path):
         output["error"] = "The workflow tarball name provided was not found in the drop point."
         return output
 
-    #Convert the paths to pathlib paths. 
+    # Convert the paths to pathlib paths. 
     workflow_path = pathlib.Path(workflow_path)
     workdir_path = pathlib.Path(workdir_path)
 
@@ -107,7 +107,7 @@ def get_core_status():
 
 def create_app():
     """ Start the web-server for the API with uvicorn."""
-    #TODO decide what port we're using for the long term. I set it to port 7777 temporarily
+    # decide what port we're using for the long term. I set it to port 7777 temporarily
     config = uvicorn.Config("beeflow.remote.remote:app", 
             host="0.0.0.0",
             port=7777,
