@@ -558,6 +558,12 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     else:
         error_exit(f'Workflow tarball {wf_path} cannot be found')
 
+    # Make sure the workdir is an absolute path and exists
+    workdir = os.path.expanduser(workdir)
+    workdir = os.path.abspath(workdir)
+    if not os.path.exists(workdir):
+        error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
+
     data = {
         'wf_filename': os.path.basename(wf_path).encode(),
         'wf_name': wf_name.encode(),
