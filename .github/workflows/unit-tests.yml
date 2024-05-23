@@ -40,10 +40,11 @@ jobs:
         uses: tj-actions/coverage-badge-py@v2
 
       - name: Verify Changed Files
-        uses: tj-actions/verify-changed-files@v16
+        uses: tj-actions/verify-changed-files@v20
         id: verify-changed-files
         with:
-          files: coverage.svg
+          files: |
+            *.svg
 
       - name: Commit files
         if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]'
