@@ -54,6 +54,12 @@ jobs:
           git add coverage.svg
           git commit -m "Updated coverage.svg"
 
+      - name: Fetch latest changes again
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]'
+        run: |
+          git fetch origin
+          git rebase origin/${{ github.head_ref }}
+
       - name: Push changes
         if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]'
         uses: ad-m/github-push-action@master
