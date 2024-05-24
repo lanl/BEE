@@ -95,10 +95,7 @@ def test_bad_task(slurm_worker):
 
 def test_query_bad_job_id(slurm_worker):
     """Test querying a bad job ID."""
-    try:
-        job_state = slurm_worker.query_task(888)
-    except Exception as err:
-        print(f"err: {err}")
+    job_state = slurm_worker.query_task(888)
     assert job_state == 'ZOMBIE'
 
 
