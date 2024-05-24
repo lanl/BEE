@@ -131,8 +131,8 @@ class WFUpdate(Resource):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
             if wfi.workflow_completed():
-                log.info(f"Workflow {wf_id} Completed")
                 wf_id = wfi.workflow_id
+                log.info(f"Workflow {wf_id} Completed")
                 archive_workflow(db, state_update.wf_id)
                 pid = db.workflows.get_gdb_pid(state_update.wf_id)
                 dep_manager.kill_gdb(pid)
