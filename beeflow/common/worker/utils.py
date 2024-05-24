@@ -14,10 +14,11 @@ def get_state_sacct(job_id):
         else:
             job_state = "ZOMBIE"
     except subprocess.CalledProcessError as exc:
-        job_state = "ZOMBIE"
         raise WorkerError(f'Failed to query job {job_id} with sacct') from exc
     finally:
-        return job_state
+        if not job_state:
+            job_state = "ZOMBIE"
+    return job_state
 
 
 def parse_key_val(pair):
