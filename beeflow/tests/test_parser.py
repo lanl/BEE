@@ -51,7 +51,7 @@ class TestParser(unittest.TestCase):
             self.assertEqual(task.workflow_id, workflow_id)
 
     def test_parse_workflow_validate_script(self):
-        """Test parsing of workflow with a YAML input job file and validate pre/post script files."""
+        """Test parsing of workflow and validate pre/post script files."""
         cwl_wf_file = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_wf.cwl") #noqa
         cwl_job_yaml = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_job.yml") #noqa
 
