@@ -282,7 +282,7 @@ class CwlParser:
 
     def _read_requirement_file(self, key, items, state=0):
         """Read in a requirement file and replace it in the parsed items.
-        
+
         :param state: tracks if pre/post script capability is enabled
         :type state: 0 is default, 1 is True
         """
