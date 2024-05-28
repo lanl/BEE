@@ -280,8 +280,9 @@ class CwlParser:
 
         return outputs
 
-    def _read_requirement_file(self, key, items, state = 0):
+    def _read_requirement_file(self, key, items, state=0):
         """Read in a requirement file and replace it in the parsed items.
+        
         :param state: tracks if pre/post script capability is enabled
         :type state: 0 is default, 1 is True
         """
@@ -334,9 +335,9 @@ class CwlParser:
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
                 if 'pre_script' in items and items['enabled']:
-                    self._read_requirement_file('pre_script', items, state = 1)
+                    self._read_requirement_file('pre_script', items, state=1)
                 if 'post_script' in items and items['enabled']:
-                    self._read_requirement_file('post_script', items, state = 1)
+                    self._read_requirement_file('post_script', items, state=1)
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)
                 reqs.append(Hint(req['class'], items))
