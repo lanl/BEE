@@ -280,8 +280,11 @@ class CwlParser:
 
         return outputs
 
-    def _read_requirement_file(self, key, items):
-        """Read in a requirement file and replace it in the parsed items."""
+    def _read_requirement_file(self, key, items, state = 0):
+        """Read in a requirement file and replace it in the parsed items.
+        :param state: tracks if pre/post script capability is enabled
+        :type state: 0 is default, 1 is True
+        """
         base_path = os.path.dirname(self.path)
         fname = items[key]
         path = os.path.join(base_path, fname)
@@ -291,6 +294,21 @@ class CwlParser:
         except FileNotFoundError:
             msg = f'Could not find a file for {key}: {fname}'
             raise CwlParseError(msg) from None
+        
+        if (state == 1):
+            self._validate_prepost_script_env(key, items, fname)
+        
+    def _validate_prepost_script_env(self, key, items, fname):
+        """Validate the pre/post script files by checking for shebang line.
+
+        Return error if shell environment is not defined.
+        """
+        env_decl = []
+        for line in items[key].splitlines():
+            env_decl.append(line)
+        if not(env_decl[0].startswith("#!")):
+            print("File does not contain shebang line: ", fname)
+            #raise Exception("File does not contain shebang line: ", fname)
 
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
@@ -317,9 +335,9 @@ class CwlParser:
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
                 if 'pre_script' in items and items['enabled']:
-                    self._read_requirement_file('pre_script', items)
+                    self._read_requirement_file('pre_script', items, state = 1)
                 if 'post_script' in items and items['enabled']:
-                    self._read_requirement_file('post_script', items)
+                    self._read_requirement_file('post_script', items, state = 1)
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)
                 reqs.append(Hint(req['class'], items))
