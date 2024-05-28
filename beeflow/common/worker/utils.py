@@ -9,14 +9,11 @@ def get_state_sacct(job_id):
     try:
         resp = subprocess.run(['sacct', '-n', '-j', str(job_id)], text=True, check=True,
                               stdout=subprocess.PIPE)
-        if resp.stdout:
-            job_state = resp.stdout.splitlines()[0].split()[5]
-        else:
+    except:
             job_state = "ZOMBIE"
-    except subprocess.CalledProcessError as exc:
-        raise WorkerError(f'Failed to query job {job_id} with sacct') from exc
-    finally:
-        if not job_state:
+    if resp.stdout:
+        job_state = resp.stdout.splitlines()[0].split()[5]
+    else:
             job_state = "ZOMBIE"
     return job_state
 
