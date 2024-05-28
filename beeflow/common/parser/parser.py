@@ -294,10 +294,10 @@ class CwlParser:
         except FileNotFoundError:
             msg = f'Could not find a file for {key}: {fname}'
             raise CwlParseError(msg) from None
-        
-        if (state == 1):
+
+        if state == 1:
             self._validate_prepost_script_env(key, items, fname)
-        
+
     def _validate_prepost_script_env(self, key, items, fname):
         """Validate the pre/post script files by checking for shebang line.
 
@@ -306,9 +306,8 @@ class CwlParser:
         env_decl = []
         for line in items[key].splitlines():
             env_decl.append(line)
-        if not(env_decl[0].startswith("#!")):
+        if not env_decl[0].startswith("#!"):
             print("File does not contain shebang line: ", fname)
-            #raise Exception("File does not contain shebang line: ", fname)
 
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
