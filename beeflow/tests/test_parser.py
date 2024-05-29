@@ -57,12 +57,10 @@ class TestParser(unittest.TestCase):
 
         workflow_id = generate_workflow_id()
 
-        workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+        with self.assertRaises(Exception) as context:
+            self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
 
-        self.assertEqual(workflow, WORKFLOW_GOLD)
-        self.assertListEqual(tasks, TASKS_GOLD_VALIDATE_SCRIPT)
-        for task in tasks:
-            self.assertEqual(task.workflow_id, workflow_id)
+        self.assertEqual(context.exception.args[0], "File pre_run.sh does not contain shebang line")
 
     def test_parse_workflow_json(self):
         """Test parsing of workflow with a JSON input job file."""
@@ -145,7 +143,7 @@ TASKS_GOLD_SCRIPT = [
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
         hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), #noqa
-               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"\n', 'post_script': 'echo "After run"\n'})], #noqa
+               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': '#!/bin/bash\n\necho "Before run"\n', 'post_script': '#!/bin/bash\n\necho "After run"\n'})], #noqa
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
                           source='steps_between_graphics', prefix='-g', position=None,
@@ -204,7 +202,7 @@ TASKS_GOLD_VALIDATE_SCRIPT = [
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
         hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), #noqa
-               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': '#!/bin/bash\n\necho "Before run"\n', 'post_script': '#!/bin/bash\n\necho "After run"\n'})], #noqa
+               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"\n', 'post_script': 'echo "After run"\n'})], #noqa
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
                           source='steps_between_graphics', prefix='-g', position=None,

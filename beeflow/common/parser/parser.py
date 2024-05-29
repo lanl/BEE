@@ -284,7 +284,8 @@ class CwlParser:
         """Read in a requirement file and replace it in the parsed items.
 
         :param state: tracks if pre/post script capability is enabled
-        :type state: 0 is default, 1 is True
+        :type state: int
+        :rtype state: 0 is default, 1 is True
         """
         base_path = os.path.dirname(self.path)
         fname = items[key]
@@ -302,13 +303,15 @@ class CwlParser:
     def _validate_prepost_script_env(self, key, items, fname):
         """Validate the pre/post script files by checking for shebang line.
 
-        Return error if shell environment is not defined.
+        :param fname: name of pre/post script file
+        :type fname: str
         """
         env_decl = []
         for line in items[key].splitlines():
             env_decl.append(line)
         if not env_decl[0].startswith("#!"):
-            print("File does not contain shebang line: ", fname)
+            msg = f'File {fname} does not contain shebang line'
+            raise CwlParseError(msg) from None
 
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
