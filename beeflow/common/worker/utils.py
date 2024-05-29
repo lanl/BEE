@@ -13,8 +13,7 @@ def get_state_sacct(job_id):
         pass
     else:
         job_state = resp.stdout.splitlines()[0].split()[5]
-    finally:
-        return job_state
+    return job_state
 
 
 def parse_key_val(pair):
