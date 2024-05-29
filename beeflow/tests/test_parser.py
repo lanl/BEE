@@ -60,7 +60,7 @@ class TestParser(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
 
-        self.assertEqual(context.exception.args[0], "File pre_run.sh does not contain shebang line")
+        self.assertEqual(context.exception.args[0], "No shebang line found in pre_run.sh")
 
     def test_parse_workflow_json(self):
         """Test parsing of workflow with a JSON input job file."""
