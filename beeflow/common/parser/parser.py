@@ -310,7 +310,7 @@ class CwlParser:
         for line in items[key].splitlines():
             env_decl.append(line)
         if not env_decl[0].startswith("#!"):
-            msg = f'File {fname} does not contain shebang line'
+            msg = f'No shebang line found in {fname}'
             raise CwlParseError(msg) from None
 
     def parse_requirements(self, requirements, as_hints=False):
