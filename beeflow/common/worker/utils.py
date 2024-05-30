@@ -1,6 +1,7 @@
 """Worker utility functions."""
 
 import subprocess
+from beeflow.common.worker.worker import WorkerError
 
 
 def get_state_sacct(job_id):
@@ -14,8 +15,8 @@ def get_state_sacct(job_id):
         info = info.split('|')
         state_idx = header.index('State')
         return info[state_idx]
-    except (subprocess.CalledProcessError, ValueError, KeyError):
-        return 'UNKNOWN'
+    except (subprocess.CalledProcessError, ValueError, KeyError) as exc:
+        raise WorkerError(f'sacct query failed for job {job_id}') from exc
 
 
 def parse_key_val(pair):

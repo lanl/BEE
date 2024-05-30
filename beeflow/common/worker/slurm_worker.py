@@ -171,7 +171,6 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 try:
                     job_state = data['jobs'][0]['job_state']
                 except (KeyError, IndexError) as exc:
-                    job_state = 'ZOMBIE'
                     raise WorkerError(f'Failed to query job {job_id}') from exc
             else:
                 # If slurmrestd does not find job make last attempt with sacct command
