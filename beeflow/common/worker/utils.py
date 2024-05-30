@@ -5,15 +5,18 @@ import subprocess
 
 def get_state_sacct(job_id):
     """Get state from slurm using sacct command, used when other means fail."""
-    job_state = "ZOMBIE"
     try:
-        resp = subprocess.run(['sacct', '-n', '-j', str(job_id)], text=True, check=True,
+        resp = subprocess.run(['sacct', '--parsable', '-j', str(job_id)], text=True, check=True,
                               stdout=subprocess.PIPE)
-    except subprocess.CalledProcessError:
-        pass
-    else:
-        job_state = resp.stdout.splitlines()[0].split()[5]
-    return job_state
+        data = resp.stdout.splitlines()
+        print(data)
+        header, info = data
+        header = header.split('|')
+        info = info.split('|')
+        state_idx = header.index('State')
+        return info[state_idx]
+    except (subprocess.CalledProcessError, ValueError, KeyError):
+        return 'UNKNOWN'
 
 
 def parse_key_val(pair):
