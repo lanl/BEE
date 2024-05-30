@@ -9,7 +9,6 @@ def get_state_sacct(job_id):
         resp = subprocess.run(['sacct', '--parsable', '-j', str(job_id)], text=True, check=True,
                               stdout=subprocess.PIPE)
         data = resp.stdout.splitlines()
-        print(data)
         header, info = data
         header = header.split('|')
         info = info.split('|')
