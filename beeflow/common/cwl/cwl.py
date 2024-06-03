@@ -83,8 +83,7 @@ class RunInput(Input):
     """Represents a Run input as opposed to a CWL input.
 
        InputBinding can either be:
-            prefix: <-j>
-            {}
+            prefix: <-j> or empty {}
     """
     input_binding: InputBinding
 
@@ -119,6 +118,10 @@ class Inputs:
         input_yaml = {'inputs': inputs_dict}
         return input_yaml
 
+    def __add__(self, adder_inputs):
+        new_inputs = self.inputs + adder_inputs.inputs
+        return Inputs(new_inputs)
+
     def __repr__(self):
         return yaml.dump(self.dump(), sort_keys=False)
 
@@ -140,12 +143,56 @@ class Output:
     def __repr__(self):
         return yaml.dump(self.dump(), sort_keys=False)
 
+@dataclass
+class OutputBinding:
+    """Represents a CWL input binding."""
+    prefix: str = None
+    position: int = None
+
+    def dump(self):
+        """Dump returns dictionary that will be used by pyyaml dump."""
+        binding_yaml = {'outputBinding': {}}
+        if self.position:
+            binding_yaml['outputBinding']['position'] = self.position
+        if self.prefix:
+            binding_yaml['outputBinding']['prefix'] = self.prefix
+        return binding_yaml
+
+    def __repr__(self):
+        """Representation of an output.
+           output_name: output_type
+        """
+        return yaml.dump(self.dump(), sort_keys=False)
+
 
 @dataclass
 class RunOutput(Output):
-    """Represents a run output. Currently don't need any additional variables.
-       Just using this to differentiate between a run output vs a CWL output.
+    """Represents a Run output as opposed to a CWL output.
+
+       InputBinding can either be:
+            prefix: <-j>
+            {}
     """
+    output_binding: OutputBinding = None
+
+    def dump(self):
+        """Dump returns dictionary that will be used by pyyaml dump."""
+        if not self.output_binding:
+            return super().dump()
+        outputs_dumps = [{'type': self.output_type},
+                        self.output_binding.dump()]
+        outputs_dict = {}
+        for dump in outputs_dumps:
+            outputs_dict.update(dump)
+        inputs_yaml = {self.output_name: outputs_dict}
+        return inputs_yaml
+
+    def __repr__(self):
+        """Representation of an input.
+           input_name: input_type
+        """
+        return yaml.dump(self.dump(), sort_keys=False)
+
 
 
 @dataclass
@@ -181,6 +228,10 @@ class Outputs:
         outputs_dict = {k: v for d in outputs_dumps for k, v in d.items()}
         output_yaml = {'outputs': outputs_dict}
         return output_yaml
+
+    def __add__(self, adder_outputs):
+        new_outputs = self.outputs + adder_outputs.outputs
+        return Outputs(new_outputs)
 
     def __repr__(self):
         return yaml.dump(self.dump(), sort_keys=False)
