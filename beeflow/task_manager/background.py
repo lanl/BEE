@@ -101,7 +101,7 @@ def update_jobs(db):
             else:
                 db.update_queue.push(task.workflow_id, task.id, new_job_state)
 
-        if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
+        if job_state in ('UNKNOWN', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
             # Remove from the job queue. Our job is finished
             db.job_queue.remove_by_id(id_)
 
