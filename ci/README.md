@@ -1,9 +1,8 @@
 # CI code
 
 This directory contains all the scripts that are needed for configuring and
-running BEE on a CI machine. `BATCH_SCHEDULER` is set in the environment by the
-workflow to either `Slurm` or `Flux`, which is then used in various places in
-these scripts. The scripts are as follows:
+running BEE on a CI machine. `BEE_WORKER` must be set in the environment by the
+workflow to `Slurmrestd`, `SlurmCommands`, or `Flux`. The scripts are as follows:
 
 * `env.sh`: CI environment set up
 * `batch_scheduler.sh`: Install and set up a batch scheduler
