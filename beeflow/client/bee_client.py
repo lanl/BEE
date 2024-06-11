@@ -206,6 +206,9 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         path = os.path.abspath(path)
         return os.path.commonpath([parent]) == os.path.commonpath([parent, path])
 
+    wf_path = wf_path.resolve()
+    workdir = workdir.resolve()
+
     tarball_path = ""
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
@@ -222,17 +225,15 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             # Packaging in temp dir, after copying alternate cwl_main or yaml file
             cwl_indir = is_parent(wf_path, main_cwl_path)
             yaml_indir = is_parent(wf_path, yaml_path)
+            # Always create temp dir for the workflow
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
-            if cwl_indir and yaml_indir:
-                package_path = package(wf_path, tempdir_path)
-            else:
-                tempdir_wf_path = pathlib.Path(tempdir_path / wf_path.name)
-                shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
-                if not cwl_indir:
-                    shutil.copy2(main_cwl, tempdir_wf_path)
-                if not yaml_indir:
-                    shutil.copy2(yaml, tempdir_wf_path)
-                package_path = package(tempdir_wf_path, tempdir_path)
+            tempdir_wf_path = pathlib.Path(tempdir_path / wf_name)
+            shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
+            if not cwl_indir:
+                shutil.copy2(main_cwl, tempdir_wf_path)
+            if not yaml_indir:
+                shutil.copy2(yaml, tempdir_wf_path)
+            package_path = package(tempdir_wf_path, tempdir_path)
         else:
             package_path = wf_path
         # Untar and parse workflow
