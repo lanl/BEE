@@ -62,4 +62,4 @@ jobs:
         with:
           github_token: ${{ secrets.github_token }}
           branch: ${{ github.event.pull_request.head.ref }}
-          pull_first: True
+          pull_first: true
