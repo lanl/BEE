@@ -3,7 +3,7 @@
 
 from pathlib import Path
 import unittest
-from beeflow.common.parser import CwlParser
+from beeflow.common.parser import CwlParser, CwlParseError
 from beeflow.common.wf_data import (generate_workflow_id, Workflow, Task, Hint,
                                     StepInput, StepOutput, InputParameter, OutputParameter)
 
@@ -75,6 +75,16 @@ class TestParser(unittest.TestCase):
         self.assertListEqual(tasks, TASKS_NOJOB_GOLD)
         for task in tasks:
             self.assertEqual(task.workflow_id, workflow_id)
+
+    def test_parse_workflow_missing_input(self):
+        """Test parsing a workflow with a missing input value in the input file."""
+        cwl_wf_file = find('ci/test_workflows/missing-input/workflow.cwl')
+        cwl_job_yaml = find('ci/test_workflows/missing-input/input.yml')
+
+        workflow_id = generate_workflow_id()
+
+        with self.assertRaises(CwlParseError):
+            _, _ = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
 
 
 WORKFLOW_GOLD_SCRIPT = Workflow(
@@ -247,7 +257,7 @@ WORKFLOW_NOJOB_GOLD = Workflow(
     name='cf',
     hints=[],
     requirements=[],
-    inputs={InputParameter(id='infile', type='File', value=None)},
+    inputs={InputParameter(id='infile', type='File', value='infile')},
     outputs={OutputParameter(id='ffmpeg_movie', type='File', value=None, source='ffmpeg/outfile'),
              OutputParameter(id='clamr_dir', type='File', value=None, source='clamr/outfile')},
     workflow_id=generate_workflow_id())
