@@ -280,13 +280,8 @@ class CwlParser:
 
         return outputs
 
-    def _read_requirement_file(self, key, items, state=0):
-        """Read in a requirement file and replace it in the parsed items.
-
-        :param state: tracks if pre/post script capability is enabled
-        :type state: int
-        :rtype state: 0 is default, 1 is True
-        """
+    def _read_requirement_file(self, key, items):
+        """Read in a requirement file and replace it in the parsed items."""
         base_path = os.path.dirname(self.path)
         fname = items[key]
         path = os.path.join(base_path, fname)
@@ -296,8 +291,7 @@ class CwlParser:
         except FileNotFoundError:
             msg = f'Could not find a file for {key}: {fname}'
             raise CwlParseError(msg) from None
-
-        if state == 1:
+        if key in {'pre_script', 'post_script'}:
             self._validate_prepost_script_env(key, items, fname)
 
     def _validate_prepost_script_env(self, key, items, fname):
@@ -306,9 +300,7 @@ class CwlParser:
         :param fname: name of pre/post script file
         :type fname: str
         """
-        env_decl = []
-        for line in items[key].splitlines():
-            env_decl.append(line)
+        env_decl = items[key].splitlines()
         if not env_decl[0].startswith("#!"):
             msg = f'No shebang line found in {fname}'
             raise CwlParseError(msg) from None
@@ -338,9 +330,9 @@ class CwlParser:
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
                 if 'pre_script' in items and items['enabled']:
-                    self._read_requirement_file('pre_script', items, state=1)
+                    self._read_requirement_file('pre_script', items)
                 if 'post_script' in items and items['enabled']:
-                    self._read_requirement_file('post_script', items, state=1)
+                    self._read_requirement_file('post_script', items)
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)
                 reqs.append(Hint(req['class'], items))
