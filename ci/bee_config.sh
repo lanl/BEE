@@ -1,12 +1,21 @@
 #!/bin/sh
 # BEE Configuration
 
+case $BEE_WORKER in
+Slurm*)
+    export WORKLOAD_SCHEDULER=Slurm
+    ;;
+Flux)
+    export WORKLOAD_SCHEDULER=Flux
+    ;;
+esac
+
 mkdir -p $(dirname $BEE_CONFIG)
 cat >> $BEE_CONFIG <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
 bee_workdir = $BEE_WORKDIR
-workload_scheduler = $BATCH_SCHEDULER
+workload_scheduler = $WORKLOAD_SCHEDULER
 use_archive = False
 neo4j_image = $NEO4J_CONTAINER
 redis_image = $REDIS_CONTAINER
@@ -49,14 +58,22 @@ container_type = charliecloud
 container_archive = $BEE_WORKDIR/container_archive
 EOF
 
-if [ "$BATCH_SCHEDULER" = "Slurm" ]; then
+case $BEE_WORKER in
+Slurmrestd)
     cat >> $BEE_CONFIG <<EOF
 [slurm]
-# Just test slurmrestd in CI for now
 use_commands = False
 openapi_version = $OPENAPI_VERSION
 EOF
-fi
+    ;;
+SlurmCommands)
+    cat >> $BEE_CONFIG <<EOF
+[slurm]
+use_commands = True
+openapi_version = $OPENAPI_VERSION
+EOF
+    ;;
+esac
 
 printf "\n\n"
 printf "#### %s ####\n" $BEE_CONFIG
