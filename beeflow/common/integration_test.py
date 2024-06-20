@@ -1,4 +1,5 @@
 """BEE integration tests."""
+import glob
 from pathlib import Path
 import os
 import shutil
@@ -264,6 +265,19 @@ def checkpoint_restart_failure(outer_workdir):
                               workdir=workdir, containers=[])
     yield [workflow]
     utils.check_workflow_failed(workflow)
+
+
+@TEST_RUNNER.add(ignore=True)
+def comd_mpi(outer_workdir):
+    """Test the comd-mpi workflow."""
+    workdir = utils.make_workflow_workdir(outer_workdir)
+    workflow = utils.Workflow('comd-mpi', 'ci/test_workflows/comd-mpi',
+                              main_cwl='comd_wf.cwl', job_file='comd_job.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_completed(workflow)
+    fnames = glob.glob('CoMD-mpi.*.yaml', root_dir=workdir)
+    utils.ci_assert(len(fnames) > 0, 'missing comd output yaml file')
 
 
 def test_input_callback(arg):
