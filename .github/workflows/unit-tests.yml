@@ -37,9 +37,11 @@ jobs:
           ./ci/unit_tests.sh
           
       - name: Coverage Badge
+        if: github.event_name == 'pull_request'
         uses: tj-actions/coverage-badge-py@v2
 
       - name: Verify Changed Files
+        if: github.event_name == 'pull_request'
         uses: tj-actions/verify-changed-files@v20
         id: verify-changed-files
         with:
@@ -47,7 +49,7 @@ jobs:
             *.svg
 
       - name: Commit files
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]'
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -55,14 +57,14 @@ jobs:
           git commit -m "Updated coverage.svg"
 
       - name: Fetch latest changes again
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]'
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
         run: |
           git fetch origin
-          git rebase origin/${{ github.head_ref }}
+          git rebase origin/${{ github.event.pull_request.head.ref }}
 
       - name: Push changes
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]'
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.github_token }}
-          branch: ${{ github.head_ref }}          
+          branch: ${{ github.event.pull_request.head.ref }}
