@@ -46,8 +46,8 @@ class FluxWorker(Worker):
         shell = task.get_requirement('beeflow:ScriptRequirement', 'shell', default='/bin/bash')
         script = [
             f'#!{shell}',
-            #'set -e',
-            #crt_res.env_code,
+            # 'set -e',
+            # crt_res.env_code,
         ]
 
         if shell == "/bin/bash":
