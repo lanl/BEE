@@ -60,7 +60,7 @@ cwl-utils = "^0.16"
 APScheduler = "^3.6.3"
 jsonpickle = "^2.2.0"
 # Fix for urllib3 2.0 breaking change (similar error to this https://github.com/docker/docker-py/issues/3113)
-requests = "<2.29.0"
+requests = "<2.33.0"
 requests-unixsocket = "^0.3.0"
 python-daemon = "^2.3.1"
 gunicorn = ">=20.1,<23.0"
