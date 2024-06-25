@@ -43,11 +43,11 @@ class FluxWorker(Worker):
         """Build the job spec for a task."""
         # TODO: This has a lot of code in common with the other worker's build_text
         crt_res = self.crt.run_text(task)
-        shell = task.get_requirement('beeflow:ScriptRequirement','shell', default='/bin/bash')
+        shell = task.get_requirement('beeflow:ScriptRequirement', 'shell', default='/bin/bash')
         script = [
             f'#!{shell}',
-#            'set -e',
-#            crt_res.env_code,
+            #'set -e',
+            #crt_res.env_code,
         ]
 
         if shell == "/bin/bash":
