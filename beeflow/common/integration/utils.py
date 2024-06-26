@@ -58,7 +58,7 @@ class Workflow:
         self.path = path
         self.main_cwl = main_cwl
         self.job_file = job_file
-        self.workdir = workdir
+        self.workdir = Path(workdir)
         self.containers = containers
         self.wf_id = None
         self.tarball = None
