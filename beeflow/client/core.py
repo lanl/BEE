@@ -16,6 +16,7 @@ import sys
 import shutil
 import datetime
 import time
+import importlib.metadata
 
 import daemon
 import typer
@@ -246,9 +247,10 @@ def init_components():
             slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
             openapi_version = bc.get('slurm', 'openapi_version')
             slurm_args = f'-s openapi/{openapi_version}'
+            # The following adds the db plugin we opted not to use for now
+            # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
             slurm_socket = paths.slurm_socket()
             subprocess.run(['rm', '-f', slurm_socket], check=True)
-            # log.info("Attempting to open socket: {}".format(slurm_socket))
             fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
             cmd = ['slurmrestd']
             cmd.extend(slurm_args.split())
@@ -407,7 +409,9 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
             # It's already running, so print an error and exit
             warn(f'Beeflow appears to be running. Check the beeflow log: "{beeflow_log}"')
             sys.exit(1)
-    print('Starting beeflow...')
+
+    version = importlib.metadata.version("hpc-beeflow")
+    print(f'Starting beeflow {version}...')
     if not foreground:
         print('Run `beeflow core status` for more information.')
     # Create the log path if it doesn't exist yet
@@ -440,16 +444,26 @@ def status():
 @app.command()
 def stop(query='yes'):
     """Stop the current running beeflow daemon."""
-    if query == 'yes':
+    # Check workflow states; warn if there are active states, pause running workflows
+    workflow_list = bee_client.get_wf_list()
+    concern_states = {'Running', 'Initializing', 'Waiting'}
+    concern = {item for row in workflow_list for item in row}.intersection(concern_states)
+    # For the interactive case
+    if query == 'yes' and concern:
         ans = input("""
-              ** Please ensure all workflows are complete before stopping beeflow. **
-              ** Check the status of workflows by running 'beeflow list'.    **
+              **   There are running workflows.    **
+              ** Running workflows will be paused. **
 
               Are you sure you want to kill beeflow components? [y/n] """)
     else:
         ans = 'y'
     if ans.lower() != 'y':
         return
+    # Pause running or waiting workflows
+    workflow_list = bee_client.get_wf_list()
+    for _name, wf_id, state in workflow_list:
+        if state in {'Running', 'Waiting'}:
+            bee_client.pause(wf_id)
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
     if resp is None:
         beeflow_log = paths.log_fname('beeflow')
@@ -459,7 +473,7 @@ def stop(query='yes'):
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
-    if query == "no":
+    if query == "yes":
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 

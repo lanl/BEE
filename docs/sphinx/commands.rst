@@ -1,4 +1,4 @@
-.. _command-line-interface:
+. _command-line-interface:
 
 Command Line Interface
 **********************
@@ -18,11 +18,11 @@ Options:
 
 ``beeflow core status``: Check the status of beeflow and the components.
 
-``beeflow core stop``: Stop the current running beeflow daemon.
+``beeflow core stop``: Stop running beeflow components. Active workflows will be paused. You may continue running paused workflows with the ``beeflow resume <wf_id>`` command. Once you start beeflow components after a stop, you should check the status of workflows, query any running workflows. If they were intializing when a ``beeflow core stop`` was issued, the workflow may be running with tasks stuck in the waiting state. If this occurs and you want the workflow to continue pause and resume the workflow (``beeflow pause <wf_id>``, ``beeflow resume <wf_id>``) or to start over cancel the workflow (``beeflow cancel <wf_id>``) and resubmit it.
 
 ``beeflow core --version``: Display the version number of BEE.
 
-``beeflow core reset``: Stop the beeflow daemon and cleanup the bee_workdir directory to start from a fresh install. 
+``beeflow core reset``: Stop the beeflow daemon and cleanup the bee_workdir directory to start from a fresh install.
 
 Options:
    ``--archive``, ``-a``, Backup logs, workflows, and containers in bee_workdir directory before removal. [optional]
@@ -56,6 +56,11 @@ Arguments:
   - WF_ID  [required]
 
 ``beeflow package``: Package a workflow into a tarball.
+
+Arguments:
+  - WF_PATH       Path to the workflow package directory  [required]
+  - PACKAGE_DEST  Path for where the packaged workflow should be saved [required]
+
 
 Arguments:
   - WF_PATH,       Path to the workflow package directory  [required]

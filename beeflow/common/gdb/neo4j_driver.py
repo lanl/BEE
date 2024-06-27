@@ -92,10 +92,10 @@ class Neo4jDriver(GraphDatabaseDriver):
     def resume_workflow(self):
         """Resume execution of a paused workflow in Neo4j.
 
-        Sets workflow state to 'PAUSED'
+        Sets workflow state to 'RUNNING'
         """
         with self._driver.session() as session:
-            session.write_transaction(tx.set_workflow_state, state='RESUME')
+            session.write_transaction(tx.set_workflow_state, state='RUNNING')
 
     def reset_workflow(self, new_id):
         """Reset the execution state of an entire workflow.
