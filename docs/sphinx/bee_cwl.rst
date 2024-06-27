@@ -180,12 +180,11 @@ beeflow:ScriptRequirement
 Some tasks may require small additional commands for setup or teardown such as
 loading modules, setting up checkpointing files, or cleaning up after a run.
 The script requirement enables this by adding shell scripts that will run before
-and after a task. The script must be within the workflow directory. The shell
-interpreter will be set to  whatever is in the ``$SHELL`` environment variable
-on the system e.g. if ``$SHELL`` is ``/bin/bash``, it will run the script as
-bash. The pre_script is run before a task and the post_script is run after.
-Currently, we only support running scripts outside of a container. We are
-considering adding container support in the future.
+and after a task. The script must be within the workflow directory. The desired
+shell interpreter must be specified in the first line of the file, otherwise, 
+an error will be returned. The pre_script is run before a task and the post_script 
+is run after. Currently, we only support running scripts outside of a container. 
+We are considering adding container support in the future.
 
 ScriptRequirement currently supports the following options:
 

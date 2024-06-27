@@ -18,6 +18,9 @@ StepOutput = namedtuple("StepOutput", ["id", "type", "value", "glob"])
 Requirement = namedtuple("Requirement", ["class_", "params"])
 # CWL hint class
 Hint = namedtuple("Hint", ["class_", "params"])
+# Task state update, usually sent from the task manager
+TaskStateUpdate = namedtuple("TaskStateUpdate", ["wf_id", "task_id", "job_state",
+                                                 "task_info", "output", "metadata"])
 
 
 def generate_workflow_id():

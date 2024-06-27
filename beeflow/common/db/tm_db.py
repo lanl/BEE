@@ -5,6 +5,7 @@ import jsonpickle
 
 from beeflow.common.db import bdb
 from beeflow.common import log as bee_logging
+from beeflow.common.wf_data import TaskStateUpdate
 
 log = bee_logging.setup(__name__)
 
@@ -116,6 +117,41 @@ class JobQueue:
         bdb.run(self.db_file, stmt)
 
 
+class UpdateQueue:
+    """Task Manager update queue."""
+
+    def __init__(self, db_file):
+        """Construct an update queue handler."""
+        self.db_file = db_file
+
+    def push(self, wf_id, task_id, job_state, task_info=None, metadata=None, output=None):
+        """Push an update onto the update queue."""
+        stmt = """INSERT INTO update_queue (wf_id, task_id, job_state, task_info, metadata, output)
+                  VALUES (:wf_id, :task_id, :job_state, :task_info, :metadata, :output)"""
+        bdb.run(self.db_file, stmt, {'wf_id': wf_id, 'task_id': task_id,
+                                     'job_state': job_state,
+                                     'task_info': jsonpickle.encode(task_info),
+                                     'metadata': jsonpickle.encode(metadata),
+                                     'output': jsonpickle.encode(output)})
+
+    def updates(self):
+        """Get a list of all updates from the update queue."""
+        stmt = """SELECT wf_id, task_id, job_state, task_info, metadata, output
+                  FROM update_queue ORDER BY id ASC"""
+        state_updates = []
+        for result in bdb.getall(self.db_file, stmt):
+            wf_id, task_id, job_state, task_info, metadata, output = result
+            state_updates.append(TaskStateUpdate(wf_id, task_id, job_state,
+                                                 jsonpickle.decode(task_info),
+                                                 jsonpickle.decode(metadata),
+                                                 jsonpickle.decode(output)))
+        return state_updates
+
+    def clear(self):
+        """Clear the update queue."""
+        bdb.run(self.db_file, 'DELETE FROM update_queue')
+
+
 class TMDB:
     """Task Manager Database."""
 
@@ -136,8 +172,18 @@ class TMDB:
                         job_id INTEGER,
                         job_state TEXT)"""
 
+        update_queue_stmt = """CREATE TABLE IF NOT EXISTS update_queue(
+                        id INTEGER PRIMARY KEY ASC,
+                        wf_id TEXT,
+                        task_id TEXT,
+                        job_state TEXT,
+                        task_info TEXT,
+                        metadata TEXT,
+                        output TEXT)"""
+
         bdb.create_table(self.db_file, submit_queue_stmt)
         bdb.create_table(self.db_file, job_queue_stmt)
+        bdb.create_table(self.db_file, update_queue_stmt)
 
     @property
     def submit_queue(self):
@@ -148,6 +194,11 @@ class TMDB:
     def job_queue(self):
         """Return a JobQueue object."""
         return JobQueue(self.db_file)
+
+    @property
+    def update_queue(self):
+        """Return an UpdateQueue object."""
+        return UpdateQueue(self.db_file)
 
 
 def open_db(db_file):

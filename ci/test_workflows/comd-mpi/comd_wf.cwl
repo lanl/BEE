@@ -29,8 +29,8 @@ steps:
     out: [comd_stdout]
     hints:
       DockerRequirement:
-        beeflow:copyContainer: "/usr/projects/beedev/mpi/comd-x86_64.tgz"
-        # See Dockerfile.comd-x86_64
+        beeflow:containerName: "comd-mpi"
+        dockerFile: "Dockerfile.comd-x86_64"
       beeflow:MPIRequirement:
         nodes: 4
         ntasks: 8

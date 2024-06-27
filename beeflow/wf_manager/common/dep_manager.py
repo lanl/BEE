@@ -95,11 +95,11 @@ def setup_gdb_configs(mount_dir, bolt_port, http_port, https_port):
     with open(gdb_configfile, "rt", encoding="utf8") as cfile:
         data = cfile.read()
 
-    bolt_config = r'#(dbms.connector.bolt.listen_address=):[0-9]*'
+    bolt_config = r'#(server.bolt.listen_address=):[0-9]*'
     data = re.sub(bolt_config, rf'\1:{bolt_port}', data)
-    http_config = r'#(dbms.connector.http.listen_address=):[0-9]*'
+    http_config = r'#(server.http.listen_address=):[0-9]*'
     data = re.sub(http_config, rf'\1:{http_port}', data)
-    https_config = r'#(dbms.connector.https.listen_address=):[0-9]*'
+    https_config = r'#(server.https.listen_address=):[0-9]*'
     data = re.sub(https_config, rf'\1:{https_port}', data)
     with open(gdb_configfile, "wt", encoding="utf8") as cfile:
         cfile.write(data)
@@ -140,8 +140,9 @@ def create_image():
 
 def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
     """Start the graph database."""
-    setup_gdb_configs(mount_dir, bolt_port, http_port, https_port)
     # We need to rerun the mount step before each start
+
+    setup_gdb_configs(mount_dir, bolt_port, http_port, https_port)
     if not reexecute:
         setup_gdb_mounts(mount_dir)
 
@@ -155,7 +156,7 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
     container_path = get_container_dir()
     if not reexecute:
         try:
-            command = ['neo4j-admin', 'set-initial-password', str(db_password)]
+            command = ['neo4j-admin', 'dbms', 'set-initial-password', str(db_password)]
             subprocess.run([
                 "ch-run",
                 "--set-env=" + container_path + "/ch/environment",
@@ -187,7 +188,8 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
                                "--", *command
                                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
             output = proc.stdout.read().decode('utf-8')
-            pid = re.search(r'pid ([0-9]*)', output).group(1)
+            dep_log.info(output)
+            pid = re.search(r'\(pid:([0-9]*)\)', output).group(1)
             return pid
     except FileNotFoundError:
         dep_log.error("Neo4j failed to start.")
