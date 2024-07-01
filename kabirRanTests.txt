@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.5, pytest-7.2.0, pluggy-1.5.0
+rootdir: /vast/home/kvats/BEE
+plugins: pylama-8.4.1, cov-5.0.0, mock-3.3.1
+collected 109 items
+
+beeflow/tests/test_cloud.py .                                            [  0%]
+beeflow/tests/test_config_validator.py ..........                        [ 10%]
+beeflow/tests/test_container_path.py ..                                  [ 11%]
+beeflow/tests/test_db_sched.py ...                                       [ 14%]
+beeflow/tests/test_db_tm.py .........                                    [ 22%]
+beeflow/tests/test_parser.py ......                                      [ 28%]
+beeflow/tests/test_scheduler.py ...................                      [ 45%]
+beeflow/tests/test_scheduler_resource_allocation.py ......               [ 51%]
+beeflow/tests/test_scheduler_rest.py ....                                [ 55%]
+beeflow/tests/test_slurm_worker.py .........                             [ 63%]
+beeflow/tests/test_tm.py ...                                             [ 66%]
+beeflow/tests/test_wf_interface.py .............................         [ 92%]
+beeflow/tests/test_wf_manager.py ........                                [100%]
+
+======================== 109 passed in 67.36s (0:01:07) ========================
