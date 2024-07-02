@@ -202,7 +202,7 @@ def wait_gdb(log):
     We'd like to remove that in the future.
     """
     gdb_sleep_time = bc.get('graphdb', 'sleep_time')
-    log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
+    log.info(f'waiting {gdb_sleep_time}s for GDB to load / delete')
     time.sleep(gdb_sleep_time)
 
 

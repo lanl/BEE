@@ -137,6 +137,8 @@ class WFUpdate(Resource):
                 archive_workflow(db, state_update.wf_id)
                 pid = db.workflows.get_gdb_pid(state_update.wf_id)
                 dep_manager.kill_gdb(pid)
+                dep_manager.wait_gdb(log)
+                wf_utils.remove_wf_dir(wf_id)
 
         # If the job failed and it doesn't include a checkpoint-restart hint,
         # then fail the entire workflow
