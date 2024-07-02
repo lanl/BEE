@@ -42,7 +42,7 @@ def archive_workflow(db, wf_id, final_state=None):
     pid = db.workflows.get_gdb_pid(wf_id)
     dep_manager.kill_gdb(pid)
     remove_wf_dir = bc.get('DEFAULT', 'delete_completed_workflow_dirs')
-    if(remove_wf_dir):
+    if remove_wf_dir:
         # Wait to ensure gdb is down before deleting workflow directory
         dep_manager.wait_gdb(log)
         log.info('Removing Workflow Directory')
