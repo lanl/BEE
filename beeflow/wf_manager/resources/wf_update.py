@@ -39,13 +39,15 @@ def archive_workflow(db, wf_id, final_state=None):
     # We use tar directly since tarfile is apparently very slow
     workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
+    pid = db.workflows.get_gdb_pid(wf_id)
+    dep_manager.kill_gdb(pid)
+    dep_manager.wait_gdb(log)
+    wf_utils.remove_wf_dir(wf_id)
 
 
 def archive_fail_workflow(db, wf_id):
     """Archive and fail a workflow."""
     archive_workflow(db, wf_id, final_state='Failed')
-    pid = db.workflows.get_gdb_pid(wf_id)
-    dep_manager.kill_gdb(pid)
 
 
 def set_dependent_tasks_dep_fail(db, wfi, wf_id, task):
@@ -135,10 +137,6 @@ class WFUpdate(Resource):
                 log.info("Workflow Completed")
                 wf_id = wfi.workflow_id
                 archive_workflow(db, state_update.wf_id)
-                pid = db.workflows.get_gdb_pid(state_update.wf_id)
-                dep_manager.kill_gdb(pid)
-                dep_manager.wait_gdb(log)
-                wf_utils.remove_wf_dir(wf_id)
 
         # If the job failed and it doesn't include a checkpoint-restart hint,
         # then fail the entire workflow
