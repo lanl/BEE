@@ -235,6 +235,8 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux
                  info='backend workload scheduler to interact with ')
 VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, default=True,
                  info='use the BEE archiving functinality')
+VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_, default=True,
+                 info='delete workflow directory for completed jobs (after archiving)')
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                  info='neo4j container image',
                  input_fn=filepath_completion_input)

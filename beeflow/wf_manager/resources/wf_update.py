@@ -15,7 +15,7 @@ from beeflow.common import log as bee_logging
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
-
+from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
@@ -41,8 +41,12 @@ def archive_workflow(db, wf_id, final_state=None):
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
     pid = db.workflows.get_gdb_pid(wf_id)
     dep_manager.kill_gdb(pid)
-    dep_manager.wait_gdb(log)
-    wf_utils.remove_wf_dir(wf_id)
+    remove_wf_dir = bc.get('DEFAULT', 'delete_completed_workflow_dirs')
+    if(remove_wf_dir):
+        # Wait to ensure gdb is down before deleting workflow directory
+        dep_manager.wait_gdb(log)
+        log.info('Removing Workflow Directory')
+        wf_utils.remove_wf_dir(wf_id)
 
 
 def archive_fail_workflow(db, wf_id):
@@ -134,9 +138,9 @@ class WFUpdate(Resource):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
             if wfi.workflow_completed():
-                log.info("Workflow Completed")
                 wf_id = wfi.workflow_id
                 archive_workflow(db, state_update.wf_id)
+                log.info('Workflow Completed')
 
         # If the job failed and it doesn't include a checkpoint-restart hint,
         # then fail the entire workflow
