@@ -202,7 +202,7 @@ def wait_gdb(log):
     We'd like to remove that in the future.
     """
     gdb_sleep_time = bc.get('graphdb', 'sleep_time')
-    log.info(f'waiting {gdb_sleep_time}s for GDB to load / delete')
+    log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
     time.sleep(gdb_sleep_time)
 
 
@@ -225,3 +225,5 @@ def kill_gdb(pid):
         os.kill(pid, signal.SIGTERM)
     except OSError:
         dep_log.info('Process already killed')
+        return False
+    return True
