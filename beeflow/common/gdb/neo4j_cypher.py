@@ -18,76 +18,76 @@ def create_workflow_node(tx, workflow):
     """Create a Workflow node in the Neo4j database.
 
     The workflow node is the entry point to the workflow.
-    :param workflow: the workflow description
+    :param workflow: the workflow 
     :type workflow: Workflow
     """
     workflow_query = ("MATCH (b:BEE) "
-                      "CREATE (w:Workflow)<-[:WORKFLOW_OF]-(b) "
-                      "SET w.id = $workflow_id "
+                      "CREATE (b)<-[:WORKFLOW_OF]-(w:Workflow) "
+                      "SET w.id = $wf_id "
                       "SET w.name = $name "
                       "SET w.state = $state")
 
     # Store the workflow ID and name in a new workflow node
-    tx.run(workflow_query, workflow_id=workflow.id, name=workflow.name, state=workflow.state)
+    tx.run(workflow_query, wf_id=workflow.id, name=workflow.name, state=workflow.state)
 
 
-def create_workflow_hint_nodes(tx, hints):
+def create_workflow_hint_nodes(tx, workflow):
     """Create Hint nodes for the workflow.
 
-    :param hints: the workflow hints
-    :type hints: list of Hint
+    :param workflow: the workflow whose hints to add to the graph
+    :type workflow: Workflow
     """
-    for hint in hints:
-        hint_query = ("MATCH (w:Workflow) "
+    for hint in workflow.hints:
+        hint_query = ("MATCH (w:Workflow {id: $wf_id}) "
                       "CREATE (w)<-[:HINT_OF]-(h:Hint $params) "
                       "SET h.class = $class_")
 
-        tx.run(hint_query, params=hint.params, class_=hint.class_)
+        tx.run(hint_query, wf_id=workflow.id, params=hint.params, class_=hint.class_)
 
 
-def create_workflow_requirement_nodes(tx, requirements):
+def create_workflow_requirement_nodes(tx, workflow):
     """Create Requirement nodes for the workflow.
 
-    :param requirements: the workflow requirements
-    :type requirements: list of Requirement
+    :param workflow: the workflow whose requirements to add to the graph
+    :type workflow: Workflow
     """
-    for req in requirements:
-        req_query = ("MATCH (w:Workflow) "
+    for req in workflow.requirements:
+        req_query = ("MATCH (w:Workflow {id: $wf_id}) "
                      "CREATE (w)<-[:REQUIREMENT_OF]-(r:Requirement $params) "
                      "SET r.class = $class_")
 
-        tx.run(req_query, params=req.params, class_=req.class_)
+        tx.run(req_query, wf_id=workflow.id, params=req.params, class_=req.class_)
 
 
-def create_workflow_input_nodes(tx, inputs):
+def create_workflow_input_nodes(tx, workflow):
     """Create Input nodes for the workflow.
 
-    :param inputs: the workflow inputs
-    :type inputs: list of InputParameter
+    :param workflow: the workflow whose inputs to add to the graph
+    :type workflow: Workflow
     """
-    for input_ in inputs:
-        input_query = ("MATCH (w:Workflow) CREATE (w)<-[:INPUT_OF]-(i:Input) "
+    for input_ in workflow.inputs:
+        input_query = ("MATCH (w:Workflow {id: $wf_id}) CREATE (w)<-[:INPUT_OF]-(i:Input) "
                        "SET i.id = $input_id "
                        "SET i.type = $type "
                        "SET i.value = $value")
 
-        tx.run(input_query, input_id=input_.id, type=input_.type, value=input_.value)
+        tx.run(input_query, wf_id=workflow.id, input_id=input_.id, type=input_.type, value=input_.value)
 
 
-def create_workflow_output_nodes(tx, outputs):
+def create_workflow_output_nodes(tx, workflow):
     """Create Output nodes for the workflow.
 
-    :param outputs: the workflow outputs
-    :type outputs: list of OutputParameter
+    :param workflow: the workflow whose outputs to add to the graph
+    :type workflow: Workflow
     """
-    for output in outputs:
-        output_query = ("MATCH (w:Workflow) CREATE (w)<-[:OUTPUT_OF]-(o:Output) "
+    for output in workflow.outputs:
+        output_query = ("MATCH (w:Workflow {id: $wf_id}) CREATE (w)<-[:OUTPUT_OF]-(o:Output) "
                         "SET o.id = $output_id "
                         "SET o.type = $type "
                         "SET o.value = $value "
                         "SET o.source = $source")
 
-        tx.run(output_query, output_id=output.id, type=output.type, value=output.value,
+        tx.run(output_query, wf_id=workflow.id, output_id=output.id, type=output.type, value=output.value,
                source=output.source)
 
 
@@ -221,7 +221,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
     else:
         begins_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
                         "WITH s, collect(i.source) AS sources "
-                        "MATCH (w:Workflow)<-[:INPUT_OF]-(i:Input) "
+                        "MATCH (w:Workflow {id: $wf_id})<-[:INPUT_OF]-(i:Input) "
                         "WITH s, w, sources, collect(i.id) AS inputs "
                         "WHERE any(input IN sources WHERE input IN inputs) "
                         "MERGE (s)-[:BEGINS]->(w)")
@@ -238,7 +238,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                            "WHERE any(output IN outputs WHERE output IN sources) "
                            "MERGE (t)-[:DEPENDS_ON]->(s)")
 
-        tx.run(begins_query, task_id=task.id)
+        tx.run(begins_query, task_id=task.id, wf_id = task.workflow_id)
         tx.run(dependency_query, task_id=task.id)
         tx.run(dependent_query, task_id=task.id)
 

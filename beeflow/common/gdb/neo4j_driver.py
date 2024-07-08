@@ -67,14 +67,16 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param workflow: the workflow description
         :type workflow: Workflow
         """
+
+        self.wf_id = workflow.id
+
         with self._driver.session() as session:
             session.write_transaction(tx.create_bee_node)
             session.write_transaction(tx.create_workflow_node, workflow)
-            session.write_transaction(tx.create_workflow_requirement_nodes,
-                                      requirements=workflow.requirements)
-            session.write_transaction(tx.create_workflow_hint_nodes, hints=workflow.hints)
-            session.write_transaction(tx.create_workflow_input_nodes, inputs=workflow.inputs)
-            session.write_transaction(tx.create_workflow_output_nodes, outputs=workflow.outputs)
+            session.write_transaction(tx.create_workflow_requirement_nodes, workflow)
+            session.write_transaction(tx.create_workflow_hint_nodes, workflow)
+            session.write_transaction(tx.create_workflow_input_nodes, workflow)
+            session.write_transaction(tx.create_workflow_output_nodes, workflow)
 
     def execute_workflow(self):
         """Begin execution of the workflow stored in the Neo4j database."""
