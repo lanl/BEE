@@ -68,6 +68,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type workflow: Workflow
         """
         with self._driver.session() as session:
+            session.write_transaction(tx.create_bee_node)
             session.write_transaction(tx.create_workflow_node, workflow)
             session.write_transaction(tx.create_workflow_requirement_nodes,
                                       requirements=workflow.requirements)

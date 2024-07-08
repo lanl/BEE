@@ -5,6 +5,14 @@ from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
 
+def create_bee_node(tx):
+    """Create a BEE node in  hte Neo4j database
+
+    This node connects to all workflows and allows them to exist in the same graph
+    """
+    bee_query = ("CREATE (b:BEE)")
+
+    tx.run(bee_query)
 
 def create_workflow_node(tx, workflow):
     """Create a Workflow node in the Neo4j database.
@@ -13,7 +21,8 @@ def create_workflow_node(tx, workflow):
     :param workflow: the workflow description
     :type workflow: Workflow
     """
-    workflow_query = ("CREATE (w:Workflow) "
+    workflow_query = ("MATCH (b:BEE) "
+                      "CREATE (w:Workflow)<-[:WORKFLOW_OF]-(b) "
                       "SET w.id = $workflow_id "
                       "SET w.name = $name "
                       "SET w.state = $state")
