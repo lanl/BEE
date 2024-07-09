@@ -213,6 +213,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                             "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
                             "WITH s, t, outputs, collect(i.source) as sources "
                             "WHERE any(output IN outputs WHERE output IN sources) "
+                            "AND (s.workflow_id = t.workflow_id) " 
                             "MERGE (t)-[:DEPENDS_ON]->(s)")
 
         tx.run(delete_dependencies_query, task_id=old_task.id)
@@ -221,7 +222,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
     else:
         begins_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
                         "WITH s, collect(i.source) AS sources "
-                        "MATCH (w:Workflow {id: $wf_id})<-[:INPUT_OF]-(i:Input) "
+                        "MATCH (w:Workflow {id: s.workflow_id})<-[:INPUT_OF]-(i:Input) "
                         "WITH s, w, sources, collect(i.id) AS inputs "
                         "WHERE any(input IN sources WHERE input IN inputs) "
                         "MERGE (s)-[:BEGINS]->(w)")
@@ -230,12 +231,14 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                             "MATCH (t:Task)<-[:OUTPUT_OF]-(o:Output) "
                             "WITH s, t, sources, collect(o.id) as outputs "
                             "WHERE any(input IN sources WHERE input IN outputs) "
+                            "AND s.workflow_id = t.workflow_id "
                             "MERGE (s)-[:DEPENDS_ON]->(t)")
         dependent_query = ("MATCH (s:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
                            "WITH s, collect(o.id) AS outputs "
                            "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
                            "WITH s, t, outputs, collect(i.source) as sources "
                            "WHERE any(output IN outputs WHERE output IN sources) "
+                           "AND s.workflow_id = t.workflow_id "
                            "MERGE (t)-[:DEPENDS_ON]->(s)")
 
         tx.run(begins_query, task_id=task.id, wf_id = task.workflow_id)
