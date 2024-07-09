@@ -40,8 +40,8 @@ def archive_workflow(db, wf_id, final_state=None):
     workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
     pid = db.workflows.get_gdb_pid(wf_id)
-    # Wait for Graph database to be down (max 20 seconds)
-    for i in range(20): 
+    # Wait for Graph database to be down (max 10 seconds)
+    for i in range(10): 
         if not dep_manager.kill_gdb(pid):
             break
         time.sleep(1)
