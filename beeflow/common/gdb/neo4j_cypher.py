@@ -306,85 +306,101 @@ def get_task_outputs(tx, task_id):
     return [rec['o'] for rec in tx.run(outputs_query, task_id=task_id)]
 
 
-def get_workflow_description(tx):
-    """Get the workflow description from the Neo4j database.
+def get_workflow_by_id(tx, wf_id):
+    """Get the workflow from the Neo4j database.
 
+    :param wf_id: the workflow's ID
+    :type wf_id: str
     :rtype: neo4j.Result
     """
-    workflow_desc_query = "MATCH (w:Workflow) RETURN w"
+    workflow_query = "MATCH (w:Workflow {id: $wf_id}) RETURN w"
 
-    return tx.run(workflow_desc_query).single()['w']
+    return tx.run(workflow_query, wf_id=wf_id).single()['w']
 
 
-def get_workflow_tasks(tx):
+def get_workflow_tasks(tx, wf_id):
     """Get workflow tasks from the Neo4j database.
 
+    :param wf_id: the workflow's ID
+    :type wf_id: str
     :rtype: neo4j.Result
     """
-    workflow_query = "MATCH (t:Task) RETURN t"
+    workflow_query = "MATCH t:Task WHERE t.workflow_id = $wf_id RETURN t"
 
-    return [rec['t'] for rec in tx.run(workflow_query)]
+    return [rec['t'] for rec in tx.run(workflow_query, wf_id=wf_id)]
 
 
-def get_workflow_requirements(tx):
+def get_workflow_requirements(tx, wf_id):
     """Get workflow requirements from the Neo4j database.
 
+    :param wf_id: the workflow's ID
+    :type wf_id: str
     :rtype: neo4j.Result
     """
-    requirements_query = "MATCH (:Workflow)<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
+    requirements_query = "MATCH (:Workflow {id: $wf_id})<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
 
-    return [rec['r'] for rec in tx.run(requirements_query)]
+    return [rec['r'] for rec in tx.run(requirements_query, wf_id=wf_id)]
 
 
-def get_workflow_hints(tx):
+def get_workflow_hints(tx, wf_id):
     """Get workflow hints from the Neo4j database.
 
+    :param wf_id: the workflow's ID
+    :type wf_id: str
     :rtype: neo4j.Result
     """
-    hints_query = "MATCH (:Workflow)<-[:HINT_OF]-(h:Hint) RETURN h"
+    hints_query = "MATCH (:Workflow {id: $wf_id})<-[:HINT_OF]-(h:Hint) RETURN h"
 
-    return [rec['h'] for rec in tx.run(hints_query)]
+    return [rec['h'] for rec in tx.run(hints_query, wf_id=wf_id)]
 
 
-def get_workflow_inputs(tx):
+def get_workflow_inputs(tx, wf_id):
     """Get workflow inputs from the Neo4j database.
 
+    :param wf_id: the workflow's ID
+    :type wf_id: str
     :rtype: neo4j.Result
     """
-    inputs_query = "MATCH (:Workflow)<-[:INPUT_OF]-(i:Input) RETURN i"
+    inputs_query = "MATCH (:Workflow {id: $wf_id})<-[:INPUT_OF]-(i:Input) RETURN i"
 
-    return [rec['i'] for rec in tx.run(inputs_query)]
+    return [rec['i'] for rec in tx.run(inputs_query, wf_id=wf_id)]
 
 
-def get_workflow_outputs(tx):
+def get_workflow_outputs(tx, wf_id):
     """Get workflow outputs from the Neo4j database.
 
+    :param wf_id: the workflow's ID
+    :type wf_id: str
     :rtype: neo4j.Result
     """
-    outputs_query = "MATCH (:Workflow)<-[:OUTPUT_OF]-(o:Output) RETURN o"
+    outputs_query = "MATCH (:Workflow {id: $wf_id})<-[:OUTPUT_OF]-(o:Output) RETURN o"
 
-    return [rec['o'] for rec in tx.run(outputs_query)]
+    return [rec['o'] for rec in tx.run(outputs_query, wf_id=wf_id)]
 
 
-def get_workflow_state(tx):
+def get_workflow_state(tx, wf_id):
     """Get workflow state from the Neo4j database.
 
+    :param wf_id: the workflow's ID
+    :type wf_id: str
     :rtype: str
     """
-    state_query = "MATCH (w:Workflow) RETURN w.state"
+    state_query = "MATCH (w:Workflow {id: $wf_id}) RETURN w.state"
 
-    return tx.run(state_query).single().value()
+    return tx.run(state_query, wf_id=wf_id).single().value()
 
 
-def set_workflow_state(tx, state):
+def set_workflow_state(tx, state, wf_id):
     """Get workflow state from the Neo4j database.
 
     :param state: the state the workflow will be set to
     :type state: str
+    :param wf_id: the workflow's ID
+    :type wf_id: str
     """
-    state_query = "MATCH (w:Workflow) SET w.state = $state"
+    state_query = "MATCH (w:Workflow {id: $wf_id}) SET w.state = $state"
 
-    return tx.run(state_query, state=state)
+    return tx.run(state_query, state=state, wf_id=wf_id)
 
 
 def get_ready_tasks(tx):
@@ -645,41 +661,49 @@ def set_runnable_tasks_to_ready(tx):
     tx.run(set_runnable_ready_query)
 
 
-def reset_tasks_metadata(tx):
-    """Reset the metadata for each of a workflow's tasks."""
-    reset_metadata_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task) "
+def reset_tasks_metadata(tx, wf_id):
+    """Reset the metadata for each of a workflow's tasks.
+    
+    :param wf_id: the workflow's ID
+    :type wf_id: str
+    """
+    reset_metadata_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
                             "DETACH DELETE m "
                             "WITH t "
                             "CREATE (:Metadata {state: 'WAITING'})-[:DESCRIBES]->(t)")
 
-    tx.run(reset_metadata_query)
+    tx.run(reset_metadata_query, wf_id=wf_id)
 
 
-def reset_workflow_id(tx, new_id):
+def reset_workflow_id(tx, old_id, new_id):
     """Reset the workflow ID of the workflow using uuid4.
 
+    :param old_id: the old workflow ID
+    :type old_id: str
     :param new_id: the new workflow ID
     :type new_id: str
     """
-    reset_workflow_id_query = ("MATCH (w:Workflow), (t:Task) "
+    reset_workflow_id_query = ("MATCH (w:Workflow {id: $old_id}), (t:Task {workflow_id: $old_id}) "
                                "SET w.id = $new_id "
                                "SET t.workflow_id = $new_id")
 
-    tx.run(reset_workflow_id_query, new_id=new_id)
+    tx.run(reset_workflow_id_query, old_id=old_id, new_id=new_id)
 
 
-def final_tasks_completed(tx):
+def final_tasks_completed(tx, wf_id):
     """Return true if each of a workflow's final Task nodes has state 'COMPLETED'.
-
+    
+    :param wf_id: the workflow's id
+    :type wf_id: str
     :rtype: bool
     """
-    not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task) "
+    not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
                            "WHERE NOT (t)<-[:DEPENDS_ON|:RESTARTED_FROM]-(:Task) "
                            "AND m.state <> 'COMPLETED' "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task with state not 'COMPLETED'
-    return bool(tx.run(not_completed_query).single() is None)
+    return bool(tx.run(not_completed_query, wf_id=wf_id).single() is None)
 
 
 def is_empty(tx):

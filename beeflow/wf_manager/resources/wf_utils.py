@@ -147,9 +147,9 @@ def get_workflow_interface_by_bolt_port(wf_id, bolt_port):
     try:
         driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                                           db_hostname=bc.get("graphdb", "hostname"),
-                                          password=bc.get("graphdb", "dbpass"))
+                                          password=bc.get("graphdb", "dbpass"), workflow_id = wf_id)
         iface = GraphDatabaseInterface(driver)
-        wfi = WorkflowInterface(iface)
+        wfi = WorkflowInterface(iface, wf_id)
     except neo4j_driver.Neo4jNotRunning:
         log.info("Neo4j Appears to be Down")
         # There are several possibilities here
@@ -172,9 +172,9 @@ def get_workflow_interface_by_bolt_port(wf_id, bolt_port):
             db.workflows.update_gdb_pid(wf_id, gdb_pid)
             driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                                               db_hostname=bc.get("graphdb", "hostname"),
-                                              password=bc.get("graphdb", "dbpass"))
+                                              password=bc.get("graphdb", "dbpass"), workflow_id = wf_id)
             iface = GraphDatabaseInterface(driver)
-            wfi = WorkflowInterface(iface)
+            wfi = WorkflowInterface(iface, wf_id)
             wfi.get_workflow()
         except PermissionError:
             # Something has gone wrong. The user has no perms for their gdb.

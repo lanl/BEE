@@ -12,7 +12,7 @@ log = bee_logging.setup(__name__)
 class WorkflowInterface:
     """Interface for manipulating workflows."""
 
-    def __init__(self, gdb_interface):
+    def __init__(self, gdb_interface, wf_id):
         """Initialize the Workflow interface.
 
         Initializing this interface automatically attempts to
@@ -23,7 +23,7 @@ class WorkflowInterface:
         # Connect to the graph database
         self._gdb_interface = gdb_interface
         # Store the Workflow ID in the interface to assign it to new task objects
-        self._workflow_id = None
+        self._workflow_id = wf_id
 
     def reconnect(self):
         """Reconnect to the graph database using stored credentials."""
