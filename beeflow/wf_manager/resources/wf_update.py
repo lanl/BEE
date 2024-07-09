@@ -40,9 +40,11 @@ def archive_workflow(db, wf_id, final_state=None):
     workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
     pid = db.workflows.get_gdb_pid(wf_id)
-    # Wait for Graph database to be down
-    while dep_manager.kill_gdb(pid):
-        time.sleep(0.25)
+    # Wait for Graph database to be down (max 20 seconds)
+    for i in range(20): 
+        if not dep_manager.kill_gdb(pid):
+            break
+        time.sleep(1)
     remove_wf_dir = bc.get('DEFAULT', 'delete_completed_workflow_dirs')
     if remove_wf_dir:
         log.info('Removing Workflow Directory')
