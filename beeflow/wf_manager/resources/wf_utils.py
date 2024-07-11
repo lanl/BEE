@@ -9,7 +9,6 @@ import jsonpickle
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.gdb import neo4j_driver
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.wf_manager.common import dep_manager
@@ -148,8 +147,7 @@ def get_workflow_interface_by_bolt_port(wf_id, bolt_port):
         driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                                           db_hostname=bc.get("graphdb", "hostname"),
                                           password=bc.get("graphdb", "dbpass"), workflow_id = wf_id)
-        iface = GraphDatabaseInterface(driver)
-        wfi = WorkflowInterface(iface, wf_id)
+        wfi = WorkflowInterface(wf_id, driver)
     except neo4j_driver.Neo4jNotRunning:
         log.info("Neo4j Appears to be Down")
         # There are several possibilities here
