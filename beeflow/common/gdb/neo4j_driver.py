@@ -35,7 +35,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     Wraps the neo4j package proprietary driver.
     """
 
-    def __init__(self, workflow_id,user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
+    def __init__(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
         """Create a new Neo4j database driver.
 
         :param uri: the URI of the Neo4j database
@@ -49,7 +49,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         bolt_port = kwargs.get("bolt_port", DEFAULT_BOLT_PORT)
         password = kwargs.get("db_pass", DEFAULT_PASSWORD)
         uri = f"bolt://{db_hostname}:{bolt_port}"
-        self._workflow_id = workflow_id
         try:
             # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
@@ -77,29 +76,40 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_workflow_input_nodes, workflow)
             session.write_transaction(tx.create_workflow_output_nodes, workflow)
 
-    def execute_workflow(self):
-        """Begin execution of the workflow stored in the Neo4j database."""
-        self._write_transaction(tx.set_init_task_inputs)
-        self._write_transaction(tx.set_init_tasks_to_ready)
-        self._write_transaction(tx.set_workflow_state, state='RUNNING', wf_id=self._workflow_id)
+    def execute_workflow(self, workflow_id):
+        """Begin execution of a workflow stored in the Neo4j database.
+        
+        :param workflow_id: the workflow id
+        :type workflow_id: str
+        """
+        self._write_transaction(tx.set_init_task_inputs, wf_id=workflow_id)
+        self._write_transaction(tx.set_runnable_tasks_to_ready, wf_id=workflow_id)
+        self._write_transaction(tx.set_workflow_state, state='RUNNING', wf_id=workflow_id)
 
-    def pause_workflow(self):
+    def pause_workflow(self, workflow_id):
         """Pause execution of a running workflow in Neo4j.
 
         Sets tasks with state 'RUNNING' to 'PAUSED'.
+                 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
+
         """
         with self._driver.session() as session:
-            session.write_transaction(tx.set_workflow_state, state='PAUSED', wf_id=self._workflow_id)
+            session.write_transaction(tx.set_workflow_state, state='PAUSED', wf_id=workflow_id)
 
-    def resume_workflow(self):
+    def resume_workflow(self, workflow_id):
         """Resume execution of a paused workflow in Neo4j.
 
         Sets workflow state to 'PAUSED'
+        
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         """
         with self._driver.session() as session:
-            session.write_transaction(tx.set_workflow_state, state='RESUME', wf_id=self._workflow_id)
+            session.write_transaction(tx.set_workflow_state, state='RESUME', wf_id=workflow_id)
 
-    def reset_workflow(self, new_id):
+    def reset_workflow(self, old_id, new_id):
         """Reset the execution state of an entire workflow.
 
         Sets all task states to 'WAITING'.
@@ -109,11 +119,9 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type new_id: str
         """
 
-        self._workflow_id=new_id
-
         with self._driver.session() as session:
-            session.write_transaction(tx.reset_tasks_metadata, wf_id=self._workflow_id)
-            session.write_transaction(tx.reset_workflow_id, old_id=self._workflow_id, new_id=new_id)
+            session.write_transaction(tx.reset_tasks_metadata, wf_id=old_id)
+            session.write_transaction(tx.reset_workflow_id, old_id=old_id, new_id=new_id)
 
     def load_task(self, task):
         """Load a task into a workflow stored in the Neo4j database.
@@ -135,12 +143,15 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_metadata_node, task=task)
             session.write_transaction(tx.add_dependencies, task=task)
 
-    def initialize_ready_tasks(self):
+    def initialize_ready_tasks(self, workflow_id):
         """Set runnable tasks to state 'READY'.
 
         Runnable tasks are tasks with all input dependencies fulfilled.
+                
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         """
-        self._write_transaction(tx.set_runnable_tasks_to_ready)
+        self._write_transaction(tx.set_runnable_tasks_to_ready, wf_id=workflow_id)
 
     def restart_task(self, old_task, new_task):
         """Restart a failed task.
@@ -184,74 +195,88 @@ class Neo4jDriver(GraphDatabaseDriver):
         return _reconstruct_task(tuples[0][0], tuples[0][1], tuples[0][2], tuples[0][3],
                                  tuples[0][4])
 
-    def get_workflow_description(self):
+    def get_workflow_description(self, workflow_id):
         """Return a reconstructed Workflow object from the Neo4j database.
-
+                
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: Workflow
         """
-        workflow_record = self._read_transaction(tx.get_workflow_by_id, wf_id=self._workflow_id)
+        workflow_record = self._read_transaction(tx.get_workflow_by_id, wf_id=workflow_id)
         requirements, hints = self.get_workflow_requirements_and_hints()
         inputs, outputs = self.get_workflow_inputs_and_outputs()
         return _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
 
-    def get_workflow_state(self):
+    def get_workflow_state(self, workflow_id):
         """Return the current workflow state from the Neo4j database.
-
+        
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: str
         """
-        print(self._workflow_id) #DEBUG
-        return self._read_transaction(tx.get_workflow_state, wf_id=self._workflow_id)
+        return self._read_transaction(tx.get_workflow_state, wf_id=workflow_id)
 
-    def set_workflow_state(self, state):
+    def set_workflow_state(self, workflow_id, state):
         """Set the state of the workflow in the Neo4j database.
-
+        
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :param state: the new state of the workflow
         :type state: str
         """
-        self._write_transaction(tx.set_workflow_state, state=state, wf_id=self._workflow_id)
+        self._write_transaction(tx.set_workflow_state, state=state, wf_id=workflow_id)
 
-    def get_workflow_tasks(self):
-        """Return all workflow task records from the Neo4j database.
+    def get_workflow_tasks(self, workflow_id):
+        """Return all workflow task records for a workflow from the Neo4j database.
 
+        
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: list of Task
         """
-        task_records = self._read_transaction(tx.get_workflow_tasks, wf_id=self._workflow_id)
+        task_records = self._read_transaction(tx.get_workflow_tasks, wf_id=workflow_id)
         tuples = self._get_task_data_tuples(task_records)
         return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
 
-    def get_workflow_requirements_and_hints(self):
+    def get_workflow_requirements_and_hints(self, workflow_id):
         """Return all workflow requirements and hints from the Neo4j database.
 
         Returns a tuple of (requirements, hints).
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: (list of Requirement, list of Hint)
         """
         with self._driver.session() as session:
             requirements = _reconstruct_requirements(
-                session.read_transaction(tx.get_workflow_requirements, wf_id=self._workflow_id))
-            hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints, wf_id=self.wf_id))
+                session.read_transaction(tx.get_workflow_requirements, wf_id=workflow_id))
+            hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints, wf_id=workflow_id))
         return requirements, hints
 
-    def get_workflow_inputs_and_outputs(self):
-        """Return all workflow inputs and outputs from the Neo4j database.
+    def get_workflow_inputs_and_outputs(self, workflow_id):
+        """Return all workflow inputs and outputs for a workflow from the Neo4j database.
 
         Returns a tuple of (inputs, outputs).
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: (list of InputParameter, list of OutputParameter)
         """
         with self._driver.session() as session:
-            inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs, wf_id=self._workflow_id))
+            inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs, wf_id=workflow_id))
             outputs = _reconstruct_workflow_outputs(
-                session.read_transaction(tx.get_workflow_outputs, wf_id=self._workflow_id))
+                session.read_transaction(tx.get_workflow_outputs, wf_id=workflow_id))
 
         return inputs, outputs
 
-    def get_ready_tasks(self):
-        """Return tasks with state 'READY' from the graph database.
+    def get_ready_tasks(self, workflow_id):
+        """Return tasks with state 'READY' from the graph database from a particular workflow.
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: list of Task
         """
-        task_records = self._read_transaction(tx.get_ready_tasks)
+        task_records = self._read_transaction(tx.get_ready_tasks, wf_id=workflow_id)
         tuples = self._get_task_data_tuples(task_records)
         return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
 
@@ -376,13 +401,15 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_task_output_glob, task=task, output_id=output_id, glob=glob)
 
-    def workflow_completed(self):
+    def workflow_completed(self, workflow_id):
         """Determine if a workflow in the Neo4j database has completed.
 
         A workflow has completed if each of its final task nodes have state 'COMPLETED'.
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: bool
         """
-        return self._read_transaction(tx.final_tasks_completed, wf_id=self._workflow_id)
+        return self._read_transaction(tx.final_tasks_completed, wf_id=workflow_id)
 
     def empty(self):
         """Determine if the Neo4j database is empty.

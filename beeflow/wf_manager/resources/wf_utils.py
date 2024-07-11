@@ -146,7 +146,7 @@ def get_workflow_interface_by_bolt_port(wf_id, bolt_port):
     try:
         driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                                           db_hostname=bc.get("graphdb", "hostname"),
-                                          password=bc.get("graphdb", "dbpass"), workflow_id = wf_id)
+                                          password=bc.get("graphdb", "dbpass"))
         wfi = WorkflowInterface(wf_id, driver)
     except neo4j_driver.Neo4jNotRunning:
         log.info("Neo4j Appears to be Down")
@@ -170,7 +170,7 @@ def get_workflow_interface_by_bolt_port(wf_id, bolt_port):
             db.workflows.update_gdb_pid(wf_id, gdb_pid)
             driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
                                               db_hostname=bc.get("graphdb", "hostname"),
-                                              password=bc.get("graphdb", "dbpass"), workflow_id = wf_id)
+                                              password=bc.get("graphdb", "dbpass"))
             iface = GraphDatabaseInterface(driver)
             wfi = WorkflowInterface(iface, wf_id)
             wfi.get_workflow()

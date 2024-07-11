@@ -403,14 +403,18 @@ def set_workflow_state(tx, state, wf_id):
     return tx.run(state_query, state=state, wf_id=wf_id)
 
 
-def get_ready_tasks(tx):
+def get_ready_tasks(tx, wf_id):
     """Get all tasks that are ready to execute.
+
+        
+    :param workflow_id: the workflow id
+    :type workflow_id: str
 
     :rtype: neo4j.Result
     """
-    get_ready_query = "MATCH (:Metadata {state: 'READY'})-[:DESCRIBES]->(t:Task) RETURN t"
+    get_ready_query = "MATCH (:Metadata {state: 'READY'})-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) RETURN t"
 
-    return [rec['t'] for rec in tx.run(get_ready_query)]
+    return [rec['t'] for rec in tx.run(get_ready_query, wf_id=wf_id)]
 
 
 def get_dependent_tasks(tx, task):
@@ -575,30 +579,25 @@ def set_task_output_glob(tx, task, output_id, glob):
     tx.run(glob_query, task_id=task.id, output_id=output_id, glob=glob)
 
 
-def set_init_tasks_to_ready(tx):
-    """Set the initial workflow tasks' states to 'READY'."""
-    init_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task)-[:BEGINS]->(:Workflow) "
-                        "WHERE NOT (t)-[:DEPENDS_ON]->(:Task) "
-                        "SET m.state = 'READY'")
-
-    tx.run(init_ready_query)
-
-
-def set_init_task_inputs(tx):
-    """Set the initial workflow tasks' inputs from workfow inputs or defaults if necessary."""
-    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:BEGINS]->(:Workflow)"
+def set_init_task_inputs(tx, wf_id):
+    """Set the initial workflow tasks' inputs from workfow inputs or defaults if necessary.
+    
+    :param wf_id: the workflow id
+    :type wf_id: str
+    """
+    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:BEGINS]->(:Workflow {id: $wf_id})"
                          "<-[:INPUT_OF]-(wi:Input) "
                          "WHERE i.source = wi.id AND wi.value IS NOT NULL "
                          "SET i.value = wi.value")
     # Set any values to defaults if necessary
-    defaults_query = ("MATCH (i:Input)-[:INPUT_OF]->(t:Task)-[:BEGINS]->(:Workflow)"
+    defaults_query = ("MATCH (i:Input)-[:INPUT_OF]->(t:Task)-[:BEGINS]->(:Workflow {id: $wf_id})"
                       "<-[:INPUT_OF]-(wi:Input) "
                       "WHERE i.source = wi.id "
                       "AND i.value IS NULL AND i.default IS NOT NULL "
                       "SET i.value = i.default")
 
-    tx.run(task_inputs_query)
-    tx.run(defaults_query)
+    tx.run(task_inputs_query, wf_id=wf_id)
+    tx.run(defaults_query, wf_id=wf_id)
 
 
 def copy_task_outputs(tx, task):
@@ -649,16 +648,16 @@ def set_paused_tasks_to_running(tx):
     tx.run(set_running_query)
 
 
-def set_runnable_tasks_to_ready(tx):
+def set_runnable_tasks_to_ready(tx, wf_id):
     """Set task states to 'READY' if all required inputs have values."""
     set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->"
-                                "(t:Task)<-[:INPUT_OF]-(i:Input) "
+                                "(t:Task {workflow_id: $wf_id})<-[:INPUT_OF]-(i:Input) "
                                 "WITH m, t, collect(i) AS ilist "
                                 "WHERE m.state = 'WAITING' "
                                 "AND all(i IN ilist WHERE i.value IS NOT NULL) "
                                 "SET m.state = 'READY'")
 
-    tx.run(set_runnable_ready_query)
+    tx.run(set_runnable_ready_query, wf_id=wf_id)
 
 
 def reset_tasks_metadata(tx, wf_id):
