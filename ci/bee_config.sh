@@ -16,7 +16,6 @@ cat >> $BEE_CONFIG <<EOF
 [DEFAULT]
 bee_workdir = $BEE_WORKDIR
 workload_scheduler = $WORKLOAD_SCHEDULER
-use_archive = False
 neo4j_image = $NEO4J_CONTAINER
 redis_image = $REDIS_CONTAINER
 max_restarts = 2
