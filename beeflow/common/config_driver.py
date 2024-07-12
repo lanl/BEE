@@ -233,8 +233,6 @@ VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
                  default=DEFAULT_BEE_WORKDIR, validator=validation.make_dir)
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  info='backend workload scheduler to interact with ')
-VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, default=True,
-                 info='use the BEE archiving functinality')
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                  info='neo4j container image',
                  input_fn=filepath_completion_input)
