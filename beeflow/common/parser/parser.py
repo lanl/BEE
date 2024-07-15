@@ -296,10 +296,11 @@ class CwlParser:
             msg = f'Could not find a file for {key}: {fname}'
             raise CwlParseError(msg) from None
         if key in {'pre_script', 'post_script'}:
-            self._validate_prepost_script_env(key, items, fname)
+            self._validate_prepost_shell_env(key, items, fname)
 
-    def _validate_prepost_script_env(self, key, items, fname):
+    def _validate_prepost_shell_env(self, key, items, fname):
         """Validate the pre/post script files by checking for shebang line.
+        Make sure shell option in config file matches shebang line(s).
 
         :param fname: name of pre/post script file
         :type fname: str
@@ -307,6 +308,14 @@ class CwlParser:
         env_decl = items[key].splitlines()
         if not env_decl[0].startswith("#!"):
             msg = f'No shebang line found in {fname}'
+            raise CwlParseError(msg) from None
+        # Now check for matching shell and shebang line values
+        shell_val = '#!' + items['shell']
+        shebang_val = env_decl[0]
+        #print("shell: ", shell_val)
+        #print("shebang: ", shebang_val)
+        if shell_val != shebang_val:
+            msg = f'Config file shell {shell_val} does not match {fname} shebang line {shebang_val}'
             raise CwlParseError(msg) from None
 
     def parse_requirements(self, requirements, as_hints=False):
@@ -333,10 +342,19 @@ class CwlParser:
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
+                # Load in pre/post script files and make sure shell option is defined in config file
                 if 'pre_script' in items and items['enabled']:
-                    self._read_requirement_file('pre_script', items)
+                    if 'shell' in items:
+                        self._read_requirement_file('pre_script', items)
+                    else:
+                        msg = f'pre/post scripts enabled but shell option undefined.'
+                        raise CwlParseError(msg) from None
                 if 'post_script' in items and items['enabled']:
-                    self._read_requirement_file('post_script', items)
+                    if 'shell' in items:
+                        self._read_requirement_file('post_script', items)
+                    else:
+                        msg = f'pre/post scripts enabled but shell option undefined.'
+                        raise CwlParseError(msg) from None
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)
                 reqs.append(Hint(req['class'], items))
