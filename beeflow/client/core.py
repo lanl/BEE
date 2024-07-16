@@ -43,10 +43,9 @@ class ComponentManager:
         """Return a decorator function to be called."""
 
         def wrap(fn):
-            """ Check to see if any components are disabled """
-            if bc.get('DEFAULT', 'remote_api') == False and 'remote_api' in name:
+            """Check to see if any components are disabled."""
+            if bc.get('DEFAULT', 'remote_api') is False and 'remote_api' in name:
                 return
-
 
             """Add the component to the list."""
             self.components[name] = {
@@ -55,7 +54,6 @@ class ComponentManager:
                 'restart_count': 0,
                 'failed': False,
             }
-
 
         return wrap
 
@@ -199,7 +197,7 @@ def init_components():
         """Start the remote API."""
         fp = open_log('remote_api')
         return launch_with_gunicorn('beeflow.remote.remote:create_app()',
-                                paths.remote_socket(), stdout=fp, stderr=fp)
+                                    paths.remote_socket(), stdout=fp, stderr=fp)
 
     @mgr.component('celery', ('redis',))
     def celery():
