@@ -17,8 +17,8 @@ jobs:
     if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
     name: BEE Unit Tests
     env:
-      # Unit tests are only run with Slurm right now
-      BATCH_SCHEDULER: Slurm
+      # Unit tests are only run with slurmrestd right now
+      BEE_WORKER: Slurmrestd
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
     # available on 20.04
     runs-on: ubuntu-22.04
@@ -35,3 +35,36 @@ jobs:
         run: |
           . ./ci/env.sh
           ./ci/unit_tests.sh
+          
+      - name: Coverage Badge
+        if: github.event_name == 'pull_request'
+        uses: tj-actions/coverage-badge-py@v2
+
+      - name: Verify Changed Files
+        if: github.event_name == 'pull_request'
+        uses: tj-actions/verify-changed-files@v20
+        id: verify-changed-files
+        with:
+          files: |
+            *.svg
+
+      - name: Commit files
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add coverage.svg
+          git commit -m "Updated coverage.svg"
+
+      - name: Fetch latest changes again
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
+        run: |
+          git fetch origin
+          git rebase origin/${{ github.event.pull_request.head.ref }}
+
+      - name: Push changes
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.github_token }}
+          branch: ${{ github.event.pull_request.head.ref }}

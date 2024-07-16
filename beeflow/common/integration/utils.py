@@ -58,7 +58,7 @@ class Workflow:
         self.path = path
         self.main_cwl = main_cwl
         self.job_file = job_file
-        self.workdir = workdir
+        self.workdir = Path(workdir)
         self.containers = containers
         self.wf_id = None
         self.tarball = None
@@ -250,3 +250,10 @@ def check_workflow_failed(workflow):
     """Ensure that the workflow completed in a Failed state."""
     ci_assert(workflow.status == 'Archived/Failed',
               f'workflow did not fail as expected (final status: {workflow.status})')
+
+
+def make_workflow_workdir(outer_workdir):
+    """Create a workdir for the workflow run output files."""
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
+    return workdir

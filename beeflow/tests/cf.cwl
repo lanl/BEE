@@ -4,7 +4,9 @@ class: Workflow
 cwlVersion: v1.0
 
 inputs:
-  infile: File
+  infile:
+    type: File
+    default: 'infile'
 
 outputs:
   clamr_dir:

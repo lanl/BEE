@@ -184,8 +184,9 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     bolt_port = 3030
     http_port = 3333
     https_port = 3455
+    workdir = 'dir'
 
-    temp_db.workflows.init_workflow(WF_ID, wf_name, 'dir', bolt_port, http_port, https_port)
+    temp_db.workflows.init_workflow(WF_ID, wf_name, workdir, bolt_port, http_port, https_port)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
 
@@ -202,11 +203,12 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
 
     wf_name = 'wf'
-    wf_status = 'Pending'
     bolt_port = 3030
-    gdb_pid = 12345
+    http_port = 3333
+    https_port = 3455
+    workdir = 'dir'
 
-    temp_db.workflows.init_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
+    temp_db.workflows.init_workflow(WF_ID, wf_name, workdir, bolt_port, http_port, https_port)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
     mocker.patch('beeflow.wf_manager.resources.wf_actions.dep_manager.kill_gdb', return_value=None)
@@ -225,11 +227,12 @@ def test_remove_workflow(client, mocker, setup_teardown_workflow, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
 
     wf_name = 'wf'
-    wf_status = 'Archived'
     bolt_port = 3030
-    gdb_pid = 12345
+    http_port = 3333
+    https_port = 3455
+    workdir = 'dir'
 
-    temp_db.workflows.init_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
+    temp_db.workflows.init_workflow(WF_ID, wf_name, workdir, bolt_port, http_port, https_port)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
     mocker.patch('beeflow.wf_manager.resources.wf_actions.dep_manager.kill_gdb', return_value=None)

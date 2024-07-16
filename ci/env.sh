@@ -17,8 +17,6 @@ export MUNGE_LOG=/tmp/munge.log
 export MUNGE_PID=/tmp/munge.pid
 mkdir -p /tmp/munge
 export MUNGE_KEY=/tmp/munge/munge.key
-# Determine config of CI host
-export NODE_CONFIG=`slurmd -C | head -n 1`
 export BEE_WORKDIR=$HOME/.beeflow
 export NEO4J_CONTAINER=$HOME/img/neo4j.tar.gz
 export REDIS_CONTAINER=$HOME/img/redis.tar.gz

@@ -89,6 +89,7 @@ class WFActions(Resource):
         option = self.reqparse.parse_args()['option']
 
         wfi = wf_utils.get_workflow_interface(wf_id)
+        log.info('Pausing/resuming workflow')
         wf_state = wfi.get_workflow_state()
         if option == 'pause' and wf_state == 'RUNNING':
             wfi.pause_workflow()
