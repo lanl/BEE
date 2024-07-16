@@ -7,6 +7,7 @@ import uvicorn
 from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.client import bee_client
+from beeflow.common.config_driver import BeeConfig as bc
 
 
 app = FastAPI()
@@ -114,9 +115,12 @@ def get_core_status():
 def create_app():
     """Start the web-server for the API with uvicorn."""
     # decide what port we're using for the long term. I set it to port 7777 temporarily
+    
+    port_number = bc.get('DEFAULT', 'remote_api_port')
+
     config = uvicorn.Config("beeflow.remote.remote:app",
                             host="0.0.0.0",
-                            port=7777,
+                            port=port_number,
                             reload=True,
                             log_level="info")
     server = uvicorn.Server(config)

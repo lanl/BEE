@@ -240,6 +240,9 @@ VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop poin
 VALIDATOR.option('DEFAULT', 'remote_api', info='BEE remote REST API activation',
                  default=False, validator=validation.bool_)
 
+VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
+                 default=7777, validator=int)
+
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  info='backend workload scheduler to interact with ')
 
