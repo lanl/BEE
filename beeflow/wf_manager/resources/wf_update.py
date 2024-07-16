@@ -15,7 +15,7 @@ from beeflow.common import log as bee_logging
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
-
+from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
@@ -39,13 +39,21 @@ def archive_workflow(db, wf_id, final_state=None):
     # We use tar directly since tarfile is apparently very slow
     workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
+    pid = db.workflows.get_gdb_pid(wf_id)
+    # Wait for Graph database to be down (max 10 seconds)
+    for _ in range(10):
+        if not dep_manager.kill_gdb(pid):
+            break
+        time.sleep(1)
+    remove_wf_dir = bc.get('DEFAULT', 'delete_completed_workflow_dirs')
+    if remove_wf_dir:
+        log.info('Removing Workflow Directory')
+        wf_utils.remove_wf_dir(wf_id)
 
 
 def archive_fail_workflow(db, wf_id):
     """Archive and fail a workflow."""
     archive_workflow(db, wf_id, final_state='Failed')
-    pid = db.workflows.get_gdb_pid(wf_id)
-    dep_manager.kill_gdb(pid)
 
 
 def set_dependent_tasks_dep_fail(db, wfi, wf_id, task):
@@ -132,11 +140,9 @@ class WFUpdate(Resource):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
             if wfi.workflow_completed():
-                log.info("Workflow Completed")
                 wf_id = wfi.workflow_id
                 archive_workflow(db, state_update.wf_id)
-                pid = db.workflows.get_gdb_pid(state_update.wf_id)
-                dep_manager.kill_gdb(pid)
+                log.info('Workflow Completed')
 
         # If the job failed and it doesn't include a checkpoint-restart hint,
         # then fail the entire workflow
