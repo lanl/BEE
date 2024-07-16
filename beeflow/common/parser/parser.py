@@ -299,12 +299,13 @@ class CwlParser:
             self._validate_prepost_shell_env(key, items, fname)
 
     def _validate_prepost_shell_env(self, key, items, fname):
-        """Validate the pre/post script files by checking for shebang line. Make sure shell option in cwl file matches shebang line in script(s).
+        """Validate defined shell interpreters.
 
         :param fname: name of pre/post script file
         :type fname: str
         """
         env_decl = items[key].splitlines()
+        # Check for shebang line in pre/post scripts
         if not env_decl[0].startswith("#!"):
             msg = f'No shebang line found in {fname}'
             raise CwlParseError(msg) from None
