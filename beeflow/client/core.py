@@ -47,7 +47,7 @@ class ComponentManager:
             if bc.get('DEFAULT', 'remote_api') is False and 'remote_api' in name:
                 return
 
-            """Add the component to the list."""
+            # Add the component to the list.
             self.components[name] = {
                 'fn': fn,
                 'deps': deps,
