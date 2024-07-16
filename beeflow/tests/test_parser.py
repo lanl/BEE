@@ -72,7 +72,7 @@ class TestParser(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
 
-        self.assertEqual(context.exception.args[0], "Config file shell #!/bin/bash does not match post.sh shebang line #!/bin/bashoo") #noqa
+        self.assertEqual(context.exception.args[0], "CWL file shell #!/bin/bash does not match post.sh shell #!/bin/bashoo") #noqa
 
     def test_parse_workflow_json(self):
         """Test parsing of workflow with a JSON input job file."""

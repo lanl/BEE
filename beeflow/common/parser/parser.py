@@ -300,7 +300,7 @@ class CwlParser:
 
     def _validate_prepost_shell_env(self, key, items, fname):
         """Validate the pre/post script files by checking for shebang line.
-        Make sure shell option in config file matches shebang line(s).
+        Make sure shell option in cwl file matches shebang line in script(s).
 
         :param fname: name of pre/post script file
         :type fname: str
@@ -312,10 +312,8 @@ class CwlParser:
         # Now check for matching shell and shebang line values
         shell_val = '#!' + items['shell']
         shebang_val = env_decl[0]
-        #print("shell: ", shell_val)
-        #print("shebang: ", shebang_val)
         if shell_val != shebang_val:
-            msg = f'Config file shell {shell_val} does not match {fname} shebang line {shebang_val}'
+            msg = f'CWL file shell {shell_val} does not match {fname} shell {shebang_val}'
             raise CwlParseError(msg) from None
 
     def parse_requirements(self, requirements, as_hints=False):
@@ -342,18 +340,18 @@ class CwlParser:
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
-                # Load in pre/post script files and make sure shell option is defined in config file
+                # Load in pre/post scripts and make sure shell option is defined in cwl file
                 if 'pre_script' in items and items['enabled']:
                     if 'shell' in items:
                         self._read_requirement_file('pre_script', items)
                     else:
-                        msg = f'pre/post scripts enabled but shell option undefined.'
+                        msg = f'pre script enabled but shell option undefined in cwl file.' #noqa
                         raise CwlParseError(msg) from None
                 if 'post_script' in items and items['enabled']:
                     if 'shell' in items:
                         self._read_requirement_file('post_script', items)
                     else:
-                        msg = f'pre/post scripts enabled but shell option undefined.'
+                        msg = f'post script enabled but shell option undefined in cwl file.' #noqa
                         raise CwlParseError(msg) from None
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)
