@@ -145,6 +145,44 @@ def test_job_queue_update_job_state(temp_db):
     assert job.task == {8, 9, 10}
     assert job.job_id == 888
     assert job.job_state == 'COMPLETED'
+
+
+def test_update_queue_empty(temp_db):
+    """Test an empty update queue."""
+    db = temp_db
+
+    assert db.update_queue.updates() == []
+
+    db.update_queue.clear()
+
+    assert db.update_queue.updates() == []
+
+
+def test_update_queue_order(temp_db):
+    """Ensure that updates are returned in the correct order."""
+    db = temp_db
+
+    db.update_queue.push('wf-id', 'task-id', 'RUNNING')
+    db.update_queue.push('wf-id', 'task-id', 'COMPLETED')
+    db.update_queue.push('wf-id-2', 'task-id-2', 'RUNNING')
+    db.update_queue.push('wf-id-2', 'task-id-2', 'FAILED')
+
+    updates = db.update_queue.updates()
+    assert updates[0].wf_id == 'wf-id'
+    assert updates[0].task_id == 'task-id'
+    assert updates[0].job_state == 'RUNNING'
+    assert updates[1].wf_id == 'wf-id'
+    assert updates[1].task_id == 'task-id'
+    assert updates[1].job_state == 'COMPLETED'
+    assert updates[2].wf_id == 'wf-id-2'
+    assert updates[2].task_id == 'task-id-2'
+    assert updates[2].job_state == 'RUNNING'
+    assert updates[3].wf_id == 'wf-id-2'
+    assert updates[3].task_id == 'task-id-2'
+    assert updates[3].job_state == 'FAILED'
+
+    db.update_queue.clear()
+    assert db.update_queue.updates() == []
 # Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
 #               scope. This is how pytest fixtures work.
 # pylama:ignore=W0621

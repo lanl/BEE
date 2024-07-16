@@ -58,9 +58,9 @@ support all features.
 
 To run our simple example, you'll want to first create a workdir for the
 workflow and copy over the input file ``lorem.txt``. I'll refer to this path in
-code samples as ``$WORKDIR_PATH``. Note that this is separate from the
-directory containing the workflow itself, which contains all the CWL files and
-the input YAML files. The workdir is where all of your input files should be
+code samples as ``$WORKDIR_PATH``. Note that this ``$WORKDIR_PATH`` should be 
+located outside of the BEE repo. For example, it could be in your home 
+directory ``$HOME``. The workdir is where all of your input files should be
 stored before starting a workflow, as this will be the current working directory
 of all steps that are run. Output from each step will also be stored here.
 

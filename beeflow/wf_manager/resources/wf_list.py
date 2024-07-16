@@ -41,15 +41,16 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
     wf_dir = wf_utils.get_workflow_dir(wf_id)
     archive_path = os.path.join(wf_dir, filename)
     workflow_archive.save(archive_path)
+    cwl_dir = wf_dir + "/bee_workflow"
     if not reexecute:
-        subprocess.run(['tar', '-xf', archive_path, '-C', wf_dir], check=False)
-        cwl_dir = os.path.join(wf_dir, filename.split('.')[0])
+        os.mkdir(cwl_dir)
+        subprocess.run(['tar', '-xf', archive_path, '-C', cwl_dir], check=False)
         return cwl_dir
 
+    os.mkdir(cwl_dir)
     subprocess.run(['tar', '-xf', archive_path, '--strip-components=1',
                     '-C', wf_dir], check=False)
-    archive_dir = os.path.join(wf_dir, 'gdb')
-    return archive_dir
+    return cwl_dir
 
 
 @shared_task(ignore_result=True)
@@ -67,7 +68,7 @@ def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
     gdb_pid = dep_manager.start_gdb(wf_dir, bolt_port, http_port, https_port, reexecute=reexecute)
     dep_manager.wait_gdb(log)
 
-    wfi = wf_utils.get_workflow_interface_by_bolt_port(bolt_port)
+    wfi = wf_utils.get_workflow_interface_by_bolt_port(wf_id, bolt_port)
     if reexecute:
         wfi.reset_workflow(wf_id)
     else:
@@ -80,8 +81,11 @@ def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
     db = connect_db(wfm_db, db_path)
     if reexecute:
         _, tasks = wfi.get_workflow()
+        # Tasks come in backwards
+        tasks.reverse()
     for task in tasks:
-        wfi.add_task(task)
+        if not reexecute:
+            wfi.add_task(task)
         metadata = wfi.get_task_metadata(task)
         metadata['workdir'] = wf_workdir
         wfi.set_task_metadata(task, metadata)

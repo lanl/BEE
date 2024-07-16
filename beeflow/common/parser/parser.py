@@ -97,12 +97,13 @@ class CwlParser:
             """
             # Use parsed input parameter for input value if it exists
             input_id = _shortname(input_.id)
-            if input_id not in self.params:
-                return None
-            if not isinstance(self.params[input_id], type_map[type_]):
+            value = self.params[input_id] if input_id in self.params else input_.default
+            if value is None:
+                raise CwlParseError(f"input {input_id} is missing from workflow job file")
+            if not isinstance(value, type_map[type_]):
                 raise CwlParseError("Input/param types do not match: "
-                                    f"{input_id}/{self.params[input_id]}")
-            return self.params[input_id]
+                                    f"{input_id}/{value}")
+            return value
 
         workflow_name = os.path.basename(cwl_path).split(".")[0]
         workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
@@ -245,6 +246,9 @@ class CwlParser:
         :type stderr: str or None
         :rtype: list of StepOutput
         """
+        if not cwl_out:
+            return []
+
         out_short = list(map(_shortname, cwl_out))
         short_id = out_short[0].split("/")[0]
         # Inline step outputs already have short_id+"/" prepended
@@ -290,6 +294,19 @@ class CwlParser:
                 items[key] = fp.read()
         except FileNotFoundError:
             msg = f'Could not find a file for {key}: {fname}'
+            raise CwlParseError(msg) from None
+        if key in {'pre_script', 'post_script'}:
+            self._validate_prepost_script_env(key, items, fname)
+
+    def _validate_prepost_script_env(self, key, items, fname):
+        """Validate the pre/post script files by checking for shebang line.
+
+        :param fname: name of pre/post script file
+        :type fname: str
+        """
+        env_decl = items[key].splitlines()
+        if not env_decl[0].startswith("#!"):
+            msg = f'No shebang line found in {fname}'
             raise CwlParseError(msg) from None
 
     def parse_requirements(self, requirements, as_hints=False):

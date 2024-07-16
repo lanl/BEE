@@ -44,7 +44,8 @@ class BaseSlurmWorker(Worker):
             main_command_srun_args = []
         nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=nodes)
-        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
+        # Need to rethink the MPI version parameter
+        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='')
         time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
                                           default=self.default_time_limit)
         time_limit = validation.time_limit(time_limit)
@@ -54,6 +55,7 @@ class BaseSlurmWorker(Worker):
                                          'partition',
                                          default=self.default_partition)
 
+        shell = task.get_requirement('beeflow:ScriptRequirement', 'shell', default="/bin/bash")
         scripts_enabled = task.get_requirement('beeflow:ScriptRequirement', 'enabled',
                                                default=False)
         if scripts_enabled:
@@ -64,7 +66,7 @@ class BaseSlurmWorker(Worker):
                                       'post_script')).readlines()
         # sbatch header
         script = [
-            '#!/bin/bash',
+            f'#!{shell}',
             f'#SBATCH --job-name={task.name}-{task.id}',
             f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
             f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
@@ -80,7 +82,8 @@ class BaseSlurmWorker(Worker):
             script.append(f'#SBATCH -p {partition}')
 
         # Return immediately on error
-        script.append('set -e')
+        if shell == "/bin/bash":
+            script.append('set -e')
         script.append(crt_res.env_code)
 
         def srun(script_lines, script_cmd):
@@ -102,7 +105,11 @@ class BaseSlurmWorker(Worker):
         # Main command
         srun_args = ' '.join(main_command_srun_args)
         args = ' '.join(crt_res.main_command.args)
-        script.append(f'srun --mpi={mpi_version} {srun_args} {args}')
+        if mpi_version:
+            mpi_arg = f'--mpi={mpi_version}'
+        else:
+            mpi_arg = ''
+        script.append(f'srun --nodes={nodes} {mpi_arg} {srun_args} {args}')
 
         # Post commands
         for cmd in crt_res.post_commands:
