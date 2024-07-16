@@ -299,8 +299,7 @@ class CwlParser:
             self._validate_prepost_shell_env(key, items, fname)
 
     def _validate_prepost_shell_env(self, key, items, fname):
-        """Validate the pre/post script files by checking for shebang line.
-        Make sure shell option in cwl file matches shebang line in script(s).
+        """Validate the pre/post script files by checking for shebang line. Make sure shell option in cwl file matches shebang line in script(s).
 
         :param fname: name of pre/post script file
         :type fname: str
