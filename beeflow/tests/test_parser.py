@@ -63,7 +63,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(context.exception.args[0], "No shebang line found in pre_run.sh")
 
     def test_parse_workflow_validate_shell(self):
-        """Test parsing of workflow and check shell option matches pre/post scripts shebang line."""
+        """Test parsing of workflow and check shell option matches pre/post script shebang line."""
         cwl_wf_file = find("ci/test_workflows/shell_validate/workflow.cwl") #noqa
         cwl_job_yaml = find("ci/test_workflows/shell_validate/input.yml") #noqa
 
