@@ -53,7 +53,6 @@ class Input:
 @dataclass
 class CWLInput(Input):
     """Represents a CWL input as opposed to a Run input."""
-    input_default: str = None
 
 
 @dataclass
@@ -86,6 +85,7 @@ class RunInput(Input):
             prefix: <-j> or empty {}
     """
     input_binding: InputBinding
+    input_value: str
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
@@ -319,6 +319,7 @@ class ScriptRequirement:
     pre_script: str = None
     post_script: str = None
     enabled: bool = True
+    shell: str = "/bin/bash"
 
     def dump(self):
         """Dumps script requirement to a dcitionary."""
@@ -328,8 +329,8 @@ class ScriptRequirement:
             script_dump[key]['pre_script'] = self.pre_script
         if self.post_script:
             script_dump[key]['post_script'] = self.post_script
-        if self.enabled:
-            script_dump[key]['enabled'] = self.enabled
+        script_dump[key]['enabled'] = self.enabled
+        script_dump[key]['shell'] = self.shell
         return script_dump
 
     def __repr__(self):
@@ -394,10 +395,12 @@ class Run:
         """
         # Need to convert to a dictionary to get the keys
         # This is gross but the iterative solutions look grosser
-        input_keys = list(list(self.inputs.dump().values())[0])
+        for i in self.inputs.inputs:
+            print(i.input_value)
+        #input_keys = list(list(self.inputs.dump().values())[0])
         in_ = {'in': {}}
-        for i in input_keys:
-            in_['in'][i] = i
+        for i in self.inputs.inputs:
+            in_['in'][i.input_name] = i.input_value
         return in_
 
     def generate_out(self):
