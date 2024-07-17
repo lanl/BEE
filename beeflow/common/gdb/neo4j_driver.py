@@ -35,9 +35,15 @@ class Neo4jDriver(GraphDatabaseDriver):
     Wraps the neo4j package proprietary driver.
     """
 
-    def __init__(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
-        """Create a new Neo4j database driver.
-
+    def __new__(cls):
+        """Create or get the instance of Neo4j database driver"""
+        log.info("I MAY CRASH")
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(Neo4jDriver, cls).__new__(cls)
+        return cls.instance
+        
+    def connect(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
+        """Connect driver to the neo4j database
         :param uri: the URI of the Neo4j database
         :type uri: str
         :param user: the username for the database user account
@@ -45,6 +51,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param password: the password for the database user account
         :type password: str
         """
+        
         db_hostname = kwargs.get("db_hostname", DEFAULT_HOSTNAME)
         bolt_port = kwargs.get("bolt_port", DEFAULT_BOLT_PORT)
         password = kwargs.get("db_pass", DEFAULT_PASSWORD)
@@ -54,9 +61,15 @@ class Neo4jDriver(GraphDatabaseDriver):
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
             # Checks the connection and returns ServiceUnavailable if something is wrong
             self._driver.verify_connectivity()
+            log.info("Neo4j driver connected")
         except ServiceUnavailable as sue:
             log.error("Neo4j database is unavailable")
             raise Neo4jNotRunning("Neo4j database is unavailable") from sue
+
+    def create_bee_node(self):
+        """Create the "BEE" node for all workflows to connect to"""
+        with self._driver.session() as session:
+            session.write_transaction(tx.create_bee_node)
 
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow stored in Neo4j.
@@ -69,7 +82,6 @@ class Neo4jDriver(GraphDatabaseDriver):
 
 
         with self._driver.session() as session:
-            session.write_transaction(tx.create_bee_node)
             session.write_transaction(tx.create_workflow_node, workflow)
             session.write_transaction(tx.create_workflow_requirement_nodes, workflow)
             session.write_transaction(tx.create_workflow_hint_nodes, workflow)
@@ -203,8 +215,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: Workflow
         """
         workflow_record = self._read_transaction(tx.get_workflow_by_id, wf_id=workflow_id)
-        requirements, hints = self.get_workflow_requirements_and_hints()
-        inputs, outputs = self.get_workflow_inputs_and_outputs()
+        requirements, hints = self.get_workflow_requirements_and_hints(workflow_id)
+        inputs, outputs = self.get_workflow_inputs_and_outputs(workflow_id)
         return _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
 
     def get_workflow_state(self, workflow_id):

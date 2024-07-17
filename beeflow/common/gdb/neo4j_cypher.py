@@ -10,7 +10,7 @@ def create_bee_node(tx):
 
     This node connects to all workflows and allows them to exist in the same graph
     """
-    bee_query = ("CREATE (b:BEE)")
+    bee_query = ("MERGE (b:BEE {name:'Head'})")
 
     tx.run(bee_query)
 
@@ -651,13 +651,13 @@ def set_paused_tasks_to_running(tx):
 def set_runnable_tasks_to_ready(tx, wf_id):
     """Set task states to 'READY' if all required inputs have values."""
     set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->"
-                                "(t:Task {workflow_id: $wf_id})<-[:INPUT_OF]-(i:Input) "
+                                "(t:Task)<-[:INPUT_OF]-(i:Input) "
                                 "WITH m, t, collect(i) AS ilist "
                                 "WHERE m.state = 'WAITING' "
                                 "AND all(i IN ilist WHERE i.value IS NOT NULL) "
                                 "SET m.state = 'READY'")
 
-    tx.run(set_runnable_ready_query, wf_id=wf_id)
+    tx.run(set_runnable_ready_query)
 
 
 def reset_tasks_metadata(tx, wf_id):

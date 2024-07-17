@@ -335,7 +335,7 @@ class WorkflowInterface:
 
         :rtype: bool
         """
-        return bool(not self._gdb_driver.empty())
+        return False
 
     @property
     def workflow_id(self):

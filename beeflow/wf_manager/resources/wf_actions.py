@@ -67,7 +67,7 @@ class WFActions(Resource):
             db.workflows.update_workflow_state(wf_id, 'Cancelled')
             log.info("Workflow cancelled")
             log.info("Shutting down gdb")
-            pid = db.workflows.get_gdb_pid(wf_id)
+            pid = db.info.get_gdb_pid()
             dep_manager.kill_gdb(pid)
             resp = make_response(jsonify(status='Cancelled'), 202)
         elif option == "remove":
