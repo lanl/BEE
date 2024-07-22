@@ -9,13 +9,13 @@ def main():
     docker.dump()
 
     # CWLInputs
-    cwl_inputs = Inputs([CWLInput('i', 'int', 20),
-                         CWLInput('j', 'int', 10),
-                         CWLInput('k', 'int', 10),
-                         CWLInput('x', 'int', 10),
-                         CWLInput('y', 'int', 10),
-                         CWLInput('z', 'int', 10),
-                         CWLInput('pot_dir', 'string', 10)
+    cwl_inputs = Inputs([CWLInput('i', 'int'),
+                         CWLInput('j', 'int'),
+                         CWLInput('k', 'int'),
+                         CWLInput('x', 'int'),
+                         CWLInput('y', 'int'),
+                         CWLInput('z', 'int'),
+                         CWLInput('pot_dir', 'string')
                          ])
 
     # CWLOutputs
@@ -24,12 +24,12 @@ def main():
     # Step Run
     base_command = "'[/CoMD/bin/CoMD-mpi, '-e']'"
     stdout = 'comd_stdout.txt'
-    run_inputs = Inputs([RunInput('i', 'int', InputBinding(prefix='-i')),
-                         RunInput('j', 'int', InputBinding(prefix='-j')),
-                         RunInput('k', 'int', InputBinding(prefix='-k')),
-                         RunInput('x', 'int', InputBinding(prefix='-x')),
-                         RunInput('y', 'int', InputBinding(prefix='-y')),
-                         RunInput('z', 'int', InputBinding(prefix='-z')),
+    run_inputs = Inputs([RunInput('i', 'int', InputBinding(prefix='-i'), 20),
+                         RunInput('j', 'int', InputBinding(prefix='-j'), 10),
+                         RunInput('k', 'int', InputBinding(prefix='-k'), 10),
+                         RunInput('x', 'int', InputBinding(prefix='-x'), 10),
+                         RunInput('y', 'int', InputBinding(prefix='-y'), 10),
+                         RunInput('z', 'int', InputBinding(prefix='-z'), 10),
                          RunInput('pot_dir', 'string', InputBinding(prefix='--potDir'))])
 
     run_outputs = Outputs([RunOutput('comd_stdout', 'stdout')])
