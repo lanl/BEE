@@ -264,7 +264,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     if os.path.realpath('/tmp') == workdir:
         error_exit("Workflow working directory cannot be \"/tmp\"")
     if os.path.realpath('/var/tmp') == workdir:
-        error_exit(f"Workflow working directory cannot be \"/var/tmp\"")
+        error_exit("Workflow working directory cannot be \"/var/tmp\"")
 
     # TODO: Can all of this information be sent as a file?
     data = {
