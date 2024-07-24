@@ -7,11 +7,16 @@ import re
 import time
 import shutil
 import signal
+import socket
 import subprocess
 
 from beeflow.common import log as bee_logging
+from beeflow.common.db.bdb import connect_db
+from beeflow.common.db import wfm_db
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.config_driver import BeeConfig as bc
+
+from celery import shared_task #noqa pylama can't find celery
 
 
 dep_log = bee_logging.setup(__name__)
@@ -57,6 +62,15 @@ def check_container_dir():
     container_dir = get_container_dir()
     container_dir_exists = os.path.isdir(container_dir)
     return container_dir_exists
+
+def get_open_port():
+    """Return an open ephemeral port."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    s.listen(1)
+    port = s.getsockname()[1]
+    s.close()
+    return port
 
 
 def setup_gdb_mounts(mount_dir):
@@ -138,7 +152,7 @@ def create_image():
     os.makedirs(container_certs_path, exist_ok=True)
 
 
-def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
+def start_neo4j(mount_dir, bolt_port, http_port, https_port, reexecute=False):
     """Start the graph database."""
     # We need to rerun the mount step before each start
 
@@ -171,8 +185,8 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
             return -1
 
     try:
-        command = ['neo4j', 'start']
-        with subprocess.Popen(["ch-run",
+        command = ['neo4j', 'console']
+        proc = subprocess.Popen(["ch-run",
                               "--set-env=" + container_path + "/ch/environment",
                                "-b",
                                confs_dir + ":/var/lib/neo4j/conf",
@@ -186,23 +200,48 @@ def start_gdb(mount_dir, bolt_port, http_port, https_port, reexecute=False):
                                certs_dir + ":/var/lib/neo4j/certificates",
                                container_path,
                                "--", *command
-                               ], stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
-            output = proc.stdout.read().decode('utf-8')
-            dep_log.info(output)
-            pid = re.search(r'\(pid:([0-9]*)\)', output).group(1)
-            return pid
+                               ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return proc
     except FileNotFoundError:
         dep_log.error("Neo4j failed to start.")
         return -1
 
+def start_gdb():
+    dep_log.info("Starting GDB")
+    bolt_port = get_open_port()
+    http_port = get_open_port()
+    https_port = get_open_port()
+    
+    db = wf_utils.connect_db(wfm_db, wf_utils.get_db_path())
 
-def wait_gdb(log):
+    db.info.set_port('bolt', bolt_port)
+    db.info.set_port('http', http_port)
+    db.info.set_port('https', https_port)
+
+    try:
+        create_image()
+    except NoContainerRuntime:
+        crt_message = "Charliecloud not installed in current environment."
+        dep_log.info(crt_message)
+        return -1
+    
+    bee_workdir = wf_utils.get_bee_workdir()
+    mount_dir = os.path.join(bee_workdir, 'gdb_mount')
+    proc = start_neo4j(mount_dir, bolt_port, http_port,
+            https_port)
+
+    wait_gdb()
+    return proc
+
+
+
+def wait_gdb():
     """Need to wait for the GDB. Currently, we're using the sleep time paramater.
 
     We'd like to remove that in the future.
     """
     gdb_sleep_time = bc.get('graphdb', 'sleep_time')
-    log.info(f'waiting {gdb_sleep_time}s for GDB to come up')
+    print(f'waiting {gdb_sleep_time}s for GDB to come up')
     time.sleep(gdb_sleep_time)
 
 

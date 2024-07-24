@@ -30,6 +30,8 @@ from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 from beeflow.wf_manager.common import dep_manager
 
+from celery import Celery
+
 
 class ComponentManager:
     """Component manager class."""
@@ -203,6 +205,12 @@ def init_components():
         print('Unpacking Redis image...')
         subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
                                bc.get('DEFAULT', 'redis_image'), container_path])
+
+    @mgr.component('graph-database', ('wf_manager',))
+    def start_gdb():
+        """Start the neo4j graph database."""
+        log = open_log('dep_manager')
+        return dep_manager.start_gdb()   
 
     @mgr.component('redis', ())
     def redis():

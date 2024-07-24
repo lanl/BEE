@@ -194,7 +194,7 @@ class WorkflowDB:
             # insert a new workflow into the database
             stmt = """INSERT INTO info (wfm_port, tm_port, sched_port, num_workflows, bolt_port, http_port, https_port, gdb_pid)
                                             VALUES(?, ?, ?, ?, ?, ?, ?, ?);"""
-            bdb.run(self.db_file, stmt, [-1, -1, -1, 0, -1, -1, -1, 9999])
+            bdb.run(self.db_file, stmt, [-1, -1, -1, 0, -1, -1, -1, -1])
 
     @property
     def workflows(self):

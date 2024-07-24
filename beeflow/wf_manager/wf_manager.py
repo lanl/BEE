@@ -3,13 +3,17 @@
 import os
 from flask import Flask
 from celery import Celery # noqa (pylama can't find celery imports)
+from celery import shared_task #noqa
 from beeflow.common.api import BeeApi
 from beeflow.common import paths
+from beeflow.common import log as bee_logging
+from beeflow.common.db import wfm_db
 from beeflow.wf_manager.resources.wf_list import WFList
 from beeflow.wf_manager.resources.wf_actions import WFActions
 from beeflow.wf_manager.resources.wf_metadata import WFMetadata
 from beeflow.wf_manager.resources.wf_update import WFUpdate
 from beeflow.wf_manager.resources import wf_utils
+
 
 
 def create_app():
@@ -34,6 +38,7 @@ def create_app():
     })
     celery_app.set_default()
     app.extensions['celery'] = celery_app
+
     return app
 
 

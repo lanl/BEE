@@ -17,6 +17,8 @@ from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 
+from celery import shared_task #noqa (pylama can't find celery imports)
+
 log = bee_logging.setup(__name__)
 
 
@@ -141,47 +143,11 @@ def get_workflow_interface(wf_id):
     # return get_workflow_interface_by_bolt_port(wf_id, bolt_port)
     driver = neo4j_driver.Neo4jDriver()
     bolt_port = db.info.get_port('bolt')
-    log.info(bolt_port)
-    connect_neo4j_driver(bolt_port)
+    if bolt_port is not -1:
+        connect_neo4j_driver(bolt_port)
     wfi = WorkflowInterface(wf_id, driver)
     return wfi
 
-"""
-def get_workflow_interface_by_bolt_port(wf_id, bolt_port):
-    Return a workflow interface connection using just the bolt port.
-    try:
-        
-        wfi = WorkflowInterface(wf_id, driver)
-    except neo4j_driver.Neo4jNotRunning:
-        log.info("Neo4j Appears to be Down")
-        # There are several possibilities here
-        # First check if the GDB is up
-        db = connect_db(wfm_db, get_db_path())
-        gdb_pid = db.info.get_gdb_pid()
-        try:
-            # Not actually killing the GDB just checking if the PID is up
-            # Returns an exception if the GDB is running
-            os.kill(gdb_pid, 0)
-            # The GDB process is running so we'll kill it and restart it
-        except ProcessLookupError:
-            log.error('The GDB is currently down restarting it')
-            http_port = db.info.get_port('http')
-            https_port = db.info.get_port('https')
-            bee_workdir = get_bee_workdir()
-            mount_dir = os.path.join(bee_workdir, 'gdb_mount')
-            gdb_pid = dep_manager.start_gdb(mount_dir, bolt_port, http_port, https_port,
-                                            reexecute=True)
-            time.sleep(10)
-            db.info.update_gdb_pid(gdb_pid)
-            connect_neo4j_driver(bolt_port)
-            wfi = WorkflowInterface(driver, wf_id)
-            wfi.get_workflow()
-        except PermissionError:
-            # Something has gone wrong. The user has no perms for their gdb.
-            # Just note a fatal error and exit
-            log.error('Perms error for GDB. Please report this to BEE developers.')
-    return wfi
-"""
 
 def tm_url():
     """Get Task Manager url."""
@@ -284,14 +250,7 @@ def submit_tasks_scheduler(tasks):
     return resp.json()
 
 
-def get_open_port():
-    """Return an open ephemeral port."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
+
 
 
 def schedule_submit_tasks(wf_id, tasks):
@@ -301,21 +260,6 @@ def schedule_submit_tasks(wf_id, tasks):
     # Submit tasks to TM
     submit_tasks_tm(wf_id, tasks, allocation)
 
-def start_gdb(bolt_port, http_port, https_port, reexecute=False):
-    print('Initializing GDB and workflow...')
-    try:
-        dep_manager.create_image()
-    except dep_manager.NoContainerRuntime:
-        crt_message = "Charliecloud not installed in current environment."
-        log.error(crt_message)
-        return
-    bee_workdir = get_bee_workdir()
-    mount_dir = os.path.join(bee_workdir, 'gdb_mount')
-    gdb_pid = dep_manager.start_gdb(mount_dir, bolt_port, http_port,
-            https_port, reexecute=reexecute)
-    dep_manager.wait_gdb(log)
-    db = connect_db(wfm_db, get_db_path())
-    db.info.update_gdb_pid(gdb_pid)
 
 def connect_neo4j_driver(bolt_port):
     driver = neo4j_driver.Neo4jDriver()

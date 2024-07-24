@@ -33,11 +33,11 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     Implements GraphDatabaseDriver.
     Wraps the neo4j package proprietary driver.
+    This class is a SINGLETON and will always return the same instance of Neo4jDriver
     """
 
     def __new__(cls):
         """Create or get the instance of Neo4j database driver"""
-        log.info("I MAY CRASH")
         if not hasattr(cls, 'instance'):
             cls.instance = super(Neo4jDriver, cls).__new__(cls)
         return cls.instance
@@ -61,7 +61,6 @@ class Neo4jDriver(GraphDatabaseDriver):
             self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
             # Checks the connection and returns ServiceUnavailable if something is wrong
             self._driver.verify_connectivity()
-            log.info("Neo4j driver connected")
         except ServiceUnavailable as sue:
             log.error("Neo4j database is unavailable")
             raise Neo4jNotRunning("Neo4j database is unavailable") from sue

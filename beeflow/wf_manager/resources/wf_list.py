@@ -55,28 +55,14 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
 
 
 @shared_task(ignore_result=True)
-def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start,  workflow=None, tasks=None, reexecute=False):
+def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start,  workflow=None,
+        tasks=None, reexecute=False):
     """Initialize the workflow in a separate process."""
+
     db = connect_db(wfm_db, db_path)
-    # First check if GDB is running
-    gdb_pid = db.info.get_gdb_pid()
-    try:
-        # Not killing GDB, just checking if it is running
-        log.info("HELP")
-        os.kill(gdb_pid, 0)
-
-    except ProcessLookupError:
-        log.info("Starting GDB")
-        bolt_port = wf_utils.get_open_port()
-        http_port = wf_utils.get_open_port()
-        https_port = wf_utils.get_open_port()
-        db.info.set_port('bolt', bolt_port)
-        db.info.set_port('http', http_port)
-        db.info.set_port('https', https_port)
-        wf_utils.start_gdb(bolt_port, http_port, https_port)
-        wf_utils.connect_neo4j_driver(bolt_port) # maybe move to outside the error ?
-
-    wf_utils.setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow, tasks, reexecute)
+    wf_utils.connect_neo4j_driver(db.info.get_port('bolt'))
+    wf_utils.setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start,
+            workflow, tasks, reexecute)
 
 db_path = wf_utils.get_db_path()
 
@@ -98,7 +84,7 @@ class WFList(Resource):
         return resp
 
     def post(self):
-        """Upload a workflow, initialize database, and start if required."""
+        """Upload a workflown and start."""
         db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
         reqparser.add_argument('wf_name', type=str, required=True,
@@ -165,14 +151,9 @@ class WFList(Resource):
 
         wf_id = wf_data.generate_workflow_id()
         wf_dir = extract_wf(wf_id, wf_filename, workflow_archive, reexecute=True)
-        bolt_port = wf_utils.get_open_port()
-        http_port = wf_utils.get_open_port()
-        https_port = wf_utils.get_open_port()
-
-        print("huh")
+ 
         db.workflows.init_workflow(wf_id, wf_name, wf_dir)
-        init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, bolt_port, http_port,
-                            https_port, no_start=False, reexecute=True)
+        init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, no_start=False, reexecute=True)
 
         # Returnid and created
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
