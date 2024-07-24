@@ -264,3 +264,5 @@ def kill_gdb(pid):
         os.kill(pid, signal.SIGTERM)
     except OSError:
         dep_log.info('Process already killed')
+        return False
+    return True
