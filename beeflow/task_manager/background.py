@@ -9,6 +9,7 @@ from beeflow.task_manager import utils
 from beeflow.common import log as bee_logging
 from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build_interfaces import build_main
+from beeflow.common.worker import WorkerError
 
 
 log = bee_logging.setup(__name__)
@@ -70,7 +71,11 @@ def update_jobs(db):
         task = job.task
         job_id = job.job_id
         job_state = job.job_state
-        new_job_state = worker.query_task(job_id)
+        try:
+            new_job_state = worker.query_task(job_id)
+        except WorkerError:
+            log.warning(f'Failed to query job {job_id}')
+            new_job_state = 'UNKNOWN'
 
         # If state changes update the WFM
         if job_state != new_job_state:
