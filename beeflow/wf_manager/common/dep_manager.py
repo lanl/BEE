@@ -207,6 +207,10 @@ def start_neo4j(mount_dir, bolt_port, http_port, https_port, reexecute=False):
         return -1
 
 def start_gdb():
+    """
+    Function to start the neo4j graph database
+    Creates the database image and starts the database
+    """
     dep_log.info("Starting GDB")
     bolt_port = get_open_port()
     http_port = get_open_port()
