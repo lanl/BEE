@@ -29,7 +29,9 @@ from beeflow.wf_manager.resources import wf_utils
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
-from beeflow.wf_manager.common import dep_manager
+from beeflow.common.deps import container_manager
+from beeflow.common.deps import neo4j_manager
+from beeflow.common.deps import redis_manager
 
 from celery import Celery
 
@@ -196,55 +198,35 @@ def init_components():
         """Start the celery task queue."""
         log = open_log('celery')
         # Setting --pool=solo to avoid preforking multiple processes
-        return subprocess.Popen(['celery', '-A', 'beeflow.common.celery', 'worker', '--pool=solo'],
+        return subprocess.Popen(['celery', '-A', 'beeflow.common.deps.celery_manager', 'worker', '--pool=solo'],
                                 stdout=log, stderr=log)
 
     # Run this before daemonizing in order to avoid slow background start
-    container_path = paths.redis_container()
+    # container_path = paths.redis_container()
     # If it exists, we assume that it actually has a valid container
-    if not os.path.exists(container_path):
+    # if not os.path.exists(container_path):
+        # print('Unpacking Redis image...')
+        # subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
+        #                       bc.get('DEFAULT', 'redis_image'), container_path])
+    if not container_manager.check_container_dir('redis'):
         print('Unpacking Redis image...')
-        subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
-                               bc.get('DEFAULT', 'redis_image'), container_path])
+        container_manager.create_image('redis')
 
-    @mgr.component('graph-database', ('wf_manager',))
-    def start_gdb():
+    if not container_manager.check_container_dir('neo4j'):
+        print('Unpacking Neo4j image...')
+        container_manager.create_image('neo4j')
+
+    @mgr.component('neo4j-database', ('wf_manager',))
+    def start_neo4j():
         """Start the neo4j graph database."""
-        log = open_log('dep_manager')
-        return dep_manager.start_gdb()   
+        log = open_log('neo4j')
+        return neo4j_manager.start()
 
     @mgr.component('redis', ())
-    def redis():
+    def start_redis():
         """Start redis."""
-        data_dir = 'data'
-        os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
-        conf_name = 'redis.conf'
-        container_path = paths.redis_container()
-        # Dump the config
-        conf_path = os.path.join(paths.redis_root(), conf_name)
-        if not os.path.exists(conf_path):
-            with open(conf_path, 'w', encoding='utf-8') as fp:
-                # Don't listen on TCP
-                print('port 0', file=fp)
-                print('dir', os.path.join('/mnt', data_dir), file=fp)
-                print('maxmemory 2mb', file=fp)
-                print('unixsocket', os.path.join('/mnt', paths.redis_sock_fname()), file=fp)
-                print('unixsocketperm 700', file=fp)
-        cmd = [
-            'ch-run',
-            f'--bind={paths.redis_root()}:/mnt',
-            container_path,
-            'redis-server',
-            '/mnt/redis.conf',
-        ]
         log = open_log('redis')
-        # Ran into a strange "Failed to configure LOCALE for invalid locale name."
-        # from Redis, so setting LANG=C. This could have consequences for UTF-8
-        # strings.
-        env = dict(os.environ)
-        env['LANG'] = 'C'
-        env['LC_ALL'] = 'C'
-        return subprocess.Popen(cmd, env=env, stdout=log, stderr=log)
+        return redis_manager.start(log)
 
     # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
     if need_slurmrestd():

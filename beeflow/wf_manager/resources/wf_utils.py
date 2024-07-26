@@ -11,7 +11,6 @@ from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb import neo4j_driver
 from beeflow.common.wf_interface import WorkflowInterface
-from beeflow.wf_manager.common import dep_manager
 from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.db import wfm_db

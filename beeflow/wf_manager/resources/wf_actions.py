@@ -9,7 +9,6 @@ from beeflow.wf_manager.resources import wf_utils
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
-from beeflow.wf_manager.common import dep_manager
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
@@ -66,9 +65,6 @@ class WFActions(Resource):
             wf_utils.update_wf_status(wf_id, 'Cancelled')
             db.workflows.update_workflow_state(wf_id, 'Cancelled')
             log.info(f"Workflow {wf_id} cancelled")
-            log.info("Shutting down gdb")
-            pid = db.info.get_gdb_pid()
-            dep_manager.kill_gdb(pid)
             resp = make_response(jsonify(status='Cancelled'), 202)
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
