@@ -60,7 +60,7 @@ def redis_root():
 
 def redis_container():
     """Get the path to the unpacked Redis container."""
-    return os.path.join(_workdir(), 'redis_container')
+    return os.path.join(_workdir(), 'deps/redis_container')
 
 
 def redis_sock_fname():

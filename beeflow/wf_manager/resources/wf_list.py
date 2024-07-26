@@ -17,7 +17,6 @@ from beeflow.common.config_driver import BeeConfig as bc
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.wf_manager.common import dep_manager
 from beeflow.common import wf_data
 
 from beeflow.common.db import wfm_db
@@ -141,14 +140,7 @@ class WFList(Resource):
         wf_name = data['wf_name']
         wf_workdir = data['workdir']
 
-        try:
-            dep_manager.create_image()
-        except dep_manager.NoContainerRuntime:
-            crt_message = "Charliecloud not installed in current environment."
-            log.error(crt_message)
-            resp = make_response(jsonify(msg=crt_message, status='error'), 418)
-            return resp
-
+        
         wf_id = wf_data.generate_workflow_id()
         wf_dir = extract_wf(wf_id, wf_filename, workflow_archive, reexecute=True)
  
