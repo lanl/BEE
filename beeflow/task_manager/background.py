@@ -13,6 +13,8 @@ from beeflow.common.build_interfaces import build_main
 
 log = bee_logging.setup(__name__)
 
+COMPLETED_STATES = {"FAILED", "TIMEOUT", "COMPLETED"}
+
 
 def resolve_environment(task):
     """Use build interface to create a valid environment.
@@ -70,6 +72,11 @@ def update_jobs(db):
         task = job.task
         job_id = job.job_id
         job_state = job.job_state
+
+        if job_state in COMPLETED_STATES:
+            db.job_queue.remove_by_id(id_)
+            continue
+
         new_job_state = worker.query_task(job_id)
 
         # If state changes update the WFM
