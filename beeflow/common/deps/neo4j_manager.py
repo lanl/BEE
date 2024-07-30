@@ -1,3 +1,4 @@
+"""Contains methods for managing neo4j instance"""
 import socket
 import os
 import shutil
@@ -37,7 +38,7 @@ def get_open_port():
 
 
 def setup_ports():
-    """Return three open ports for bolt, http, https"""
+    """Return three open ports for bolt, http, https."""
     # Get ports for neo4j to run
     bolt_port = get_open_port()
     http_port = get_open_port()
@@ -53,7 +54,6 @@ def setup_ports():
 
 def setup_mounts():
     """Set up mount directories for the graph database."""
-
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(logs_dir, exist_ok=True)
     os.makedirs(mount_dir, exist_ok=True)
@@ -82,11 +82,14 @@ def setup_configs(bolt_port, http_port, https_port):
     http_config = r'#(server.http.listen_address=):[0-9]*'
     data = re.sub(http_config, rf'\1:{http_port}', data)
     https_config = r'#(server.https.listen_address=):[0-9]*'
+    data = re.sub(https_config, rf'\1:{https_port}', data)
 
     with open(gdb_configfile, "wt", encoding="utf8") as cfile:
         cfile.write(data)
+
+
 def create_credentials():
-    """Create the password and set the logfiles in environment"""
+    """Create the password and set the logfiles in environment."""
     db_password = bc.get('graphdb', 'dbpass')
     try:
         command = ['neo4j-admin', 'dbms', 'set-initial-password', str(db_password)]
@@ -102,27 +105,24 @@ def create_credentials():
     except subprocess.CalledProcessError:
         log.error("neo4j-admin set-initial-password failed")
 
+
 def create_database():
-    """Create the neo4j database and return the process"""
+    """Create the neo4j database and return the process."""
     try:
         command = ['neo4j', 'console']
-        proc = subprocess.Popen(["ch-run",
-                              "--set-env=" + container_path + "/ch/environment",
-                               "-b",
-                               confs_dir + ":/var/lib/neo4j/conf",
-                               "-b",
-                               data_dir + ":/data",
-                               "-b",
-                               logs_dir + ":/logs",
-                               "-b",
-                               run_dir + ":/var/lib/neo4j/run",
-                               "-b",
-                               certs_dir + ":/var/lib/neo4j/certificates",
-                               container_path,
-                               "--", *command
-                               ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([
+            "ch-run",
+            "--set-env=" + container_path + "/ch/environment",
+            "-b", confs_dir + ":/var/lib/neo4j/conf",
+            "-b", data_dir + ":/data",
+            "-b", logs_dir + ":/logs",
+            "-b", run_dir + ":/var/lib/neo4j/run",
+            "-b", certs_dir + ":/var/lib/neo4j/certificates",
+            container_path, "--", *command
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         wait_gdb()
         return proc
+
     except FileNotFoundError:
         log.error("Neo4j failed to start.")
         return -1
@@ -142,27 +142,6 @@ def start():
 
     return create_database()
 
-def start_gdb():
-    """
-    Function to start the neo4j graph database
-    Creates the database image and starts the database
-    """
-
-
-    try:
-        create_image()
-    except NoContainerRuntime:
-        crt_message = "Charliecloud not installed in current environment."
-        dep_log.info(crt_message)
-        return -1
-    
-        proc = start_neo4j(mount_dir, bolt_port, http_port,
-            https_port)
-
-    wait_gdb()
-    return proc
-
-
 
 def wait_gdb():
     """Need to wait for the GDB. Currently, we're using the sleep time paramater.
@@ -176,7 +155,6 @@ def wait_gdb():
 
 def remove_gdb():
     """Remove the current GDB bind mount directory."""
-    bee_workdir = wf_utils.get_bee_workdir()
     gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
     old_gdb_workdir = os.path.join(bee_workdir, 'old_gdb')
     if os.path.isdir(gdb_workdir):

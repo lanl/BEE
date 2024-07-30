@@ -5,8 +5,9 @@ from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
 
+
 def create_bee_node(tx):
-    """Create a BEE node in  hte Neo4j database
+    """Create a BEE node in the Neo4j database.
 
     This node connects to all workflows and allows them to exist in the same graph
     """
@@ -14,11 +15,13 @@ def create_bee_node(tx):
 
     tx.run(bee_query)
 
+
 def create_workflow_node(tx, workflow):
     """Create a Workflow node in the Neo4j database.
 
     The workflow node is the entry point to the workflow.
-    :param workflow: the workflow 
+
+    :param workflow: the workflow
     :type workflow: Workflow
     """
     workflow_query = ("MATCH (b:BEE) "
@@ -71,7 +74,8 @@ def create_workflow_input_nodes(tx, workflow):
                        "SET i.type = $type "
                        "SET i.value = $value")
 
-        tx.run(input_query, wf_id=workflow.id, input_id=input_.id, type=input_.type, value=input_.value)
+        tx.run(input_query, wf_id=workflow.id, input_id=input_.id, type=input_.type,
+                value=input_.value)
 
 
 def create_workflow_output_nodes(tx, workflow):
@@ -87,8 +91,8 @@ def create_workflow_output_nodes(tx, workflow):
                         "SET o.value = $value "
                         "SET o.source = $source")
 
-        tx.run(output_query, wf_id=workflow.id, output_id=output.id, type=output.type, value=output.value,
-               source=output.source)
+        tx.run(output_query, wf_id=workflow.id, output_id=output.id, type=output.type,
+               value=output.value, source=output.source)
 
 
 def create_task(tx, task):
@@ -213,7 +217,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                             "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
                             "WITH s, t, outputs, collect(i.source) as sources "
                             "WHERE any(output IN outputs WHERE output IN sources) "
-                            "AND (s.workflow_id = t.workflow_id) " 
+                            "AND (s.workflow_id = t.workflow_id) "
                             "MERGE (t)-[:DEPENDS_ON]->(s)")
 
         tx.run(delete_dependencies_query, task_id=old_task.id)
@@ -241,7 +245,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                            "AND s.workflow_id = t.workflow_id "
                            "MERGE (t)-[:DEPENDS_ON]->(s)")
 
-        tx.run(begins_query, task_id=task.id, wf_id = task.workflow_id)
+        tx.run(begins_query, task_id=task.id, wf_id=task.workflow_id)
         tx.run(dependency_query, task_id=task.id)
         tx.run(dependent_query, task_id=task.id)
 
@@ -337,9 +341,9 @@ def get_workflow_requirements(tx, wf_id):
     :type wf_id: str
     :rtype: neo4j.Result
     """
-    requirements_query = "MATCH (:Workflow {id: $wf_id})<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
+    requirement_query = "MATCH (:Workflow {id: $wf_id})<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
 
-    return [rec['r'] for rec in tx.run(requirements_query, wf_id=wf_id)]
+    return [rec['r'] for rec in tx.run(requirement_query, wf_id=wf_id)]
 
 
 def get_workflow_hints(tx, wf_id):
@@ -405,11 +409,9 @@ def set_workflow_state(tx, state, wf_id):
 
 def get_ready_tasks(tx, wf_id):
     """Get all tasks that are ready to execute.
-
-        
+ 
     :param workflow_id: the workflow id
     :type workflow_id: str
-
     :rtype: neo4j.Result
     """
     get_ready_query = "MATCH (:Metadata {state: 'READY'})-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) RETURN t"
@@ -581,7 +583,7 @@ def set_task_output_glob(tx, task, output_id, glob):
 
 def set_init_task_inputs(tx, wf_id):
     """Set the initial workflow tasks' inputs from workfow inputs or defaults if necessary.
-    
+
     :param wf_id: the workflow id
     :type wf_id: str
     """
@@ -651,18 +653,18 @@ def set_paused_tasks_to_running(tx):
 def set_runnable_tasks_to_ready(tx, wf_id):
     """Set task states to 'READY' if all required inputs have values."""
     set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->"
-                                "(t:Task)<-[:INPUT_OF]-(i:Input) "
+                                "(t:Task {workflow_id: $wf_id})<-[:INPUT_OF]-(i:Input) "
                                 "WITH m, t, collect(i) AS ilist "
                                 "WHERE m.state = 'WAITING' "
                                 "AND all(i IN ilist WHERE i.value IS NOT NULL) "
                                 "SET m.state = 'READY'")
 
-    tx.run(set_runnable_ready_query)
+    tx.run(set_runnable_ready_query, wf_id=wf_id)
 
 
 def reset_tasks_metadata(tx, wf_id):
     """Reset the metadata for each of a workflow's tasks.
-    
+
     :param wf_id: the workflow's ID
     :type wf_id: str
     """
@@ -691,7 +693,7 @@ def reset_workflow_id(tx, old_id, new_id):
 
 def final_tasks_completed(tx, wf_id):
     """Return true if each of a workflow's final Task nodes has state 'COMPLETED'.
-    
+
     :param wf_id: the workflow's id
     :type wf_id: str
     :rtype: bool

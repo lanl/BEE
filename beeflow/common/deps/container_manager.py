@@ -20,7 +20,7 @@ def check_container_runtime():
     # Needs to support singuarity as well
     if shutil.which("ch-convert") is None or shutil.which("ch-run") is None:
         print("ch-convert or ch-run not found. Charliecloud required"
-                      " for neo4j container.")
+              " for neo4j container.")
         raise NoContainerRuntime('')
 
 
@@ -42,7 +42,7 @@ def get_dep_dir():
 
 def get_container_dir(dep_name):
     """Return the depency container path."""
-    container_name = dep_name +'_container'
+    container_name = dep_name + '_container'
     return get_dep_dir() + container_name
 
 

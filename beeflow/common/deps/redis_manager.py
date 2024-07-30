@@ -1,7 +1,9 @@
+"""Module contains the code for launching redis subprocess"""
 import os
 import subprocess
 
 from beeflow.common import paths
+
 
 def start(log):
     """Start redis."""

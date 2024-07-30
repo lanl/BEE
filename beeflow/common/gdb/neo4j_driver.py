@@ -41,9 +41,10 @@ class Neo4jDriver(GraphDatabaseDriver):
         if not hasattr(cls, 'instance'):
             cls.instance = super(Neo4jDriver, cls).__new__(cls)
         return cls.instance
-        
+
     def connect(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
-        """Connect driver to the neo4j database
+        """Connect driver to the neo4j database.
+
         :param uri: the URI of the Neo4j database
         :type uri: str
         :param user: the username for the database user account
@@ -51,7 +52,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param password: the password for the database user account
         :type password: str
         """
-        
         db_hostname = kwargs.get("db_hostname", DEFAULT_HOSTNAME)
         bolt_port = kwargs.get("bolt_port", DEFAULT_BOLT_PORT)
         password = kwargs.get("db_pass", DEFAULT_PASSWORD)
@@ -66,7 +66,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             raise Neo4jNotRunning("Neo4j database is unavailable") from sue
 
     def create_bee_node(self):
-        """Create the "BEE" node for all workflows to connect to"""
+        """Create the "BEE" node for all workflows to connect to."""
         with self._driver.session() as session:
             session.write_transaction(tx.create_bee_node)
 
@@ -78,8 +78,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param workflow: the workflow description
         :type workflow: Workflow
         """
-
-
         with self._driver.session() as session:
             session.write_transaction(tx.create_workflow_node, workflow)
             session.write_transaction(tx.create_workflow_requirement_nodes, workflow)
@@ -89,7 +87,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def execute_workflow(self, workflow_id):
         """Begin execution of a workflow stored in the Neo4j database.
-        
+
         :param workflow_id: the workflow id
         :type workflow_id: str
         """
@@ -101,7 +99,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Pause execution of a running workflow in Neo4j.
 
         Sets tasks with state 'RUNNING' to 'PAUSED'.
-                 
+
         :param workflow_id: the workflow id
         :type workflow_id: str
 
@@ -111,7 +109,9 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def resume_workflow(self, workflow_id):
         """Resume execution of a paused workflow in Neo4j.
+
         Sets workflow state to 'RUNNING'
+
         :param workflow_id: the workflow id
         :type workflow_id: str
         """
@@ -128,7 +128,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param new_id: the new workflow ID
         :type new_id: str
         """
-
         with self._driver.session() as session:
             session.write_transaction(tx.reset_tasks_metadata, wf_id=old_id)
             session.write_transaction(tx.reset_workflow_id, old_id=old_id, new_id=new_id)
@@ -157,7 +156,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """Set runnable tasks to state 'READY'.
 
         Runnable tasks are tasks with all input dependencies fulfilled.
-                
+
         :param workflow_id: the workflow id
         :type workflow_id: str
         """
@@ -207,7 +206,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def get_workflow_description(self, workflow_id):
         """Return a reconstructed Workflow object from the Neo4j database.
-                
+
         :param workflow_id: the workflow id
         :type workflow_id: str
         :rtype: Workflow
@@ -219,7 +218,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def get_workflow_state(self, workflow_id):
         """Return the current workflow state from the Neo4j database.
-        
+
         :param workflow_id: the workflow id
         :type workflow_id: str
         :rtype: str
@@ -228,7 +227,7 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     def set_workflow_state(self, workflow_id, state):
         """Set the state of the workflow in the Neo4j database.
-        
+
         :param workflow_id: the workflow id
         :type workflow_id: str
         :param state: the new state of the workflow
@@ -239,7 +238,6 @@ class Neo4jDriver(GraphDatabaseDriver):
     def get_workflow_tasks(self, workflow_id):
         """Return all workflow task records for a workflow from the Neo4j database.
 
-        
         :param workflow_id: the workflow id
         :type workflow_id: str
         :rtype: list of Task
@@ -260,7 +258,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             requirements = _reconstruct_requirements(
                 session.read_transaction(tx.get_workflow_requirements, wf_id=workflow_id))
-            hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints, wf_id=workflow_id))
+            hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints,
+                wf_id=workflow_id))
         return requirements, hints
 
     def get_workflow_inputs_and_outputs(self, workflow_id):
@@ -273,7 +272,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: (list of InputParameter, list of OutputParameter)
         """
         with self._driver.session() as session:
-            inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs, wf_id=workflow_id))
+            inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs,
+                wf_id=workflow_id))
             outputs = _reconstruct_workflow_outputs(
                 session.read_transaction(tx.get_workflow_outputs, wf_id=workflow_id))
 

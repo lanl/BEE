@@ -289,5 +289,3 @@ class WorkflowInterface:
         :rtype: bool
         """
         return self._gdb_driver.workflow_completed(self._workflow_id)
-
-

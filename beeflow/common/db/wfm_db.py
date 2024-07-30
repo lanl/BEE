@@ -58,7 +58,6 @@ class WorkflowInfo:
         bdb.run(self.db_file, stmt, [gdb_pid])
 
 
-
 class Workflows:
     """Workflow database object."""
 
@@ -135,7 +134,7 @@ class Workflows:
         return result
 
     def get_run_dir(self, workflow_id):
-        """Return the run directory"""
+        """Return the run directory."""
         stmt = "SELECT run_dir FROM info WHERE workflow_id=?"
         result = bdb.getone(self.db_file, stmt, [workflow_id])[0]
         run_dir = result
@@ -192,8 +191,8 @@ class WorkflowDB:
         if not bdb.table_exists(self.db_file, 'info'):
             bdb.create_table(self.db_file, info_stmt)
             # insert a new workflow into the database
-            stmt = """INSERT INTO info (wfm_port, tm_port, sched_port, num_workflows, bolt_port, http_port, https_port, gdb_pid)
-                                            VALUES(?, ?, ?, ?, ?, ?, ?, ?);"""
+            stmt = """INSERT INTO info (wfm_port, tm_port, sched_port, num_workflows, 
+                bolt_port, http_port, https_port, gdb_pid) VALUES(?, ?, ?, ?, ?, ?, ?, ?);"""
             bdb.run(self.db_file, stmt, [-1, -1, -1, 0, -1, -1, -1, -1])
 
     @property

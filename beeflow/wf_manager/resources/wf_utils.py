@@ -2,8 +2,6 @@
 
 import os
 import shutil
-import socket
-import time
 import requests
 import jsonpickle
 
@@ -64,7 +62,6 @@ def remove_current_run_dir():
     current_run_dir = os.path.join(bee_workdir, 'current_run')
     if os.path.exists(current_run_dir):
         shutil.rmtree(current_run_dir)
-
 
 
 def remove_wf_dir(wf_id):
@@ -142,7 +139,7 @@ def get_workflow_interface(wf_id):
     # return get_workflow_interface_by_bolt_port(wf_id, bolt_port)
     driver = neo4j_driver.Neo4jDriver()
     bolt_port = db.info.get_port('bolt')
-    if bolt_port is not -1:
+    if bolt_port != -1:
         connect_neo4j_driver(bolt_port)
     wfi = WorkflowInterface(wf_id, driver)
     return wfi
@@ -249,9 +246,6 @@ def submit_tasks_scheduler(tasks):
     return resp.json()
 
 
-
-
-
 def schedule_submit_tasks(wf_id, tasks):
     """Schedule and then submit tasks to the TM."""
     # Submit ready tasks to the scheduler
@@ -261,16 +255,17 @@ def schedule_submit_tasks(wf_id, tasks):
 
 
 def connect_neo4j_driver(bolt_port):
+    """Create a neo4j driver to a gdb through bolt port"""
     driver = neo4j_driver.Neo4jDriver()
     driver.connect(user="neo4j", bolt_port=bolt_port,
-                            db_hostname=bc.get("graphdb", "hostname"),
-                            password=bc.get("graphdb", "dbpass"))
+                   db_hostname=bc.get("graphdb", "hostname"),
+                   password=bc.get("graphdb", "dbpass"))
     driver.create_bee_node()
-    log.info(driver)
 
-def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, tasks=None, reexecute=False):
-    """Initialize Workflow in Separate Process"""
 
+def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
+                   tasks=None, reexecute=False):
+    """Initialize Workflow in Separate Process."""
     wfi = get_workflow_interface(wf_id)
     if reexecute:
         wfi.reset_workflow(wf_id)
@@ -294,7 +289,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
 
     update_wf_status(wf_id, 'Waiting')
     db.workflows.update_workflow_state(wf_id, 'Waiting')
-    if no_start: 
+    if no_start:
         log.info('Not starting workflow, as requested')
     else:
         log.info('Starting workflow')
@@ -314,7 +309,7 @@ def start_workflow(wf_id):
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)
-    wf_id = wfi.workflow_id
+    wf_id = wfi._workflow_id
     update_wf_status(wf_id, 'Running')
     db.workflows.update_workflow_state(wf_id, 'Running')
     return True

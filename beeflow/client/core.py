@@ -33,9 +33,6 @@ from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
 from beeflow.common.deps import redis_manager
 
-from celery import Celery
-
-
 class ComponentManager:
     """Component manager class."""
 
@@ -219,7 +216,6 @@ def init_components():
     @mgr.component('neo4j-database', ('wf_manager',))
     def start_neo4j():
         """Start the neo4j graph database."""
-        log = open_log('neo4j')
         return neo4j_manager.start()
 
     @mgr.component('redis', ())
@@ -467,23 +463,6 @@ def stop(query='yes'):
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
 
 
-def kill_active_workflows(active_states, workflow_list):
-    """Kill workflows with active states."""
-    db_path = wf_utils.get_db_path()
-    db = connect_db(wfm_db, db_path)
-    success = True
-    for name, wf_id, state in workflow_list:
-        if state in active_states:
-            pid = db.workflows.get_gdb_pid(wf_id)
-            if pid > 0:
-                dep_manager.kill_gdb(pid)
-            else:
-                # Failure most likely caused by an Initializing workflow.
-                print(f"No process for {name}, {wf_id}, {state}.")
-                success = False
-    return success
-
-
 def archive_dir(dir_to_archive):
     """Archive directories for archive flag in reset."""
     archive_dirs = ['logs', 'container_archive', 'archives', 'workflows']
@@ -551,9 +530,6 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             # Exit out if the user didn't really mean to do a reset
             sys.exit()
         elif absolutely_sure in ("y", "yes"):
-            # First stop all active workflow processes
-            workflow_list = bee_client.get_wf_list()
-            kill_active_workflows(active_states, workflow_list)
             # Stop all of the beeflow processes
             stop("quiet")
             print("Beeflow is shutting down.")

@@ -13,7 +13,6 @@ from flask_restful import Resource, reqparse
 from celery import shared_task  # noqa (pylama can't find celery imports)
 
 from beeflow.common import log as bee_logging
-from beeflow.common.config_driver import BeeConfig as bc
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
 from beeflow.wf_manager.resources import wf_utils
@@ -54,14 +53,14 @@ def extract_wf(wf_id, filename, workflow_archive, reexecute=False):
 
 
 @shared_task(ignore_result=True)
-def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start,  workflow=None,
-        tasks=None, reexecute=False):
+def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
+                  tasks=None, reexecute=False):
     """Initialize the workflow in a separate process."""
-
     db = connect_db(wfm_db, db_path)
     wf_utils.connect_neo4j_driver(db.info.get_port('bolt'))
     wf_utils.setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start,
-            workflow, tasks, reexecute)
+                            workflow, tasks, reexecute)
+
 
 db_path = wf_utils.get_db_path()
 
@@ -140,10 +139,10 @@ class WFList(Resource):
         wf_name = data['wf_name']
         wf_workdir = data['workdir']
 
-        
+
         wf_id = wf_data.generate_workflow_id()
         wf_dir = extract_wf(wf_id, wf_filename, workflow_archive, reexecute=True)
- 
+
         db.workflows.init_workflow(wf_id, wf_name, wf_dir)
         init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, no_start=False, reexecute=True)
 
@@ -151,6 +150,7 @@ class WFList(Resource):
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
         return resp
+
 
     def patch(self):
         """Copy workflow archive."""
