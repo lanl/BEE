@@ -60,8 +60,7 @@ class WFActions(Resource):
         if option == "cancel":
             wfi = wf_utils.get_workflow_interface(wf_id)
             # Remove all tasks currently in the database
-            if wfi.workflow_loaded():
-                wfi.finalize_workflow()
+            wfi.set_workflow_state('Cancelled')
             wf_utils.update_wf_status(wf_id, 'Cancelled')
             db.workflows.update_workflow_state(wf_id, 'Cancelled')
             log.info(f"Workflow {wf_id} cancelled")

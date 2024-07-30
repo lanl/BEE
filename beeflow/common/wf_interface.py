@@ -23,12 +23,7 @@ class WorkflowInterface:
         """
         # Connect to the graph database
         self._gdb_driver = gdb_driver
-        # Store the Workflow ID in the interface to assign it to new task objects
         self._workflow_id = wf_id
-
-    def reconnect(self):
-        """Reconnect to the graph database using stored credentials."""
-        raise NotImplementedError()
 
     def initialize_workflow(self, workflow):
         """Begin construction of a BEE workflow.
@@ -36,9 +31,6 @@ class WorkflowInterface:
         :param workflow: the workflow object
         :type workflow: Workflow
         """
-        if self.workflow_loaded():
-            log.error("attempt to re-initialize existing workflow")
-            raise RuntimeError("attempt to re-initialize existing workflow")
         if workflow.requirements is None:
             workflow.requirements = []
         if workflow.hints is None:
@@ -61,15 +53,10 @@ class WorkflowInterface:
         self._gdb_driver.resume_workflow(self._workflow_id)
 
     def reset_workflow(self, workflow_id):
-        """Reset the execution state and ID of a BEE workflow.""" 
+        """Reset the execution state and ID of a BEE workflow."""
         self._gdb_driver.reset_workflow(self._workflow_id, workflow_id)
-        self._workflow_id = workflow_id 
+        self._workflow_id = workflow_id
         self._gdb_driver.set_workflow_state(self._workflow_id, 'SUBMITTED')
-
-    def finalize_workflow(self):
-        """Deconstruct a BEE workflow."""
-        self._workflow_id = None
-        self._gdb_driver.cleanup()
 
     def add_task(self, task):
         """Add a new task to a BEE workflow.
@@ -184,7 +171,7 @@ class WorkflowInterface:
         return state
 
     def set_workflow_state(self, state):
-        """Return workflow's current state.
+        """Set workflow's current state.
 
         :param state: the new state of the workflow
         :type state: str
@@ -296,23 +283,6 @@ class WorkflowInterface:
         """
         self._gdb_driver.set_task_output(task, output_id, value)
 
-    def evaluate_expression(self, task, id_, output=False):
-        """Evaluate a task input/output expression.
-
-        Expression can be either a string concatenation in a StepInput
-        valueFrom field or a parameter substitution in a StepOutput
-        glob field. The only special variable supported in valueFrom is
-        self.path.
-
-        :param task: the task whose expression to evaluate
-        :type task: Task
-        :param id_: the id of the step input/output
-        :type id_: str
-        :param output: true if output glob expression being evaluated, else false
-        :type output: bool
-        """
-        raise NotImplementedError()
-
     def workflow_completed(self):
         """Return true if all of a workflow's final tasks have completed, else false.
 
@@ -320,34 +290,4 @@ class WorkflowInterface:
         """
         return self._gdb_driver.workflow_completed(self._workflow_id)
 
-    def workflow_initialized(self):
-        """Return true if a workflow has been initialized, else false.
 
-        Currently functionally the same as workflow_loaded() but may
-        change when multiple workflows per database instance are supported.
-
-        :rtype: bool
-        """
-        return bool(self._gdb_driver is not None)
-
-    def workflow_loaded(self):
-        """Return true if a workflow is loaded, else false.
-
-        :rtype: bool
-        """
-        return False
-
-    @property
-    def workflow_id(self):
-        """Retrieve the workflow ID from the workflow interface.
-
-        If workflow ID is not populated, this grabs it from the database.
-
-        If no workflow is loaded, None is returned.
-        :rtype: str
-        """
-        if self._workflow_id is None and self.workflow_loaded():
-            workflow, _ = self.get_workflow()
-            self._workflow_id = workflow.id
-
-        return self._workflow_id

@@ -421,17 +421,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         return self._read_transaction(tx.final_tasks_completed, wf_id=workflow_id)
 
-    def empty(self):
-        """Determine if the Neo4j database is empty.
-
-        :rtype: bool
-        """
-        return self._read_transaction(tx.is_empty)
-
-    def cleanup(self):
-        """Clean up all data in the Neo4j database."""
-        self._write_transaction(tx.cleanup)
-
     def close(self):
         """Close the connection to the Neo4j database."""
         self._driver.close()
