@@ -6,6 +6,7 @@ import yaml
 @dataclass
 class Header:
     """Represents a CWL header."""
+
     class_type: str = "Workflow"
     cwl_version: str = "v1.0"
 
@@ -14,29 +15,20 @@ class Header:
         return {'class': self.class_type, 'cwlVersion': self.cwl_version}
 
     def __repr__(self):
+        """Return CWL header as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class Input:
     """The base input class. Used by CWLInput and RunInput.
-        CWLInput has an input_default while RunInput has an inputBinding
-        and RunInput has an inputBinding
+
+    CWLInput has an input_default while RunInput has an inputBinding
+    and RunInput has an inputBinding
     """
+
     input_name: str
     input_type: str
-
-    # @property
-    # def input_type(self):
-    #     """Define input type."""
-    #     return self._input_type
-
-    # @input_type.setter
-    # def input_type(self, value: str):
-    #     if value not in ('File', 'string', 'int'):
-    #         raise NameError(f"{value} is an invalid input type must be either"
-    #                         "File or string.")
-    #     self._input_type = value
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
@@ -45,7 +37,8 @@ class Input:
 
     def __repr__(self):
         """Representation of an input.
-           input_name: input_type
+
+        input_name: input_type
         """
         return yaml.dump(self.dump(), sort_keys=False)
 
@@ -58,6 +51,7 @@ class CWLInput(Input):
 @dataclass
 class InputBinding:
     """Represents a CWL input binding."""
+
     prefix: str = None
     position: int = None
 
@@ -72,7 +66,8 @@ class InputBinding:
 
     def __repr__(self):
         """Representation of an input.
-           input_name: input_type
+
+        input_name: input_type
         """
         return yaml.dump(self.dump(), sort_keys=False)
 
@@ -81,9 +76,10 @@ class InputBinding:
 class RunInput(Input):
     """Represents a Run input as opposed to a CWL input.
 
-       InputBinding can either be:
-            prefix: <-j> or empty {}
+    InputBinding can either be:
+         prefix: <-j> or empty {}
     """
+
     input_binding: InputBinding
     input_value: str
 
@@ -99,53 +95,63 @@ class RunInput(Input):
 
     def __repr__(self):
         """Representation of an input.
-           input_name: input_type
+
+        input_name: input_type
         """
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 class Inputs:
     """Represents CWL or Run inputs for a workflow."""
+
     def __init__(self, inputs=None):
+        """Initialize inputs."""
         self.inputs = inputs
 
     def dump(self):
-        """Returns CWL input dict."""
+        """Return CWL input dict."""
         inputs_dumps = [i.dump() for i in self.inputs]
         inputs_dict = {}
-        for d in inputs_dumps:
-            inputs_dict.update(d)
+        for input_dump in inputs_dumps:
+            inputs_dict.update(input_dump)
         input_yaml = {'inputs': inputs_dict}
         return input_yaml
 
     def __add__(self, adder_inputs):
+        """Add inputs."""
         new_inputs = self.inputs + adder_inputs.inputs
         return Inputs(new_inputs)
 
     def __repr__(self):
+        """Return Inputs as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class Output:
     """Represents a CWL input."""
+
     output_name: str
     output_type: str
 
     def dump(self):
         """Dump the output to a dictionary.
-           output_name:
-             type: output_type
+
+        output_name:
+          type: output_type
         """
         output = {self.output_name: {'type': self.output_type}}
         return output
 
     def __repr__(self):
+        """Return Output as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
+
 
 @dataclass
 class OutputBinding:
     """Represents a CWL input binding."""
+
     prefix: str = None
     position: int = None
 
@@ -160,7 +166,8 @@ class OutputBinding:
 
     def __repr__(self):
         """Representation of an output.
-           output_name: output_type
+
+        output_name: output_type
         """
         return yaml.dump(self.dump(), sort_keys=False)
 
@@ -169,10 +176,11 @@ class OutputBinding:
 class RunOutput(Output):
     """Represents a Run output as opposed to a CWL output.
 
-       InputBinding can either be:
-            prefix: <-j>
-            {}
+    InputBinding can either be:
+         prefix: <-j>
+         {}
     """
+
     output_binding: OutputBinding = None
 
     def dump(self):
@@ -180,7 +188,7 @@ class RunOutput(Output):
         if not self.output_binding:
             return super().dump()
         outputs_dumps = [{'type': self.output_type},
-                        self.output_binding.dump()]
+                         self.output_binding.dump()]
         outputs_dict = {}
         for dump in outputs_dumps:
             outputs_dict.update(dump)
@@ -189,22 +197,24 @@ class RunOutput(Output):
 
     def __repr__(self):
         """Representation of an input.
-           input_name: input_type
+
+        input_name: input_type
         """
         return yaml.dump(self.dump(), sort_keys=False)
-
 
 
 @dataclass
 class CWLOutput(Output):
     """Represents a CWL input."""
+
     output_source: str = None
 
     def dump(self):
         """Dump the output to a dictionary.
-           output_name:
-             type: output_type
-             outputSource: output_src/output_name
+
+        output_name:
+          type: output_type
+          outputSource: output_src/output_name
         """
         if self.output_source is not None:
             output = {self.output_name: {'type': self.output_type,
@@ -214,32 +224,38 @@ class CWLOutput(Output):
         return output
 
     def __repr__(self):
+        """Return CWLOutput as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 class Outputs:
     """Represents inputs for a workflow."""
+
     def __init__(self, outputs):
+        """Initialize outputs."""
         self.outputs = outputs
 
     def dump(self):
-        """Dumps workflow inputs to a dictionary."""
+        """Dump workflow inputs to a dictionary."""
         outputs_dumps = [i.dump() for i in self.outputs]
         outputs_dict = {k: v for d in outputs_dumps for k, v in d.items()}
         output_yaml = {'outputs': outputs_dict}
         return output_yaml
 
     def __add__(self, adder_outputs):
+        """Add outputs."""
         new_outputs = self.outputs + adder_outputs.outputs
         return Outputs(new_outputs)
 
     def __repr__(self):
+        """Return Outputs as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class DockerRequirement:
     """Defines docker requirement."""
+
     docker_pull: str = None
     docker_file: str = None
     copy_container: str = None
@@ -248,7 +264,7 @@ class DockerRequirement:
     force_type: str = None
 
     def dump(self):
-        """Dumps docker requirement to a dictionary."""
+        """Dump docker requirement to a dictionary."""
         docker_dump = {'DockerRequirement': {}}
         if self.docker_pull:
             docker_dump['DockerRequirement']['dockerPull'] = self.docker_pull
@@ -265,17 +281,19 @@ class DockerRequirement:
         return docker_dump
 
     def __repr__(self):
+        """Return DockerRequirement as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class MPIRequirement:
     """Represents a beeflow custom MPI requirement."""
+
     nodes: int = None
     ntasks: int = None
 
     def dump(self):
-        """Dumps MPI requirement to dictionary."""
+        """Dump MPI requirement to dictionary."""
         mpi_dump = {'beeflow:MPIRequirement': {}}
         if self.nodes:
             mpi_dump['beeflow:MPIRequirement']['nodes'] = self.nodes
@@ -284,12 +302,14 @@ class MPIRequirement:
         return mpi_dump
 
     def __repr__(self):
+        """Return MPIRequirement as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class CheckpointRequirement:
     """Represents a beeflow checkpoint requirement."""
+
     file_path: str
     container_path: str
     file_regex: str
@@ -298,7 +318,7 @@ class CheckpointRequirement:
     enabled: bool = True
 
     def dump(self):
-        """Dumps beeflow requirement to a dictionary."""
+        """Dump beeflow requirement to a dictionary."""
         req_name = 'beeflow:CheckpointRequirement'
         checkpoint_dump = {req_name: {}}
         checkpoint_dump[req_name]['enabled'] = self.enabled
@@ -310,19 +330,21 @@ class CheckpointRequirement:
         return req_name
 
     def __repr__(self):
+        """Return CheckpointRequirement as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class ScriptRequirement:
     """Represents a beeflow custom pre/post script requirement."""
+
     pre_script: str = None
     post_script: str = None
     enabled: bool = True
     shell: str = "/bin/bash"
 
     def dump(self):
-        """Dumps script requirement to a dcitionary."""
+        """Dump script requirement to a dcitionary."""
         key = 'beeflow:ScriptRequirement'
         script_dump = {key: {}}
         if self.pre_script:
@@ -334,19 +356,21 @@ class ScriptRequirement:
         return script_dump
 
     def __repr__(self):
+        """Return ScriptRequirement as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class Hints:
     """Holds all the hints for a CWL workflow."""
+
     mpi_requirement: MPIRequirement = None
     docker_requirement: DockerRequirement = None
     script_requirement: ScriptRequirement = None
     checkpoint_requirement: CheckpointRequirement = None
 
     def dump(self):
-        """Dumps hints to a dictionary."""
+        """Dump hints to a dictionary."""
         hints_dump = {'hints': {}}
         if self.mpi_requirement:
             hints_dump['hints'].update(self.mpi_requirement.dump())
@@ -359,18 +383,22 @@ class Hints:
         return hints_dump
 
     def __repr__(self):
+        """Return Hint as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 class Run:
     """Represents a run section for a CWL workflow.
-       Each task in a CWL workflow has a run section which can either be
-       external to the main CWL file in its own CWL or be embedded directly
-       into the main CWL file. For now, we're just embedding this directly
-       into the main CWL file for ease of use, but might add an external option
-       later.
+
+    Each task in a CWL workflow has a run section which can either be
+    external to the main CWL file in its own CWL or be embedded directly
+    into the main CWL file. For now, we're just embedding this directly
+    into the main CWL file for ease of use, but might add an external option
+    later.
     """
+
     def __init__(self, base_command, inputs, outputs, stdout):
+        """Initialize Run."""
         # This is implicit since we only support CommandLineTool steps atm
         self.run_class = 'CommandLineTool'
         self.base_command = base_command
@@ -389,36 +417,38 @@ class Run:
         return run_dump
 
     def generate_in(self):
-        """Generate the in section for a task. This maps to the inputs
-           part of the run section which is then called in the step which holds
-           that run section.
+        """Generate the in section for a task.
+
+        This maps to the inputs part of the run section which is then
+        called in the step which holds that run section.
         """
-        # Need to convert to a dictionary to get the keys
-        # This is gross but the iterative solutions look grosser
-        for i in self.inputs.inputs:
-            print(i.input_value)
-        #input_keys = list(list(self.inputs.dump().values())[0])
+        #for i in self.inputs.inputs:
+        #    print(i.input_value)
         in_ = {'in': {}}
         for i in self.inputs.inputs:
             in_['in'][i.input_name] = i.input_value
         return in_
 
     def generate_out(self):
-        """Generate the out section for a task. This is the same as the in
-           section, but it does require that the outputs are a list to produce
-           the proper CWL.
+        """Generate the out section for a task.
+
+        This is the same as the in section, but it does require that
+        the outputs are a list to produce the proper CWL.
         """
         out_keys = list(self.outputs.dump()['outputs'].keys())
         out_ = {'out': out_keys}
         return out_
 
     def __repr__(self):
+        """Return Run as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 class Step:
     """Represent a CWL step."""
+
     def __init__(self, step_name, run, hints):
+        """Initialize CWL step."""
         self.step_name = step_name
         self.run = run
         self.in_ = run.generate_in()
@@ -435,12 +465,15 @@ class Step:
         return step_dump
 
     def __repr__(self):
+        """Return CWL step as a string."""
         return yaml.dump(self.dump(), default_flow_style=None, sort_keys=False)
 
 
 class Steps:
     """Represent CWL steps."""
+
     def __init__(self, steps):
+        """Initialize the CWL step."""
         self.steps = steps
 
     def dump(self):
@@ -451,12 +484,15 @@ class Steps:
         return steps_dump
 
     def __repr__(self):
+        """Dump the CWL steps."""
         return yaml.dump(self.dump(), default_flow_style=None, sort_keys=False)
 
 
 class CWL:
     """Class represents a CWL workflow and all its components."""
+
     def __init__(self, cwl_name, inputs, outputs, steps):
+        """Initialize the CWL."""
         self.cwl_name = cwl_name
         self.header = Header()
         self.inputs = inputs
@@ -464,13 +500,19 @@ class CWL:
         self.steps = steps
 
     def dump(self, path=None):
-        """Dumps the workflow. If no path is specified print to stdout."""
+        """Dump the workflow. If no path is specified print to stdout."""
         cwl_dump = {}
         cwl_dump.update(self.header.dump())
         cwl_dump.update(self.inputs.dump())
         cwl_dump.update(self.outputs.dump())
         cwl_dump.update(self.steps.dump())
-        return cwl_dump
+        if path:
+            with open(''):
+                pass
+        else:
+            print(yaml.dump(cwl_dump, sort_keys=False))
 
-    def __repr__(self):
-        return yaml.dump(self.dump(), sort_keys=False)
+
+    #def __repr__(self):
+    #    """Return CWL file as a string."""
+    #    return yaml.dump(self.dump(), sort_keys=False)
