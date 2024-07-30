@@ -24,16 +24,16 @@ def main():
     # Step Run
     base_command = "'[/CoMD/bin/CoMD-mpi, '-e']'"
     stdout = 'comd_stdout.txt'
-    run_inputs = Inputs([RunInput('i', 'int', InputBinding(prefix='-i'), 20),
-                         RunInput('j', 'int', InputBinding(prefix='-j'), 10),
-                         RunInput('k', 'int', InputBinding(prefix='-k'), 10),
-                         RunInput('x', 'int', InputBinding(prefix='-x'), 10),
-                         RunInput('y', 'int', InputBinding(prefix='-y'), 10),
-                         RunInput('z', 'int', InputBinding(prefix='-z'), 10),
-                         RunInput('pot_dir', 'string', InputBinding(prefix='--potDir'))])
+    run_inputs = Inputs([RunInput('i', 'int', InputBinding(prefix='-i'), 2),
+                         RunInput('j', 'int', InputBinding(prefix='-j'), 2),
+                         RunInput('k', 'int', InputBinding(prefix='-k'), 2),
+                         RunInput('x', 'int', InputBinding(prefix='-x'), 40),
+                         RunInput('y', 'int', InputBinding(prefix='-y'), 40),
+                         RunInput('z', 'int', InputBinding(prefix='-z'), 40),
+                         RunInput('pot_dir', 'string', InputBinding(prefix='--potDir'), "/CoMD/pots")])
 
     run_outputs = Outputs([RunOutput('comd_stdout', 'stdout')])
-    mpi = MPIRequirement(nodes=1, ntasks=27)
+    mpi = MPIRequirement(nodes=4, ntasks=8)
     container_path = '/usr/projects/beedev/mpi/comd-x86_64.tgz'
     docker = DockerRequirement(copy_container=container_path)
     hints = Hints(mpi_requirement=mpi, docker_requirement=docker)
@@ -41,7 +41,7 @@ def main():
     comd_step = Step('comd', comd_run, hints)
     comd_steps = Steps([comd_step])
     comd = CWL('comd', cwl_inputs, cwl_outputs, comd_steps)
-    print(comd)
+    comd.dump()
 
 
 if __name__ == "__main__":
