@@ -1,4 +1,4 @@
-"""Module contains the code for launching redis subprocess"""
+"""Module contains the code for launching redis subprocess."""
 import os
 import subprocess
 

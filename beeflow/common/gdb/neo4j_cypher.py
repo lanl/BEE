@@ -75,7 +75,7 @@ def create_workflow_input_nodes(tx, workflow):
                        "SET i.value = $value")
 
         tx.run(input_query, wf_id=workflow.id, input_id=input_.id, type=input_.type,
-                value=input_.value)
+               value=input_.value)
 
 
 def create_workflow_output_nodes(tx, workflow):
@@ -409,7 +409,7 @@ def set_workflow_state(tx, state, wf_id):
 
 def get_ready_tasks(tx, wf_id):
     """Get all tasks that are ready to execute.
- 
+
     :param workflow_id: the workflow id
     :type workflow_id: str
     :rtype: neo4j.Result

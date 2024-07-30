@@ -1,4 +1,4 @@
-"""Contains methods for managing neo4j instance"""
+"""Contains methods for managing neo4j instance."""
 import socket
 import os
 import shutil

@@ -191,7 +191,7 @@ class WorkflowDB:
         if not bdb.table_exists(self.db_file, 'info'):
             bdb.create_table(self.db_file, info_stmt)
             # insert a new workflow into the database
-            stmt = """INSERT INTO info (wfm_port, tm_port, sched_port, num_workflows, 
+            stmt = """INSERT INTO info (wfm_port, tm_port, sched_port, num_workflows,
                 bolt_port, http_port, https_port, gdb_pid) VALUES(?, ?, ?, ?, ?, ?, ?, ?);"""
             bdb.run(self.db_file, stmt, [-1, -1, -1, 0, -1, -1, -1, -1])
 

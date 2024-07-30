@@ -118,7 +118,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             session.write_transaction(tx.set_workflow_state, state='RUNNING', wf_id=workflow_id)
 
-
     def reset_workflow(self, old_id, new_id):
         """Reset the execution state of an entire workflow.
 
@@ -256,10 +255,10 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: (list of Requirement, list of Hint)
         """
         with self._driver.session() as session:
-            requirements = _reconstruct_requirements(
-                session.read_transaction(tx.get_workflow_requirements, wf_id=workflow_id))
+            requirements = _reconstruct_requirements(session.read_transaction(
+                           tx.get_workflow_requirements, wf_id=workflow_id))
             hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints,
-                wf_id=workflow_id))
+                    wf_id=workflow_id))
         return requirements, hints
 
     def get_workflow_inputs_and_outputs(self, workflow_id):
@@ -273,9 +272,9 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         with self._driver.session() as session:
             inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs,
-                wf_id=workflow_id))
+                     wf_id=workflow_id))
             outputs = _reconstruct_workflow_outputs(
-                session.read_transaction(tx.get_workflow_outputs, wf_id=workflow_id))
+                      session.read_transaction(tx.get_workflow_outputs, wf_id=workflow_id))
 
         return inputs, outputs
 

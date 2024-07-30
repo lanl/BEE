@@ -139,7 +139,6 @@ class WFList(Resource):
         wf_name = data['wf_name']
         wf_workdir = data['workdir']
 
-
         wf_id = wf_data.generate_workflow_id()
         wf_dir = extract_wf(wf_id, wf_filename, workflow_archive, reexecute=True)
 
@@ -150,7 +149,6 @@ class WFList(Resource):
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
         return resp
-
 
     def patch(self):
         """Copy workflow archive."""

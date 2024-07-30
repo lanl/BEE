@@ -255,7 +255,7 @@ def schedule_submit_tasks(wf_id, tasks):
 
 
 def connect_neo4j_driver(bolt_port):
-    """Create a neo4j driver to a gdb through bolt port"""
+    """Create a neo4j driver to a gdb through bolt port."""
     driver = neo4j_driver.Neo4jDriver()
     driver.connect(user="neo4j", bolt_port=bolt_port,
                    db_hostname=bc.get("graphdb", "hostname"),
