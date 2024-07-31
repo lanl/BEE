@@ -13,7 +13,7 @@ from beeflow.common.build_interfaces import build_main
 
 log = bee_logging.setup(__name__)
 
-COMPLETED_STATES = {"FAILED", "TIMEOUT", "COMPLETED"}
+COMPLETED_STATES = {"FAILED", "TIMEOUT", "COMPLETED", "CANCELLED"}
 
 
 def resolve_environment(task):
