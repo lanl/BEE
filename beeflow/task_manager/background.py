@@ -13,7 +13,8 @@ from beeflow.common.build_interfaces import build_main
 
 log = bee_logging.setup(__name__)
 
-COMPLETED_STATES = {"FAILED", "TIMEOUT", "COMPLETED", "CANCELLED"}
+# States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
+COMPLETED_STATES = {'UNKNOWN', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'}
 
 
 def resolve_environment(task):
@@ -74,6 +75,7 @@ def update_jobs(db):
         job_state = job.job_state
 
         if job_state in COMPLETED_STATES:
+            # Completed states don't change. Remove from the job queue and move to the next job.
             db.job_queue.remove_by_id(id_)
             continue
 
@@ -98,7 +100,6 @@ def update_jobs(db):
                         db.update_queue.push(task.workflow_id, task.id, 'FAILED')
                 else:
                     db.update_queue.push(task.workflow_id, task.id, new_job_state)
-            # States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
             elif new_job_state in ('BOOT_FAIL', 'NODE_FAIL', 'OUT_OF_MEMORY', 'PREEMPTED'):
                 # Don't update wfm, just resubmit
                 log.info(f'Resubmitting task {task.name}')
@@ -108,7 +109,7 @@ def update_jobs(db):
             else:
                 db.update_queue.push(task.workflow_id, task.id, new_job_state)
 
-        if job_state in ('UNKNOWN', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
+        if job_state in COMPLETED_STATES:
             # Remove from the job queue. Our job is finished
             db.job_queue.remove_by_id(id_)
 
