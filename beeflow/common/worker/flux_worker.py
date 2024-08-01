@@ -43,11 +43,14 @@ class FluxWorker(Worker):
         """Build the job spec for a task."""
         # TODO: This has a lot of code in common with the other worker's build_text
         crt_res = self.crt.run_text(task)
+        shell = task.get_requirement('beeflow:ScriptRequirement', 'shell', default='/bin/bash')
         script = [
-            '#!/bin/bash',
-            'set -e',
-            crt_res.env_code,
+            f'#!{shell}',
         ]
+
+        if shell == "/bin/bash":
+            script.append('set -e')
+        script.append(crt_res.env_code)
 
         # TODO: Should this entire model, saving stdout and stderr to files, be
         # redone for Flux? It seems to provide some sort of KVS for storing

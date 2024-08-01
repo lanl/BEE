@@ -233,8 +233,6 @@ VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
                  default=DEFAULT_BEE_WORKDIR, validator=validation.make_dir)
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  info='backend workload scheduler to interact with ')
-VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, default=True,
-                 info='use the BEE archiving functinality')
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs')
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
@@ -324,7 +322,7 @@ VALIDATOR.option('slurm', 'use_commands', validator=validation.bool_,
                  default=(shutil.which('slurmrestd') is None),
                  info='if set, use slurm cli commands instead of slurmrestd')
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
-VALIDATOR.option('slurm', 'openapi_version', default='v0.0.38',
+VALIDATOR.option('slurm', 'openapi_version', default='v0.0.39',
                  info='openapi version to use for slurmrestd')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')

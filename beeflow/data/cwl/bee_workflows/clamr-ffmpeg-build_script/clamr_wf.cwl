@@ -54,6 +54,7 @@ steps:
             enabled: true
             pre_script: "pre_run.sh"
             post_script: "post_run.sh"
+            shell: "/bin/bash"
         DockerRequirement:
             dockerFile: "Dockerfile.clamr-ffmpeg"
             beeflow:containerName: "clamr-ffmpeg"
