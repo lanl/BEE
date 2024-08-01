@@ -319,8 +319,9 @@ class CwlParser:
             raise CwlParseError(msg) from None
         # Remove shebang lines from scripts
         rm_line = env_decl[1:]
-        rm_line = "\n".join(rm_line) # list to string format
-        items.update({key:rm_line})
+        # List to string format
+        rm_line = "\n".join(rm_line)
+        items.update({key: rm_line})
 
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
