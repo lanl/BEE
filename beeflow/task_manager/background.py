@@ -82,8 +82,8 @@ def update_jobs(db):
 
         try:
             new_job_state = worker.query_task(job_id)
-        except WorkerError:
-            log.warning(f'Failed to query job {job_id}')
+        except WorkerError as err:
+            log.warning(f'Failed to query job {job_id}: {err}')
             new_job_state = 'UNKNOWN'
 
         # If state changes update the WFM
