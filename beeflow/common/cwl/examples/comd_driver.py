@@ -1,3 +1,4 @@
+"""Example driver for comd."""
 from beeflow.common.cwl.cwl import (CWL, CWLInput, RunInput, Inputs, CWLOutput,
                                     Outputs, Run, RunOutput, Step, Steps,
                                     InputBinding, MPIRequirement, DockerRequirement, Hints)
@@ -30,7 +31,8 @@ def main():
                          RunInput('x', 'int', InputBinding(prefix='-x'), 40),
                          RunInput('y', 'int', InputBinding(prefix='-y'), 40),
                          RunInput('z', 'int', InputBinding(prefix='-z'), 40),
-                         RunInput('pot_dir', 'string', InputBinding(prefix='--potDir'), "/CoMD/pots")])
+                         RunInput('pot_dir', 'string', InputBinding(prefix='--potDir'),
+                                  '/CoMD/pots')])
 
     run_outputs = Outputs([RunOutput('comd_stdout', 'stdout')])
     mpi = MPIRequirement(nodes=4, ntasks=8)
