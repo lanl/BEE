@@ -422,7 +422,7 @@ class Run:
         This maps to the inputs part of the run section which is then
         called in the step which holds that run section.
         """
-        #for i in self.inputs.inputs:
+        # for i in self.inputs.inputs:
         #    print(i.input_value)
         in_ = {'in': {}}
         for i in self.inputs.inputs:
@@ -499,20 +499,19 @@ class CWL:
         self.outputs = outputs
         self.steps = steps
 
-    def dump(self, path=None):
+    def dump(self):
         """Dump the workflow. If no path is specified print to stdout."""
         cwl_dump = {}
         cwl_dump.update(self.header.dump())
         cwl_dump.update(self.inputs.dump())
         cwl_dump.update(self.outputs.dump())
         cwl_dump.update(self.steps.dump())
-        if path:
-            with open(''):
-                pass
-        else:
-            print(yaml.dump(cwl_dump, sort_keys=False))
+        # if path:
+        #     with open(''):
+        #        pass
+        # else:
+        #     print(yaml.dump(cwl_dump, sort_keys=False))
 
-
-    #def __repr__(self):
-    #    """Return CWL file as a string."""
-    #    return yaml.dump(self.dump(), sort_keys=False)
+    def __repr__(self):
+        """Return CWL file as a string."""
+        return yaml.dump(self.dump(), sort_keys=False)
