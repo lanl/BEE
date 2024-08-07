@@ -506,11 +506,7 @@ class CWL:
         cwl_dump.update(self.inputs.dump())
         cwl_dump.update(self.outputs.dump())
         cwl_dump.update(self.steps.dump())
-        # if path:
-        #     with open(''):
-        #        pass
-        # else:
-        #     print(yaml.dump(cwl_dump, sort_keys=False))
+        print(yaml.dump(cwl_dump, sort_keys=False))
 
     def __repr__(self):
         """Return CWL file as a string."""
