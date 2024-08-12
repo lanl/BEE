@@ -139,4 +139,4 @@ For the integration tests, you'll first have to start beeflow with ``beeflow cor
 Git Workflow
 ==================
 
-See :ref:`contribute` for more information
+See :ref:`contribute`_ for more information
