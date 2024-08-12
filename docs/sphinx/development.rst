@@ -9,6 +9,12 @@ install them to a virtual environment. It also makes it easy to build and
 install our package locally as well as publish it to PyPI, obviating the need
 for a `setup.py` file.
 
+Additional Poetry documentation:
+
+* https://poetry.eustace.io/docs/
+
+* https://github.com/sdispater/poetry
+
 Requirement: Python version 3.8 or greater
 ------------------------------------------
 
@@ -37,8 +43,6 @@ to:
 
 `[ $POETRY_ACTIVE ] || eval "$(pyenv init -)"`
 
-Create a Virtual Environment and Install Dependencies
------------------------------------------------------
 On MacOS, Poetry virtual environments are installed to `~/Library/Caches/pypoetry/virtualenvs`.
 To instead install to a local `.venv` directory, first run the command:
 
@@ -46,32 +50,60 @@ To instead install to a local `.venv` directory, first run the command:
 
 When creating a Python virtual environment, Poetry will automatically install the version of Python of whatever `python` executable appears first on your PATH.
 
-To create a Python 3.x virtual environment and install our project
+
+Development Workflow
+====================
+
+1. Make changes
+---------------
+To work on a fix or feature, switch to the feature branch in the BEE repo (see :ref:`contribute`).
+
+2. Create a Virtual Environment and Install Dependencies
+---------------------------------------------------------
+
+After making your changes create a Python 3.x virtual environment and install our project
 dependencies (including developer dependencies):
 
-`poetry install`
+``poetry install``
 
-To install without developer dependencies:
+3. Activate the Virtual Environment
+-----------------------------------
 
-`poetry install --no-dev`
-
-This will also generate the package metadata in `beeflow.egg-info` (not tracked) and install
-the package to your local system as a Python Egg.
-
-
-Activate the Virtual Environment
------------------------------------------------------
 To activate the virtual environment ('exit' or EOF to deactivate):
 
-`poetry shell`
+``poetry shell``
+
+4. Start the BEE components
+---------------------------
+
+``beeflow core start``
+
+5. Test
+---------
+
+Test your new feature/fixes
+
+6. Commit Changes
+-----------------
+
+If you're done making changes, follow the git workflow specified in :ref:`contribute`.
+
+7. Continue Development
+-----------------------
+
+If you want to continue making changes, add them and then pause any running workflows:
+
+``beeflow pause $ID``
+
+Stop the bee components:
+
+``beeflow core stop``
+
+Now you can repeat steps 2 to 5.
 
 
-Run a Command in the Virtual Environment
------------------------------------------------------
-To run a command without activating the virtual environment:
-
-`poetry run COMMAND [arguments]`
-
+Dependency and Package Management with Poetry
+=============================================
 
 Update Dependencies
 -----------------------------------------------------
@@ -112,20 +144,6 @@ Publish the Package to a Remote Repository
 
 `poetry publish`
 
-
-Update Poetry
------------------------------------------------------
-To update Poetry:
-
-`poetry self:update`
-
-Additional Documentation
-------------------------
-Additional documentation:
-
-* https://poetry.eustace.io/docs/
-
-* https://github.com/sdispater/poetry
 
 Running Tests
 ==================
