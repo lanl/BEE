@@ -58,7 +58,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         uri = f"bolt://{db_hostname}:{bolt_port}"
         try:
             # Connect to the Neo4j database using the Neo4j proprietary driver
-            self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
+            self._driver = Neo4jDatabase.driver(uri, auth=(user, password)) #noqa outside init
             # Checks the connection and returns ServiceUnavailable if something is wrong
             self._driver.verify_connectivity()
         except ServiceUnavailable as sue:
