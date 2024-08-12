@@ -342,7 +342,7 @@ def get_workflow_requirements(tx, wf_id):
     :rtype: neo4j.Result
     """
     requirement_query = ("MATCH (:Workflow {id: $wf_id})<-[:REQUIREMENT_OF]-(r:Requirement) "
-        "RETURN r")
+                         "RETURN r")
 
     return [rec['r'] for rec in tx.run(requirement_query, wf_id=wf_id)]
 

@@ -255,8 +255,8 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: (list of Requirement, list of Hint)
         """
         with self._driver.session() as session:
-            requirements = _reconstruct_requirements(session.read_transaction(
-               tx.get_workflow_requirements, wf_id=workflow_id))
+            requirements = _reconstruct_requirements(
+                session.read_transaction(tx.get_workflow_requirements, wf_id=workflow_id))
             hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints,
                                                                 wf_id=workflow_id))
         return requirements, hints
