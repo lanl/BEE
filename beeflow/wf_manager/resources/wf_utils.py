@@ -307,7 +307,7 @@ def start_workflow(wf_id):
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)
-    wf_id = wfi._workflow_id
+    wf_id = wfi.workflow_id
     update_wf_status(wf_id, 'Running')
     db.workflows.update_workflow_state(wf_id, 'Running')
     return True

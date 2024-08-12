@@ -92,7 +92,7 @@ class WFUpdate(Resource):
 
         # Get output from the task
         if state_update.output is not None:
-            fname = f'{wfi._workflow_id}_{task.id}_{int(time.time())}.json'
+            fname = f'{wfi.workflow_id}_{task.id}_{int(time.time())}.json'
             task_output_path = os.path.join(bee_workdir, fname)
             with open(task_output_path, 'w', encoding='utf8') as fp:
                 json.dump(state_update.output, fp, indent=4)
@@ -132,7 +132,7 @@ class WFUpdate(Resource):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
             if wfi.workflow_completed():
-                wf_id = wfi._workflow_id
+                wf_id = wfi.workflow_id
                 log.info(f"Workflow {wf_id} Completed")
                 archive_workflow(db, state_update.wf_id)
                 log.info('Workflow Completed')
@@ -142,7 +142,7 @@ class WFUpdate(Resource):
         if state_update.job_state == 'FAILED':
             set_dependent_tasks_dep_fail(db, wfi, state_update.wf_id, task)
             log.info("Workflow failed")
-            wf_id = wfi._workflow_id
+            wf_id = wfi.workflow_id
             archive_fail_workflow(db, wf_id)
 
         if state_update.job_state == 'BUILD_FAIL':

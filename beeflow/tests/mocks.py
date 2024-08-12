@@ -84,7 +84,7 @@ class MockWFI:
         """Finalize the workflow."""
         self._loaded = False
 
-    def set_workflow_state(self, str):
+    def set_workflow_state(self, state):
         """Fake set wf state."""
 
     def create_requirement(self, req_class, key, value):
@@ -127,7 +127,7 @@ class MockGDBDriver:
         """Connect driver to database."""
 
     def create_bee_node(self):
-        """Create BEE head node"""
+        """Create BEE head node."""
 
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow in the graph database."""
@@ -142,22 +142,22 @@ class MockGDBDriver:
         return all(self.task_states[task_dep_id] == 'COMPLETED'
                    for task_dep_id in task_deps)
 
-    def execute_workflow(self, workflow_id):
+    def execute_workflow(self, workflow_id): #noqa not using parameter in mock
         """Begin execution of the loaded workflow."""
         self.workflow_state = 'RUNNING'
         for task_id in self.task_states:
             if self._is_ready(task_id):
                 self.task_states[task_id] = 'READY'
 
-    def pause_workflow(self, workflow_id):
+    def pause_workflow(self, workflow_id): #noqa not using parameter in mock
         """Pause execution of a running workflow."""
         self.workflow_state = 'PAUSED'
 
-    def resume_workflow(self, workflow_id):
+    def resume_workflow(self, workflow_id): #noqa not using parameter in mock
         """Resume execution of a running workflow."""
         self.workflow_state = 'RESUME'
 
-    def reset_workflow(self, old_id, new_id):
+    def reset_workflow(self, old_id, new_id): #noqa not using parameter in mock
         """Reset the execution state and ID of a workflow."""
         self.workflow = deepcopy(self.workflow)
         self.workflow.id = new_id
@@ -178,7 +178,7 @@ class MockGDBDriver:
         for outp in task.outputs:
             self.outputs[task.id][outp.id] = outp
 
-    def initialize_ready_tasks(self, workflow_id):
+    def initialize_ready_tasks(self, workflow_id): #noqa not using parameter in mock
         """Set runnable tasks in a workflow to ready."""
         for task_id in self.tasks:
             if self._is_ready(task_id) and self.task_states[task_id] == 'WAITING':
@@ -196,27 +196,27 @@ class MockGDBDriver:
         """Return a workflow Task given its ID."""
         return self.tasks[task_id]
 
-    def get_workflow_description(self, workflow_id):
+    def get_workflow_description(self, workflow_id): #noqa not using parameter in mock
         """Return the workflow description from the graph database."""
         return deepcopy(self.workflow)
 
-    def get_workflow_state(self, workflow_id):
+    def get_workflow_state(self, workflow_id): #noqa not using parameter in mock
         """Return workflow's current state."""
         return self.workflow_state
 
-    def set_workflow_state(self, workflow_id, state):
+    def set_workflow_state(self, workflow_id, state): #noqa not using parameter in mock
         """Return workflow's current state."""
         self.workflow_state = state
 
-    def get_workflow_tasks(self, workflow_id):
+    def get_workflow_tasks(self, workflow_id): #noqa not using parameter in mock
         """Return a workflow's tasks from the graph database."""
         return list(self.tasks.values())
 
-    def get_workflow_requirements_and_hints(self, workflow_id):
+    def get_workflow_requirements_and_hints(self, workflow_id): #noqa not using parameter in mock
         """Return a tuple containing a list of requirements and a list of hints."""
         return (None, None)
 
-    def get_ready_tasks(self, workflow_id):
+    def get_ready_tasks(self, workflow_id): #noqa not using parameter in mock
         """Return the tasks in a workflow with state 'READY'."""
         return [task for task_id, task in self.tasks.items()
                 if self.task_states[task_id] == 'READY']
@@ -288,7 +288,7 @@ class MockGDBDriver:
                                                   step_inp.position,
                                                   step_inp.value_from)
 
-    def workflow_completed(self, workflow_id):
+    def workflow_completed(self, workflow_id): #noqa not using parameter in mock
         """Return true if all of a workflow's final tasks have completed, else false."""
         return all(state == 'COMPLETED' for state in self.task_states.values())
 

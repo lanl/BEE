@@ -27,8 +27,6 @@ from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.wf_manager.resources import wf_utils
 
-from beeflow.common.db import wfm_db
-from beeflow.common.db.bdb import connect_db
 from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
 from beeflow.common.deps import redis_manager
@@ -196,7 +194,7 @@ def init_components():
         """Start the celery task queue."""
         log = open_log('celery')
         # Setting --pool=solo to avoid preforking multiple processes
-        return subprocess.Popen(['celery', '-A', 'beeflow.common.deps.celery_manager', 
+        return subprocess.Popen(['celery', '-A', 'beeflow.common.deps.celery_manager',
                                  'worker', '--pool=solo'], stdout=log, stderr=log)
 
     # Run this before daemonizing in order to avoid slow background start

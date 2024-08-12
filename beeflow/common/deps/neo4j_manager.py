@@ -16,7 +16,7 @@ from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import log as bee_logging
 
 # Define directories within module scope
-bee_workdir = paths._workdir()
+bee_workdir = paths.workdir()
 mount_dir = os.path.join(bee_workdir, 'gdb_mount')
 data_dir = mount_dir + '/data'
 logs_dir = mount_dir + '/logs'
@@ -67,7 +67,6 @@ def setup_configs(bolt_port, http_port, https_port):
     This function needs to be run before each new invocation since the
     config file could have changed.
     """
-
     os.makedirs(confs_dir, exist_ok=True)
     gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf",
                                      confs_dir + "/neo4j.conf")

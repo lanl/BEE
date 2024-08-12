@@ -26,7 +26,7 @@ def check_container_runtime():
 
 def make_dep_dir():
     """Make a new bee dependency container directory."""
-    bee_workdir = paths._workdir()
+    bee_workdir = paths.workdir()
     bee_dir = f'{bee_workdir}/deps'
     bee_dir_exists = os.path.isdir(bee_dir)
     if not bee_dir_exists:
@@ -35,7 +35,7 @@ def make_dep_dir():
 
 def get_dep_dir():
     """Return the dependency directory path."""
-    bee_workdir = paths._workdir()
+    bee_workdir = paths.workdir()
     bee_container_dir = f'{bee_workdir}/deps/'
     return bee_container_dir
 

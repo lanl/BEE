@@ -25,6 +25,21 @@ class WorkflowInterface:
         self._gdb_driver = gdb_driver
         self._workflow_id = wf_id
 
+    @property
+    def workflow_id(self):
+        """Retrieve the workflow ID from the workflow interface.
+
+        If workflow ID is not populated, this grabs it from the database.
+
+        If no workflow is loaded, None is returned.
+        :rtype: str
+        """
+        if self._workflow_id is None:
+            workflow, _ = self.get_workflow()
+            self._workflow_id = workflow.id
+
+        return self._workflow_id
+
     def initialize_workflow(self, workflow):
         """Begin construction of a BEE workflow.
 

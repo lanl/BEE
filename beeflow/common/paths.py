@@ -3,14 +3,14 @@ import os
 from beeflow.common.config_driver import BeeConfig as bc
 
 
-def _workdir():
+def workdir():
     """Return the workdir."""
     return bc.get('DEFAULT', 'bee_workdir')
 
 
 def _sockdir():
     """Return the socket directory."""
-    sockdir = os.path.join(_workdir(), 'sockets')
+    sockdir = os.path.join(workdir(), 'sockets')
     os.makedirs(sockdir, exist_ok=True)
     return sockdir
 
@@ -53,14 +53,14 @@ def log_fname(component):
 
 def redis_root():
     """Get the redis root directory (create it if it doesn't exist)."""
-    path = os.path.join(_workdir(), 'redis')
+    path = os.path.join(workdir(), 'redis')
     os.makedirs(path, exist_ok=True)
     return path
 
 
 def redis_container():
     """Get the path to the unpacked Redis container."""
-    return os.path.join(_workdir(), 'deps/redis_container')
+    return os.path.join(workdir(), 'deps/redis_container')
 
 
 def redis_sock_fname():
@@ -70,7 +70,7 @@ def redis_sock_fname():
 
 def _celery_root():
     """Get the celery root directory (create it if it doesn't exist)."""
-    path = os.path.join(_workdir(), 'celery')
+    path = os.path.join(workdir(), 'celery')
     os.makedirs(path, exist_ok=True)
     return path
 
