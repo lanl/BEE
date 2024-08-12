@@ -124,9 +124,9 @@ class MockGDBDriver:
         self.outputs = {}
 
     def connect(self, **kwargs):
-        """Connect driver to database"""
-    
-    def create_bee_node():
+        """Connect driver to database."""
+
+    def create_bee_node(self):
         """Create BEE head node"""
 
     def initialize_workflow(self, workflow):

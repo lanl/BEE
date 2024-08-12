@@ -85,7 +85,7 @@ def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     mocker.patch('beeflow.common.wf_data.generate_workflow_id', return_value='42')
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=WorkflowInterface(MockGDBDriver()))
-    
+
     mocker.patch('subprocess.run', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_list.db_path', temp_db.db_file)
@@ -161,7 +161,6 @@ def test_start_workflow(client, mocker, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', new=lambda: temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
-    temp_db
     mocker.patch('beeflow.common.wf_interface.WorkflowInterface.get_workflow_state', 'Waiting')
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
     print(resp)

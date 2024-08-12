@@ -37,9 +37,9 @@ class Neo4jDriver(GraphDatabaseDriver):
     """
 
     def __new__(cls):
-        """Create or get the instance of Neo4j database driver"""
+        """Create or get the instance of Neo4j database driver."""
         if not hasattr(cls, 'instance'):
-            cls.instance = super(Neo4jDriver, cls).__new__(cls)
+            cls.instance = super(Neo4jDriver, cls).__new__(cls) #noqa cls causing linting errors
         return cls.instance
 
     def connect(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
@@ -256,9 +256,9 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         with self._driver.session() as session:
             requirements = _reconstruct_requirements(session.read_transaction(
-                           tx.get_workflow_requirements, wf_id=workflow_id))
+               tx.get_workflow_requirements, wf_id=workflow_id))
             hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints,
-                    wf_id=workflow_id))
+                                                                wf_id=workflow_id))
         return requirements, hints
 
     def get_workflow_inputs_and_outputs(self, workflow_id):
@@ -272,9 +272,9 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         with self._driver.session() as session:
             inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs,
-                     wf_id=workflow_id))
+                                                                           wf_id=workflow_id))
             outputs = _reconstruct_workflow_outputs(
-                      session.read_transaction(tx.get_workflow_outputs, wf_id=workflow_id))
+                session.read_transaction(tx.get_workflow_outputs, wf_id=workflow_id))
 
         return inputs, outputs
 

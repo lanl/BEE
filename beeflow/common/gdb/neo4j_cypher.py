@@ -341,7 +341,8 @@ def get_workflow_requirements(tx, wf_id):
     :type wf_id: str
     :rtype: neo4j.Result
     """
-    requirement_query = "MATCH (:Workflow {id: $wf_id})<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
+    requirement_query = ("MATCH (:Workflow {id: $wf_id})<-[:REQUIREMENT_OF]-(r:Requirement) "
+        "RETURN r")
 
     return [rec['r'] for rec in tx.run(requirement_query, wf_id=wf_id)]
 
@@ -414,7 +415,8 @@ def get_ready_tasks(tx, wf_id):
     :type workflow_id: str
     :rtype: neo4j.Result
     """
-    get_ready_query = "MATCH (:Metadata {state: 'READY'})-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) RETURN t"
+    get_ready_query = ("MATCH (:Metadata {state: 'READY'})-[:DESCRIBES]->"
+                       "(t:Task {workflow_id: $wf_id}) RETURN t")
 
     return [rec['t'] for rec in tx.run(get_ready_query, wf_id=wf_id)]
 

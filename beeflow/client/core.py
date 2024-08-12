@@ -33,6 +33,7 @@ from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
 from beeflow.common.deps import redis_manager
 
+
 class ComponentManager:
     """Component manager class."""
 
@@ -195,8 +196,8 @@ def init_components():
         """Start the celery task queue."""
         log = open_log('celery')
         # Setting --pool=solo to avoid preforking multiple processes
-        return subprocess.Popen(['celery', '-A', 'beeflow.common.deps.celery_manager', 'worker', '--pool=solo'],
-                                stdout=log, stderr=log)
+        return subprocess.Popen(['celery', '-A', 'beeflow.common.deps.celery_manager', 
+                                 'worker', '--pool=solo'], stdout=log, stderr=log)
 
     # Run this before daemonizing in order to avoid slow background start
     # container_path = paths.redis_container()
