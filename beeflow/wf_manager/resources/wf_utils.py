@@ -300,8 +300,6 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
 def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
     db = connect_db(wfm_db, get_db_path())
-    if db.workflows.get_workflow_state(wf_id) == 'Initializing':
-        raise RuntimeError('Workflow is still initializing')
     wfi = get_workflow_interface(wf_id)
     state = wfi.get_workflow_state()
     if state in ('RUNNING', 'PAUSED', 'COMPLETED'):

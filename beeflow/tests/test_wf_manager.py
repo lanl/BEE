@@ -164,6 +164,7 @@ def test_start_workflow(client, mocker, temp_db):
     temp_db
     mocker.patch('beeflow.common.wf_interface.WorkflowInterface.get_workflow_state', 'Waiting')
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
+    print(resp)
     assert resp.status_code == 200
 
 
@@ -201,6 +202,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
 
     request = {'wf_id': WF_ID, 'option': 'cancel'}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
+    print(resp)
     assert resp.json['status'] == 'Cancelled'
     assert resp.status_code == 202
 

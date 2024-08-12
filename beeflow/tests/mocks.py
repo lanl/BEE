@@ -84,6 +84,9 @@ class MockWFI:
         """Finalize the workflow."""
         self._loaded = False
 
+    def set_workflow_state(self, str):
+        """Fake set wf state."""
+
     def create_requirement(self, req_class, key, value):
         """Fake creating a requirement."""
 
