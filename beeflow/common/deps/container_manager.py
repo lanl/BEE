@@ -82,6 +82,7 @@ def create_image(dep_name):
         print(f"{dep_name} container mount directory {container_dir} removed")
         return
 
-    # Make the certificates directory
-    container_certs_path = os.path.join(container_dir, 'var/lib/neo4j/certificates')
-    os.makedirs(container_certs_path, exist_ok=True)
+    # If neo4j, make the certificates directory
+    if dep_name == 'neo4j':
+        container_certs_path = os.path.join(container_dir, 'var/lib/neo4j/certificates')
+        os.makedirs(container_certs_path, exist_ok=True)
