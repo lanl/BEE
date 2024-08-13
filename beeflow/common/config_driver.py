@@ -342,7 +342,7 @@ VALIDATOR.option('slurm', 'use_commands', validator=validation.bool_,
                  default=(shutil.which('slurmrestd') is None),
                  info='if set, use slurm cli commands instead of slurmrestd')
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
-VALIDATOR.option('slurm', 'openapi_version', default='v0.0.38',
+VALIDATOR.option('slurm', 'openapi_version', default='v0.0.39',
                  info='openapi version to use for slurmrestd')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')

@@ -9,9 +9,13 @@ from beeflow.task_manager import utils
 from beeflow.common import log as bee_logging
 from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build_interfaces import build_main
+from beeflow.common.worker import WorkerError
 
 
 log = bee_logging.setup(__name__)
+
+# States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
+COMPLETED_STATES = {'UNKNOWN', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'}
 
 
 def resolve_environment(task):
@@ -30,7 +34,7 @@ def submit_task(db, worker, task):
         resolve_environment(task)
         log.info(f'Environment preparation complete for task {task.name}')
         job_id, job_state = worker.submit_task(task)
-        log.info(f'Job Submitted {task.name}: job_id: {job_id} job_state: {job_state}')
+        log.info(f"Job Submitted '{task.name}' job_id: {job_id} job_state: {job_state}")
         # place job in queue to monitor
         db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
         # update_task_metadata(task.id, task_metadata)
@@ -70,15 +74,25 @@ def update_jobs(db):
         task = job.task
         job_id = job.job_id
         job_state = job.job_state
-        new_job_state = worker.query_task(job_id)
+
+        if job_state in COMPLETED_STATES:
+            # Completed states don't change. Remove from the job queue and move to the next job.
+            db.job_queue.remove_by_id(id_)
+            continue
+
+        try:
+            new_job_state = worker.query_task(job_id)
+        except WorkerError as err:
+            log.warning(f'Failed to query job {job_id}: {err}')
+            new_job_state = 'UNKNOWN'
 
         # If state changes update the WFM
         if job_state != new_job_state:
             db.job_queue.update_job_state(id_, new_job_state)
+            log.info(f"Job Updated '{task.name}' job_id: {job_id} job_state: {new_job_state}")
             if new_job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = task.get_full_requirement('beeflow:CheckpointRequirement')
-                log.info(f'state: {new_job_state}')
                 log.info(f'TIMELIMIT/TIMEOUT task_checkpoint: {task_checkpoint}')
                 if task_checkpoint:
                     try:
@@ -91,10 +105,8 @@ def update_jobs(db):
                         db.update_queue.push(task.workflow_id, task.id, 'FAILED')
                 else:
                     db.update_queue.push(task.workflow_id, task.id, new_job_state)
-            # States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
             elif new_job_state in ('BOOT_FAIL', 'NODE_FAIL', 'OUT_OF_MEMORY', 'PREEMPTED'):
                 # Don't update wfm, just resubmit
-                log.info(f'Task {task.name} in state {new_job_state}')
                 log.info(f'Resubmitting task {task.name}')
                 db.job_queue.remove_by_id(id_)
                 job_state = submit_task(db, worker, task)
@@ -102,7 +114,7 @@ def update_jobs(db):
             else:
                 db.update_queue.push(task.workflow_id, task.id, new_job_state)
 
-        if job_state in ('ZOMBIE', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'):
+        if job_state in COMPLETED_STATES:
             # Remove from the job queue. Our job is finished
             db.job_queue.remove_by_id(id_)
 
