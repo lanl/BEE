@@ -32,14 +32,14 @@ A BEE workflow is a DAG (currently implemented in Neo4j) that represents a workf
 * `stdout`: command output location for task
 * `stdin`: error output location for task
 * `:BEGINS`: Edge from `:Task` to `:Workflow` node to indicate using an input parameter from the workflow
-* `:DEPENDS_ON`: Edge from a `:Task`(1) to a `:Task`(2). Task (2) must be set to the completed state before task (1) can be set to ready and executed. Deduced by parsing CWL.
+* `:DEPENDS_ON`: Edge from a `:Task`(1) to a `:Task`(2). (2) must be completed before (1) can be submitted to the task manager. `:DEPENDS_ON` relationships are deduced by parsing CWL.
 
 ### `:Input`
 * Node that contains information for an input either to a workflow or task
 * `id`: Moniker for input
 * `type` Type of input (e.g File, string)
-* `:INPUT_OF`: Edge from `:Input` to either `:Task` or `:Workflow` node to indicate being an input to the workflow or task
 * `value` Value of input
+* `:INPUT_OF`: Edge from `:Input` to either `:Task` or `:Workflow` node to indicate being an input to the workflow or task
 #### IF `:Input` node is `:INPUT_OF` a `:Task` node:
 * `position`: Serial number for multiple inputs
 * `source`: 
@@ -51,14 +51,14 @@ A BEE workflow is a DAG (currently implemented in Neo4j) that represents a workf
 * `value` Value of output
 * `:OUTPUT_OF`: Edge from `:Output` to either `:Task` or `:Workflow` node to indicate being an output of the task or workflow.
 #### If `:Output` node is `:OUTPUT_OF` a `:Workflow` node:
-* `source`
+* `source`:
 #### IF `:Output` node is `:OUTPUT_OF` a `:Task` node:
 * `glob`: 
 
 ### `:Hint`
 * Node specifying hints (optional parameters) for a task or workflow
 * `params`: Array of hint parameters for workflow or task
-* `:HINT_OF`: Edge from `:Hint` to either`:Task` or `:Workflow` node to indicate being a hint of task or workflow
+* `:HINT_OF`: Edge from `:Hint` to either `:Task` or `:Workflow` node to indicate being a hint of task or workflow
 
 ### `:Requirement`
 * Node specifying requirements (mandatory parameters) for a task or workflow
