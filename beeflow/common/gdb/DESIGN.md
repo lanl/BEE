@@ -1,83 +1,74 @@
-## DRAFT: Preliminary Design
+# Graph Database Design
 
-### Basics
+## Basics
 
 A Neo4j graph consists of nodes and relationships. Nodes can have labels (e.g. `:Label`) and properties (name value pairs like `name = "Pat"`). Relationships have a type (e.g. `:DEPENDS_ON`) and properties. Property values can be `number`, `string`, `boolean`, spatial (only `Point`), temporal (e.g. `Time`, `Date`, `Duration`), or composite types of the previous types (e.g. lists and maps).
 
-### BEE Workflow Graph Entities
+## BEE Workflow Graph Entities
 
-A BEE workflow is a DAG (currently implemented in Neo4j) that represents a workflow originally specified in a CWL (Common Workflow Language) file. The fundamental structure of the workflow is based on `Task` nodes and `DEPENDS_ON` relationships. There are other nodes and relationships that are used to represent other properties of the workflow such as `Metadata`, `Requirements`, `Hints`, `REQUIRES`, etc. BEE's nodes, relationships, and properties are documented below.
+A BEE workflow is a DAG (currently implemented in Neo4j) that represents a workflow originally specified in a CWL (Common Workflow Language) file. The fundamental structure of the workflow is based on `Task` nodes and `DEPENDS_ON` relationships. There are other nodes and relationships that are used to represent other properties of the workflow such as `Metadata`, `Requirements`, `Hints`, `Inputs`, `Outputs`,  etc. BEE's nodes, relationships, and properties are documented below.
 
-### `:Task`
+## List of Node Types
+* Listed edges are **outgoing**. Nodes are english cased, edges are all caps.
 
-* `task_id`: unique ID for every task in workflow
-* `name`: name of task as a string
-* `command`: command (and parameters) to be executed
-* `inputs`: array of inputs to task
-* `outputs`: array of outputs of task
-* `state`: state of task during execution of workflow
-    - Still designing, but may be one of:
-        - `WAITING`: These tasks are in the database and are waiting for the tasks that they are dependent on to `COMPLETE`
-        - `READY`: These tasks are ready to be executed (sent to the task manager). The tasks they depend on are `COMPLETE` so al their inputs are available.
-        - `SUBMITTED`: These tasks have been sent to to the task manager but we don't know that they're actually `RUNNING` until we hear that from the task manager.
-        - `SUBMIT_FAIL`: The task manager attempted to submit a job for this task but there was a failure.
-        - `PENDING`: The task has been submitted and the ensuing job is pending execution on the machine, message via task manager.
-        - `RUNNING`: The task is actively executing on the machine. The task manager told us that this is true.
-        - `CANCELLED`: The task has stopped because it was told to by the user or other entity. The task is not `COMPLETE` and tasks that depend on it can not be run (we can't assume all of its outputs were successfully created). The task manager tells us that the task was `CANCELLED`.
-        - `CRASHED`: An abnormal termination. In other respects it's the same as `CANCELLED`.
-        - `ZOMBIE`: We may use this to indicate an unknown state after a system crash or loss of connection to the task manager or if during query loop the task manager gets an error when trying to query for it. Maybe.
-        - `COMPLETE`: The task has successfully completed execution and all of its outputs have been produced. Its dependent tasks may now be set to `READY`.
-* `:DEPENDS_ON`: relationship(s) to `:Task`s that must complete before this task can run
-    - This relationship has no properties
-* `:HAS_METADATA`: relationship to `:TaskMetadata` for this task
-    - This relationship has no properties
-* `:HAS_REQUIREMENTS`: relationship to `:TaskRequirements` (must have) for this task
-    - This relationship has no properties
-* `:HAS_HINTS`: relationship to `:TaskHints` (may have) for this task
-    - This relationship has no properties
-
-#### `:TaskMedatata`, `:Metadata`
-
-`:TaskMetadata` is also labelled as `:Metadata`. This is so that we can easily search the database for all metadata nodes (e.g. `:TaskMetadata`, `:WorkflowMetadata`).
-
-#### `:TaskRequirements`, `:Requirements`
-
-`:TaskRequirements` is also labelled as `:Requirements`. This is so that we can easily search the database for all requirements nodes (e.g. `:TaskRequirements`, `:WorkflowRequirements`).
-
-#### `:TaskHints`, `:Hints`
-
-`:TaskHints` is also labelled as `:Hints`. This is so that we can easily search the database for all hint nodes (e.g. `:TaskHints`, `:WorkflowHints`).
+### `:BEE`
+* This is the head node to the Graph Database. All `:Workflow` nodes point to this head. Only one such node exists in the graph database.
+* `name`: Is always named "Head"
 
 ### `:Workflow`
-
-* `workflow_id`: unique ID for the **single** workflow in this database
+* Node representing a workflow
+* `id`: unique ID for a workflow in this database
 * `name`: name of workflow as a string
-* `inputs`: array of inputs to workflow
-* `outputs`: array of outputs of workflow
 * `state`: state of entire workflow
-    - Still designing, but may be one of:
-        - `WAITING`: The workflow has been loaded into the database and is waiting to be started.
-        - `RUNNING`: The actively is actively executing on the machine.
-        - `CANCELLED`: The task has stopped because it was told to by the user or other entity. Examine the tasks in the database to determine their individual status.
-        - `CRASHED`: An abnormal termination. In other respects it's the same as `CANCELLED`.
-        - `ZOMBIE`: We may use this to indicate an unknown state after a system crash or loss of connection to other parts of the system (client, task manager, etc.)
-        - `COMPLETE`: The workflow has successfully completed execution and all of its outputs have been produced.
-* `:HAS_METADATA`: relationship to `:WorkflowMetadata` for this workflow
-    - This relationship has no properties
-* `:HAS_REQUIREMENTS`: relationship to `:WorkflowRequirements` (must have) for this workflow
-    - This relationship has no properties
-* `:HAS_HINTS`: relationship to `:WorkflowHints` (may have) for this workflow
-    - This relationship has no properties
+    - See `states,py` for more information
+* `:WORKFLOW_OF`: Edge between from `:Workflow` to `:BEE` node to denote workflows of a BEE instance
 
-#### `:WorkflowMedatata`, `:Metadata`
+### `:Task`
+* Node representing a single task in a workflow
+* `id`: unique ID for every task in workflow
+* `workflow_id`: `id` of the workflow the task belongs to
+* `name`: name of task as a string
+* `base_command`: command (and parameters) to be executed
+* `stdout`: command output location for task
+* `stdin`: error output location for task
+* `:BEGINS`: Edge from `:Task` to `:Workflow` node to indicate using an input parameter from the workflow
+* `:DEPENDS_ON`: Edge from a `:Task`(1) to a `:Task`(2). Task (2) must be set to the completed state before task (1) can be set to ready and executed. Deduced by parsing CWL.
 
-`:WorkflowMetadata` is also labelled as `:Metadata`. This is so that we can easily search the database for all metadata nodes (e.g. `:TaskMetadata`, `:WorkflowMetadata`).
+### `:Input`
+* Node that contains information for an input either to a workflow or task
+* `id`: Moniker for input
+* `type` Type of input (e.g File, string)
+* `:INPUT_OF`: Edge from `:Input` to either `:Task` or `:Workflow` node to indicate being an input to the workflow or task
+* `value` Value of input
+#### IF `:Input` node is `:INPUT_OF` a `:Task` node:
+* `position`: Serial number for multiple inputs
+* `source`: 
 
-#### `:WorkflowRequirements`, `:Requirements`
+### `:Output`
+* Node that contains information for an output either from a workflow or task
+* `id`: Moniker for output
+* `type` Type of output (e.g File, string)
+* `value` Value of output
+* `:OUTPUT_OF`: Edge from `:Output` to either `:Task` or `:Workflow` node to indicate being an output of the task or workflow.
+#### If `:Output` node is `:OUTPUT_OF` a `:Workflow` node:
+* `source`
+#### IF `:Output` node is `:OUTPUT_OF` a `:Task` node:
+* `glob`: 
 
-`:WorkflowRequirements` is also labelled as `:Requirements`. This is so that we can easily search the database for all requirements nodes (e.g. `:TaskRequirements`, `:WorkflowRequirements`).
+### `:Hint`
+* Node specifying hints (optional parameters) for a task or workflow
+* `params`: Array of hint parameters for workflow or task
+* `:HINT_OF`: Edge from `:Hint` to either`:Task` or `:Workflow` node to indicate being a hint of task or workflow
 
-#### `:WorkflowHints`, `:Hints`
+### `:Requirement`
+* Node specifying requirements (mandatory parameters) for a task or workflow
+* `params`: Array of requirement parameters for workflow or task
+* `:REQUIREMENT_OF`: Edge from `:Requirement` to either`:Task` or `:Workflow` node to indicate being a requirement of task or workflow
 
-`:WorkflowHints` is also labelled as `:Hints`. This is so that we can easily search the database for all hint nodes (e.g. `:TaskHints`, `:WorkflowHints`).
+### `Metadata`
+* Contains state of task in workflow
+* `state`: State of the task being described (defaults to `WAITING`)
+* :DESCRIBES`: edge to the `:Task` node whose metadata is being described
+
+
 
