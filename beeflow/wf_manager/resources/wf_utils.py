@@ -291,6 +291,8 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
     db.workflows.update_workflow_state(wf_id, 'Waiting')
     if no_start:
         log.info('Not starting workflow, as requested')
+        wfi.export_dag()
+        log.info('exporting dag')
     else:
         log.info('Starting workflow')
         db.workflows.update_workflow_state(wf_id, 'Running')
