@@ -264,24 +264,16 @@ def connect_neo4j_driver(bolt_port):
 
 
 def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
-                   tasks=None, reexecute=False):
+                   tasks=None):
     """Initialize Workflow in Separate Process."""
     wfi = get_workflow_interface(wf_id)
-    if reexecute:
-        wfi.reset_workflow(wf_id)
-    else:
-        wfi.initialize_workflow(workflow)
+    wfi.initialize_workflow(workflow)
 
     log.info('Setting workflow metadata')
     create_wf_metadata(wf_id, wf_name)
     db = connect_db(wfm_db, get_db_path())
-    if reexecute:
-        _, tasks = wfi.get_workflow()
-        # Tasks come in backwards
-        tasks.reverse()
     for task in tasks:
-        if not reexecute:
-            wfi.add_task(task)
+        wfi.add_task(task)
         metadata = wfi.get_task_metadata(task)
         metadata['workdir'] = wf_workdir
         wfi.set_task_metadata(task, metadata)
