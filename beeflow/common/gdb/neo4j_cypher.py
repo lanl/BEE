@@ -725,3 +725,8 @@ def cleanup(tx):
     cleanup_query = "MATCH (n) DETACH DELETE n"
 
     tx.run(cleanup_query)
+
+def export_dag(tx, wf_id):
+    """Export BEE workflow as graphml"""
+    export_query = apoc.export.graphml.query("MATCH (n1)-[r]->(n2) WHERE n1.workflow_id = $wf_id OR n2.workflow_id = $wf_id RETURN r, n1, n2", "$output_file");
+    tx.run(export_query, wf_id=wf_id, output_file="dag.graphml")
