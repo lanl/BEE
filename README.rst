@@ -56,6 +56,7 @@ Contributors:
 * Patricia Grubel - `pagrubel <https://github.com/pagrubel>`_
 * Qiang Guan - `guanxyz <https://github.com/guanxyz>`_
 * Ragini Gupta - `raginigupta6 <https://github.com/raginigupta6>`_
+* Leah Howell - `Leahh02 <https://github.com/Leahh02>`_
 * Andres Quan - `aquan9 <https://github.com/aquan9>`_
 * Quincy Wofford - `qwofford <https://github.com/qwofford>`_
 * Tim Randles - `trandles-lanl <https://github.com/trandles-lanl>`_
