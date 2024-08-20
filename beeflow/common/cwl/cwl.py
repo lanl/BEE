@@ -38,13 +38,15 @@ class Input:
     def __repr__(self):
         """Representation of an input.
 
-        input_name: input_type """
+        input_name: input_type
+        """
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class CWLInput(Input):
     """Represents a CWL input as opposed to a Run input."""
+
     value: str
 
 
@@ -127,10 +129,12 @@ class Inputs:
         """Return Inputs as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
+
 class CWLInputs(Inputs):
     """CWLInputs is different just so we can generate the YAML file."""
+
     def generate_yaml_inputs(self):
-        """Returns a dictionary that will be used to create job yaml file."""
+        """Return a dictionary that will be used to create job yaml file."""
         yaml_inputs = {}
         for i in self.inputs:
             yaml_inputs[i.input_name] = i.value
@@ -467,7 +471,6 @@ class Step:
         self.run = run
         self.in_ = run.generate_in()
         self.out_ = run.generate_out()
-        #self.yaml_inputs = run.generate_yaml_inputs()
         self.hints = hints
 
     def dump(self):
