@@ -1,3 +1,4 @@
+"""Cat grep tar driver for CWL generator."""
 from beeflow.common.cwl.cwl import (CWL, CWLInput, RunInput, Inputs, CWLOutput,
                                     CWLInputs, Outputs, Run, RunOutput, Step, Steps,
                                     InputBinding)
@@ -7,10 +8,10 @@ def main():
     """Recreate the COMD workflow."""
     # CWLInputs
     cwl_inputs = CWLInputs([CWLInput("input_file", "File", value="lorem.txt"),
-                         CWLInput("word0", "string", value="Vivamus"),
-                         CWLInput("word1", "string", value="pulvinar"),
-                         CWLInput("tarball_fname", "string", value="out.tgz")
-                         ])
+                            CWLInput("word0", "string", value="Vivamus"),
+                            CWLInput("word1", "string", value="pulvinar"),
+                            CWLInput("tarball_fname", "string", value="out.tgz")
+                            ])
 
     # CWLOutputs
     cwl_outputs = Outputs([CWLOutput("tarball", "File", "tar/tarball"),
@@ -42,7 +43,7 @@ def main():
     run_inputs = Inputs([RunInput("word", "string",
                          InputBinding(position=1), source="word1"),
                          RunInput("text_file", "File",
-                             InputBinding(position=2), source="cat/contents")])
+                         InputBinding(position=2), source="cat/contents")])
     run_outputs = Outputs([RunOutput("occur", "stdout")])
     grep1_run = Run(base_command, run_inputs, run_outputs, stdout, stderr)
     grep1_step = Step("grep1", grep1_run)
@@ -59,7 +60,6 @@ def main():
     run_outputs = Outputs([RunOutput("tarball", "File")])
     tar_run = Run(base_command, run_inputs, run_outputs, stdout, stderr)
     tar_step = Step("tar", tar_run)
-
 
     cgt_steps = Steps([cat_step, grep0_step, grep1_step, tar_step])
     cgt = CWL("catgreptar", cwl_inputs, cwl_outputs, cgt_steps)

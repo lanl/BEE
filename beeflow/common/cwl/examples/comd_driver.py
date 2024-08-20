@@ -1,3 +1,5 @@
+"""COMD driver for CWL generator."""
+
 from beeflow.common.cwl.cwl import (CWL, CWLInput, RunInput, Inputs, CWLOutput,
                                     Outputs, Run, RunOutput, Step, Steps,
                                     InputBinding, MPIRequirement, DockerRequirement, Hints)
@@ -6,13 +8,13 @@ from beeflow.common.cwl.cwl import (CWL, CWLInput, RunInput, Inputs, CWLOutput,
 def main():
     """Recreate the COMD workflow."""
     # CWLInputs
-    cwl_inputs = Inputs([CWLInput('i', 'int'),
-                         CWLInput('j', 'int'),
-                         CWLInput('k', 'int'),
-                         CWLInput('x', 'int'),
-                         CWLInput('y', 'int'),
-                         CWLInput('z', 'int'),
-                         CWLInput('pot_dir', 'string')])
+    cwl_inputs = Inputs([CWLInput('i', 'int', value=2),
+                         CWLInput('j', 'int', value=2),
+                         CWLInput('k', 'int', value=2),
+                         CWLInput('x', 'int', value=40),
+                         CWLInput('y', 'int', value=40),
+                         CWLInput('z', 'int', value=40),
+                         CWLInput('pot_dir', 'string', value='/CoMD/pots')])
 
     # CWLOutputs
     cwl_outputs = Outputs([CWLOutput('comd_stdout', 'File', 'comd/comd_stdout')])
@@ -20,13 +22,13 @@ def main():
     # Step Run
     base_command = "'[/CoMD/bin/CoMD-mpi, '-e']'"
     stdout = 'comd_stdout.txt'
-    run_inputs = Inputs([RunInput('i', 'int', InputBinding(prefix='-i'), value=2),
-                         RunInput('j', 'int', InputBinding(prefix='-j'), value=2),
-                         RunInput('k', 'int', InputBinding(prefix='-k'), value=2),
-                         RunInput('x', 'int', InputBinding(prefix='-x'), value=40),
-                         RunInput('y', 'int', InputBinding(prefix='-y'), value=40),
-                         RunInput('z', 'int', InputBinding(prefix='-z'), value=40),
-                         RunInput('pot_dir', 'string', InputBinding(prefix='--potDir'), value="/CoMD/pots")])
+    run_inputs = Inputs([RunInput('i', 'int', InputBinding(prefix='-i')),
+                         RunInput('j', 'int', InputBinding(prefix='-j')),
+                         RunInput('k', 'int', InputBinding(prefix='-k')),
+                         RunInput('x', 'int', InputBinding(prefix='-x')),
+                         RunInput('y', 'int', InputBinding(prefix='-y')),
+                         RunInput('z', 'int', InputBinding(prefix='-z')),
+                         RunInput('pot_dir', 'string', InputBinding(prefix='--potDir'))])
 
     run_outputs = Outputs([RunOutput('comd_stdout', 'stdout')])
     mpi = MPIRequirement(nodes=4, ntasks=8)
@@ -38,7 +40,7 @@ def main():
     comd_steps = Steps([comd_step])
     comd = CWL('comd', cwl_inputs, cwl_outputs, comd_steps)
     comd.dump_wf()
-    #comd.dump_inputs()
+    comd.dump_inputs()
 
 
 if __name__ == "__main__":
