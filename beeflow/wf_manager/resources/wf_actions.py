@@ -65,7 +65,7 @@ class WFActions(Resource):
                 wfi.finalize_workflow()
             wf_utils.update_wf_status(wf_id, 'Cancelled')
             db.workflows.update_workflow_state(wf_id, 'Cancelled')
-            log.info("Workflow cancelled")
+            log.info(f"Workflow {wf_id} cancelled")
             log.info("Shutting down gdb")
             pid = db.workflows.get_gdb_pid(wf_id)
             dep_manager.kill_gdb(pid)
@@ -89,12 +89,13 @@ class WFActions(Resource):
         option = self.reqparse.parse_args()['option']
 
         wfi = wf_utils.get_workflow_interface(wf_id)
+        log.info('Pausing/resuming workflow')
         wf_state = wfi.get_workflow_state()
-        if option == 'pause' and wf_state == 'RUNNING':
+        if option == 'pause' and wf_state in ('RUNNING', 'INITIALIZING'):
             wfi.pause_workflow()
             wf_utils.update_wf_status(wf_id, 'Paused')
             db.workflows.update_workflow_state(wf_id, 'Paused')
-            log.info("Workflow Paused")
+            log.info(f"Workflow {wf_id} Paused")
             resp = make_response(jsonify(status='Workflow Paused'), 200)
         elif option == 'resume' and wf_state == 'PAUSED':
             wfi.resume_workflow()
@@ -102,7 +103,7 @@ class WFActions(Resource):
             wf_utils.schedule_submit_tasks(wf_id, tasks)
             wf_utils.update_wf_status(wf_id, 'Running')
             db.workflows.update_workflow_state(wf_id, 'Running')
-            log.info("Workflow Resumed")
+            log.info(f"Workflow {wf_id} Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)
         else:
             resp_msg = f'Cannot {option} workflow. It is currently {wf_state.lower()}.'

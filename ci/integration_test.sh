@@ -4,8 +4,8 @@
 
 set +e
 
-case $BATCH_SCHEDULER in
-Slurm)
+case $BEE_WORKER in
+Slurm*)
     ./ci/inner_integration_test.sh
     EXIT_CODE=$?
     ;;
@@ -14,7 +14,7 @@ Flux)
     EXIT_CODE=$?
     ;;
 *)
-    printf "ERROR: Invalid batch scheduler '%s'\n" "$BATCH_SCHEDULER"
+    printf "ERROR: Invalid batch scheduler option '%s'\n" "$BEE_WORKER"
     ;;
 esac
 
