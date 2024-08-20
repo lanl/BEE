@@ -38,14 +38,14 @@ class Input:
     def __repr__(self):
         """Representation of an input.
 
-        input_name: input_type
-        """
+        input_name: input_type """
         return yaml.dump(self.dump(), sort_keys=False)
 
 
 @dataclass
 class CWLInput(Input):
     """Represents a CWL input as opposed to a Run input."""
+    value: str
 
 
 @dataclass
@@ -81,7 +81,8 @@ class RunInput(Input):
     """
 
     input_binding: InputBinding
-    input_value: str
+    # For now source will just be a string but might make it a type later
+    source: str = None
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
@@ -125,6 +126,15 @@ class Inputs:
     def __repr__(self):
         """Return Inputs as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
+
+class CWLInputs(Inputs):
+    """CWLInputs is different just so we can generate the YAML file."""
+    def generate_yaml_inputs(self):
+        """Returns a dictionary that will be used to create job yaml file."""
+        yaml_inputs = {}
+        for i in self.inputs:
+            yaml_inputs[i.input_name] = i.value
+        return yaml_inputs
 
 
 @dataclass
@@ -229,7 +239,7 @@ class CWLOutput(Output):
 
 
 class Outputs:
-    """Represents inputs for a workflow."""
+    """Represents outputs for a workflow."""
 
     def __init__(self, outputs):
         """Initialize outputs."""
@@ -397,7 +407,7 @@ class Run:
     later.
     """
 
-    def __init__(self, base_command, inputs, outputs, stdout):
+    def __init__(self, base_command, inputs, outputs, stdout, stderr=None):
         """Initialize Run."""
         # This is implicit since we only support CommandLineTool steps atm
         self.run_class = 'CommandLineTool'
@@ -405,6 +415,7 @@ class Run:
         self.inputs = inputs
         self.outputs = outputs
         self.stdout = stdout
+        self.stderr = stderr
 
     def dump(self):
         """Dump run section into a dictionary."""
@@ -412,21 +423,24 @@ class Run:
         run_dump['run']['class'] = self.run_class
         run_dump['run']['baseCommand'] = self.base_command
         run_dump['run']['stdout'] = self.stdout
+        if self.stderr:
+            run_dump['run']['stderr'] = self.stderr
         run_dump['run'].update(self.inputs.dump())
         run_dump['run'].update(self.outputs.dump())
         return run_dump
 
     def generate_in(self):
-        """Generate the in section for a task.
+        """Generate the in section for a task as well as the YAML for a particular step.
 
         This maps to the inputs part of the run section which is then
         called in the step which holds that run section.
         """
-        # for i in self.inputs.inputs:
-        #    print(i.input_value)
         in_ = {'in': {}}
         for i in self.inputs.inputs:
-            in_['in'][i.input_name] = i.input_value
+            if i.source:
+                in_['in'][i.input_name] = i.source
+            else:
+                in_['in'][i.input_name] = i.input_name
         return in_
 
     def generate_out(self):
@@ -447,12 +461,13 @@ class Run:
 class Step:
     """Represent a CWL step."""
 
-    def __init__(self, step_name, run, hints):
+    def __init__(self, step_name, run, hints=None):
         """Initialize CWL step."""
         self.step_name = step_name
         self.run = run
         self.in_ = run.generate_in()
         self.out_ = run.generate_out()
+        #self.yaml_inputs = run.generate_yaml_inputs()
         self.hints = hints
 
     def dump(self):
@@ -461,7 +476,8 @@ class Step:
         step_dump[self.step_name].update(self.run.dump())
         step_dump[self.step_name].update(self.in_)
         step_dump[self.step_name].update(self.out_)
-        step_dump[self.step_name].update(self.hints.dump())
+        if self.hints:
+            step_dump[self.step_name].update(self.hints.dump())
         return step_dump
 
     def __repr__(self):
@@ -499,15 +515,30 @@ class CWL:
         self.outputs = outputs
         self.steps = steps
 
-    def dump(self):
+    def dump_wf(self, path=None):
         """Dump the workflow. If no path is specified print to stdout."""
         cwl_dump = {}
         cwl_dump.update(self.header.dump())
         cwl_dump.update(self.inputs.dump())
         cwl_dump.update(self.outputs.dump())
         cwl_dump.update(self.steps.dump())
-        print(yaml.dump(cwl_dump, sort_keys=False))
+        wf_contents = yaml.dump(cwl_dump, sort_keys=False)
+        if path:
+            with open(f"{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
+                print(wf_contents, file=wf_file)
+        else:
+            # If no path, print to stdout
+            print(wf_contents)
+
+    def dump_inputs(self, path=None):
+        """Dump YAML inputs."""
+        yaml_contents = self.inputs.generate_yaml_inputs()
+        if path:
+            with open(f"{self.cwl_name}.cwl", "w", encoding="utf-8") as yaml_file:
+                print(yaml_contents, file=yaml_file)
+        else:
+            print(yaml_contents)
 
     def __repr__(self):
         """Return CWL file as a string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        return yaml.dump(self.dump_wf(), sort_keys=False)
