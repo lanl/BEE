@@ -86,6 +86,24 @@ def setup_configs(bolt_port, http_port, https_port):
     with open(gdb_configfile, "wt", encoding="utf8") as cfile:
         cfile.write(data)
 
+    apoc_configfile = os.path.join(confs_dir, "apoc.conf")
+    if not os.path.exists(apoc_configfile):
+        with open(apoc_configfile, "wt", encoding="utf8") as afile:
+            afile.write("apoc.export.file.enabled=true\n")
+        log.info(f"Created {apoc_configfile} with apoc.export.file.enabled=true")
+    else:
+        with open(apoc_configfile, "rt", encoding="utf8") as afile:
+            apoc_data = afile.read()
+
+        apoc_config = r'#?(apoc.export.file.enabled=)[^\n]*'
+        if re.search(apoc_config, apoc_data):
+            apoc_data = re.sub(apoc_config, r'apoc.export.file.enabled=true', apoc_data)
+        else:
+            apoc_data += "\napoc.export.file.enabled=true\n"
+
+        with open(apoc_configfile, "wt", encoding="utf8") as afile:
+            afile.write(apoc_data)
+
 
 def create_credentials():
     """Create the password and set the logfiles in environment."""
@@ -95,10 +113,12 @@ def create_credentials():
         subprocess.run([
             "ch-run",
             "--set-env=" + container_path + "/ch/environment",
+            "--set-env=apoc.export.file.enabled=true",
             "-b", confs_dir + ":/var/lib/neo4j/conf",
             "-b", data_dir + ":/data",
             "-b", logs_dir + ":/logs",
             "-b", run_dir + ":/var/lib/neo4j/run", container_path,
+            "-W", "-b", bee_workdir + ":/var/lib/neo4j/import",
             "--", *command
         ], check=True)
     except subprocess.CalledProcessError:
@@ -112,11 +132,13 @@ def create_database():
         proc = subprocess.Popen([ #noqa can't use with because returning
             "ch-run",
             "--set-env=" + container_path + "/ch/environment",
+            "--set-env=apoc.export.file.enabled=true",
             "-b", confs_dir + ":/var/lib/neo4j/conf",
             "-b", data_dir + ":/data",
             "-b", logs_dir + ":/logs",
             "-b", run_dir + ":/var/lib/neo4j/run",
             "-b", certs_dir + ":/var/lib/neo4j/certificates",
+            "-W", "-b", bee_workdir + ":/var/lib/neo4j/import",
             container_path, "--", *command
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         wait_gdb()

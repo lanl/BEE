@@ -728,5 +728,14 @@ def cleanup(tx):
 
 def export_dag(tx, wf_id):
     """Export BEE workflow as graphml"""
-    export_query = apoc.export.graphml.query("MATCH (n1)-[r]->(n2) WHERE n1.workflow_id = $wf_id OR n2.workflow_id = $wf_id RETURN r, n1, n2", "$output_file");
-    tx.run(export_query, wf_id=wf_id, output_file="dag.graphml")
+    export_query = (
+        "WITH \"MATCH (n1)-[r]->(n2) "
+        f"WHERE n1.workflow_id = '{wf_id}' OR n2.workflow_id = '{wf_id}' "
+        "RETURN r, n1, n2\" AS query "
+        f"CALL apoc.export.graphml.query(query, 'workflow-graph-{wf_id}.graphml', {{}}) "
+        "YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data "
+        "RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data"
+    )
+
+    # Run the query (no parameters are needed anymore since wf_id is now directly embedded in the query string)
+    tx.run(export_query)
