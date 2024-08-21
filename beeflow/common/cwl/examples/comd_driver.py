@@ -9,12 +9,12 @@ def main():
     """Recreate the COMD workflow."""
     # CWLInputs
     cwl_inputs = CWLInputs([CWLInput('i', 'int', value=2),
-                         CWLInput('j', 'int', value=2),
-                         CWLInput('k', 'int', value=2),
-                         CWLInput('x', 'int', value=40),
-                         CWLInput('y', 'int', value=40),
-                         CWLInput('z', 'int', value=40),
-                         CWLInput('pot_dir', 'string', value='/CoMD/pots')])
+                            CWLInput('j', 'int', value=2),
+                            CWLInput('k', 'int', value=2),
+                            CWLInput('x', 'int', value=40),
+                            CWLInput('y', 'int', value=40),
+                            CWLInput('z', 'int', value=40),
+                            CWLInput('pot_dir', 'string', value='/CoMD/pots')])
 
     # CWLOutputs
     cwl_outputs = Outputs([CWLOutput('comd_stdout', 'File', 'comd/comd_stdout')])
@@ -39,7 +39,7 @@ def main():
     comd_step = Step('comd', comd_run, hints)
     comd_steps = Steps([comd_step])
     comd = CWL('comd', cwl_inputs, cwl_outputs, comd_steps)
-    
+ 
     comd_path = pathlib.Path("comd/")
     comd_path.mkdir(exist_ok=True)
     comd.dump_wf(comd_path)
