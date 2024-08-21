@@ -39,7 +39,7 @@ def main():
     comd_step = Step('comd', comd_run, hints)
     comd_steps = Steps([comd_step])
     comd = CWL('comd', cwl_inputs, cwl_outputs, comd_steps)
- 
+
     comd_path = pathlib.Path("comd/")
     comd_path.mkdir(exist_ok=True)
     comd.dump_wf(comd_path)
