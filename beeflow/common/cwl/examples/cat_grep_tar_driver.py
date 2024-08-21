@@ -1,4 +1,5 @@
 """Cat grep tar driver for CWL generator."""
+import pathlib
 from beeflow.common.cwl.cwl import (CWL, CWLInput, RunInput, Inputs, CWLOutput,
                                     CWLInputs, Outputs, Run, RunOutput, Step, Steps,
                                     InputBinding)
@@ -63,8 +64,11 @@ def main():
 
     cgt_steps = Steps([cat_step, grep0_step, grep1_step, tar_step])
     cgt = CWL("catgreptar", cwl_inputs, cwl_outputs, cgt_steps)
-    cgt.dump_wf('.')
-    cgt.dump_inputs('.')
+
+    cgt_path = pathlib.Path("cat-grep-tar/")
+    cgt_path.mkdir(exist_ok=True)
+    cgt.dump_wf(cgt_path)
+    cgt.dump_inputs(cgt_path)
 
 
 if __name__ == "__main__":

@@ -400,6 +400,7 @@ class Hints:
         """Return Hint as a yaml string."""
         return yaml.dump(self.dump(), sort_keys=False)
 
+
 class Run:
     """Represents a run section for a CWL workflow.
 
@@ -526,21 +527,18 @@ class CWL:
         cwl_dump.update(self.steps.dump())
         wf_contents = yaml.dump(cwl_dump, sort_keys=False)
         if path:
-            with open(f"{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
+            with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
-        else:
-            # If no path, return string
-            return wf_contents
+        return wf_contents
 
     def dump_inputs(self, path=None):
         """Dump YAML inputs."""
-        yaml_contents = yaml.dump(self.inputs.generate_yaml_inputs(), 
+        yaml_contents = yaml.dump(self.inputs.generate_yaml_inputs(),
                                   sort_keys=False)
         if path:
-            with open(f"{self.cwl_name}.cwl", "w", encoding="utf-8") as yaml_file:
+            with open(f"{path}/{self.cwl_name}.yaml", "w", encoding="utf-8") as yaml_file:
                 print(yaml_contents, file=yaml_file)
-        else:
-            return yaml_contents
+        return yaml_contents
 
     def __repr__(self):
         """Return CWL file as a string."""
