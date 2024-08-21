@@ -536,7 +536,7 @@ class CWL:
         yaml_contents = yaml.dump(self.inputs.generate_yaml_inputs(),
                                   sort_keys=False)
         if path:
-            with open(f"{path}/{self.cwl_name}.yaml", "w", encoding="utf-8") as yaml_file:
+            with open(f"{path}/{self.cwl_name}.yml", "w", encoding="utf-8") as yaml_file:
                 print(yaml_contents, file=yaml_file)
         return yaml_contents
 
