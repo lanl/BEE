@@ -291,12 +291,17 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
     db.workflows.update_workflow_state(wf_id, 'Waiting')
     if no_start:
         log.info('Not starting workflow, as requested')
-        wfi.export_dag()
-        log.info('exporting dag')
     else:
         log.info('Starting workflow')
         db.workflows.update_workflow_state(wf_id, 'Running')
         start_workflow(wf_id)
+
+def export_workflow_dag(wf_id):
+    """Export the DAG of the workflow."""
+    wfi = get_workflow_interface(wf_id)
+    log.info(f"Exporting DAG for workflow ID {wf_id}")
+    wfi.export_dag()
+    log.info(f"DAG for workflow ID {wf_id} exported successfully.")
 
 
 def start_workflow(wf_id):
