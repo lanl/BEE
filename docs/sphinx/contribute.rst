@@ -8,7 +8,7 @@ Git Workflow
 
 BEE has two lifetime branches, develop and main. To work on a fix or feature, create a branch from develop. These branches should address an open issue and follow the format **issue#/title** (e.g. 'issue857/mpi-integration-test'). If there isn't an issue for your fix or feature consider making one.
 
-All pull requests (PR's) are made from feature or issue branches and undergo review and testing before they can be merged into develop. Open a **work in progress** PR with label of **'WIP'**. Before submitting the PR for approval, merge develop into your branch and fix any conflicts. GitHub CI tests must pass before merging into develop.
+All pull requests (PR's) are made from feature or issue branches and undergo review and testing before they can be merged into develop. Open a **work in progress** PR with label of **'WIP'**. Before submitting the PR for approval, merge develop into your branch and fix any conflicts. Remove the 'WIP' label when the PR is complete and ready for final review. GitHub CI tests must pass before merging into develop.
 
 Upon release, develop will be merged by the team lead into main. Additionally, all changes must pass overnight tests before being merged into main.
 
