@@ -228,6 +228,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             # Packaging in temp dir, after copying alternate cwl_main or yaml file
             cwl_indir = is_parent(wf_path, main_cwl_path)
             yaml_indir = is_parent(wf_path, yaml_path)
+
             # Always create temp dir for the workflow
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
             tempdir_wf_path = pathlib.Path(tempdir_path / wf_name)
@@ -239,6 +240,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             package_path = package(tempdir_wf_path, tempdir_path)
         else:
             package_path = wf_path
+
         # Untar and parse workflow
         untar_path = pathlib.Path(tempfile.mkdtemp())
         untar_wf_path = unpackage(package_path, untar_path)
@@ -571,18 +573,17 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     workdir = os.path.abspath(workdir)
     if not os.path.exists(workdir):
         error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
-    cwl_path = workdir + '/' + wf_name
-    archive_path_arr = str(wf_path).split('/')
-    archive_id = archive_path_arr[len(archive_path_arr) - 1 ].partition('.')[0]
+    cwl_path = pathlib.Path(pathlib.Path(workdir) / wf_name)
+    archive_id = str(wf_path.stem)
     with tarfile.open(wf_path) as archive:
-        archive_cmd = yaml.load(archive.extractfile(archive_id + '/submit_command_args.yaml').read(),
+        archive_cmd = yaml.load(archive.extractfile(str(pathlib.Path(archive_id) / 'submit_command_args.yaml')).read(),
                 Loader=yaml.Loader)
         archive_name = archive_cmd['wf_name']
         archive_workdir = archive_cmd['workdir']
         archive_wf_path = archive_cmd['wf_path']
         cwl_files = [
                 tarinfo for tarinfo in archive.getmembers()
-                if tarinfo.name.startswith(archive_id + '/bee_workflow/' + archive_name)
+                if tarinfo.name.startswith(archive_id + '/bee_workflow/')
                     and tarinfo.isreg()
                 ]
         for path in cwl_files:
@@ -592,11 +593,10 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
         archive_main_cwl_arr  = archive_cmd['main_cwl'].split('/')
         archive_yaml_arr= archive_cmd['yaml'].split('/')
 
-        main_cwl = cwl_path + '/' + archive_main_cwl_arr[len(archive_main_cwl_arr) - 1]
-        yaml_file = cwl_path + '/' + archive_yaml_arr[len(archive_yaml_arr) - 1]
+        main_cwl = cwl_path / pathlib.Path(archive_cmd['main_cwl']).name
+        yaml_file = cwl_path / pathlib.Path(archive_cmd['yaml']).name
 
         return submit(wf_name, pathlib.Path(cwl_path), main_cwl, yaml_file, pathlib.Path(workdir))
-        
 
     data = {
         'wf_filename': os.path.basename(wf_path).encode(),
