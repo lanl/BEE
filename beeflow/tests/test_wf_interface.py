@@ -6,7 +6,7 @@ import unittest
 from beeflow.common.wf_data import (Workflow, Task, Requirement, Hint, InputParameter,
                                     OutputParameter, StepInput, StepOutput, generate_workflow_id)
 from beeflow.common.wf_interface import WorkflowInterface
-from beeflow.tests.mocks import MockGDBInterface
+from beeflow.tests.mocks import MockGDBDriver
 
 
 class TestWorkflowInterface(unittest.TestCase):
@@ -15,13 +15,18 @@ class TestWorkflowInterface(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Start the GDB and initialize the Workflow interface."""
-        mock_gdb_iface = MockGDBInterface()
-        cls.wfi = WorkflowInterface(mock_gdb_iface)
+        mock_gdb_driver = MockGDBDriver()
+        cls.wfi = WorkflowInterface(None, mock_gdb_driver)
 
     def tearDown(self):
         """Clear all data in the Neo4j database."""
-        if self.wfi.workflow_initialized() and self.wfi.workflow_loaded():
-            self.wfi.finalize_workflow()
+        self.wfi._gdb_driver.workflow = None
+        self.wfi._gdb_driver.workflow_state = None
+        self.wfi._gdb_driver.tasks.clear()
+        self.wfi._gdb_driver.task_states.clear()
+        self.wfi._gdb_driver.task_metadata.clear()
+        self.wfi._gdb_driver.inputs.clear()
+        self.wfi._gdb_driver.outputs.clear()
 
     def test_initialize_workflow(self):
         """Test workflow initialization.
@@ -130,17 +135,6 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertNotEqual(new_workflow_id, workflow.id)
         for task in gdb_tasks:
             self.assertEqual(task.workflow_id, new_workflow_id)
-
-    def test_finalize_workflow(self):
-        """Test workflow deletion from the graph database."""
-        self.wfi.initialize_workflow(Workflow(
-            "test_workflow", None, None,
-            [InputParameter("test_input", "File", "input.txt")],
-            [OutputParameter("test_output", "File", "output.txt", "viz/output")],
-            generate_workflow_id()))
-        self.wfi.finalize_workflow()
-
-        self.assertFalse(self.wfi.workflow_loaded())
 
     def test_add_task(self):
         """Test task creation."""
@@ -590,31 +584,6 @@ class TestWorkflowInterface(unittest.TestCase):
         self.wfi.set_task_output(task, "test_task/output", "output.txt")
         self.assertEqual(test_output, self.wfi.get_task_output(task, "test_task/output"))
 
-    def test_evaluate_expression(self):
-        """Test the evaluation of an input/output expression."""
-        workflow_id = generate_workflow_id()
-        self.wfi.initialize_workflow(Workflow(
-            "test_workflow", None, None,
-            [InputParameter("test_input", "File", "input.txt")],
-            [OutputParameter("test_output", "File", "output.txt", "test_task/output")],
-            workflow_id))
-        task = Task(
-            "test_task", "ls", None, None,
-            [StepInput("test_input", "File", "input.txt", "default.txt", "test_input", None, None,
-                       '$("test_" + inputs.test_input)')],
-            [StepOutput("test_task/output", "File", None, "$(inputs.test_input).bak")],
-            None, None, workflow_id)
-        self.wfi.add_task(task)
-
-        test_input = StepInput("test_input", "string", "test_input.txt", "default.txt",
-                               "test_input", None, None, '$("test_" + inputs.test_input)')
-        self.wfi.evaluate_expression(task, "test_input")
-        self.assertEqual(test_input, self.wfi.get_task_input(task, "test_input"))
-
-        test_output = StepOutput("test_task/output", "File", None, "test_input.txt.bak")
-        self.wfi.evaluate_expression(task, "test_task/output", output=True)
-        self.assertEqual(test_output, self.wfi.get_task_output(task, "test_task/output"))
-
     def test_workflow_completed(self):
         """Test determining if a workflow has completed."""
         workflow_id = generate_workflow_id()
@@ -640,47 +609,6 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Workflow now completed
         self.assertTrue(self.wfi.workflow_completed())
-
-    def test_workflow_initialized(self):
-        """Test determining if a workflow is initialized."""
-        self.wfi.initialize_workflow(Workflow(
-            "test_workflow", None, None,
-            [InputParameter("test_input", "File", "input.txt")],
-            [OutputParameter("test_output", "File", "output.txt", "viz/output")],
-            generate_workflow_id()))
-
-        # Workflow now initialized
-        self.assertTrue(self.wfi.workflow_initialized())
-
-    def test_workflow_loaded(self):
-        """Test determining if a workflow is loaded."""
-        self.wfi.initialize_workflow(Workflow(
-            "test_workflow", None, None,
-            [InputParameter("test_input", "File", "input.txt")],
-            [OutputParameter("test_output", "File", "output.txt", "viz/output")],
-            generate_workflow_id()))
-        self.wfi.finalize_workflow()
-
-        # Workflow not loaded
-        self.assertFalse(self.wfi.workflow_loaded())
-
-        self.wfi.initialize_workflow(Workflow(
-            "test_workflow", None, None,
-            [InputParameter("test_input", "File", "input.txt")],
-            [OutputParameter("test_output", "File", "output.txt", "viz/output")],
-            generate_workflow_id()))
-
-        # Workflow now loaded
-        self.assertTrue(self.wfi.workflow_loaded())
-
-    def test_workflow_id(self):
-        """Test retrieving the workflow ID from the workflow interface."""
-        self.assertEqual(self.wfi.workflow_id, self.wfi._workflow_id)
-
-        # Set workflow_id to None so it's retrieved from database
-        self.wfi._workflow_id = None
-
-        self.assertEqual(self.wfi.workflow_id, self.wfi._workflow_id)
 
     def _create_test_tasks(self, workflow_id):
         """Create test tasks to reduce redundancy."""
