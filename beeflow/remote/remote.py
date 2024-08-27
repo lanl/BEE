@@ -152,15 +152,10 @@ def create_app():
                             reload=True,
                             log_level="info")
     server = uvicorn.Server(config)
-    
+
     try:
         server.run()
-    except OSError as e:
-        if e.errno == 98:
+    except OSError as E:
+        if E.errno == 98:
             print(f"Selected port {port_number} is already in use.")
         raise
-
-        
-
-
-
