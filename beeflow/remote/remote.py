@@ -155,7 +155,7 @@ def create_app():
 
     try:
         server.run()
-    except OSError as E:
-        if E.errno == 98:
+    except OSError as exception:
+        if exception.errno == 98:
             print(f"Selected port {port_number} is already in use.")
         raise
