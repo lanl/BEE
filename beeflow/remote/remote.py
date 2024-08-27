@@ -122,6 +122,7 @@ def is_port_taken(port, host='127.0.0.1'):
             return True  # Port is taken
     return False  # Port is free
 
+
 def find_free_port(start_port=1024, end_port=65535, host='127.0.0.1'):
     """Search for a free port within the given range."""
     for port in range(start_port, end_port):
@@ -133,18 +134,17 @@ def find_free_port(start_port=1024, end_port=65535, host='127.0.0.1'):
                 continue  # If the port is in use, try the next one
     raise RuntimeError(f"No free port found in range {start_port}-{end_port}")
 
+
 def create_app():
     """Start the web-server for the API with uvicorn."""
     # decide what port we're using for the long term. I set it to port 7777 temporarily
 
     port_number = bc.get('DEFAULT', 'remote_api_port')
-    if is_port_taken(port_number) == True:
+    if is_port_taken(port_number) is True:
         print("Requested port number is unavailable, attempting to map port dynamically")
 
         port_number = find_free_port()
         print(f"Available port found: {port_number}")
-
-
 
     config = uvicorn.Config("beeflow.remote.remote:app",
                             host="0.0.0.0",
@@ -156,7 +156,6 @@ def create_app():
     try:
         server.run()
     except OSError as e:
-        #Do something if the port is already used. 
         if e.errno == 98:
             print(f"Selected port {port_number} is already in use.")
         raise
