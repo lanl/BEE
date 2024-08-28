@@ -39,6 +39,7 @@ _INTERACTIVE = False
 
 
 logging.basicConfig(level=logging.WARNING)
+logging.getLogger("neo4j").setLevel(logging.WARNING)
 WORKFLOW_MANAGER = 'bee_wfm/v1/jobs/'
 
 
@@ -596,7 +597,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 def dag(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Export a DAG of the workflow to a GraphML file."""
     try:
-        wf_utils.export_workflow_dag(wf_id)
+        wf_utils.export_dag(wf_id)
         typer.echo(f"DAG for workflow {wf_id} has been exported successfully.")
     except Exception as e:
         error_exit(f"Failed to export DAG: {str(e)}")
