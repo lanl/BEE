@@ -477,6 +477,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             session.write_transaction(tx.export_dag, wf_id=workflow_id)
 
+
 def _reconstruct_requirements(req_records):
     """Reconstruct requirements by their records retrieved from Neo4j.
 

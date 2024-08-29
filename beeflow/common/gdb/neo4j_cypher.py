@@ -726,10 +726,10 @@ def cleanup(tx):
 
     tx.run(cleanup_query)
 
+
 def export_dag(tx, wf_id):
-    """Export BEE workflow as graphml"""
-    from beeflow.client.bee_client import _short_id
-    short_id = _short_id(wf_id)
+    """Export BEE workflow as graphml."""
+    short_id = wf_id[:6]
     export_query = (
         "WITH \"MATCH (n1)-[r]->(n2) "
         f"WHERE n1.workflow_id = '{wf_id}' OR n2.workflow_id = '{wf_id}' "
@@ -739,5 +739,4 @@ def export_dag(tx, wf_id):
         "RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data"
     )
 
-    # Run the query (no parameters are needed anymore since wf_id is now directly embedded in the query string)
     tx.run(export_query)

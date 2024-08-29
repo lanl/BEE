@@ -300,7 +300,6 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
 def export_dag(wf_id):
     """Export the DAG of the workflow."""
     wfi = get_workflow_interface(wf_id)
-    print(f"Exporting DAG for workflow ID {wf_id}")
     wfi.export_dag()
 
 

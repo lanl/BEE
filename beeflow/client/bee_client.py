@@ -593,14 +593,12 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     logging.info(f'ReExecute Workflow: {resp.text}')
     return wf_id
 
+
 @app.command()
 def dag(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Export a DAG of the workflow to a GraphML file."""
-    try:
-        wf_utils.export_dag(wf_id)
-        typer.echo(f"DAG for workflow {wf_id} has been exported successfully.")
-    except Exception as e:
-        error_exit(f"Failed to export DAG: {str(e)}")
+    wf_utils.export_dag(wf_id)
+    typer.echo(f"DAG for workflow {wf_id} has been exported successfully.")
 
 
 @app.callback(invoke_without_command=True)

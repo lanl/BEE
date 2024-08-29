@@ -106,6 +106,7 @@ def setup_configs(bolt_port, http_port, https_port):
         with open(apoc_configfile, "wt", encoding="utf8") as afile:
             afile.write(apoc_data)
 
+
 def create_credentials():
     """Create the password and set the logfiles in environment."""
     db_password = bc.get('graphdb', 'dbpass')
