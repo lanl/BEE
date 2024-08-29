@@ -731,12 +731,14 @@ def export_dag(tx, wf_id):
     """Export BEE workflow as graphml."""
     short_id = wf_id[:6]
     export_query = (
-        "WITH \"MATCH (n1)-[r]->(n2) "
-        f"WHERE n1.workflow_id = '{wf_id}' OR n2.workflow_id = '{wf_id}' "
-        "RETURN r, n1, n2\" AS query "
-        f"CALL apoc.export.graphml.query(query, '{short_id}.graphml', {{useTypes: true}}) "
-        "YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data "
-        "RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, batches, done, data"
-    )
+    "WITH \"MATCH (n1)-[r]->(n2) "
+    f"WHERE n1.workflow_id = '{wf_id}' OR n2.workflow_id = '{wf_id}' "
+    "RETURN r, n1, n2\" AS query "
+    f"CALL apoc.export.graphml.query(query, '{short_id}.graphml', {{useTypes: true}}) "
+    "YIELD file, source, format, nodes, relationships, properties, time, rows, batchSize, "
+    "batches, done, data "
+    "RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, "
+    "batches, done, data"
+)
 
     tx.run(export_query)
