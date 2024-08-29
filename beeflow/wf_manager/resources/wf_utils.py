@@ -285,13 +285,16 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
         metadata = wfi.get_task_metadata(task)
         metadata['workdir'] = wf_workdir
         wfi.set_task_metadata(task, metadata)
-        db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
+        task_state = "No Start" if no_start else "WAITING"
+        db.workflows.add_task(task.id, wf_id, task.name, task_state)
 
-    update_wf_status(wf_id, 'Waiting')
-    db.workflows.update_workflow_state(wf_id, 'Waiting')
     if no_start:
+        update_wf_status(wf_id, 'No Start')
+        db.workflows.update_workflow_state(wf_id, 'No Start')
         log.info('Not starting workflow, as requested')
     else:
+        update_wf_status(wf_id, 'Waiting')
+        db.workflows.update_workflow_state(wf_id, 'Waiting')
         log.info('Starting workflow')
         db.workflows.update_workflow_state(wf_id, 'Running')
         start_workflow(wf_id)

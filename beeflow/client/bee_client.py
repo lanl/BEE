@@ -518,7 +518,7 @@ def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Cancel a paused or running workflow."""
     long_wf_id = wf_id
     wf_status = get_wf_status(wf_id)
-    if wf_status in ('Running', 'Paused'):
+    if wf_status in ('Running', 'Paused', 'No Start'):
         try:
             conn = _wfm_conn()
             resp = conn.delete(_resource(long_wf_id), json={'option': 'cancel'}, timeout=60)
