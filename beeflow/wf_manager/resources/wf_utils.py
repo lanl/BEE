@@ -269,6 +269,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
     wfi = get_workflow_interface(wf_id)
     wfi.initialize_workflow(workflow)
 
+
     log.info('Setting workflow metadata')
     create_wf_metadata(wf_id, wf_name)
     db = connect_db(wfm_db, get_db_path())

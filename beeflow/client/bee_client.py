@@ -264,6 +264,12 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     if not os.path.exists(workdir):
         error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
 
+    # Make sure the workdir is not in /var or /var/tmp
+    if os.path.commonpath([os.path.realpath('/tmp'), workdir]) == os.path.realpath('/tmp'):
+        error_exit("Workflow working directory cannot be in \"/tmp\"")
+    if os.path.commonpath([os.path.realpath('/var/tmp'), workdir]) == os.path.realpath('/var/tmp'):
+        error_exit("Workflow working directory cannot be in \"/var/tmp\"")
+
     # TODO: Can all of this information be sent as a file?
     data = {
         'wf_name': wf_name.encode(),
