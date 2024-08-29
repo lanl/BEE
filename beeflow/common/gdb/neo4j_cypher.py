@@ -739,6 +739,6 @@ def export_dag(tx, wf_id):
         "batches, done, data "
         "RETURN file, source, format, nodes, relationships, properties, time, rows, batchSize, "
         "batches, done, data"
-    )
+        )
     
     tx.run(export_query)
