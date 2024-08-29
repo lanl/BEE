@@ -319,7 +319,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         'wf_id': wf_id
     }
 
-    with open(sub_wf_dir, "w") as command_file:
+    with open(sub_wf_dir, "w", encoding = 'utf-8') as command_file:
         yaml.dump(cmd, command_file)
 
     return wf_id
@@ -580,16 +580,17 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     cwl_path = pathlib.Path(pathlib.Path(workdir) / wf_name)
     archive_id = str(wf_path.stem)
     with tarfile.open(wf_path) as archive:
-        archive_cmd = yaml.load(archive.extractfile(str(pathlib.Path(archive_id) /
-            'submit_command_args.yaml')).read(), Loader=yaml.Loader)
+        archive_cmd = yaml.load(archive.extractfile(
+            str(pathlib.Path(archive_id) / 'submit_command_args.yaml')).read(),
+            Loader=yaml.Loader)
 
         cwl_files = [
             tarinfo for tarinfo in archive.getmembers()
             if tarinfo.name.startswith(archive_id + '/bee_workflow/')
             and tarinfo.isreg()
-            ]
+        ]
         for path in cwl_files:
-            path.name=os.path.basename(path.name)
+            path.name = os.path.basename(path.name)
         archive.extractall(path=cwl_path, members=cwl_files)
 
         main_cwl = cwl_path / pathlib.Path(archive_cmd['main_cwl']).name

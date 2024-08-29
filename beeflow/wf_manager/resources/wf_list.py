@@ -43,7 +43,7 @@ def extract_wf(wf_id, filename, workflow_archive):
     cwl_dir = wf_dir + "/bee_workflow"
 
     os.mkdir(cwl_dir)
-    subprocess.run(['tar', '-xf', archive_path, '--strip-components=1', '-C', cwl_dir], 
+    subprocess.run(['tar', '-xf', archive_path, '--strip-components=1', '-C', cwl_dir],
                    check=False)
     return cwl_dir
 
@@ -56,7 +56,6 @@ def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
     wf_utils.connect_neo4j_driver(db.info.get_port('bolt'))
     wf_utils.setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start,
                             workflow, tasks)
-
 
 
 db_path = wf_utils.get_db_path()
