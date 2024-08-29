@@ -29,7 +29,6 @@ from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.client import core
 from beeflow.wf_manager.resources import wf_utils
-from shutil import copy2
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -314,9 +313,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         'wf_id': wf_id
     }
 
-
-    with open(sub_wf_dir, "w") as commandFile:
-        yaml.dump(cmd, commandFile)
+    with open(sub_wf_dir, "w") as command_file:
+        yaml.dump(cmd, command_file)
 
     return wf_id
 
@@ -576,22 +574,17 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     cwl_path = pathlib.Path(pathlib.Path(workdir) / wf_name)
     archive_id = str(wf_path.stem)
     with tarfile.open(wf_path) as archive:
-        archive_cmd = yaml.load(archive.extractfile(str(pathlib.Path(archive_id) / 'submit_command_args.yaml')).read(),
-                Loader=yaml.Loader)
-        archive_name = archive_cmd['wf_name']
-        archive_workdir = archive_cmd['workdir']
-        archive_wf_path = archive_cmd['wf_path']
+        archive_cmd = yaml.load(archive.extractfile(str(pathlib.Path(archive_id) /
+            'submit_command_args.yaml')).read(), Loader=yaml.Loader)
+
         cwl_files = [
-                tarinfo for tarinfo in archive.getmembers()
-                if tarinfo.name.startswith(archive_id + '/bee_workflow/')
-                    and tarinfo.isreg()
-                ]
+            tarinfo for tarinfo in archive.getmembers()
+            if tarinfo.name.startswith(archive_id + '/bee_workflow/')
+            and tarinfo.isreg()
+            ]
         for path in cwl_files:
             path.name=os.path.basename(path.name)
         archive.extractall(path=cwl_path, members=cwl_files)
-
-        archive_main_cwl_arr  = archive_cmd['main_cwl'].split('/')
-        archive_yaml_arr= archive_cmd['yaml'].split('/')
 
         main_cwl = cwl_path / pathlib.Path(archive_cmd['main_cwl']).name
         yaml_file = cwl_path / pathlib.Path(archive_cmd['yaml']).name

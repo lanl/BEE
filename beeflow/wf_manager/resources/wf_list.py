@@ -43,7 +43,8 @@ def extract_wf(wf_id, filename, workflow_archive):
     cwl_dir = wf_dir + "/bee_workflow"
 
     os.mkdir(cwl_dir)
-    subprocess.run(['tar', '-xf', archive_path, '--strip-components=1', '-C', cwl_dir], check=False)
+    subprocess.run(['tar', '-xf', archive_path, '--strip-components=1', '-C', cwl_dir], 
+                   check=False)
     return cwl_dir
 
 
@@ -116,7 +117,7 @@ class WFList(Resource):
         return make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)
 
-    def put(self): # This method can be deleted / deprecated
+    def put(self):  # This method can be deleted / deprecated
         """Reexecute a workflow."""
         db = connect_db(wfm_db, db_path)
         reqparser = reqparse.RequestParser()
@@ -135,10 +136,10 @@ class WFList(Resource):
         wf_workdir = data['workdir']
 
         wf_id = wf_data.generate_workflow_id()
-        wf_dir = extract_wf(wf_id, wf_filename, workflow_archive, reexecute=True)
+        wf_dir = extract_wf(wf_id, wf_filename, workflow_archive)
 
         db.workflows.init_workflow(wf_id, wf_name, wf_dir)
-        init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, no_start=False, reexecute=True)
+        init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, no_start=False)
 
         # Returnid and created
         resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
