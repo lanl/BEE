@@ -57,6 +57,7 @@ def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
                             workflow, tasks)
 
 
+
 db_path = wf_utils.get_db_path()
 
 

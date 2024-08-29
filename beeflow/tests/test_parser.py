@@ -62,6 +62,18 @@ class TestParser(unittest.TestCase):
 
         self.assertEqual(context.exception.args[0], "No shebang line found in pre_run.sh")
 
+    def test_parse_workflow_validate_shell(self):
+        """Test parsing of workflow and check shell option matches pre/post script shebang line."""
+        cwl_wf_file = find("ci/test_workflows/shell_validate/workflow.cwl") #noqa
+        cwl_job_yaml = find("ci/test_workflows/shell_validate/input.yml") #noqa
+
+        workflow_id = generate_workflow_id()
+
+        with self.assertRaises(Exception) as context:
+            self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+
+        self.assertEqual(context.exception.args[0], "CWL file shell #!/bin/bash does not match post.sh shell #!/bin/bashoo") #noqa
+
     def test_parse_workflow_json(self):
         """Test parsing of workflow with a JSON input job file."""
         cwl_wf_file = find("examples/clamr-ffmpeg-build/clamr_wf.cwl")
@@ -153,7 +165,7 @@ TASKS_GOLD_SCRIPT = [
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
         hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), #noqa
-               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': '#!/bin/bash\n\necho "Before run"\n', 'post_script': '#!/bin/bash\n\necho "After run"\n'})], #noqa
+               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"', 'post_script': 'echo "After run"', 'shell': '/bin/bash'})], #noqa
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
                           source='steps_between_graphics', prefix='-g', position=None,
