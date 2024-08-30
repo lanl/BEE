@@ -26,5 +26,5 @@ export SLURM_CONF=~/slurm.conf
 export FLUX_CORE_VERSION=0.51.0
 export FLUX_SECURITY_VERSION=0.9.0
 export BEE_CONFIG=$HOME/.config/beeflow/bee.conf
-export OPENAPI_VERSION=v0.0.37
+export OPENAPI_VERSION=v0.0.39
 export CHARLIECLOUD_VERSION=0.36
