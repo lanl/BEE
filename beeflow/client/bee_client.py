@@ -319,7 +319,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         'wf_id': wf_id
     }
 
-    with open(sub_wf_dir, "w", encoding = 'utf-8') as command_file:
+    with open(sub_wf_dir, "w", encoding='utf-8') as command_file:
         yaml.dump(cmd, command_file)
 
     return wf_id
