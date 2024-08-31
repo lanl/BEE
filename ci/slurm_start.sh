@@ -81,6 +81,10 @@ printf "#### SUPPORTED MPI ####\n"
 srun --mpi=list
 printf "#######################\n"
 printf "\n"
+printf "#### Slurmrestd version ####\n"
+slurmrestd -V
+printf "#######################\n"
+printf "\n"
 printf "#### OPENAPI VERSIONS ####\n"
 slurmrestd -s list
 printf "##########################\n"
