@@ -289,17 +289,6 @@ class Neo4jDriver(GraphDatabaseDriver):
         tuples = self._get_task_data_tuples(task_records)
         return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
 
-    def get_no_start_tasks(self, workflow_id):
-        """Return tasks with state 'No Start' from the graph database from a particular workflow.
-
-        :param workflow_id: the workflow id
-        :type workflow_id: str
-        :rtype: list of Task
-        """
-        task_records = self._read_transaction(tx.get_no_start_tasks, wf_id=workflow_id)
-        tuples = self._get_task_data_tuples(task_records)
-        return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
-
     def get_dependent_tasks(self, task):
         """Return the dependent tasks of a specified workflow task.
 

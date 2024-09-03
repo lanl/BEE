@@ -160,13 +160,6 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_no_start_tasks(self):
-        """Return tasks with state 'No Start' from the graph database.
-
-        :rtype: list of Task
-        """
-
-    @abstractmethod
     def get_dependent_tasks(self, task):
         """Return the dependent tasks of a workflow task in the graph database.
 

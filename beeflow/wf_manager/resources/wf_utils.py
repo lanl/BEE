@@ -305,7 +305,11 @@ def start_workflow(wf_id):
     db = connect_db(wfm_db, get_db_path())
     wfi = get_workflow_interface(wf_id)
     state = wfi.get_workflow_state()
-    wfi.set_no_start_tasks()
+    log.info(f"Leah state test: {state}")
+    if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
+        return False
+    if state == 'No Start':
+        
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)
