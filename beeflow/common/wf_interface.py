@@ -73,7 +73,7 @@ class WorkflowInterface:
         self._workflow_id = workflow_id
         self._gdb_driver.set_workflow_state(self._workflow_id, 'SUBMITTED')
 
-    def add_task(self, task):
+    def add_task(self, task, task_state):
         """Add a new task to a BEE workflow.
 
         :param task: the name of the file to which to redirect stderr
@@ -90,7 +90,7 @@ class WorkflowInterface:
             task.hints = []
 
         # Load the new task into the graph database
-        self._gdb_driver.load_task(task)
+        self._gdb_driver.load_task(task, task_state)
 
     def restart_task(self, task, checkpoint_file):
         """Restart a failed BEE workflow task.

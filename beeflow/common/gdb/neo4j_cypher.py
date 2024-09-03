@@ -183,7 +183,7 @@ def create_task_output_nodes(tx, task):
                value=output.value, glob=output.glob)
 
 
-def create_task_metadata_node(tx, task):
+def create_task_metadata_node(tx, task, task_state):
     """Create a task metadata node in the Neo4j database.
 
     The node holds metadata about a task's execution state.
@@ -192,9 +192,9 @@ def create_task_metadata_node(tx, task):
     :type task: Task
     """
     metadata_query = ("MATCH (t:Task {id: $task_id}) "
-                      "CREATE (m:Metadata {state: 'WAITING'})-[:DESCRIBES]->(t)")
+                      "CREATE (m:Metadata {state: $task_state})-[:DESCRIBES]->(t)")
 
-    tx.run(metadata_query, task_id=task.id)
+    tx.run(metadata_query, task_id=task.id, task_state=task_state)
 
 
 def add_dependencies(tx, task, old_task=None, restarted_task=False):

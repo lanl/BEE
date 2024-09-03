@@ -280,12 +280,12 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
         # Tasks come in backwards
         tasks.reverse()
     for task in tasks:
+        task_state = "No Start" if no_start else "WAITING"
         if not reexecute:
-            wfi.add_task(task)
+            wfi.add_task(task, task_state)
         metadata = wfi.get_task_metadata(task)
         metadata['workdir'] = wf_workdir
         wfi.set_task_metadata(task, metadata)
-        task_state = "No Start" if no_start else "WAITING"
         db.workflows.add_task(task.id, wf_id, task.name, task_state)
 
     if no_start:
@@ -305,8 +305,11 @@ def start_workflow(wf_id):
     db = connect_db(wfm_db, get_db_path())
     wfi = get_workflow_interface(wf_id)
     state = wfi.get_workflow_state()
+    log.info(f"Leah state test: {state}")
     if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
         return False
+    if state == 'No Start':
+        
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)
