@@ -200,6 +200,12 @@ class WorkflowInterface:
         """
         return self._gdb_driver.get_ready_tasks(self._workflow_id)
 
+    def set_no_start_tasks(self):
+        """Set no start tasks to waiting."""
+        tasks = self._gdb_driver.get_no_start_tasks(self._workflow_id)
+        for task in tasks:
+            self.set_task_state(task, "WAITING")
+
     def get_dependent_tasks(self, task):
         """Get the dependents of a task in a BEE workflow.
 

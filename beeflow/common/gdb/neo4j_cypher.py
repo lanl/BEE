@@ -421,6 +421,19 @@ def get_ready_tasks(tx, wf_id):
     return [rec['t'] for rec in tx.run(get_ready_query, wf_id=wf_id)]
 
 
+def get_no_start_tasks(tx, wf_id):
+    """Get all tasks that have the no start state.
+
+    :param workflow_id: the workflow id
+    :type workflow_id: str
+    :rtype: neo4j.Result
+    """
+    get_ready_query = ("MATCH (:Metadata {state: 'No Start'})-[:DESCRIBES]->"
+                       "(t:Task {workflow_id: $wf_id}) RETURN t")
+
+    return [rec['t'] for rec in tx.run(get_ready_query, wf_id=wf_id)]
+
+
 def get_dependent_tasks(tx, task):
     """Get the tasks that depend on a specified task.
 
