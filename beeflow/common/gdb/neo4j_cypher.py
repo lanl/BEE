@@ -329,7 +329,7 @@ def get_workflow_tasks(tx, wf_id):
     :type wf_id: str
     :rtype: neo4j.Result
     """
-    workflow_query = "MATCH t:Task WHERE t.workflow_id = $wf_id RETURN t"
+    workflow_query = "MATCH (t:Task) WHERE t.workflow_id = $wf_id RETURN t"
 
     return [rec['t'] for rec in tx.run(workflow_query, wf_id=wf_id)]
 
