@@ -215,7 +215,8 @@ def init_components():
     @mgr.component('neo4j-database', ('wf_manager',))
     def start_neo4j():
         """Start the neo4j graph database."""
-        return neo4j_manager.start()
+        log = open_log('neo4j')
+        return neo4j_manager.start(log)
 
     @mgr.component('redis', ())
     def start_redis():

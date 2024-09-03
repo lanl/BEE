@@ -23,7 +23,7 @@ logs_dir = mount_dir + '/logs'
 run_dir = mount_dir + '/run'
 certs_dir = mount_dir + '/certificates'
 confs_dir = mount_dir + "/conf"
-container_path = container_manager.get_container_dir('neo4j')
+container_path = '/vast/home/kvats/neo4j.SFS'#container_manager.get_container_dir('neo4j')
 log = bee_logging.setup('neo4j')
 
 
@@ -68,7 +68,7 @@ def setup_configs(bolt_port, http_port, https_port):
     config file could have changed.
     """
     os.makedirs(confs_dir, exist_ok=True)
-    gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf",
+    gdb_configfile = shutil.copyfile('/vast/home/kvats/neo4j.conf', #TODO: CHANGE TO REAL PATH
                                      confs_dir + "/neo4j.conf")
     log.info(gdb_configfile)
 
@@ -94,7 +94,7 @@ def create_credentials():
         command = ['neo4j-admin', 'dbms', 'set-initial-password', str(db_password)]
         subprocess.run([
             "ch-run",
-            "--set-env=" + container_path + "/ch/environment",
+            "--set-env", # defaults to ch/environment
             "-b", confs_dir + ":/var/lib/neo4j/conf",
             "-b", data_dir + ":/data",
             "-b", logs_dir + ":/logs",
@@ -105,20 +105,20 @@ def create_credentials():
         log.error("neo4j-admin set-initial-password failed")
 
 
-def create_database():
+def create_database(proc_log):
     """Create the neo4j database and return the process."""
     try:
         command = ['neo4j', 'console']
         proc = subprocess.Popen([ #noqa can't use with because returning
             "ch-run",
-            "--set-env=" + container_path + "/ch/environment",
+            "--set-env", # defaults to ch/environment
             "-b", confs_dir + ":/var/lib/neo4j/conf",
             "-b", data_dir + ":/data",
             "-b", logs_dir + ":/logs",
             "-b", run_dir + ":/var/lib/neo4j/run",
             "-b", certs_dir + ":/var/lib/neo4j/certificates",
             container_path, "--", *command
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ], stdout=proc_log, stderr=proc_log)
         wait_gdb()
         return proc
 
@@ -127,7 +127,7 @@ def create_database():
         return -1
 
 
-def start():
+def start(proc_log):
     """Start the graph database."""
     log.info('Starting Neo4j Database')
 
@@ -139,7 +139,7 @@ def start():
 
     create_credentials()
 
-    return create_database()
+    return create_database(proc_log)
 
 
 def wait_gdb():

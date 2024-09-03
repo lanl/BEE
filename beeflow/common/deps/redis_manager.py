@@ -10,7 +10,7 @@ def start(log):
     data_dir = 'data'
     os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
     conf_name = 'redis.conf'
-    container_path = paths.redis_container()
+    container_path = '/vast/home/kvats/redis.SFS'
     # Dump the config
     conf_path = os.path.join(paths.redis_root(), conf_name)
     if not os.path.exists(conf_path):

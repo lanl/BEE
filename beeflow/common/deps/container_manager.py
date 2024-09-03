@@ -61,28 +61,28 @@ def create_image(dep_name):
     # Can throw an exception that needs to be handled by the caller
     check_container_runtime()
 
-    image = bc.get('DEFAULT', dep_name + '_image')
+    # image = bc.get('DEFAULT', dep_name + '_image')
 
     # Check for BEE dependency container directory:
-    container_dir_exists = check_container_dir(dep_name)
-    if container_dir_exists:
-        print(f"Already have {dep_name} container")
-        return
+    # container_dir_exists = check_container_dir(dep_name)
+    # if container_dir_exists:
+    #    print(f"Already have {dep_name} container")
+    #    return
 
-    make_dep_dir()
-    container_dir = get_container_dir(dep_name)
+    # make_dep_dir()
+    # container_dir = get_container_dir(dep_name)
 
     # Build new dependency container
-    try:
-        subprocess.run(["ch-convert", "-i", "tar", "-o", "dir",
-                        str(image), str(container_dir)], check=True)
-    except subprocess.CalledProcessError as error:
-        print(f"ch-convert failed: {error}")
-        shutil.rmtree(container_dir)
-        print(f"{dep_name} container mount directory {container_dir} removed")
-        return
+    # try:
+    #    subprocess.run(["ch-convert", "-i", "squash", "-o", "dir",
+    #                    str(image), str(container_dir)], check=True)
+    #except subprocess.CalledProcessError as error:
+    #    print(f"ch-convert failed: {error}")
+    #    shutil.rmtree(container_dir)
+    #    print(f"{dep_name} container mount directory {container_dir} removed")
+    #    return
 
     # If neo4j, make the certificates directory
-    if dep_name == 'neo4j':
-        container_certs_path = os.path.join(container_dir, 'var/lib/neo4j/certificates')
-        os.makedirs(container_certs_path, exist_ok=True)
+    # if dep_name == 'neo4j':
+      #  container_certs_path = os.path.join(container_dir, 'var/lib/neo4j/certificates')
+      #  os.makedirs(container_certs_path, exist_ok=True)
