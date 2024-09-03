@@ -19,6 +19,7 @@ jobs:
     strategy:
       matrix:
         bee_worker: [Slurmrestd, SlurmCommands, Flux]
+      fast-fail: False
     env:
       BEE_WORKER: ${{ matrix.bee_worker }}
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
