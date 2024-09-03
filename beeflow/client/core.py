@@ -431,7 +431,7 @@ def info():
     """Get information about beeflow's installation."""
     version = importlib.metadata.version("hpc-beeflow")
     print(f"Beeflow version: {version}")
-    print(f".beeflow directory: {paths.workdir()}")
+    print(f"bee_workflow directory: {paths.workdir()}")
     print(f"Log path: {paths.log_path()}")
 
 
