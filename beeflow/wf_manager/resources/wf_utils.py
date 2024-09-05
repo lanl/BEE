@@ -280,7 +280,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
         # Tasks come in backwards
         tasks.reverse()
     for task in tasks:
-        task_state = "No Start" if no_start else "WAITING"
+        task_state = "" if no_start else "WAITING"
         if not reexecute:
             wfi.add_task(task, task_state)
         metadata = wfi.get_task_metadata(task)
@@ -311,7 +311,7 @@ def start_workflow(wf_id):
     tasks.reverse()
     for task in tasks:
         task_state = wfi.get_task_state(task)
-        if task_state == 'No Start':
+        if task_state == '':
             wfi.set_task_state(task, 'WAITING')
             db.workflows.update_task_state(task.id, wf_id, 'WAITING')
     wfi.execute_workflow()
