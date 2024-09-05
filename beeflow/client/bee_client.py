@@ -457,7 +457,10 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     wf_status = resp.json()['wf_status']
     typer.echo(wf_status)
     for _task_id, task_name, task_state in tasks_status:
-        typer.echo(f'{task_name}--{task_state}')
+        if wf_status == 'No Start':
+            typer.echo(f'{task_name}')
+        else:
+            typer.echo(f'{task_name}--{task_state}')
 
     logging.info('Query workflow:  {resp.text}')
     return wf_status, tasks_status
