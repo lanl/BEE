@@ -100,6 +100,11 @@ def update_wf_status(wf_id, status_msg):
     with open(status_path, 'w', encoding="utf8") as status:
         status.write(status_msg)
 
+    db = connect_db(wfm_db, get_db_path())
+    db.workflows.update_workflow_state(wf_id, status_msg)
+
+    wfi = get_workflow_interface(wf_id)
+    wfi.set_workflow_state(status_msg)
 
 def read_wf_status(wf_id):
     """Read workflow status metadata file."""
@@ -288,12 +293,10 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
         db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
 
     update_wf_status(wf_id, 'Waiting')
-    db.workflows.update_workflow_state(wf_id, 'Waiting')
     if no_start:
         log.info('Not starting workflow, as requested')
     else:
         log.info('Starting workflow')
-        db.workflows.update_workflow_state(wf_id, 'Running')
         start_workflow(wf_id)
 
 
@@ -301,7 +304,7 @@ def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
     db = connect_db(wfm_db, get_db_path())
     wfi = get_workflow_interface(wf_id)
-    state = wfi.get_workflow_state()
+    state = read_wf_status(wf_id) 
     if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
         return False
     wfi.execute_workflow()
@@ -309,5 +312,4 @@ def start_workflow(wf_id):
     schedule_submit_tasks(wf_id, tasks)
     wf_id = wfi.workflow_id
     update_wf_status(wf_id, 'Running')
-    db.workflows.update_workflow_state(wf_id, 'Running')
     return True

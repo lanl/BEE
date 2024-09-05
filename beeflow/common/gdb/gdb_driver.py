@@ -31,20 +31,6 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def pause_workflow(self):
-        """Pause execution of a running workflow.
-
-        Set workflow from state 'RUNNING' to 'PAUSED'.
-        """
-
-    @abstractmethod
-    def resume_workflow(self):
-        """Resume execution of a paused workflow.
-
-        Set workflow state from 'PAUSED' to 'RUNNING'.
-        """
-
-    @abstractmethod
     def reset_workflow(self, new_id):
         """Reset the execution state of a stored workflow.
 
