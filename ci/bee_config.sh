@@ -61,7 +61,7 @@ case $BEE_WORKER in
 Slurmrestd)
     cat >> $BEE_CONFIG <<EOF
 [slurm]
-use_commands = False
+use_commands = True
 openapi_version = $OPENAPI_VERSION
 EOF
     ;;
