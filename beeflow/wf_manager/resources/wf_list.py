@@ -40,7 +40,7 @@ def extract_wf(wf_id, filename, workflow_archive):
     wf_dir = wf_utils.get_workflow_dir(wf_id)
     archive_path = os.path.join(wf_dir, filename)
     workflow_archive.save(archive_path)
-    cwl_dir = wf_dir + "/bee_workflow"
+    cwl_dir = wf_dir + "/cwl_files"
 
     os.mkdir(cwl_dir)
     subprocess.run(['tar', '-xf', archive_path, '--strip-components=1', '-C', cwl_dir],

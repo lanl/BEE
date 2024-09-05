@@ -577,7 +577,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     workdir = os.path.abspath(workdir)
     if not os.path.exists(workdir):
         error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
-    cwl_path = pathlib.Path(pathlib.Path(workdir) / wf_name)
+    cwl_path = pathlib.Path(tempfile.mkdtemp())
     archive_id = str(wf_path.stem)
     with tarfile.open(wf_path) as archive:
         archive_cmd = yaml.load(archive.extractfile(
@@ -586,7 +586,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 
         cwl_files = [
             tarinfo for tarinfo in archive.getmembers()
-            if tarinfo.name.startswith(archive_id + '/bee_workflow/')
+            if tarinfo.name.startswith(archive_id + '/cwl_files/')
             and tarinfo.isreg()
         ]
         for path in cwl_files:
