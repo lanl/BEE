@@ -305,6 +305,8 @@ class CwlParser:
         :type fname: str
         """
         env_decl = items[key].splitlines()
+        # Need to remove whitespaces/newlines from list
+        env_decl = [x for x in env_decl if x.strip()]
         # Check for shebang line in pre/post scripts
         if not env_decl[0].startswith("#!"):
             msg = f'No shebang line found in {fname}'
@@ -315,6 +317,11 @@ class CwlParser:
         if shell_val != shebang_val:
             msg = f'CWL file shell {shell_val} does not match {fname} shell {shebang_val}'
             raise CwlParseError(msg) from None
+        # Remove shebang lines from scripts
+        rm_line = env_decl[1:]
+        # List to string format
+        rm_line = "\n".join(rm_line)
+        items.update({key: rm_line})
 
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.

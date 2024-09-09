@@ -10,7 +10,6 @@ import jsonpickle
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.wf_manager.common import dep_manager
 from beeflow.common import log as bee_logging
 
 from beeflow.common.db import wfm_db
@@ -39,12 +38,6 @@ def archive_workflow(db, wf_id, final_state=None):
     # We use tar directly since tarfile is apparently very slow
     workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
-    pid = db.workflows.get_gdb_pid(wf_id)
-    # Wait for Graph database to be down (max 10 seconds)
-    for _ in range(10):
-        if not dep_manager.kill_gdb(pid):
-            break
-        time.sleep(1)
     remove_wf_dir = bc.get('DEFAULT', 'delete_completed_workflow_dirs')
     if remove_wf_dir:
         log.info('Removing Workflow Directory')
@@ -149,7 +142,6 @@ class WFUpdate(Resource):
         if state_update.job_state == 'FAILED':
             set_dependent_tasks_dep_fail(db, wfi, state_update.wf_id, task)
             log.info("Workflow failed")
-            log.info("Shutting down GDB")
             wf_id = wfi.workflow_id
             archive_fail_workflow(db, wf_id)
 

@@ -27,9 +27,9 @@ from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.wf_manager.resources import wf_utils
 
-from beeflow.common.db import wfm_db
-from beeflow.common.db.bdb import connect_db
-from beeflow.wf_manager.common import dep_manager
+from beeflow.common.deps import container_manager
+from beeflow.common.deps import neo4j_manager
+from beeflow.common.deps import redis_manager
 
 
 class ComponentManager:
@@ -194,49 +194,34 @@ def init_components():
         """Start the celery task queue."""
         log = open_log('celery')
         # Setting --pool=solo to avoid preforking multiple processes
-        return subprocess.Popen(['celery', '-A', 'beeflow.common.celery', 'worker', '--pool=solo'],
-                                stdout=log, stderr=log)
+        return subprocess.Popen(['celery', '-A', 'beeflow.common.deps.celery_manager',
+                                 'worker', '--pool=solo'], stdout=log, stderr=log)
 
     # Run this before daemonizing in order to avoid slow background start
-    container_path = paths.redis_container()
+    # container_path = paths.redis_container()
     # If it exists, we assume that it actually has a valid container
-    if not os.path.exists(container_path):
+    # if not os.path.exists(container_path):
+        # print('Unpacking Redis image...')
+        # subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
+        #                       bc.get('DEFAULT', 'redis_image'), container_path])
+    if not container_manager.check_container_dir('redis'):
         print('Unpacking Redis image...')
-        subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
-                               bc.get('DEFAULT', 'redis_image'), container_path])
+        container_manager.create_image('redis')
+
+    if not container_manager.check_container_dir('neo4j'):
+        print('Unpacking Neo4j image...')
+        container_manager.create_image('neo4j')
+
+    @mgr.component('neo4j-database', ('wf_manager',))
+    def start_neo4j():
+        """Start the neo4j graph database."""
+        return neo4j_manager.start()
 
     @mgr.component('redis', ())
-    def redis():
+    def start_redis():
         """Start redis."""
-        data_dir = 'data'
-        os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
-        conf_name = 'redis.conf'
-        container_path = paths.redis_container()
-        # Dump the config
-        conf_path = os.path.join(paths.redis_root(), conf_name)
-        if not os.path.exists(conf_path):
-            with open(conf_path, 'w', encoding='utf-8') as fp:
-                # Don't listen on TCP
-                print('port 0', file=fp)
-                print('dir', os.path.join('/mnt', data_dir), file=fp)
-                print('maxmemory 2mb', file=fp)
-                print('unixsocket', os.path.join('/mnt', paths.redis_sock_fname()), file=fp)
-                print('unixsocketperm 700', file=fp)
-        cmd = [
-            'ch-run',
-            f'--bind={paths.redis_root()}:/mnt',
-            container_path,
-            'redis-server',
-            '/mnt/redis.conf',
-        ]
         log = open_log('redis')
-        # Ran into a strange "Failed to configure LOCALE for invalid locale name."
-        # from Redis, so setting LANG=C. This could have consequences for UTF-8
-        # strings.
-        env = dict(os.environ)
-        env['LANG'] = 'C'
-        env['LC_ALL'] = 'C'
-        return subprocess.Popen(cmd, env=env, stdout=log, stderr=log)
+        return redis_manager.start(log)
 
     # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
     if need_slurmrestd():
@@ -442,6 +427,15 @@ def status():
 
 
 @app.command()
+def info():
+    """Get information about beeflow's installation."""
+    version = importlib.metadata.version("hpc-beeflow")
+    print(f"Beeflow version: {version}")
+    print(f"bee_workflow directory: {paths.workdir()}")
+    print(f"Log path: {paths.log_path()}")
+
+
+@app.command()
 def stop(query='yes'):
     """Stop the current running beeflow daemon."""
     # Check workflow states; warn if there are active states, pause running workflows
@@ -475,23 +469,6 @@ def stop(query='yes'):
     beeflow_log = paths.log_fname('beeflow')
     if query == "yes":
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
-
-
-def kill_active_workflows(active_states, workflow_list):
-    """Kill workflows with active states."""
-    db_path = wf_utils.get_db_path()
-    db = connect_db(wfm_db, db_path)
-    success = True
-    for name, wf_id, state in workflow_list:
-        if state in active_states:
-            pid = db.workflows.get_gdb_pid(wf_id)
-            if pid > 0:
-                dep_manager.kill_gdb(pid)
-            else:
-                # Failure most likely caused by an Initializing workflow.
-                print(f"No process for {name}, {wf_id}, {state}.")
-                success = False
-    return success
 
 
 def archive_dir(dir_to_archive):
@@ -561,9 +538,6 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             # Exit out if the user didn't really mean to do a reset
             sys.exit()
         elif absolutely_sure in ("y", "yes"):
-            # First stop all active workflow processes
-            workflow_list = bee_client.get_wf_list()
-            kill_active_workflows(active_states, workflow_list)
             # Stop all of the beeflow processes
             stop("quiet")
             print("Beeflow is shutting down.")
