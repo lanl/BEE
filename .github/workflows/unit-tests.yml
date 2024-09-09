@@ -21,7 +21,7 @@ jobs:
       BEE_WORKER: Slurmrestd
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
     # available on 20.04
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install and Configure
