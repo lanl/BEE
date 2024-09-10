@@ -246,9 +246,6 @@ VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  info='backend workload scheduler to interact with ')
 
-VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, default=True,
-                 info='use the BEE archiving functinality')
-
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs')
 
