@@ -305,6 +305,6 @@ class WorkflowInterface:
         """
         return self._gdb_driver.workflow_completed(self._workflow_id)
 
-    def export_dag(self):
+    def export_graphml(self):
         """Export a BEE workflow as a graphml."""
-        self._gdb_driver.export_dag(self._workflow_id)
+        self._gdb_driver.export_graphml(self._workflow_id)

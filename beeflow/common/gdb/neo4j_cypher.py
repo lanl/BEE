@@ -727,7 +727,7 @@ def cleanup(tx):
     tx.run(cleanup_query)
 
 
-def export_dag(tx, wf_id):
+def export_graphml(tx, wf_id):
     """Export BEE workflow as graphml."""
     short_id = wf_id[:6]
     export_query = (
