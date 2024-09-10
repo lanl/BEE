@@ -2,21 +2,19 @@
 
 import os
 import shutil
-import socket
-import time
 import requests
 import jsonpickle
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.gdb_interface import GraphDatabaseInterface
 from beeflow.common.gdb import neo4j_driver
 from beeflow.common.wf_interface import WorkflowInterface
-from beeflow.wf_manager.common import dep_manager
 from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+
+from celery import shared_task #noqa (pylama can't find celery imports)
 
 log = bee_logging.setup(__name__)
 
@@ -136,50 +134,14 @@ def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
     db = connect_db(wfm_db, get_db_path())
     # Wait for the GDB
-    if db.workflows.get_workflow_state(wf_id) == 'Initializing':
-        raise RuntimeError('Workflow is still initializing')
-    bolt_port = db.workflows.get_bolt_port(wf_id)
-    return get_workflow_interface_by_bolt_port(wf_id, bolt_port)
 
-
-def get_workflow_interface_by_bolt_port(wf_id, bolt_port):
-    """Return a workflow interface connection using just the bolt port."""
-    try:
-        driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
-                                          db_hostname=bc.get("graphdb", "hostname"),
-                                          password=bc.get("graphdb", "dbpass"))
-        iface = GraphDatabaseInterface(driver)
-        wfi = WorkflowInterface(iface)
-    except neo4j_driver.Neo4jNotRunning:
-        log.info("Neo4j Appears to be Down")
-        # There are several possibilities here
-        # First check if the GDB is up
-        db = connect_db(wfm_db, get_db_path())
-        gdb_pid = db.workflows.get_gdb_pid(wf_id)
-        try:
-            # Not actually killing the GDB just checking if the PID is up
-            # Returns an exception if the GDB is running
-            os.kill(gdb_pid, 0)
-            # The GDB process is running so we'll kill it and restart it
-        except ProcessLookupError:
-            log.error('The GDB is currently down restarting it')
-            http_port = db.workflows.get_http_port(wf_id)
-            https_port = db.workflows.get_https_port(wf_id)
-            run_dir = db.workflows.get_run_dir(wf_id)
-            gdb_pid = dep_manager.start_gdb(run_dir, bolt_port, http_port, https_port,
-                                            reexecute=True)
-            time.sleep(10)
-            db.workflows.update_gdb_pid(wf_id, gdb_pid)
-            driver = neo4j_driver.Neo4jDriver(user="neo4j", bolt_port=bolt_port,
-                                              db_hostname=bc.get("graphdb", "hostname"),
-                                              password=bc.get("graphdb", "dbpass"))
-            iface = GraphDatabaseInterface(driver)
-            wfi = WorkflowInterface(iface)
-            wfi.get_workflow()
-        except PermissionError:
-            # Something has gone wrong. The user has no perms for their gdb.
-            # Just note a fatal error and exit
-            log.error('Perms error for GDB. Please report this to BEE developers.')
+    # bolt_port = db.info.get_bolt_port()
+    # return get_workflow_interface_by_bolt_port(wf_id, bolt_port)
+    driver = neo4j_driver.Neo4jDriver()
+    bolt_port = db.info.get_port('bolt')
+    if bolt_port != -1:
+        connect_neo4j_driver(bolt_port)
+    wfi = WorkflowInterface(wf_id, driver)
     return wfi
 
 
@@ -284,22 +246,47 @@ def submit_tasks_scheduler(tasks):
     return resp.json()
 
 
-def get_open_port():
-    """Return an open ephemeral port."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
-
-
 def schedule_submit_tasks(wf_id, tasks):
     """Schedule and then submit tasks to the TM."""
     # Submit ready tasks to the scheduler
     allocation = submit_tasks_scheduler(tasks)  #NOQA
     # Submit tasks to TM
     submit_tasks_tm(wf_id, tasks, allocation)
+
+
+def connect_neo4j_driver(bolt_port):
+    """Create a neo4j driver to a gdb through bolt port."""
+    driver = neo4j_driver.Neo4jDriver()
+    driver.connect(user="neo4j", bolt_port=bolt_port,
+                   db_hostname=bc.get("graphdb", "hostname"),
+                   password=bc.get("graphdb", "dbpass"))
+    driver.create_bee_node()
+
+
+def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
+                   tasks=None):
+    """Initialize Workflow in Separate Process."""
+    wfi = get_workflow_interface(wf_id)
+    wfi.initialize_workflow(workflow)
+
+    log.info('Setting workflow metadata')
+    create_wf_metadata(wf_id, wf_name)
+    db = connect_db(wfm_db, get_db_path())
+    for task in tasks:
+        wfi.add_task(task)
+        metadata = wfi.get_task_metadata(task)
+        metadata['workdir'] = wf_workdir
+        wfi.set_task_metadata(task, metadata)
+        db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
+
+    update_wf_status(wf_id, 'Waiting')
+    db.workflows.update_workflow_state(wf_id, 'Waiting')
+    if no_start:
+        log.info('Not starting workflow, as requested')
+    else:
+        log.info('Starting workflow')
+        db.workflows.update_workflow_state(wf_id, 'Running')
+        start_workflow(wf_id)
 
 
 def start_workflow(wf_id):

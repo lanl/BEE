@@ -11,6 +11,7 @@ import inspect
 import pathlib
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import textwrap
 import time
@@ -18,6 +19,7 @@ import importlib.metadata
 import jsonpickle
 import requests
 import typer
+import yaml
 
 from beeflow.common import config_driver
 from beeflow.common.cli import NaturalOrderGroup
@@ -192,7 +194,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
            main_cwl: str = typer.Argument(...,
            help='filename of main CWL (if using CWL tarball), '
            + 'path of main CWL (if using CWL directory)'),
-           yaml: str = typer.Argument(...,
+           yaml_file: str = typer.Argument(...,
            help='filename of yaml file (if using CWL tarball), '
            + 'path of yaml file (if using CWL directory)'),
            workdir: pathlib.Path = typer.Argument(...,
@@ -215,16 +217,17 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         if os.path.isdir(wf_path):
             print("Detected directory instead of packaged workflow. Packaging Directory...")
             main_cwl_path = pathlib.Path(main_cwl).resolve()
-            yaml_path = pathlib.Path(yaml).resolve()
+            yaml_path = pathlib.Path(yaml_file).resolve()
 
             if not main_cwl_path.exists():
                 error_exit(f'Main CWL file {main_cwl} does not exist')
             if not yaml_path.exists():
-                error_exit(f'YAML file {yaml} does not exist')
+                error_exit(f'YAML file {yaml_file} does not exist')
 
             # Packaging in temp dir, after copying alternate cwl_main or yaml file
             cwl_indir = is_parent(wf_path, main_cwl_path)
             yaml_indir = is_parent(wf_path, yaml_path)
+
             # Always create temp dir for the workflow
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
             tempdir_wf_path = pathlib.Path(tempdir_path / wf_name)
@@ -232,15 +235,16 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             if not cwl_indir:
                 shutil.copy2(main_cwl, tempdir_wf_path)
             if not yaml_indir:
-                shutil.copy2(yaml, tempdir_wf_path)
+                shutil.copy2(yaml_file, tempdir_wf_path)
             package_path = package(tempdir_wf_path, tempdir_path)
         else:
             package_path = wf_path
+
         # Untar and parse workflow
         untar_path = pathlib.Path(tempfile.mkdtemp())
         untar_wf_path = unpackage(package_path, untar_path)
         main_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
-        yaml_path = untar_wf_path / pathlib.Path(yaml).name
+        yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
         parser = CwlParser()
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
@@ -259,6 +263,12 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     workdir = os.path.abspath(workdir)
     if not os.path.exists(workdir):
         error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
+
+    # Make sure the workdir is not in /var or /var/tmp
+    if os.path.commonpath([os.path.realpath('/tmp'), workdir]) == os.path.realpath('/tmp'):
+        error_exit("Workflow working directory cannot be in \"/tmp\"")
+    if os.path.commonpath([os.path.realpath('/var/tmp'), workdir]) == os.path.realpath('/var/tmp'):
+        error_exit("Workflow working directory cannot be in \"/var/tmp\"")
 
     # TODO: Can all of this information be sent as a file?
     data = {
@@ -298,16 +308,19 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
 
     # Store provided arguments in text file for future reference
     wf_dir = wf_utils.get_workflow_dir(wf_id)
-    sub_wf_dir = wf_dir + "/submit_command_args.txt"
+    sub_wf_dir = wf_dir + "/submit_command_args.yaml"
 
-    f_name = open(sub_wf_dir, "w", encoding="utf-8")
-    f_name.write(f"wf_name: {wf_name}\n")
-    f_name.write(f"wf_path: {wf_path}\n")
-    f_name.write(f"main_cwl: {main_cwl}\n")
-    f_name.write(f"yaml: {yaml}\n")
-    f_name.write(f"workdir: {workdir}\n")
-    f_name.write(f"wf_id: {wf_id}")
-    f_name.close()
+    cmd = {
+        'wf_name': wf_name,
+        'wf_path': str(wf_path),
+        'main_cwl': main_cwl,
+        'yaml': yaml_file,
+        'workdir': workdir,
+        'wf_id': wf_id
+    }
+
+    with open(sub_wf_dir, "w", encoding='utf-8') as command_file:
+        yaml.dump(cmd, command_file)
 
     return wf_id
 
@@ -564,6 +577,26 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     workdir = os.path.abspath(workdir)
     if not os.path.exists(workdir):
         error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
+    cwl_path = pathlib.Path(tempfile.mkdtemp())
+    archive_id = str(wf_path.stem)
+    with tarfile.open(wf_path) as archive:
+        archive_cmd = yaml.load(archive.extractfile(
+            str(pathlib.Path(archive_id) / 'submit_command_args.yaml')).read(),
+            Loader=yaml.Loader)
+
+        cwl_files = [
+            tarinfo for tarinfo in archive.getmembers()
+            if tarinfo.name.startswith(archive_id + '/cwl_files/')
+            and tarinfo.isreg()
+        ]
+        for path in cwl_files:
+            path.name = os.path.basename(path.name)
+        archive.extractall(path=cwl_path, members=cwl_files)
+
+        main_cwl = cwl_path / pathlib.Path(archive_cmd['main_cwl']).name
+        yaml_file = cwl_path / pathlib.Path(archive_cmd['yaml']).name
+
+        return submit(wf_name, pathlib.Path(cwl_path), main_cwl, yaml_file, pathlib.Path(workdir))
 
     data = {
         'wf_filename': os.path.basename(wf_path).encode(),

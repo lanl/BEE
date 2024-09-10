@@ -285,16 +285,5 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def empty(self):
-        """Determine if the database is empty.
-
-        :rtype: bool
-        """
-
-    @abstractmethod
-    def cleanup(self):
-        """Clean up all the data stored in the graph database."""
-
-    @abstractmethod
     def close(self):
         """Close the connection to the graph database."""

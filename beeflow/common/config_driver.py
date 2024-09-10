@@ -318,7 +318,7 @@ VALIDATOR.option('graphdb', 'https_port', default=DEFAULT_HTTPS_PORT,
                  info='HTTPS port used for the graph database')
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
                  info='graph database image mount directory', validator=validation.make_dir)
-VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=10,
+VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=1,
                  info='how long to wait for the graph database to come up (this can take a while, '
                       'depending on the system)')
 # Builder

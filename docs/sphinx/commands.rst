@@ -18,6 +18,8 @@ Options:
 
 ``beeflow core status``: Check the status of beeflow and the components.
 
+``beeflow core info``: Get information about beeflow, including .beeflow directory location, log location, and version number.
+
 ``beeflow core stop``: Stop running beeflow components. Active workflows will be paused. You may continue running paused workflows with the ``beeflow resume <wf_id>`` command. Once you start beeflow components after a stop, you should check the status of workflows, query any running workflows. If they were intializing when a ``beeflow core stop`` was issued, the workflow may be running with tasks stuck in the waiting state. If this occurs and you want the workflow to continue pause and resume the workflow (``beeflow pause <wf_id>``, ``beeflow resume <wf_id>``) or to start over cancel the workflow (``beeflow cancel <wf_id>``) and resubmit it.
 
 ``beeflow core --version``: Display the version number of BEE.
