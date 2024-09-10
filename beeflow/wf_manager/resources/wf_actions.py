@@ -23,7 +23,6 @@ class WFActions(Resource):
 
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
-        db = connect_db(wfm_db, db_path)
         if wf_utils.start_workflow(wf_id):
             resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
         else:
@@ -45,7 +44,7 @@ class WFActions(Resource):
 
         for task in tasks:
             tasks_status.append((task.id, task.name, task.state))
-        wf_status = wf_utils.read_wf_status(wf_id) 
+        wf_status = wf_utils.read_wf_status(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,
                              wf_status=wf_status, status='ok'), 200)
@@ -57,7 +56,6 @@ class WFActions(Resource):
         option = self.reqparse.parse_args()['option']
         db = connect_db(wfm_db, db_path)
         if option == "cancel":
-            wfi = wf_utils.get_workflow_interface(wf_id)
             # Remove all tasks currently in the database
             wf_utils.update_wf_status(wf_id, 'Cancelled')
             log.info(f"Workflow {wf_id} cancelled")
@@ -76,7 +74,6 @@ class WFActions(Resource):
 
     def patch(self, wf_id):
         """Pause or resume workflow."""
-        db = connect_db(wfm_db, db_path)
         self.reqparse.add_argument('option', type=str, location='json')
         option = self.reqparse.parse_args()['option']
 

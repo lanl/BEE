@@ -106,6 +106,7 @@ def update_wf_status(wf_id, status_msg):
     wfi = get_workflow_interface(wf_id)
     wfi.set_workflow_state(status_msg)
 
+
 def read_wf_status(wf_id):
     """Read workflow status metadata file."""
     bee_workdir = get_bee_workdir()
@@ -302,9 +303,8 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
 
 def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
-    db = connect_db(wfm_db, get_db_path())
     wfi = get_workflow_interface(wf_id)
-    state = read_wf_status(wf_id) 
+    state = read_wf_status(wf_id)
     if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
         return False
     wfi.execute_workflow()

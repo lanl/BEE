@@ -53,8 +53,8 @@ def teardown_workflow():
 def setup_teardown_workflow(teardown_workflow, mocker, temp_db):
     """Set up and tear down for tests that use the workflow directory."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
-            return_value=MockWFI())
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', new=lambda:temp_db.db_file)
+                 return_value=MockWFI())
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', new=lambda: temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.connect_db', new=mock_connect_db)
     wf_utils.create_workflow_dir(WF_ID)
     wf_utils.create_wf_status(WF_ID)
@@ -174,7 +174,7 @@ def test_start_workflow(client, mocker, temp_db):
 def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     """Test getting workflow status."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
-            return_value=MockWFI())
+                 return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', new=lambda: temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
     wf_name = 'wf'
@@ -252,7 +252,7 @@ def test_resume_workflow(client, mocker, setup_teardown_workflow, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
     mocker.patch('beeflow.tests.mocks.MockWFI.get_workflow_state',
-            return_value='PAUSED')
+                 return_value='PAUSED')
     mocker.patch('beeflow.wf_manager.resources.wf_utils.connect_db', new=mock_connect_db)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_scheduler', return_value=None)
