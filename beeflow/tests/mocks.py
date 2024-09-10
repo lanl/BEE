@@ -24,14 +24,6 @@ class MockWFI:
         self._workflow_id = '42'
         self._loaded = False
 
-    def pause_workflow(self):
-        """Pause a workflow."""
-        return
-
-    def resume_workflow(self):
-        """Resume a workflow."""
-        return
-
     def reset_workflow(self, wf_id): #noqa
         """Reset a workflow."""
         wf_id = 0 # noqa
@@ -148,14 +140,6 @@ class MockGDBDriver:
         for task_id in self.task_states:
             if self._is_ready(task_id):
                 self.task_states[task_id] = 'READY'
-
-    def pause_workflow(self, workflow_id): #noqa not using parameter in mock
-        """Pause execution of a running workflow."""
-        self.workflow_state = 'PAUSED'
-
-    def resume_workflow(self, workflow_id): #noqa not using parameter in mock
-        """Resume execution of a running workflow."""
-        self.workflow_state = 'RESUME'
 
     def reset_workflow(self, old_id, new_id): #noqa not using parameter in mock
         """Reset the execution state and ID of a workflow."""

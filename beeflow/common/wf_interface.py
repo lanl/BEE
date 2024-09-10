@@ -59,14 +59,6 @@ class WorkflowInterface:
         """Begin execution of a BEE workflow."""
         self._gdb_driver.execute_workflow(self._workflow_id)
 
-    def pause_workflow(self):
-        """Pause the execution of a BEE workflow."""
-        self._gdb_driver.pause_workflow(self._workflow_id)
-
-    def resume_workflow(self):
-        """Resume the execution of a paused BEE workflow."""
-        self._gdb_driver.resume_workflow(self._workflow_id)
-
     def reset_workflow(self, workflow_id):
         """Reset the execution state and ID of a BEE workflow."""
         self._gdb_driver.reset_workflow(self._workflow_id, workflow_id)

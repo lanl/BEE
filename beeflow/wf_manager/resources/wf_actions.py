@@ -23,9 +23,7 @@ class WFActions(Resource):
 
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
-        db = connect_db(wfm_db, db_path)
         if wf_utils.start_workflow(wf_id):
-            db.workflows.update_workflow_state(wf_id, 'Running')
             resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
         else:
             resp_body = jsonify(msg='Cannot start workflow it is {state.lower()}.', status='ok')
@@ -46,7 +44,7 @@ class WFActions(Resource):
 
         for task in tasks:
             tasks_status.append((task.id, task.name, task.state))
-        wf_status = db.workflows.get_workflow_state(wf_id)
+        wf_status = wf_utils.read_wf_status(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,
                              wf_status=wf_status, status='ok'), 200)
@@ -58,11 +56,8 @@ class WFActions(Resource):
         option = self.reqparse.parse_args()['option']
         db = connect_db(wfm_db, db_path)
         if option == "cancel":
-            wfi = wf_utils.get_workflow_interface(wf_id)
             # Remove all tasks currently in the database
-            wfi.set_workflow_state('Cancelled')
             wf_utils.update_wf_status(wf_id, 'Cancelled')
-            db.workflows.update_workflow_state(wf_id, 'Cancelled')
             log.info(f"Workflow {wf_id} cancelled")
             resp = make_response(jsonify(status='Cancelled'), 202)
         elif option == "remove":
@@ -79,25 +74,20 @@ class WFActions(Resource):
 
     def patch(self, wf_id):
         """Pause or resume workflow."""
-        db = connect_db(wfm_db, db_path)
         self.reqparse.add_argument('option', type=str, location='json')
         option = self.reqparse.parse_args()['option']
 
         wfi = wf_utils.get_workflow_interface(wf_id)
         log.info('Pausing/resuming workflow')
-        wf_state = wfi.get_workflow_state()
+        wf_state = wf_utils.read_wf_status(wf_id)
         if option == 'pause' and wf_state in ('RUNNING', 'INITIALIZING'):
-            wfi.pause_workflow()
             wf_utils.update_wf_status(wf_id, 'Paused')
-            db.workflows.update_workflow_state(wf_id, 'Paused')
             log.info(f"Workflow {wf_id} Paused")
             resp = make_response(jsonify(status='Workflow Paused'), 200)
         elif option == 'resume' and wf_state == 'PAUSED':
-            wfi.resume_workflow()
+            wf_utils.update_wf_status(wf_id, 'Running')
             tasks = wfi.get_ready_tasks()
             wf_utils.schedule_submit_tasks(wf_id, tasks)
-            wf_utils.update_wf_status(wf_id, 'Running')
-            db.workflows.update_workflow_state(wf_id, 'Running')
             log.info(f"Workflow {wf_id} Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)
         else:
