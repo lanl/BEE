@@ -25,7 +25,6 @@ class WFActions(Resource):
         """Start workflow. Send ready tasks to the task manager."""
         db = connect_db(wfm_db, db_path)
         if wf_utils.start_workflow(wf_id):
-            db.workflows.update_workflow_state(wf_id, 'Running') # TODO: Ask about this
             resp = make_response(jsonify(msg='Started workflow!', status='ok'), 200)
         else:
             resp_body = jsonify(msg='Cannot start workflow it is {state.lower()}.', status='ok')
