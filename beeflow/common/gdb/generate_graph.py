@@ -51,6 +51,7 @@ def generate_viz(wf_id):
         else:
             dot.edge(target, source, label=edge_label, fontsize="10")
 
-    # Set the output format to PNG and render the graph
-    dot.format = 'png'
-    dot.render(output_path, view=False)
+    # Render the graph
+    png_data = dot.pipe(format='png')
+    with open(output_path + ".png", "wb") as f:
+        f.write(png_data)
