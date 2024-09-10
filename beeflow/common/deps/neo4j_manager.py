@@ -24,6 +24,7 @@ run_dir = mount_dir + '/run'
 certs_dir = mount_dir + '/certificates'
 confs_dir = mount_dir + "/conf"
 dags_dir = os.path.join(bee_workdir, 'dags')
+graphmls_dir = dags_dir + "/graphmls"
 container_path = container_manager.get_container_dir('neo4j')
 log = bee_logging.setup('neo4j')
 
@@ -61,6 +62,7 @@ def setup_mounts():
     os.makedirs(certs_dir, exist_ok=True)
     os.makedirs(run_dir, exist_ok=True)
     os.makedirs(dags_dir, exist_ok=True)
+    os.makedirs(graphmls_dir, exist_ok=True)
 
 
 def setup_configs(bolt_port, http_port, https_port):
@@ -120,7 +122,7 @@ def create_credentials():
             "-b", data_dir + ":/data",
             "-b", logs_dir + ":/logs",
             "-b", run_dir + ":/var/lib/neo4j/run", container_path,
-            "-W", "-b", dags_dir + ":/var/lib/neo4j/import",
+            "-W", "-b", graphmls_dir + ":/var/lib/neo4j/import",
             "--", *command
         ], check=True)
     except subprocess.CalledProcessError:
@@ -140,7 +142,7 @@ def create_database():
             "-b", logs_dir + ":/logs",
             "-b", run_dir + ":/var/lib/neo4j/run",
             "-b", certs_dir + ":/var/lib/neo4j/certificates",
-            "-W", "-b", dags_dir + ":/var/lib/neo4j/import",
+            "-W", "-b", graphmls_dir + ":/var/lib/neo4j/import",
             container_path, "--", *command
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         wait_gdb()

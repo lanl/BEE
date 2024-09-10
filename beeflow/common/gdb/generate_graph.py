@@ -1,7 +1,18 @@
+import os
 import networkx as nx
 import graphviz
 
-def graphml_to_graphviz(graphml_path, output_path):
+from beeflow.common import paths
+
+bee_workdir = paths.workdir()
+dags_dir = os.path.join(bee_workdir, 'dags')
+graphmls_dir = dags_dir + "/graphmls"
+
+def generate_viz(wf_id):
+    short_id = wf_id[:6]
+    graphml_path = graphmls_dir + "/" + short_id + ".graphml"
+    output_path = dags_dir + "/" + short_id
+
     # Load the GraphML file using NetworkX
     G = nx.read_graphml(graphml_path)
 
@@ -11,7 +22,7 @@ def graphml_to_graphviz(graphml_path, output_path):
     # Add nodes to the Graphviz graph
     for node in G.nodes(data=True):
         node_id = node[0]
-        label = node[1].get('labels', node_id)  # Use label if available, otherwise node_id
+        label = node[1].get('labels', node_id)
         if label == ":Workflow":
             node_label = "Workflow"
             color ='steelblue'
@@ -34,7 +45,7 @@ def graphml_to_graphviz(graphml_path, output_path):
     for edge in G.edges(data=True):
         source = edge[0]
         target = edge[1]
-        edge_label = edge[2].get('label', '')  # Use edge label if available
+        edge_label = edge[2].get('label', '')
         if edge_label == "INPUT_OF" or edge_label == "DESCRIBES":
             dot.edge(source, target, label=edge_label, fontsize="10")
         else:
@@ -43,14 +54,3 @@ def graphml_to_graphviz(graphml_path, output_path):
     # Set the output format to PNG and render the graph
     dot.format = 'png'
     dot.render(output_path, view=False)
-
-if __name__ == "__main__":
-    # Path to your GraphML file
-    graphml_file = '/vast/home/leahh/.beeflow/dags/bebd6f.graphml'
-    output_file = 'hierarchical_graph_clamr'
-
-    # Generate the hierarchical graph
-    graphml_to_graphviz(graphml_file, output_file)
-
-    print(f"Graph has been saved as {output_file}.png")
-
