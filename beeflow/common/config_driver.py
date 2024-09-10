@@ -225,25 +225,42 @@ DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
+DEFAULT_BEE_DROPPOINT = join_path(HOME_DIR, '.beeflow/droppoint')
 USER = getpass.getuser()
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
+
 VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
                  default=DEFAULT_BEE_WORKDIR, validator=validation.make_dir)
+
+VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop point',
+                 default=DEFAULT_BEE_DROPPOINT, validator=validation.make_dir)
+
+VALIDATOR.option('DEFAULT', 'remote_api', info='BEE remote REST API activation',
+                 default=False, validator=validation.bool_)
+
+VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
+                 default=7777, validator=int)
+
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  info='backend workload scheduler to interact with ')
+
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs')
+
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                  info='neo4j container image',
                  input_fn=filepath_completion_input)
+
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  info='redis container image',
                  input_fn=filepath_completion_input)
+
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
                  default=3,
                  info='max number of times beeflow will restart a component on failure')
+
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
 # Task manager
