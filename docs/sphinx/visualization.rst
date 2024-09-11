@@ -7,9 +7,6 @@ BEE includes a simple command for viewing BEE workflows. By using the ``beeflow
 dag $ID`` command, you can view the directed acyclic graph (DAG) of any submitted
 workflow.
 
-**IMPORTANT**: To use this command, change the neo4j image in your bee config to
-the neo4j-dag.tar.gz in the beedev directory.
-
 Creating DAGs
 =============
 
