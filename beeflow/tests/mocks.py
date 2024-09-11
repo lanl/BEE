@@ -166,10 +166,10 @@ class MockGDBDriver:
             self.task_metadata[task_id] = {}
             self.task_states[task_id] = 'WAITING'
 
-    def load_task(self, task):
+    def load_task(self, task, task_state):
         """Load a task into a workflow in the graph database."""
         self.tasks[task.id] = task
-        self.task_states[task.id] = 'WAITING'
+        self.task_states[task.id] = task_state
         self.task_metadata[task.id] = {}
         self.inputs[task.id] = {}
         self.outputs[task.id] = {}
@@ -186,7 +186,8 @@ class MockGDBDriver:
 
     def restart_task(self, _old_task, new_task):
         """Create a new task from a failed task checkpoint restart enabled."""
-        self.load_task(new_task)
+        task_state = "WAITING"
+        self.load_task(new_task, task_state)
 
     def finalize_task(self, task):
         """Set a task's state to completed."""
