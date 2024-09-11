@@ -229,7 +229,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         task_state = "WAITING"
 
-        self.wfi.add_task(taski, task_state)
+        self.wfi.add_task(task, task_state)
 
         # Restart the task, should create a new Task
         new_task = self.wfi.restart_task(task, test_checkpoint_file)
