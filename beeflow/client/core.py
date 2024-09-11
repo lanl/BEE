@@ -44,7 +44,11 @@ class ComponentManager:
         """Return a decorator function to be called."""
 
         def wrap(fn):
-            """Add the component to the list."""
+            """Check to see if any components are disabled."""
+            if bc.get('DEFAULT', 'remote_api') is False and 'remote_api' in name:
+                return
+
+            # Add the component to the list.
             self.components[name] = {
                 'fn': fn,
                 'deps': deps,
@@ -188,6 +192,13 @@ def init_components():
         # Using a function here because of the funny way that the scheduler's written
         return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
                                     paths.sched_socket(), stdout=fp, stderr=fp)
+
+    @mgr.component('remote_api', ('wf_manager', 'task_manager'))
+    def start_remote_api():
+        """Start the remote API."""
+        fp = open_log('remote_api')
+        return launch_with_gunicorn('beeflow.remote.remote:create_app()',
+                                    paths.remote_socket(), stdout=fp, stderr=fp)
 
     @mgr.component('celery', ('redis',))
     def celery():
@@ -424,6 +435,15 @@ def status():
     print('beeflow components:')
     for comp, stat in resp['components'].items():
         print(f'{comp} ... {stat}')
+
+
+@app.command()
+def info():
+    """Get information about beeflow's installation."""
+    version = importlib.metadata.version("hpc-beeflow")
+    print(f"Beeflow version: {version}")
+    print(f"bee_workflow directory: {paths.workdir()}")
+    print(f"Log path: {paths.log_path()}")
 
 
 @app.command()

@@ -22,6 +22,7 @@
    contribute
    development
    wf_api
+   rest_api
    visualization
 
 

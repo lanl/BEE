@@ -30,6 +30,11 @@ def tm_socket():
     return os.path.join(_sockdir(), 'task_manager.sock')
 
 
+def remote_socket():
+    """Get the socket path for the Remote API."""
+    return os.path.join(_sockdir(), 'remote.sock')
+
+
 def sched_socket():
     """Get the scheduler socket."""
     return os.path.join(_sockdir(), 'scheduler.sock')
@@ -83,3 +88,9 @@ def celery_config():
 def celery_db():
     """Return the celery db path."""
     return os.path.join(_celery_root(), 'celery.db')
+
+
+def droppoint_root():
+    """Get the root directory for the current droppoint."""
+    bee_droppoint = bc.get('DEFAULT', 'bee_droppoint')
+    return bee_droppoint
