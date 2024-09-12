@@ -12,7 +12,7 @@ import typer
 
 from beeflow.common.config_validator import ConfigValidator
 from beeflow.common.util.cli import NaturalOrderGroup
-from beeflow.common import validation
+from beeflow.common.util import validation
 from beeflow.common.util.tab_completion import filepath_completion
 
 
