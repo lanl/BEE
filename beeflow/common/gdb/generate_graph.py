@@ -12,11 +12,7 @@ graphmls_dir = dags_dir + "/graphmls"
 
 
 def generate_viz(wf_id):
-    """
-    Generate a PNG of a workflow graph from a GraphML file.
-    This function reads a GraphML file, processes its nodes and edges into a Graphviz
-    directed graph, and saves the rendered PNG to the output path.
-    """
+    """Generate a PNG of a workflow graph from a GraphML file."""
     short_id = wf_id[:6]
     graphml_path = graphmls_dir + "/" + short_id + ".graphml"
     output_path = dags_dir + "/" + short_id
@@ -24,47 +20,59 @@ def generate_viz(wf_id):
     # Load the GraphML file using NetworkX
     graph = nx.read_graphml(graphml_path)
 
-    # Create a new directed graph for Graphviz
+    # Initialize Graphviz graph
     dot = graphviz.Digraph(comment='Hierarchical Graph')
-    # Add nodes to the Graphviz graph
-    for node in graph.nodes(data=True):
-        node_id = node[0]
-        label = node[1].get('labels', node_id)
-        if label == ":Workflow":
-            node_label = "Workflow"
-            color = 'steelblue'
-        if label == ":Output":
-            node_label = node[1].get('value', node_id)
-            color = 'mediumseagreen'
-        if label == ":Metadata":
-            node_label = node[1].get('state', node_id)
-            color = 'skyblue'
-        if label == ":Task":
-            node_label = node[1].get('name', node_id)
-            color = 'lightcoral'
-        if label == ":Input":
-            node_label = node[1].get('source', node_id)
-            color = 'sandybrown'
-        if label == ":Hint":
-            node_label = node[1].get('class', node_id)
-            color = 'plum'
-        if label == ":Requirement":
-            node_label = node[1].get('class', node_id)
-            color = 'lightpink1'
 
+    # Add nodes and edges using helper functions
+    add_nodes_to_dot(graph, dot)
+    add_edges_to_dot(graph, dot)
+
+    # Render the graph and save as PNG
+    png_data = dot.pipe(format='png')
+    with open(output_path + ".png", "wb") as png_file:
+        png_file.write(png_data)
+
+
+def add_nodes_to_dot(graph, dot):
+    """Add nodes from the graph to the Graphviz object with labels and colors."""
+    label_to_color = {
+        ":Workflow": 'steelblue',
+        ":Output": 'mediumseagreen',
+        ":Metadata": 'skyblue',
+        ":Task": 'lightcoral',
+        ":Input": 'sandybrown',
+        ":Hint": 'plum',
+        ":Requirement": 'lightpink1'
+    }
+
+    for node_id, attributes in graph.nodes(data=True):
+        label = attributes.get('labels', node_id)
+        node_label, color = get_node_label_and_color(label, attributes, label_to_color)
         dot.node(node_id, label=node_label, style='filled', fillcolor=color)
 
-    # Add edges to the Graphviz graph
-    for edge in graph.edges(data=True):
-        source = edge[0]
-        target = edge[1]
-        edge_label = edge[2].get('label', '')
+
+def get_node_label_and_color(label, attributes, label_to_color):
+    """Return the appropriate node label and color based on node type."""
+    if label == ":Workflow":
+        return "Workflow", label_to_color[label]
+    if label == ":Output":
+        return attributes.get('value', label), label_to_color[label]
+    if label == ":Metadata":
+        return attributes.get('state', label), label_to_color[label]
+    if label == ":Task":
+        return attributes.get('name', label), label_to_color[label]
+    if label == ":Input":
+        return attributes.get('source', label), label_to_color[label]
+    if label == ":Hint" or label == ":Requirement":
+        return attributes.get('class', label), label_to_color[label]
+    return label, 'gray'  # Default color if label doesn't match
+
+
+def add_edges_to_dot(graph, dot):
+    """Add edges from the graph to the Graphviz object with appropriate labels."""
+    for source, target, attributes in graph.edges(data=True):
+        edge_label = attributes.get('label', '')
         if edge_label in ('INPUT_OF', 'DESCRIBES'):
             dot.edge(source, target, label=edge_label, fontsize="10")
         else:
             dot.edge(target, source, label=edge_label, fontsize="10")
-
-    # Render the graph
-    png_data = dot.pipe(format='png')
-    with open(output_path + ".png", "wb") as png_file:
-        png_file.write(png_data)
