@@ -22,9 +22,9 @@ import typer
 import yaml
 
 from beeflow.common import config_driver
-from beeflow.common.cli import NaturalOrderGroup
+from beeflow.common.util.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
-from beeflow.common import paths
+from beeflow.common.util import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.client import core

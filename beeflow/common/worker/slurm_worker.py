@@ -11,7 +11,7 @@ import getpass
 import requests_unixsocket
 import requests
 
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
 from beeflow.common.worker.utils import get_state_sacct

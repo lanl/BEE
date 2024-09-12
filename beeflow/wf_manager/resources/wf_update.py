@@ -10,7 +10,7 @@ import jsonpickle
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db

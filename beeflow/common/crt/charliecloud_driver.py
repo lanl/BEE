@@ -10,7 +10,7 @@ from beeflow.common.crt.crt_driver import (ContainerRuntimeDriver, ContainerRunt
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.build.utils import task2arg
 from beeflow.common.container_path import convert_path
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 
 
 log = bee_logging.setup(__name__)

@@ -12,7 +12,7 @@ from beeflow.scheduler import task
 from beeflow.scheduler import resource_allocation
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.db import sched_db
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 
 from beeflow.common.db.bdb import connect_db
 

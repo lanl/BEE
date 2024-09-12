@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 import os
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 
 

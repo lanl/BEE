@@ -4,7 +4,7 @@ from collections import namedtuple
 import jsonpickle
 
 from beeflow.common.db import bdb
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 from beeflow.common.wf_data import TaskStateUpdate
 
 log = bee_logging.setup(__name__)

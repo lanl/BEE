@@ -6,7 +6,7 @@ from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.db import tm_db
 from beeflow.common.db import bdb
 from beeflow.common import worker
-from beeflow.common import paths
+from beeflow.common.util import paths
 from beeflow.common.connection import Connection
 from beeflow.common.worker_interface import WorkerInterface
 

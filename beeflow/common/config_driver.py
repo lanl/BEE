@@ -11,9 +11,9 @@ import textwrap
 import typer
 
 from beeflow.common.config_validator import ConfigValidator
-from beeflow.common.cli import NaturalOrderGroup
+from beeflow.common.util.cli import NaturalOrderGroup
 from beeflow.common import validation
-from beeflow.common.tab_completion import filepath_completion
+from beeflow.common.util.tab_completion import filepath_completion
 
 
 # System specific path set up
