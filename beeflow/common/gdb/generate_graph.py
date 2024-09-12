@@ -72,7 +72,8 @@ def add_edges_to_dot(graph, dot):
     """Add edges from the graph to the Graphviz object with appropriate labels."""
     for source, target, attributes in graph.edges(data=True):
         edge_label = attributes.get('label', '')
-        if edge_label in ('INPUT_OF', 'DESCRIBES'):
+        if edge_label in ('INPUT_OF', 'DESCRIBES',
+                          'HINT_OF', 'REQUIREMENT_OF'):
             dot.edge(source, target, label=edge_label, fontsize="10")
         else:
             dot.edge(target, source, label=edge_label, fontsize="10")
