@@ -7,12 +7,10 @@ bee_workdir = paths.workdir()
 dags_dir = os.path.join(bee_workdir, 'dags')
 graphmls_dir = dags_dir + "/graphmls"
 
-# Define the set of expected keys
-expected_keys = {"id", "name", "state", "class", "type", "value", "source", 
-                 "workflow_id", "base_command", "stdout", "stderr", "default", 
+expected_keys = {"id", "name", "state", "class", "type", "value", "source",
+                 "workflow_id", "base_command", "stdout", "stderr", "default",
                  "prefix", "position", "value_from", "glob"}
 
-# Default settings for missing keys
 default_key_definitions = {
     "id": {"for": "node", "attr.name": "id", "attr.type": "string"},
     "name": {"for": "node", "attr.name": "name", "attr.type": "string"},
@@ -32,6 +30,7 @@ default_key_definitions = {
     "glob": {"for": "node", "attr.name": "glob", "attr.type": "string"},
 }
 
+
 def update_graphml(wf_id):
     """Update GraphML file by ensuring required keys are present and updating its structure."""
     short_id = wf_id[:6]
@@ -40,26 +39,20 @@ def update_graphml(wf_id):
     tree = ET.parse(graphml_path)
     root = tree.getroot()
 
-    # GraphML namespace
     ns = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
-
-    # Extract the defined keys (with namespace)
     defined_keys = {key.attrib['id'] for key in root.findall('graphml:key', ns)}
-
-    # Find all data keys in the graph
     used_keys = {data.attrib['key'] for data in root.findall('.//graphml:data', ns)}
 
-    # Check for missing keys
     missing_keys = used_keys - defined_keys
 
     # Insert default key definitions for missing keys
     for missing_key in missing_keys:
         if missing_key in expected_keys:
             default_def = default_key_definitions[missing_key]
-            key_element = ET.Element(f'{{{ns["graphml"]}}}key', 
-                                     id=missing_key, 
+            key_element = ET.Element(f'{{{ns["graphml"]}}}key',
+                                     id=missing_key,
                                      **default_def)
-            root.insert(0, key_element)  # Insert at the top of the file
+            root.insert(0, key_element)
 
     # Save the updated GraphML file by overwriting the original one
     tree.write(graphml_path, encoding='UTF-8', xml_declaration=True)
