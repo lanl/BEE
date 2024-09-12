@@ -1,3 +1,5 @@
+"""Module to make sure all required keys are present."""
+
 import xml.etree.ElementTree as ET
 import os
 
@@ -39,9 +41,9 @@ def update_graphml(wf_id):
     tree = ET.parse(graphml_path)
     root = tree.getroot()
 
-    ns = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
-    defined_keys = {key.attrib['id'] for key in root.findall('graphml:key', ns)}
-    used_keys = {data.attrib['key'] for data in root.findall('.//graphml:data', ns)}
+    name_space = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
+    defined_keys = {key.attrib['id'] for key in root.findall('graphml:key', name_space)}
+    used_keys = {data.attrib['key'] for data in root.findall('.//graphml:data', name_space)}
 
     missing_keys = used_keys - defined_keys
 
@@ -49,7 +51,7 @@ def update_graphml(wf_id):
     for missing_key in missing_keys:
         if missing_key in expected_keys:
             default_def = default_key_definitions[missing_key]
-            key_element = ET.Element(f'{{{ns["graphml"]}}}key',
+            key_element = ET.Element(f'{{{name_space["graphml"]}}}key',
                                      id=missing_key,
                                      **default_def)
             root.insert(0, key_element)

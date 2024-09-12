@@ -53,27 +53,29 @@ def add_nodes_to_dot(graph, dot):
 
 def get_node_label_and_color(label, attributes, label_to_color):
     """Return the appropriate node label and color based on node type."""
-    if label == ":Workflow":
-        return "Workflow", label_to_color[label]
-    if label == ":Output":
-        return attributes.get('value', label), label_to_color[label]
-    if label == ":Metadata":
-        return attributes.get('state', label), label_to_color[label]
-    if label == ":Task":
-        return attributes.get('name', label), label_to_color[label]
-    if label == ":Input":
-        return attributes.get('source', label), label_to_color[label]
-    if label == ":Hint" or label == ":Requirement":
-        return attributes.get('class', label), label_to_color[label]
-    return label, 'gray'  # Default color if label doesn't match
+    label_to_attribute = {
+        ":Workflow": "Workflow",
+        ":Output": attributes.get('value', label),
+        ":Metadata": attributes.get('state', label),
+        ":Task": attributes.get('name', label),
+        ":Input": attributes.get('source', label),
+        ":Hint": attributes.get('class', label),
+        ":Requirement": attributes.get('class', label)
+    }
+
+    # Check if the label is in the predefined labels
+    if label in label_to_attribute:
+        return label_to_attribute[label], label_to_color.get(label, 'gray')
+
+    # Default case if no match
+    return label, 'gray'
 
 
 def add_edges_to_dot(graph, dot):
     """Add edges from the graph to the Graphviz object with appropriate labels."""
     for source, target, attributes in graph.edges(data=True):
         edge_label = attributes.get('label', '')
-        if edge_label in ('INPUT_OF', 'DESCRIBES',
-                          'HINT_OF', 'REQUIREMENT_OF'):
+        if edge_label in ('INPUT_OF', 'DESCRIBES', 'HINT_OF', 'REQUIREMENT_OF'):
             dot.edge(source, target, label=edge_label, fontsize="10")
         else:
             dot.edge(target, source, label=edge_label, fontsize="10")
