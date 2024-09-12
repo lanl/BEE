@@ -275,17 +275,20 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
     create_wf_metadata(wf_id, wf_name)
     db = connect_db(wfm_db, get_db_path())
     for task in tasks:
-        wfi.add_task(task)
+        task_state = "" if no_start else "WAITING"
+        wfi.add_task(task, task_state)
         metadata = wfi.get_task_metadata(task)
         metadata['workdir'] = wf_workdir
         wfi.set_task_metadata(task, metadata)
-        db.workflows.add_task(task.id, wf_id, task.name, "WAITING")
+        db.workflows.add_task(task.id, wf_id, task.name, task_state)
 
-    update_wf_status(wf_id, 'Waiting')
-    db.workflows.update_workflow_state(wf_id, 'Waiting')
     if no_start:
+        update_wf_status(wf_id, 'No Start')
+        db.workflows.update_workflow_state(wf_id, 'No Start')
         log.info('Not starting workflow, as requested')
     else:
+        update_wf_status(wf_id, 'Waiting')
+        db.workflows.update_workflow_state(wf_id, 'Waiting')
         log.info('Starting workflow')
         db.workflows.update_workflow_state(wf_id, 'Running')
         start_workflow(wf_id)
@@ -306,6 +309,13 @@ def start_workflow(wf_id):
     state = wfi.get_workflow_state()
     if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
         return False
+    _, tasks = wfi.get_workflow()
+    tasks.reverse()
+    for task in tasks:
+        task_state = wfi.get_task_state(task)
+        if task_state == '':
+            wfi.set_task_state(task, 'WAITING')
+            db.workflows.update_task_state(task.id, wf_id, 'WAITING')
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)
