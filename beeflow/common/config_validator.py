@@ -1,6 +1,6 @@
 """Config validation code."""
 
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 
 log = bee_logging.setup(__name__)
 

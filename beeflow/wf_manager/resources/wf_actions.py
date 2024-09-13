@@ -4,7 +4,7 @@ import os
 
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
 
 from beeflow.common.db import wfm_db

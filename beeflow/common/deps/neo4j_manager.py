@@ -9,11 +9,11 @@ import time
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import wfm_db
 
-from beeflow.common import paths
+from beeflow.common.util import paths
 from beeflow.common.deps import container_manager
 
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 
 # Define directories within module scope
 bee_workdir = paths.workdir()

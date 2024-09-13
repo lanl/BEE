@@ -2,7 +2,7 @@
 import os
 import subprocess
 
-from beeflow.common import paths
+from beeflow.common.util import paths
 
 
 def start(log):

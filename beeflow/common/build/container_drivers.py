@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import tempfile
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build.build_driver import BuildDriver
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver

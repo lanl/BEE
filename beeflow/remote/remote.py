@@ -6,7 +6,7 @@ from fastapi import FastAPI
 import uvicorn
 
 from beeflow.common import cli_connection
-from beeflow.common import paths
+from beeflow.common.util import paths
 from beeflow.client import bee_client
 from beeflow.common.config_driver import BeeConfig as bc
 

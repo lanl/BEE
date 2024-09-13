@@ -7,7 +7,7 @@ import shutil
 import subprocess
 
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common import paths
+from beeflow.common.util import paths
 from celery import shared_task #noqa pylama can't find celery
 
 

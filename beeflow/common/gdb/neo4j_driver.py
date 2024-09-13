@@ -12,7 +12,7 @@ from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.gdb import neo4j_cypher as tx
 from beeflow.common.wf_data import (Workflow, Task, Requirement, Hint,
                                     InputParameter, OutputParameter, StepInput, StepOutput)
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 
 log = bee_logging.setup(__name__)
 

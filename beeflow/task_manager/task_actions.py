@@ -2,7 +2,7 @@
 import traceback
 from flask import jsonify, make_response
 from flask_restful import Resource
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 from beeflow.task_manager import utils
 
 log = bee_logging.setup(__name__)

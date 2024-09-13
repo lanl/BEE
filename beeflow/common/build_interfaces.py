@@ -13,7 +13,7 @@ import sys
 from subprocess import CalledProcessError
 from beeflow.common.build.container_drivers import CharliecloudBuildDriver
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 from beeflow.common.build.utils import arg2task, ContainerBuildError
 
 

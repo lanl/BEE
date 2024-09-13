@@ -6,7 +6,7 @@ the Workflow Manager.
 import traceback
 import jsonpickle
 from beeflow.task_manager import utils
-from beeflow.common import log as bee_logging
+from beeflow.common.util import log as bee_logging
 from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build_interfaces import build_main
 from beeflow.common.worker import WorkerError

@@ -12,8 +12,8 @@ from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
 from celery import shared_task  # noqa (pylama can't find celery imports)
 
-from beeflow.common import log as bee_logging
-# from beeflow.common.wf_profiler import WorkflowProfiler
+from beeflow.common.util import log as bee_logging
+# from beeflow.common.util.wf_profiler import WorkflowProfiler
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common import wf_data
