@@ -179,7 +179,8 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_requirement_nodes, task=new_task)
             session.write_transaction(tx.create_task_input_nodes, task=new_task)
             session.write_transaction(tx.create_task_output_nodes, task=new_task)
-            session.write_transaction(tx.create_task_metadata_node, task=new_task, task_state="WAITING")
+            session.write_transaction(tx.create_task_metadata_node, task=new_task,
+                                      task_state="WAITING")
             session.write_transaction(tx.add_dependencies, task=new_task, old_task=old_task,
                                       restarted_task=True)
 
