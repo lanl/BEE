@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """bee-client.
 
-This script provides an client interface to the user to manage workflows.
+This script provides a client interface to the user to manage workflows.
 Capablities include submitting, starting, listing, pausing and cancelling workflows.
 """
 import os
@@ -29,6 +29,8 @@ from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.client import core
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.common.db import client_db
+from beeflow.common.db import bdb
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -50,6 +52,25 @@ class ClientError(Exception):
     def __init__(self, *args):
         """Error constructor."""
         self.args = args
+
+
+def db_path():
+    """Return the client database path."""
+    bee_workdir = config_driver.BeeConfig.get('DEFAULT', 'bee_workdir')
+    return os.path.join(bee_workdir, 'client.db')
+
+
+def connect_db():
+    """Connect to the client database."""
+    return bdb.connect_db(client_db, db_path())
+
+
+def setup_hostname():
+    """Set up front end name when beeflow core start is returned."""
+    db = connect_db(client_db, db_path())
+    # hard coding front end name for now
+    new_hostname = 'front_end_name'
+    db.info.set_hostname(new_hostname)
 
 
 def error_exit(msg, include_caller=True):
