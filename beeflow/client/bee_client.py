@@ -41,6 +41,7 @@ _INTERACTIVE = False
 
 
 logging.basicConfig(level=logging.WARNING)
+logging.getLogger("neo4j").setLevel(logging.WARNING)
 WORKFLOW_MANAGER = 'bee_wfm/v1/jobs/'
 
 
@@ -621,6 +622,14 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
                 f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
     logging.info(f'ReExecute Workflow: {resp.text}')
     return wf_id
+
+
+@app.command()
+def dag(wf_id: str = typer.Argument(..., callback=match_short_id)):
+    """Export a DAG of the workflow to a GraphML file."""
+    wf_utils.export_dag(wf_id)
+    typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
+                fg=typer.colors.GREEN)
 
 
 @app.callback(invoke_without_command=True)

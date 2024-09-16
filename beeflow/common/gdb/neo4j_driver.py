@@ -474,6 +474,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             session.write_transaction(tx_fun, **kwargs)
 
+    def export_graphml(self, workflow_id):
+        """Export a BEE workflow as a graphml."""
+        with self._driver.session() as session:
+            session.write_transaction(tx.export_graphml, wf_id=workflow_id)
+
 
 def _reconstruct_requirements(req_records):
     """Reconstruct requirements by their records retrieved from Neo4j.

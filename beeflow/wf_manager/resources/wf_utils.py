@@ -8,6 +8,8 @@ import jsonpickle
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb import neo4j_driver
+from beeflow.common.gdb.generate_graph import generate_viz
+from beeflow.common.gdb.graphml_key_updater import update_graphml
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
 from beeflow.common import paths
@@ -290,6 +292,14 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
         log.info('Starting workflow')
         db.workflows.update_workflow_state(wf_id, 'Running')
         start_workflow(wf_id)
+
+
+def export_dag(wf_id):
+    """Export the DAG of the workflow."""
+    wfi = get_workflow_interface(wf_id)
+    wfi.export_graphml()
+    update_graphml(wf_id)
+    generate_viz(wf_id)
 
 
 def start_workflow(wf_id):
