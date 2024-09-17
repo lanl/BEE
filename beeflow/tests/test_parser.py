@@ -3,7 +3,7 @@
 
 from pathlib import Path
 import unittest
-from beeflow.common.parser import CwlParser
+from beeflow.common.parser import CwlParser, CwlParseError
 from beeflow.common.wf_data import (generate_workflow_id, Workflow, Task, Hint,
                                     StepInput, StepOutput, InputParameter, OutputParameter)
 
@@ -50,6 +50,30 @@ class TestParser(unittest.TestCase):
         for task in tasks:
             self.assertEqual(task.workflow_id, workflow_id)
 
+    def test_parse_workflow_validate_script(self):
+        """Test parsing of workflow and validate pre/post script files."""
+        cwl_wf_file = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_wf.cwl") #noqa
+        cwl_job_yaml = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_job.yml") #noqa
+
+        workflow_id = generate_workflow_id()
+
+        with self.assertRaises(Exception) as context:
+            self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+
+        self.assertEqual(context.exception.args[0], "No shebang line found in pre_run.sh")
+
+    def test_parse_workflow_validate_shell(self):
+        """Test parsing of workflow and check shell option matches pre/post script shebang line."""
+        cwl_wf_file = find("ci/test_workflows/shell_validate/workflow.cwl") #noqa
+        cwl_job_yaml = find("ci/test_workflows/shell_validate/input.yml") #noqa
+
+        workflow_id = generate_workflow_id()
+
+        with self.assertRaises(Exception) as context:
+            self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+
+        self.assertEqual(context.exception.args[0], "CWL file shell #!/bin/bash does not match post.sh shell #!/bin/bashoo") #noqa
+
     def test_parse_workflow_json(self):
         """Test parsing of workflow with a JSON input job file."""
         cwl_wf_file = find("examples/clamr-ffmpeg-build/clamr_wf.cwl")
@@ -75,6 +99,16 @@ class TestParser(unittest.TestCase):
         self.assertListEqual(tasks, TASKS_NOJOB_GOLD)
         for task in tasks:
             self.assertEqual(task.workflow_id, workflow_id)
+
+    def test_parse_workflow_missing_input(self):
+        """Test parsing a workflow with a missing input value in the input file."""
+        cwl_wf_file = find('ci/test_workflows/missing-input/workflow.cwl')
+        cwl_job_yaml = find('ci/test_workflows/missing-input/input.yml')
+
+        workflow_id = generate_workflow_id()
+
+        with self.assertRaises(CwlParseError):
+            _, _ = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
 
 
 WORKFLOW_GOLD_SCRIPT = Workflow(
@@ -127,6 +161,65 @@ WORKFLOW_GOLD = Workflow(
     workflow_id=generate_workflow_id())
 
 TASKS_GOLD_SCRIPT = [
+    Task(
+        name='clamr',
+        base_command='/CLAMR/clamr_cpuonly',
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), #noqa
+               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"', 'post_script': 'echo "After run"', 'shell': '/bin/bash'})], #noqa
+        requirements=[],
+        inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
+                          source='steps_between_graphics', prefix='-g', position=None,
+                          value_from=None),
+                StepInput(id='graphics_type', type='string', value=None, default=None,
+                          source='graphics_type', prefix='-G', position=None, value_from=None),
+                StepInput(id='grid_res', type='int', value=None, default=None,
+                          source='grid_resolution', prefix='-n', position=None, value_from=None),
+                StepInput(id='max_levels', type='int', value=None, default=None,
+                          source='max_levels', prefix='-l', position=None, value_from=None),
+                StepInput(id='output_steps', type='int', value=None, default=None,
+                          source='steps_between_outputs', prefix='-i', position=None,
+                          value_from=None),
+                StepInput(id='time_steps', type='int', value=None, default=None,
+                          source='time_steps', prefix='-t', position=None, value_from=None)],
+        outputs=[StepOutput(id='clamr/clamr_stdout', type='stdout', value=None,
+                            glob='clamr_stdout.txt'),
+                 StepOutput(id='clamr/outdir', type='Directory', value=None,
+                            glob='graphics_output/graph%05d.png'),
+                 StepOutput(id='clamr/time_log', type='File', value=None,
+                            glob='total_execution_time.log')],
+        stdout='clamr_stdout.txt',
+        stderr=None,
+        workflow_id=WORKFLOW_GOLD.id
+    ),
+    Task(
+        name='ffmpeg',
+        base_command='ffmpeg -y',
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # noqa
+        requirements=[],
+        inputs=[StepInput(id='ffmpeg_input', type='Directory', value=None, default=None,
+                          source='clamr/outdir', prefix='-i', position=2,
+                          value_from='$("/graph%05d.png")'),
+                StepInput(id='frame_rate', type='int', value=None, default=None,
+                          source='frame_rate', prefix='-r', position=3, value_from=None),
+                StepInput(id='frame_size', type='string', value=None, default=None,
+                          source='frame_size', prefix='-s', position=4, value_from=None),
+                StepInput(id='input_format', type='string', value=None, default=None,
+                          source='input_format', prefix='-f', position=1, value_from=None),
+                StepInput(id='output_file', type='string', value=None, default=None,
+                          source='output_filename', prefix=None, position=6, value_from=None),
+                StepInput(id='pixel_format', type='string', value=None, default=None,
+                          source='pixel_format', prefix='-pix_fmt', position=5, value_from=None)],
+        outputs=[StepOutput(id='ffmpeg/movie', type='File', value=None,
+                            glob='$(inputs.output_file)'),
+                 StepOutput(id='ffmpeg/ffmpeg_stderr', type='stderr', value=None,
+                            glob='ffmpeg_stderr.txt')],
+        stdout=None,
+        stderr='ffmpeg_stderr.txt',
+        workflow_id=WORKFLOW_GOLD.id)
+]
+
+
+TASKS_GOLD_VALIDATE_SCRIPT = [
     Task(
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
@@ -247,7 +340,7 @@ WORKFLOW_NOJOB_GOLD = Workflow(
     name='cf',
     hints=[],
     requirements=[],
-    inputs={InputParameter(id='infile', type='File', value=None)},
+    inputs={InputParameter(id='infile', type='File', value='infile')},
     outputs={OutputParameter(id='ffmpeg_movie', type='File', value=None, source='ffmpeg/outfile'),
              OutputParameter(id='clamr_dir', type='File', value=None, source='clamr/outfile')},
     workflow_id=generate_workflow_id())

@@ -7,6 +7,9 @@ printf "#### SLURM VERSION ####\n"
 srun -V
 printf "#######################\n"
 
+# Determine config of CI host
+export NODE_CONFIG=`slurmd -C | head -n 1`
+
 # Dump a new slurm.conf
 cat >> $SLURM_CONF <<EOF
 ClusterName=bee-ci

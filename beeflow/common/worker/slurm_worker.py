@@ -14,6 +14,9 @@ import requests
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
+from beeflow.common.worker.utils import get_state_sacct
+from beeflow.common.worker.utils import parse_key_val
+
 
 log = bee_logging.setup(__name__)
 
@@ -44,7 +47,8 @@ class BaseSlurmWorker(Worker):
             main_command_srun_args = []
         nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=nodes)
-        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='pmi2')
+        # Need to rethink the MPI version parameter
+        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='')
         time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
                                           default=self.default_time_limit)
         time_limit = validation.time_limit(time_limit)
@@ -54,6 +58,7 @@ class BaseSlurmWorker(Worker):
                                          'partition',
                                          default=self.default_partition)
 
+        shell = task.get_requirement('beeflow:ScriptRequirement', 'shell', default="/bin/bash")
         scripts_enabled = task.get_requirement('beeflow:ScriptRequirement', 'enabled',
                                                default=False)
         if scripts_enabled:
@@ -64,7 +69,7 @@ class BaseSlurmWorker(Worker):
                                       'post_script')).readlines()
         # sbatch header
         script = [
-            '#!/bin/bash',
+            f'#!{shell}',
             f'#SBATCH --job-name={task.name}-{task.id}',
             f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
             f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
@@ -80,7 +85,8 @@ class BaseSlurmWorker(Worker):
             script.append(f'#SBATCH -p {partition}')
 
         # Return immediately on error
-        script.append('set -e')
+        if shell == "/bin/bash":
+            script.append('set -e')
         script.append(crt_res.env_code)
 
         def srun(script_lines, script_cmd):
@@ -102,7 +108,11 @@ class BaseSlurmWorker(Worker):
         # Main command
         srun_args = ' '.join(main_command_srun_args)
         args = ' '.join(crt_res.main_command.args)
-        script.append(f'srun --mpi={mpi_version} {srun_args} {args}')
+        if mpi_version:
+            mpi_arg = f'--mpi={mpi_version}'
+        else:
+            mpi_arg = ''
+        script.append(f'srun --nodes={nodes} {mpi_arg} {srun_args} {args}')
 
         # Post commands
         for cmd in crt_res.post_commands:
@@ -160,17 +170,18 @@ class SlurmrestdWorker(BaseSlurmWorker):
         """Worker queries job; returns job_state."""
         try:
             resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
-
-            if resp.status_code != 200:
-                raise WorkerError(f'Failed to query job {job_id}')
-            data = json.loads(resp.text)
-            # Check for errors in the response
-            check_slurm_error(data, f'Failed to query job {job_id}')
-            # For some versions of slurm, the job_state isn't included on failure
-            try:
-                job_state = data['jobs'][0]['job_state']
-            except (KeyError, IndexError) as exc:
-                raise WorkerError(f'Failed to query job {job_id}') from exc
+            if resp.status_code == 200:
+                data = json.loads(resp.text)
+                # Check for errors in the response
+                check_slurm_error(data, f'Failed to query job {job_id}, slurm error.')
+                # For some versions of slurm, the job_state isn't included on failure
+                try:
+                    job_state = data['jobs'][0]['job_state']
+                except (KeyError, IndexError) as exc:
+                    raise WorkerError(f'Failed to query job {job_id}') from exc
+            else:
+                # If slurmrestd does not find job make last attempt with sacct command
+                job_state = get_state_sacct(job_id)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
         return job_state
@@ -200,24 +211,19 @@ class SlurmCLIWorker(BaseSlurmWorker):
 
     def query_task(self, job_id):
         """Query job state for the task."""
-        # Use scontrol since it gives a lot of useful info
+        # Use scontrol since it gives a lot of useful info; may want to save info
         try:
             res = subprocess.run(['scontrol', 'show', 'job', str(job_id)],
                                  text=True, check=True, stdout=subprocess.PIPE)
         except subprocess.CalledProcessError:
-            raise WorkerError(
-                f'Failed to query job {job_id}'
-            ) from None
-
-        def parse_key_val(pair):
-            """Parse the key-value pair."""
-            i = pair.find('=')
-            return (pair[:i], pair[i + 1:])
-
-        # Output is in a space-separated list of 'key=value' pairs
-        pairs = res.stdout.split()
-        key_vals = dict(parse_key_val(pair) for pair in pairs)
-        return key_vals['JobState']
+            # If show job cannot find job get state using sacct (not same info)
+            job_state = get_state_sacct(job_id)
+        else:
+            # Output is in a space-separated list of 'key=value' pairs
+            pairs = res.stdout.split()
+            key_vals = dict(parse_key_val(pair) for pair in pairs)
+            job_state = key_vals['JobState']
+        return job_state
 
     def cancel_task(self, job_id):
         """Cancel task with job_id; returns job_state."""

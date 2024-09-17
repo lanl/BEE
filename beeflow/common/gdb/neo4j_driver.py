@@ -6,7 +6,7 @@ either standardized or read from a config file.
 """
 
 from neo4j import GraphDatabase as Neo4jDatabase
-from neobolt.exceptions import ServiceUnavailable
+from neo4j.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.gdb import neo4j_cypher as tx
@@ -24,7 +24,7 @@ DEFAULT_USER = "neo4j"
 DEFAULT_PASSWORD = "password"
 
 
-class Neo4JNotRunning(Exception):
+class Neo4jNotRunning(Exception):
     """Exception thrown when connection attempted while Neo4j is not running."""
 
 
@@ -33,10 +33,17 @@ class Neo4jDriver(GraphDatabaseDriver):
 
     Implements GraphDatabaseDriver.
     Wraps the neo4j package proprietary driver.
+    This class is a SINGLETON and will always return the same instance of Neo4jDriver
     """
 
-    def __init__(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
-        """Create a new Neo4j database driver.
+    def __new__(cls):
+        """Create or get the instance of Neo4j database driver."""
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(Neo4jDriver, cls).__new__(cls) #noqa cls causing linting errors
+        return cls.instance
+
+    def connect(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
+        """Connect driver to the neo4j database.
 
         :param uri: the URI of the Neo4j database
         :type uri: str
@@ -49,13 +56,19 @@ class Neo4jDriver(GraphDatabaseDriver):
         bolt_port = kwargs.get("bolt_port", DEFAULT_BOLT_PORT)
         password = kwargs.get("db_pass", DEFAULT_PASSWORD)
         uri = f"bolt://{db_hostname}:{bolt_port}"
-
         try:
             # Connect to the Neo4j database using the Neo4j proprietary driver
-            self._driver = Neo4jDatabase.driver(uri, auth=(user, password))
+            self._driver = Neo4jDatabase.driver(uri, auth=(user, password)) #noqa outside init
+            # Checks the connection and returns ServiceUnavailable if something is wrong
+            self._driver.verify_connectivity()
         except ServiceUnavailable as sue:
             log.error("Neo4j database is unavailable")
-            raise Neo4JNotRunning("Neo4j database is unavailable") from sue
+            raise Neo4jNotRunning("Neo4j database is unavailable") from sue
+
+    def create_bee_node(self):
+        """Create the "BEE" node for all workflows to connect to."""
+        with self._driver.session() as session:
+            session.write_transaction(tx.create_bee_node)
 
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow stored in Neo4j.
@@ -67,35 +80,45 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         with self._driver.session() as session:
             session.write_transaction(tx.create_workflow_node, workflow)
-            session.write_transaction(tx.create_workflow_requirement_nodes,
-                                      requirements=workflow.requirements)
-            session.write_transaction(tx.create_workflow_hint_nodes, hints=workflow.hints)
-            session.write_transaction(tx.create_workflow_input_nodes, inputs=workflow.inputs)
-            session.write_transaction(tx.create_workflow_output_nodes, outputs=workflow.outputs)
+            session.write_transaction(tx.create_workflow_requirement_nodes, workflow)
+            session.write_transaction(tx.create_workflow_hint_nodes, workflow)
+            session.write_transaction(tx.create_workflow_input_nodes, workflow)
+            session.write_transaction(tx.create_workflow_output_nodes, workflow)
 
-    def execute_workflow(self):
-        """Begin execution of the workflow stored in the Neo4j database."""
-        self._write_transaction(tx.set_init_task_inputs)
-        self._write_transaction(tx.set_init_tasks_to_ready)
-        self._write_transaction(tx.set_workflow_state, state='RUNNING')
+    def execute_workflow(self, workflow_id):
+        """Begin execution of a workflow stored in the Neo4j database.
 
-    def pause_workflow(self):
+        :param workflow_id: the workflow id
+        :type workflow_id: str
+        """
+        self._write_transaction(tx.set_init_task_inputs, wf_id=workflow_id)
+        self._write_transaction(tx.set_runnable_tasks_to_ready, wf_id=workflow_id)
+        self._write_transaction(tx.set_workflow_state, state='RUNNING', wf_id=workflow_id)
+
+    def pause_workflow(self, workflow_id):
         """Pause execution of a running workflow in Neo4j.
 
         Sets tasks with state 'RUNNING' to 'PAUSED'.
+
+        :param workflow_id: the workflow id
+        :type workflow_id: str
+
         """
         with self._driver.session() as session:
-            session.write_transaction(tx.set_workflow_state, state='PAUSED')
+            session.write_transaction(tx.set_workflow_state, state='PAUSED', wf_id=workflow_id)
 
-    def resume_workflow(self):
+    def resume_workflow(self, workflow_id):
         """Resume execution of a paused workflow in Neo4j.
 
-        Sets workflow state to 'PAUSED'
+        Sets workflow state to 'RUNNING'
+
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         """
         with self._driver.session() as session:
-            session.write_transaction(tx.set_workflow_state, state='RESUME')
+            session.write_transaction(tx.set_workflow_state, state='RUNNING', wf_id=workflow_id)
 
-    def reset_workflow(self, new_id):
+    def reset_workflow(self, old_id, new_id):
         """Reset the execution state of an entire workflow.
 
         Sets all task states to 'WAITING'.
@@ -105,10 +128,10 @@ class Neo4jDriver(GraphDatabaseDriver):
         :type new_id: str
         """
         with self._driver.session() as session:
-            session.write_transaction(tx.reset_tasks_metadata)
-            session.write_transaction(tx.reset_workflow_id, new_id=new_id)
+            session.write_transaction(tx.reset_tasks_metadata, wf_id=old_id)
+            session.write_transaction(tx.reset_workflow_id, old_id=old_id, new_id=new_id)
 
-    def load_task(self, task):
+    def load_task(self, task, task_state):
         """Load a task into a workflow stored in the Neo4j database.
 
         Dependencies are automatically deduced and generated by Neo4j upon loading
@@ -125,15 +148,19 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_requirement_nodes, task=task)
             session.write_transaction(tx.create_task_input_nodes, task=task)
             session.write_transaction(tx.create_task_output_nodes, task=task)
-            session.write_transaction(tx.create_task_metadata_node, task=task)
+            session.write_transaction(tx.create_task_metadata_node, task=task,
+                                      task_state=task_state)
             session.write_transaction(tx.add_dependencies, task=task)
 
-    def initialize_ready_tasks(self):
+    def initialize_ready_tasks(self, workflow_id):
         """Set runnable tasks to state 'READY'.
 
         Runnable tasks are tasks with all input dependencies fulfilled.
+
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         """
-        self._write_transaction(tx.set_runnable_tasks_to_ready)
+        self._write_transaction(tx.set_runnable_tasks_to_ready, wf_id=workflow_id)
 
     def restart_task(self, old_task, new_task):
         """Restart a failed task.
@@ -152,7 +179,8 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_requirement_nodes, task=new_task)
             session.write_transaction(tx.create_task_input_nodes, task=new_task)
             session.write_transaction(tx.create_task_output_nodes, task=new_task)
-            session.write_transaction(tx.create_task_metadata_node, task=new_task)
+            session.write_transaction(tx.create_task_metadata_node, task=new_task,
+                                      task_state="WAITING")
             session.write_transaction(tx.add_dependencies, task=new_task, old_task=old_task,
                                       restarted_task=True)
 
@@ -177,73 +205,89 @@ class Neo4jDriver(GraphDatabaseDriver):
         return _reconstruct_task(tuples[0][0], tuples[0][1], tuples[0][2], tuples[0][3],
                                  tuples[0][4])
 
-    def get_workflow_description(self):
+    def get_workflow_description(self, workflow_id):
         """Return a reconstructed Workflow object from the Neo4j database.
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: Workflow
         """
-        workflow_record = self._read_transaction(tx.get_workflow_description)
-        requirements, hints = self.get_workflow_requirements_and_hints()
-        inputs, outputs = self.get_workflow_inputs_and_outputs()
+        workflow_record = self._read_transaction(tx.get_workflow_by_id, wf_id=workflow_id)
+        requirements, hints = self.get_workflow_requirements_and_hints(workflow_id)
+        inputs, outputs = self.get_workflow_inputs_and_outputs(workflow_id)
         return _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
 
-    def get_workflow_state(self):
+    def get_workflow_state(self, workflow_id):
         """Return the current workflow state from the Neo4j database.
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: str
         """
-        return self._read_transaction(tx.get_workflow_state)
+        return self._read_transaction(tx.get_workflow_state, wf_id=workflow_id)
 
-    def set_workflow_state(self, state):
+    def set_workflow_state(self, workflow_id, state):
         """Set the state of the workflow in the Neo4j database.
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :param state: the new state of the workflow
         :type state: str
         """
-        self._write_transaction(tx.set_workflow_state, state=state)
+        self._write_transaction(tx.set_workflow_state, state=state, wf_id=workflow_id)
 
-    def get_workflow_tasks(self):
-        """Return all workflow task records from the Neo4j database.
+    def get_workflow_tasks(self, workflow_id):
+        """Return all workflow task records for a workflow from the Neo4j database.
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: list of Task
         """
-        task_records = self._read_transaction(tx.get_workflow_tasks)
+        task_records = self._read_transaction(tx.get_workflow_tasks, wf_id=workflow_id)
         tuples = self._get_task_data_tuples(task_records)
         return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
 
-    def get_workflow_requirements_and_hints(self):
+    def get_workflow_requirements_and_hints(self, workflow_id):
         """Return all workflow requirements and hints from the Neo4j database.
 
         Returns a tuple of (requirements, hints).
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: (list of Requirement, list of Hint)
         """
         with self._driver.session() as session:
             requirements = _reconstruct_requirements(
-                session.read_transaction(tx.get_workflow_requirements))
-            hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints))
+                session.read_transaction(tx.get_workflow_requirements, wf_id=workflow_id))
+            hints = _reconstruct_hints(session.read_transaction(tx.get_workflow_hints,
+                                                                wf_id=workflow_id))
         return requirements, hints
 
-    def get_workflow_inputs_and_outputs(self):
-        """Return all workflow inputs and outputs from the Neo4j database.
+    def get_workflow_inputs_and_outputs(self, workflow_id):
+        """Return all workflow inputs and outputs for a workflow from the Neo4j database.
 
         Returns a tuple of (inputs, outputs).
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: (list of InputParameter, list of OutputParameter)
         """
         with self._driver.session() as session:
-            inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs))
+            inputs = _reconstruct_workflow_inputs(session.read_transaction(tx.get_workflow_inputs,
+                                                                           wf_id=workflow_id))
             outputs = _reconstruct_workflow_outputs(
-                session.read_transaction(tx.get_workflow_outputs))
+                session.read_transaction(tx.get_workflow_outputs, wf_id=workflow_id))
 
         return inputs, outputs
 
-    def get_ready_tasks(self):
-        """Return tasks with state 'READY' from the graph database.
+    def get_ready_tasks(self, workflow_id):
+        """Return tasks with state 'READY' from the graph database from a particular workflow.
 
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: list of Task
         """
-        task_records = self._read_transaction(tx.get_ready_tasks)
+        task_records = self._read_transaction(tx.get_ready_tasks, wf_id=workflow_id)
         tuples = self._get_task_data_tuples(task_records)
         return [_reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples]
 
@@ -307,7 +351,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: StepInput
         """
         input_record = self._read_transaction(tx.get_task_input, task=task, input_id=input_id)
-        return _reconstruct_task_input(input_record["i"])
+        return _reconstruct_task_input(input_record)
 
     def set_task_input(self, task, input_id, value):
         """Set the value of a task input.
@@ -330,7 +374,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :rtype: StepOutput
         """
         output_record = self._read_transaction(tx.get_task_output, task=task, output_id=output_id)
-        return _reconstruct_task_output(output_record["o"])
+        return _reconstruct_task_output(output_record)
 
     def set_task_output(self, task, output_id, value):
         """Set the value of a task output.
@@ -368,24 +412,15 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         self._write_transaction(tx.set_task_output_glob, task=task, output_id=output_id, glob=glob)
 
-    def workflow_completed(self):
+    def workflow_completed(self, workflow_id):
         """Determine if a workflow in the Neo4j database has completed.
 
         A workflow has completed if each of its final task nodes have state 'COMPLETED'.
+        :param workflow_id: the workflow id
+        :type workflow_id: str
         :rtype: bool
         """
-        return self._read_transaction(tx.final_tasks_completed)
-
-    def empty(self):
-        """Determine if the Neo4j database is empty.
-
-        :rtype: bool
-        """
-        return self._read_transaction(tx.is_empty)
-
-    def cleanup(self):
-        """Clean up all data in the Neo4j database."""
-        self._write_transaction(tx.cleanup)
+        return self._read_transaction(tx.final_tasks_completed, wf_id=workflow_id)
 
     def close(self):
         """Close the connection to the Neo4j database."""
@@ -401,13 +436,13 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             trecords = list(task_records)
             hint_records = [session.read_transaction(tx.get_task_hints,
-                            task_id=rec["t"]["id"]) for rec in trecords]
+                            task_id=rec["id"]) for rec in trecords]
             req_records = [session.read_transaction(tx.get_task_requirements,
-                           task_id=rec["t"]["id"]) for rec in trecords]
+                           task_id=rec["id"]) for rec in trecords]
             input_records = [session.read_transaction(tx.get_task_inputs,
-                             task_id=rec["t"]["id"]) for rec in trecords]
+                             task_id=rec["id"]) for rec in trecords]
             output_records = [session.read_transaction(tx.get_task_outputs,
-                              task_id=rec["t"]["id"]) for rec in trecords]
+                              task_id=rec["id"]) for rec in trecords]
 
         hints = [_reconstruct_hints(hint_record) for hint_record in hint_records]
         reqs = [_reconstruct_requirements(req_record) for req_record in req_records]
@@ -439,6 +474,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         with self._driver.session() as session:
             session.write_transaction(tx_fun, **kwargs)
 
+    def export_graphml(self, workflow_id):
+        """Export a BEE workflow as a graphml."""
+        with self._driver.session() as session:
+            session.write_transaction(tx.export_graphml, wf_id=workflow_id)
+
 
 def _reconstruct_requirements(req_records):
     """Reconstruct requirements by their records retrieved from Neo4j.
@@ -447,9 +487,8 @@ def _reconstruct_requirements(req_records):
     :type req_records: BoltStatementResult
     :rtype: list of Requirement
     """
-    recs = [req_record["r"] for req_record in req_records]
     return [Requirement(rec["class"], {k: v for k, v in rec.items() if k != "class"})
-            for rec in recs]
+            for rec in req_records]
 
 
 def _reconstruct_hints(hint_records):
@@ -459,8 +498,8 @@ def _reconstruct_hints(hint_records):
     :type hint_records: BoltStatementResult
     :rtype: list of Hint
     """
-    recs = [hint_record["h"] for hint_record in hint_records]
-    return [Hint(rec["class"], {k: v for k, v in rec.items() if k != "class"}) for rec in recs]
+    return [Hint(rec["class"], {k: v for k, v in rec.items() if k != "class"})
+            for rec in hint_records]
 
 
 def _reconstruct_workflow_inputs(input_records):
@@ -470,8 +509,7 @@ def _reconstruct_workflow_inputs(input_records):
     :type input_records: BoltStatementResult
     :rtype: list of InputParameter
     """
-    recs = [input_record["i"] for input_record in input_records]
-    return [InputParameter(rec["id"], rec["type"], rec["value"]) for rec in recs]
+    return [InputParameter(rec["id"], rec["type"], rec["value"]) for rec in input_records]
 
 
 def _reconstruct_workflow_outputs(output_records):
@@ -481,8 +519,8 @@ def _reconstruct_workflow_outputs(output_records):
     :type output_records: BoltStatementResult
     :rtype: list of OutputParameter
     """
-    recs = [output_record["o"] for output_record in output_records]
-    return [OutputParameter(rec["id"], rec["type"], rec["value"], rec["source"]) for rec in recs]
+    return [OutputParameter(rec["id"], rec["type"], rec["value"], rec["source"])
+            for rec in output_records]
 
 
 def _reconstruct_task_inputs(input_records):
@@ -492,8 +530,7 @@ def _reconstruct_task_inputs(input_records):
     :type input_records: BoltStatementResult
     :rtype: list of StepInput
     """
-    recs = [input_record["i"] for input_record in input_records]
-    return [_reconstruct_task_input(rec) for rec in recs]
+    return [_reconstruct_task_input(rec) for rec in input_records]
 
 
 def _reconstruct_task_input(rec):
@@ -514,8 +551,7 @@ def _reconstruct_task_outputs(output_records):
     :type output_records: BoltStatementResult
     :rtype: list of StepOutput
     """
-    recs = [output_record["o"] for output_record in output_records]
-    return [_reconstruct_task_output(rec) for rec in recs]
+    return [_reconstruct_task_output(rec) for rec in output_records]
 
 
 def _reconstruct_task_output(rec):
@@ -543,9 +579,8 @@ def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
     :type outputs: list of OutputParameter
     :rtype: Workflow
     """
-    rec = workflow_record["w"]
-    return Workflow(name=rec["name"], hints=hints, requirements=requirements, inputs=inputs,
-                    outputs=outputs, workflow_id=rec["id"])
+    return Workflow(name=workflow_record["name"], hints=hints, requirements=requirements,
+                    inputs=inputs, outputs=outputs, workflow_id=workflow_record["id"])
 
 
 def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
@@ -563,10 +598,10 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
     :type outputs: list of StepOutput
     :rtype: Task
     """
-    rec = task_record["t"]
-    return Task(name=rec["name"], base_command=rec["base_command"], hints=hints,
-                requirements=requirements, inputs=inputs, outputs=outputs, stdout=rec["stdout"],
-                stderr=rec["stderr"], workflow_id=rec["workflow_id"], task_id=rec["id"])
+    return Task(name=task_record["name"], base_command=task_record["base_command"],
+                hints=hints, requirements=requirements, inputs=inputs, outputs=outputs,
+                stdout=task_record["stdout"], stderr=task_record["stderr"],
+                workflow_id=task_record["workflow_id"], task_id=task_record["id"])
 
 
 def _reconstruct_metadata(metadata_record):
@@ -578,8 +613,7 @@ def _reconstruct_metadata(metadata_record):
     :type keys: iterable of str
     :rtype: dict
     """
-    rec = metadata_record["m"]
-    return {key: val for key, val in rec.items() if key != "state"}
+    return {key: val for key, val in metadata_record.items() if key != "state"}
 
 # Ignore E1129: External module is missing proper resource context manager methods.
 # pylama:ignore=E1129

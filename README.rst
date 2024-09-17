@@ -1,7 +1,17 @@
 BEE: Build and Execution Environment
 ************************************
 
-BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (`CWL <https://www.commonwl.org/>`_) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or LSF) on the HPC system that tasks are specified to run on.
+Coverage in Develop
+
+.. image:: https://github.com/lanl/BEE/raw/develop/coverage.svg
+   :alt: Coverage Badge for develop
+
+Coverage in Main
+
+.. image:: https://github.com/lanl/BEE/raw/main/coverage.svg
+   :alt: Coverage Badge for main
+
+BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (`CWL <https://www.commonwl.org/>`_) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or Flux) on the HPC system that tasks are specified to run on.
 
 BEE workflows can be archived for provenance and reproducibility. BEE can orchestrate workflows with containerized applications or those built locally on a system. However, there are advantages to containerizing an application.
 
@@ -46,10 +56,12 @@ Contributors:
 * Patricia Grubel - `pagrubel <https://github.com/pagrubel>`_
 * Qiang Guan - `guanxyz <https://github.com/guanxyz>`_
 * Ragini Gupta - `raginigupta6 <https://github.com/raginigupta6>`_
+* Leah Howell - `Leahh02 <https://github.com/Leahh02>`_
 * Andres Quan - `aquan9 <https://github.com/aquan9>`_
 * Quincy Wofford - `qwofford <https://github.com/qwofford>`_
 * Tim Randles - `trandles-lanl <https://github.com/trandles-lanl>`_
 * Jacob Tronge - `jtronge <https://github.com/jtronge>`_
+* Kabir Vats - `kabir-vats <https://github.com/kabir-vats>`_
 
 Concept and Design Contributors
 

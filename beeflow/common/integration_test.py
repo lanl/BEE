@@ -1,4 +1,5 @@
 """BEE integration tests."""
+import glob
 from pathlib import Path
 import os
 import shutil
@@ -20,8 +21,7 @@ def copy_container(outer_workdir):
     # `beeflow:copyContainer` workflow
     container_path = f'/tmp/copy_container-{uuid.uuid4().hex}.tar.gz'
     container_name = 'copy-container'
-    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
-    os.makedirs(workdir)
+    workdir = utils.make_workflow_workdir(outer_workdir)
     container = utils.Container(container_name, generated_workflows.DOCKER_FILE_PATH,
                                 container_path)
     workflow_path = os.path.join(outer_workdir, f'bee-cc-workflow-{uuid.uuid4().hex}')
@@ -94,8 +94,7 @@ def docker_file(outer_workdir):
     workflow_path = os.path.join(outer_workdir, f'bee-df-workflow-{uuid.uuid4().hex}')
     # Copy the Dockerfile to the workdir path
     os.makedirs(workflow_path)
-    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
-    os.makedirs(workdir)
+    workdir = utils.make_workflow_workdir(outer_workdir)
     shutil.copy(generated_workflows.DOCKER_FILE_PATH, os.path.join(workflow_path, 'Dockerfile'))
     container_name = 'docker_file_test'
     docker_requirement = {
@@ -132,8 +131,7 @@ def docker_pull(outer_workdir):
     """Prepare, then check that the `dockerPull` option was successful."""
     # `dockerPull` workflow
     workflow_path = os.path.join(outer_workdir, f'bee-dp-workflow-{uuid.uuid4().hex}')
-    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
-    os.makedirs(workdir)
+    workdir = utils.make_workflow_workdir(outer_workdir)
     container_name = generated_workflows.BASE_CONTAINER
     docker_requirement = {
         'dockerPull': container_name,
@@ -171,8 +169,7 @@ def multiple_workflows(outer_workdir):
     workflow_data = []
     workflows = []
     for i in range(3):
-        workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
-        os.makedirs(workdir)
+        workdir = utils.make_workflow_workdir(outer_workdir)
         workflow_path = Path(outer_workdir, uuid.uuid4().hex)
         main_cwl, job_file = generated_workflows.simple_workflow(workflow_path, output_file)
         workflow = utils.Workflow(f'multi-workflow-{i}', workflow_path,
@@ -197,8 +194,7 @@ def multiple_workflows(outer_workdir):
 @TEST_RUNNER.add()
 def build_failure(outer_workdir):
     """Test running a workflow with a bad container."""
-    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
-    os.makedirs(workdir)
+    workdir = utils.make_workflow_workdir(outer_workdir)
     workflow = utils.Workflow('build-failure', 'ci/test_workflows/build-failure',
                               main_cwl='workflow.cwl', job_file='input.yml',
                               workdir=workdir, containers=[])
@@ -210,11 +206,44 @@ def build_failure(outer_workdir):
                     f'task was not in state BUILD_FAIL as expected: {task_state}')
 
 
+@TEST_RUNNER.add()
+def dependent_tasks_fail(outer_workdir):
+    """Test that dependent tasks don't run after a failure."""
+    workdir = utils.make_workflow_workdir(outer_workdir)
+    workflow = utils.Workflow('failure-dependent-tasks',
+                              'ci/test_workflows/failure-dependent-tasks',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_workflow_failed(workflow)
+    # Check each task state
+    fail_state = workflow.get_task_state_by_name('fail')
+    utils.ci_assert(fail_state == 'FAILED',
+                    f'task fail did not fail as expected: {fail_state}')
+    for task in ['dependent0', 'dependent1', 'dependent2']:
+        task_state = workflow.get_task_state_by_name(task)
+        utils.ci_assert(task_state == 'DEP_FAIL',
+                        f'task {task} did not get state DEP_FAIL as expected: {task_state}')
+
+
+@TEST_RUNNER.add()
+def pre_post_script(outer_workdir):
+    """Test that the beeflow:ScriptRequirement works."""
+    workdir = utils.make_workflow_workdir(outer_workdir)
+    workflow = utils.Workflow('pre-post-script', 'ci/test_workflows/pre-post-script',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_completed(workflow)
+    # Ensure files were touched by the pre and post scripts
+    utils.check_path_exists(Path(workdir, 'pre.txt'))
+    utils.check_path_exists(Path(workdir, 'post.txt'))
+
+
 @TEST_RUNNER.add(ignore=True)
 def checkpoint_restart(outer_workdir):
     """Test the clamr-ffmpeg checkpoint restart workflow."""
-    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
-    os.makedirs(workdir)
+    workdir = utils.make_workflow_workdir(outer_workdir)
     workflow = utils.Workflow('checkpoint-restart',
                               'ci/test_workflows/clamr-wf-checkpoint',
                               main_cwl='clamr_wf.cwl', job_file='clamr_job.yml',
@@ -229,14 +258,26 @@ def checkpoint_restart(outer_workdir):
 @TEST_RUNNER.add(ignore=True)
 def checkpoint_restart_failure(outer_workdir):
     """Test a checkpoint restart workflow that continues past 'num_retries'."""
-    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
-    os.makedirs(workdir)
+    workdir = utils.make_workflow_workdir(outer_workdir)
     workflow = utils.Workflow('checkpoint-too-long',
                               'ci/test_workflows/checkpoint-too-long',
                               main_cwl='workflow.cwl', job_file='input.yml',
                               workdir=workdir, containers=[])
     yield [workflow]
     utils.check_workflow_failed(workflow)
+
+
+@TEST_RUNNER.add(ignore=True)
+def comd_mpi(outer_workdir):
+    """Test the comd-mpi workflow."""
+    workdir = utils.make_workflow_workdir(outer_workdir)
+    workflow = utils.Workflow('comd-mpi', 'ci/test_workflows/comd-mpi',
+                              main_cwl='comd_wf.cwl', job_file='comd_job.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_completed(workflow)
+    fnames = glob.glob('CoMD-mpi.*.yaml', root_dir=workdir)
+    utils.ci_assert(len(fnames) > 0, 'missing comd output yaml file')
 
 
 def test_input_callback(arg):

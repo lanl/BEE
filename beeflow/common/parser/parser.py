@@ -97,12 +97,13 @@ class CwlParser:
             """
             # Use parsed input parameter for input value if it exists
             input_id = _shortname(input_.id)
-            if input_id not in self.params:
-                return None
-            if not isinstance(self.params[input_id], type_map[type_]):
+            value = self.params[input_id] if input_id in self.params else input_.default
+            if value is None:
+                raise CwlParseError(f"input {input_id} is missing from workflow job file")
+            if not isinstance(value, type_map[type_]):
                 raise CwlParseError("Input/param types do not match: "
-                                    f"{input_id}/{self.params[input_id]}")
-            return self.params[input_id]
+                                    f"{input_id}/{value}")
+            return value
 
         workflow_name = os.path.basename(cwl_path).split(".")[0]
         workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
@@ -245,6 +246,9 @@ class CwlParser:
         :type stderr: str or None
         :rtype: list of StepOutput
         """
+        if not cwl_out:
+            return []
+
         out_short = list(map(_shortname, cwl_out))
         short_id = out_short[0].split("/")[0]
         # Inline step outputs already have short_id+"/" prepended
@@ -291,6 +295,33 @@ class CwlParser:
         except FileNotFoundError:
             msg = f'Could not find a file for {key}: {fname}'
             raise CwlParseError(msg) from None
+        if key in {'pre_script', 'post_script'}:
+            self._validate_prepost_shell_env(key, items, fname)
+
+    def _validate_prepost_shell_env(self, key, items, fname):
+        """Validate defined shell interpreters.
+
+        :param fname: name of pre/post script file
+        :type fname: str
+        """
+        env_decl = items[key].splitlines()
+        # Need to remove whitespaces/newlines from list
+        env_decl = [x for x in env_decl if x.strip()]
+        # Check for shebang line in pre/post scripts
+        if not env_decl[0].startswith("#!"):
+            msg = f'No shebang line found in {fname}'
+            raise CwlParseError(msg) from None
+        # Now check for matching shell and shebang line values
+        shell_val = '#!' + items['shell']
+        shebang_val = env_decl[0]
+        if shell_val != shebang_val:
+            msg = f'CWL file shell {shell_val} does not match {fname} shell {shebang_val}'
+            raise CwlParseError(msg) from None
+        # Remove shebang lines from scripts
+        rm_line = env_decl[1:]
+        # List to string format
+        rm_line = "\n".join(rm_line)
+        items.update({key: rm_line})
 
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
@@ -316,10 +347,19 @@ class CwlParser:
                 # Load in the dockerfile at parse time
                 if 'dockerFile' in items:
                     self._read_requirement_file('dockerFile', items)
+                # Load in pre/post scripts and make sure shell option is defined in cwl file
                 if 'pre_script' in items and items['enabled']:
-                    self._read_requirement_file('pre_script', items)
+                    if 'shell' in items:
+                        self._read_requirement_file('pre_script', items)
+                    else:
+                        msg = f'pre script enabled but shell option undefined in cwl file.' #noqa
+                        raise CwlParseError(msg) from None
                 if 'post_script' in items and items['enabled']:
-                    self._read_requirement_file('post_script', items)
+                    if 'shell' in items:
+                        self._read_requirement_file('post_script', items)
+                    else:
+                        msg = f'post script enabled but shell option undefined in cwl file.' #noqa
+                        raise CwlParseError(msg) from None
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)
                 reqs.append(Hint(req['class'], items))

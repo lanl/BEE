@@ -225,50 +225,63 @@ DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
+DEFAULT_BEE_DROPPOINT = join_path(HOME_DIR, '.beeflow/droppoint')
 USER = getpass.getuser()
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
+
 VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
-                 attrs={'default': DEFAULT_BEE_WORKDIR}, validator=validation.make_dir)
+                 default=DEFAULT_BEE_WORKDIR, validator=validation.make_dir)
+
+VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop point',
+                 default=DEFAULT_BEE_DROPPOINT, validator=validation.make_dir)
+
+VALIDATOR.option('DEFAULT', 'remote_api', info='BEE remote REST API activation',
+                 default=False, validator=validation.bool_)
+
+VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
+                 default=7777, validator=int)
+
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  info='backend workload scheduler to interact with ')
-VALIDATOR.option('DEFAULT', 'use_archive', validator=validation.bool_, attrs={'default': True},
-                 info='use the BEE archiving functinality')
+
+VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
+                 default=True, info='delete workflow directory for completed jobs')
+
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                  info='neo4j container image',
-                 attrs={'input': filepath_completion_input})
+                 input_fn=filepath_completion_input)
+
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  info='redis container image',
-                 attrs={'input': filepath_completion_input})
+                 input_fn=filepath_completion_input)
+
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
-                 attrs={'default': 3},
+                 default=3,
                  info='max number of times beeflow will restart a component on failure')
+
 # Workflow Manager
 VALIDATOR.section('workflow_manager', info='Workflow manager section.')
 # Task manager
 VALIDATOR.section('task_manager',
                   info='Task manager configuration and config of container to use.')
-VALIDATOR.option('task_manager', 'container_runtime', attrs={'default': 'Charliecloud'},
+VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
                  choices=('Charliecloud', 'Singularity'),
                  info='container runtime to use for configuration')
-VALIDATOR.option('task_manager', 'runner_opts', attrs={'default': ''},
+VALIDATOR.option('task_manager', 'runner_opts', default='',
                  info='special runner options to pass to the runner opts')
-VALIDATOR.option('task_manager', 'background_interval', attrs={'default': 5},
+VALIDATOR.option('task_manager', 'background_interval', default=5,
                  validator=int,
                  info='interval at which the task manager processes queues and updates states')
-
-# Note: The special attrs keyword can include anything. One use case is for
-# storing a special 'init' function that can be used to initialize the
-# parameter when a user is generating a new configuration.
 
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
-VALIDATOR.option('charliecloud', 'image_mntdir', attrs={'default': join_path('/tmp', USER)},
+VALIDATOR.option('charliecloud', 'image_mntdir', default=join_path('/tmp', USER),
                  info='Charliecloud mount directory', validator=validation.make_dir)
 # General job requirements
-VALIDATOR.section('job', info='General job requirements')
+VALIDATOR.section('job', info='General job requirements.')
 VALIDATOR.option('job', 'default_account', validator=lambda val: val.strip(),
                  info='default account to launch jobs with (leave blank if none)')
 VALIDATOR.option('job', 'default_time_limit', validator=validation.time_limit,
@@ -287,53 +300,53 @@ def validate_chrun_opts(opts):
     return opts
 
 
-VALIDATOR.option('charliecloud', 'chrun_opts', attrs={'default': '--home'},
+VALIDATOR.option('charliecloud', 'chrun_opts', default='--home',
                  validator=validate_chrun_opts,
                  info='extra options to pass to ch-run')
-VALIDATOR.option('charliecloud', 'setup', attrs={'default': ''},
+VALIDATOR.option('charliecloud', 'setup', default='',
                  info='extra Charliecloud setup to put in a job script')
 # Graph Database
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
-VALIDATOR.option('graphdb', 'hostname', attrs={'default': 'localhost'},
+VALIDATOR.option('graphdb', 'hostname', default='localhost',
                  info='hostname of database')
-VALIDATOR.option('graphdb', 'dbpass', attrs={'default': 'password'}, info='password for database')
-VALIDATOR.option('graphdb', 'bolt_port', attrs={'default': DEFAULT_BOLT_PORT}, validator=int,
+VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
+VALIDATOR.option('graphdb', 'bolt_port', default=DEFAULT_BOLT_PORT, validator=int,
                  info='port used for the BOLT API')
-VALIDATOR.option('graphdb', 'http_port', attrs={'default': DEFAULT_HTTP_PORT}, validator=int,
+VALIDATOR.option('graphdb', 'http_port', default=DEFAULT_HTTP_PORT, validator=int,
                  info='HTTP port used for the graph database')
-VALIDATOR.option('graphdb', 'https_port', attrs={'default': DEFAULT_HTTPS_PORT},
+VALIDATOR.option('graphdb', 'https_port', default=DEFAULT_HTTPS_PORT,
                  info='HTTPS port used for the graph database')
-VALIDATOR.option('graphdb', 'gdb_image_mntdir', attrs={'default': join_path('/tmp', USER)},
+VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
                  info='graph database image mount directory', validator=validation.make_dir)
-VALIDATOR.option('graphdb', 'sleep_time', validator=int, attrs={'default': 10},
+VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=1,
                  info='how long to wait for the graph database to come up (this can take a while, '
                       'depending on the system)')
 # Builder
 VALIDATOR.section('builder', info='General builder configuration section.')
-VALIDATOR.option('builder', 'deployed_image_root', attrs={'default': '/tmp'},
+VALIDATOR.option('builder', 'deployed_image_root', default='/tmp',
                  info='where to deploy container images', validator=validation.make_dir)
-VALIDATOR.option('builder', 'container_output_path', attrs={'default': '/tmp'},
+VALIDATOR.option('builder', 'container_output_path', default='/tmp',
                  info='container output path', validator=validation.make_dir)
 VALIDATOR.option('builder', 'container_archive',
-                 attrs={'default': join_path(DEFAULT_BEE_WORKDIR, 'container_archive')},
+                 default=join_path(DEFAULT_BEE_WORKDIR, 'container_archive'),
                  info='container archive location')
-VALIDATOR.option('builder', 'container_type', attrs={'default': 'charliecloud'},
+VALIDATOR.option('builder', 'container_type', default='charliecloud',
                  info='container type to use')
 # Slurmrestd (depends on DEFAULT:workload_scheduler == Slurm)
 VALIDATOR.section('slurm', info='Configuration section for Slurm.',
                   depends_on=('DEFAULT', 'workload_scheduler', 'Slurm'))
 VALIDATOR.option('slurm', 'use_commands', validator=validation.bool_,
-                 attrs={'default': shutil.which('slurmrestd') is None},
+                 default=(shutil.which('slurmrestd') is None),
                  info='if set, use slurm cli commands instead of slurmrestd')
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
-VALIDATOR.option('slurm', 'openapi_version', attrs={'default': 'v0.0.37'},
+VALIDATOR.option('slurm', 'openapi_version', default='v0.0.39',
                  info='openapi version to use for slurmrestd')
 # Scheduler
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
 SCHEDULER_ALGORITHMS = ('fcfs', 'backfill', 'sjf')
-VALIDATOR.option('scheduler', 'algorithm', attrs={'default': 'fcfs'}, choices=SCHEDULER_ALGORITHMS,
+VALIDATOR.option('scheduler', 'algorithm', default='fcfs', choices=SCHEDULER_ALGORITHMS,
                  info='scheduling algorithm to use')
-VALIDATOR.option('scheduler', 'default_algorithm', attrs={'default': 'fcfs'},
+VALIDATOR.option('scheduler', 'default_algorithm', default='fcfs',
                  choices=SCHEDULER_ALGORITHMS,
                  info=('default algorithm to use'))
 
@@ -384,12 +397,9 @@ class ConfigGenerator:
                     printed = True
 
                 # Check for a default value
-                if option.attrs is not None and 'default' in option.attrs:
-                    default = option.attrs['default']
-                    if option.attrs is not None and 'init' in option.attrs:
-                        value = option.attrs['init'](default, self.sections)
-                    else:
-                        value = option.validate(default)
+                if option.default is not None:
+                    default = option.default
+                    value = option.validate(default)
                     print(f'Setting option "{opt_name}" to default value "{value}".')
                     print()
                     self.sections[sec_name][opt_name] = value
@@ -405,18 +415,14 @@ class ConfigGenerator:
     def _input_loop(self, opt_name, option):
         """Run the input-validation loop."""
         # Check if there's a special input function (this allows for tab completion)
-        inp = (option.attrs['input'] if option.attrs is not None
-               and 'input' in option.attrs else input)
+        input_fn = option.input_fn if option.input_fn is not None else input
         # Start of input loop
         value = None
         while value is None:
             print_wrap(f'{opt_name} - {option.info}')
             if option.choices is not None:
                 print(f'(allowed values: {",".join(option.choices)})')
-            value = inp(f'{opt_name}: ')
-            # Call the init function if there is one
-            if option.attrs is not None and 'init' in option.attrs:
-                option.attrs['init'](value, self.sections)
+            value = input_fn(f'{opt_name}: ')
             # Validate the input
             try:
                 option.validate(value)
@@ -479,17 +485,18 @@ def info():
     print()
     for sec_name, section in VALIDATOR.sections:
         print(f'## {sec_name}')
+        print()
+        print_wrap(section.info)
         if section.depends_on is not None:
-            print()
             deps = section.depends_on
-            print_wrap(f'*only required if {deps[0]}::{deps[1]} == "{deps[2]}"*')
+            print()
+            print_wrap(f'Section required if {deps[0]}::{deps[1]} == "{deps[2]}".')
         print()
-        print_wrap(f'{section.info}')
-        print()
+        print('Options:')
         for opt_name, option in VALIDATOR.options(sec_name):
             print_wrap(f'* {opt_name} - {option.info}', '  ')
             if option.choices is not None:
-                print(f'\t* allowed values: {",".join(option.choices)}')
+                print(f'    * allowed values: {",".join(option.choices)}')
         print()
 
 

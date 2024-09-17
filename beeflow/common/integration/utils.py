@@ -58,7 +58,7 @@ class Workflow:
         self.path = path
         self.main_cwl = main_cwl
         self.job_file = job_file
-        self.workdir = workdir
+        self.workdir = Path(workdir)
         self.containers = containers
         self.wf_id = None
         self.tarball = None
@@ -95,6 +95,11 @@ class Workflow:
     def task_states(self):
         """Get the task states of the workflow."""
         return bee_client.query(self.wf_id)[1]
+
+    def get_task_state_by_name(self, name):
+        """Get the state of a task by name."""
+        task_states = self.task_states
+        return [task_state for _, task_name, task_state in task_states if task_name == name][0]
 
     def cleanup(self):
         """Clean up any leftover workflow data."""
@@ -243,5 +248,12 @@ def check_completed(workflow):
 
 def check_workflow_failed(workflow):
     """Ensure that the workflow completed in a Failed state."""
-    ci_assert(workflow.status == 'Failed',
+    ci_assert(workflow.status == 'Archived/Failed',
               f'workflow did not fail as expected (final status: {workflow.status})')
+
+
+def make_workflow_workdir(outer_workdir):
+    """Create a workdir for the workflow run output files."""
+    workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
+    os.makedirs(workdir)
+    return workdir

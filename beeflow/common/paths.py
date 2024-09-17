@@ -3,14 +3,14 @@ import os
 from beeflow.common.config_driver import BeeConfig as bc
 
 
-def _workdir():
+def workdir():
     """Return the workdir."""
     return bc.get('DEFAULT', 'bee_workdir')
 
 
 def _sockdir():
     """Return the socket directory."""
-    sockdir = os.path.join(_workdir(), 'sockets')
+    sockdir = os.path.join(workdir(), 'sockets')
     os.makedirs(sockdir, exist_ok=True)
     return sockdir
 
@@ -28,6 +28,11 @@ def wfm_socket():
 def tm_socket():
     """Get the socket path for the Task Manager."""
     return os.path.join(_sockdir(), 'task_manager.sock')
+
+
+def remote_socket():
+    """Get the socket path for the Remote API."""
+    return os.path.join(_sockdir(), 'remote.sock')
 
 
 def sched_socket():
@@ -53,14 +58,14 @@ def log_fname(component):
 
 def redis_root():
     """Get the redis root directory (create it if it doesn't exist)."""
-    path = os.path.join(_workdir(), 'redis')
+    path = os.path.join(workdir(), 'redis')
     os.makedirs(path, exist_ok=True)
     return path
 
 
 def redis_container():
     """Get the path to the unpacked Redis container."""
-    return os.path.join(_workdir(), 'redis_container')
+    return os.path.join(workdir(), 'deps/redis_container')
 
 
 def redis_sock_fname():
@@ -70,7 +75,7 @@ def redis_sock_fname():
 
 def _celery_root():
     """Get the celery root directory (create it if it doesn't exist)."""
-    path = os.path.join(_workdir(), 'celery')
+    path = os.path.join(workdir(), 'celery')
     os.makedirs(path, exist_ok=True)
     return path
 
@@ -83,3 +88,9 @@ def celery_config():
 def celery_db():
     """Return the celery db path."""
     return os.path.join(_celery_root(), 'celery.db')
+
+
+def droppoint_root():
+    """Get the root directory for the current droppoint."""
+    bee_droppoint = bc.get('DEFAULT', 'bee_droppoint')
+    return bee_droppoint

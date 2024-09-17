@@ -9,7 +9,7 @@ import jsonpickle
 from test_parser import WORKFLOW_GOLD, TASKS_GOLD
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.tests.mocks import MockWFI, MockGDBInterface
+from beeflow.tests.mocks import MockWFI, MockGDBDriver
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.wf_interface import WorkflowInterface
 
@@ -82,14 +82,10 @@ class MockTask:
 def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     """Test submitting a workflow."""
     mocker.patch('beeflow.wf_manager.resources.wf_list.init_workflow', new=MockTask)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image',
-                 return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
     mocker.patch('beeflow.common.wf_data.generate_workflow_id', return_value='42')
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
-                 return_value=WorkflowInterface(MockGDBInterface()))
+                 return_value=WorkflowInterface(MockGDBDriver()))
+
     mocker.patch('subprocess.run', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_list.db_path', temp_db.db_file)
@@ -113,11 +109,6 @@ def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
 def test_reexecute_workflow(client, mocker, teardown_workflow, temp_db):
     """Test reexecuting a workflow."""
     mocker.patch('beeflow.wf_manager.resources.wf_list.init_workflow', new=MockTask)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.create_image',
-                 return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.start_gdb', return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.wait_gdb', return_value=True)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.dep_manager.kill_gdb', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
@@ -170,6 +161,7 @@ def test_start_workflow(client, mocker, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', new=lambda: temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
+    mocker.patch('beeflow.common.wf_interface.WorkflowInterface.get_workflow_state', 'Waiting')
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert resp.status_code == 200
 
@@ -181,11 +173,9 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
     wf_name = 'wf'
-    bolt_port = 3030
-    http_port = 3333
-    https_port = 3455
+    workdir = 'dir'
 
-    temp_db.workflows.init_workflow(WF_ID, wf_name, 'dir', bolt_port, http_port, https_port)
+    temp_db.workflows.init_workflow(WF_ID, wf_name, workdir)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
 
@@ -202,14 +192,11 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
 
     wf_name = 'wf'
-    wf_status = 'Pending'
-    bolt_port = 3030
-    gdb_pid = 12345
+    workdir = 'dir'
 
-    temp_db.workflows.init_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
+    temp_db.workflows.init_workflow(WF_ID, wf_name, workdir)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
-    mocker.patch('beeflow.wf_manager.resources.wf_actions.dep_manager.kill_gdb', return_value=None)
 
     request = {'wf_id': WF_ID, 'option': 'cancel'}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
@@ -225,14 +212,11 @@ def test_remove_workflow(client, mocker, setup_teardown_workflow, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
 
     wf_name = 'wf'
-    wf_status = 'Archived'
-    bolt_port = 3030
-    gdb_pid = 12345
+    workdir = 'dir'
 
-    temp_db.workflows.init_workflow(WF_ID, wf_name, wf_status, 'dir', bolt_port, gdb_pid)
+    temp_db.workflows.init_workflow(WF_ID, wf_name, workdir)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
-    mocker.patch('beeflow.wf_manager.resources.wf_actions.dep_manager.kill_gdb', return_value=None)
 
     request = {'wf_id': WF_ID, 'option': 'remove'}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)

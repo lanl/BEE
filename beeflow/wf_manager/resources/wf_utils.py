@@ -2,19 +2,21 @@
 
 import os
 import shutil
-import socket
 import requests
 import jsonpickle
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.gdb_interface import GraphDatabaseInterface
-from beeflow.common.gdb.neo4j_driver import Neo4jDriver
+from beeflow.common.gdb import neo4j_driver
+from beeflow.common.gdb.generate_graph import generate_viz
+from beeflow.common.gdb.graphml_key_updater import update_graphml
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+
+from celery import shared_task #noqa (pylama can't find celery imports)
 
 log = bee_logging.setup(__name__)
 
@@ -111,6 +113,16 @@ def read_wf_status(wf_id):
     return wf_status
 
 
+def read_wf_name(wf_id):
+    """Read workflow name metadata file."""
+    bee_workdir = get_bee_workdir()
+    workflows_dir = os.path.join(bee_workdir, 'workflows', wf_id)
+    status_path = os.path.join(workflows_dir, 'bee_wf_name')
+    with open(status_path, 'r', encoding="utf8") as status:
+        wf_name = status.readline()
+    return wf_name
+
+
 def create_wf_namefile(wf_name, wf_id):
     """Create workflow name metadata file."""
     bee_workdir = get_bee_workdir()
@@ -124,23 +136,14 @@ def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
     db = connect_db(wfm_db, get_db_path())
     # Wait for the GDB
-    if db.workflows.get_workflow_state(wf_id) == 'Initializing':
-        raise RuntimeError('Workflow is still initializing')
-    bolt_port = db.workflows.get_bolt_port(wf_id)
-    return get_workflow_interface_by_bolt_port(bolt_port)
 
-
-def get_workflow_interface_by_bolt_port(bolt_port):
-    """Return a workflow interface connection using just the bolt port."""
-    try:
-        driver = Neo4jDriver(user="neo4j", bolt_port=bolt_port,
-                             db_hostname=bc.get("graphdb", "hostname"),
-                             password=bc.get("graphdb", "dbpass"))
-        iface = GraphDatabaseInterface(driver)
-        wfi = WorkflowInterface(iface)
-    except KeyError:
-        log.error('The default way to load WFI didnt work')
-        # wfi = WorkflowInterface()
+    # bolt_port = db.info.get_bolt_port()
+    # return get_workflow_interface_by_bolt_port(wf_id, bolt_port)
+    driver = neo4j_driver.Neo4jDriver()
+    bolt_port = db.info.get_port('bolt')
+    if bolt_port != -1:
+        connect_neo4j_driver(bolt_port)
+    wfi = WorkflowInterface(wf_id, driver)
     return wfi
 
 
@@ -245,22 +248,58 @@ def submit_tasks_scheduler(tasks):
     return resp.json()
 
 
-def get_open_port():
-    """Return an open ephemeral port."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
-
-
 def schedule_submit_tasks(wf_id, tasks):
     """Schedule and then submit tasks to the TM."""
     # Submit ready tasks to the scheduler
     allocation = submit_tasks_scheduler(tasks)  #NOQA
     # Submit tasks to TM
     submit_tasks_tm(wf_id, tasks, allocation)
+
+
+def connect_neo4j_driver(bolt_port):
+    """Create a neo4j driver to a gdb through bolt port."""
+    driver = neo4j_driver.Neo4jDriver()
+    driver.connect(user="neo4j", bolt_port=bolt_port,
+                   db_hostname=bc.get("graphdb", "hostname"),
+                   password=bc.get("graphdb", "dbpass"))
+    driver.create_bee_node()
+
+
+def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
+                   tasks=None):
+    """Initialize Workflow in Separate Process."""
+    wfi = get_workflow_interface(wf_id)
+    wfi.initialize_workflow(workflow)
+
+    log.info('Setting workflow metadata')
+    create_wf_metadata(wf_id, wf_name)
+    db = connect_db(wfm_db, get_db_path())
+    for task in tasks:
+        task_state = "" if no_start else "WAITING"
+        wfi.add_task(task, task_state)
+        metadata = wfi.get_task_metadata(task)
+        metadata['workdir'] = wf_workdir
+        wfi.set_task_metadata(task, metadata)
+        db.workflows.add_task(task.id, wf_id, task.name, task_state)
+
+    if no_start:
+        update_wf_status(wf_id, 'No Start')
+        db.workflows.update_workflow_state(wf_id, 'No Start')
+        log.info('Not starting workflow, as requested')
+    else:
+        update_wf_status(wf_id, 'Waiting')
+        db.workflows.update_workflow_state(wf_id, 'Waiting')
+        log.info('Starting workflow')
+        db.workflows.update_workflow_state(wf_id, 'Running')
+        start_workflow(wf_id)
+
+
+def export_dag(wf_id):
+    """Export the DAG of the workflow."""
+    wfi = get_workflow_interface(wf_id)
+    wfi.export_graphml()
+    update_graphml(wf_id)
+    generate_viz(wf_id)
 
 
 def start_workflow(wf_id):
@@ -270,6 +309,13 @@ def start_workflow(wf_id):
     state = wfi.get_workflow_state()
     if state in ('RUNNING', 'PAUSED', 'COMPLETED'):
         return False
+    _, tasks = wfi.get_workflow()
+    tasks.reverse()
+    for task in tasks:
+        task_state = wfi.get_task_state(task)
+        if task_state == '':
+            wfi.set_task_state(task, 'WAITING')
+            db.workflows.update_task_state(task.id, wf_id, 'WAITING')
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)

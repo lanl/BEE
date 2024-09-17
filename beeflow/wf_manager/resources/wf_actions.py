@@ -9,7 +9,6 @@ from beeflow.wf_manager.resources import wf_utils
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
-from beeflow.wf_manager.common import dep_manager
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
@@ -61,14 +60,10 @@ class WFActions(Resource):
         if option == "cancel":
             wfi = wf_utils.get_workflow_interface(wf_id)
             # Remove all tasks currently in the database
-            if wfi.workflow_loaded():
-                wfi.finalize_workflow()
+            wfi.set_workflow_state('Cancelled')
             wf_utils.update_wf_status(wf_id, 'Cancelled')
             db.workflows.update_workflow_state(wf_id, 'Cancelled')
-            log.info("Workflow cancelled")
-            log.info("Shutting down gdb")
-            pid = db.workflows.get_gdb_pid(wf_id)
-            dep_manager.kill_gdb(pid)
+            log.info(f"Workflow {wf_id} cancelled")
             resp = make_response(jsonify(status='Cancelled'), 202)
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
@@ -89,12 +84,13 @@ class WFActions(Resource):
         option = self.reqparse.parse_args()['option']
 
         wfi = wf_utils.get_workflow_interface(wf_id)
+        log.info('Pausing/resuming workflow')
         wf_state = wfi.get_workflow_state()
-        if option == 'pause' and wf_state == 'RUNNING':
+        if option == 'pause' and wf_state in ('RUNNING', 'INITIALIZING'):
             wfi.pause_workflow()
             wf_utils.update_wf_status(wf_id, 'Paused')
             db.workflows.update_workflow_state(wf_id, 'Paused')
-            log.info("Workflow Paused")
+            log.info(f"Workflow {wf_id} Paused")
             resp = make_response(jsonify(status='Workflow Paused'), 200)
         elif option == 'resume' and wf_state == 'PAUSED':
             wfi.resume_workflow()
@@ -102,7 +98,7 @@ class WFActions(Resource):
             wf_utils.schedule_submit_tasks(wf_id, tasks)
             wf_utils.update_wf_status(wf_id, 'Running')
             db.workflows.update_workflow_state(wf_id, 'Running')
-            log.info("Workflow Resumed")
+            log.info(f"Workflow {wf_id} Resumed")
             resp = make_response(jsonify(status='Workflow Resumed'), 200)
         else:
             resp_msg = f'Cannot {option} workflow. It is currently {wf_state.lower()}.'
