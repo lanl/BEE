@@ -15,6 +15,7 @@ from beeflow.common import log as bee_logging
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.wf_manager.resources import wf_utils
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
@@ -35,6 +36,7 @@ def archive_workflow(db, wf_id, final_state=None):
     archive_dir = os.path.join(bee_workdir, 'archives')
     os.makedirs(archive_dir, exist_ok=True)
     archive_path = f'../archives/{wf_id}.tgz'
+    wf_utils.export_dag(wf_id, archive_dir)
     # We use tar directly since tarfile is apparently very slow
     workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
