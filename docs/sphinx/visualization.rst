@@ -4,7 +4,7 @@ Workflow Visualization
 **********************
 
 BEE includes a simple command for viewing BEE workflows. By using the ``beeflow
-dag $ID`` command, you can view the directed acyclic graph (DAG) of any submitted
+dag $ID $OUTPUT_DIR`` command, you can view the directed acyclic graph (DAG) of any submitted
 workflow.
 
 Creating DAGs
@@ -13,8 +13,7 @@ Creating DAGs
 The dag command can be run at any point of the workflow, and can
 be run multiple times. To see the DAG of a workflow before it runs, submit
 the workflow with the ``--no-start`` flag and then use the dag command. The
-DAGs are exported in PNG format to ~/.beeflow/dags. They follow the naming
-convention ``$ID.png``
+DAGs are exported in PNG format to $OUTPUT_DIR/$WD_ID_dags.
 
 Example DAG
 ===========
