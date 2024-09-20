@@ -1,21 +1,31 @@
 """Module to make a png of a graph from a graphml file."""
 
 import os
+import shutil
 import networkx as nx
 import graphviz
 
 from beeflow.common import paths
 
 bee_workdir = paths.workdir()
-dags_dir = os.path.join(bee_workdir, 'dags')
-graphmls_dir = dags_dir + "/graphmls"
+graphmls_dir = os.path.join(bee_workdir, 'graphmls')
 
 
-def generate_viz(wf_id):
+def generate_viz(wf_id, output_dir):
     """Generate a PNG of a workflow graph from a GraphML file."""
     short_id = wf_id[:6]
     graphml_path = graphmls_dir + "/" + short_id + ".graphml"
-    output_path = dags_dir + "/" + short_id
+    dags_dir =  output_dir + "/" + short_id + "_dags"
+    os.makedirs(dags_dir, exist_ok=True)
+
+    output_path = dags_dir + "/" + short_id + ".png"
+    if os.path.exists(output_path):
+        i = 1
+        backup_path = f'{dags_dir}/{short_id}_v{i}.png'
+        while os.path.exists(backup_path):
+            i += 1
+            backup_path = f'{dags_dir}/{short_id}_v{i}.png'
+        shutil.copy(output_path, backup_path)
 
     # Load the GraphML file using NetworkX
     graph = nx.read_graphml(graphml_path)
@@ -29,7 +39,7 @@ def generate_viz(wf_id):
 
     # Render the graph and save as PNG
     png_data = dot.pipe(format='png')
-    with open(output_path + ".png", "wb") as png_file:
+    with open(output_path, "wb") as png_file:
         png_file.write(png_data)
 
 

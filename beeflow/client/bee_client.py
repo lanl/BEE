@@ -625,9 +625,10 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 
 
 @app.command()
-def dag(wf_id: str = typer.Argument(..., callback=match_short_id)):
+def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
+        output_dir: pathlib.Path = typer.Argument(..., help='Path to the where the dag directory will be')):
     """Export a DAG of the workflow to a GraphML file."""
-    wf_utils.export_dag(wf_id)
+    wf_utils.export_dag(wf_id, output_dir)
     typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
                 fg=typer.colors.GREEN)
 
