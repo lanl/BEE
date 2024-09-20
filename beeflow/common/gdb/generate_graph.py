@@ -55,7 +55,7 @@ def get_node_label_and_color(label, attributes, label_to_color):
     """Return the appropriate node label and color based on node type."""
     label_to_attribute = {
         ":Workflow": "Workflow",
-        ":Output": attributes.get('value', label),
+        ":Output": attributes.get('glob', label),
         ":Metadata": attributes.get('state', label),
         ":Task": attributes.get('name', label),
         ":Input": attributes.get('source', label),
@@ -77,5 +77,7 @@ def add_edges_to_dot(graph, dot):
         edge_label = attributes.get('label', '')
         if edge_label in ('INPUT_OF', 'DESCRIBES', 'HINT_OF', 'REQUIREMENT_OF'):
             dot.edge(source, target, label=edge_label, fontsize="10")
+        elif edge_label == 'DEPENDS_ON':
+            dot.edge(target, source, label=edge_label, penwidth="2", fontsize="10", fontname="times-bold")
         else:
             dot.edge(target, source, label=edge_label, fontsize="10")
