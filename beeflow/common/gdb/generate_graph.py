@@ -78,6 +78,7 @@ def add_edges_to_dot(graph, dot):
         if edge_label in ('INPUT_OF', 'DESCRIBES', 'HINT_OF', 'REQUIREMENT_OF'):
             dot.edge(source, target, label=edge_label, fontsize="10")
         elif edge_label == 'DEPENDS_ON':
-            dot.edge(target, source, label=edge_label, penwidth="2", fontsize="10", fontname="times-bold")
+            dot.edge(target, source, label=edge_label, penwidth="2",
+                     fontsize="10", fontname="times-bold")
         else:
             dot.edge(target, source, label=edge_label, fontsize="10")
