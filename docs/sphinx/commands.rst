@@ -103,13 +103,16 @@ Arguments:
 ``beeflow reexecute``: Reexecute an archived workflow.
 
 Arguments:
-  - WF_ID  [required]
-  - OUTPUT_DIR, Path to the where the DAG directory will be  [required]
+  WF_ID  [required]
 
 ``beeflow dag``: Export a directed acyclic graph (DAG) of a submitted workflow. This command can be run at any point of the workflow. To see the DAG of a workflow before it runs, submit the workflow with the ``--no-start`` flag and then use the dag command. The DAGs are exported to $OUTPUT_DIR/$WD_ID_dags. See :ref:`workflow-visualization` for more information.
 
 Arguments:
-  WF_ID  [required]
+  - WF_ID  [required]
+  - OUTPUT_DIR, Directory for the output  [required]
+    
+Options:
+  ``no-dag-dir``: Do not make a subdirectory within the output_dir for the DAGs.
 
 Generating and Managing Configuration Files
 ===========================================
