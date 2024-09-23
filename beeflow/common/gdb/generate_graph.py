@@ -15,7 +15,7 @@ def generate_viz(wf_id, output_dir):
     """Generate a PNG of a workflow graph from a GraphML file."""
     short_id = wf_id[:6]
     graphml_path = graphmls_dir + "/" + short_id + ".graphml"
-    dags_dir =  output_dir + "/" + short_id + "_dags"
+    dags_dir = output_dir + "/" + short_id + "_dags"
     os.makedirs(dags_dir, exist_ok=True)
 
     output_path = dags_dir + "/" + short_id + ".png"
