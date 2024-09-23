@@ -628,6 +628,16 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
         output_dir: pathlib.Path = typer.Argument(..., help='Path to the where the dag directory will be')):
     """Export a DAG of the workflow to a GraphML file."""
+    output_dir = output_dir.resolve()
+
+    # Make sure output_dir is an absolute path and exists
+    output_dir = os.path.expanduser(output_dir)
+    output_dir = os.path.abspath(output_dir)
+    if not os.path.exists(output_dir):
+        error_exit(f"Path for dag directory \"{output_dir}\" doesn't exist")
+
+    # output_dir must be a string
+    output_dir = str(output_dir)
     wf_utils.export_dag(wf_id, output_dir)
     typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
                 fg=typer.colors.GREEN)

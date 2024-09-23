@@ -6,8 +6,8 @@ import os
 from beeflow.common import paths
 
 bee_workdir = paths.workdir()
-dags_dir = os.path.join(bee_workdir, 'dags')
-graphmls_dir = dags_dir + "/graphmls"
+graphmls_dir = os.path.join(bee_workdir, 'graphmls')
+
 
 expected_keys = {"id", "name", "state", "class", "type", "value", "source",
                  "workflow_id", "base_command", "stdout", "stderr", "default",
