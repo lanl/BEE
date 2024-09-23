@@ -105,7 +105,7 @@ Arguments:
 Arguments:
   WF_ID  [required]
 
-``beeflow dag``: Export a directed acyclic graph (DAG) of a submitted workflow. This command can be run at any point of the workflow. To see the DAG of a workflow before it runs, submit the workflow with the ``--no-start`` flag and then use the dag command. The DAGs are exported to $OUTPUT_DIR/$WD_ID_dags. See :ref:`workflow-visualization` for more information.
+``beeflow dag``: Export a directed acyclic graph (DAG) of a submitted workflow. This command can be run at any point of the workflow. To see the DAG of a workflow before it runs, submit the workflow with the ``--no-start`` flag and then use the dag command. The DAGs are exported to $OUTPUT_DIR/$WD_ID_dags by default. If the ``no-dag-dir`` flag is specified when the dag command is run, the DAG will be exported to $OUTPUT_DIR. See :ref:`workflow-visualization` for more information.
 
 Arguments:
   - WF_ID  [required]
