@@ -294,12 +294,12 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
         start_workflow(wf_id)
 
 
-def export_dag(wf_id, output_dir):
+def export_dag(wf_id, output_dir, no_dag_dir):
     """Export the DAG of the workflow."""
     wfi = get_workflow_interface(wf_id)
     wfi.export_graphml()
     update_graphml(wf_id)
-    generate_viz(wf_id, output_dir)
+    generate_viz(wf_id, output_dir, no_dag_dir)
 
 
 def start_workflow(wf_id):
