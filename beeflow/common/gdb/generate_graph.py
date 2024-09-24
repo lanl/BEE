@@ -19,7 +19,7 @@ def generate_viz(wf_id, output_dir, no_dag_dir):
     if no_dag_dir:
         dags_dir = output_dir
     else:
-        dags_dir = output_dir + "/" + short_id + "_dags"
+        dags_dir = output_dir + "/" + short_id + "-dags"
         os.makedirs(dags_dir, exist_ok=True)
 
     output_path = dags_dir + "/" + short_id + ".png"
