@@ -646,7 +646,8 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
         bee_workdir = wf_utils.get_bee_workdir()
         mount_dir = os.path.join(bee_workdir, 'gdb_mount')
         graphmls_dir = mount_dir + '/graphmls'
-        typer.secho(f"Workflow has been archived. All new DAGs will look the same as the one in the archive directory.",
+        typer.secho("Workflow has been archived. All new DAGs will look the same as the one "
+                    "in the archive directory.",
                     fg=typer.colors.MAGENTA)
     else:
         wf_dir = wf_utils.get_workflow_dir(wf_id)

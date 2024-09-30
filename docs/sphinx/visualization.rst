@@ -17,7 +17,9 @@ DAGs are exported in PNG format to $OUTPUT_DIR/$WD_ID-dags by default. If the
 ``no-dag-dir`` flag is specified when the dag command is run, the DAG will be
 exported to $OUTPUT_DIR. The dag command makes multiple versions of the DAGs. The
 most recent version is $WF_ID.png and the others are $WD_ID_v1.png,
-$WF_ID_v2.png ... where v1 is the oldest.
+$WF_ID_v2.png ... where v1 is the oldest. The graphmls used to make the DAGs are saved
+in the workflow archive and are saved with their version number. These graphmls can
+be useful for debugging when there are errors creating the DAGs.
 
 Example DAG
 ===========
