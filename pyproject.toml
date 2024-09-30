@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hpc-beeflow"
-version = "0.1.9dev4"
+version = "0.1.10dev"
 description = "A software package for containerizing HPC applications and managing job workflows"
 
 
@@ -79,6 +79,8 @@ docutils = "0.18.1"
 google-api-python-client = { version = "^2.66.0", optional = true }
 python-openstackclient = { version = "^6.0.0", optional = true }
 python-heatclient = { version = "^3.1.0", optional = true }
+graphviz = "^0.20.3"
+networkx = "3.1"
 
 [tool.poetry.extras]
 cloud_extras = ["google-api-python-client", "python-openstackclient", "python-heatclient"]

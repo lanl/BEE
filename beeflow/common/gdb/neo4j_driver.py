@@ -179,7 +179,8 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_requirement_nodes, task=new_task)
             session.write_transaction(tx.create_task_input_nodes, task=new_task)
             session.write_transaction(tx.create_task_output_nodes, task=new_task)
-            session.write_transaction(tx.create_task_metadata_node, task=new_task)
+            session.write_transaction(tx.create_task_metadata_node, task=new_task,
+                                      task_state="WAITING")
             session.write_transaction(tx.add_dependencies, task=new_task, old_task=old_task,
                                       restarted_task=True)
 
@@ -472,6 +473,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         # Wrapper for neo4j.Session.write_transaction
         with self._driver.session() as session:
             session.write_transaction(tx_fun, **kwargs)
+
+    def export_graphml(self, workflow_id):
+        """Export a BEE workflow as a graphml."""
+        with self._driver.session() as session:
+            session.write_transaction(tx.export_graphml, wf_id=workflow_id)
 
 
 def _reconstruct_requirements(req_records):

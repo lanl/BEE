@@ -287,3 +287,7 @@ class GraphDatabaseDriver(ABC):
     @abstractmethod
     def close(self):
         """Close the connection to the graph database."""
+
+    @abstractmethod
+    def export_graphml(self):
+        """Export a BEE workflow as a graphml."""

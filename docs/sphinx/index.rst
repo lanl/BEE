@@ -21,10 +21,11 @@
    error_logs
    contribute
    development
-   wf_api
-   rest_api
    visualization
 
+.. Commented out 
+   wf_api
+   rest_api
 
 Indices and tables
 ==================
