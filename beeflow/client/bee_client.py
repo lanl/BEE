@@ -641,7 +641,9 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
 
     # output_dir must be a string
     output_dir = str(output_dir)
-    wf_utils.export_dag(wf_id, output_dir, no_dag_dir)
+    wf_dir = wf_utils.get_workflow_dir(wf_id)
+    graphmls_dir = wf_dir + "/graphmls"
+    wf_utils.export_dag(wf_id, output_dir, wf_dir, no_dag_dir)
     typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
                 fg=typer.colors.GREEN)
 

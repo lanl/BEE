@@ -5,13 +5,8 @@ import shutil
 import networkx as nx
 import graphviz
 
-from beeflow.common import paths
 
-bee_workdir = paths.workdir()
-graphmls_dir = os.path.join(bee_workdir, 'graphmls')
-
-
-def generate_viz(wf_id, output_dir, no_dag_dir):
+def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
     """Generate a PNG of a workflow graph from a GraphML file."""
     short_id = wf_id[:6]
     graphml_path = graphmls_dir + "/" + short_id + ".graphml"

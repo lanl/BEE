@@ -37,7 +37,7 @@ def archive_workflow(db, wf_id, final_state=None):
     archive_path = f'../archives/{wf_id}.tgz'
     # We use tar directly since tarfile is apparently very slow
     workflows_dir = wf_utils.get_workflows_dir()
-    wf_utils.export_dag(wf_id, workflow_dir, no_dag_dir=True)
+    wf_utils.export_dag(wf_id, workflow_dir, workflow_dir, no_dag_dir=True)
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)
     remove_wf_dir = bc.get('DEFAULT', 'delete_completed_workflow_dirs')
     if remove_wf_dir:

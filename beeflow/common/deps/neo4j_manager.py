@@ -23,7 +23,7 @@ logs_dir = mount_dir + '/logs'
 run_dir = mount_dir + '/run'
 certs_dir = mount_dir + '/certificates'
 confs_dir = mount_dir + "/conf"
-graphmls_dir = os.path.join(bee_workdir, 'graphmls')
+graphmls_dir = mount_dir + '/graphmls'
 container_path = container_manager.get_container_dir('neo4j')
 log = bee_logging.setup('neo4j')
 
