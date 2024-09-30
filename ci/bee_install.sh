@@ -10,7 +10,7 @@ printf "\n\n"
 mkdir -p $HOME/img
 # Pull the Neo4j container
 chmod +x ./ci/install_apoc_docker
-ch-image build -t apoc_neo4j -f ./ci/install_apoc_docker . || exit 1
+ch-image build -t apoc_neo4j -f ./ci/install_apoc_docker ./ci || exit 1
 ch-convert -i ch-image -o tar apoc_neo4j $NEO4J_CONTAINER || exit 1
 # Pull the Redis container
 ch-image pull redis || exit 1
