@@ -54,23 +54,34 @@ class ClientError(Exception):
         self.args = args
 
 
+def warn(*pargs):
+    """Print a red warning message."""
+    typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
+
+
 def db_path():
     """Return the client database path."""
     bee_workdir = config_driver.BeeConfig.get('DEFAULT', 'bee_workdir')
     return os.path.join(bee_workdir, 'client.db')
 
 
-def connect_db():
-    """Connect to the client database."""
-    return bdb.connect_db(client_db, db_path())
-
-
-def setup_hostname():
+def setup_hostname(start_hn):
     """Set up front end name when beeflow core start is returned."""
-    db = connect_db(client_db, db_path())
-    # hard coding front end name for now
-    new_hostname = 'front_end_name'
-    db.info.set_hostname(new_hostname)
+    db = bdb.connect_db(client_db, db_path())
+    db.info.set_hostname(start_hn)
+
+
+def check_hostname(curr_hn, stop = False):
+    """Check current front end name matches the one beeflow was started on."""
+    db = bdb.connect_db(client_db, db_path())
+    start_hn = db.info.get_hostname()
+    if start_hn != "":
+        if curr_hn != start_hn:
+            warn(f'beeflow was started on "{start_hn}" and you are trying to run a command on "{curr_hn}".')
+    else:
+        warn('beeflow has not been started!')
+    if stop:
+        db.info.set_hostname("")
 
 
 def error_exit(msg, include_caller=True):

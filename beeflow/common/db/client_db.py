@@ -9,9 +9,9 @@ class ClientInfo:
     """Client Info object."""
 
     def __init__(self, db_file):
-            """Initialize info and db file."""
-            self.Info = namedtuple("Info", "id hostname") # noqa Snake Case
-            self.db_file = db_file
+        """Initialize info and db file."""
+        self.Info = namedtuple("Info", "id hostname") # noqa Snake Case
+        self.db_file = db_file
 
     def set_hostname(self, new_hostname):
         """Set hostname for current front end."""
@@ -25,6 +25,13 @@ class ClientInfo:
         hostname = result
         return hostname
 
+    def get_info(self):
+        """Return an info object containing port information."""
+        stmt = "SELECT * FROM info"
+        result = bdb.getone(self.db_file, stmt)
+        info = self.Info(*result)
+        return info
+
 class ClientDB:
     """Client database."""
 
@@ -35,10 +42,16 @@ class ClientDB:
 
     def _init_tables(self):
         """Initialize the client table if it doesn't exist."""
-        info_stmt = """CREATE TABLE IF NOT EXISTS info(
+        info_stmt = """CREATE TABLE IF NOT EXISTS info (
                         id INTEGER PRIMARY KEY ASC,
                         hostname TEXT);"""
-        bdb.create_table(self.db_file, info_stmt)
+#        bdb.create_table(self.db_file, info_stmt)
+        if not bdb.table_exists(self.db_file, 'info'):
+            bdb.create_table(self.db_file, info_stmt)
+            # insert a new workflow into the database
+            stmt = """INSERT INTO info (hostname) VALUES(?);"""
+            tmp = ""
+            bdb.run(self.db_file, stmt, [tmp])
 
     @property
     def info(self):

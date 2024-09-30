@@ -409,6 +409,9 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 
     version = importlib.metadata.version("hpc-beeflow")
     print(f'Starting beeflow {version}...')
+    start_hn = socket.gethostname() # hostname when beeflow starts
+    print(f'Running beeflow on {start_hn}')
+    bee_client.setup_hostname(start_hn) # add to client db
     if not foreground:
         print('Run `beeflow core status` for more information.')
     # Create the log path if it doesn't exist yet
@@ -427,11 +430,13 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 @app.command()
 def status():
     """Check the status of beeflow and the components."""
+    status_hn = socket.gethostname() # hostname when beeflow core status returned
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'status'})
     if resp is None:
         beeflow_log = paths.log_fname('beeflow')
         warn('Cannot connect to the beeflow daemon, is it running? Check the '
              f'log at "{beeflow_log}".')
+        bee_client.check_hostname(status_hn)
         sys.exit(1)
     print('beeflow components:')
     for comp, stat in resp['components'].items():
@@ -441,6 +446,8 @@ def status():
 @app.command()
 def info():
     """Get information about beeflow's installation."""
+    info_hn = socket.gethostname() # hostname when beeflow core info returned
+    bee_client.check_hostname(info_hn)
     version = importlib.metadata.version("hpc-beeflow")
     print(f"Beeflow version: {version}")
     print(f"bee_workflow directory: {paths.workdir()}")
@@ -450,6 +457,7 @@ def info():
 @app.command()
 def stop(query='yes'):
     """Stop the current running beeflow daemon."""
+    stop_hn = socket.gethostname() # hostname when beeflow core stop returned
     # Check workflow states; warn if there are active states, pause running workflows
     workflow_list = bee_client.get_wf_list()
     concern_states = {'Running', 'Initializing', 'Waiting'}
@@ -476,11 +484,13 @@ def stop(query='yes'):
         warn('Error: beeflow is not running on this system. It could be '
              'running on a different front end.\n'
              f'       Check the beeflow log: "{beeflow_log}".')
+        #bee_client.check_hostname(stop_hn, stop = True)
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
     if query == "yes":
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
+        bee_client.check_hostname(stop_hn, stop = True)
 
 
 def archive_dir(dir_to_archive):
