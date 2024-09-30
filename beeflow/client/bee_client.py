@@ -631,8 +631,11 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
         no_dag_dir: bool = typer.Option(False, '--no-dag-dir',
         help='do not make a subdirectory within ouput_dir for the dags')):
     """Export a DAG of the workflow to a GraphML file."""
+    # Check if the workflow is archived
+    wf_status = get_wf_status(wf_id)
+    if wf_status == 'Archived':
+         error_exit('Workflow has been archived. Check the workflow archive for the final DAG.')
     output_dir = output_dir.resolve()
-
     # Make sure output_dir is an absolute path and exists
     output_dir = os.path.expanduser(output_dir)
     output_dir = os.path.abspath(output_dir)
