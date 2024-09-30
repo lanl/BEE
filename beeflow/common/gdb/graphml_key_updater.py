@@ -2,6 +2,7 @@
 
 import xml.etree.ElementTree as ET
 import os
+import shutil
 
 from beeflow.common import paths
 
@@ -38,6 +39,14 @@ def update_graphml(wf_id, graphmls_dir):
     short_id = wf_id[:6]
     gdb_graphml_path = gdb_graphmls_dir + "/" + short_id + ".graphml"
     output_graphml_path = graphmls_dir + "/" + short_id + ".graphml"
+    # Handle making multiple versions of the graphmls without overriding old ones
+    if os.path.exists(output_graphml_path):
+        i = 1
+        backup_path = f'{graphmls_dir}/{short_id}_v{i}.graphml'
+        while os.path.exists(backup_path):
+            i += 1
+            backup_path = f'{graphmls_dir}/{short_id}_v{i}.graphml'
+        shutil.copy(output_graphml_path, backup_path)
     # Parse the GraphML file and preserve namespaces
     tree = ET.parse(gdb_graphml_path)
     root = tree.getroot()
