@@ -25,7 +25,7 @@ Example DAG
 The DAG below was created by running the dag command while the cat-grep-tar
 example workflow was running.
 
-.. image:: images/941cd5.png
+.. image:: images/cat-dag.png
 
 The orange bubbles are inputs, the blue bubbles are task states, the red
 bubbles are tasks, and the green bubbles are outputs. The graph is in a
