@@ -631,10 +631,6 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
         no_dag_dir: bool = typer.Option(False, '--no-dag-dir',
         help='do not make a subdirectory within ouput_dir for the dags')):
     """Export a DAG of the workflow to a GraphML file."""
-    # Check if the workflow is archived
-    wf_status = get_wf_status(wf_id)
-    if wf_status == 'Archived':
-         error_exit('Workflow has been archived. Check the workflow archive for the final DAG.')
     output_dir = output_dir.resolve()
     # Make sure output_dir is an absolute path and exists
     output_dir = os.path.expanduser(output_dir)
@@ -644,9 +640,19 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
 
     # output_dir must be a string
     output_dir = str(output_dir)
-    wf_dir = wf_utils.get_workflow_dir(wf_id)
-    graphmls_dir = wf_dir + "/graphmls"
-    wf_utils.export_dag(wf_id, output_dir, wf_dir, no_dag_dir)
+    # Check if the workflow is archived
+    wf_status = get_wf_status(wf_id)
+    if wf_status == 'Archived':
+        bee_workdir = wf_utils.get_bee_workdir()
+        mount_dir = os.path.join(bee_workdir, 'gdb_mount')
+        graphmls_dir = mount_dir + '/graphmls'
+        typer.secho(f"Workflow has been archived. All new DAGs will look the same as the one in the archive directory.",
+                    fg=typer.colors.MAGENTA)
+    else:
+        wf_dir = wf_utils.get_workflow_dir(wf_id)
+        graphmls_dir = wf_dir + '/graphmls'
+        os.makedirs(graphmls_dir, exist_ok=True)
+    wf_utils.export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir)
     typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
                 fg=typer.colors.GREEN)
 
