@@ -323,7 +323,6 @@ class Beeflow:
     def loop(self):
         """Run the main loop."""
         print(f'Running on {socket.gethostname()}')
-        # add {socket.gethostname} to client database here??
         self.mgr.run(self.base_components)
         with cli_connection.server(paths.beeflow_socket()) as server:
             while not self.quit:
@@ -488,7 +487,7 @@ def stop(query='yes'):
     beeflow_log = paths.log_fname('beeflow')
     if query == "yes":
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
-        bee_client.check_hostname(stop_hn, stop = True)
+        bee_client.check_hostname(stop_hn, stop=True)
 
 
 def archive_dir(dir_to_archive):

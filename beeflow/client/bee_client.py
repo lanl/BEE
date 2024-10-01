@@ -72,7 +72,7 @@ def setup_hostname(start_hn):
     db.info.set_hostname(start_hn)
 
 
-def check_hostname(curr_hn, stop = False):
+def check_hostname(curr_hn, stop=False):
     """Check current front end name matches the one beeflow was started on."""
     db = bdb.connect_db(client_db, db_path())
     start_hn = db.info.get_hostname()
