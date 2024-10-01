@@ -79,7 +79,7 @@ def check_hostname(curr_hn, stop = False):
     if start_hn != "":
         if curr_hn != start_hn:
             warn(f'beeflow was started on "{start_hn}" and you are trying to '
-            f'run a command on "{curr_hn}".')
+                 f'run a command on "{curr_hn}".')
     else:
         warn('beeflow has not been started!')
     if stop:
