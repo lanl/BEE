@@ -32,6 +32,7 @@ class ClientInfo:
         info = self.Info(*result)
         return info
 
+
 class ClientDB:
     """Client database."""
 
