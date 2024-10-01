@@ -20,7 +20,7 @@ class ClientInfo:
 
     def get_hostname(self):
         """Return hostname for current front end."""
-        stmt = f"SELECT hostname FROM info"
+        stmt = "SELECT hostname FROM info"
         result = bdb.getone(self.db_file, stmt)[0]
         hostname = result
         return hostname
