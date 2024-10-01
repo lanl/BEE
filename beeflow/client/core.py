@@ -446,8 +446,6 @@ def status():
 @app.command()
 def info():
     """Get information about beeflow's installation."""
-    info_hn = socket.gethostname() # hostname when beeflow core info returned
-    bee_client.check_hostname(info_hn)
     version = importlib.metadata.version("hpc-beeflow")
     print(f"Beeflow version: {version}")
     print(f"bee_workflow directory: {paths.workdir()}")
