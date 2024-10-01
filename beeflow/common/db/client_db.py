@@ -15,7 +15,7 @@ class ClientInfo:
 
     def set_hostname(self, new_hostname):
         """Set hostname for current front end."""
-        stmt = f"UPDATE info set hostname=?"
+        stmt = "UPDATE info set hostname=?"
         bdb.run(self.db_file, stmt, [new_hostname])
 
     def get_hostname(self):
