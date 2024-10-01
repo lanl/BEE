@@ -408,9 +408,9 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 
     version = importlib.metadata.version("hpc-beeflow")
     print(f'Starting beeflow {version}...')
-    start_hn = socket.gethostname() # hostname when beeflow starts
+    start_hn = socket.gethostname()  # hostname when beeflow starts
     print(f'Running beeflow on {start_hn}')
-    bee_client.setup_hostname(start_hn) # add to client db
+    bee_client.setup_hostname(start_hn)  # add to client db
     if not foreground:
         print('Run `beeflow core status` for more information.')
     # Create the log path if it doesn't exist yet
@@ -429,7 +429,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 @app.command()
 def status():
     """Check the status of beeflow and the components."""
-    status_hn = socket.gethostname() # hostname when beeflow core status returned
+    status_hn = socket.gethostname()  # hostname when beeflow core status returned
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'status'})
     if resp is None:
         beeflow_log = paths.log_fname('beeflow')
@@ -454,7 +454,7 @@ def info():
 @app.command()
 def stop(query='yes'):
     """Stop the current running beeflow daemon."""
-    stop_hn = socket.gethostname() # hostname when beeflow core stop returned
+    stop_hn = socket.gethostname()  # hostname when beeflow core stop returned
     # Check workflow states; warn if there are active states, pause running workflows
     workflow_list = bee_client.get_wf_list()
     concern_states = {'Running', 'Initializing', 'Waiting'}
