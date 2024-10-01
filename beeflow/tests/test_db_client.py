@@ -20,8 +20,8 @@ def test_empty(temp_db):
     """Test the empty database."""
     db = temp_db
 
-    hn = db.info.get_hostname()
-    assert hn == ""
+    host_name = db.info.get_hostname()
+    assert host_name == ""
 
 
 def test_info(temp_db):
@@ -29,7 +29,10 @@ def test_info(temp_db):
     db = temp_db
 
     db.info.set_hostname('front_end_name')
-    hn = db.info.get_hostname()
+    host_name = db.info.get_hostname()
 
     print("testing get_info: ", db.info.get_info())
-    assert hn == 'front_end_name'
+    assert host_name == 'front_end_name'
+# Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
+#               scope. This is how pytest fixtures work.
+# pylama:ignore=W0621
