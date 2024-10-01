@@ -481,7 +481,7 @@ def stop(query='yes'):
         warn('Error: beeflow is not running on this system. It could be '
              'running on a different front end.\n'
              f'       Check the beeflow log: "{beeflow_log}".')
-        #bee_client.check_hostname(stop_hn, stop = True)
+        # bee_client.check_hostname(stop_hn, stop = True)
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
