@@ -31,7 +31,6 @@ def test_info(temp_db):
     db.info.set_hostname('front_end_name')
     host_name = db.info.get_hostname()
 
-    print("testing get_info: ", db.info.get_info())
     assert host_name == 'front_end_name'
 # Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
 #               scope. This is how pytest fixtures work.

@@ -46,7 +46,6 @@ class ClientDB:
         info_stmt = """CREATE TABLE IF NOT EXISTS info (
                         id INTEGER PRIMARY KEY ASC,
                         hostname TEXT);"""
-#        bdb.create_table(self.db_file, info_stmt)
         if not bdb.table_exists(self.db_file, 'info'):
             bdb.create_table(self.db_file, info_stmt)
             # insert a new workflow into the database

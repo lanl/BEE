@@ -76,11 +76,10 @@ def check_hostname(curr_hn, stop=False):
     """Check current front end name matches the one beeflow was started on."""
     db = bdb.connect_db(client_db, db_path())
     start_hn = db.info.get_hostname()
-    if start_hn != "":
-        if curr_hn != start_hn:
-            warn(f'beeflow was started on "{start_hn}" and you are trying to '
-                 f'run a command on "{curr_hn}".')
-    else:
+    if start_hn != "" and curr_hn != start_hn:
+        warn(f'beeflow was started on "{start_hn}" and you are trying to '
+             f'run a command on "{curr_hn}".')
+    if start_hn == "":
         warn('beeflow has not been started!')
     if stop:
         db.info.set_hostname("")
