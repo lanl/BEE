@@ -18,7 +18,7 @@ export MUNGE_PID=/tmp/munge.pid
 mkdir -p /tmp/munge
 export MUNGE_KEY=/tmp/munge/munge.key
 export BEE_WORKDIR=$HOME/.beeflow
-export NEO4J_CONTAINER=$HOME/img/neo4j.tar.gz
+export NEO4J_CONTAINER=$HOME/img/apoc_neo4j.tar.gz
 export REDIS_CONTAINER=$HOME/img/redis.tar.gz
 mkdir -p $BEE_WORKDIR
 export SLURM_CONF=~/slurm.conf
