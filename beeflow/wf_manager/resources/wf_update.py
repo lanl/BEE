@@ -26,6 +26,10 @@ def archive_workflow(db, wf_id, final_state=None):
     workflow_dir = wf_utils.get_workflow_dir(wf_id)
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
+    # Archive Completed DAG
+    graphmls_dir = workflow_dir + "/graphmls"
+    os.makedirs(graphmls_dir, exist_ok=True)
+    wf_utils.export_dag(wf_id, workflow_dir, graphmls_dir, no_dag_dir=True)
 
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
     db.workflows.update_workflow_state(wf_id, wf_state)
