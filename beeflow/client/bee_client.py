@@ -76,7 +76,7 @@ def check_hostname(curr_hn, stop=False):
     """Check current front end name matches the one beeflow was started on."""
     db = bdb.connect_db(client_db, db_path())
     start_hn = db.info.get_hostname()
-    if start_hn != "" and curr_hn != start_hn:
+    if start_hn != "" and curr_hn != start_hn:  # noqa: don't use set instead
         warn(f'beeflow was started on "{start_hn}" and you are trying to '
              f'run a command on "{curr_hn}".')
     if start_hn == "":
@@ -686,4 +686,5 @@ if __name__ == "__main__":
 
 # Ignore W0511: This allows us to have TODOs in the code
 # Ignore R1732: Significant code restructuring required to fix
+# Ignore R1714: Not using a set instead
 # pylama:ignore=W0511,R1732
