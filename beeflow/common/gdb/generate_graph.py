@@ -18,13 +18,9 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
         os.makedirs(dags_dir, exist_ok=True)
 
     output_path = dags_dir + "/" + short_id + ".png"
+    # Check if png exists already
     if os.path.exists(output_path):
-        i = 1
-        backup_path = f'{dags_dir}/{short_id}_v{i}.png'
-        while os.path.exists(backup_path):
-            i += 1
-            backup_path = f'{dags_dir}/{short_id}_v{i}.png'
-        shutil.copy(output_path, backup_path)
+        backup_file(output_path, dags_dir, short_id)
 
     # Load the GraphML file using NetworkX
     graph = nx.read_graphml(graphml_path)
@@ -41,6 +37,15 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
     with open(output_path, "wb") as png_file:
         png_file.write(png_data)
 
+def backup_file(output_path, output_dir, short_id):
+    """Handle making backup versions of the png without overriding old ones."""
+    i = 1
+    backup_path = f'{output_dir}/{short_id}_v{i}.png'
+    while os.path.exists(backup_path):
+        i += 1
+        backup_path = f'{output_dir}/{short_id}_v{i}.png'
+    shutil.copy(output_path, backup_path)
+    return backup_path
 
 def add_nodes_to_dot(graph, dot):
     """Add nodes from the graph to the Graphviz object with labels and colors."""
