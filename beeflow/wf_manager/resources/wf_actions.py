@@ -6,6 +6,7 @@ from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.wf_manager.resources.wf_update import archive_workflow
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
@@ -64,7 +65,9 @@ class WFActions(Resource):
             wf_utils.update_wf_status(wf_id, 'Cancelled')
             db.workflows.update_workflow_state(wf_id, 'Cancelled')
             log.info(f"Workflow {wf_id} cancelled")
-            resp = make_response(jsonify(status='Cancelled'), 202)
+            # Archive cancelled workflow
+            archive_workflow(db, wf_id, final_state='Cancelled')
+            resp = make_response(jsonify(status='Cancelled and Archived'), 202)
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
             db.workflows.delete_workflow(wf_id)
