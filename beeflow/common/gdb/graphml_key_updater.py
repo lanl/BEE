@@ -33,15 +33,37 @@ default_key_definitions = {
     "glob": {"for": "node", "attr.name": "glob", "attr.type": "string"},
 }
 
+def update_graphml(wf_id, graphmls_dir):
+    """Update GraphML file by ensuring required keys are present and updating its structure."""
+    short_id = wf_id[:6]
+    gdb_graphml_path = gdb_graphmls_dir + "/" + short_id + ".graphml"
+    output_graphml_path = graphmls_dir + "/" + short_id + ".graphml"
+    # Check if the updated graphml exists already
+    if os.path.exists(output_graphml_path):
+        backup_file(output_graphml_path, graphmls_dir, short_id)
 
-def backup_graphml(output_graphml_path, graphmls_dir, short_id):
+    # Parse the GraphML file and preserve namespaces
+    tree, root = parse_graphml(gdb_graphml_path)
+    name_space = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
+
+    # Find missing keys and insert them
+    missing_keys = find_missing_keys(root, name_space)
+
+    # Insert default key definitions for missing keys
+    if missing_keys:
+        insert_missing_keys(root, missing_keys, name_space)
+
+    # Save the updated GraphML file
+    tree.write(output_graphml_path, encoding='UTF-8', xml_declaration=True)
+
+def backup_file(output_path, output_dir, short_id):
     """Handle making backup versions of the graphml without overriding old ones."""
     i = 1
-    backup_path = f'{graphmls_dir}/{short_id}_v{i}.graphml'
+    backup_path = f'{output_dir}/{short_id}_v{i}.graphml'
     while os.path.exists(backup_path):
         i += 1
-        backup_path = f'{graphmls_dir}/{short_id}_v{i}.graphml'
-    shutil.copy(output_graphml_path, backup_path)
+        backup_path = f'{output_dir}/{short_id}_v{i}.graphml'
+    shutil.copy(output_path, backup_path)
     return backup_path
 
 def parse_graphml(file_path):
@@ -65,26 +87,3 @@ def insert_missing_keys(root, missing_keys, name_space):
                                      id=missing_key,
                                      **default_def)
             root.insert(0, key_element)
-
-def update_graphml(wf_id, graphmls_dir):
-    """Update GraphML file by ensuring required keys are present and updating its structure."""
-    short_id = wf_id[:6]
-    gdb_graphml_path = gdb_graphmls_dir + "/" + short_id + ".graphml"
-    output_graphml_path = graphmls_dir + "/" + short_id + ".graphml"
-    # Check if the updated graphml exists already
-    if os.path.exists(output_graphml_path):
-        backup_graphml(output_graphml_path, graphmls_dir, short_id)
-
-    # Parse the GraphML file and preserve namespaces
-    tree, root = parse_graphml(gdb_graphml_path)
-    name_space = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
-
-    # Find missing keys and insert them
-    missing_keys = find_missing_keys(root, name_space)
-
-    # Insert default key definitions for missing keys
-    if missing_keys:
-        insert_missing_keys(root, missing_keys, name_space)
-
-    # Save the updated GraphML file
-    tree.write(output_graphml_path, encoding='UTF-8', xml_declaration=True)
