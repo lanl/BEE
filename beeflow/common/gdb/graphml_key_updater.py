@@ -33,6 +33,7 @@ default_key_definitions = {
     "glob": {"for": "node", "attr.name": "glob", "attr.type": "string"},
 }
 
+
 def update_graphml(wf_id, graphmls_dir):
     """Update GraphML file by ensuring required keys are present and updating its structure."""
     short_id = wf_id[:6]
@@ -56,6 +57,7 @@ def update_graphml(wf_id, graphmls_dir):
     # Save the updated GraphML file
     tree.write(output_graphml_path, encoding='UTF-8', xml_declaration=True)
 
+
 def backup_file(output_path, output_dir, short_id):
     """Handle making backup versions of the graphml without overriding old ones."""
     i = 1
@@ -66,17 +68,20 @@ def backup_file(output_path, output_dir, short_id):
     shutil.copy(output_path, backup_path)
     return backup_path
 
+
 def parse_graphml(file_path):
     """Parse the GraphML file."""
     tree = ET.parse(file_path)
     root = tree.getroot()
     return tree, root
 
+
 def find_missing_keys(root, name_space):
     """Find used keys that are missing from the defined keys in GraphML."""
     defined_keys = {key.attrib['id'] for key in root.findall('graphml:key', name_space)}
     used_keys = {data.attrib['key'] for data in root.findall('.//graphml:data', name_space)}
     return used_keys - defined_keys
+
 
 def insert_missing_keys(root, missing_keys, name_space):
     """Insert default key definitions for missing keys."""
