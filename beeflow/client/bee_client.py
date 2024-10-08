@@ -76,7 +76,7 @@ def check_hostname(curr_hn, stop=False):
     """Check current front end name matches the one beeflow was started on."""
     db = bdb.connect_db(client_db, db_path())
     start_hn = db.info.get_hostname()
-    if start_hn != "" and curr_hn != start_hn:  # noqa: don't use set instead
+    if start_hn and curr_hn != start_hn:  # noqa: don't use set instead
         warn(f'beeflow was started on "{start_hn}" and you are trying to '
              f'run a command on "{curr_hn}".')
     if start_hn == "":

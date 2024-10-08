@@ -432,9 +432,6 @@ def status():
     status_hn = socket.gethostname()  # hostname when beeflow core status returned
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'status'})
     if resp is None:
-        beeflow_log = paths.log_fname('beeflow')
-        warn('Cannot connect to the beeflow daemon, is it running? Check the '
-             f'log at "{beeflow_log}".')
         bee_client.check_hostname(status_hn)
         sys.exit(1)
     print('beeflow components:')

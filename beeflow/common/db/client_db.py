@@ -25,13 +25,6 @@ class ClientInfo:
         hostname = result
         return hostname
 
-    def get_info(self):
-        """Return an info object containing port information."""
-        stmt = "SELECT * FROM info"
-        result = bdb.getone(self.db_file, stmt)
-        info = self.Info(*result)
-        return info
-
 
 class ClientDB:
     """Client database."""
