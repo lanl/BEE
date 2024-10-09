@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ns0:graphml xmlns:ns0="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+<ns0:key id="base_command" for="node" attr.name="base_command" attr.type="string" />
+<ns0:key id="workflow_id" for="node" attr.name="workflow_id" attr.type="string" />
+<ns0:key id="stdout" for="node" attr.name="stdout" attr.type="string" />
+<ns0:key id="prefix" for="node" attr.name="prefix" attr.type="string" />
+<ns0:key id="glob" for="node" attr.name="glob" attr.type="string" />
+<ns0:key id="source" for="node" attr.name="source" attr.type="string" />
+<ns0:key id="stderr" for="node" attr.name="stderr" attr.type="string" />
+<ns0:key id="type" for="node" attr.name="type" attr.type="string" />
+<ns0:key id="labels" for="node" attr.name="labels" attr.type="string" />
+<ns0:key id="workdir" for="node" attr.name="workdir" attr.type="string" />
+<ns0:key id="name" for="node" attr.name="name" attr.type="string" />
+<ns0:key id="id" for="node" attr.name="id" attr.type="string" />
+<ns0:key id="state" for="node" attr.name="state" attr.type="string" />
+<ns0:key id="position" for="node" attr.name="position" attr.type="long" />
+<ns0:key id="value" for="node" attr.name="value" attr.type="string" />
+<ns0:key id="label" for="edge" attr.name="label" attr.type="string" />
+<ns0:graph id="G" edgedefault="directed">
+<ns0:node id="n124" labels=":Workflow"><ns0:data key="labels">:Workflow</ns0:data><ns0:data key="id">3e7d50a5abeb4569bdc21c220ff0377c</ns0:data><ns0:data key="name">workflow</ns0:data><ns0:data key="state">RUNNING</ns0:data></ns0:node>
+<ns0:node id="n131" labels=":Task"><ns0:data key="labels">:Task</ns0:data><ns0:data key="id">ff1edb08d36245eeb8832748154ca5f1</ns0:data><ns0:data key="stderr">cat.err</ns0:data><ns0:data key="base_command">cat</ns0:data><ns0:data key="stdout">cat.txt</ns0:data><ns0:data key="name">cat</ns0:data><ns0:data key="workflow_id">3e7d50a5abeb4569bdc21c220ff0377c</ns0:data></ns0:node>
+<ns0:node id="n132" labels=":Input"><ns0:data key="labels">:Input</ns0:data><ns0:data key="source">input_file</ns0:data><ns0:data key="value">lorem.txt</ns0:data><ns0:data key="position">1</ns0:data><ns0:data key="id">input_file</ns0:data><ns0:data key="type">File</ns0:data></ns0:node>
+<ns0:node id="n133" labels=":Output"><ns0:data key="labels">:Output</ns0:data><ns0:data key="type">stdout</ns0:data><ns0:data key="value">cat.txt</ns0:data><ns0:data key="glob">cat.txt</ns0:data><ns0:data key="id">cat/contents</ns0:data></ns0:node>
+<ns0:node id="n134" labels=":Output"><ns0:data key="labels">:Output</ns0:data><ns0:data key="type">stderr</ns0:data><ns0:data key="value">cat.err</ns0:data><ns0:data key="glob">cat.err</ns0:data><ns0:data key="id">cat/cat_stderr</ns0:data></ns0:node>
+<ns0:node id="n135" labels=":Metadata"><ns0:data key="labels">:Metadata</ns0:data><ns0:data key="workdir">/vast/home/leahh/active/JAZE/workdir2</ns0:data><ns0:data key="state">COMPLETED</ns0:data></ns0:node>
+<ns0:node id="n136" labels=":Task"><ns0:data key="labels">:Task</ns0:data><ns0:data key="id">d54cf99aed4848ba8999ee19b131024c</ns0:data><ns0:data key="name">grep0</ns0:data><ns0:data key="base_command">grep</ns0:data><ns0:data key="stdout">occur0.txt</ns0:data><ns0:data key="workflow_id">3e7d50a5abeb4569bdc21c220ff0377c</ns0:data></ns0:node>
+<ns0:node id="n137" labels=":Input"><ns0:data key="labels">:Input</ns0:data><ns0:data key="source">cat/contents</ns0:data><ns0:data key="value">cat.txt</ns0:data><ns0:data key="position">2</ns0:data><ns0:data key="id">text_file</ns0:data><ns0:data key="type">File</ns0:data></ns0:node>
+<ns0:node id="n138" labels=":Input"><ns0:data key="labels">:Input</ns0:data><ns0:data key="source">word0</ns0:data><ns0:data key="value">Vivamus</ns0:data><ns0:data key="position">1</ns0:data><ns0:data key="id">word</ns0:data><ns0:data key="type">string</ns0:data></ns0:node>
+<ns0:node id="n139" labels=":Output"><ns0:data key="labels">:Output</ns0:data><ns0:data key="type">stdout</ns0:data><ns0:data key="value">occur0.txt</ns0:data><ns0:data key="glob">occur0.txt</ns0:data><ns0:data key="id">grep0/occur</ns0:data></ns0:node>
+<ns0:node id="n140" labels=":Metadata"><ns0:data key="labels">:Metadata</ns0:data><ns0:data key="workdir">/vast/home/leahh/active/JAZE/workdir2</ns0:data><ns0:data key="state">COMPLETED</ns0:data></ns0:node>
+<ns0:node id="n141" labels=":Task"><ns0:data key="labels">:Task</ns0:data><ns0:data key="id">0138944a8a1d40729027c61a58d84bfe</ns0:data><ns0:data key="name">grep1</ns0:data><ns0:data key="base_command">grep</ns0:data><ns0:data key="stdout">occur1.txt</ns0:data><ns0:data key="workflow_id">3e7d50a5abeb4569bdc21c220ff0377c</ns0:data></ns0:node>
+<ns0:node id="n142" labels=":Input"><ns0:data key="labels">:Input</ns0:data><ns0:data key="source">cat/contents</ns0:data><ns0:data key="value">cat.txt</ns0:data><ns0:data key="position">2</ns0:data><ns0:data key="id">text_file</ns0:data><ns0:data key="type">File</ns0:data></ns0:node>
+<ns0:node id="n143" labels=":Input"><ns0:data key="labels">:Input</ns0:data><ns0:data key="source">word1</ns0:data><ns0:data key="value">pulvinar</ns0:data><ns0:data key="position">1</ns0:data><ns0:data key="id">word</ns0:data><ns0:data key="type">string</ns0:data></ns0:node>
+<ns0:node id="n144" labels=":Output"><ns0:data key="labels">:Output</ns0:data><ns0:data key="type">stdout</ns0:data><ns0:data key="value">occur1.txt</ns0:data><ns0:data key="glob">occur1.txt</ns0:data><ns0:data key="id">grep1/occur</ns0:data></ns0:node>
+<ns0:node id="n145" labels=":Metadata"><ns0:data key="labels">:Metadata</ns0:data><ns0:data key="workdir">/vast/home/leahh/active/JAZE/workdir2</ns0:data><ns0:data key="state">COMPLETED</ns0:data></ns0:node>
+<ns0:node id="n146" labels=":Task"><ns0:data key="labels">:Task</ns0:data><ns0:data key="id">af0c94f5114c4c99b8e5035c8dfd51ac</ns0:data><ns0:data key="base_command">tar</ns0:data><ns0:data key="name">tar</ns0:data><ns0:data key="workflow_id">3e7d50a5abeb4569bdc21c220ff0377c</ns0:data></ns0:node>
+<ns0:node id="n147" labels=":Input"><ns0:data key="labels">:Input</ns0:data><ns0:data key="source">grep0/occur</ns0:data><ns0:data key="value">occur0.txt</ns0:data><ns0:data key="position">2</ns0:data><ns0:data key="id">file0</ns0:data><ns0:data key="type">File</ns0:data></ns0:node>
+<ns0:node id="n148" labels=":Input"><ns0:data key="labels">:Input</ns0:data><ns0:data key="source">grep1/occur</ns0:data><ns0:data key="value">occur1.txt</ns0:data><ns0:data key="position">3</ns0:data><ns0:data key="id">file1</ns0:data><ns0:data key="type">File</ns0:data></ns0:node>
+<ns0:node id="n149" labels=":Input"><ns0:data key="labels">:Input</ns0:data><ns0:data key="value">out.tgz</ns0:data><ns0:data key="type">string</ns0:data><ns0:data key="source">tarball_fname</ns0:data><ns0:data key="position">1</ns0:data><ns0:data key="prefix">-cf</ns0:data><ns0:data key="id">tarball_fname</ns0:data></ns0:node>
+<ns0:node id="n150" labels=":Output"><ns0:data key="labels">:Output</ns0:data><ns0:data key="value">$(inputs.tarball_fname)</ns0:data><ns0:data key="id">tar/tarball</ns0:data><ns0:data key="glob">$(inputs.tarball_fname)</ns0:data><ns0:data key="type">File</ns0:data></ns0:node>
+<ns0:node id="n151" labels=":Metadata"><ns0:data key="labels">:Metadata</ns0:data><ns0:data key="workdir">/vast/home/leahh/active/JAZE/workdir2</ns0:data><ns0:data key="state">COMPLETED</ns0:data></ns0:node>
+<ns0:edge id="e143" source="n132" target="n131" label="INPUT_OF"><ns0:data key="label">INPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e144" source="n133" target="n131" label="OUTPUT_OF"><ns0:data key="label">OUTPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e145" source="n134" target="n131" label="OUTPUT_OF"><ns0:data key="label">OUTPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e146" source="n135" target="n131" label="DESCRIBES"><ns0:data key="label">DESCRIBES</ns0:data></ns0:edge>
+<ns0:edge id="e147" source="n131" target="n124" label="BEGINS"><ns0:data key="label">BEGINS</ns0:data></ns0:edge>
+<ns0:edge id="e148" source="n137" target="n136" label="INPUT_OF"><ns0:data key="label">INPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e149" source="n138" target="n136" label="INPUT_OF"><ns0:data key="label">INPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e150" source="n139" target="n136" label="OUTPUT_OF"><ns0:data key="label">OUTPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e151" source="n140" target="n136" label="DESCRIBES"><ns0:data key="label">DESCRIBES</ns0:data></ns0:edge>
+<ns0:edge id="e152" source="n136" target="n124" label="BEGINS"><ns0:data key="label">BEGINS</ns0:data></ns0:edge>
+<ns0:edge id="e153" source="n136" target="n131" label="DEPENDS_ON"><ns0:data key="label">DEPENDS_ON</ns0:data></ns0:edge>
+<ns0:edge id="e154" source="n142" target="n141" label="INPUT_OF"><ns0:data key="label">INPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e155" source="n143" target="n141" label="INPUT_OF"><ns0:data key="label">INPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e156" source="n144" target="n141" label="OUTPUT_OF"><ns0:data key="label">OUTPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e157" source="n145" target="n141" label="DESCRIBES"><ns0:data key="label">DESCRIBES</ns0:data></ns0:edge>
+<ns0:edge id="e158" source="n141" target="n124" label="BEGINS"><ns0:data key="label">BEGINS</ns0:data></ns0:edge>
+<ns0:edge id="e159" source="n141" target="n131" label="DEPENDS_ON"><ns0:data key="label">DEPENDS_ON</ns0:data></ns0:edge>
+<ns0:edge id="e160" source="n147" target="n146" label="INPUT_OF"><ns0:data key="label">INPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e161" source="n148" target="n146" label="INPUT_OF"><ns0:data key="label">INPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e162" source="n149" target="n146" label="INPUT_OF"><ns0:data key="label">INPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e163" source="n150" target="n146" label="OUTPUT_OF"><ns0:data key="label">OUTPUT_OF</ns0:data></ns0:edge>
+<ns0:edge id="e164" source="n151" target="n146" label="DESCRIBES"><ns0:data key="label">DESCRIBES</ns0:data></ns0:edge>
+<ns0:edge id="e165" source="n146" target="n124" label="BEGINS"><ns0:data key="label">BEGINS</ns0:data></ns0:edge>
+<ns0:edge id="e166" source="n146" target="n136" label="DEPENDS_ON"><ns0:data key="label">DEPENDS_ON</ns0:data></ns0:edge>
+<ns0:edge id="e167" source="n146" target="n141" label="DEPENDS_ON"><ns0:data key="label">DEPENDS_ON</ns0:data></ns0:edge>
+</ns0:graph>
+</ns0:graphml>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+<key id="base_command" for="node" attr.name="base_command" attr.type="string"/>
+<key id="workflow_id" for="node" attr.name="workflow_id" attr.type="string"/>
+<key id="beeflow:containerName" for="node" attr.name="beeflow:containerName" attr.type="string"/>
+<key id="stdout" for="node" attr.name="stdout" attr.type="string"/>
+<key id="prefix" for="node" attr.name="prefix" attr.type="string"/>
+<key id="glob" for="node" attr.name="glob" attr.type="string"/>
+<key id="source" for="node" attr.name="source" attr.type="string"/>
+<key id="type" for="node" attr.name="type" attr.type="string"/>
+<key id="stderr" for="node" attr.name="stderr" attr.type="string"/>
+<key id="labels" for="node" attr.name="labels" attr.type="string"/>
+<key id="dockerFile" for="node" attr.name="dockerFile" attr.type="string"/>
+<key id="workdir" for="node" attr.name="workdir" attr.type="string"/>
+<key id="name" for="node" attr.name="name" attr.type="string"/>
+<key id="id" for="node" attr.name="id" attr.type="string"/>
+<key id="state" for="node" attr.name="state" attr.type="string"/>
+<key id="position" for="node" attr.name="position" attr.type="long"/>
+<key id="value_from" for="node" attr.name="value_from" attr.type="string"/>
+<key id="class" for="node" attr.name="class" attr.type="string"/>
+<key id="label" for="edge" attr.name="label" attr.type="string"/>
+<graph id="G" edgedefault="directed">
+<node id="n1" labels=":Workflow"><data key="labels">:Workflow</data><data key="id">b817d3a738b745f9921da51c3eb5fa9d</data><data key="name">clamr_wf</data><data key="state">RUNNING</data></node>
+<node id="n17" labels=":Task"><data key="labels">:Task</data><data key="id">93209f777cfd482d9171abfc91daac94</data><data key="stdout">clamr_stdout.txt</data><data key="base_command">/CLAMR/clamr_cpuonly</data><data key="name">clamr</data><data key="workflow_id">b817d3a738b745f9921da51c3eb5fa9d</data></node>
+<node id="n18" labels=":Hint"><data key="labels">:Hint</data><data key="class">DockerRequirement</data><data key="dockerFile"># Dockerfile.clamr-ffmpeg
+# Developed on Chicoma @lanl
+# Patricia Grubel &lt;pagrubel@lanl.gov&gt;
+
+FROM debian:11
+
+
+RUN apt-get update &amp;&amp; \
+    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev
+
+RUN git clone https://github.com/lanl/CLAMR.git
+RUN cd CLAMR &amp;&amp; cmake . &amp;&amp; make clamr_cpuonly
+</data><data key="beeflow:containerName">clamr-ffmpeg</data></node>
+<node id="n19" labels=":Input"><data key="labels">:Input</data><data key="source">steps_between_graphics</data><data key="value">25</data><data key="prefix">-g</data><data key="id">graphic_steps</data><data key="type">int</data></node>
+<node id="n20" labels=":Input"><data key="labels">:Input</data><data key="type">string</data><data key="source">graphics_type</data><data key="prefix">-G</data><data key="id">graphics_type</data><data key="value">png</data></node>
+<node id="n21" labels=":Input"><data key="labels">:Input</data><data key="source">grid_resolution</data><data key="value">32</data><data key="prefix">-n</data><data key="id">grid_res</data><data key="type">int</data></node>
+<node id="n22" labels=":Input"><data key="labels">:Input</data><data key="source">max_levels</data><data key="value">3</data><data key="prefix">-l</data><data key="id">max_levels</data><data key="type">int</data></node>
+<node id="n23" labels=":Input"><data key="labels">:Input</data><data key="source">steps_between_outputs</data><data key="value">10</data><data key="prefix">-i</data><data key="id">output_steps</data><data key="type">int</data></node>
+<node id="n24" labels=":Input"><data key="labels">:Input</data><data key="source">time_steps</data><data key="value">5000</data><data key="prefix">-t</data><data key="id">time_steps</data><data key="type">int</data></node>
+<node id="n25" labels=":Output"><data key="labels">:Output</data><data key="id">clamr/clamr_stdout</data><data key="glob">clamr_stdout.txt</data><data key="type">stdout</data></node>
+<node id="n26" labels=":Output"><data key="labels">:Output</data><data key="id">clamr/outdir</data><data key="type">Directory</data><data key="glob">graphics_output/graph%05d.png</data></node>
+<node id="n27" labels=":Output"><data key="labels">:Output</data><data key="id">clamr/time_log</data><data key="glob">total_execution_time.log</data><data key="type">File</data></node>
+<node id="n28" labels=":Metadata"><data key="labels">:Metadata</data><data key="workdir">/vast/home/leahh/active/JAZE/clamr</data><data key="state">RUNNING</data></node>
+<node id="n29" labels=":Task"><data key="labels">:Task</data><data key="id">ef6e2dca67674c1ba2f83d510ba203e3</data><data key="name">ffmpeg</data><data key="base_command">ffmpeg -y</data><data key="stderr">ffmpeg_stderr.txt</data><data key="workflow_id">b817d3a738b745f9921da51c3eb5fa9d</data></node>
+<node id="n30" labels=":Hint"><data key="labels">:Hint</data><data key="class">DockerRequirement</data><data key="dockerFile"># Dockerfile.clamr-ffmpeg
+# Developed on Chicoma @lanl
+# Patricia Grubel &lt;pagrubel@lanl.gov&gt;
+
+FROM debian:11
+
+
+RUN apt-get update &amp;&amp; \
+    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev
+
+RUN git clone https://github.com/lanl/CLAMR.git
+RUN cd CLAMR &amp;&amp; cmake . &amp;&amp; make clamr_cpuonly
+</data><data key="beeflow:containerName">clamr-ffmpeg</data></node>
+<node id="n31" labels=":Input"><data key="labels">:Input</data><data key="type">Directory</data><data key="source">clamr/outdir</data><data key="value_from">$("/graph%05d.png")</data><data key="prefix">-i</data><data key="position">2</data><data key="id">ffmpeg_input</data></node>
+<node id="n32" labels=":Input"><data key="labels">:Input</data><data key="type">int</data><data key="source">frame_rate</data><data key="value">12</data><data key="prefix">-r</data><data key="position">3</data><data key="id">frame_rate</data></node>
+<node id="n33" labels=":Input"><data key="labels">:Input</data><data key="value">800x800</data><data key="type">string</data><data key="source">frame_size</data><data key="prefix">-s</data><data key="position">4</data><data key="id">frame_size</data></node>
+<node id="n34" labels=":Input"><data key="labels">:Input</data><data key="value">image2</data><data key="type">string</data><data key="source">input_format</data><data key="prefix">-f</data><data key="position">1</data><data key="id">input_format</data></node>
+<node id="n35" labels=":Input"><data key="labels">:Input</data><data key="value">CLAMR_movie.mp4</data><data key="type">string</data><data key="source">output_filename</data><data key="position">6</data><data key="id">output_file</data></node>
+<node id="n36" labels=":Input"><data key="labels">:Input</data><data key="source">pixel_format</data><data key="value">yuv420p</data><data key="id">pixel_format</data><data key="type">string</data><data key="prefix">-pix_fmt</data><data key="position">5</data></node>
+<node id="n37" labels=":Output"><data key="labels">:Output</data><data key="id">ffmpeg/movie</data><data key="glob">$(inputs.output_file)</data><data key="type">File</data></node>
+<node id="n38" labels=":Output"><data key="labels">:Output</data><data key="id">ffmpeg/ffmpeg_stderr</data><data key="glob">ffmpeg_stderr.txt</data><data key="type">stderr</data></node>
+<node id="n39" labels=":Metadata"><data key="labels">:Metadata</data><data key="workdir">/vast/home/leahh/active/JAZE/clamr</data><data key="state">WAITING</data></node>
+<edge id="e16" source="n18" target="n17" label="HINT_OF"><data key="label">HINT_OF</data></edge>
+<edge id="e17" source="n19" target="n17" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e18" source="n20" target="n17" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e19" source="n21" target="n17" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e20" source="n22" target="n17" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e21" source="n23" target="n17" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e22" source="n24" target="n17" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e23" source="n25" target="n17" label="OUTPUT_OF"><data key="label">OUTPUT_OF</data></edge>
+<edge id="e24" source="n26" target="n17" label="OUTPUT_OF"><data key="label">OUTPUT_OF</data></edge>
+<edge id="e25" source="n27" target="n17" label="OUTPUT_OF"><data key="label">OUTPUT_OF</data></edge>
+<edge id="e26" source="n28" target="n17" label="DESCRIBES"><data key="label">DESCRIBES</data></edge>
+<edge id="e27" source="n17" target="n1" label="BEGINS"><data key="label">BEGINS</data></edge>
+<edge id="e28" source="n30" target="n29" label="HINT_OF"><data key="label">HINT_OF</data></edge>
+<edge id="e29" source="n31" target="n29" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e30" source="n32" target="n29" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e31" source="n33" target="n29" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e32" source="n34" target="n29" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e33" source="n35" target="n29" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e34" source="n36" target="n29" label="INPUT_OF"><data key="label">INPUT_OF</data></edge>
+<edge id="e35" source="n37" target="n29" label="OUTPUT_OF"><data key="label">OUTPUT_OF</data></edge>
+<edge id="e36" source="n38" target="n29" label="OUTPUT_OF"><data key="label">OUTPUT_OF</data></edge>
+<edge id="e37" source="n39" target="n29" label="DESCRIBES"><data key="label">DESCRIBES</data></edge>
+<edge id="e38" source="n29" target="n1" label="BEGINS"><data key="label">BEGINS</data></edge>
+<edge id="e39" source="n29" target="n17" label="DEPENDS_ON"><data key="label">DEPENDS_ON</data></edge>
+</graph>
+</graphml>
