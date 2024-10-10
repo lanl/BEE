@@ -17,6 +17,7 @@ import shutil
 import datetime
 import time
 import importlib.metadata
+from pathlib import Path
 
 import daemon
 import typer
@@ -598,7 +599,7 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
     """Pull required BEE containers and store in outdir."""
     load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
-    neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/apoc_neo4j"))
+    neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.apoc_neo4j"))
     build_to_tar('apoc_neo4j', neo4j_dockerfile, neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
