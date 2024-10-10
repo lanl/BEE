@@ -597,6 +597,11 @@ def build_to_tar(tag, dockerfile, tarball):
 def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
                                          help='directory to store containers in')):
     """Pull required BEE containers and store in outdir."""
+    # Remove the ~/.beeflow/deps directory if it exists
+    dep_dir = container_manager.get_dep_dir()
+    if os.path.isdir(dep_dir):
+        shutil.rmtree(dep_dir)
+
     load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
     neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.apoc_neo4j"))
