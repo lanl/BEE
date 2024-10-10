@@ -299,6 +299,11 @@ def load_check_charliecloud():
 def check_dependencies():
     """Check for various dependencies in the environment."""
     print('Checking dependencies...')
+    # Check if running on compute node under Slurm scheduler
+    if os.environ.get('SLURM_JOB_NODELIST') is not None:
+        warn('Slurm job node detected! Beeflow should not be run on a compute node.')
+        warn(f'SLURM_JOB_NODELIST = {os.environ.get("SLURM_JOB_NODELIST")}')
+        sys.exit(1)
     # Check for Charliecloud and its version
     load_check_charliecloud()
     # Check for the flux API
