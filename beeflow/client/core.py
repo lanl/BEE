@@ -303,7 +303,6 @@ def check_dependencies(backend=False):
         warn('Slurm job node detected! Beeflow should not be run on a compute node.')
         warn(f'SLURM_JOB_NODELIST = {os.environ.get("SLURM_JOB_NODELIST")}')
         sys.exit(1)
-        
     print('Checking dependencies...')
     # Check for Charliecloud and its version
     load_check_charliecloud()
@@ -386,7 +385,7 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 def start(foreground: bool = typer.Option(False, '--foreground', '-F',
-          help='run in the foreground'), backend: bool = typer.Option(False, '--backend', 
+          help='run in the foreground'), backend: bool = typer.Option(False, '--backend',
           '-B', help='allow to run on a backend node')):
     """Start all BEE components."""
     if backend:  # allow beeflow to run on backend node
