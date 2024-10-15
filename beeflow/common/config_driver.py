@@ -311,7 +311,7 @@ VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost',
                  info='hostname of database')
 
-# Generate random initial password for neo4j 
+# Generate random initial password for neo4j
 random_bytes = os.urandom(32)
 random_pass = base64.b64encode(random_bytes).decode('utf-8')
 
