@@ -484,7 +484,12 @@ class AlterConfig:
                 config.read_file(fp)
         except FileNotFoundError:
             sys.exit(f'Configuration file {self.fname} does not exist!')
-        # Validate and store the config
+        # remove default keys from the other sections
+        default_keys = list(config['DEFAULT'])
+        config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
+                             if sec_name == 'DEFAULT' or key not in default_keys} # noqa
+                  for sec_name in config}
+        # Validate the config and store the config
         self.config = self.validator.validate(config)
 
     def change_value(self, sec_name, opt_name, new_value):
