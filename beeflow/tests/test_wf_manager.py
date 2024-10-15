@@ -200,7 +200,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
 
     request = {'wf_id': WF_ID, 'option': 'cancel'}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
-    assert resp.json['status'] == 'Cancelled'
+    assert resp.json['status'] == 'Cancelled and Archived'
     assert resp.status_code == 202
 
 
