@@ -510,27 +510,26 @@ class AlterConfig:
 
         raise ValueError(f'Option {opt_name} not found in the validator for section {sec_name}.')
 
+    def backup(self):
+        """Backup the configuration file."""
+        i = 1
+        backup_path = f'{self.fname}.{i}'
+        while os.path.exists(backup_path):
+            i += 1
+            backup_path = f'{self.fname}.{i}'
+        shutil.copy(self.fname, backup_path)
+        print(f'Saved old config to "{backup_path}".')
+
     def save(self):
         """Save the modified configuration back to the file."""
-        if os.path.exists(self.fname):
-            i = 1
-            backup_path = f'{self.fname}.{i}'
-            while os.path.exists(backup_path):
-                i += 1
-                backup_path = f'{self.fname}.{i}'
-            shutil.copy(self.fname, backup_path)
-            print(f'Saved old config to "{backup_path}".')
-
-        try:
-            with open(self.fname, 'w', encoding='utf-8') as fp:
-                print('# BEE Configuration File', file=fp)
-                for sec_name in self.config:
-                    print(file=fp)
-                    print(f'[{sec_name}]', file=fp)
-                    for opt_name, value in self.config[sec_name].items():
-                        print(f'{opt_name} = {value}', file=fp)
-        except FileNotFoundError:
-            print('Configuration file does not exist!')
+        self.backup()
+        with open(self.fname, 'w', encoding='utf-8') as fp:
+            print('# BEE Configuration File', file=fp)
+            for sec_name in self.config:
+                print(file=fp)
+                print(f'[{sec_name}]', file=fp)
+                for opt_name, value in self.config[sec_name].items():
+                    print(f'{opt_name} = {value}', file=fp)
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
