@@ -17,6 +17,7 @@ import shutil
 import datetime
 import time
 import importlib.metadata
+from pathlib import Path
 
 import daemon
 import typer
@@ -30,6 +31,9 @@ from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
 from beeflow.common.deps import redis_manager
+
+
+REPO_PATH = Path(*Path(__file__).parts[:-3])
 
 
 class ComponentManager:
@@ -592,13 +596,25 @@ def pull_to_tar(ref, tarball):
     subprocess.check_call(['ch-convert', '-i', 'ch-image', '-o', 'tar', ref, tarball])
 
 
+def build_to_tar(tag, dockerfile, tarball):
+    """Build a container from a Dockerfile and convert to tarball."""
+    subprocess.check_call(['ch-image', 'build', '-t', tag, '-f', dockerfile, '.'])
+    subprocess.check_call(['ch-convert', '-i', 'ch-image', '-o', 'tar', tag, tarball])
+
+
 @app.command()
 def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
                                          help='directory to store containers in')):
     """Pull required BEE containers and store in outdir."""
+    # Remove the ~/.beeflow/deps directory if it exists
+    dep_dir = container_manager.get_dep_dir()
+    if os.path.isdir(dep_dir):
+        shutil.rmtree(dep_dir)
+
     load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
-    pull_to_tar('neo4j:5.17', neo4j_path)
+    neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.apoc_neo4j"))
+    build_to_tar('apoc_neo4j', neo4j_dockerfile, neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
     print()

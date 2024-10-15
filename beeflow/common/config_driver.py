@@ -466,6 +466,72 @@ class ConfigGenerator:
         print(70 * '#')
 
 
+class AlterConfig:
+    """Class to alter an existing BEE configuration."""
+
+    def __init__(self, fname, validator):
+        """Load the existing configuration."""
+        self.fname = fname
+        self.validator = validator
+        self.config = None
+        self._load_config()
+
+    def _load_config(self):
+        """Load the existing configuration file into memory."""
+        config = ConfigParser()
+        try:
+            with open(self.fname, encoding='utf-8') as fp:
+                config.read_file(fp)
+        except FileNotFoundError:
+            sys.exit(f'Configuration file {self.fname} does not exist!')
+        # remove default keys from the other sections
+        default_keys = list(config['DEFAULT'])
+        config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
+                             if sec_name == 'DEFAULT' or key not in default_keys} # noqa
+                  for sec_name in config}
+        # Validate the config and store the config
+        self.config = self.validator.validate(config)
+
+    def change_value(self, sec_name, opt_name, new_value):
+        """Change the value of a configuration option."""
+        if sec_name not in self.config:
+            raise ValueError(f'Section {sec_name} not found in the config.')
+        if opt_name not in self.config[sec_name]:
+            raise ValueError(f'Option {opt_name} not found in section {sec_name}.')
+
+        # Find the correct option from the validator
+        options = self.validator.options(sec_name)  # Get all options for the section
+        for option_name, option in options:
+            if option_name == opt_name:
+                # Validate the new value before changing
+                option.validate(new_value)  # Call the validation method for this option
+                self.config[sec_name][opt_name] = new_value
+                return
+
+        raise ValueError(f'Option {opt_name} not found in the validator for section {sec_name}.')
+
+    def backup(self):
+        """Backup the configuration file."""
+        i = 1
+        backup_path = f'{self.fname}.{i}'
+        while os.path.exists(backup_path):
+            i += 1
+            backup_path = f'{self.fname}.{i}'
+        shutil.copy(self.fname, backup_path)
+        print(f'Saved old config to "{backup_path}".')
+
+    def save(self):
+        """Save the modified configuration back to the file."""
+        self.backup()
+        with open(self.fname, 'w', encoding='utf-8') as fp:
+            print('# BEE Configuration File', file=fp)
+            for sec_name in self.config:
+                print(file=fp)
+                print(f'[{sec_name}]', file=fp)
+                for opt_name, value in self.config[sec_name].items():
+                    print(f'{opt_name} = {value}', file=fp)
+
+
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 
 
