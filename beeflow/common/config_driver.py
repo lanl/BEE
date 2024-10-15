@@ -512,6 +512,15 @@ class AlterConfig:
 
     def save(self):
         """Save the modified configuration back to the file."""
+        if os.path.exists(self.fname):
+            i = 1
+            backup_path = f'{self.fname}.{i}'
+            while os.path.exists(backup_path):
+                i += 1
+                backup_path = f'{self.fname}.{i}'
+            shutil.copy(self.fname, backup_path)
+            print(f'Saved old config to "{backup_path}".')
+
         try:
             with open(self.fname, 'w', encoding='utf-8') as fp:
                 print('# BEE Configuration File', file=fp)
