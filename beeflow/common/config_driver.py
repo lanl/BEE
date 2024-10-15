@@ -474,6 +474,7 @@ class AlterConfig:
         self.fname = fname
         self.validator = validator
         self.config = None
+        self.changes = {}
         self._load_config()
 
     def _load_config(self):
@@ -504,8 +505,12 @@ class AlterConfig:
         for option_name, option in options:
             if option_name == opt_name:
                 # Validate the new value before changing
-                option.validate(new_value)  # Call the validation method for this option
+                option.validate(new_value)
                 self.config[sec_name][opt_name] = new_value
+                # Track changes in attribute
+                if sec_name not in self.changes:
+                    self.changes[sec_name] = {}
+                self.changes[sec_name][opt_name] = new_value
                 return
 
         raise ValueError(f'Option {opt_name} not found in the validator for section {sec_name}.')
@@ -530,6 +535,11 @@ class AlterConfig:
                 print(f'[{sec_name}]', file=fp)
                 for opt_name, value in self.config[sec_name].items():
                     print(f'{opt_name} = {value}', file=fp)
+        # Print out changes
+        print("Configuration saved. The following values were changed:")
+        for sec_name, options in self.changes.items():
+            for opt_name, new_value in options.items():
+                print(f'Section [{sec_name}], Option [{opt_name}] changed to [{new_value}].')
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
