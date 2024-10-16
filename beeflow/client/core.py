@@ -281,9 +281,9 @@ def init_components():
 MIN_CHARLIECLOUD_VERSION = (0, 34)
 
 
-def version_str(version):
+def version_str(version_tuple):
     """Convert a version tuple to a string."""
-    return '.'.join([str(part) for part in version])
+    return '.'.join([str(part) for part in version_tuple])
 
 
 def load_check_charliecloud():

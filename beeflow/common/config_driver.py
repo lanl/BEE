@@ -6,7 +6,6 @@ import os
 import platform
 import random
 import shutil
-import sys
 import textwrap
 import typer
 
@@ -102,7 +101,7 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            print("You do not currently have a configuration file so we will generate one for you now.")
+            print("Configuration file is missing! Generating new config file.")
             new(USERCONFIG_FILE)
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
