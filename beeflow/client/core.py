@@ -178,6 +178,7 @@ def get_slurmrestd_version():
     newest_api = sorted(api_versions, key=version.Version, reverse=True)[0]
     return newest_api
 
+
 def init_components():
     """Initialize the components and component manager."""
     mgr = ComponentManager()
