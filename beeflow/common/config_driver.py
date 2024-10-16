@@ -102,7 +102,8 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            sys.exit('Configuration file does not exist! Please try running `beeflow config new`.')
+            print("You do not currently have a configuration file so we will generate one for you now.")
+            new(USERCONFIG_FILE)
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
