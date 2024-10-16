@@ -164,7 +164,7 @@ def need_slurmrestd():
 
 
 def get_slurmrestd_version():
-    """Gets the newest slurmrestd version."""
+    """Get the newest slurmrestd version."""
     resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=subprocess.PIPE,
                           text=True).stderr
     resp = resp.split("\n")
@@ -301,18 +301,18 @@ def load_check_charliecloud():
             sys.exit(1)
     cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
                            check=True)
-    version = cproc.stdout if cproc.stdout else cproc.stderr
-    version = version.strip()
-    if 'pre' in version:
+    ch_version = cproc.stdout if cproc.stdout else cproc.stderr
+    ch_version = ch_version.strip()
+    if 'pre' in ch_version:
         # Pre-release charliecloud in the format <version>~pre+<git_hash>
-        print(f'Found Charliecloud {version}')
-        version = version.split('~')[0]
-        version = tuple(int(part) for part in version.split('.'))
-    # Release versions are in the format 0.<version>
+        print(f'Found Charliecloud {ch_version}')
+        ch_version = ch_version.split('~')[0]
+        ch_version = tuple(int(part) for part in ch_version.split('.'))
+    # Release versions are in the format 0.<ch_version>
     else:
-        version = tuple(int(part) for part in version.split('.'))
-        print(f'Found Charliecloud {version_str(version)}')
-    if version < MIN_CHARLIECLOUD_VERSION:
+        ch_version = tuple(int(part) for part in ch_version.split('.'))
+        print(f'Found Charliecloud {version_str(ch_version)}')
+    if ch_version < MIN_CHARLIECLOUD_VERSION:
         warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
         sys.exit(1)
