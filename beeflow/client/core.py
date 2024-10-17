@@ -18,7 +18,7 @@ import shutil
 import datetime
 import time
 import importlib.metadata
-from packaging import version
+import packaging
 
 import daemon
 import typer
@@ -175,7 +175,7 @@ def get_slurmrestd_version():
     api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"openapi/v\d+\.\d+\.\d+",
                                                                          line)]
     # Sort the versions and grab the newest one
-    newest_api = sorted(api_versions, key=version.Version, reverse=True)[0]
+    newest_api = sorted(api_versions, key=packaging.version.Version, reverse=True)[0]
     return newest_api
 
 
@@ -281,9 +281,9 @@ def init_components():
 MIN_CHARLIECLOUD_VERSION = (0, 34)
 
 
-def version_str(version_tuple):
+def version_str(version):
     """Convert a version tuple to a string."""
-    return '.'.join([str(part) for part in version_tuple])
+    return '.'.join([str(part) for part in version])
 
 
 def load_check_charliecloud():
@@ -301,18 +301,18 @@ def load_check_charliecloud():
             sys.exit(1)
     cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
                            check=True)
-    ch_version = cproc.stdout if cproc.stdout else cproc.stderr
-    ch_version = ch_version.strip()
-    if 'pre' in ch_version:
+    version = cproc.stdout if cproc.stdout else cproc.stderr
+    version = version.strip()
+    if 'pre' in version:
         # Pre-release charliecloud in the format <version>~pre+<git_hash>
-        print(f'Found Charliecloud {ch_version}')
-        ch_version = ch_version.split('~')[0]
-        ch_version = tuple(int(part) for part in ch_version.split('.'))
-    # Release versions are in the format 0.<ch_version>
+        print(f'Found Charliecloud {version}')
+        version = version.split('~')[0]
+        version = tuple(int(part) for part in version.split('.'))
+    # Release versions are in the format 0.<version>
     else:
-        ch_version = tuple(int(part) for part in ch_version.split('.'))
-        print(f'Found Charliecloud {version_str(ch_version)}')
-    if ch_version < MIN_CHARLIECLOUD_VERSION:
+        version = tuple(int(part) for part in version.split('.'))
+        print(f'Found Charliecloud {version_str(version)}')
+    if version < MIN_CHARLIECLOUD_VERSION:
         warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
         sys.exit(1)
