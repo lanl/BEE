@@ -6,7 +6,6 @@ import os
 import platform
 import random
 import shutil
-import sys
 import textwrap
 import typer
 
@@ -102,7 +101,8 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            sys.exit('Configuration file does not exist! Please try running `beeflow config new`.')
+            print("Configuration file is missing! Generating new config file.")
+            new(USERCONFIG_FILE)
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
