@@ -9,6 +9,7 @@ services is specified using the appropriate flag(s) then ONLY those services
 will be started.
 """
 import os
+import re
 import signal
 import subprocess
 import socket
@@ -17,9 +18,11 @@ import shutil
 import datetime
 import time
 import importlib.metadata
+import packaging
 
 import daemon
 import typer
+
 
 from beeflow.client import bee_client
 from beeflow.common.config_driver import BeeConfig as bc
@@ -160,6 +163,22 @@ def need_slurmrestd():
             and not bc.get('slurm', 'use_commands'))
 
 
+def get_slurmrestd_version():
+    """Get the newest slurmrestd version."""
+    resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=subprocess.PIPE,
+                          text=True).stderr
+    resp = resp.split("\n")
+    # Confirm slurmrestd format is the same
+    # If the slurmrestd list outputs has changed potentially something else has broken
+    if "Possible OpenAPI plugins" not in resp[0]:
+        print("Slurmrestd OpenAPI format has changed and things may break")
+    api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"openapi/v\d+\.\d+\.\d+",
+                                                                         line)]
+    # Sort the versions and grab the newest one
+    newest_api = sorted(api_versions, key=packaging.version.Version, reverse=True)[0]
+    return newest_api
+
+
 def init_components():
     """Initialize the components and component manager."""
     mgr = ComponentManager()
@@ -242,6 +261,9 @@ def init_components():
             bee_workdir = bc.get('DEFAULT', 'bee_workdir')
             slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
             openapi_version = bc.get('slurm', 'openapi_version')
+            if not openapi_version:
+                # Detect the newest version of the slurmrestd API
+                openapi_version = get_slurmrestd_version()
             slurm_args = f'-s openapi/{openapi_version}'
             # The following adds the db plugin we opted not to use for now
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
