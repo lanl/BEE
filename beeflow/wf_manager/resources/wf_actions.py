@@ -67,7 +67,7 @@ class WFActions(Resource):
             log.info(f"Workflow {wf_id} cancelled")
             # Archive cancelled workflow
             archive_workflow(db, wf_id, final_state='Cancelled')
-            resp = make_response(jsonify(status='Cancelled and Archived'), 202)
+            resp = make_response(jsonify(status='Cancelled'), 202)
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
             db.workflows.delete_workflow(wf_id)
