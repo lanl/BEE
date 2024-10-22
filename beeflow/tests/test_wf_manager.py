@@ -190,6 +190,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
                  return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
+    mocker.patch('beeflow.wf_manager.resources.wf_actions.archive_workflow', return_value=None)
 
     wf_name = 'wf'
     workdir = 'dir'
