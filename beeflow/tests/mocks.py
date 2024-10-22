@@ -107,7 +107,7 @@ class MockWFI:
 
     def export_graphml(self):
         """Fake exporting a graphml of a workflow."""
-        pass
+        pass # noqa
 
 
 class MockGDBDriver:
