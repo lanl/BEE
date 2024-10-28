@@ -469,7 +469,7 @@ class ConfigGenerator:
 class AlterConfig:
     """Class to alter an existing BEE configuration."""
 
-    def __init__(self, fname, validator):
+    def __init__(self, fname=USERCONFIG_FILE, validator=VALIDATOR):
         """Load the existing configuration."""
         self.fname = fname
         self.validator = validator

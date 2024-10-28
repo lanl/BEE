@@ -24,6 +24,7 @@ import typer
 
 from beeflow.client import bee_client
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.config_driver import AlterConfig
 from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.wf_manager.resources import wf_utils
@@ -613,14 +614,13 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
 
     load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
-    neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.apoc_neo4j"))
+    neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
     build_to_tar('apoc_neo4j', neo4j_dockerfile, neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
-    print()
-    print('The BEE dependency containers have been successfully downloaded. '
-          'Please make sure to set the following options in your config:')
-    print()
-    print('[DEFAULT]')
-    print('neo4j_image =', neo4j_path)
-    print('redis_image =', redis_path)
+
+    # Change config with the new container paths
+    alter_config = AlterConfig()
+    alter_config.change_value('DEFAULT', 'neo4j_image', neo4j_path)
+    alter_config.change_value('DEFAULT', 'redis_image', redis_path)
+    alter_config.save()
