@@ -469,13 +469,17 @@ class ConfigGenerator:
 class AlterConfig:
     """Class to alter an existing BEE configuration."""
 
-    def __init__(self, fname=USERCONFIG_FILE, validator=VALIDATOR):
+    def __init__(self, fname=USERCONFIG_FILE, validator=VALIDATOR, changes=None):
         """Load the existing configuration."""
         self.fname = fname
         self.validator = validator
         self.config = None
-        self.changes = {}
+        self.changes = changes if changes is not None else {}
         self._load_config()
+
+        for sec_name, opts in self.changes.items():
+            for opt_name, new_value in opts.items():
+                self.change_value(sec_name, opt_name, new_value)
 
     def _load_config(self):
         """Load the existing configuration file into memory."""
@@ -484,7 +488,13 @@ class AlterConfig:
             with open(self.fname, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            sys.exit(f'Configuration file {self.fname} does not exist!')
+            for section_change in self.changes:
+                for option_change in self.changes[section_change]:
+                    for opt_name, option in VALIDATOR.options(section_change):
+                        if opt_name == option_change:
+                            option.default = self.changes[section_change][option_change]
+            new(self.fname)
+
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]

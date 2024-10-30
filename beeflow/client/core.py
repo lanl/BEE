@@ -629,11 +629,6 @@ def build_to_tar(tag, dockerfile, tarball):
 def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
                                          help='directory to store containers in')):
     """Pull required BEE containers and store in outdir."""
-    # Remove the ~/.beeflow/deps directory if it exists
-    dep_dir = container_manager.get_dep_dir()
-    if os.path.isdir(dep_dir):
-        shutil.rmtree(dep_dir)
-
     load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
     neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
@@ -641,8 +636,9 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
 
-    # Change config with the new container paths
-    alter_config = AlterConfig()
-    alter_config.change_value('DEFAULT', 'neo4j_image', neo4j_path)
-    alter_config.change_value('DEFAULT', 'redis_image', redis_path)
+    alter_config = AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path, 'redis_image': redis_path}})
     alter_config.save()
+
+    dep_dir = container_manager.get_dep_dir()
+    if os.path.isdir(dep_dir):
+        shutil.rmtree(dep_dir)
