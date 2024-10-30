@@ -636,7 +636,8 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
 
-    alter_config = AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path, 'redis_image': redis_path}})
+    alter_config = AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path,
+                               'redis_image': redis_path}})
     alter_config.save()
 
     dep_dir = container_manager.get_dep_dir()
