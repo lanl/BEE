@@ -97,12 +97,14 @@ class BeeConfig:
         if userconfig is not None:
             USERCONFIG_FILE = userconfig
         # Try and read the file
-        try:
-            with open(USERCONFIG_FILE, encoding='utf-8') as fp:
-                config.read_file(fp)
-        except FileNotFoundError:
-            print("Configuration file is missing! Generating new config file.")
-            new(USERCONFIG_FILE)
+        while True:
+            try:
+                with open(USERCONFIG_FILE, encoding='utf-8') as fp:
+                    config.read_file(fp)
+                break
+            except FileNotFoundError:
+                print("Configuration file is missing! Generating new config file.")
+                new(USERCONFIG_FILE)
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -484,16 +486,18 @@ class AlterConfig:
     def _load_config(self):
         """Load the existing configuration file into memory."""
         config = ConfigParser()
-        try:
-            with open(self.fname, encoding='utf-8') as fp:
-                config.read_file(fp)
-        except FileNotFoundError:
-            for section_change in self.changes:
-                for option_change in self.changes[section_change]:
-                    for opt_name, option in VALIDATOR.options(section_change):
-                        if opt_name == option_change:
-                            option.default = self.changes[section_change][option_change]
-            new(self.fname)
+        while True:
+            try:
+                with open(self.fname, encoding='utf-8') as fp:
+                    config.read_file(fp)
+                break
+            except FileNotFoundError:
+                for section_change in self.changes:
+                    for option_change in self.changes[section_change]:
+                        for opt_name, option in VALIDATOR.options(section_change):
+                            if opt_name == option_change:
+                                option.default = self.changes[section_change][option_change]
+                new(self.fname)
 
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
