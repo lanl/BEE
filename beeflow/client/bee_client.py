@@ -75,8 +75,8 @@ def setup_hostname(start_hn):
 def get_hostname():
     """Check if beeflow is running somewhere else."""
     db = bdb.connect_db(client_db, db_path())
-    hn = db.info.get_hostname()
-    return hn
+    curr_hn = db.info.get_hostname()
+    return curr_hn
 
 
 def check_hostname(curr_hn):
