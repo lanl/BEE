@@ -410,6 +410,12 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           help='run in the foreground'), backend: bool = typer.Option(False, '--backend',
           '-B', help='allow to run on a backend node')):
     """Start all BEE components."""
+    start_hn = socket.gethostname()  # hostname when beeflow starts
+    if bee_client.get_hostname() == "":
+        bee_client.setup_hostname(start_hn)  # add to client db
+    elif bee_client.get_hostname() != start_hn:
+        warn(f'Error: beeflow is already running on "{bee_client.get_hostname()}."')
+        sys.exit(1)
     if backend:  # allow beeflow to run on backend node
         check_dependencies(backend=True)
     else:
@@ -439,9 +445,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 
     version = importlib.metadata.version("hpc-beeflow")
     print(f'Starting beeflow {version}...')
-    start_hn = socket.gethostname()  # hostname when beeflow starts
     print(f'Running beeflow on {start_hn}')
-    bee_client.setup_hostname(start_hn)  # add to client db
     if not foreground:
         print('Run `beeflow core status` for more information.')
     # Create the log path if it doesn't exist yet
@@ -505,17 +509,13 @@ def stop(query='yes'):
             bee_client.pause(wf_id)
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
     if resp is None:
-        beeflow_log = paths.log_fname('beeflow')
-        warn('Error: beeflow is not running on this system. It could be '
-             'running on a different front end.\n'
-             f'       Check the beeflow log: "{beeflow_log}".')
-        bee_client.check_hostname(stop_hn, stop=True)
+        bee_client.check_hostname(stop_hn)
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
     if query == "yes":
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
-        bee_client.check_hostname(stop_hn, stop=True)
+        bee_client.setup_hostname("")
 
 
 def archive_dir(dir_to_archive):
@@ -552,6 +552,8 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
     """Stop all components and delete the bee_workdir directory."""
     # Check workflow states; warn if there are active states.
+    reset_hn = socket.gethostname()
+    bee_client.check_hostname(reset_hn)
     workflow_list = bee_client.get_wf_list()
     active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
     caution = ""

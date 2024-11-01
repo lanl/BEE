@@ -72,7 +72,14 @@ def setup_hostname(start_hn):
     db.info.set_hostname(start_hn)
 
 
-def check_hostname(curr_hn, stop=False):
+def get_hostname():
+    """Check if beeflow is running somewhere else."""
+    db = bdb.connect_db(client_db, db_path())
+    hn = db.info.get_hostname()
+    return hn
+
+
+def check_hostname(curr_hn):
     """Check current front end name matches the one beeflow was started on."""
     db = bdb.connect_db(client_db, db_path())
     start_hn = db.info.get_hostname()
@@ -81,8 +88,6 @@ def check_hostname(curr_hn, stop=False):
              f'run a command on "{curr_hn}".')
     if start_hn == "":
         warn('beeflow has not been started!')
-    if stop:
-        db.info.set_hostname("")
 
 
 def error_exit(msg, include_caller=True):
@@ -147,7 +152,11 @@ def get_wf_list():
         conn = _wfm_conn()
         resp = conn.get(_url(), timeout=60)
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        if get_hostname() == "":
+            warn('beeflow has not been started!')
+            sys.exit(1)
+        else:
+            error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit('WF Manager did not return workflow list')
