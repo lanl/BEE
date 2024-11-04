@@ -18,7 +18,7 @@ import shutil
 import datetime
 import time
 import importlib.metadata
-import packaging
+from packaging.version import Version
 
 import daemon
 import typer
@@ -175,7 +175,8 @@ def get_slurmrestd_version():
     api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"openapi/v\d+\.\d+\.\d+",
                                                                          line)]
     # Sort the versions and grab the newest one
-    newest_api = sorted(api_versions, key=packaging.version.Version, reverse=True)[0]
+    newest_api = sorted(api_versions, key=Version, reverse=True)[0]
+    print(f"Inferred slurmrestd version: {newest_api}")
     return newest_api
 
 
