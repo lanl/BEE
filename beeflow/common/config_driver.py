@@ -486,26 +486,24 @@ class AlterConfig:
     def _load_config(self):
         """Load the existing configuration file into memory."""
         config = ConfigParser()
-        while True:
-            try:
-                with open(self.fname, encoding='utf-8') as fp:
-                    config.read_file(fp)
-                break
-            except FileNotFoundError:
-                for section_change in self.changes:
-                    for option_change in self.changes[section_change]:
-                        for opt_name, option in VALIDATOR.options(section_change):
-                            if opt_name == option_change:
-                                option.default = self.changes[section_change][option_change]
-                new(self.fname)
-
-        # remove default keys from the other sections
-        default_keys = list(config['DEFAULT'])
-        config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
-                             if sec_name == 'DEFAULT' or key not in default_keys} # noqa
-                  for sec_name in config}
-        # Validate the config and store the config
-        self.config = self.validator.validate(config)
+        try:
+            with open(self.fname, encoding='utf-8') as fp:
+                config.read_file(fp)
+                # remove default keys from the other sections
+                default_keys = list(config['DEFAULT'])
+                config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
+                                     if sec_name == 'DEFAULT' or key not in default_keys} # noqa
+                          for sec_name in config}
+                # Validate the config and store the config
+                self.config = self.validator.validate(config)
+        except FileNotFoundError:
+            for section_change in self.changes:
+                for option_change in self.changes[section_change]:
+                    for opt_name, option in VALIDATOR.options(section_change):
+                        if opt_name == option_change:
+                            option.default = self.changes[section_change][option_change]
+            sections = ConfigGenerator(self.fname, self.validator).choose_values().sections
+            self.config = {sec_name: section for sec_name, section in sections.items() if section}
 
     def change_value(self, sec_name, opt_name, new_value):
         """Change the value of a configuration option."""
@@ -541,7 +539,8 @@ class AlterConfig:
 
     def save(self):
         """Save the modified configuration back to the file."""
-        self.backup()
+        if os.path.exists(self.fname):
+            self.backup()
         with open(self.fname, 'w', encoding='utf-8') as fp:
             print('# BEE Configuration File', file=fp)
             for sec_name in self.config:
