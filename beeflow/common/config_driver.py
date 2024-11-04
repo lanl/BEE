@@ -39,6 +39,15 @@ if BEE_CONFIG is not None:
     USERCONFIG_FILE = BEE_CONFIG
 
 
+def filter_and_validate_config(config, validator):
+    default_keys = list(config['DEFAULT'])
+    config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
+                         if sec_name == 'DEFAULT' or key not in default_keys} # noqa
+              for sec_name in config}
+    # Validate the config
+    return  validator.validate(config)
+
+
 class BeeConfig:
     r"""Class to manage and store all BEE configuration.
 
@@ -106,12 +115,7 @@ class BeeConfig:
                 print("Configuration file is missing! Generating new config file.")
                 new(USERCONFIG_FILE)
         # remove default keys from the other sections
-        default_keys = list(config['DEFAULT'])
-        config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
-                             if sec_name == 'DEFAULT' or key not in default_keys} # noqa
-                  for sec_name in config}
-        # Validate the config
-        cls.CONFIG = VALIDATOR.validate(config)
+        cls.CONFIG = filter_and_validate_config(config, VALIDATOR)
 
     @classmethod
     def userconfig_path(cls):
@@ -359,6 +363,21 @@ def print_wrap(text, next_line_indent=''):
         print(line)
 
 
+def write_config_file(file_name, sections):
+    try:
+        with open(file_name, 'w', encoding='utf-8') as fp:
+            print('# BEE Configuration File', file=fp)
+            for sec_name, section in sections.items():
+                if not section:
+                    continue
+                print(file=fp)
+                print(f'[{sec_name}]', file=fp)
+                for opt_name, value in section.items():
+                    print(f'{opt_name} = {value}', file=fp)
+    except FileNotFoundError:
+        print('Configuration file does not exist!')
+
+
 class ConfigGenerator:
     """Config generator class."""
 
@@ -447,18 +466,7 @@ class ConfigGenerator:
         if ans.lower() != 'y':
             print('Quitting without saving')
             return
-        try:
-            with open(self.fname, 'w', encoding='utf-8') as fp:
-                print('# BEE Configuration File', file=fp)
-                for sec_name, section in self.sections.items():
-                    if not section:
-                        continue
-                    print(file=fp)
-                    print(f'[{sec_name}]'.format(sec_name), file=fp)
-                    for opt_name in section:
-                        print(f'{opt_name} = {section[opt_name]}', file=fp)
-        except FileNotFoundError:
-            print('Configuration file does not exist!')
+        write_config_file(self.fname, self.sections)
         print(70 * '#')
         print('Before running BEE, check defaults in the configuration file:',
               f'\n\t{self.fname}',
@@ -489,21 +497,14 @@ class AlterConfig:
         try:
             with open(self.fname, encoding='utf-8') as fp:
                 config.read_file(fp)
-                # remove default keys from the other sections
-                default_keys = list(config['DEFAULT'])
-                config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
-                                     if sec_name == 'DEFAULT' or key not in default_keys} # noqa
-                          for sec_name in config}
-                # Validate the config and store the config
-                self.config = self.validator.validate(config)
+                self.config = filter_and_validate_config(config, self.validator)
         except FileNotFoundError:
             for section_change in self.changes:
                 for option_change in self.changes[section_change]:
                     for opt_name, option in VALIDATOR.options(section_change):
                         if opt_name == option_change:
                             option.default = self.changes[section_change][option_change]
-            sections = ConfigGenerator(self.fname, self.validator).choose_values().sections
-            self.config = {sec_name: section for sec_name, section in sections.items() if section}
+            self.config = ConfigGenerator(self.fname, self.validator).choose_values().sections
 
     def change_value(self, sec_name, opt_name, new_value):
         """Change the value of a configuration option."""
@@ -541,13 +542,7 @@ class AlterConfig:
         """Save the modified configuration back to the file."""
         if os.path.exists(self.fname):
             self.backup()
-        with open(self.fname, 'w', encoding='utf-8') as fp:
-            print('# BEE Configuration File', file=fp)
-            for sec_name in self.config:
-                print(file=fp)
-                print(f'[{sec_name}]', file=fp)
-                for opt_name, value in self.config[sec_name].items():
-                    print(f'{opt_name} = {value}', file=fp)
+        write_config_file(self.fname, self.config)
         # Print out changes
         print("Configuration saved. The following values were changed:")
         for sec_name, options in self.changes.items():
