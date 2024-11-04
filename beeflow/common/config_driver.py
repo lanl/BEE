@@ -476,6 +476,17 @@ class ConfigGenerator:
         print(70 * '#')
 
 
+def backup(fname):
+    """Backup the configuration file."""
+    i = 1
+    backup_path = f'{fname}.{i}'
+    while os.path.exists(backup_path):
+        i += 1
+        backup_path = f'{fname}.{i}'
+    shutil.copy(fname, backup_path)
+    print(f'Saved old config to "{backup_path}".')
+    print()
+
 class AlterConfig:
     """Class to alter an existing BEE configuration."""
 
@@ -528,20 +539,10 @@ class AlterConfig:
 
         raise ValueError(f'Option {opt_name} not found in the validator for section {sec_name}.')
 
-    def backup(self):
-        """Backup the configuration file."""
-        i = 1
-        backup_path = f'{self.fname}.{i}'
-        while os.path.exists(backup_path):
-            i += 1
-            backup_path = f'{self.fname}.{i}'
-        shutil.copy(self.fname, backup_path)
-        print(f'Saved old config to "{backup_path}".')
-
     def save(self):
         """Save the modified configuration back to the file."""
         if os.path.exists(self.fname):
-            self.backup()
+            backup(self.fname)
         write_config_file(self.fname, self.config)
         # Print out changes
         print("Configuration saved. The following values were changed:")
@@ -590,14 +591,7 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
     """Create a new config file."""
     if os.path.exists(path):
         if check_yes(f'Path "{path}" already exists.\nWould you like to save a copy of it?'):
-            i = 1
-            backup_path = f'{path}.{i}'
-            while os.path.exists(backup_path):
-                i += 1
-                backup_path = f'{path}.{i}'
-            shutil.copy(path, backup_path)
-            print(f'Saved old config to "{backup_path}".')
-            print()
+            backup(path)
     ConfigGenerator(path, VALIDATOR).choose_values().save()
 
 
