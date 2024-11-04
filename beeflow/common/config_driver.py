@@ -10,6 +10,7 @@ import textwrap
 import typer
 
 from beeflow.common.config_validator import ConfigValidator
+from beeflow.common import config_utils
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common import validation
 from beeflow.common.tab_completion import filepath_completion
@@ -37,15 +38,6 @@ else:
 BEE_CONFIG = os.getenv('BEE_CONFIG')
 if BEE_CONFIG is not None:
     USERCONFIG_FILE = BEE_CONFIG
-
-
-def filter_and_validate_config(config, validator):
-    default_keys = list(config['DEFAULT'])
-    config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
-                         if sec_name == 'DEFAULT' or key not in default_keys} # noqa
-              for sec_name in config}
-    # Validate the config
-    return  validator.validate(config)
 
 
 class BeeConfig:
@@ -115,7 +107,7 @@ class BeeConfig:
                 print("Configuration file is missing! Generating new config file.")
                 new(USERCONFIG_FILE)
         # remove default keys from the other sections
-        cls.CONFIG = filter_and_validate_config(config, VALIDATOR)
+        cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR)
 
     @classmethod
     def userconfig_path(cls):
@@ -363,21 +355,6 @@ def print_wrap(text, next_line_indent=''):
         print(line)
 
 
-def write_config_file(file_name, sections):
-    try:
-        with open(file_name, 'w', encoding='utf-8') as fp:
-            print('# BEE Configuration File', file=fp)
-            for sec_name, section in sections.items():
-                if not section:
-                    continue
-                print(file=fp)
-                print(f'[{sec_name}]', file=fp)
-                for opt_name, value in section.items():
-                    print(f'{opt_name} = {value}', file=fp)
-    except FileNotFoundError:
-        print('Configuration file does not exist!')
-
-
 class ConfigGenerator:
     """Config generator class."""
 
@@ -466,7 +443,7 @@ class ConfigGenerator:
         if ans.lower() != 'y':
             print('Quitting without saving')
             return
-        write_config_file(self.fname, self.sections)
+        config_utils.write_config(self.fname, self.sections)
         print(70 * '#')
         print('Before running BEE, check defaults in the configuration file:',
               f'\n\t{self.fname}',
@@ -475,17 +452,6 @@ class ConfigGenerator:
         print('\n(Try `beeflow config info` to see more about each option)')
         print(70 * '#')
 
-
-def backup(fname):
-    """Backup the configuration file."""
-    i = 1
-    backup_path = f'{fname}.{i}'
-    while os.path.exists(backup_path):
-        i += 1
-        backup_path = f'{fname}.{i}'
-    shutil.copy(fname, backup_path)
-    print(f'Saved old config to "{backup_path}".')
-    print()
 
 class AlterConfig:
     """Class to alter an existing BEE configuration."""
@@ -508,7 +474,7 @@ class AlterConfig:
         try:
             with open(self.fname, encoding='utf-8') as fp:
                 config.read_file(fp)
-                self.config = filter_and_validate_config(config, self.validator)
+                self.config = config_utils.filter_and_validate(config, self.validator)
         except FileNotFoundError:
             for section_change in self.changes:
                 for option_change in self.changes[section_change]:
@@ -542,8 +508,8 @@ class AlterConfig:
     def save(self):
         """Save the modified configuration back to the file."""
         if os.path.exists(self.fname):
-            backup(self.fname)
-        write_config_file(self.fname, self.config)
+            config_utils.backup(self.fname)
+        config_utils.write_config(self.fname, self.config)
         # Print out changes
         print("Configuration saved. The following values were changed:")
         for sec_name, options in self.changes.items():
@@ -591,7 +557,7 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
     """Create a new config file."""
     if os.path.exists(path):
         if check_yes(f'Path "{path}" already exists.\nWould you like to save a copy of it?'):
-            backup(path)
+            config_utils.backup(path)
     ConfigGenerator(path, VALIDATOR).choose_values().save()
 
 
