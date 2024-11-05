@@ -6,9 +6,6 @@ import shutil
 
 from beeflow.common import paths
 
-bee_workdir = paths.workdir()
-mount_dir = os.path.join(bee_workdir, 'gdb_mount')
-gdb_graphmls_dir = mount_dir + '/graphmls'
 
 expected_keys = {"id", "name", "state", "class", "type", "value", "source",
                  "workflow_id", "base_command", "stdout", "stderr", "default",
@@ -37,6 +34,10 @@ default_key_definitions = {
 def update_graphml(wf_id, graphmls_dir):
     """Update GraphML file by ensuring required keys are present and updating its structure."""
     short_id = wf_id[:6]
+    # Define paths
+    bee_workdir = paths.workdir()
+    mount_dir = os.path.join(bee_workdir, 'gdb_mount')
+    gdb_graphmls_dir = mount_dir + '/graphmls'
     gdb_graphml_path = gdb_graphmls_dir + "/" + short_id + ".graphml"
     output_graphml_path = graphmls_dir + "/" + short_id + ".graphml"
     # Handle making multiple versions of the graphmls without overriding old ones
