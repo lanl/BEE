@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """bee-client.
 
-This script provides an client interface to the user to manage workflows.
+This script provides a client interface to the user to manage workflows.
 Capablities include submitting, starting, listing, pausing and cancelling workflows.
 """
 import os
@@ -29,6 +29,8 @@ from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.client import core
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.common.db import client_db
+from beeflow.common.db import bdb
 
 # Length of a shortened workflow ID
 short_id_len = 6 #noqa: Not a constant
@@ -51,6 +53,41 @@ class ClientError(Exception):
     def __init__(self, *args):
         """Error constructor."""
         self.args = args
+
+
+def warn(*pargs):
+    """Print a red warning message."""
+    typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
+
+
+def db_path():
+    """Return the client database path."""
+    bee_workdir = config_driver.BeeConfig.get('DEFAULT', 'bee_workdir')
+    return os.path.join(bee_workdir, 'client.db')
+
+
+def setup_hostname(start_hn):
+    """Set up front end name when beeflow core start is returned."""
+    db = bdb.connect_db(client_db, db_path())
+    db.info.set_hostname(start_hn)
+
+
+def get_hostname():
+    """Check if beeflow is running somewhere else."""
+    db = bdb.connect_db(client_db, db_path())
+    curr_hn = db.info.get_hostname()
+    return curr_hn
+
+
+def check_hostname(curr_hn):
+    """Check current front end name matches the one beeflow was started on."""
+    db = bdb.connect_db(client_db, db_path())
+    start_hn = db.info.get_hostname()
+    if start_hn and curr_hn != start_hn:  # noqa: don't use set instead
+        warn(f'beeflow was started on "{start_hn}" and you are trying to '
+             f'run a command on "{curr_hn}".')
+    if start_hn == "":
+        warn('beeflow has not been started!')
 
 
 def error_exit(msg, include_caller=True):
@@ -115,7 +152,11 @@ def get_wf_list():
         conn = _wfm_conn()
         resp = conn.get(_url(), timeout=60)
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        if get_hostname() == "":
+            warn('beeflow has not been started!')
+            sys.exit(1)
+        else:
+            error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit('WF Manager did not return workflow list')
@@ -680,4 +721,5 @@ if __name__ == "__main__":
 
 # Ignore W0511: This allows us to have TODOs in the code
 # Ignore R1732: Significant code restructuring required to fix
+# Ignore R1714: Not using a set instead
 # pylama:ignore=W0511,R1732
