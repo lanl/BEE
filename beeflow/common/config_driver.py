@@ -234,13 +234,13 @@ USER = getpass.getuser()
 # Check for default containers; setting to None value results in querying user for path
 if os.path.isfile(DEFAULT_NEO4J_IMAGE):
     print(DEFAULT_NEO4J_IMAGE)
-    neo4j_img = DEFAULT_NEO4J_IMAGE
+    NEO4J_IMAGE = DEFAULT_NEO4J_IMAGE
 else:
-    neo4j_img = None
+    NEO4J_IMAGE = None
 if os.path.isfile(DEFAULT_REDIS_IMAGE):
-    redis_img = DEFAULT_REDIS_IMAGE
+    REDIS_IMAGE = DEFAULT_REDIS_IMAGE
 else:
-    redis_img = None
+    REDIS_IMAGE = None
 
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
@@ -265,11 +265,11 @@ VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validati
                  default=True, info='delete workflow directory for completed jobs')
 
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
-                 default=neo4j_img, info='neo4j container image',
+                 default=NEO4J_IMAGE, info='neo4j container image',
                  input_fn=filepath_completion_input)
 
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
-                 default=redis_img, info='redis container image',
+                 default=REDIS_IMAGE, info='redis container image',
                  input_fn=filepath_completion_input)
 
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,

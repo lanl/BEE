@@ -17,7 +17,7 @@ Requirements:
 * **Containers**:
     Two Charliecloud dependency containers are currently required for BEE: one for the Neo4j graph database and another for Redis. The paths to these containers will need to be set in the BEE configuration later, using the ``neo4j_image`` and the ``redis_image`` options respectively. BEE only supports Neo4j 5.x. We are currently using the latest version of Redis supplied on Docker Hub (as of 2023).
 
-    For LANL systems, please use the containers supplied by the BEE team: **/usr/projects/BEE/neo4j.tar.gz**, **/usr/projects/BEE/redis.tar.gz**.
+    For LANL systems: the default locations are checked used and you will not be asked for them. 
 
     For other users, these containers can be pulled from Docker Hub (after following `Installation:`_ below) using ``beeflow core pull-deps``, which will download and report the container paths to be set in the config later.
 
