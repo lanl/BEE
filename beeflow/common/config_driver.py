@@ -233,7 +233,6 @@ USER = getpass.getuser()
 
 # Check for default containers; setting to None value results in querying user for path
 if os.path.isfile(DEFAULT_NEO4J_IMAGE):
-    print(DEFAULT_NEO4J_IMAGE)
     NEO4J_IMAGE = DEFAULT_NEO4J_IMAGE
 else:
     NEO4J_IMAGE = None
