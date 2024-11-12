@@ -216,10 +216,6 @@ if platform.system() == 'Windows':
     OFFSET = os.getppid() % 100
 else:
     OFFSET = os.getuid() % 100
-DEFAULT_BOLT_PORT = 7687 + OFFSET
-DEFAULT_HTTP_PORT = 7474 + OFFSET
-DEFAULT_HTTPS_PORT = 7473 + OFFSET
-
 DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
@@ -310,12 +306,6 @@ VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost',
                  info='hostname of database')
 VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
-VALIDATOR.option('graphdb', 'bolt_port', default=DEFAULT_BOLT_PORT, validator=int,
-                 info='port used for the BOLT API')
-VALIDATOR.option('graphdb', 'http_port', default=DEFAULT_HTTP_PORT, validator=int,
-                 info='HTTP port used for the graph database')
-VALIDATOR.option('graphdb', 'https_port', default=DEFAULT_HTTPS_PORT,
-                 info='HTTPS port used for the graph database')
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
                  info='graph database image mount directory', validator=validation.make_dir)
 VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=1,
