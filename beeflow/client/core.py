@@ -9,6 +9,7 @@ services is specified using the appropriate flag(s) then ONLY those services
 will be started.
 """
 import os
+import re
 import signal
 import subprocess
 import socket
@@ -17,9 +18,11 @@ import shutil
 import datetime
 import time
 import importlib.metadata
+import packaging
 
 import daemon
 import typer
+
 
 from beeflow.client import bee_client
 from beeflow.common.config_driver import BeeConfig as bc
@@ -160,6 +163,22 @@ def need_slurmrestd():
             and not bc.get('slurm', 'use_commands'))
 
 
+def get_slurmrestd_version():
+    """Get the newest slurmrestd version."""
+    resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=subprocess.PIPE,
+                          text=True).stderr
+    resp = resp.split("\n")
+    # Confirm slurmrestd format is the same
+    # If the slurmrestd list outputs has changed potentially something else has broken
+    if "Possible OpenAPI plugins" not in resp[0]:
+        print("Slurmrestd OpenAPI format has changed and things may break")
+    api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"openapi/v\d+\.\d+\.\d+",
+                                                                         line)]
+    # Sort the versions and grab the newest one
+    newest_api = sorted(api_versions, key=packaging.version.Version, reverse=True)[0]
+    return newest_api
+
+
 def init_components():
     """Initialize the components and component manager."""
     mgr = ComponentManager()
@@ -242,6 +261,9 @@ def init_components():
             bee_workdir = bc.get('DEFAULT', 'bee_workdir')
             slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
             openapi_version = bc.get('slurm', 'openapi_version')
+            if not openapi_version:
+                # Detect the newest version of the slurmrestd API
+                openapi_version = get_slurmrestd_version()
             slurm_args = f'-s openapi/{openapi_version}'
             # The following adds the db plugin we opted not to use for now
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
@@ -388,6 +410,12 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           help='run in the foreground'), backend: bool = typer.Option(False, '--backend',
           '-B', help='allow to run on a backend node')):
     """Start all BEE components."""
+    start_hn = socket.gethostname()  # hostname when beeflow starts
+    if bee_client.get_hostname() == "":
+        bee_client.setup_hostname(start_hn)  # add to client db
+    elif bee_client.get_hostname() != start_hn:
+        warn(f'Error: beeflow is already running on "{bee_client.get_hostname()}."')
+        sys.exit(1)
     if backend:  # allow beeflow to run on backend node
         check_dependencies(backend=True)
     else:
@@ -417,6 +445,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 
     version = importlib.metadata.version("hpc-beeflow")
     print(f'Starting beeflow {version}...')
+    print(f'Running beeflow on {start_hn}')
     if not foreground:
         print('Run `beeflow core status` for more information.')
     # Create the log path if it doesn't exist yet
@@ -435,11 +464,10 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 @app.command()
 def status():
     """Check the status of beeflow and the components."""
+    status_hn = socket.gethostname()  # hostname when beeflow core status returned
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'status'})
     if resp is None:
-        beeflow_log = paths.log_fname('beeflow')
-        warn('Cannot connect to the beeflow daemon, is it running? Check the '
-             f'log at "{beeflow_log}".')
+        bee_client.check_hostname(status_hn)
         sys.exit(1)
     print('beeflow components:')
     for comp, stat in resp['components'].items():
@@ -458,6 +486,7 @@ def info():
 @app.command()
 def stop(query='yes'):
     """Stop the current running beeflow daemon."""
+    stop_hn = socket.gethostname()  # hostname when beeflow core stop returned
     # Check workflow states; warn if there are active states, pause running workflows
     workflow_list = bee_client.get_wf_list()
     concern_states = {'Running', 'Initializing', 'Waiting'}
@@ -480,15 +509,13 @@ def stop(query='yes'):
             bee_client.pause(wf_id)
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
     if resp is None:
-        beeflow_log = paths.log_fname('beeflow')
-        warn('Error: beeflow is not running on this system. It could be '
-             'running on a different front end.\n'
-             f'       Check the beeflow log: "{beeflow_log}".')
+        bee_client.check_hostname(stop_hn)
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
     if query == "yes":
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
+        bee_client.setup_hostname("")
 
 
 def archive_dir(dir_to_archive):
@@ -525,6 +552,8 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
     """Stop all components and delete the bee_workdir directory."""
     # Check workflow states; warn if there are active states.
+    reset_hn = socket.gethostname()
+    bee_client.check_hostname(reset_hn)
     workflow_list = bee_client.get_wf_list()
     active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
     caution = ""

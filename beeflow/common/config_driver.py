@@ -7,7 +7,6 @@ import base64
 import platform
 import random
 import shutil
-import sys
 import textwrap
 import typer
 
@@ -103,7 +102,8 @@ class BeeConfig:
             with open(USERCONFIG_FILE, encoding='utf-8') as fp:
                 config.read_file(fp)
         except FileNotFoundError:
-            sys.exit('Configuration file does not exist! Please try running `beeflow config new`.')
+            print("Configuration file is missing! Generating new config file.")
+            new(USERCONFIG_FILE)
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -217,10 +217,6 @@ if platform.system() == 'Windows':
     OFFSET = os.getppid() % 100
 else:
     OFFSET = os.getuid() % 100
-DEFAULT_BOLT_PORT = 7687 + OFFSET
-DEFAULT_HTTP_PORT = 7474 + OFFSET
-DEFAULT_HTTPS_PORT = 7473 + OFFSET
-
 DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
@@ -311,17 +307,13 @@ VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost',
                  info='hostname of database')
 
+
 # Generate random initial password for neo4j
 random_bytes = os.urandom(32)
 random_pass = base64.b64encode(random_bytes).decode('utf-8')
 
 VALIDATOR.option('graphdb', 'dbpass', default=random_pass, info='password for database')
-VALIDATOR.option('graphdb', 'bolt_port', default=DEFAULT_BOLT_PORT, validator=int,
-                 info='port used for the BOLT API')
-VALIDATOR.option('graphdb', 'http_port', default=DEFAULT_HTTP_PORT, validator=int,
-                 info='HTTP port used for the graph database')
-VALIDATOR.option('graphdb', 'https_port', default=DEFAULT_HTTPS_PORT,
-                 info='HTTPS port used for the graph database')
+
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
                  info='graph database image mount directory', validator=validation.make_dir)
 VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=1,
