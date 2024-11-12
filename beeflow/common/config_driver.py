@@ -3,6 +3,7 @@
 from configparser import ConfigParser
 import getpass
 import os
+import base64
 import platform
 import random
 import shutil
@@ -305,7 +306,14 @@ VALIDATOR.option('charliecloud', 'setup', default='',
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost',
                  info='hostname of database')
-VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
+
+
+# Generate random initial password for neo4j
+random_bytes = os.urandom(32)
+random_pass = base64.b64encode(random_bytes).decode('utf-8')
+
+VALIDATOR.option('graphdb', 'dbpass', default=random_pass, info='password for database')
+
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
                  info='graph database image mount directory', validator=validation.make_dir)
 VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=1,
