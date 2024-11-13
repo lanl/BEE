@@ -1,3 +1,5 @@
+"""Unit tests for the config driver."""
+
 import pytest
 from beeflow.tests.mocks import MockAlterConfig
 
