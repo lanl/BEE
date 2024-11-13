@@ -389,16 +389,16 @@ class MockAlterConfig:
         self._load_config()
 
         for sec_name, opts in self.changes.items():
-             for opt_name, new_value in opts.items():
-                 self.change_value(sec_name, opt_name, new_value)
+            for opt_name, new_value in opts.items():
+                self.change_value(sec_name, opt_name, new_value)
 
     def _load_config(self):
         """Fake loading config."""
         self.config = {
-                "DEFAULT": {
-                    "bee_workdir": "$BEE_WORKDIR",
-                    "workload_scheduler": "$WORKLOAD_SCHEDULER"
-                }
+            "DEFAULT": {
+                "bee_workdir": "$BEE_WORKDIR",
+                "workload_scheduler": "$WORKLOAD_SCHEDULER"
+            }
         }
 
     def change_value(self, sec_name, opt_name, new_value):
