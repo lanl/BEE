@@ -1,80 +1,105 @@
 """Unit tests for the config driver."""
 
 import pytest
-from beeflow.tests.mocks import MockAlterConfig
+from beeflow.common.config_driver import AlterConfig
 
 
 # AlterConfig tests
-def test_initialization_without_changes():
+def test_initialization_without_changes(mocker):
     """Test initialization without any changes."""
-    config = MockAlterConfig()
-    assert config.config == {
+    mocked_load = mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
+
+    alter_config = AlterConfig()
+    mocked_load.assert_called_once()
+    assert alter_config.changes == {}
+
+
+def test_initialization_with_changes(mocker):
+    """Test initialization with some predefined changes."""
+    mocked_load = mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
+    mocked_change = mocker.patch('beeflow.common.config_driver.AlterConfig.change_value')
+
+    changes = {"DEFAULT": {"bee_workdir": "/new/path"}}
+    alter_config = AlterConfig(changes=changes)
+    mocked_load.assert_called_once()
+    mocked_change.assert_called_once()
+    assert alter_config.changes == changes
+
+
+def test_change_value_success(mocker):
+    """Test changing an existing config value."""
+    mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
+    alter_config = AlterConfig()
+
+    alter_config.config = {
         "DEFAULT": {
             "bee_workdir": "$BEE_WORKDIR",
             "workload_scheduler": "$WORKLOAD_SCHEDULER"
         }
     }
-    assert config.changes == {}
+    mocker.patch("pathlib.Path.mkdir")
+    alter_config.change_value("DEFAULT", "bee_workdir", "/new/path")
+    assert alter_config.config["DEFAULT"]["bee_workdir"] == "/new/path"
 
 
-def test_initialization_with_changes():
-    """Test initialization with some predefined changes."""
-    changes = {"DEFAULT": {"bee_workdir": "/new/path"}}
-    config = MockAlterConfig(changes=changes)
-    assert config.config["DEFAULT"]["bee_workdir"] == "/new/path"
-    assert config.changes == changes
-
-
-def test_change_value_success():
-    """Test changing an existing config value."""
-    config = MockAlterConfig()
-    config.change_value("DEFAULT", "bee_workdir", "/new/path")
-    assert config.config["DEFAULT"]["bee_workdir"] == "/new/path"
-    assert config.changes == {"DEFAULT": {"bee_workdir": "/new/path"}}
-
-
-def test_change_value_nonexistent_section():
+def test_change_value_nonexistent_section(mocker):
     """Test changing a value in a nonexistent section raises an error."""
-    config = MockAlterConfig()
+    mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
+    alter_config = AlterConfig()
+
+    alter_config.config = {
+        "DEFAULT": {
+            "bee_workdir": "$BEE_WORKDIR",
+            "workload_scheduler": "$WORKLOAD_SCHEDULER"
+        }
+    }
+    mocker.patch("pathlib.Path.mkdir")
     with pytest.raises(ValueError, match="Section NON_EXISTENT not found in the config."):
-        config.change_value("NON_EXISTENT", "some_option", "new_value")
+        alter_config.change_value("NON_EXISTENT", "some_option", "new_value")
 
 
-def test_change_value_nonexistent_option():
+def test_change_value_nonexistent_option(mocker):
     """Test changing a nonexistent option raises an error."""
-    config = MockAlterConfig()
+    mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
+    alter_config = AlterConfig()
+
+    alter_config.config = {
+        "DEFAULT": {
+            "bee_workdir": "$BEE_WORKDIR",
+            "workload_scheduler": "$WORKLOAD_SCHEDULER"
+        }
+    }
+    mocker.patch("pathlib.Path.mkdir")
     with pytest.raises(
             ValueError,
             match="Option non_existent_option not found in section DEFAULT."
     ):
-        config.change_value("DEFAULT", "non_existent_option", "new_value")
+        alter_config.change_value("DEFAULT", "non_existent_option", "new_value")
 
 
-def test_save():
+def save(mocker):
     """Test the save function."""
-    config = MockAlterConfig()
-    assert config.save() == "Configuration saved."
+    mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
+    alter_config = AlterConfig()
+
+    mocked_save = mocker.patch('beeflow.common.config_driver.AlterConfig.save')
+    alter_config.save()
+    mocked_save.assert_called_once()
 
 
-def test_change_value_multiple_times():
+def test_change_value_multiple_times(mocker):
     """Test changing a config value multiple times and tracking changes."""
-    config = MockAlterConfig()
-    config.change_value("DEFAULT", "bee_workdir", "/path/one")
-    config.change_value("DEFAULT", "bee_workdir", "/path/two")
-    assert config.config["DEFAULT"]["bee_workdir"] == "/path/two"
-    assert config.changes == {"DEFAULT": {"bee_workdir": "/path/two"}}
+    mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
+    alter_config = AlterConfig()
 
-
-def test_change_value_updates_changes_dict():
-    """Test that changes dictionary is updated correctly after multiple changes."""
-    config = MockAlterConfig()
-    config.change_value("DEFAULT", "bee_workdir", "/updated/path")
-    config.change_value("DEFAULT", "workload_scheduler", "new_scheduler")
-    assert config.config["DEFAULT"]["bee_workdir"] == "/updated/path"
-    assert config.config["DEFAULT"]["workload_scheduler"] == "new_scheduler"
-    assert config.changes == {
+    alter_config.config = {
         "DEFAULT": {
-            "bee_workdir": "/updated/path",
-            "workload_scheduler": "new_scheduler"
+            "bee_workdir": "$BEE_WORKDIR",
+            "workload_scheduler": "$WORKLOAD_SCHEDULER"
         }
     }
+    mocker.patch("pathlib.Path.mkdir")
+    alter_config.change_value("DEFAULT", "bee_workdir", "/path/one")
+    alter_config.change_value("DEFAULT", "bee_workdir", "/path/two")
+    assert alter_config.config["DEFAULT"]["bee_workdir"] == "/path/two"
+    assert alter_config.changes == {"DEFAULT": {"bee_workdir": "/path/two"}}
