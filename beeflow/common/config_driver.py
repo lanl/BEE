@@ -454,7 +454,15 @@ class ConfigGenerator:
 
 
 class AlterConfig:
-    """Class to alter an existing BEE configuration."""
+    r"""Class to alter an existing BEE configuration.
+
+    Changes can be made when the class is instantiated, for example:
+    AlterConfig(changes={'DEFAULT': {'neo4j_image': '/path/to/neo4j'}})
+
+    Changes can also be made later, for example:
+    alter_config = AlterConfig()
+    alter_config.change_value('DEFAULT', 'neo4j_image', '/path/to/neo4j')
+    """
 
     def __init__(self, fname=USERCONFIG_FILE, validator=VALIDATOR, changes=None):
         """Load the existing configuration."""
