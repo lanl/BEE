@@ -7,8 +7,8 @@ from beeflow.common.config_utils import filter_and_validate, write_config, backu
 def sample_config():
     """Sample sections data for testing write_config."""
     return {
-        'DEFAULT': {'key1': 'value1', 'key2': 'value2'},
-        'Section1': {'key3': 'value3', 'key4': 'value4'}
+        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
+        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''}
     }
 
 
@@ -35,7 +35,7 @@ class ValidatorMock:
 def test_filter_and_validate(sample_config):
     """Test filtering and validating configuration."""
     # Append key-value pair that will need to be filtered
-    sample_config['Section2'] = {'key2': 'new_value', 'key5': 'value5'}
+    sample_config['charliecloud'] = {'workload_scheduler': 'new_value', 'setup': ''}
 
     # Run the function
     mocked_validator = ValidatorMock()
@@ -43,9 +43,9 @@ def test_filter_and_validate(sample_config):
 
     # Check that the validator was called with the correct filtered config
     expected_filtered_config = {
-        'DEFAULT': {'key1': 'value1', 'key2': 'value2'},
-        'Section1': {'key3': 'value3', 'key4': 'value4'},
-        'Section2': {'key5': 'value5'}
+        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
+        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''},
+        'charliecloud': {'setup': ''}
     }
     assert mocked_validator.called_with() == expected_filtered_config
 
@@ -65,11 +65,11 @@ def test_write_config(temp_file, sample_config):
     expected_content = (
         "# BEE Configuration File\n\n"
         "[DEFAULT]\n"
-        "key1 = value1\n"
-        "key2 = value2\n\n"
-        "[Section1]\n"
-        "key3 = value3\n"
-        "key4 = value4\n"
+        "bee_workdir = $BEE_WORKDIR\n"
+        "workload_scheduler = $WORKLOAD_SCHEDULER\n\n"
+        "[task_manager]\n"
+        "container_runtime = Charliecloud\n"
+        "runner_opts = \n"
     )
     assert content == expected_content
 
