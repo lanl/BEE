@@ -223,9 +223,23 @@ DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
+DEFAULT_NEO4J_IMAGE = join_path('/usr/projects/BEE/neo4j.tar.gz')
+DEFAULT_REDIS_IMAGE = join_path('/usr/projects/BEE/redis.tar.gz')
+
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 DEFAULT_BEE_DROPPOINT = join_path(HOME_DIR, '.beeflow/droppoint')
 USER = getpass.getuser()
+
+# Check for default containers; setting to None value results in querying user for path
+if os.path.isfile(DEFAULT_NEO4J_IMAGE):
+    NEO4J_IMAGE = DEFAULT_NEO4J_IMAGE
+else:
+    NEO4J_IMAGE = None
+if os.path.isfile(DEFAULT_REDIS_IMAGE):
+    REDIS_IMAGE = DEFAULT_REDIS_IMAGE
+else:
+    REDIS_IMAGE = None
+
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
@@ -249,11 +263,11 @@ VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validati
                  default=True, info='delete workflow directory for completed jobs')
 
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
-                 info='neo4j container image',
+                 default=NEO4J_IMAGE, info='neo4j container image',
                  input_fn=filepath_completion_input)
 
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
-                 info='redis container image',
+                 default=REDIS_IMAGE, info='redis container image',
                  input_fn=filepath_completion_input)
 
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
@@ -389,9 +403,7 @@ class ConfigGenerator:
             for opt_name, option in self.validator.options(sec_name):
                 # Print the section name if it hasn't already been printed.
                 if not printed:
-                    print()
-                    print(f'## {sec_name}')
-                    print()
+                    print(f'\n## {sec_name}\n')
                     print_wrap(section.info)
                     print()
                     printed = True
