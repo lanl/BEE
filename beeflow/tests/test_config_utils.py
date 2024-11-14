@@ -1,5 +1,7 @@
-import pytest
+"""Unit tests for the config utils."""
+
 import os
+import pytest
 from beeflow.common.config_utils import filter_and_validate, write_config, backup
 
 
@@ -20,15 +22,19 @@ def temp_file(tmp_path):
 
 class MockValidator:
     """Simple mock class for validator."""
+
     def __init__(self):
+        """Initalize."""
         self._called_with = None
         self.return_value = True
 
     def validate(self, config):
+        """Validate."""
         self._called_with = config
         return self.return_value
 
     def called_with(self):
+        """Return what called the validator."""
         return self._called_with
 
 

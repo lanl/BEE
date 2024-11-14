@@ -639,11 +639,11 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
     load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
     neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
-    build_to_tar('apoc_neo4j', neo4j_dockerfile, neo4j_path)
+    build_to_tar('neo4j_image', neo4j_dockerfile, neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
 
-    alter_config = AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path,
+    AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path,
                                'redis_image': redis_path}}).save()
 
     dep_dir = container_manager.get_dep_dir()
