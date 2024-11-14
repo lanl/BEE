@@ -98,12 +98,14 @@ class BeeConfig:
         if userconfig is not None:
             USERCONFIG_FILE = userconfig
         # Try and read the file
-        try:
-            with open(USERCONFIG_FILE, encoding='utf-8') as fp:
-                config.read_file(fp)
-        except FileNotFoundError:
-            print("Configuration file is missing! Generating new config file.")
-            new(USERCONFIG_FILE)
+        while True:
+            try:
+                with open(USERCONFIG_FILE, encoding='utf-8') as fp:
+                    config.read_file(fp)
+                break
+            except FileNotFoundError:
+                print("Configuration file is missing! Generating new config file.")
+                new(USERCONFIG_FILE)
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
