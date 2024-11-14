@@ -38,7 +38,7 @@ def test_filter_and_validate(sample_config):
     sample_config['charliecloud'] = {'workload_scheduler': 'new_value', 'setup': ''}
 
     # Run the function
-    mocked_validator = ValidatorMock()
+    mocked_validator = MockValidator()
     result = filter_and_validate(sample_config, mocked_validator)
 
     # Check that the validator was called with the correct filtered config

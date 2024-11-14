@@ -40,4 +40,3 @@ def backup(fname):
     shutil.copy(fname, backup_path)
     print(f'Saved old config to "{backup_path}".')
     print()
-
