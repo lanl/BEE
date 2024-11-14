@@ -18,7 +18,7 @@ def temp_file(tmp_path):
     return tmp_path / "test_config.ini"
 
 
-class ValidatorMock:
+class MockValidator:
     """Simple mock class for validator."""
     def __init__(self):
         self._called_with = None
