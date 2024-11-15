@@ -4,15 +4,6 @@ import pytest
 from beeflow.common.config_driver import AlterConfig
 
 
-@pytest.fixture
-def sample_config():
-    """Sample sections data for testing write_config."""
-    return {
-        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
-        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''}
-    }
-
-
 # AlterConfig tests
 def test_initialization_without_changes(mocker):
     """Test initialization without any changes."""
@@ -35,8 +26,13 @@ def test_initialization_with_changes(mocker):
     assert alter_config.changes == changes
 
 
-def test_change_value_success(mocker, sample_config):
+def test_change_value_success(mocker):
     """Test changing an existing config value."""
+    # Define the config
+    sample_config = {
+        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
+        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''}
+    }
     mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
     alter_config = AlterConfig()
     alter_config.config = sample_config
@@ -46,8 +42,13 @@ def test_change_value_success(mocker, sample_config):
     assert alter_config.config["DEFAULT"]["bee_workdir"] == "/new/path"
 
 
-def test_change_value_nonexistent_section(mocker, sample_config):
+def test_change_value_nonexistent_section(mocker):
     """Test changing a value in a nonexistent section raises an error."""
+    # Define the config
+    sample_config = {
+        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
+        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''}
+    }
     mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
     alter_config = AlterConfig()
     alter_config.config = sample_config
@@ -57,8 +58,13 @@ def test_change_value_nonexistent_section(mocker, sample_config):
         alter_config.change_value("NON_EXISTENT", "some_option", "new_value")
 
 
-def test_change_value_nonexistent_option(mocker, sample_config):
+def test_change_value_nonexistent_option(mocker):
     """Test changing a nonexistent option raises an error."""
+    # Define the config
+    sample_config = {
+        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
+        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''}
+    }
     mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
     alter_config = AlterConfig()
     alter_config.config = sample_config
@@ -81,8 +87,13 @@ def save(mocker):
     mocked_save.assert_called_once()
 
 
-def test_change_value_multiple_times(mocker, sample_config):
+def test_change_value_multiple_times(mocker):
     """Test changing a config value multiple times and tracking changes."""
+    # Define the config
+    sample_config = {
+        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
+        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''}
+    }
     mocker.patch('beeflow.common.config_driver.AlterConfig._load_config')
     alter_config = AlterConfig()
     alter_config.config = sample_config

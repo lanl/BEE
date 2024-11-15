@@ -1,30 +1,14 @@
 """Unit tests for the config utils."""
 
 import os
-import pytest
 from beeflow.common.config_utils import filter_and_validate, write_config, backup
-
-
-@pytest.fixture
-def sample_config():
-    """Sample sections data for testing write_config."""
-    return {
-        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
-        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''}
-    }
-
-
-@pytest.fixture
-def temp_file(tmp_path):
-    """Temporary file for writing configurations."""
-    return tmp_path / "test_config.ini"
 
 
 class MockValidator:
     """Simple mock class for validator."""
 
     def __init__(self):
-        """Initalize."""
+        """Initialize."""
         self._called_with = None
         self.return_value = True
 
@@ -38,11 +22,14 @@ class MockValidator:
         return self._called_with
 
 
-def test_filter_and_validate(sample_config):
+def test_filter_and_validate():
     """Test filtering and validating configuration."""
-    # Append key-value pair that will need to be filtered
-    sample_config['charliecloud'] = {'workload_scheduler': 'new_value', 'setup': ''}
-
+    # Define the config
+    sample_config = {
+        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
+        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''},
+        'charliecloud': {'workload_scheduler': 'new_value', 'setup': ''}
+    }
     # Run the function
     mocked_validator = MockValidator()
     result = filter_and_validate(sample_config, mocked_validator)
@@ -54,14 +41,18 @@ def test_filter_and_validate(sample_config):
         'charliecloud': {'setup': ''}
     }
     assert mocked_validator.called_with() == expected_filtered_config
-
-    # Ensure the function returns the validator's return value
     assert result is True
 
 
-def test_write_config(temp_file, sample_config):
+def test_write_config(tmp_path):
     """Test writing the configuration to a file."""
+    # Define the config
+    sample_config = {
+        'DEFAULT': {'bee_workdir': '$BEE_WORKDIR', 'workload_scheduler': '$WORKLOAD_SCHEDULER'},
+        'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''}
+    }
     # Write the config to a file
+    temp_file = tmp_path / "test_config.conf"
     write_config(temp_file, sample_config)
 
     # Verify file contents
@@ -82,16 +73,17 @@ def test_write_config(temp_file, sample_config):
 
 def test_write_config_file_not_found(capfd):
     """Test handling of FileNotFoundError in write_config by capturing output."""
-    write_config('/invalid/path/config.ini', {'Section': {'key': 'value'}})
+    write_config('/invalid/path/config.conf', {'Section': {'key': 'value'}})
 
     # Capture the printed output
     captured = capfd.readouterr()
     assert "Configuration file does not exist!" in captured.out
 
 
-def test_backup(temp_file):
+def test_backup(tmp_path):
     """Test backing up a configuration file."""
     # Create a temporary config file
+    temp_file = tmp_path / "test_config.conf"
     temp_file.write_text("sample configuration content")
 
     # Run the backup function
@@ -107,8 +99,9 @@ def test_backup(temp_file):
     assert content == "sample configuration content"
 
 
-def test_backup_multiple(temp_file):
+def test_backup_multiple(tmp_path):
     """Test that backup increments the backup file number correctly."""
+    temp_file = tmp_path / "test_config.conf"
     temp_file.write_text("sample configuration content")
 
     # Create multiple backups
