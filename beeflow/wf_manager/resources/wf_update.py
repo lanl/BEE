@@ -134,7 +134,7 @@ class WFUpdate(Resource):
                     wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
             wf_state = wfi.get_workflow_state()
-            if tasks and wf_state != 'PAUSED':
+            if tasks and wf_state not in ('PAUSED', 'Cancelled'):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
             if wfi.workflow_completed():
