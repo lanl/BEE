@@ -305,6 +305,15 @@ class WorkflowInterface:
         """
         return self._gdb_driver.workflow_completed(self._workflow_id)
 
+    def cancelled_workflow_completed(self):
+        """Return true if all of a cancelled workflow's scheduled tasks
+        have completed, else false.
+
+        :rtype: bool
+        """
+
+        return self._gdb_driver.cancelled_workflow_completed(self._workflow_id)
+
     def export_graphml(self):
         """Export a BEE workflow as a graphml."""
         self._gdb_driver.export_graphml(self._workflow_id)

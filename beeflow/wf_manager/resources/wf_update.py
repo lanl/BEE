@@ -142,6 +142,11 @@ class WFUpdate(Resource):
                 log.info(f"Workflow {wf_id} Completed")
                 archive_workflow(db, state_update.wf_id)
                 log.info('Workflow Completed')
+            elif wf_state == 'Cancelled' and wfi.cancelled_workflow_completed():
+                wf_id = wfi.workflow_id
+                log.info(f"Scheduled tasks for cancelled workflow {wf_id} completed")
+                archive_workflow(db, wf_id, final_state=wf_state)
+                log.info('Workflow Archived')
 
         # If the job failed and it doesn't include a checkpoint-restart hint,
         # then fail the entire workflow

@@ -285,6 +285,16 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def cancelled_workflow_completed(self):
+        """Determine if a cancelled workflow has completed.
+
+        A cancelled workflow has completed if each of its final tasks are not
+        'PENDING', 'RUNNING' 'COMPLETING'.
+
+        :rtype: bool
+        """
+
+    @abstractmethod
     def close(self):
         """Close the connection to the graph database."""
 

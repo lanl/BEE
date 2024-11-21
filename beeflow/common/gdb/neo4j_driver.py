@@ -422,6 +422,17 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         return self._read_transaction(tx.final_tasks_completed, wf_id=workflow_id)
 
+    def cancelled_workflow_completed(self, workflow_id):
+        """Determine if a cancelled workflow has completed.
+
+        A cancelled workflow has completed if each of its final tasks are not
+        'PENDING', 'RUNNING' 'COMPLETING'.
+        :param workflow_id: the workflow id
+        :type workflow_id: str
+        :rtype: bool
+        """
+        return self._read_transaction(tx.cancelled_final_tasks_completed, wf_id=workflow_id)
+
     def close(self):
         """Close the connection to the Neo4j database."""
         self._driver.close()

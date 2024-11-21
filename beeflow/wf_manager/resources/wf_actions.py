@@ -60,13 +60,16 @@ class WFActions(Resource):
         db = connect_db(wfm_db, db_path)
         if option == "cancel":
             wfi = wf_utils.get_workflow_interface(wf_id)
+            wf_state = wfi.get_workflow_state()
+            paused = wf_state == 'PAUSED'
             # Remove all tasks currently in the database
             wfi.set_workflow_state('Cancelled')
             wf_utils.update_wf_status(wf_id, 'Cancelled')
             db.workflows.update_workflow_state(wf_id, 'Cancelled')
             log.info(f"Workflow {wf_id} cancelled")
-            # Archive cancelled workflow
-            archive_workflow(db, wf_id, final_state='Cancelled')
+            # Archive cancelled workflow if it was originally paused
+            if paused:
+                archive_workflow(db, wf_id, final_state='Cancelled')
             resp = make_response(jsonify(status='Cancelled'), 202)
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
