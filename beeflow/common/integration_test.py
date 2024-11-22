@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import shutil
 import sys
+import time
 import uuid
 import typer
 
@@ -293,6 +294,7 @@ def main(tests = typer.Option(None, '--tests', '-t',  # noqa (conflict on '=' si
          timeout: int = typer.Option(utils.TIMEOUT, '--timeout',
                                      help='workflow timeout in seconds')):
     """Launch the integration tests."""
+    time.sleep(60)
     if show_tests:
         print('INTEGRATION TEST CASES:')
         for test_name, ignore in TEST_RUNNER.test_details():

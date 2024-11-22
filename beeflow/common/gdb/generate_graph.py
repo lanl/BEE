@@ -1,21 +1,26 @@
 """Module to make a png of a graph from a graphml file."""
 
 import os
+import shutil
 import networkx as nx
 import graphviz
 
-from beeflow.common import paths
-
-bee_workdir = paths.workdir()
-dags_dir = os.path.join(bee_workdir, 'dags')
-graphmls_dir = dags_dir + "/graphmls"
+from beeflow.wf_manager.resources import wf_utils
 
 
-def generate_viz(wf_id):
+def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, copy_dag_in_archive):
     """Generate a PNG of a workflow graph from a GraphML file."""
     short_id = wf_id[:6]
     graphml_path = graphmls_dir + "/" + short_id + ".graphml"
-    output_path = dags_dir + "/" + short_id
+
+    if no_dag_dir:
+        dags_dir = output_dir
+    else:
+        dags_dir = output_dir + "/" + short_id + "-dags"
+        os.makedirs(dags_dir, exist_ok=True)
+
+    output_path = dags_dir + "/" + short_id + ".png"
+    backup_dag(output_path, dags_dir, short_id)
 
     # Load the GraphML file using NetworkX
     graph = nx.read_graphml(graphml_path)
@@ -29,8 +34,27 @@ def generate_viz(wf_id):
 
     # Render the graph and save as PNG
     png_data = dot.pipe(format='png')
-    with open(output_path + ".png", "wb") as png_file:
-        png_file.write(png_data)
+    save_png(output_path, png_data)
+
+    if copy_dag_in_archive:
+        # Save and backup DAGs in the workflow_dir which will be archived
+        workflow_dir = wf_utils.get_workflow_dir(wf_id)
+        archive_dag_dir = workflow_dir + "/dags"
+        os.makedirs(archive_dag_dir, exist_ok=True)
+        archive_dag_path = archive_dag_dir + "/" + short_id + ".png"
+        backup_dag(archive_dag_path, archive_dag_dir, short_id)
+        save_png(archive_dag_path, png_data)
+
+
+def backup_dag(path, dags_dir, short_id):
+    """Backup DAGs."""
+    if os.path.exists(path):
+        i = 1
+        backup_path = f'{dags_dir}/{short_id}_v{i}.png'
+        while os.path.exists(backup_path):
+            i += 1
+            backup_path = f'{dags_dir}/{short_id}_v{i}.png'
+        shutil.copy(path, backup_path)
 
 
 def add_nodes_to_dot(graph, dot):
@@ -82,3 +106,9 @@ def add_edges_to_dot(graph, dot):
                      fontsize="10", fontname="times-bold")
         else:
             dot.edge(target, source, label=edge_label, fontsize="10")
+
+
+def save_png(output_path, png_data):
+    """Save png data."""
+    with open(output_path, "wb") as png_file:
+        png_file.write(png_data)

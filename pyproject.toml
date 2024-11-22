@@ -62,8 +62,7 @@ cwl-utils = "^0.16"
 APScheduler = "^3.6.3"
 jsonpickle = "^2.2.0"
 # Fix for urllib3 2.0 breaking change (similar error to this https://github.com/docker/docker-py/issues/3113)
-requests = "<2.29.0"
-requests-unixsocket = "^0.3.0"
+requests = "^2.32.3"
 python-daemon = "^2.3.1"
 gunicorn = ">=20.1,<23.0"
 # typer version 0.6 and above seem to be throwing an AssertionError with no
@@ -81,6 +80,7 @@ python-openstackclient = { version = "^6.0.0", optional = true }
 python-heatclient = { version = "^3.1.0", optional = true }
 graphviz = "^0.20.3"
 networkx = "3.1"
+requests-unixsocket2 = "^0.4.2"
 
 [tool.poetry.extras]
 cloud_extras = ["google-api-python-client", "python-openstackclient", "python-heatclient"]
