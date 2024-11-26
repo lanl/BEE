@@ -3,7 +3,6 @@
 from configparser import ConfigParser
 import getpass
 import os
-import base64
 import platform
 import random
 import shutil
@@ -11,6 +10,7 @@ import textwrap
 import typer
 
 from beeflow.common.config_validator import ConfigValidator
+from beeflow.common import config_utils
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common import validation
 from beeflow.common.tab_completion import filepath_completion
@@ -107,12 +107,7 @@ class BeeConfig:
                 print("Configuration file is missing! Generating new config file.")
                 new(USERCONFIG_FILE)
         # remove default keys from the other sections
-        default_keys = list(config['DEFAULT'])
-        config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
-                             if sec_name == 'DEFAULT' or key not in default_keys} # noqa
-                  for sec_name in config}
-        # Validate the config
-        cls.CONFIG = VALIDATOR.validate(config)
+        cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR)
 
     @classmethod
     def userconfig_path(cls):
@@ -323,12 +318,7 @@ VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost',
                  info='hostname of database')
 
-
-# Generate random initial password for neo4j
-random_bytes = os.urandom(32)
-random_pass = base64.b64encode(random_bytes).decode('utf-8')
-
-VALIDATOR.option('graphdb', 'dbpass', default=random_pass, info='password for database')
+VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
 
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
                  info='graph database image mount directory', validator=validation.make_dir)
@@ -456,18 +446,7 @@ class ConfigGenerator:
         if ans.lower() != 'y':
             print('Quitting without saving')
             return
-        try:
-            with open(self.fname, 'w', encoding='utf-8') as fp:
-                print('# BEE Configuration File', file=fp)
-                for sec_name, section in self.sections.items():
-                    if not section:
-                        continue
-                    print(file=fp)
-                    print(f'[{sec_name}]'.format(sec_name), file=fp)
-                    for opt_name in section:
-                        print(f'{opt_name} = {section[opt_name]}', file=fp)
-        except FileNotFoundError:
-            print('Configuration file does not exist!')
+        config_utils.write_config(self.fname, self.sections)
         print(70 * '#')
         print('Before running BEE, check defaults in the configuration file:',
               f'\n\t{self.fname}',
@@ -475,6 +454,78 @@ class ConfigGenerator:
               '\n ** Include job options (such as account) required for this system.**')
         print('\n(Try `beeflow config info` to see more about each option)')
         print(70 * '#')
+
+
+class AlterConfig:
+    r"""Class to alter an existing BEE configuration.
+
+    Changes can be made when the class is instantiated, for example:
+    AlterConfig(changes={'DEFAULT': {'neo4j_image': '/path/to/neo4j'}})
+
+    Changes can also be made later, for example:
+    alter_config = AlterConfig()
+    alter_config.change_value('DEFAULT', 'neo4j_image', '/path/to/neo4j')
+    """
+
+    def __init__(self, fname=USERCONFIG_FILE, validator=VALIDATOR, changes=None):
+        """Load the existing configuration."""
+        self.fname = fname
+        self.validator = validator
+        self.config = None
+        self.changes = changes if changes is not None else {}
+        self._load_config()
+
+        for sec_name, opts in self.changes.items():
+            for opt_name, new_value in opts.items():
+                self.change_value(sec_name, opt_name, new_value)
+
+    def _load_config(self):
+        """Load the existing configuration file into memory."""
+        config = ConfigParser()
+        try:
+            with open(self.fname, encoding='utf-8') as fp:
+                config.read_file(fp)
+                self.config = config_utils.filter_and_validate(config, self.validator)
+        except FileNotFoundError:
+            for section_change in self.changes:
+                for option_change in self.changes[section_change]:
+                    for opt_name, option in VALIDATOR.options(section_change):
+                        if opt_name == option_change:
+                            option.default = self.changes[section_change][option_change]
+            self.config = ConfigGenerator(self.fname, self.validator).choose_values().sections
+
+    def change_value(self, sec_name, opt_name, new_value):
+        """Change the value of a configuration option."""
+        if sec_name not in self.config:
+            raise ValueError(f'Section {sec_name} not found in the config.')
+        if opt_name not in self.config[sec_name]:
+            raise ValueError(f'Option {opt_name} not found in section {sec_name}.')
+
+        # Find the correct option from the validator
+        options = self.validator.options(sec_name)  # Get all options for the section
+        for option_name, option in options:
+            if option_name == opt_name:
+                # Validate the new value before changing
+                option.validate(new_value)
+                self.config[sec_name][opt_name] = new_value
+                # Track changes in attribute
+                if sec_name not in self.changes:
+                    self.changes[sec_name] = {}
+                self.changes[sec_name][opt_name] = new_value
+                return
+
+        raise ValueError(f'Option {opt_name} not found in the validator for section {sec_name}.')
+
+    def save(self):
+        """Save the modified configuration back to the file."""
+        if os.path.exists(self.fname):
+            config_utils.backup(self.fname)
+        config_utils.write_config(self.fname, self.config)
+        # Print out changes
+        print("Configuration saved. The following values were changed:")
+        for sec_name, options in self.changes.items():
+            for opt_name, new_value in options.items():
+                print(f'Section [{sec_name}], Option [{opt_name}] changed to [{new_value}].')
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
@@ -517,14 +568,7 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
     """Create a new config file."""
     if os.path.exists(path):
         if check_yes(f'Path "{path}" already exists.\nWould you like to save a copy of it?'):
-            i = 1
-            backup_path = f'{path}.{i}'
-            while os.path.exists(backup_path):
-                i += 1
-                backup_path = f'{path}.{i}'
-            shutil.copy(path, backup_path)
-            print(f'Saved old config to "{backup_path}".')
-            print()
+            config_utils.backup(path)
     ConfigGenerator(path, VALIDATOR).choose_values().save()
 
 
