@@ -3,6 +3,7 @@
 from configparser import ConfigParser
 import getpass
 import os
+import base64
 import platform
 import random
 import shutil
@@ -97,12 +98,14 @@ class BeeConfig:
         if userconfig is not None:
             USERCONFIG_FILE = userconfig
         # Try and read the file
-        try:
-            with open(USERCONFIG_FILE, encoding='utf-8') as fp:
-                config.read_file(fp)
-        except FileNotFoundError:
-            print("Configuration file is missing! Generating new config file.")
-            new(USERCONFIG_FILE)
+        while True:
+            try:
+                with open(USERCONFIG_FILE, encoding='utf-8') as fp:
+                    config.read_file(fp)
+                break
+            except FileNotFoundError:
+                print("Configuration file is missing! Generating new config file.")
+                new(USERCONFIG_FILE)
         # remove default keys from the other sections
         default_keys = list(config['DEFAULT'])
         config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
@@ -216,17 +219,27 @@ if platform.system() == 'Windows':
     OFFSET = os.getppid() % 100
 else:
     OFFSET = os.getuid() % 100
-DEFAULT_BOLT_PORT = 7687 + OFFSET
-DEFAULT_HTTP_PORT = 7474 + OFFSET
-DEFAULT_HTTPS_PORT = 7473 + OFFSET
-
 DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
+DEFAULT_NEO4J_IMAGE = join_path('/usr/projects/BEE/neo4j.tar.gz')
+DEFAULT_REDIS_IMAGE = join_path('/usr/projects/BEE/redis.tar.gz')
+
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 DEFAULT_BEE_DROPPOINT = join_path(HOME_DIR, '.beeflow/droppoint')
 USER = getpass.getuser()
+
+# Check for default containers; setting to None value results in querying user for path
+if os.path.isfile(DEFAULT_NEO4J_IMAGE):
+    NEO4J_IMAGE = DEFAULT_NEO4J_IMAGE
+else:
+    NEO4J_IMAGE = None
+if os.path.isfile(DEFAULT_REDIS_IMAGE):
+    REDIS_IMAGE = DEFAULT_REDIS_IMAGE
+else:
+    REDIS_IMAGE = None
+
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
@@ -250,11 +263,11 @@ VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validati
                  default=True, info='delete workflow directory for completed jobs')
 
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
-                 info='neo4j container image',
+                 default=NEO4J_IMAGE, info='neo4j container image',
                  input_fn=filepath_completion_input)
 
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
-                 info='redis container image',
+                 default=REDIS_IMAGE, info='redis container image',
                  input_fn=filepath_completion_input)
 
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
@@ -309,13 +322,14 @@ VALIDATOR.option('charliecloud', 'setup', default='',
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost',
                  info='hostname of database')
-VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
-VALIDATOR.option('graphdb', 'bolt_port', default=DEFAULT_BOLT_PORT, validator=int,
-                 info='port used for the BOLT API')
-VALIDATOR.option('graphdb', 'http_port', default=DEFAULT_HTTP_PORT, validator=int,
-                 info='HTTP port used for the graph database')
-VALIDATOR.option('graphdb', 'https_port', default=DEFAULT_HTTPS_PORT,
-                 info='HTTPS port used for the graph database')
+
+
+# Generate random initial password for neo4j
+random_bytes = os.urandom(32)
+random_pass = base64.b64encode(random_bytes).decode('utf-8')
+
+VALIDATOR.option('graphdb', 'dbpass', default=random_pass, info='password for database')
+
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
                  info='graph database image mount directory', validator=validation.make_dir)
 VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=1,
@@ -388,9 +402,7 @@ class ConfigGenerator:
             for opt_name, option in self.validator.options(sec_name):
                 # Print the section name if it hasn't already been printed.
                 if not printed:
-                    print()
-                    print(f'## {sec_name}')
-                    print()
+                    print(f'\n## {sec_name}\n')
                     print_wrap(section.info)
                     print()
                     printed = True
