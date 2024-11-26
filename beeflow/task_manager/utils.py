@@ -44,7 +44,7 @@ def worker_interface():
     if wls == 'Slurm':
         worker_kwargs['use_commands'] = bc.get('slurm', 'use_commands')
         worker_kwargs['slurm_socket'] = paths.slurm_socket()
-        openapi_version = worker_utils.get_slurmrestd_version()
+        worker_kwargs['openapi_version'] = worker_utils.get_slurmrestd_version
     return WorkerInterface(worker_class, **worker_kwargs)
 
 

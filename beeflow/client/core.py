@@ -9,7 +9,6 @@ services is specified using the appropriate flag(s) then ONLY those services
 will be started.
 """
 import os
-import re
 import signal
 import subprocess
 import socket
@@ -166,8 +165,6 @@ def need_slurmrestd():
     """Check if slurmrestd is needed."""
     return (bc.get('DEFAULT', 'workload_scheduler') == 'Slurm'
             and not bc.get('slurm', 'use_commands'))
-
-
 
 
 def init_components():

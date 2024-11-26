@@ -36,6 +36,7 @@ def parse_key_val(pair):
     i = pair.find('=')
     return (pair[:i], pair[i + 1:])
 
+
 def get_slurmrestd_version():
     """Get the newest slurmrestd version."""
     resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=subprocess.PIPE,
@@ -51,4 +52,3 @@ def get_slurmrestd_version():
     newest_api = sorted(api_versions, key=Version, reverse=True)[0]
     print(f"Inferred slurmrestd version: {newest_api}")
     return newest_api
-
