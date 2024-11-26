@@ -8,10 +8,9 @@ printf "\n\n"
 printf "**Setting up BEE containers**\n"
 printf "\n\n"
 mkdir -p $HOME/img
-# Pull the Neo4j container
-chmod +x ./ci/install_apoc_docker
-ch-image build -t apoc_neo4j -f ./ci/install_apoc_docker ./ci || exit 1
-ch-convert -i ch-image -o tar apoc_neo4j $NEO4J_CONTAINER || exit 1
+# Build the Neo4j container
+ch-image build -t neo4j_image -f ./beeflow/data/dockerfiles/Dockerfile.neo4j ./ci || exit 1
+ch-convert -i ch-image -o tar neo4j_image $NEO4J_CONTAINER || exit 1
 # Pull the Redis container
 ch-image pull redis || exit 1
 ch-convert -i ch-image -o tar redis $REDIS_CONTAINER || exit 1
