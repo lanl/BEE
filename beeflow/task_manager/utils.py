@@ -9,6 +9,7 @@ from beeflow.common import worker
 from beeflow.common import paths
 from beeflow.common.connection import Connection
 from beeflow.common.worker_interface import WorkerInterface
+import beeflow.common.worker.utils as worker_utils
 
 
 def db_path():
@@ -43,7 +44,7 @@ def worker_interface():
     if wls == 'Slurm':
         worker_kwargs['use_commands'] = bc.get('slurm', 'use_commands')
         worker_kwargs['slurm_socket'] = paths.slurm_socket()
-        worker_kwargs['openapi_version'] = bc.get('slurm', 'openapi_version')
+        openapi_version = worker_utils.get_slurmrestd_version()
     return WorkerInterface(worker_class, **worker_kwargs)
 
 

@@ -18,7 +18,6 @@ import shutil
 import datetime
 import time
 import importlib.metadata
-from packaging.version import Version
 
 import daemon
 import typer
@@ -29,6 +28,7 @@ from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.wf_manager.resources import wf_utils
+import beeflow.common.worker.utils as worker_utils
 
 from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
@@ -163,21 +163,6 @@ def need_slurmrestd():
             and not bc.get('slurm', 'use_commands'))
 
 
-def get_slurmrestd_version():
-    """Get the newest slurmrestd version."""
-    resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=subprocess.PIPE,
-                          text=True).stderr
-    resp = resp.split("\n")
-    # Confirm slurmrestd format is the same
-    # If the slurmrestd list outputs has changed potentially something else has broken
-    if "Possible OpenAPI plugins" not in resp[0]:
-        print("Slurmrestd OpenAPI format has changed and things may break")
-    api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"openapi/v\d+\.\d+\.\d+",
-                                                                         line)]
-    # Sort the versions and grab the newest one
-    newest_api = sorted(api_versions, key=Version, reverse=True)[0]
-    print(f"Inferred slurmrestd version: {newest_api}")
-    return newest_api
 
 
 def init_components():
@@ -261,10 +246,7 @@ def init_components():
             """Start BEESlurmRestD. Returns a Popen process object."""
             bee_workdir = bc.get('DEFAULT', 'bee_workdir')
             slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
-            openapi_version = bc.get('slurm', 'openapi_version')
-            if not openapi_version:
-                # Detect the newest version of the slurmrestd API
-                openapi_version = get_slurmrestd_version()
+            openapi_version = worker_utils.get_slurmrestd_version()
             slurm_args = f'-s openapi/{openapi_version}'
             # The following adds the db plugin we opted not to use for now
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
