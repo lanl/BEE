@@ -1,5 +1,6 @@
 """Worker utility functions."""
 
+import re
 import subprocess
 from packaging.version import Version
 
