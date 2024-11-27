@@ -30,7 +30,10 @@ Options:
 Options:
    ``--archive``, ``-a``, Backup logs, workflows, and containers in bee_workdir directory before removal. [optional]
 
-``beeflow core pull-deps``: Pull BEE dependency containers
+``beeflow core pull-deps``: Pull and build BEE dependency containers. A new bee configuration file will be automatically generated with the new dependency container locations.
+
+Options:
+   ``--outdir``, ``-o``,
 
 
 Submission and workflow commands
