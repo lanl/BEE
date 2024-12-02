@@ -709,6 +709,25 @@ def final_tasks_completed(tx, wf_id):
     return bool(tx.run(not_completed_query, wf_id=wf_id).single() is None)
 
 
+def cancelled_final_tasks_completed(tx, wf_id):
+    """Return true if all a cancelled workflow's scheduled tasks have completed, else false.
+
+    All of the workflow's scheduled tasks are completed if each of the final task nodes
+    are not in states 'PENDING', 'RUNNING', or 'COMPLETING'.
+
+    :param wf_id: the workflow's id
+    :type wf_id: str
+    :rtype: bool
+    """
+    active_states_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+                           "WHERE NOT (t)<-[:DEPENDS_ON|:RESTARTED_FROM]-(:Task) "
+                           "AND m.state IN ['PENDING', 'RUNNING', 'COMPLETING'] "
+                           "RETURN t IS NOT NULL LIMIT 1")
+
+    # False if at least one task is in 'PENDING', 'RUNNING', or 'COMPLETING'
+    return bool(tx.run(active_states_query, wf_id=wf_id).single() is None)
+
+
 def is_empty(tx):
     """Return true if the database is empty, else false.
 
