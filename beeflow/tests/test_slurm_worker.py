@@ -13,7 +13,6 @@ from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.wf_data import Task
 
 
-
 # Timeout (seconds) for waiting on tasks
 TIMEOUT = 150
 # Extra slurmrestd arguments. This may be something to take on the command line
