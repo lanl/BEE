@@ -710,8 +710,10 @@ def final_tasks_completed(tx, wf_id):
 
 
 def cancelled_final_tasks_completed(tx, wf_id):
-    """Return true if each of a workflow's final Task nodes is not in states
-    'PENDING', 'RUNNING', or 'COMPLETING'.
+    """Return true if all a cancelled workflow's scheduled tasks have completed, else false.
+
+    All of the workflow's scheduled tasks are completed if each of the final task nodes
+    are not in states 'PENDING', 'RUNNING', or 'COMPLETING'.
 
     :param wf_id: the workflow's id
     :type wf_id: str
