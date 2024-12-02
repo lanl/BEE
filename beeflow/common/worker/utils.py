@@ -48,6 +48,8 @@ def get_slurmrestd_version():
         print("Slurmrestd OpenAPI format has changed and things may break")
     api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"openapi/v\d+\.\d+\.\d+",
                                                                          line)]
+
+    print(api_versions)
     # Sort the versions and grab the newest one
     newest_api = sorted(api_versions, key=Version, reverse=True)[0]
     print(f"Inferred slurmrestd version: {newest_api}")
