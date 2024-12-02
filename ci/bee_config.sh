@@ -62,14 +62,12 @@ Slurmrestd)
     cat >> $BEE_CONFIG <<EOF
 [slurm]
 use_commands = False
-openapi_version = $OPENAPI_VERSION
 EOF
     ;;
 SlurmCommands)
     cat >> $BEE_CONFIG <<EOF
 [slurm]
 use_commands = True
-openapi_version = $OPENAPI_VERSION
 EOF
     ;;
 esac
