@@ -5,7 +5,8 @@ import time
 import subprocess
 import os
 import pytest
-from beeflow.common.config_driver import BeeConfig as bc
+
+import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.worker.worker import WorkerError
 from beeflow.common.worker.slurm_worker import SlurmWorker
@@ -15,7 +16,9 @@ from beeflow.common.wf_data import Task
 # Timeout (seconds) for waiting on tasks
 TIMEOUT = 150
 # Extra slurmrestd arguments. This may be something to take on the command line
-OPENAPI_VERSION = bc.get('slurm', 'openapi_version')
+# Open API version just needs to be some arbitrary version
+# since this tests doesn't actually run with slurmrestd
+
 GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
                  requirements=[], inputs=[], outputs=[], stdout='', stderr='',
                  workflow_id=uuid.uuid4().hex)
@@ -44,12 +47,13 @@ def slurm_worker(request):
     slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
     bee_workdir = os.path.expanduser(f'/tmp/{uuid.uuid4().hex}.tmp')
     os.mkdir(bee_workdir)
-    proc = subprocess.Popen(f'slurmrestd -s openapi/{OPENAPI_VERSION} unix:{slurm_socket}',
+    openapi_version = worker_utils.get_slurmrestd_version()
+    proc = subprocess.Popen(f'slurmrestd -s openapi/{openapi_version} unix:{slurm_socket}',
                             shell=True)
     time.sleep(1)
     worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
                                    slurm_socket=slurm_socket, bee_workdir=bee_workdir,
-                                   openapi_version=OPENAPI_VERSION,
+                                   openapi_version=openapi_version,
                                    use_commands=request.param)
     yield worker_iface
     time.sleep(1)
@@ -63,9 +67,10 @@ def slurmrestd_worker_no_daemon():
     slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
     bee_workdir = os.path.expanduser(f'/tmp/{uuid.uuid4().hex}.tmp')
     os.mkdir(bee_workdir)
+    openapi_version = worker_utils.get_slurmrestd_version()
     yield WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
                           slurm_socket=slurm_socket, bee_workdir=bee_workdir,
-                          openapi_version=OPENAPI_VERSION,
+                          openapi_version=openapi_version,
                           use_commands=False)
     shutil.rmtree(bee_workdir)
 

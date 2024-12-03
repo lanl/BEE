@@ -12,6 +12,7 @@ import requests_unixsocket
 import requests
 
 from beeflow.common import log as bee_logging
+import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
 from beeflow.common.worker.utils import get_state_sacct
@@ -154,8 +155,9 @@ class BaseSlurmWorker(Worker):
 class SlurmrestdWorker(BaseSlurmWorker):
     """Worker class for when slurmrestd is available."""
 
-    def __init__(self, bee_workdir, openapi_version, **kwargs):
+    def __init__(self, bee_workdir, **kwargs):
         """Create a new Slurmrestd Worker object."""
+        openapi_version = worker_utils.get_slurmrestd_version()
         super().__init__(bee_workdir=bee_workdir, **kwargs)
         # Pull slurm socket configs from kwargs (Uses getpass.getuser() instead
         # of os.getlogin() because of an issue with using getlogin() without a
