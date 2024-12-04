@@ -5,6 +5,8 @@ import getpass
 import os
 import platform
 import random
+import secrets
+import string
 import shutil
 import textwrap
 import typer
@@ -318,7 +320,10 @@ VALIDATOR.section('graphdb', info='Main graph database configuration section.')
 VALIDATOR.option('graphdb', 'hostname', default='localhost',
                  info='hostname of database')
 
-VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
+# Generate alphanumeric random initial password for neo4j
+alphnum = string.ascii_letters + string.digits
+initial_pass = ''.join(secrets.choice(alphnum) for i in range(32))
+VALIDATOR.option('graphdb', 'dbpass', default=initial_pass, info='password for database')
 
 VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
                  info='graph database image mount directory', validator=validation.make_dir)
