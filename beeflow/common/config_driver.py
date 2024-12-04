@@ -222,6 +222,7 @@ DEFAULT_NEO4J_IMAGE = join_path('/usr/projects/BEE/neo4j.tar.gz')
 DEFAULT_REDIS_IMAGE = join_path('/usr/projects/BEE/redis.tar.gz')
 
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
+DEFAULT_BEE_ARCHIVE_DIR = join_path(DEFAULT_BEE_WORKDIR, 'archives')
 DEFAULT_BEE_DROPPOINT = join_path(HOME_DIR, '.beeflow/droppoint')
 USER = getpass.getuser()
 
@@ -241,6 +242,9 @@ VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
 
 VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
                  default=DEFAULT_BEE_WORKDIR, validator=validation.make_dir)
+
+VALIDATOR.option('DEFAULT', 'bee_archive_dir', info='directory to store workflow archives',
+                 default=DEFAULT_BEE_ARCHIVE_DIR, validator=validation.make_dir)
 
 VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop point',
                  default=DEFAULT_BEE_DROPPOINT, validator=validation.make_dir)
