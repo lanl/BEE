@@ -37,10 +37,9 @@ def archive_workflow(db, wf_id, final_state=None):
     db.workflows.update_workflow_state(wf_id, wf_state)
     wf_utils.update_wf_status(wf_id, wf_state)
 
-    bee_workdir = wf_utils.get_bee_workdir()
-    archive_dir = os.path.join(bee_workdir, 'archives')
+    archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
     os.makedirs(archive_dir, exist_ok=True)
-    archive_path = f'../archives/{wf_id}.tgz'
+    archive_path = os.path.join(archive_dir, f'{wf_id}.tgz')
     # We use tar directly since tarfile is apparently very slow
     workflows_dir = wf_utils.get_workflows_dir()
     subprocess.call(['tar', '-czf', archive_path, wf_id], cwd=workflows_dir)

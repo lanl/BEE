@@ -15,6 +15,7 @@ cat >> $BEE_CONFIG <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
 bee_workdir = $BEE_WORKDIR
+bee_archive_dir = $BEE_WORKDIR/archives
 workload_scheduler = $WORKLOAD_SCHEDULER
 neo4j_image = $NEO4J_CONTAINER
 redis_image = $REDIS_CONTAINER
