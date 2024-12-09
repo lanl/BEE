@@ -559,6 +559,7 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
         Shutdown beeflow and all BEE components.
         Delete the bee_workdir directory which results in:
             Removing the archive of all workflows.
+                (unless archives is configured elsewhere).
             Removing the archive of workflow containers
                 (unless container_archive is configured elsewhere).
             Reset all databases associated with the beeflow app.
