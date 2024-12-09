@@ -28,6 +28,7 @@ from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
 from beeflow.client import core
+from beeflow.client import remote_client
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
@@ -227,6 +228,7 @@ def get_wf_status(wf_id):
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
 app.add_typer(core.app, name='core')
+app.add_typer(remote_client.app, name='remote')
 app.add_typer(config_driver.app, name='config')
 
 
