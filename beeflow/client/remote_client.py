@@ -48,6 +48,8 @@ def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to dro
 @app.command()
 def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
            wf_name: str = typer.Argument(..., help='the workflow name'),
-           tarball_name: str):
+           tarball_name: str = typer.Argument(..., help='the tarball name'),
+           main_cwl_file: str = typer.Argument(..., help='filename of main CWL'),
+           job_file: str = typer.Argument(..., help='filename of yaml file')):
     """Submit the workflow to Beeflow client."""
     subprocess.run(["curl", f"{ssh_target}:{port}/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}"])
