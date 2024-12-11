@@ -34,6 +34,7 @@ def start(log):
     # from Redis, so setting LANG=C. This could have consequences for UTF-8
     # strings.
     env = dict(os.environ)
+    print(f"env is {env}")
     env['LANG'] = 'C'
     env['LC_ALL'] = 'C'
     print(f"env is {env}")
