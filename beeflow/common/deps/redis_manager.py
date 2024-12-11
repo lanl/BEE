@@ -36,4 +36,5 @@ def start(log):
     env = dict(os.environ)
     env['LANG'] = 'C'
     env['LC_ALL'] = 'C'
+    print(f"env is {env}")
     return subprocess.Popen(cmd, env=env, stdout=log, stderr=log)
