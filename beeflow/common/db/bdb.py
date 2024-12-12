@@ -79,7 +79,8 @@ def table_exists(db_file, table_name):
     """Return true if a table exists and false if not."""
     stmt = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';"
     result = getall(db_file, stmt)
-    if result is None: result == ""
+    if result is None:
+        result == ""
     return len(result) != 0
 
 
