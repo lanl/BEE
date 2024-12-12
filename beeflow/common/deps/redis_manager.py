@@ -28,7 +28,6 @@ def start(log):
         'redis-server',
         '/mnt/redis.conf',
     ]
-    print(f"cmd is {cmd}")
     # Ran into a strange "Failed to configure LOCALE for invalid locale name."
     # from Redis, so setting LANG=C. This could have consequences for UTF-8
     # strings.
