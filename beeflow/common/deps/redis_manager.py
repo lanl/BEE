@@ -11,7 +11,6 @@ def start(log):
     os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
     conf_name = 'redis.conf'
     container_path = paths.redis_container()
-    print(f"container_path is {container_path}")
     # Dump the config
     conf_path = os.path.join(paths.redis_root(), conf_name)
     if not os.path.exists(conf_path):
@@ -34,8 +33,6 @@ def start(log):
     # from Redis, so setting LANG=C. This could have consequences for UTF-8
     # strings.
     env = dict(os.environ)
-    print(f"env is {env}")
     env['LANG'] = 'C'
     env['LC_ALL'] = 'C'
-    print(f"env is {env}")
     return subprocess.Popen(cmd, env=env, stdout=log, stderr=log)
