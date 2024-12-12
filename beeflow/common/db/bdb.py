@@ -80,7 +80,7 @@ def table_exists(db_file, table_name):
     stmt = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';"
     result = getall(db_file, stmt)
     if result is None:
-        result == ""
+        result = ""
     return len(result) != 0
 
 
