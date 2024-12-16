@@ -34,7 +34,7 @@ def main():
     mpi = MPIRequirement(nodes=4, ntasks=8)
     container_path = '/usr/projects/beedev/mpi/comd-x86_64.tgz'
     docker = DockerRequirement(copy_container=container_path)
-    hints = Hints(mpi_requirement=mpi, docker_requirement=docker)
+    hints = Hints([mpi, docker])
     comd_run = Run(base_command, run_inputs, run_outputs, stdout)
     comd_step = Step('comd', comd_run, hints)
     comd_steps = Steps([comd_step])
@@ -42,8 +42,10 @@ def main():
 
     comd_path = pathlib.Path("comd/")
     comd_path.mkdir(exist_ok=True)
-    comd.dump_wf(comd_path)
-    comd.dump_inputs(comd_path)
+    wf = comd.dump_wf(comd_path)
+    print(wf)
+    inputs = comd.dump_inputs(comd_path)
+    print(inputs)
 
 
 if __name__ == "__main__":

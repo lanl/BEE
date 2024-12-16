@@ -378,22 +378,13 @@ class ScriptRequirement:
 class Hints:
     """Holds all the hints for a CWL workflow."""
 
-    mpi_requirement: MPIRequirement = None
-    docker_requirement: DockerRequirement = None
-    script_requirement: ScriptRequirement = None
-    checkpoint_requirement: CheckpointRequirement = None
+    hints: list
 
     def dump(self):
         """Dump hints to a dictionary."""
         hints_dump = {'hints': {}}
-        if self.mpi_requirement:
-            hints_dump['hints'].update(self.mpi_requirement.dump())
-        if self.docker_requirement:
-            hints_dump['hints'].update(self.docker_requirement.dump())
-        if self.script_requirement:
-            hints_dump['hints'].update(self.script_requirement.dump())
-        if self.checkpoint_requirement:
-            hints_dump['hints'].update(self.checkpoint_requirement.dump())
+        for hint in self.hints:
+            hints_dump['hints'].update(hint.dump())
         return hints_dump
 
     def __repr__(self):
