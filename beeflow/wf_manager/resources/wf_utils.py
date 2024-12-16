@@ -266,7 +266,7 @@ def connect_neo4j_driver(bolt_port):
 
 
 def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
-                   tasks=None):
+                   tasks=None, archive_workdir=False):
     """Initialize Workflow in Separate Process."""
     wfi = get_workflow_interface(wf_id)
     wfi.initialize_workflow(workflow)
@@ -279,6 +279,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
         wfi.add_task(task, task_state)
         metadata = wfi.get_task_metadata(task)
         metadata['workdir'] = wf_workdir
+        metadata['archive_workdir'] = archive_workdir
         wfi.set_task_metadata(task, metadata)
         db.workflows.add_task(task.id, wf_id, task.name, task_state)
 

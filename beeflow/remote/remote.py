@@ -82,7 +82,8 @@ def submit_new_wf_long(wf_name: str, tarball_name: str, main_cwl_file: str, job_
                           main_cwl_file,
                           job_file,
                           workdir_path,
-                          no_start=False)
+                          no_start=False,
+                          archive_workdir=False)
         output["result"] = "Submitted new workflow" + str(wf_name)
         return output
     except bee_client.ClientError as error:

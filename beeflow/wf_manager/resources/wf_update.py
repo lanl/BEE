@@ -33,6 +33,16 @@ def archive_workflow(db, wf_id, final_state=None):
     os.makedirs(dags_dir, exist_ok=True)
     wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True, copy_dag_in_archive=False)
 
+    # Archive workdir
+    wfi = wf_utils.get_workflow_interface(wf_id)
+    _, tasks = wfi.get_workflow()
+    # metadata related to the workdir is redundantly stored on each task
+    archive_workdir = wfi.get_task_metadata(tasks[0])['archive_workdir']
+    if archive_workdir:
+        workdir = wfi.get_task_metadata(tasks[0])['workdir']
+        workdir_dir = workflow_dir + "/workdir"
+        shutil.copytree(workdir, workdir_dir, dirs_exist_ok=True)
+
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
     db.workflows.update_workflow_state(wf_id, wf_state)
     wf_utils.update_wf_status(wf_id, wf_state)
