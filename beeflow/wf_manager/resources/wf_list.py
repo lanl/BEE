@@ -20,6 +20,7 @@ from beeflow.common import wf_data
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 
@@ -150,9 +151,9 @@ class WFList(Resource):
         """Copy workflow archive."""
         reqparser = reqparse.RequestParser()
         data = reqparser.parse_args()
-        bee_workdir = wf_utils.get_bee_workdir()
         wf_id = data['wf_id']
-        archive_path = os.path.join(bee_workdir, 'archives', wf_id + '.tgz')
+        archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
+        archive_path = os.path.join(archive_dir, wf_id + '.tgz')
         with open(archive_path, 'rb') as archive:
             archive_file = jsonpickle.encode(archive.read())
         archive_filename = os.path.basename(archive_path)
