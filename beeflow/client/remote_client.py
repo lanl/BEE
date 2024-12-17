@@ -14,14 +14,18 @@ import typer
 from beeflow.common.config_driver import BeeConfig as bc
 
 
-app = typer.Typer(no_args_is_help=True)
+def remote_port_val():
+    """Return the value of the remote port."""
+    return bc.get('DEFAULT', 'remote_api_port')
 
-port = bc.get('DEFAULT', 'remote_api_port')
+
+app = typer.Typer(no_args_is_help=True)
 
 
 @app.command()
 def connection(ssh_target: str = typer.Argument(..., help='the target to ssh to')):
     """Check the connection to Beeflow client via REST API."""
+    port = remote_port_val()
     result = subprocess.run(["curl", f"{ssh_target}:{port}/"], stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, text=True, check=True)
     if result.returncode == 0:
@@ -33,6 +37,7 @@ def connection(ssh_target: str = typer.Argument(..., help='the target to ssh to'
 @app.command()
 def droppoint(ssh_target: str = typer.Argument(..., help='the target to ssh to')):
     """Request drop point location on remote machine via Beeflow client REST API."""
+    port = remote_port_val()
     with open('droppoint.env', 'w', encoding='utf-8') as output_file:
         subprocess.run(["curl", f"{ssh_target}:{port}/droppoint"], stdout=output_file, check=True)
 
@@ -64,4 +69,5 @@ def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
            main_cwl_file: str = typer.Argument(..., help='filename of main CWL'),
            job_file: str = typer.Argument(..., help='filename of yaml file')):
     """Submit the workflow to Beeflow client."""
+    port = remote_port_val()
     subprocess.run(["curl", f"{ssh_target}:{port}/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}"], check=True)
