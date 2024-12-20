@@ -516,25 +516,6 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 
 @app.command()
-def metadata(wf_id: str = typer.Argument(..., callback=match_short_id)):
-    """Get metadata about a given workflow."""
-    try:
-        conn = _wfm_conn()
-        resp = conn.get(_resource(wf_id) + '/metadata', timeout=60)
-    except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
-
-    if resp.status_code != requests.codes.okay:  # noqa (pylama doesn't know about the okay member)
-        error_exit('Could not successfully query workflow manager')
-
-    # Print and or return the metadata
-    data = resp.json()
-    for key, value in data.items():
-        typer.echo(f'{key} = {value}')
-    return data
-
-
-@app.command()
 def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Pause a workflow (Running tasks will finish)."""
     long_wf_id = wf_id
