@@ -105,7 +105,7 @@ class BeeConfig:
                 break
             except FileNotFoundError:
                 print("Configuration file is missing! Generating new config file.")
-                new(USERCONFIG_FILE)
+                new(USERCONFIG_FILE, interactive=False)
         # remove default keys from the other sections
         cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR)
 
@@ -256,7 +256,7 @@ VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
                  default=7777, validator=int)
 
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
-                 info='backend workload scheduler to interact with ')
+                 default='Slurm', info='backend workload scheduler to interact with ')
 
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs')
@@ -295,11 +295,11 @@ VALIDATOR.option('charliecloud', 'image_mntdir', default=join_path('/tmp', USER)
 # General job requirements
 VALIDATOR.section('job', info='General job requirements.')
 VALIDATOR.option('job', 'default_account', validator=lambda val: val.strip(),
-                 info='default account to launch jobs with (leave blank if none)')
+                 default='', info='default account to launch jobs with (leave blank if none)')
 VALIDATOR.option('job', 'default_time_limit', validator=validation.time_limit,
-                 info='default account time limit (leave blank if none)')
+                 default='', info='default account time limit (leave blank if none)')
 VALIDATOR.option('job', 'default_partition', validator=lambda val: val.strip(),
-                 info='default partition to run jobs on (leave blank if none)')
+                 default='', info='default partition to run jobs on (leave blank if none)')
 
 
 def validate_chrun_opts(opts):
@@ -373,7 +373,7 @@ class ConfigGenerator:
         self.validator = validator
         self.sections = {}
 
-    def choose_values(self):
+    def choose_values(self, interactive=False, flux=False):
         """Choose configuration values based on user input."""
         dirname = os.path.dirname(self.fname)
         if dirname:
@@ -401,10 +401,12 @@ class ConfigGenerator:
                     print()
                     printed = True
 
+                this_default = option.default
+                if flux is True and opt_name == 'workload_scheduler':
+                    this_default = "Flux"
                 # Check for a default value
-                if option.default is not None:
-                    default = option.default
-                    value = option.validate(default)
+                if not interactive and this_default is not None:
+                    value = option.validate(this_default)
                     print(f'Setting option "{opt_name}" to default value "{value}".')
                     print()
                     self.sections[sec_name][opt_name] = value
@@ -427,7 +429,8 @@ class ConfigGenerator:
             print_wrap(f'{opt_name} - {option.info}')
             if option.choices is not None:
                 print(f'(allowed values: {",".join(option.choices)})')
-            value = input_fn(f'{opt_name}: ')
+            value = input_fn(f'Enter selection for {opt_name} or\n'
+                             + f'leave blank for default ({option.default}): ') or option.default
             # Validate the input
             try:
                 option.validate(value)
@@ -436,7 +439,7 @@ class ConfigGenerator:
                 value = None
         return value
 
-    def save(self):
+    def save(self, interactive=False):
         """Save the config to a file."""
         print()
         print('The following configuration options were chosen:')
@@ -446,10 +449,11 @@ class ConfigGenerator:
             for opt_name in section:
                 print(f'{opt_name} = {section[opt_name]}')
         print()
-        ans = input('Would you like to save this config? [y/n] ')
-        if ans.lower() != 'y':
-            print('Quitting without saving')
-            return
+        if interactive:
+            ans = input('Would you like to save this config? [y/n] ')
+            if ans.lower() != 'y':
+                print('Quitting without saving')
+                return
         config_utils.write_config(self.fname, self.sections)
         print(70 * '#')
         print('Before running BEE, check defaults in the configuration file:',
@@ -568,12 +572,21 @@ def info():
 
 @app.command()
 def new(path: str = typer.Argument(default=USERCONFIG_FILE,
-                                   help='Path to new config file')):
+                                   help='Path to new config file'),
+        interactive: bool = typer.Option(False, '--interactive', '-i',
+                                         help='Whether or not to be prompted'
+                                         + ' during config generation'),
+        flux: bool = typer.Option(False, '--flux', '-f',
+                                  help='Changes default scheduler to Flux')):
     """Create a new config file."""
     if os.path.exists(path):
-        if check_yes(f'Path "{path}" already exists.\nWould you like to save a copy of it?'):
+        if not interactive or check_yes(f'Path "{path}" already exists.\n'
+                                        + 'Would you like to save a copy of it?'):
             config_utils.backup(path)
-    ConfigGenerator(path, VALIDATOR).choose_values().save()
+    ConfigGenerator(path, VALIDATOR).choose_values(
+        flux=flux,
+        interactive=interactive
+    ).save(interactive=interactive)
 
 
 @app.command()

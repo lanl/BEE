@@ -1,7 +1,9 @@
 """Unit tests for the config driver."""
 
+import os
 import pytest
-from beeflow.common.config_driver import AlterConfig
+from beeflow.common.config_driver import AlterConfig, ConfigGenerator, new
+from beeflow.common.config_validator import ConfigValidator
 
 
 # AlterConfig tests
@@ -103,3 +105,60 @@ def test_change_value_multiple_times(mocker):
     alter_config.change_value("DEFAULT", "bee_workdir", "/path/two")
     assert alter_config.config["DEFAULT"]["bee_workdir"] == "/path/two"
     assert alter_config.changes == {"DEFAULT": {"bee_workdir": "/path/two"}}
+
+
+@pytest.mark.parametrize("interactive, flux, expected",
+                         [
+                             (True, True, 'input'),
+                             (True, False, 'input'),
+                             (False, True, 'Flux'),
+                             (False, False, 'default'),
+                         ],
+                         )
+def test_choose_values(interactive, flux, expected):
+    """Test running choose_values with different flags."""
+    validator = ConfigValidator('')
+    validator.section('sec', info='')
+    validator.option('sec', 'workload_scheduler', info='', default='default',
+                     validator=lambda _: _, input_fn=lambda _: 'input')
+    config_generator = ConfigGenerator('', validator)
+    config = config_generator.choose_values(interactive=interactive,
+                                            flux=flux).sections
+    assert config['sec']['workload_scheduler'] == expected
+
+
+@pytest.mark.parametrize("interactive, input_val, expected",
+                         [
+                             (True, 'y', 'bee.conf'),
+                             (True, 'n', 'Quitting'),
+                             (False, '', 'bee.conf'),
+                         ],
+                         )
+def test_config_generator_save(mocker, tmpdir, capsys, interactive, input_val, expected):
+    """Test the ConfigGenerator save function with different flags/input options."""
+    mocker.patch('builtins.input', return_value=input_val)
+    alter_config = ConfigGenerator('bee.conf', lambda _: _)
+    with tmpdir.as_cwd():
+        alter_config.save(interactive=interactive)
+    captured = capsys.readouterr()
+    assert expected in captured.out
+
+
+@pytest.mark.parametrize("interactive, input_val, expected",
+                         [
+                             (True, 'y', True),
+                             (True, 'n', False),
+                             (False, '', True),
+                         ],
+                         )
+def test_config_new(mocker, tmpdir, interactive, input_val, expected):
+    """Test creation of new config with different settings."""
+    filename = 'bee.conf'
+    mocker.patch('builtins.input', return_value=input_val)
+    mocker.patch('beeflow.common.config_driver.ConfigGenerator.choose_values')
+    mocker.patch('beeflow.common.config_driver.ConfigGenerator.choose_values.save')
+    with tmpdir.as_cwd():
+        with open(filename, 'w', encoding='utf-8'):
+            pass
+        new("bee.conf", interactive=interactive)
+        assert os.path.exists('bee.conf.1') == expected
