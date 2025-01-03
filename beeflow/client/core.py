@@ -407,7 +407,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           '-B', help='allow to run on a backend node')):
     """Start all BEE components."""
     start_hn = socket.gethostname()  # hostname when beeflow starts
-    if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":  # noqa
+    if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":
         bee_client.setup_hostname(start_hn)  # add to client db
     else:
         bee_client.check_db_flags(start_hn)

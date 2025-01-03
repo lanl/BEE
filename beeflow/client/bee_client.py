@@ -143,11 +143,11 @@ def check_db_flags(start_hn):
 
 def check_hostname(curr_hn):
     """Check current front end name matches the one beeflow was started on."""
-    if get_hostname() and curr_hn != get_hostname() and check_backend_status() == "":  # noqa: don't use set
+    if get_hostname() and curr_hn != get_hostname() and check_backend_status() == "":
         warn(f'beeflow was started on "{get_hostname()}" and you are trying to '
              f'run a command on "{curr_hn}".')
         sys.exit(1)
-    elif get_hostname() and curr_hn != get_hostname() and check_backend_status() == "true":  # noqa: don't use set
+    elif get_hostname() and curr_hn != get_hostname() and check_backend_status() == "true":
         check_backend_jobs(curr_hn, command=True)
     if get_hostname() == "" and check_backend_status() == "":
         warn('beeflow has not been started!')
@@ -787,5 +787,4 @@ if __name__ == "__main__":
 
 # Ignore W0511: This allows us to have TODOs in the code
 # Ignore R1732: Significant code restructuring required to fix
-# Ignore R1714: Not using a set instead
 # pylama:ignore=W0511,R1732
