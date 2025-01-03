@@ -108,12 +108,11 @@ def check_backend_jobs(start_hn, command=False):
     # iterate through available nodes
     data = resp.stdout.splitlines()
     cur_alloc = False
-    for node in data:
-        if node == get_hostname():
-            cur_alloc = True
+    if get_hostname() in data:
+        cur_alloc = True
 
-    if cur_alloc is True:
-        if command is True:
+    if cur_alloc:
+        if command:
             warn(f'beeflow was started on "{get_hostname()}" and you are trying to '
                  f'run a command on "{start_hn}".')
             sys.exit(1)
@@ -122,7 +121,7 @@ def check_backend_jobs(start_hn, command=False):
                  'and it is still running. ')
             sys.exit(1)
     else:  # beeflow was started on compute node but user no longer owns node
-        if command is True:
+        if command:
             warn('beeflow has not been started!')
             sys.exit(1)
         else:
