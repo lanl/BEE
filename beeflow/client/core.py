@@ -239,6 +239,7 @@ def init_components():
     def start_redis():
         """Start redis."""
         log = open_log('redis')
+        print(f" starting redis \n {type(log)} \n {dir(log)}")
         return redis_manager.start(log)
 
     # Workflow manager and task manager need to be opened with PIPE for their stdout/stderr
@@ -249,6 +250,7 @@ def init_components():
             bee_workdir = bc.get('DEFAULT', 'bee_workdir')
             slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
             openapi_version = worker_utils.get_slurmrestd_version()
+            print(f"Inferred slurmrestd version: {newest_api}")
             slurm_args = f'-s openapi/{openapi_version}'
             # The following adds the db plugin we opted not to use for now
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'

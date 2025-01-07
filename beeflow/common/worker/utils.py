@@ -62,5 +62,4 @@ def get_slurmrestd_version():
                                                                          line)]
     # Sort the versions and grab the newest one
     newest_api = sorted(api_versions, key=Version, reverse=True)[0]
-    print(f"Inferred slurmrestd version: {newest_api}")
     return newest_api
