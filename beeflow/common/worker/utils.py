@@ -2,6 +2,7 @@
 
 import re
 import subprocess
+import tempfile
 from packaging.version import Version
 
 from beeflow.common.worker.worker import WorkerError
@@ -39,8 +40,19 @@ def parse_key_val(pair):
 
 def get_slurmrestd_version():
     """Get the newest slurmrestd version."""
-    resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=subprocess.PIPE,
-                          text=True).stderr
+
+    # Replaced the following with using a temp file for overnight tests in conda enviroment
+    # Might want to change the environment for the overnight tests and revert this
+    #
+    # resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=subprocess.PIPE,
+    #                      text=True).stderr
+    #
+
+    with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8') as tmp:
+        resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=tmp, text=True)
+        tmp_file = open(tmp.name)
+        resp = tmp_file.read()
+
     resp = resp.split("\n")
     # Confirm slurmrestd format is the same
     # If the slurmrestd list outputs has changed potentially something else has broken
