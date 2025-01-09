@@ -20,4 +20,4 @@ jobs:
       - name: Lint
         run: |
           pip install pylint==3.2.7 2>&1 >/dev/null
-          pylint beeflow/
+          pylint --rcfile=setup.cfg beeflow/
