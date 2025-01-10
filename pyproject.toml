@@ -81,6 +81,7 @@ python-heatclient = { version = "^3.1.0", optional = true }
 graphviz = "^0.20.3"
 networkx = "3.1"
 requests-unixsocket2 = "^0.4.2"
+ruff = "^0.9.0"
 
 [tool.poetry.extras]
 cloud_extras = ["google-api-python-client", "python-openstackclient", "python-heatclient"]
@@ -91,8 +92,6 @@ pycodestyle = { version = ">=2.5.0" }
 # Newer version of pydocstyle break pylama
 pydocstyle = "6.1.1"
 pyflakes = "3.0.1"
-pylama = "8.4.1"
-pylint = "2.15.9"
 pytest = "7.2.0"
 pytest-mock = "3.3.1"
 pytest-cov = "5.0.0"
