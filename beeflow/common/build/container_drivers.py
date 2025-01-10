@@ -3,6 +3,9 @@
 All container-based build systems belong here.
 """
 
+# Disable W0231: linter doesn't know about abstract classes, it's ok to now call the parent __init__
+# pylint:disable=W0231
+
 import os
 import shutil
 import subprocess
@@ -423,5 +426,3 @@ class SingularityBuildDriver(ContainerBuildDriver):
         param_output_directory may be used to override DockerRequirement
         specs.
         """
-# Ignore W0231: linter doesn't know about abstract classes, it's ok to now call the parent __init__
-# pylama:ignore=W0231

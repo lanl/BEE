@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """REST Interface for the BEE Scheduler."""
 
+# Disable W0511: This allows us to have TODOs in the code
+# pylint:disable=W0511
+
 import argparse
 import os
 
@@ -114,6 +117,3 @@ def create_app():
     # wf_db.set_sched_port(sched_listen_port)
     os.makedirs(conf.workdir, exist_ok=True) # noqa
     return flask_app
-
-# Ignore W0511: This allows us to have TODOs in the code
-# pylama:ignore=W0511

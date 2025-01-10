@@ -1,4 +1,9 @@
 """BEE Cloud Installer Script."""
+
+# Disable R1732: Significant code restructuring required to fix
+# Disable W0511: This allows us to have TODOs in the code
+# pylint:disable=W0511,R1732
+
 import argparse
 import subprocess
 import sys
@@ -205,6 +210,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# Ignore R1732: Significant code restructuring required to fix
-# Ignore W0511: This allows us to have TODOs in the code
-# pylama:ignore=W0511,R1732

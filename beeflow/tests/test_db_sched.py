@@ -1,4 +1,9 @@
 """Tests of the scheduler database."""
+
+# Disable W0621: PyLama complains about redefining 'temp_db' from the outer
+#               scope. This is how pytest fixtures work.
+# pylint:disable=W0621
+
 import tempfile
 import os
 
@@ -38,6 +43,3 @@ def test_clear(temp_db):
 
     db.resources.clear()
     assert len(list(db.resources)) == 0
-# Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
-#               scope. This is how pytest fixtures work.
-# pylama:ignore=W0621

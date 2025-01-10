@@ -1,4 +1,9 @@
 """BEE integration tests."""
+
+# Disable W0231: This is a user-defined exception and I don't think we need to call
+#               __init__ on the base class.
+# pylint:disable=W0231
+
 import glob
 from pathlib import Path
 import os
@@ -308,6 +313,3 @@ def main(tests = typer.Option(None, '--tests', '-t',  # noqa (conflict on '=' si
     # General clean up
     os.remove(generated_workflows.DOCKER_FILE_PATH)
     sys.exit(ret)
-# Ignore W0231: This is a user-defined exception and I don't think we need to call
-#               __init__ on the base class.
-# pylama:ignore=W0231

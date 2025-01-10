@@ -1,4 +1,13 @@
 """Tests of the Slurm worker."""
+
+# Disable R1732: This is not what we need to do with the Popen of slurmrestd above;
+#                 using a with statement doesn't kill the process immediately but just
+#                 waits for it to complete and slurmrestd never will unless we kill it.
+# Disable E402: "module level import not at top of file" - this is required for
+#                bee config
+# Disable W0621: Redefinition of names is required for pytest
+# pylint:disable=R1732,E402,W0621
+
 import uuid
 import shutil
 import time
@@ -119,10 +128,3 @@ def test_no_slurmrestd(slurmrestd_worker_no_daemon):
     assert state == 'NOT_RESPONDING'
     assert worker.query_task(job_id) == 'NOT_RESPONDING'
     assert worker.cancel_task(job_id) == 'NOT_RESPONDING'
-# Ignoring R1732: This is not what we need to do with the Popen of slurmrestd above;
-#                 using a with statement doesn't kill the process immediately but just
-#                 waits for it to complete and slurmrestd never will unless we kill it.
-# Ignoring E402: "module level import not at top of file" - this is required for
-#                bee config
-# Ignoring W0621: Redefinition of names is required for pytest
-# pylama:ignore=R1732,E402,W0621

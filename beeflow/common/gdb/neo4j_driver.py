@@ -5,6 +5,9 @@ The current defaults are defined below, but should later be
 either standardized or read from a config file.
 """
 
+# Disable E1129: External module is missing proper resource context manager methods.
+# pylint:disable=E1129
+
 from neo4j import GraphDatabase as Neo4jDatabase
 from neo4j.exceptions import ServiceUnavailable
 
@@ -625,6 +628,3 @@ def _reconstruct_metadata(metadata_record):
     :rtype: dict
     """
     return {key: val for key, val in metadata_record.items() if key != "state"}
-
-# Ignore E1129: External module is missing proper resource context manager methods.
-# pylama:ignore=E1129

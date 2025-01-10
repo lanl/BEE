@@ -4,6 +4,12 @@
 This script provides a client interface to the user to manage workflows.
 Capablities include submitting, starting, listing, pausing and cancelling workflows.
 """
+
+# Disable W0511: This allows us to have TODOs in the code
+# Disable R1732: Significant code restructuring required to fix
+# Disable R1714: Not using a set instead
+# pylint:disable=W0511,R1732
+
 import os
 import sys
 import logging
@@ -701,8 +707,3 @@ def main():
 
 if __name__ == "__main__":
     app()
-
-# Ignore W0511: This allows us to have TODOs in the code
-# Ignore R1732: Significant code restructuring required to fix
-# Ignore R1714: Not using a set instead
-# pylama:ignore=W0511,R1732

@@ -1,5 +1,9 @@
 """Flux worker interface."""
 
+# Disable W0511: TODO's are needed here to indicate parts of the code that may
+#                 need more work or thought
+# pylint:disable=W0511
+
 import io
 import os
 from beeflow.common import log as bee_logging
@@ -149,6 +153,3 @@ class FluxWorker(Worker):
 
         # Note: using 'status' here instead of 'state'
         return BEE_STATES[info['status']]
-# Ignoring W0511: TODO's are needed here to indicate parts of the code that may
-#                 need more work or thought
-# pylama:ignore=W0511

@@ -1,4 +1,9 @@
 """Tests of the client database."""
+
+# Disable W0621: PyLama complains about redefining 'temp_db' from the outer
+#               scope. This is how pytest fixtures work.
+# pylint:disable=W0621
+
 import tempfile
 import os
 
@@ -32,6 +37,3 @@ def test_info(temp_db):
     host_name = db.info.get_hostname()
 
     assert host_name == 'front_end_name'
-# Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
-#               scope. This is how pytest fixtures work.
-# pylama:ignore=W0621

@@ -1,6 +1,10 @@
 #! /usr/bin/env python3
 """Unit test module for the BEE workflow interface module."""
 
+# Disable W0212: Access required for unit tests
+# Disable E402: "module level import not at top of file" - this is required for bee config
+# pylint:disable=W0212,E402
+
 import unittest
 
 from beeflow.common.wf_data import (Workflow, Task, Requirement, Hint, InputParameter,
@@ -687,6 +691,3 @@ class TestWorkflowInterface(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-# Ignore W0212: Access required for unit tests
-# Ignore E402: "module level import not at top of file" - this is required for bee config
-# pylama:ignore=W0212,E402

@@ -1,4 +1,8 @@
 """Decision Tree."""
+
+# Disable preserving code for now
+# pylint:disable=C0103,R1732,W0612,W0621
+
 # import json
 import pickle
 import click
@@ -32,5 +36,3 @@ def reg(x1):
 
 if __name__ == '__main__':
     reg(x1=1)
-# Ignores preserving code for now
-# pylama:ignore=C0103,R1732,W0612,W0621

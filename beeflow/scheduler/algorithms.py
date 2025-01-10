@@ -3,6 +3,9 @@
 Code implementing scheduling algorithms, such as FCFS, Backfill, etc.
 """
 
+# Disable W0511: This allows us to have TODOs in the code
+# pylint:disable=W0511
+
 import abc
 import os
 import time
@@ -262,6 +265,3 @@ def choose(algorithm=None, default_algorithm=None, **kwargs):
     if algorithm is not None:
         cls = algorithm_objects[algorithm]
     return AlgorithmLogWrapper(cls, **kwargs)
-
-# Ignore W0511: This allows us to have TODOs in the code
-# pylama:ignore=W0511

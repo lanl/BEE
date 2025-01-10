@@ -1,5 +1,10 @@
 """BEE configuration driver module."""
 
+# Disable C901: "'ConfigGenerator.choose_values' is too complex" - I disagree, if
+#              it's just based on LOC, then there are a number `print()` functions
+#              that are increasing the line count
+# pylint:disable=C901
+
 from configparser import ConfigParser
 import getpass
 import os
@@ -586,7 +591,3 @@ def show(path: str = typer.Argument(default=USERCONFIG_FILE,
     print(f'# {path}')
     with open(path, encoding='utf-8') as fp:
         print(fp.read(), end='')
-# Ignore C901: "'ConfigGenerator.choose_values' is too complex" - I disagree, if
-#              it's just based on LOC, then there are a number `print()` functions
-#              that are increasing the line count
-# pylama:ignore=C901
