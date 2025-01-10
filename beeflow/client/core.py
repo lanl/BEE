@@ -410,6 +410,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":
         bee_client.setup_hostname(start_hn)  # add to client db
     else:
+        time.sleep(5)  # giving Slurm time to relinquish compute node, if necessary
         bee_client.check_db_flags(start_hn)
 
     if backend:  # allow beeflow to run on backend node
