@@ -1,4 +1,4 @@
-name: PyLama Lint
+name: Ruff Lint
 
 on:
   # For manual exec
@@ -11,13 +11,13 @@ on:
     branches: [main, develop]
 
 jobs:
-  pylama:
+  ruff:
     if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) }}
-    name: PyLama Lint
+    name: Ruff Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Lint
         run: |
-          pip install pylama==8.4.1 pyflakes==3.0.1 pylint==2.15.9 pydocstyle==6.1.1 2>&1 >/dev/null
-          pylama beeflow/
+          pip install ruff==0.9.0 2>&1 >/dev/null
+          ruff check beeflow/
