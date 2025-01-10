@@ -1,4 +1,5 @@
 [lint]
+line-length = 99
 ignore = ["PLR0904", "PLR0912", "PLR0913", "PLR0914", "PLR0916", "PLW0603", "G004", "E402", "D203", "D213", "D404"]
 # PLR0904: class has too many public methods (default: 20)
 # PLR0912: function or method has too many logical branches (default: 12)
