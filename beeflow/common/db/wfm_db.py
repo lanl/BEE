@@ -10,7 +10,7 @@ class WorkflowInfo:
 
     def __init__(self, db_file):
         """Initialize Info and db file."""
-        self.Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows bolt_port http_port https_port gdb_pid")
+        self.Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows bolt_port http_port https_port gdb_pid") # noqa Snake Case
         self.db_file = db_file
 
     def set_port(self, component, new_port):
