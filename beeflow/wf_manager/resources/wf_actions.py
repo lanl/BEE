@@ -10,6 +10,7 @@ from beeflow.wf_manager.resources.wf_update import archive_workflow
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
@@ -77,7 +78,8 @@ class WFActions(Resource):
             bee_workdir = wf_utils.get_bee_workdir()
             workflow_dir = f"{bee_workdir}/workflows/{wf_id}"
             shutil.rmtree(workflow_dir, ignore_errors=True)
-            archive_path = f"{bee_workdir}/archives/{wf_id}.tgz"
+            archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
+            archive_path = f"{archive_dir}/{wf_id}.tgz"
             if os.path.exists(archive_path):
                 os.remove(archive_path)
         return resp
