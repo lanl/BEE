@@ -70,4 +70,10 @@ def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
            job_file: str = typer.Argument(..., help='filename of yaml file')):
     """Submit the workflow to Beeflow client."""
     port = remote_port_val()
-    subprocess.run(["curl", f"{ssh_target}:{port}/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}"], check=True)
+    subprocess.run(
+        [
+            "curl",
+            f"{ssh_target}:{port}/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}"
+        ],
+        check=True
+    )
