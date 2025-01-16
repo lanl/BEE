@@ -380,12 +380,13 @@ class ConfigGenerator:
             os.makedirs(dirname, exist_ok=True)
         print(f'Creating a new config: "{self.fname}".')
         print()
-        print_wrap('This will walk you through creating a new configuration for BEE. '
-                   'Note that you will only be required to enter values for options '
-                   'without defaults. Please take a look at the other options and '
-                   'their defaults before running BEE.')
-        print()
-        print('Please enter values for the following sections and options:')
+        if interactive:
+            print_wrap('This will walk you through creating a new configuration for BEE. '
+                       'Note that you will only be required to enter values for options '
+                       'without defaults. Please take a look at the other options and '
+                       'their defaults before running BEE.')
+            print()
+            print('Please enter values for the following sections and options:')
         # Let the user choose values for each required attribute
         for sec_name, section in self.validator.sections:
             # Determine if this section is valid under the current configuration
