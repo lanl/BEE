@@ -25,12 +25,15 @@ log = bee_logging.setup(__name__)
 class BaseSlurmWorker(Worker):
     """Base slurm worker code."""
 
-    def __init__(self, default_account='', default_time_limit='', default_partition='', **kwargs):
+    def __init__(self, default_account='', default_time_limit='', default_partition='',
+           default_qos='', default_reservation='', **kwargs):
         """Initialize the base slurm worker."""
         super().__init__(**kwargs)
         self.default_account = default_account
         self.default_time_limit = default_time_limit
         self.default_partition = default_partition
+        self.default_qos = default_qos
+        self.default_reservation = default_reservation
 
     def build_text(self, task):
         """Build text for task script."""
@@ -50,14 +53,17 @@ class BaseSlurmWorker(Worker):
         ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=nodes)
         # Need to rethink the MPI version parameter
         mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='')
-        time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
+        time_limit = task.get_requirement('beeflow:SlurmRequirement', 'timeLimit',
                                           default=self.default_time_limit)
         time_limit = validation.time_limit(time_limit)
-        account = task.get_requirement('beeflow:SchedulerRequirement', 'account',
+        account = task.get_requirement('beeflow:SlurmRequirement', 'account',
                                        default=self.default_account)
-        partition = task.get_requirement('beeflow:SchedulerRequirement',
-                                         'partition',
+        partition = task.get_requirement('beeflow:SlurmRequirement', 'partition',
                                          default=self.default_partition)
+        qos = task.get_requirement('beeflow:SlurmRequirement', 'qos',
+                                         default=self.default_qos)
+        reservation = task.get_requirement('beeflow:SlurmRequirement', 'reservation',
+                                         default=self.default_reservation)
 
         shell = task.get_requirement('beeflow:ScriptRequirement', 'shell', default="/bin/bash")
         scripts_enabled = task.get_requirement('beeflow:ScriptRequirement', 'enabled',
@@ -81,9 +87,13 @@ class BaseSlurmWorker(Worker):
         if time_limit:
             script.append(f'#SBATCH --time={time_limit}')
         if account:
-            script.append(f'#SBATCH -A {account}')
+            script.append(f'#SBATCH --account {account}')
         if partition:
-            script.append(f'#SBATCH -p {partition}')
+            script.append(f'#SBATCH --partition {partition}')
+        if qos:
+            script.append(f'#SBATCH --qos {qos}')
+        if reservation:
+            script.append(f'#SBATCH --reservation {reservation}')
 
         # Return immediately on error
         if shell == "/bin/bash":
