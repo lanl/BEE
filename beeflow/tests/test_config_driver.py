@@ -107,20 +107,22 @@ def test_change_value_multiple_times(mocker):
     assert alter_config.changes == {"DEFAULT": {"bee_workdir": "/path/two"}}
 
 
-@pytest.mark.parametrize("interactive, flux, expected",
+@pytest.mark.parametrize("interactive, flux, prompt, expected",
                          [
-                             (True, True, 'input'),
-                             (True, False, 'input'),
-                             (False, True, 'Flux'),
-                             (False, False, 'default'),
+                             (True, True, False, 'Flux'),
+                             (True, False, False, 'default'),
+                             (True, True, True, 'Flux'),
+                             (True, False, True, 'input'),
+                             (False, True, False, 'Flux'),
+                             (False, False, False, 'default'),
                          ],
                          )
-def test_choose_values(interactive, flux, expected):
+def test_choose_values(interactive, flux, prompt, expected):
     """Test running choose_values with different flags."""
     validator = ConfigValidator('')
     validator.section('sec', info='')
     validator.option('sec', 'workload_scheduler', info='', default='default',
-                     validator=lambda _: _, input_fn=lambda _: 'input')
+                     validator=lambda _: _, input_fn=lambda _: 'input', prompt=prompt)
     config_generator = ConfigGenerator('', validator)
     config = config_generator.choose_values(interactive=interactive,
                                             flux=flux).sections

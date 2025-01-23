@@ -241,36 +241,39 @@ VALIDATOR = ConfigValidator('BEE configuration file and validation information.'
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
 
 VALIDATOR.option('DEFAULT', 'bee_workdir', info='main BEE workdir',
-                 default=DEFAULT_BEE_WORKDIR, validator=validation.make_dir)
+                 default=DEFAULT_BEE_WORKDIR, validator=validation.make_dir,
+                 prompt=True)
 
 VALIDATOR.option('DEFAULT', 'bee_archive_dir', info='directory to store workflow archives',
-                 default=DEFAULT_BEE_ARCHIVE_DIR, validator=validation.make_dir)
+                 default=DEFAULT_BEE_ARCHIVE_DIR, validator=validation.make_dir,
+                 prompt=True)
 
 VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop point',
-                 default=DEFAULT_BEE_DROPPOINT, validator=validation.make_dir)
+                 default=DEFAULT_BEE_DROPPOINT, validator=validation.make_dir,
+                 prompt=False)
 
 VALIDATOR.option('DEFAULT', 'remote_api', info='BEE remote REST API activation',
-                 default=False, validator=validation.bool_)
+                 default=False, validator=validation.bool_, prompt=False)
 
 VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
-                 default=7777, validator=int)
+                 default=7777, validator=int, prompt=False)
 
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
-                 default='Slurm', info='backend workload scheduler to interact with ')
+                 default='Slurm', info='backend workload scheduler to interact with ',
+                 prompt=True)
 
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
-                 default=True, info='delete workflow directory for completed jobs')
+                 default=True, info='delete workflow directory for completed jobs', prompt=False)
 
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                  default=NEO4J_IMAGE, info='neo4j container image',
-                 input_fn=filepath_completion_input)
+                 input_fn=filepath_completion_input, prompt=True)
 
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  default=REDIS_IMAGE, info='redis container image',
-                 input_fn=filepath_completion_input)
+                 input_fn=filepath_completion_input, prompt=True)
 
-VALIDATOR.option('DEFAULT', 'max_restarts', validator=int,
-                 default=3,
+VALIDATOR.option('DEFAULT', 'max_restarts', validator=int, default=3, prompt=False,
                  info='max number of times beeflow will restart a component on failure')
 
 # Workflow Manager
@@ -279,26 +282,26 @@ VALIDATOR.section('workflow_manager', info='Workflow manager section.')
 VALIDATOR.section('task_manager',
                   info='Task manager configuration and config of container to use.')
 VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
-                 choices=('Charliecloud', 'Singularity'),
+                 choices=('Charliecloud', 'Singularity'), prompt=False,
                  info='container runtime to use for configuration')
-VALIDATOR.option('task_manager', 'runner_opts', default='',
+VALIDATOR.option('task_manager', 'runner_opts', default='', prompt=False,
                  info='special runner options to pass to the runner opts')
 VALIDATOR.option('task_manager', 'background_interval', default=5,
-                 validator=int,
+                 validator=int, prompt=False,
                  info='interval at which the task manager processes queues and updates states')
 
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
                   depends_on=('task_manager', 'container_runtime', 'Charliecloud'))
-VALIDATOR.option('charliecloud', 'image_mntdir', default=join_path('/tmp', USER),
+VALIDATOR.option('charliecloud', 'image_mntdir', default=join_path('/tmp', USER), prompt=False,
                  info='Charliecloud mount directory', validator=validation.make_dir)
 # General job requirements
 VALIDATOR.section('job', info='General job requirements.')
-VALIDATOR.option('job', 'default_account', validator=lambda val: val.strip(),
+VALIDATOR.option('job', 'default_account', validator=lambda val: val.strip(), prompt=True,
                  default='', info='default account to launch jobs with (leave blank if none)')
-VALIDATOR.option('job', 'default_time_limit', validator=validation.time_limit,
+VALIDATOR.option('job', 'default_time_limit', validator=validation.time_limit, prompt=True,
                  default='', info='default account time limit (leave blank if none)')
-VALIDATOR.option('job', 'default_partition', validator=lambda val: val.strip(),
+VALIDATOR.option('job', 'default_partition', validator=lambda val: val.strip(), prompt=True,
                  default='', info='default partition to run jobs on (leave blank if none)')
 
 
@@ -313,38 +316,39 @@ def validate_chrun_opts(opts):
 
 
 VALIDATOR.option('charliecloud', 'chrun_opts', default='--home',
-                 validator=validate_chrun_opts,
+                 validator=validate_chrun_opts, prompt=False,
                  info='extra options to pass to ch-run')
-VALIDATOR.option('charliecloud', 'setup', default='',
+VALIDATOR.option('charliecloud', 'setup', default='', prompt=False,
                  info='extra Charliecloud setup to put in a job script')
 # Graph Database
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
-VALIDATOR.option('graphdb', 'hostname', default='localhost',
+VALIDATOR.option('graphdb', 'hostname', default='localhost', prompt=False,
                  info='hostname of database')
 
-VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database')
+VALIDATOR.option('graphdb', 'dbpass', default='password', info='password for database',
+                 prompt=False)
 
-VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER),
+VALIDATOR.option('graphdb', 'gdb_image_mntdir', default=join_path('/tmp', USER), prompt=False,
                  info='graph database image mount directory', validator=validation.make_dir)
-VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=1,
+VALIDATOR.option('graphdb', 'sleep_time', validator=int, default=1, prompt=False,
                  info='how long to wait for the graph database to come up (this can take a while, '
                       'depending on the system)')
 # Builder
 VALIDATOR.section('builder', info='General builder configuration section.')
-VALIDATOR.option('builder', 'deployed_image_root', default='/tmp',
+VALIDATOR.option('builder', 'deployed_image_root', default='/tmp', prompt=False,
                  info='where to deploy container images', validator=validation.make_dir)
-VALIDATOR.option('builder', 'container_output_path', default='/tmp',
+VALIDATOR.option('builder', 'container_output_path', default='/tmp', prompt=False,
                  info='container output path', validator=validation.make_dir)
-VALIDATOR.option('builder', 'container_archive',
+VALIDATOR.option('builder', 'container_archive', prompt=True,
                  default=join_path(DEFAULT_BEE_WORKDIR, 'container_archive'),
                  info='container archive location')
 VALIDATOR.option('builder', 'container_type', default='charliecloud',
-                 info='container type to use')
+                 info='container type to use', prompt=False)
 # Slurmrestd (depends on DEFAULT:workload_scheduler == Slurm)
 VALIDATOR.section('slurm', info='Configuration section for Slurm.',
                   depends_on=('DEFAULT', 'workload_scheduler', 'Slurm'))
 VALIDATOR.option('slurm', 'use_commands', validator=validation.bool_,
-                 default=(shutil.which('slurmrestd') is None),
+                 default=(shutil.which('slurmrestd') is None), prompt=False,
                  info='if set, use slurm cli commands instead of slurmrestd')
 DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10000)}.sock')
 
@@ -352,9 +356,9 @@ DEFAULT_SLURMRESTD_SOCK = join_path('/tmp', f'slurm_{USER}_{random.randint(1, 10
 VALIDATOR.section('scheduler', info='Scheduler configuration section.')
 SCHEDULER_ALGORITHMS = ('fcfs', 'backfill', 'sjf')
 VALIDATOR.option('scheduler', 'algorithm', default='fcfs', choices=SCHEDULER_ALGORITHMS,
-                 info='scheduling algorithm to use')
+                 info='scheduling algorithm to use', prompt=False)
 VALIDATOR.option('scheduler', 'default_algorithm', default='fcfs',
-                 choices=SCHEDULER_ALGORITHMS,
+                 choices=SCHEDULER_ALGORITHMS, prompt=False,
                  info=('default algorithm to use'))
 
 
@@ -405,8 +409,9 @@ class ConfigGenerator:
                 this_default = option.default
                 if flux is True and opt_name == 'workload_scheduler':
                     this_default = "Flux"
+                    option.prompt = False
                 # Check for a default value
-                if not interactive and this_default is not None:
+                if (not interactive or option.prompt is False) and this_default is not None:
                     value = option.validate(this_default)
                     print(f'Setting option "{opt_name}" to default value "{value}".')
                     print()
