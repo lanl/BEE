@@ -11,6 +11,7 @@ import inspect
 import pathlib
 import shutil
 import subprocess
+import getpass
 import tarfile
 import tempfile
 import textwrap
@@ -79,15 +80,78 @@ def get_hostname():
     return curr_hn
 
 
+def set_backend_status(new_status):
+    """Set backend flag to true in database."""
+    db = bdb.connect_db(client_db, db_path())
+    db.info.set_backend_status(new_status)
+
+
+def check_backend_status():
+    """Check if backend flag has been set."""
+    db = bdb.connect_db(client_db, db_path())
+    status = db.info.get_backend_status()
+    return status
+
+
+def reset_client_db():
+    """Reset client db when beeflow is stopped."""
+    setup_hostname("")
+    set_backend_status("")
+
+
+def check_backend_jobs(start_hn, command=False):
+    """Check if there is an instance of beeflow running on a backend node."""
+    user_name = getpass.getuser()
+    cmd = ['squeue', '-u', f'{user_name}', '-o', '%N', '-h']
+    resp = subprocess.run(cmd, text=True, check=True, stdout=subprocess.PIPE)
+
+    # iterate through available nodes
+    data = resp.stdout.splitlines()
+    cur_alloc = False
+    if get_hostname() in data:
+        cur_alloc = True
+
+    if cur_alloc:
+        if command:
+            warn(f'beeflow was started on "{get_hostname()}" and you are trying to '
+                 f'run a command on "{start_hn}".')
+            sys.exit(1)
+        else:
+            warn(f'beeflow was started on compute node "{get_hostname()}" '
+                 'and it is still running. ')
+            sys.exit(1)
+    else:  # beeflow was started on compute node but user no longer owns node
+        if command:
+            warn('beeflow has not been started!')
+            sys.exit(1)
+        else:
+            warn('beeflow was started on a compute node (no longer owned by user) and '
+                 'not stopped correctly. ')
+            warn("Resetting client database.")
+            reset_client_db()
+            setup_hostname(start_hn)  # add to client db
+
+
+def check_db_flags(start_hn):
+    """Check that beeflow was stopped correctly during the last run."""
+    if get_hostname() and get_hostname() != start_hn and check_backend_status() == "":
+        warn(f'Error: beeflow is already running on "{get_hostname()}".')
+        sys.exit(1)
+    if get_hostname() and get_hostname() != start_hn and check_backend_status() == "true":
+        check_backend_jobs(start_hn)
+
+
 def check_hostname(curr_hn):
     """Check current front end name matches the one beeflow was started on."""
-    db = bdb.connect_db(client_db, db_path())
-    start_hn = db.info.get_hostname()
-    if start_hn and curr_hn != start_hn:  # noqa: don't use set instead
-        warn(f'beeflow was started on "{start_hn}" and you are trying to '
+    if get_hostname() and curr_hn != get_hostname() and check_backend_status() == "":
+        warn(f'beeflow was started on "{get_hostname()}" and you are trying to '
              f'run a command on "{curr_hn}".')
-    if start_hn == "":
+        sys.exit(1)
+    elif get_hostname() and curr_hn != get_hostname() and check_backend_status() == "true":
+        check_backend_jobs(curr_hn, command=True)
+    if get_hostname() == "" and check_backend_status() == "":
         warn('beeflow has not been started!')
+        sys.exit(1)
 
 
 def error_exit(msg, include_caller=True):
@@ -704,5 +768,4 @@ if __name__ == "__main__":
 
 # Ignore W0511: This allows us to have TODOs in the code
 # Ignore R1732: Significant code restructuring required to fix
-# Ignore R1714: Not using a set instead
 # pylama:ignore=W0511,R1732
