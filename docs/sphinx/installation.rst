@@ -53,7 +53,7 @@ You will need to setup the bee configuration file that will be located in:
 
     macOS:  ``~/Library/Application Support/beeflow/bee.conf``
 
-Using ``beeflow config new`` will create the configuration file using the default values or you can use the ``--interactive`` flag to be prompted for each setting.
+Using ``beeflow config new`` will create the configuration file using the default values or you can use the ``--interactive`` flag to be prompted for the most important settings.
 
 Following generation of the bee.conf configuration file you can edit the settings using a text editor.
 
