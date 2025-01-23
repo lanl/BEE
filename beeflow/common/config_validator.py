@@ -160,7 +160,8 @@ class ConfigSection:
 class ConfigOption:
     """Config option/validation class."""
 
-    def __init__(self, info, validator=str, choices=None, default=None, input_fn=None):
+    def __init__(self, info, validator=str, choices=None, default=None, input_fn=None,
+                 prompt=False):
         """Construct the config option class."""
         self.info = info
         self.choices = choices
@@ -169,6 +170,7 @@ class ConfigOption:
         # Function used to set the option from user input at config generation time
         self.input_fn = input_fn
         self._validator = validator
+        self.prompt = prompt
 
     def validate(self, value):
         """Validate the value and return it."""

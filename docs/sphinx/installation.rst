@@ -53,16 +53,19 @@ You will need to setup the bee configuration file that will be located in:
 
     macOS:  ``~/Library/Application Support/beeflow/bee.conf``
 
-Before creating a bee.conf file you will need to know the path to the two required Charliecloud containers, one for Neo4j (``neo4j_image``) and Redis (``redis_image``). See `Requirements:`_ above for pulling these containers. Depending on the system, you may also need to know system-specific information, such as account information. You can leave some options blank if these are unnecessary.
+Using ``beeflow config new`` will create the configuration file using the default values or you can use the ``--interactive`` flag to be prompted for the most important settings.
 
-Once you are ready type ``beeflow config new``.
-
-The bee.conf configuration file is a text file and you can edit it for your
-needs.
+Following generation of the bee.conf configuration file you can edit the settings using a text editor.
 
 **Caution: The default for container_archive is in the home directory. Some
 systems have small quotas for home directories and containers can be large
 files.**
+
+It is important to ensure the path to the two required Charliecloud containers is correct. There is a setting for the Neo4j container (``neo4j_image``) and the Redis container (``redis_image``). See `Requirements:`_ above for pulling these containers.
+
+Depending on the system, you may also need to enter the system-specific information, such as account information.
+
+Options can be left blank if they are unnecessary.
 
 **beeflow config** has other options including a configuration validator. For more
 information or help run: ``beeflow config info`` or ``beeflow config --help``.
