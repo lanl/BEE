@@ -8,6 +8,18 @@ The REST API was created primarily for the purpose of connecting CI resources to
 :show-refs: True
 
 
+Usage
+-----
+The following sequence of commands can be used to remotely prepare and submit workflows to the system:
+
+.. code-block::
+
+    beeflow remote connection $SSH_TARGET # check the connection to the Beeflow client
+    beeflow remote droppoint $SSH_TARGET # get the drop point location on the remote machine
+    beeflow remote copy $PATH # copy path for the workflow to the droppoint
+    beeflow remote submit $SSH_TARGET $WF_NAME $TARBALL $MAIN_CWL $YAML # submit the workflow
+
+
 Endpoints
 ----------
 .. autofunction:: beeflow.remote.remote.get_wf_status
