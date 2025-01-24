@@ -41,4 +41,4 @@ class ContainerRuntimeInterface:
         """
         return self._crt_driver.build_text(userconfig, task)
 # Ignore module imported but unused error. No way to know which crt will be needed
-# pylama:ignore=W0611
+# ruff: noqa: F401

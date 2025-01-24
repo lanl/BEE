@@ -22,8 +22,8 @@ def convert_path(path, bind_mounts):
     """Convert a path outside the container to a path inside the container."""
     comps = _components(path)
     for outside, inside in bind_mounts.items():
-        outside = _components(outside)
-        inside = _components(inside)
+        outside = _components(outside) # noqa: PLW2901
+        inside = _components(inside) # noqa: PLW2901
         if comps[:len(outside)] == outside:
             base = comps[len(outside):]
             inside.extend(base)

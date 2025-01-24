@@ -276,9 +276,8 @@ class CwlParser:
                                       "but not specified by CommandLineTool"))
                 # Fill in glob with value of stderr
                 glob = stderr
-            else:
-                if out_map[out].outputBinding:
-                    glob = out_map[out].outputBinding.glob
+            elif out_map[out].outputBinding:
+                glob = out_map[out].outputBinding.glob
 
             outputs.append(StepOutput(out, output_type, None, glob))
 

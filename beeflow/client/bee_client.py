@@ -120,16 +120,15 @@ def check_backend_jobs(start_hn, command=False):
             warn(f'beeflow was started on compute node "{get_hostname()}" '
                  'and it is still running. ')
             sys.exit(1)
-    else:  # beeflow was started on compute node but user no longer owns node
-        if command:
-            warn('beeflow has not been started!')
-            sys.exit(1)
-        else:
-            warn('beeflow was started on a compute node (no longer owned by user) and '
-                 'not stopped correctly. ')
-            warn("Resetting client database.")
-            reset_client_db()
-            setup_hostname(start_hn)  # add to client db
+    elif command:  # beeflow was started on compute node but user no longer owns node
+        warn('beeflow has not been started!')
+        sys.exit(1)
+    else:
+        warn('beeflow was started on a compute node (no longer owned by user) and '
+             'not stopped correctly. ')
+        warn("Resetting client database.")
+        reset_client_db()
+        setup_hostname(start_hn)  # add to client db
 
 
 def check_db_flags(start_hn):
@@ -295,7 +294,7 @@ app.add_typer(config_driver.app, name='config')
 
 
 @app.command()
-def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pylint:disable=R0915
+def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # noqa: PLR0915
            wf_path: pathlib.Path = typer.Argument(..., help='path to the workflow .tgz or dir'),
            main_cwl: str = typer.Argument(...,
            help='filename of main CWL (if using CWL tarball), '

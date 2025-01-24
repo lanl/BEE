@@ -33,4 +33,4 @@ def reader(y3):
 if __name__ == '__main__':
     reader(y3="")
 # Ignores preserving code for now
-# pylama:ignore=C0103,R1732,W0612
+# ruff: noqa: F841

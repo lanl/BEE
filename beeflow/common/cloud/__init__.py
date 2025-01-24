@@ -21,5 +21,5 @@ def get_provider(name, **kwargs):
         return providers[name](**kwargs)
 
     raise RuntimeError(f'Invalid provider "{name}"')
-# Ignore W0611: These are meant to be used by external code
-# pylama:ignore=W0611
+# Ignore F401: These are meant to be used by external code
+# ruff: noqa: F401

@@ -32,7 +32,7 @@ class BaseSlurmWorker(Worker):
         self.default_time_limit = default_time_limit
         self.default_partition = default_partition
 
-    def build_text(self, task):
+    def build_text(self, task): # noqa: PLR0915
         """Build text for task script."""
         task_save_path = self.task_save_path(task)
         crt_res = self.crt.run_text(task)
