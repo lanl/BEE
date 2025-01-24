@@ -98,7 +98,7 @@ class MockWFI:
         return None, [MockTask("task1"), MockTask("task2")]
 
     def get_task_state(self, task_name): # noqa
-        """Returns the task state."""
+        """Return the task state."""
         return "RUNNING"
 
     def execute_workflow(self):
@@ -330,7 +330,7 @@ class MockWorkerSubmission:
         return 'RUNNING'
 
     def cancel_task(self, job_id): # noqa
-        """Return cancelled status"""
+        """Return cancelled status."""
         return 'CANCELLED'
 
 

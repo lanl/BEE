@@ -1,4 +1,4 @@
-"""This module contains the workflow action endpoints."""
+"""Module containing the workflow action endpoints."""
 import shutil
 import os
 

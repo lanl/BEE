@@ -1,4 +1,4 @@
-"""This script manages an API that allows the remote submission of jobs."""
+"""Script that manages an API that allows the remote submission of jobs."""
 import os
 import socket
 import pathlib
