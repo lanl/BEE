@@ -304,9 +304,9 @@ VALIDATOR.option('job', 'default_time_limit', validator=validation.time_limit, p
 VALIDATOR.option('job', 'default_partition', validator=lambda val: val.strip(), prompt=True,
                  default='', info='default partition to run jobs on (leave blank if none)')
 VALIDATOR.option('job', 'default_qos', validator=lambda val: val.strip(), prompt=True,
-                 info='default qos to run jobs on (leave blank if none)')
+                 default='', info='default qos to run jobs on (leave blank if none)')
 VALIDATOR.option('job', 'default_reservation', validator=lambda val: val.strip(), prompt=True,
-                 info='default reservation to run jobs on (leave blank if none)')
+                 default='', info='default reservation to run jobs on (leave blank if none)')
 
 
 def validate_chrun_opts(opts):
