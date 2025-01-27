@@ -39,6 +39,8 @@ setup =
 default_account =
 default_time_limit =
 default_partition =
+default_qos=
+default_reseveration=
 
 [graphdb]
 hostname = localhost
