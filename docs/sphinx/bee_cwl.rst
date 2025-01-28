@@ -158,12 +158,12 @@ beeflow:SlurmRequirement
 ----------------------------
 
 This requirement is designed for specifying additional information that will be
-passed to the Slurm scheduler on job submission. It currently supports
-the following options:
+passed to the Slurm scheduler during job submission. Each of the options can be 
+set in the configuration file bee.conf under the ``job`` section to use for all
+workflows. Setting any beeflow:SlurmRequirement in the CWL file will override the 
+setting in bee.conf. Current options supported are:
 
-* ``account`` - may be useful if running jobs with different accounts (if you
-  want to run all workflows with the same account it's best to set this with
-  the ``default_account`` option under the ``job`` section in the bee.conf file).
+* ``account`` - account name to run the job with (often used for charging).
 * ``partition`` - partition to launch job on.
 * ``qos`` - quality of service to use.
 * ``reservation`` - reservation to use to launch job.
