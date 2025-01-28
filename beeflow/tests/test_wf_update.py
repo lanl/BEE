@@ -6,9 +6,13 @@ from beeflow.wf_manager.resources import wf_update
 
 
 @pytest.mark.parametrize(
-    "final_state, expected_state", [(None, "Archived"), ("FAILED", "Archived/FAILED")]
+    "test_function, expected_state",
+    [
+        (wf_update.archive_workflow, "Archived"),
+        (wf_update.archive_fail_workflow, "Archived/Failed"),
+    ],
 )
-def test_archive_workflow(tmpdir, mocker, final_state, expected_state):
+def test_archive_workflow(tmpdir, mocker, test_function, expected_state):
     """Regression test archive_workflow."""
     workdir = str(tmpdir / "workdir")
     db = mocker.MagicMock()
@@ -35,7 +39,7 @@ def test_archive_workflow(tmpdir, mocker, final_state, expected_state):
         os.makedirs("bee_archive_dir/workflows")
         with open(".config/beeflow/bee.conf", "w", encoding="utf-8"):
             pass
-        wf_update.archive_workflow(db, "wf_id_test", final_state)
+        test_function(db, "wf_id_test")
         assert os.path.exists("bee_archive_dir/wf_id_test.tgz")
         mock_export_dag.assert_called_once_with(
             "wf_id_test",
