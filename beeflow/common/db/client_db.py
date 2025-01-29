@@ -21,9 +21,19 @@ class ClientInfo:
     def get_hostname(self):
         """Return hostname for current front end."""
         stmt = "SELECT hostname FROM info"
-        result = bdb.getone(self.db_file, stmt)[0]
-        hostname = result
+        hostname = bdb.getone(self.db_file, stmt)[0]
         return hostname
+
+    def set_backend_status(self, status):
+        """Set backend flag status: true (running on backend)."""
+        stmt = "UPDATE info set backend=?"
+        bdb.run(self.db_file, stmt, [status])
+
+    def get_backend_status(self):
+        """Return if backend flag is set to true or empty."""
+        stmt = "SELECT backend FROM info"
+        status = bdb.getone(self.db_file, stmt)[0]
+        return status
 
 
 class ClientDB:
@@ -38,13 +48,13 @@ class ClientDB:
         """Initialize the client table if it doesn't exist."""
         info_stmt = """CREATE TABLE IF NOT EXISTS info (
                         id INTEGER PRIMARY KEY ASC,
-                        hostname TEXT);"""
+                        hostname TEXT,
+                        backend TEXT);"""
         if not bdb.table_exists(self.db_file, 'info'):
             bdb.create_table(self.db_file, info_stmt)
-            # insert a new workflow into the database
-            stmt = """INSERT INTO info (hostname) VALUES(?);"""
-            tmp = ""
-            bdb.run(self.db_file, stmt, [tmp])
+            # initialize hostname and backend values
+            stmt = """INSERT INTO info (hostname, backend) VALUES(?,?);"""
+            bdb.run(self.db_file, stmt, ["", ""])
 
     @property
     def info(self):

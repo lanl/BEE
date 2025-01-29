@@ -26,7 +26,9 @@ def test_empty(temp_db):
     db = temp_db
 
     host_name = db.info.get_hostname()
+    backend_stat = db.info.get_backend_status()
     assert host_name == ""
+    assert backend_stat == ""
 
 
 def test_info(temp_db):
@@ -36,4 +38,8 @@ def test_info(temp_db):
     db.info.set_hostname('front_end_name')
     host_name = db.info.get_hostname()
 
+    db.info.set_backend_status('true')
+    backend_stat = db.info.get_backend_status()
+
     assert host_name == 'front_end_name'
+    assert backend_stat == 'true'
