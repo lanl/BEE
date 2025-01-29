@@ -148,5 +148,5 @@ class CharliecloudDriver(ContainerRuntimeDriver):
     def build_text(self, userconfig, task):
         """Build text for Charliecloud batch script."""
         task_args = task2arg(task)
-        text = (f'beeflow --build {userconfig} {task_args}\n')
+        text = f'beeflow --build {userconfig} {task_args}\n'
         return text

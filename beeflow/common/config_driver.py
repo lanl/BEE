@@ -359,7 +359,7 @@ VALIDATOR.option('scheduler', 'algorithm', default='fcfs', choices=SCHEDULER_ALG
                  info='scheduling algorithm to use', prompt=False)
 VALIDATOR.option('scheduler', 'default_algorithm', default='fcfs',
                  choices=SCHEDULER_ALGORITHMS, prompt=False,
-                 info=('default algorithm to use'))
+                 info='default algorithm to use')
 
 
 def print_wrap(text, next_line_indent=''):
