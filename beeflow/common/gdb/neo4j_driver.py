@@ -42,7 +42,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     def __new__(cls):
         """Create or get the instance of Neo4j database driver."""
         if not hasattr(cls, 'instance'):
-            cls.instance = super(Neo4jDriver, cls).__new__(cls) #noqa cls causing linting errors
+            cls.instance = super(Neo4jDriver, cls).__new__(cls) # pylint: disable=E1120
         return cls.instance
 
     def connect(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
