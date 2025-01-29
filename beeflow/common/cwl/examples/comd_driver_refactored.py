@@ -14,7 +14,7 @@ def main():
                              Input('k', 'int', 2, "-k"), Input('x', 'int', 2, "-x"),
                              Input('y', 'int', 2, "-y"), Input('z', 'int', 2, "-z"),
                              Input('pot_dir', 'string', "/comd/pots", "--potDir")],
-                     outputs=[Output('comd_stdout', 'File', 'comd/comd_stdout')],
+                     outputs=[Output('comd_stdout', 'File', source='comd/comd_stdout')],
                      hints=[
                         # Rename MPI to something like SchedulerOptions
                         MPI(nodes=4, ntasks=8),
