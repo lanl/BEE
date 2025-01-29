@@ -328,7 +328,7 @@ def check_dependencies(backend=False):
     # Check for the flux API
     if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
         try:
-            import flux  # noqa needed to check whether flux api is actually installed
+            import flux  # pylint: disable=W0611 # don't need to check whether flux api is actually installed
         except ModuleNotFoundError:
             warn('Failed to import flux Python API. Please make sure you can '
                  'use flux in your environment.')

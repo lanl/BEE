@@ -4,7 +4,7 @@ import os
 import shutil
 import requests
 import jsonpickle
-from celery import shared_task #noqa (pylama can't find celery imports)
+from celery import shared_task # pylint: disable=W0611 # pylint can't find celery imports
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
