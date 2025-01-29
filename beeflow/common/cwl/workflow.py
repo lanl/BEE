@@ -19,36 +19,21 @@ class Input:
     # Or a position like 2 if the command is "foo <file>"
     prefix: str = None
     position: int = None
+    
 
     def cwl_input(self):
         """Create a CWLInput from generic Input."""
-        if "/" not in self.value:
+        if "/" not in str(self.value):
             return CWLInput(self.name, self.type_, self.value)
         return None
 
     def run_input(self):
         """Create a RunInput from generic Input."""
-        if self.prefix and self.position:
-            if "/" in self.value:
-                run = RunInput(self.name, self.type_, InputBinding(position=self.position,
-                                                                   prefix=self.prefix),
-                               source=self.value)
-            else:
-                run = RunInput(self.name, self.type_, InputBinding(position=self.position,
-                                                                   prefix=self.prefix))
-        elif self.prefix:
-            if "/" in self.value:
-                run = RunInput(self.name, self.type_, InputBinding(prefix=self.prefix),
-                               source=self.value)
-            else:
-                run = RunInput(self.name, self.type_, InputBinding(prefix=self.prefix))
-        elif self.position:
-            if "/" in self.value:
-                run = RunInput(self.name, self.type_, InputBinding(position=self.position),
-                               source=self.value)
-            else:
-                run = RunInput(self.name, self.type_, InputBinding(position=self.position))
-        return run
+        bindings = {'prefix': self.prefix, 'position': self.position}
+        source = {}
+        if "/" in str(self.value):
+            source.update({"source": self.value})
+        return RunInput(self.name, self.type_, InputBinding(**bindings), **source)
 
 
 @dataclass

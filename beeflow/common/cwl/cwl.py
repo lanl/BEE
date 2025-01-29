@@ -76,7 +76,6 @@ class InputBinding:
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
         binding_yaml = {'inputBinding': {}}
-        print(f'InputBinding Position: {self.position} Prefix: {self.prefix}')
         if self.position:
             binding_yaml['inputBinding']['position'] = self.position
         if self.prefix:
