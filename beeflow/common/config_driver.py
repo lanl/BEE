@@ -126,7 +126,7 @@ class BeeConfig:
         if cls.CONFIG is None:
             cls.init()
         try:
-            return cls.CONFIG[sec_name][opt_name] # noqa (this object is subscritable)
+            return cls.CONFIG[sec_name][opt_name] # pylint: disable=E1136 # object is subscritable
         except KeyError:
             raise RuntimeError(
                 f'Option {sec_name}::{opt_name} was not found. Please contact '
