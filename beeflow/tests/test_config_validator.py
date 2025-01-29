@@ -9,7 +9,7 @@ def test_empty():
     assert validator.validate({}) == {} # noqa (suggestion is wrong for this case)
     # Invalid sections and options should just print a warning rather than fail
     assert validator.validate({'bad_section': {}}) == {} # noqa (suggestion is wrong for this case)
-    assert validator.validate({'bad_section': {'bad_option'}}) == {} # noqa (suggestion is wrong for this case)
+    assert validator.validate({'bad_section': {'bad_option'}}) == {} # pylint: disable=C1803
 
 
 def test_two():

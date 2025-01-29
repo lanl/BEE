@@ -291,10 +291,10 @@ def test_input_callback(arg):
     return arg.split(',') if arg is not None else None
 
 
-def main(tests = typer.Option(None, '--tests', '-t',  # noqa (conflict on '=' sign)
+def main(tests = typer.Option(None, '--tests', '-t',
                               callback=test_input_callback,
                               help='tests run as comma-separated string'),
-         show_tests: bool = typer.Option(False, '--show-tests', '-s',  # noqa (conflict on '=' sign)
+         show_tests: bool = typer.Option(False, '--show-tests', '-s',
                                          help='show a list of all tests'),
          timeout: int = typer.Option(utils.TIMEOUT, '--timeout',
                                      help='workflow timeout in seconds')):

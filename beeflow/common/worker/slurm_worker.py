@@ -137,7 +137,7 @@ class BaseSlurmWorker(Worker):
 
     def submit_job(self, script):
         """Worker submits job-returns (job_id, job_state)."""
-        res = subprocess.run(['sbatch', '--parsable', script], text=True,  # noqa if we use check=True here, then we can't see stderr
+        res = subprocess.run(['sbatch', '--parsable', script], text=True,  # pylint: disable=W1510
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if res.returncode != 0:
             raise WorkerError(f'Failed to submit job: {res.stderr}')

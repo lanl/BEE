@@ -3,7 +3,8 @@
 All container-based build systems belong here.
 """
 
-# Disable W0231: linter doesn't know about abstract classes, it's ok to now call the parent __init__
+# Disable W0231: linter doesn't know about abstract classes,
+# it's ok to now call the parent __init__
 # pylint:disable=W0231
 
 import os
