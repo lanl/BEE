@@ -2,8 +2,7 @@
 """Unit test module for the BEE workflow interface module."""
 
 # Disable W0212: Access required for unit tests
-# Disable E402: "module level import not at top of file" - this is required for bee config
-# pylint:disable=W0212,E402
+# pylint:disable=W0212
 
 import unittest
 

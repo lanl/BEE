@@ -1,7 +1,7 @@
 """Predict Code."""
 
 # Disable preserving code for now
-# pylint:disable=C0103,R1732,C0501
+# pylint:disable=C0103,R1732
 
 import json
 import pickle

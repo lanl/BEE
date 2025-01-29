@@ -7,8 +7,7 @@ components of the gdb_interface as required.
 """
 
 # Disable W0703: Catching generic exception isn't a problem if we just want a descriptive report
-# Disable C901: "'build_main' is too complex" - this function is just around 40 lines
-# pylint:disable=W0703,C901
+# pylint:disable=W0703
 
 # from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
 # from beeflow.common.build.container_drivers import CharliecloudBuildDriver,

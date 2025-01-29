@@ -3,10 +3,8 @@
 # Disable R1732: This is not what we need to do with the Popen of slurmrestd above;
 #                 using a with statement doesn't kill the process immediately but just
 #                 waits for it to complete and slurmrestd never will unless we kill it.
-# Disable E402: "module level import not at top of file" - this is required for
-#                bee config
 # Disable W0621: Redefinition of names is required for pytest
-# pylint:disable=R1732,E402,W0621
+# pylint:disable=R1732,W0621
 
 import uuid
 import shutil
