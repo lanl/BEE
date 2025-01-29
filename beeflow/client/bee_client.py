@@ -706,7 +706,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
-    if resp.status_code != requests.codes.created: #noqa: member does exist
+    if resp.status_code != requests.codes.created: # pylint: disable=E1101
         error_exit(f"Reexecute for {wf_name} failed. Please check the WF Manager.")
 
     wf_id = resp.json()['wf_id']

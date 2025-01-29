@@ -96,10 +96,10 @@ def load_config_values():
 
     conf = argparse.Namespace(**conf)
     log.info('Config = [')
-    log.info(f'\talloc_logfile = {conf.alloc_logfile}')  # noqa pylama is wrong here
+    log.info(f'\talloc_logfile = {conf.alloc_logfile}')  # pylint: disable=E1101
     log.info(f'\talgorithm = {conf.algorithm}')
     log.info(f'\tdefault_algorithm = {conf.default_algorithm}')
-    log.info(f'\tworkdir = {conf.workdir}')  # noqa
+    log.info(f'\tworkdir = {conf.workdir}')  # pylint: disable=E1101 # pylint is wrong here
     log.info(']')
     return conf
 
@@ -115,5 +115,5 @@ def create_app():
     # Create the scheduler workdir, if necessary
     # sched_listen_port = wf_utils.get_open_port()
     # wf_db.set_sched_port(sched_listen_port)
-    os.makedirs(conf.workdir, exist_ok=True) # noqa
+    os.makedirs(conf.workdir, exist_ok=True) # pylint: disable=E1101
     return flask_app
