@@ -40,7 +40,7 @@ from beeflow.common.db import client_db
 from beeflow.common.db import bdb
 
 # Length of a shortened workflow ID
-short_id_len = 6 #noqa: Not a constant
+short_id_len = 6 # pylint: disable=C0103 # not a constant
 
 # Maximum length of a workflow ID
 MAX_ID_LEN = 32
