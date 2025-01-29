@@ -52,7 +52,7 @@ class WorkflowJobHandler(Resource):
     """Schedule jobs for a specific workflow with the current resources."""
 
     @staticmethod
-    def put(workflow_name):  # noqa ('workflow_name' may be used in the future)
+    def put(workflow_name):   # pylint: disable=W0613 # 'workflow_name' may be used in the future
         """Schedules a new list of independent tasks with available resources."""
         db = connect_db(sched_db, db_path)
         data = request.json

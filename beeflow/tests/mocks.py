@@ -32,11 +32,11 @@ class MockWFI:
         """Resume a workflow."""
         return
 
-    def reset_workflow(self, wf_id): #noqa
+    def reset_workflow(self, wf_id): # pylint: disable=W0613 # not using wf_id in mock
         """Reset a workflow."""
         wf_id = 0 # noqa
 
-    def get_dependent_tasks(self, task): # noqa
+    def get_dependent_tasks(self, task): # pylint: disable=W0613
         """Get depdendent states."""
         return [MockTask()]
 
@@ -48,7 +48,7 @@ class MockWFI:
         """Set the metadata for this task."""
         task.metadata = metadata
 
-    def get_task_by_id(self, task_id): # noqa
+    def get_task_by_id(self, task_id): # pylint: disable=W0613
         """Return a mock task from an ID."""
         return MockTask()
 
@@ -76,7 +76,7 @@ class MockWFI:
         """Fake workflow being loaded."""
         return self._loaded
 
-    def initialize_workflow(self, wf_id, wf_name, inputs, outputs, req=None, hints=None): # noqa
+    def initialize_workflow(self, wf_id, wf_name, inputs, outputs, req=None, hints=None): # pylint: disable=W0613
         """Initialize the workflow."""
         self._loaded = True
 
@@ -97,7 +97,7 @@ class MockWFI:
         """Get a list of workflows."""
         return None, [MockTask("task1"), MockTask("task2")]
 
-    def get_task_state(self, task_name): # noqa
+    def get_task_state(self, task_name): # pylint: disable=W0613
         """Returns the task state."""
         return "RUNNING"
 
@@ -146,22 +146,22 @@ class MockGDBDriver:
         return all(self.task_states[task_dep_id] == 'COMPLETED'
                    for task_dep_id in task_deps)
 
-    def execute_workflow(self, workflow_id): #noqa not using parameter in mock
+    def execute_workflow(self, workflow_id): # pylint: disable=W0613 # not using param in mock
         """Begin execution of the loaded workflow."""
         self.workflow_state = 'RUNNING'
         for task_id in self.task_states:
             if self._is_ready(task_id):
                 self.task_states[task_id] = 'READY'
 
-    def pause_workflow(self, workflow_id): #noqa not using parameter in mock
+    def pause_workflow(self, workflow_id): # pylint: disable=W0613
         """Pause execution of a running workflow."""
         self.workflow_state = 'PAUSED'
 
-    def resume_workflow(self, workflow_id): #noqa not using parameter in mock
+    def resume_workflow(self, workflow_id): # pylint: disable=W0613
         """Resume execution of a running workflow."""
         self.workflow_state = 'RESUME'
 
-    def reset_workflow(self, old_id, new_id): #noqa not using parameter in mock
+    def reset_workflow(self, old_id, new_id): # pylint: disable=W0613
         """Reset the execution state and ID of a workflow."""
         self.workflow = deepcopy(self.workflow)
         self.workflow.id = new_id
@@ -182,7 +182,7 @@ class MockGDBDriver:
         for outp in task.outputs:
             self.outputs[task.id][outp.id] = outp
 
-    def initialize_ready_tasks(self, workflow_id): #noqa not using parameter in mock
+    def initialize_ready_tasks(self, workflow_id): # pylint: disable=W0613
         """Set runnable tasks in a workflow to ready."""
         for task_id in self.tasks:
             if self._is_ready(task_id) and self.task_states[task_id] == 'WAITING':
@@ -201,27 +201,27 @@ class MockGDBDriver:
         """Return a workflow Task given its ID."""
         return self.tasks[task_id]
 
-    def get_workflow_description(self, workflow_id): #noqa not using parameter in mock
+    def get_workflow_description(self, workflow_id): # pylint: disable=W0613
         """Return the workflow description from the graph database."""
         return deepcopy(self.workflow)
 
-    def get_workflow_state(self, workflow_id): #noqa not using parameter in mock
+    def get_workflow_state(self, workflow_id): # pylint: disable=W0613
         """Return workflow's current state."""
         return self.workflow_state
 
-    def set_workflow_state(self, workflow_id, state): #noqa not using parameter in mock
+    def set_workflow_state(self, workflow_id, state): # pylint: disable=W0613
         """Return workflow's current state."""
         self.workflow_state = state
 
-    def get_workflow_tasks(self, workflow_id): #noqa not using parameter in mock
+    def get_workflow_tasks(self, workflow_id): # pylint: disable=W0613
         """Return a workflow's tasks from the graph database."""
         return list(self.tasks.values())
 
-    def get_workflow_requirements_and_hints(self, workflow_id): #noqa not using parameter in mock
+    def get_workflow_requirements_and_hints(self, workflow_id): # pylint: disable=W0613
         """Return a tuple containing a list of requirements and a list of hints."""
         return (None, None)
 
-    def get_ready_tasks(self, workflow_id): #noqa not using parameter in mock
+    def get_ready_tasks(self, workflow_id): # pylint: disable=W0613
         """Return the tasks in a workflow with state 'READY'."""
         return [task for task_id, task in self.tasks.items()
                 if self.task_states[task_id] == 'READY']
@@ -293,7 +293,7 @@ class MockGDBDriver:
                                                   step_inp.position,
                                                   step_inp.value_from)
 
-    def workflow_completed(self, workflow_id): #noqa not using parameter in mock
+    def workflow_completed(self, workflow_id): # pylint: disable=W0613
         """Return true if all of a workflow's final tasks have completed, else false."""
         return all(state == 'COMPLETED' for state in self.task_states.values())
 
@@ -313,7 +313,7 @@ class MockCwlParser:
         """Need a port."""
         self.bolt_port = bolt_port
 
-    def parse_workflow(self, wf_id, cwl_path, yaml_file=None): # noqa
+    def parse_workflow(self, wf_id, cwl_path, yaml_file=None): # pylint: disable=W0613
         """Parse the workflow."""
         return MockWFI()
 
@@ -321,15 +321,15 @@ class MockCwlParser:
 class MockWorkerSubmission:
     """Mock Worker during submission."""
 
-    def submit_task(self, task): # noqa
+    def submit_task(self, task): # pylint: disable=W0613
         """Return submission."""
         return 1, 'PENDING'
 
-    def query_task(self, job_id): #noqa
+    def query_task(self, job_id): # pylint: disable=W0613
         """Return state of task."""
         return 'RUNNING'
 
-    def cancel_task(self, job_id): # noqa
+    def cancel_task(self, job_id): # pylint: disable=W0613
         """Return cancelled status"""
         return 'CANCELLED'
 
@@ -337,15 +337,15 @@ class MockWorkerSubmission:
 class MockWorkerCompletion:
     """Mock Worker after completion."""
 
-    def submit_task(self, task): #noqa
+    def submit_task(self, task): # pylint: disable=W0613
         """Submit a task."""
         return 1, 'PENDING'
 
-    def query_task(self, job_id): #noqa
+    def query_task(self, job_id): # pylint: disable=W0613
         """Submit a task."""
         return 'COMPLETED'
 
-    def cancel_task(self, job_id): #noqa
+    def cancel_task(self, job_id): # pylint: disable=W0613
         """Cancel a task."""
         return 'CANCELLED'
 
@@ -363,21 +363,21 @@ class MockResponse:
         return '{}'
 
 
-def mock_put(url, params=None, **kwargs): # noqa
+def mock_put(url, params=None, **kwargs): # pylint: disable=W0613
     """Fake put."""
     return MockResponse(200)
 
 
-def mock_post(url, params=None, **kwargs): # noqa
+def mock_post(url, params=None, **kwargs): # pylint: disable=W0613
     """Fake post."""
     return MockResponse(200)
 
 
-def mock_get(url, params=None, **kwargs): # noqa
+def mock_get(url, params=None, **kwargs): # pylint: disable=W0613
     """Fake get."""
     return MockResponse(200)
 
 
-def mock_delete(url, params=None, **kwargs): # noqa
+def mock_delete(url, params=None, **kwargs): # pylint: disable=W0613
     """Fake delete."""
     return MockResponse(200)

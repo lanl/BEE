@@ -382,7 +382,7 @@ class Beeflow:
 
 def daemonize(mgr, base_components):
     """Start beeflow as a daemon, monitoring all processes."""
-    def handle_terminate(signum, stack): # noqa
+    def handle_terminate(signum, stack): # pylint: disable=W0613
         """Handle a terminate signal."""
         # Kill all subprocesses
         mgr.kill()

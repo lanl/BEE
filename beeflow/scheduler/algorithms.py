@@ -241,7 +241,7 @@ algorithm_objects = {
 }
 
 
-def load(algorithm=None, **kwargs):  # noqa ('algorithm' may be used in the future)
+def load(algorithm=None, **kwargs): # pylint: disable=W0613 #'algorithm' may be used in the future
     """Load data needed by the algorithms.
 
     Load data needed by algorithms, if necessary.

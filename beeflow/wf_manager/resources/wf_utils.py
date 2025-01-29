@@ -190,8 +190,7 @@ def _resource(component, tag=""):
 
 
 # Submit tasks to the TM
-# pylama:ignore=W0613
-def submit_tasks_tm(wf_id, tasks, allocation):
+def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
     for task in tasks:
@@ -266,7 +265,7 @@ def connect_neo4j_driver(bolt_port):
 
 
 def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
-                   tasks=None):
+                   tasks=None): # pylint: disable=W0613
     """Initialize Workflow in Separate Process."""
     wfi = get_workflow_interface(wf_id)
     wfi.initialize_workflow(workflow)
