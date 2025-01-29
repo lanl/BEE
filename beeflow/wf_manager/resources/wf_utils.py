@@ -4,6 +4,7 @@ import os
 import shutil
 import requests
 import jsonpickle
+from celery import shared_task #noqa (pylama can't find celery imports)
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -16,7 +17,6 @@ from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 
-from celery import shared_task #noqa (pylama can't find celery imports)
 
 log = bee_logging.setup(__name__)
 
