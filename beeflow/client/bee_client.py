@@ -173,7 +173,7 @@ def error_exit(msg, include_caller=True):
         raise ClientError(msg) from None
 
 
-def error_handler(resp):  # noqa (this is an error handler, it doesn't need to return an expression)
+def error_handler(resp):  # pylint: disable=R1710 # error handler doesn't need to return an expression
     """Handle a 500 error in a response."""
     if resp.status_code != 500:
         return resp
