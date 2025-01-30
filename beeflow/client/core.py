@@ -111,7 +111,7 @@ class ComponentManager:
         """Poll each process to check for errors, restart failed processes."""
         # Max number of times a component can be restarted
         max_restarts = bc.get('DEFAULT', 'max_restarts')
-        for name in self.procs:  # noqa no need to iterate with items() since self.procs may be set
+        for name in self.procs:  # pylint: disable=C0206 # no need to iterate with items() since self.procs may be set
             component = self.components[name]
             if component['failed']:
                 continue
