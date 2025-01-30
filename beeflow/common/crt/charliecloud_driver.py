@@ -97,9 +97,6 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                                           main_command=Command([str(arg) for arg in task.command]),
                                           post_commands=[])
 
-        if task_container_name:
-            container_path = '/'.join([self.container_archive, task_container_name]) + '.tar.gz'
-
         # If use_container is specified, no copying is done, the file  path is used
         squashfs = False
         if use_container:
