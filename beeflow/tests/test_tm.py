@@ -43,7 +43,7 @@ def temp_db():
 
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_submit_task(flask_client, mocker, temp_db):  # noqa
+def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     """Create a workflow and get the ID back."""
     mocker.patch('beeflow.task_manager.utils.worker_interface',
                  MockWorkerSubmission)
@@ -78,7 +78,7 @@ def test_submit_task(flask_client, mocker, temp_db):  # noqa
 
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_completed_task(flask_client, mocker, temp_db): # pylint: disable=W0613
+def test_completed_task(flask_client, mocker, temp_db): # pylint: disable=W0613,W0621
     """Tests how the task manager processes a completed task."""
     # 42 is the sample task ID
     mocker.patch('beeflow.task_manager.utils.worker_interface',
@@ -94,7 +94,7 @@ def test_completed_task(flask_client, mocker, temp_db): # pylint: disable=W0613
 
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
-def test_remove_task(flask_client, mocker, temp_db):  # noqa
+def test_remove_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     """Test cancelling a workflow and removing tasks."""
     task1, task2, task3 = generate_tasks(3)
     # Add a few tasks
