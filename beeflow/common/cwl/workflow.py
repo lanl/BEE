@@ -150,6 +150,10 @@ class Workflow:
         cwl_steps = Steps([self.generate_step(task) for task in self.tasks])
         self.cwl = CWL(self.name, cwl_inputs, cwl_outputs, cwl_steps)
 
-    def write(self, path=None):
+    def write_wf(self, path):
         """Write the workflow."""
-        print(self.cwl.dump_wf())
+        self.cwl.dump_wf(path)
+
+    def write_yaml(self, path):
+        """Write the yaml file."""
+        self.cwl.dump_inputs(path)

@@ -35,8 +35,9 @@ def main():
                outputs=[Output('tarball', 'File', glob="$(inputs.tarball_fname)",
                         source="tar/tarball")])
 
-    workflow = Workflow("comd", [cat, grep0, grep1, tar])
-    workflow.write(".")
+    workflow = Workflow("cat-grep-tar", [cat, grep0, grep1, tar])
+    workflow.write_wf("cat-grep-tar")
+    workflow.write_yaml("cat-grep-tar")
 
 
 if __name__ == "__main__":
