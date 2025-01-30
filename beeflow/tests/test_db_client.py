@@ -1,6 +1,6 @@
 """Tests of the client database."""
 
-# Disable W0621: PyLama complains about redefining 'temp_db' from the outer
+# Disable W0621: Pylint complains about redefining 'temp_db' from the outer
 #               scope. This is how pytest fixtures work.
 # pylint:disable=W0621
 

@@ -12,7 +12,7 @@ import os
 import traceback
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
-from schema_salad.exceptions import ValidationException  # noqa (pylama can't find the exception)
+from schema_salad.exceptions import ValidationException
 
 from beeflow.common.wf_data import (Workflow,
                                     Task,
