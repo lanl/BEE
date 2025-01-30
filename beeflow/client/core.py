@@ -255,7 +255,7 @@ def init_components():
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
             slurm_socket = paths.slurm_socket()
             subprocess.run(['rm', '-f', slurm_socket], check=True)
-            fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
+            fp = open(slurmrestd_log, 'w', encoding='utf-8') # pylint: disable=R1732
             cmd = ['slurmrestd']
             cmd.extend(slurm_args.split())
             cmd.append(f'unix:{slurm_socket}')
