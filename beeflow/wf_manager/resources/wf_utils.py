@@ -264,8 +264,8 @@ def connect_neo4j_driver(bolt_port):
     driver.create_bee_node()
 
 
-def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
-                   tasks=None): # pylint: disable=W0613
+def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, # pylint: disable=W0613
+                   tasks=None):
     """Initialize Workflow in Separate Process."""
     wfi = get_workflow_interface(wf_id)
     wfi.initialize_workflow(workflow)
