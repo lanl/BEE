@@ -103,11 +103,11 @@ class MockWFI:
 
     def execute_workflow(self):
         """Fake executing a workflow."""
-        pass
+        pass # pylint: disable=W0107
 
     def export_graphml(self):
         """Fake exporting a graphml of a workflow."""
-        pass
+        pass # pylint: disable=W0107
 
 
 class MockGDBDriver:
@@ -303,7 +303,7 @@ class MockGDBDriver:
 
 def mock_create_image(): # noqa
     """Fake image creation."""
-    pass # noqa
+    pass # pylint: disable=W0107
 
 
 class MockCwlParser:
