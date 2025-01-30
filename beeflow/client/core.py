@@ -277,7 +277,7 @@ def load_check_charliecloud():
     if not shutil.which('ch-run'):
         lmod = os.environ.get('MODULESHOME')
         sys.path.insert(0, lmod + '/init')
-        from env_modules_python import module #noqa No need to import at top
+        from env_modules_python import module # pylint: disable=C0415 # No need to import at top
         module("load", "charliecloud")
         # Try loading the Charliecloud module then test again
         if not shutil.which('ch-run'):
@@ -328,7 +328,7 @@ def check_dependencies(backend=False):
     # Check for the flux API
     if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
         try:
-            import flux  # pylint: disable=W0611 # don't need to check whether flux api is actually installed
+            import flux  # pylint: disable=W0611,C0415 # don't need to check whether flux api is actually installed
         except ModuleNotFoundError:
             warn('Failed to import flux Python API. Please make sure you can '
                  'use flux in your environment.')

@@ -34,8 +34,8 @@ class FluxWorker(Worker):
         """Initialize the flux worker object."""
         super().__init__(**kwargs)
         # Only try to import the Flux API if we need it
-        import flux   # noqa this is necessary since flux may not be installed
-        from flux import job  # noqa
+        import flux   # pylint: disable=C0415 # this is necessary since flux may not be installed
+        from flux import job  # pylint: disable=C0415
         self.flux = flux
         self.job = job
 
