@@ -202,7 +202,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
         try:
             data = resp.json()
             check_slurm_error(data, errmsg)
-        except requests.exceptions.JSONDecodeError as exc:  # noqa requests is not installed in CI
+        except requests.exceptions.JSONDecodeError as exc:
             raise WorkerError(errmsg) from exc
         job_state = "CANCELLED"
         return job_state

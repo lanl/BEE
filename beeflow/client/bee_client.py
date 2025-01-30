@@ -7,7 +7,6 @@ Capablities include submitting, starting, listing, pausing and cancelling workfl
 
 # Disable W0511: This allows us to have TODOs in the code
 # Disable R1732: Significant code restructuring required to fix
-# Disable R1714: Not using a set instead
 # pylint:disable=W0511,R1732
 
 import os
@@ -237,7 +236,7 @@ def get_wf_list():
 
 def check_short_id_collision():
     """Check short workflow IDs for colliions; increase short ID length if detected."""
-    global short_id_len  #noqa: Not a constant
+    global short_id_len
     workflow_list = get_wf_list()
     if workflow_list:
         while short_id_len < MAX_ID_LEN:
@@ -476,13 +475,13 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
     # Just use tar with subprocess. Python's tar library is not performant.
     return_code = subprocess.run(['tar', '-C', parent_dir, '-czf', tarball, wf_dir],
                                  check=True).returncode
-    package_path = package_dest.resolve()/tarball  # noqa: Not an arithmetic operation
+    package_path = package_dest.resolve()/tarball
 
     # Get the curent working directory
     cwd = pathlib.Path().absolute()
     if package_dest != cwd:
         # Move the tarball if the directory it's wanted in is not in the current working directory
-        tarball_path = cwd/tarball  # noqa: Not an arithmetic operation
+        tarball_path = cwd/tarball
         shutil.move(tarball_path, package_path)
 
     if return_code != 0:

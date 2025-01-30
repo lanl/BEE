@@ -34,7 +34,7 @@ class MockWFI:
 
     def reset_workflow(self, wf_id): # pylint: disable=W0613 # not using wf_id in mock
         """Reset a workflow."""
-        wf_id = 0 # noqa
+        wf_id = 0
 
     def get_dependent_tasks(self, task): # pylint: disable=W0613
         """Get depdendent states."""
@@ -68,7 +68,7 @@ class MockWFI:
     def workflow_initialized(self):
         """Fake that the workflow has been initialized."""
 
-    def set_task_state(self, task, job_state): # noqa
+    def set_task_state(self, task, job_state):
         """Set the state of a task."""
         task.state = job_state
 
@@ -301,7 +301,7 @@ class MockGDBDriver:
         """Close the connection to the graph database."""
 
 
-def mock_create_image(): # noqa
+def mock_create_image():
     """Fake image creation."""
     pass # pylint: disable=W0107
 

@@ -64,8 +64,8 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_validate_shell(self):
         """Test parsing of workflow and check shell option matches pre/post script shebang line."""
-        cwl_wf_file = find("ci/test_workflows/shell_validate/workflow.cwl") #noqa
-        cwl_job_yaml = find("ci/test_workflows/shell_validate/input.yml") #noqa
+        cwl_wf_file = find("ci/test_workflows/shell_validate/workflow.cwl")
+        cwl_job_yaml = find("ci/test_workflows/shell_validate/input.yml")
 
         workflow_id = generate_workflow_id()
 

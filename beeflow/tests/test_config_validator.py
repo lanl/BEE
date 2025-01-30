@@ -6,9 +6,9 @@ from beeflow.common.config_validator import ConfigValidator, ConfigError
 def test_empty():
     """Test an empty config."""
     validator = ConfigValidator(description='empty test case')
-    assert validator.validate({}) == {} # noqa (suggestion is wrong for this case)
+    assert validator.validate({}) == {}
     # Invalid sections and options should just print a warning rather than fail
-    assert validator.validate({'bad_section': {}}) == {} # noqa (suggestion is wrong for this case)
+    assert validator.validate({'bad_section': {}}) == {}
     assert validator.validate({'bad_section': {'bad_option'}}) == {} # pylint: disable=C1803
 
 
@@ -40,7 +40,7 @@ def test_choices():
     validator.option('section0', 'choice-key', choices=('A', 'B', 'C'), info='choice-based option')
 
     assert (validator.validate({'section0': {'choice-key': 'B'}})
-            == {'section0': {'choice-key': 'B'}}) # noqa
+            == {'section0': {'choice-key': 'B'}})
     with pytest.raises(ConfigError):
         assert validator.validate({'section0': {'choice-key': 'E'}})
 
@@ -59,7 +59,7 @@ def test_depends_on():
     with pytest.raises(ConfigError):
         validator.validate({'one': {'key': 'A'}})
     assert (validator.validate({'one': {'key': 'A'}, 'two': {'some-key': '123'}})
-            == {'one': {'key': 'A'}, 'two': {'some-key': '123'}}) # noqa
+            == {'one': {'key': 'A'}, 'two': {'some-key': '123'}})
 
 
 def test_depends_on_order():

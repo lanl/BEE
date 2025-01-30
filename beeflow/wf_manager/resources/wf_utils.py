@@ -250,7 +250,7 @@ def submit_tasks_scheduler(tasks):
 def schedule_submit_tasks(wf_id, tasks):
     """Schedule and then submit tasks to the TM."""
     # Submit ready tasks to the scheduler
-    allocation = submit_tasks_scheduler(tasks)  #NOQA
+    allocation = submit_tasks_scheduler(tasks)
     # Submit tasks to TM
     submit_tasks_tm(wf_id, tasks, allocation)
 
