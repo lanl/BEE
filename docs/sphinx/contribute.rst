@@ -14,7 +14,7 @@ Upon release, develop will be merged by the team lead into main. Additionally, a
 
 Style Guide
 ===========
-BEE is python code and adheres to style guidelines specified in **setup.cfg**, enforced using pylint. Before attempting to commit and push changes, please install our pre-commit githooks by running the following command in project root:
+BEE is python code and adheres to style guidelines specified in **setup.cfg**, enforced using `pylint <https://pylint.readthedocs.io/en/v3.2.7/#>`_. Before attempting to commit and push changes, please install our pre-commit githooks by running the following command in project root:
 
 If using `git --version` >= 2.9:
     git config core.hooksPath .githooks

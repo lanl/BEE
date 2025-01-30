@@ -29,7 +29,7 @@ Add Python package dependencies (from PyPI) to `pyproject.toml`:
 
 `poetry add <pkg-name>...`
 
-Add developer dependencies (e.g. `pylama`, `sphinx`):
+Add developer dependencies (e.g. `pylint`, `sphinx`):
 
 `poetry add --dev <pkg-name>...`
 
