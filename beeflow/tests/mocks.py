@@ -103,11 +103,11 @@ class MockWFI:
 
     def execute_workflow(self):
         """Fake executing a workflow."""
-        pass # noqa 
+        pass
 
     def export_graphml(self):
         """Fake exporting a graphml of a workflow."""
-        pass # noqa
+        pass
 
 
 class MockGDBDriver:
