@@ -254,7 +254,7 @@ class MockGDBDriver:
         """Get a task input object."""
         inp = self.inputs[task.id][input_id]
         try:
-            inp.id # noqa (trying to get an AttributeError here)
+            inp.id # pylint: disable=W0104 #trying to get an AttributeError here
             return inp
         except AttributeError:
             return StepInput(input_id, 'File', inp,
