@@ -25,7 +25,7 @@ steps:
         file_regex: backup[0-9]*.crx
         restart_parameters: -R
         num_tries: 1
-      beeflow:SchedulerRequirement:
+      beeflow:SlurmRequirement:
         timeLimit: 00:00:10
       DockerRequirement:
         dockerFile: "Dockerfile"
