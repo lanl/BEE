@@ -51,12 +51,12 @@ def extract_wf(wf_id, filename, workflow_archive):
 
 @shared_task(ignore_result=True)
 def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
-                  tasks=None):
+                  tasks=None, archive_workdir=False):
     """Initialize the workflow in a separate process."""
     db = connect_db(wfm_db, db_path)
     wf_utils.connect_neo4j_driver(db.info.get_port('bolt'))
     wf_utils.setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start,
-                            workflow, tasks)
+                            workflow, tasks, archive_workdir)
 
 
 db_path = wf_utils.get_db_path()
@@ -93,6 +93,7 @@ class WFList(Resource):
         reqparser.add_argument('tasks', type=str, required=True,
                                location='form')
         reqparser.add_argument('no_start', type=str, required=True, location='form')
+        reqparser.add_argument('archive_workdir', type=str, required=True, location='form')
         reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
                                location='files')
         data = reqparser.parse_args()
@@ -102,6 +103,7 @@ class WFList(Resource):
         wf_workdir = data['workdir']
         # Note we have to check for the 'true' string value
         no_start = data['no_start'].lower() == 'true'
+        archive_workdir = data['archive_workdir'].lower() == 'true'
         workflow = jsonpickle.decode(data['workflow'])
         # May have to decode the list and task objects separately
         tasks = [jsonpickle.decode(task) if isinstance(task, str) else task
@@ -113,7 +115,8 @@ class WFList(Resource):
         db.workflows.init_workflow(wf_id, wf_name, wf_dir)
 
         init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir,
-                            no_start, workflow=workflow, tasks=tasks)
+                            no_start, workflow=workflow, tasks=tasks,
+                            archive_workdir=archive_workdir)
 
         return make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)

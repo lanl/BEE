@@ -306,7 +306,9 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
            workdir: pathlib.Path = typer.Argument(...,
            help='working directory for workflow containing input + output files',),
            no_start: bool = typer.Option(False, '--no-start', '-n',
-                                         help='do not start the workflow')):
+                                         help='do not start the workflow'),
+           archive_workdir: bool = typer.Option(False, '--archive-workdir', '-a',
+                                                help='archive a copy of the workdir')):
     """Submit a new workflow."""
     def is_parent(parent, path):
         """Return true if the path is a child of the other path."""
@@ -376,6 +378,51 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     if os.path.commonpath([os.path.realpath('/var/tmp'), workdir]) == os.path.realpath('/var/tmp'):
         error_exit("Workflow working directory cannot be in \"/var/tmp\"")
 
+    # TODO: this should be in a function somewhere
+    total_size = 0
+    size_limit_mb = 1000
+    total_size_limit = size_limit_mb * 1024 ** 2
+    n_files = 0
+    n_files_limit = 10_000
+    n_dirs = 0
+    n_dirs_limit = 1000
+    reason = ''
+    # check the workdir isn't too large/contains too many things
+    for dirpath, dirnames, filenames in os.walk(workdir):
+        n_files += len(filenames)
+        if n_files > n_files_limit:
+            reason = f'Directory contains more than {n_files_limit} files'
+            break
+        n_dirs += len(dirnames)
+        if n_dirs > n_dirs_limit:
+            reason = f'Directory contains more than {n_dirs_limit} subdirectories'
+            break
+        for fname in filenames:
+            fp = os.path.join(dirpath, fname)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+                if total_size > total_size_limit:
+                    reason = f'Total file size of directory is greater than {size_limit_mb}MB'
+                    break
+        else:
+            continue
+        break
+
+    if len(reason) > 0 and archive_workdir:
+        archive_workdir = False
+        ans = input(f"""
+    ******************
+    **   WARNING    **
+    ******************
+    Are you sure you want to archive the workdir at:
+
+    {workdir}
+
+    {reason} [y/n]? """)
+        if ans.lower() in ("y", "yes"):
+            archive_workdir = True
+
     # TODO: Can all of this information be sent as a file?
     data = {
         'wf_name': wf_name.encode(),
@@ -384,6 +431,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         'workflow': jsonpickle.encode(workflow),
         'tasks': jsonpickle.encode(tasks, warn=True),
         'no_start': no_start,
+        'archive_workdir': archive_workdir,
     }
     files = {
         'workflow_archive': wf_tarball
