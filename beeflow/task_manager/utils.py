@@ -38,7 +38,8 @@ def worker_interface():
         'runner_opts': bc.get('task_manager', 'runner_opts'),
     }
     # Job defaults
-    for default_key in ['default_account', 'default_time_limit', 'default_partition']:
+    for default_key in ['default_account', 'default_time_limit', 'default_partition',
+                        'default_qos', 'default_reservation']:
         worker_kwargs[default_key] = bc.get('job', default_key)
     # Special slurm arguments
     if wls == 'Slurm':
