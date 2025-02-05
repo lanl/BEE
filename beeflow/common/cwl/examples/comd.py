@@ -26,7 +26,7 @@ def main():
                      outputs=[Output("comd_stdout", "File", source="comd/comd_stdout")],
                      hints=[
                         # The slurm requirement 
-                        Slurm(nodes=4, ntasks=8, account="xd"),
+                        Slurm(nodes=4, ntasks=8),
                         Charliecloud(container=container_path)
                      ])
     workflow = Workflow("comd", [comd_task])
