@@ -8,6 +8,8 @@ def main():
                base_command="cat",
                stdout="cat.txt",
                stderr="cat.err",
+               # Position is just where the argument is in the argument list
+               # So for this example it's cat lorem.txt
                inputs=[Input('input_file', 'File', "lorem.txt", position=1)],
                outputs=[Output('contents', 'stdout'),
                         Output('cat_stderr', 'stderr', source='cat/cat_stderr')])
@@ -16,6 +18,7 @@ def main():
                  base_command="grep",
                  stdout="occur0.txt",
                  inputs=[Input("word0", "string", "Vivamus", position=1),
+                         # This task takes the contents output from the previous task as input
                          Input('text_file', 'File', "cat/contents", position=2)],
                  outputs=[Output('occur', 'stdout')])
 
@@ -32,6 +35,7 @@ def main():
                inputs=[Input("tarball_fname", "string", "out.tgz", position=1, prefix='-cf'),
                        Input('file0', 'File', "grep0/occur", position=2),
                        Input('file1', 'File', "grep1/occur", position=3)],
+               # Glob is used to check the filename for the output
                outputs=[Output('tarball', 'File', glob="$(inputs.tarball_fname)",
                         source="tar/tarball")])
 
