@@ -27,9 +27,9 @@ def main():
                  outputs=[Output('occur', 'stdout')])
 
     tar = Task(name="tar",
-               base_command="grep",
+               base_command="tar",
                stdout="occur1.txt",
-               inputs=[Input("tarball_fname", "string", "tarball_fname", position=1, prefix='-cf'),
+               inputs=[Input("tarball_fname", "string", "out.tgz", position=1, prefix='-cf'),
                        Input('file0', 'File', "grep0/occur", position=2),
                        Input('file1', 'File', "grep1/occur", position=3)],
                outputs=[Output('tarball', 'File', glob="$(inputs.tarball_fname)",

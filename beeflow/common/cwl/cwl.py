@@ -350,26 +350,32 @@ class MPIRequirement:
 
 
 @dataclass
-class SchedulerRequirement:
+class SlurmRequirement:
     """Represents a beeflow custom MPI requirement."""
 
-    time_limit: int = None
     account: str = None
+    time_limit: int = None
     partition: str = None
+    qos: str = None
+    reservation: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
-        sched_dump = {'beeflow:SchedulerRequirement': {}}
-        if self.time_limit:
-            sched_dump['beeflow:SchedulerRequirement']['time_limit'] = self.time_limit
+        sched_dump = {'beeflow:SlurmRequirement': {}}
         if self.account:
-            sched_dump['beeflow:SchedulerRequirement']['account'] = self.account
+            sched_dump['beeflow:SlurmRequirement']['account'] = self.account
+        if self.time_limit:
+            sched_dump['beeflow:SlurmRequirement']['time_limit'] = self.time_limit
         if self.partition:
-            sched_dump['beeflow:SchedulerRequirement']['partition'] = self.partition
+            sched_dump['beeflow:SlurmRequirement']['partition'] = self.partition
+        if self.qos:
+            sched_dump['beeflow:SlurmRequirement']['qos'] = self.partition
+        if self.reservation:
+            sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
         return sched_dump
 
     def __repr__(self):
-        """Return MPIRequirement as a yaml string."""
+        """Return SlurmRequirement as a yaml string."""
         stream = StringIO()
         yaml.dump(self.dump(), stream)
         return stream.getvalue()

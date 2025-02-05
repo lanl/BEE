@@ -1,10 +1,11 @@
 """Workflow front end for CWL generator."""
+import re
 from dataclasses import dataclass
 
 from beeflow.common.cwl.cwl import (CWL, CWLInput, CWLInputs, RunInput, Inputs, CWLOutput,
                                     Outputs, Run, RunOutput, Step, Steps, Hints,
                                     InputBinding, MPIRequirement, DockerRequirement,
-                                    SchedulerRequirement)
+                                    SlurmRequirement)
 
 
 @dataclass
@@ -20,10 +21,14 @@ class Input:
     prefix: str = None
     position: int = None
     
+    pattern = re.compile(r"^[^/]+/[^/]$")
+
+    def has_source(self):
+        return bool(self.pattern.match(str(self.value)))
 
     def cwl_input(self):
         """Create a CWLInput from generic Input."""
-        if "/" not in str(self.value):
+        if not self.has_source():
             return CWLInput(self.name, self.type_, self.value)
         return None
 
@@ -31,8 +36,9 @@ class Input:
         """Create a RunInput from generic Input."""
         bindings = {'prefix': self.prefix, 'position': self.position}
         source = {}
-        if "/" in str(self.value):
+        if self.has_source():
             source.update({"source": self.value})
+
         return RunInput(self.name, self.type_, InputBinding(**bindings), **source)
 
 
@@ -74,24 +80,31 @@ class MPI:
 @dataclass
 class Slurm:
     """Slurm options."""
-    time_limit: int
     account: str
+    time_limit: int
     partition: str
+    qos: str
+    reservation: str
 
     def requirement(self):
         """Return a scheduler requirement object."""
-        return SchedulerRequirement(self.time_limit, self.account, self.partition)
+        return SlurmRequirement(self.time_limit, self.account, self.partition,
+                                self.qos, self.reservation)
 
 
 @dataclass
 class Charliecloud:
     """Represents charliecloud options."""
 
-    container: str
+    container: str = None
+    docker_file: str = None
+    container_name: str = None
 
     def requirement(self):
         """Return a charliecloud requirement object."""
-        return DockerRequirement(copy_container=self.container)
+        return DockerRequirement(copy_container=self.container,
+                                 docker_file=self.docker_file,
+                                 container_name=self.container_name)
 
 
 @dataclass
@@ -127,7 +140,7 @@ class Workflow:
         step_name = task.name
 
         if task.hints:
-            step_hints = [hint.requirement() for hint in task.hints]
+            step_hints = Hints([hint.requirement() for hint in task.hints])
             step = Step(step_name, step_run, step_hints)
         else:
             step = Step(step_name, step_run)
