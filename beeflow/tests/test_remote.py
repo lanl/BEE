@@ -1,14 +1,15 @@
+"""Beeflow REST API tests."""
 import pathlib
 from fastapi.testclient import TestClient
-import pytest
 
 from beeflow.remote.remote import app
-from beeflow.common import paths 
+from beeflow.common import paths
 
 client = TestClient(app)
 
 
 def test_read_root():
+    """Test the root endpoint of the FastAPI app."""
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {
@@ -17,12 +18,13 @@ def test_read_root():
 
 
 def test_get_drop_point():
+    """Test the `/droppoint` endpoint."""
     response = client.get("/droppoint")
     assert response.status_code == 200
-    
+
     expected_droppoint = str(paths.droppoint_root())
     response_json = response.json()
-    
+
     assert "droppoint" in response_json  # Ensure the key exists
     assert response_json["droppoint"] == expected_droppoint  # Validate the path matches
 
@@ -38,6 +40,7 @@ def test_get_owner(monkeypatch):
 
 
 def test_submit_new_wf_long(mocker):
+    """Test the /submit_long endpoint."""
     mocker.patch("beeflow.common.paths.droppoint_root", return_value="/mock/droppoint")
     mocker.patch("os.path.exists", return_value=True)
 
@@ -67,7 +70,7 @@ def test_submit_new_wf_long(mocker):
 
 
 def test_get_core_status(mocker):
-    """Test successful retrieval of BEEflow core status."""
+    """Test the /core/status/ endpoint."""
     mocker.patch("beeflow.common.paths.beeflow_socket", return_value="/mock/socket")
 
     # Mocked response from the daemon

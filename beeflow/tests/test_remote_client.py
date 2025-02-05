@@ -1,6 +1,5 @@
-import pathlib
+"""Tests for the remote cli commands."""
 import subprocess
-import pytest
 from typer.testing import CliRunner
 
 from beeflow.client.remote_client import app
@@ -22,8 +21,9 @@ def test_connection_success(mocker):
     result = runner.invoke(app, ["connection", "ssh_target"])
 
     assert result.exit_code == 0
-    assert '{"Endpoint info": "BEEflow core API: Documentation '
-    '- https://lanl.github.io/BEE/"}' in result.output
+    expected_output = '{"Endpoint info": "BEEflow core API: Documentation ' \
+                      '- https://lanl.github.io/BEE/"}'
+    assert expected_output in result.output
 
 
 def test_droppoint_success(mocker):
@@ -35,7 +35,8 @@ def test_droppoint_success(mocker):
 
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = subprocess.CompletedProcess(
-        args=["curl", "ssh_target:1234/droppoint"], returncode=0, stdout="droppoint_location", stderr=""
+        args=["curl", "ssh_target:1234/droppoint"], returncode=0,
+        stdout="droppoint_location", stderr=""
     )
 
     result = runner.invoke(app, ["droppoint", "ssh_target"])
@@ -54,8 +55,10 @@ def test_copy_file_success(mocker):
 
     # Mock the first subprocess.run call to return a valid droppoint
     mock_droppoint.side_effect = [
-        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"], returncode=0, stdout="remote:/path/to/droppoint\n"),
-        subprocess.CompletedProcess(args=["scp", "testfile.txt", "remote:/path/to/droppoint"], returncode=0)
+        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"],
+            returncode=0, stdout="remote:/path/to/droppoint\n"),
+        subprocess.CompletedProcess(args=["scp", "testfile.txt", "remote:/path/to/droppoint"],
+            returncode=0)
     ]
 
     mocker.patch("pathlib.Path.is_dir", return_value=False)
@@ -86,8 +89,10 @@ def test_copy_directory_success(mocker):
 
     # Mock subprocess responses
     mock_droppoint.side_effect = [
-        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"], returncode=0, stdout="remote:/path/to/droppoint\n"),
-        subprocess.CompletedProcess(args=["scp", "-r", "testdir", "remote:/path/to/droppoint"], returncode=0)
+        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"],
+            returncode=0, stdout="remote:/path/to/droppoint\n"),
+        subprocess.CompletedProcess(args=["scp", "-r", "testdir", "remote:/path/to/droppoint"],
+            returncode=0)
     ]
 
     mocker.patch("pathlib.Path.is_dir", return_value=True)
@@ -114,7 +119,7 @@ def test_copy_directory_success(mocker):
 
 def test_copy_droppoint_fetch_fail(mocker):
     """Test failure when fetching droppoint fails."""
-    mock_droppoint = mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "jq"))
+    mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "jq"))
 
     result = runner.invoke(app, ["copy", "testfile.txt"])
 
@@ -127,11 +132,13 @@ def test_copy_scp_fail(mocker):
 
     # First subprocess call succeeds (droppoint lookup)
     mock_droppoint.side_effect = [
-        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"], returncode=0, stdout="remote:/path/to/droppoint\n"),
+        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"],
+            returncode=0, stdout="remote:/path/to/droppoint\n"),
         subprocess.CalledProcessError(1, "scp")  # Simulate scp failure
     ]
 
     result = runner.invoke(app, ["copy", "testfile.txt"])
+    assert result.exit_code != 0
 
 
 def test_submit_success(mocker):
@@ -144,7 +151,8 @@ def test_submit_success(mocker):
         returncode=0
     )
 
-    result = runner.invoke(app, ["submit", "ssh_target", "workflow", "tarball", "main.cwl", "job.yaml"])
+    result = runner.invoke(app,
+            ["submit", "ssh_target", "workflow", "tarball", "main.cwl", "job.yaml"])
 
     assert result.exit_code == 0  # Ensure the command succeeds
     mock_run.assert_called_once_with(
@@ -159,7 +167,8 @@ def test_submit_failure(mocker):
 
     mock_run = mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "curl"))
 
-    result = runner.invoke(app, ["submit", "ssh_target", "workflow", "tarball", "main.cwl", "job.yaml"])
+    result = runner.invoke(app,
+            ["submit", "ssh_target", "workflow", "tarball", "main.cwl", "job.yaml"])
 
     assert result.exit_code != 0  # Ensure the command fails
     mock_run.assert_called_once_with(
