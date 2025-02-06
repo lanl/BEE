@@ -88,8 +88,8 @@ class Slurm:
 
     def requirement(self):
         """Return a scheduler requirement object."""
-        return SlurmRequirement(self.time_limit, self.account, self.partition,
-                                self.qos, self.reservation)
+        return SlurmRequirement(time_limit=self.time_limit, account=self.account, partition=self.partition,
+                                qos=self.qos, reservation=self.reservation)
 
 
 @dataclass

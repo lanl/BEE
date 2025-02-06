@@ -1,14 +1,13 @@
 """COMD driver for CWL generator."""
 import pathlib
-from beeflow.common.cwl.workflow import Task, Input, Output, MPI, Charliecloud, Workflow
+from beeflow.common.cwl.workflow import Task, Input, Output, MPI, Charliecloud, Workflow, Slurm
 
 
 def main():
     """Recreate the COMD workflow."""
-    container_path = "/usr/projects/beedev/mpi/comd-x86_64.tgz"
     # Specifies the comd task
     comd_task = Task(name="comd",
-                     base_command='"[/CoMD/bin/CoMD-mpi, "-e"]"',
+                     base_command="/CoMD/bin/CoMD-mpi -e",
                      stdout="comd.txt",
                      stderr="comd.err",
                      # list of Input objects
@@ -26,8 +25,12 @@ def main():
                      outputs=[Output("comd_stdout", "File", source="comd/comd_stdout")],
                      hints=[
                         # The slurm requirement 
-                        Slurm(nodes=4, ntasks=8),
-                        Charliecloud(container=container_path)
+                        MPI(nodes=4, ntasks=8),
+                        # Example of slurm options
+                        #Slurm(account="standard", time_limit=60, partition="standard",
+                        #      qos="debug", reservation="standard"),
+                        Slurm(time_limit=500),
+                        Charliecloud(docker_file="Dockerfile.comd-x86_64", container_name="comd-mpi")
                      ])
     workflow = Workflow("comd", [comd_task])
     workflow.write_wf("comd")
