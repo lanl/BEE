@@ -1,6 +1,18 @@
 """Create and manage CWL files."""
 from dataclasses import dataclass
-import yaml
+from io import StringIO
+import ruamel.yaml
+
+# Create the global object for ruamel.ymal
+yaml = ruamel.yaml.YAML()
+
+
+def convert_flow_list(lst):
+    """Convert list into flow-style (default is block style)"""
+    from ruamel.yaml.comments import CommentedSeq # noqa
+    seq = CommentedSeq(lst)
+    seq.fa.set_flow_style()
+    return seq
 
 
 @dataclass
@@ -12,11 +24,13 @@ class Header:
 
     def dump(self):
         """Dump CWL header dictionary."""
-        return {'class': self.class_type, 'cwlVersion': self.cwl_version}
+        return {'cwlVersion': self.cwl_version, 'class': self.class_type}
 
     def __repr__(self):
         """Return CWL header as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
@@ -40,7 +54,9 @@ class Input:
 
         input_name: input_type
         """
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
@@ -71,7 +87,9 @@ class InputBinding:
 
         input_name: input_type
         """
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
@@ -101,9 +119,11 @@ class RunInput(Input):
 
         input_name: input_type
         """
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
-
+@dataclass
 class Inputs:
     """Represents CWL or Run inputs for a workflow."""
 
@@ -127,11 +147,15 @@ class Inputs:
 
     def __repr__(self):
         """Return Inputs as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
+class RunInputs(Inputs):
+    """Represents run inputs."""
 
 class CWLInputs(Inputs):
-    """CWLInputs is different just so we can generate the YAML file."""
+    """CWLInputs is used to generate the YAML file."""
 
     def generate_yaml_inputs(self):
         """Return a dictionary that will be used to create job yaml file."""
@@ -159,12 +183,15 @@ class Output:
 
     def __repr__(self):
         """Return Output as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
 class OutputBinding:
-    """Represents a CWL input binding."""
+    """Represents a CWL output binding."""
 
     prefix: str = None
     position: int = None
@@ -183,16 +210,14 @@ class OutputBinding:
 
         output_name: output_type
         """
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
 class RunOutput(Output):
     """Represents a Run output as opposed to a CWL output.
-
-    InputBinding can either be:
-         prefix: <-j>
-         {}
     """
 
     output_binding: OutputBinding = None
@@ -201,20 +226,18 @@ class RunOutput(Output):
         """Dump returns dictionary that will be used by pyyaml dump."""
         if not self.output_binding:
             return super().dump()
-        outputs_dumps = [{'type': self.output_type},
-                         self.output_binding.dump()]
-        outputs_dict = {}
-        for dump in outputs_dumps:
-            outputs_dict.update(dump)
-        inputs_yaml = {self.output_name: outputs_dict}
-        return inputs_yaml
+        output_yaml = {self.output_name: {'type': self.output_type,
+                       'outputBinding': {'glob': self.output_binding}}}
+        return output_yaml
 
     def __repr__(self):
         """Representation of an input.
 
         input_name: input_type
         """
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
@@ -239,9 +262,12 @@ class CWLOutput(Output):
 
     def __repr__(self):
         """Return CWLOutput as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
+@dataclass
 class Outputs:
     """Represents outputs for a workflow."""
 
@@ -263,8 +289,12 @@ class Outputs:
 
     def __repr__(self):
         """Return Outputs as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
+class CWLOutputs(Outputs):
+    """Represents list of CWL outputs"""
 
 @dataclass
 class DockerRequirement:
@@ -296,7 +326,9 @@ class DockerRequirement:
 
     def __repr__(self):
         """Return DockerRequirement as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
@@ -317,7 +349,41 @@ class MPIRequirement:
 
     def __repr__(self):
         """Return MPIRequirement as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
+
+
+@dataclass
+class SlurmRequirement:
+    """Represents a beeflow custom MPI requirement."""
+
+    account: str = None
+    time_limit: int = None
+    partition: str = None
+    qos: str = None
+    reservation: str = None
+
+    def dump(self):
+        """Dump MPI requirement to dictionary."""
+        sched_dump = {'beeflow:SlurmRequirement': {}}
+        if self.account:
+            sched_dump['beeflow:SlurmRequirement']['account'] = self.account
+        if self.time_limit:
+            sched_dump['beeflow:SlurmRequirement']['time_limit'] = self.time_limit
+        if self.partition:
+            sched_dump['beeflow:SlurmRequirement']['partition'] = self.partition
+        if self.qos:
+            sched_dump['beeflow:SlurmRequirement']['qos'] = self.partition
+        if self.reservation:
+            sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
+        return sched_dump
+
+    def __repr__(self):
+        """Return SlurmRequirement as a yaml string."""
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
@@ -345,7 +411,9 @@ class CheckpointRequirement:
 
     def __repr__(self):
         """Return CheckpointRequirement as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
@@ -371,34 +439,29 @@ class ScriptRequirement:
 
     def __repr__(self):
         """Return ScriptRequirement as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 @dataclass
 class Hints:
     """Holds all the hints for a CWL workflow."""
 
-    mpi_requirement: MPIRequirement = None
-    docker_requirement: DockerRequirement = None
-    script_requirement: ScriptRequirement = None
-    checkpoint_requirement: CheckpointRequirement = None
+    hints: list
 
     def dump(self):
         """Dump hints to a dictionary."""
         hints_dump = {'hints': {}}
-        if self.mpi_requirement:
-            hints_dump['hints'].update(self.mpi_requirement.dump())
-        if self.docker_requirement:
-            hints_dump['hints'].update(self.docker_requirement.dump())
-        if self.script_requirement:
-            hints_dump['hints'].update(self.script_requirement.dump())
-        if self.checkpoint_requirement:
-            hints_dump['hints'].update(self.checkpoint_requirement.dump())
+        for hint in self.hints:
+            hints_dump['hints'].update(hint.dump())
         return hints_dump
 
     def __repr__(self):
         """Return Hint as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 class Run:
@@ -453,13 +516,16 @@ class Run:
         This is the same as the in section, but it does require that
         the outputs are a list to produce the proper CWL.
         """
-        out_keys = list(self.outputs.dump()['outputs'].keys())
+        # Need to get a flow style YML list to match the CWL spec
+        out_keys = convert_flow_list(list(self.outputs.dump()['outputs'].keys()))
         out_ = {'out': out_keys}
         return out_
 
     def __repr__(self):
         """Return Run as a yaml string."""
-        return yaml.dump(self.dump(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 class Step:
@@ -485,7 +551,10 @@ class Step:
 
     def __repr__(self):
         """Return CWL step as a string."""
-        return yaml.dump(self.dump(), default_flow_style=None, sort_keys=False)
+        # return yaml.dump(self.dump(), default_flow_style=None, sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 class Steps:
@@ -504,7 +573,10 @@ class Steps:
 
     def __repr__(self):
         """Dump the CWL steps."""
-        return yaml.dump(self.dump(), default_flow_style=None, sort_keys=False)
+        # return yaml.dump(self.dump(), default_flow_style=None, sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
 
 
 class CWL:
@@ -520,21 +592,31 @@ class CWL:
 
     def dump_wf(self, path=None):
         """Dump the workflow. If no path is specified print to stdout."""
-        cwl_dump = {}
+        cwl_dump = ruamel.yaml.comments.CommentedMap()
+        # cwl_dump = {}
+        cwl_dump.update(self.header.dump())
         cwl_dump.update(self.header.dump())
         cwl_dump.update(self.inputs.dump())
         cwl_dump.update(self.outputs.dump())
         cwl_dump.update(self.steps.dump())
-        wf_contents = yaml.dump(cwl_dump, sort_keys=False)
+        cwl_dump.yaml_set_comment_before_after_key('inputs', before='\n')
+        cwl_dump.yaml_set_comment_before_after_key('outputs', before='\n')
+        cwl_dump.yaml_set_comment_before_after_key('steps', before='\n')
+        stream = StringIO()
+        yaml.dump(cwl_dump, stream)
+        wf_contents = stream.getvalue()
         if path:
             with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
+        else:
+            print(wf_contents)
         return wf_contents
 
     def dump_inputs(self, path=None):
         """Dump YAML inputs."""
-        yaml_contents = yaml.dump(self.inputs.generate_yaml_inputs(),
-                                  sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.inputs.generate_yaml_inputs(), stream)
+        yaml_contents = stream.getvalue()
         if path:
             with open(f"{path}/{self.cwl_name}.yml", "w", encoding="utf-8") as yaml_file:
                 print(yaml_contents, file=yaml_file)
@@ -542,4 +624,6 @@ class CWL:
 
     def __repr__(self):
         """Return CWL file as a string."""
-        return yaml.dump(self.dump_wf(), sort_keys=False)
+        stream = StringIO()
+        yaml.dump(self.dump_wf(), stream)
+        return stream.getvalue()
