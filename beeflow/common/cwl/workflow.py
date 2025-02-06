@@ -21,7 +21,7 @@ class Input:
     prefix: str = None
     position: int = None
     
-    pattern = re.compile(r"^[^/]+/[^/]$")
+    pattern = re.compile(r"^[^/]+/[^/]+$")
 
     def has_source(self):
         return bool(self.pattern.match(str(self.value)))
@@ -80,11 +80,11 @@ class MPI:
 @dataclass
 class Slurm:
     """Slurm options."""
-    account: str
-    time_limit: int
-    partition: str
-    qos: str
-    reservation: str
+    account: str = None
+    time_limit: int = None
+    partition: str = None
+    qos: str = None
+    reservation: str = None
 
     def requirement(self):
         """Return a scheduler requirement object."""
