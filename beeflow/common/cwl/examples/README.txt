@@ -26,4 +26,12 @@ An actual workflow consists of a workflow name followed by of list of Task objec
 The write_wf and write_yaml methods on the workflow object write the CWL and YAML file to the specified directory. 
 In CMF, this will be the experiment directory. 
 
-To run the cat_grep_tar.py example, simply `mkdir cat-grep-tar` then run the file. 
+Running an example:
+To run the cat-grep-tar example, copy the cat_grep_tar.py and the lorem.txt files into a working directory. Start beeflow: `beeflow core start` and if you like after a brief pause verify it is running: `beeflow core status`. Create the cat-grep-tar directory: `mkdir cat-grep-tar`
+Run the python script: `python3 cat_grep_tar.py`. This will create the cwl and yml input files in the cat-grep-tar directory.
+
+Sumbit the workflow:
+`beeflow submit cgt-example cat-grep-tar cat-grep-tar/cat-grep-tar.cwl cat-grep-tar/cat-grep-tar.yml`
+
+beeflow will give you a short workflow id. You can query the status by issuing: `beeflow query <workflow-id>`.
+
