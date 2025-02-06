@@ -123,7 +123,7 @@ class RunInput(Input):
         yaml.dump(self.dump(), stream)
         return stream.getvalue()
 
-
+@dataclass
 class Inputs:
     """Represents CWL or Run inputs for a workflow."""
 
@@ -151,9 +151,11 @@ class Inputs:
         yaml.dump(self.dump(), stream)
         return stream.getvalue()
 
+class RunInputs(Inputs):
+    """Represents run inputs."""
 
 class CWLInputs(Inputs):
-    """CWLInputs is different just so we can generate the YAML file."""
+    """CWLInputs is used to generate the YAML file."""
 
     def generate_yaml_inputs(self):
         """Return a dictionary that will be used to create job yaml file."""
@@ -265,6 +267,7 @@ class CWLOutput(Output):
         return stream.getvalue()
 
 
+@dataclass
 class Outputs:
     """Represents outputs for a workflow."""
 
@@ -290,6 +293,8 @@ class Outputs:
         yaml.dump(self.dump(), stream)
         return stream.getvalue()
 
+class CWLOutputs(Outputs):
+    """Represents list of CWL outputs"""
 
 @dataclass
 class DockerRequirement:
@@ -603,6 +608,8 @@ class CWL:
         if path:
             with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
+        else:
+            print(wf_contents)
         return wf_contents
 
     def dump_inputs(self, path=None):
