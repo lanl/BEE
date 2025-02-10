@@ -8,10 +8,18 @@ copying files to the droppoint, and submitting the workflow to the client.
 """
 import subprocess
 import pathlib
+import sys
+import os
+import json
 
 import typer
 
 from beeflow.common.config_driver import BeeConfig as bc
+
+
+def warn(*pargs):
+    """Print a red warning message."""
+    typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
 
 
 def remote_port_val():
@@ -26,40 +34,86 @@ app = typer.Typer(no_args_is_help=True)
 def connection(ssh_target: str = typer.Argument(..., help='the target to ssh to')):
     """Check the connection to Beeflow client via REST API."""
     port = remote_port_val()
-    result = subprocess.run(["curl", f"{ssh_target}:{port}/"], stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, text=True, check=True)
-    if result.returncode == 0:
+    try:
+        result = subprocess.run(
+            ["curl", f"{ssh_target}:{port}/"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
         print(result.stdout)
-    else:
-        print(f"Error: {result.stderr}")
+    except subprocess.CalledProcessError:
+        warn(f'Connection to {ssh_target}:{port} failed.')
+        sys.exit(1)
+    except Exception as err:
+        warn(f'Unexpected error: {err}')
+        sys.exit(1)
 
 
 @app.command()
 def droppoint(ssh_target: str = typer.Argument(..., help='the target to ssh to')):
     """Request drop point location on remote machine via Beeflow client REST API."""
     port = remote_port_val()
-    with open('droppoint.env', 'w', encoding='utf-8') as output_file:
-        subprocess.run(["curl", f"{ssh_target}:{port}/droppoint"], stdout=output_file, check=True)
+    try:
+        result = subprocess.run(
+            ["curl", f"{ssh_target}:{port}/droppoint"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+
+        with open('droppoint.env', 'w', encoding='utf-8') as output_file:
+            output_file.write(result.stdout)
+        print("Droppoint information saved to droppoint.env")
+
+    except subprocess.CalledProcessError:
+        warn(f'Failed to retrieve droppoint from {ssh_target}:{port}.'
+             ' Check connection to beeflow.')
+        sys.exit(1)
+
+    except Exception as err:
+        warn(f'Unexpected error: {err}')
+        sys.exit(1)
 
 
 @app.command()
 def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to droppoint")):
     """Copy path to droppoint."""
-    droppoint_result = subprocess.run(
-        ["jq", "-r", ".droppoint", "droppoint.env"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=True
-    )
+    if not file_path.exists():
+        warn(f'Error: File or directory {file_path} does not exist.')
+        sys.exit(1)
 
-    droppoint_path = droppoint_result.stdout.strip()
-    print(f"Copying {str(file_path)} to {droppoint_path}")
+    try:
+        droppoint_result = subprocess.run(
+            ["jq", "-r", ".droppoint", "droppoint.env"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        droppoint_path = droppoint_result.stdout.strip()
+        os.makedirs(droppoint_path, exist_ok=True)
 
-    if file_path.is_dir():
-        subprocess.run(["scp", "-r", str(file_path), droppoint_path], check=True)
-    else:
-        subprocess.run(["scp", str(file_path), droppoint_path], check=True)
+        if not droppoint_path:
+            warn('Error: Could not retrieve droppoint location.')
+            sys.exit(1)
+
+        print(f"Copying {str(file_path)} to {droppoint_path}")
+
+        if file_path.is_dir():
+            subprocess.run(["scp", "-r", str(file_path), droppoint_path], check=True)
+        else:
+            subprocess.run(["scp", str(file_path), droppoint_path], check=True)
+
+        print("Copy successful.")
+    except subprocess.CalledProcessError as err:
+        warn(f'Error copying file: {err.stderr}')
+        sys.exit(1)
+    except Exception as err:
+        warn(f'Unexpected error: {err}')
+        sys.exit(1)
 
 
 @app.command()
@@ -70,10 +124,35 @@ def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
            job_file: str = typer.Argument(..., help='filename of yaml file')):
     """Submit the workflow to Beeflow client."""
     port = remote_port_val()
-    subprocess.run(
-        [
-            "curl",
-            f"{ssh_target}:{port}/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}"
-        ],
-        check=True
-    )
+    try:
+        result = subprocess.run(
+            [
+                "curl",
+                f"{ssh_target}:{port}/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}"
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        response = result.stdout.strip()
+
+        try:
+            response_json = json.loads(response)
+        except json.JSONDecodeError:
+            warn(f'Unexpected response from API: {response}')
+            sys.exit(1)
+
+        # Check if API response contains an error
+        if "error" in response_json:
+            warn(f"Error submitting workflow: {response_json['error']}")
+            sys.exit(1)
+
+        print(response_json.get('result'))
+
+    except subprocess.CalledProcessError as err:
+        warn(f'Failed to submit workflow. Error: {err.stderr}')
+        sys.exit(1)
+    except Exception as err:
+        warn(f'Unexpected error: {err}')
+        sys.exit(1)
