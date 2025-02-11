@@ -11,6 +11,7 @@ runner = CliRunner()  # Initialize the Typer test runner
 
 def test_connection_success(mocker):
     """Test CLI connection command when the API call succeeds."""
+    mocker.patch("beeflow.client.remote_client.remote_port_val", return_value="1234")
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = subprocess.CompletedProcess(
         args=["curl", "ssh_target:1234/"], returncode=0,
@@ -25,6 +26,23 @@ def test_connection_success(mocker):
     expected_output = '{"Endpoint info": "BEEflow core API: Documentation ' \
                       '- https://lanl.github.io/BEE/"}'
     assert expected_output in result.output
+
+
+def test_connection_failure(mocker):
+    """Test CLI connection command when the API call fails."""
+    mocker.patch("beeflow.client.remote_client.remote_port_val", return_value="1234")
+    mock_run = mocker.patch("subprocess.run")
+    
+    # Simulate a failed subprocess run
+    mock_run.side_effect = subprocess.CalledProcessError(
+        returncode=1, cmd=["curl", "ssh_target:1234/"], stderr="Connection failed"
+    )
+
+    result = runner.invoke(app, ["connection", "ssh_target"])
+
+    assert result.exit_code == 1
+    assert "Connection to ssh_target:1234 failed." in result.output
+
 
 
 def test_droppoint_success(mocker):
@@ -52,6 +70,20 @@ def test_droppoint_success(mocker):
         text=True, 
         check=True
     )
+
+
+def test_droppoint_failure(mocker):
+    """Test CLI droppoint command when the API call fails."""
+    mocker.patch("beeflow.client.remote_client.remote_port_val", return_value="1234")
+    mock_file = mocker.mock_open()
+    mocker.patch("builtins.open", mock_file)
+
+    mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "curl"))
+    result = runner.invoke(app, ["droppoint", "ssh_target"])
+
+    assert result.exit_code != 0
+    assert "Failed to retrieve droppoint from ssh_target:1234. Check connection to beeflow." in result.output
+
 
 
 def test_copy_file_success(mocker):
@@ -130,7 +162,7 @@ def test_copy_droppoint_fetch_fail(mocker):
 
     result = runner.invoke(app, ["copy", "testfile.txt"])
 
-    assert result.exit_code != 0  # Ensure it fails
+    assert result.exit_code != 0
 
 
 def test_copy_scp_fail(mocker):
@@ -161,7 +193,7 @@ def test_submit_success(mocker):
     result = runner.invoke(app,
             ["submit", "ssh_target", "workflow", "tarball", "main.cwl", "job.yaml"])
 
-    assert result.exit_code == 0  # Ensure the command succeeds
+    assert result.exit_code == 0
     mock_run.assert_called_once_with(
         ["curl", "ssh_target:1234/submit_long/workflow/tarball/main.cwl/job.yaml"],
         stdout=subprocess.PIPE,
@@ -180,7 +212,7 @@ def test_submit_failure(mocker):
     result = runner.invoke(app,
             ["submit", "ssh_target", "workflow", "tarball", "main.cwl", "job.yaml"])
 
-    assert result.exit_code != 0  # Ensure the command fails
+    assert result.exit_code != 0
     mock_run.assert_called_once_with(
         ["curl", "ssh_target:1234/submit_long/workflow/tarball/main.cwl/job.yaml"],
         stdout=subprocess.PIPE,
