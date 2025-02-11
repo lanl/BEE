@@ -1,5 +1,6 @@
 """Tests for the remote cli commands."""
 import subprocess
+import json
 from typer.testing import CliRunner
 
 from beeflow.client.remote_client import app
@@ -45,12 +46,17 @@ def test_droppoint_success(mocker):
 
     mock_file.assert_called_once_with('droppoint.env', 'w', encoding='utf-8')
     mock_run.assert_called_once_with(
-        ["curl", "ssh_target:1234/droppoint"], stdout=mock_file(), check=True
+        ["curl", "ssh_target:1234/droppoint"], 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.PIPE, 
+        text=True, 
+        check=True
     )
 
 
 def test_copy_file_success(mocker):
     """Test copying a file to the droppoint successfully."""
+    mocker.patch("pathlib.Path.exists", return_value=True)
     mock_droppoint = mocker.patch("subprocess.run")
 
     # Mock the first subprocess.run call to return a valid droppoint
@@ -85,6 +91,7 @@ def test_copy_file_success(mocker):
 
 def test_copy_directory_success(mocker):
     """Test copying a directory to the droppoint successfully."""
+    mocker.patch("pathlib.Path.exists", return_value=True)
     mock_droppoint = mocker.patch("subprocess.run")
 
     # Mock subprocess responses
@@ -148,7 +155,7 @@ def test_submit_success(mocker):
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = subprocess.CompletedProcess(
         args=["curl", "ssh_target:1234/submit_long/workflow/tarball/main.cwl/job.yaml"],
-        returncode=0
+        returncode=0, stdout=json.dumps({"result": "Submitted new workflow test"}), stderr=""
     )
 
     result = runner.invoke(app,
@@ -157,6 +164,9 @@ def test_submit_success(mocker):
     assert result.exit_code == 0  # Ensure the command succeeds
     mock_run.assert_called_once_with(
         ["curl", "ssh_target:1234/submit_long/workflow/tarball/main.cwl/job.yaml"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
         check=True
     )
 
@@ -173,5 +183,8 @@ def test_submit_failure(mocker):
     assert result.exit_code != 0  # Ensure the command fails
     mock_run.assert_called_once_with(
         ["curl", "ssh_target:1234/submit_long/workflow/tarball/main.cwl/job.yaml"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
         check=True
     )
