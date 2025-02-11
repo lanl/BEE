@@ -154,25 +154,29 @@ filenames, the ``restart parameter`` will be added to the run command followed
 by the path to the latest checkpoint file, and ``num_tries`` specifies the maximum
 number of times the task will be restarted.
 
-beeflow:SchedulerRequirement
+beeflow:SlurmRequirement
 ----------------------------
 
 This requirement is designed for specifying additional information that will be
-passed to a scheduler such as Slurm on job submission. It currently supports
-the following options:
+passed to the Slurm scheduler during job submission. Each of the options can be 
+set in the configuration file bee.conf under the ``job`` section to use for all
+workflows. Setting any beeflow:SlurmRequirement in the CWL file will override the 
+setting in bee.conf. Current options supported are:
 
+* ``account`` - account name to run the job with (often used for charging).
+* ``partition`` - partition to launch job on.
+* ``qos`` - quality of service to use.
+* ``reservation`` - reservation to use to launch job.
 * ``timeLimit`` - time limit for the job in the format that Slurm uses currently.
-* ``account`` - may be useful if running jobs with different accounts (if you
-  want to run all workflows with the same account it's best to set this with
-  the ``default_account`` option under the ``job`` section in the bee.conf file).
-* ``partition`` - partition to launch job with.
 
 An example is shown below::
 
     beeflow:SchedulerRequirement:
       timeLimit: 00:00:10
       account: account12345
-      partition: scaling
+      partition: partition-a
+      qos: long
+      reservation: reservation-a 
 
 beeflow:ScriptRequirement
 -------------------------

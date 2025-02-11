@@ -137,7 +137,6 @@ def find_free_port(start_port=1024, end_port=65535, host='127.0.0.1'):
 
 def create_app():
     """Start the web-server for the API with uvicorn."""
-    # decide what port we're using for the long term. I set it to port 7777 temporarily
 
     port_number = bc.get('DEFAULT', 'remote_api_port')
     if is_port_taken(port_number) is True:
