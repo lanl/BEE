@@ -58,7 +58,7 @@ def test_submit_new_wf_long(mocker):
 
     # Assertions
     assert response.status_code == 200
-    assert response.json() == {"result": "Submitted new workflow" + wf_name}
+    assert response.json() == {"result": "Submitted new workflow " + wf_name}
     mock_submit.assert_called_once_with(
         wf_name,
         pathlib.Path("/mock/droppoint/test_workflow.tgz"),
