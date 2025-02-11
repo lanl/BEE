@@ -32,7 +32,7 @@ def test_connection_failure(mocker):
     """Test CLI connection command when the API call fails."""
     mocker.patch("beeflow.client.remote_client.remote_port_val", return_value="1234")
     mock_run = mocker.patch("subprocess.run")
-    
+
     # Simulate a failed subprocess run
     mock_run.side_effect = subprocess.CalledProcessError(
         returncode=1, cmd=["curl", "ssh_target:1234/"], stderr="Connection failed"
@@ -64,10 +64,10 @@ def test_droppoint_success(mocker):
 
     mock_file.assert_called_once_with('droppoint.env', 'w', encoding='utf-8')
     mock_run.assert_called_once_with(
-        ["curl", "ssh_target:1234/droppoint"], 
-        stdout=subprocess.PIPE, 
-        stderr=subprocess.PIPE, 
-        text=True, 
+        ["curl", "ssh_target:1234/droppoint"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
         check=True
     )
 
@@ -82,8 +82,9 @@ def test_droppoint_failure(mocker):
     result = runner.invoke(app, ["droppoint", "ssh_target"])
 
     assert result.exit_code != 0
-    assert "Failed to retrieve droppoint from ssh_target:1234. Check connection to beeflow." in result.output
-
+    expected_output = 'Failed to retrieve droppoint from ssh_target:1234. ' \
+                      'Check connection to beeflow.'
+    assert expected_output in result.output
 
 
 def test_copy_file_success(mocker):

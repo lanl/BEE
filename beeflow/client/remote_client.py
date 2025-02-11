@@ -46,9 +46,6 @@ def connection(ssh_target: str = typer.Argument(..., help='the target to ssh to'
     except subprocess.CalledProcessError:
         warn(f'Connection to {ssh_target}:{port} failed.')
         sys.exit(1)
-    except Exception as err:
-        warn(f'Unexpected error: {err}')
-        sys.exit(1)
 
 
 @app.command()
@@ -71,10 +68,6 @@ def droppoint(ssh_target: str = typer.Argument(..., help='the target to ssh to')
     except subprocess.CalledProcessError:
         warn(f'Failed to retrieve droppoint from {ssh_target}:{port}.'
              ' Check connection to beeflow.')
-        sys.exit(1)
-
-    except Exception as err:
-        warn(f'Unexpected error: {err}')
         sys.exit(1)
 
 
@@ -111,16 +104,13 @@ def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to dro
     except subprocess.CalledProcessError as err:
         warn(f'Error copying file: {err.stderr}')
         sys.exit(1)
-    except Exception as err:
-        warn(f'Unexpected error: {err}')
-        sys.exit(1)
 
 
 @app.command()
 def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
            wf_name: str = typer.Argument(..., help='the workflow name'),
            tarball_name: str = typer.Argument(..., help='the tarball name'),
-           main_cwl_file: str = typer.Argument(..., help='filename of main CWL'),
+           main_cwl: str = typer.Argument(..., help='filename of main CWL'),
            job_file: str = typer.Argument(..., help='filename of yaml file')):
     """Submit the workflow to Beeflow client."""
     port = remote_port_val()
@@ -128,7 +118,7 @@ def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
         result = subprocess.run(
             [
                 "curl",
-                f"{ssh_target}:{port}/submit_long/{wf_name}/{tarball_name}/{main_cwl_file}/{job_file}"
+                f"{ssh_target}:{port}/submit_long/{wf_name}/{tarball_name}/{main_cwl}/{job_file}"
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -152,7 +142,4 @@ def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
 
     except subprocess.CalledProcessError as err:
         warn(f'Failed to submit workflow. Error: {err.stderr}')
-        sys.exit(1)
-    except Exception as err:
-        warn(f'Unexpected error: {err}')
         sys.exit(1)
