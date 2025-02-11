@@ -1,6 +1,7 @@
 """COMD driver for CWL generator."""
 import pathlib
-from beeflow.common.cwl.workflow import Task, Input, Output, MPI, Charliecloud, Workflow, Slurm
+from beeflow.common.cwl.workflow import (Task, Input, Output, MPI, Charliecloud,
+                                         Workflow, Slurm, Script)
 
 
 def main():
@@ -27,8 +28,9 @@ def main():
                         # The slurm requirement 
                         MPI(nodes=4, ntasks=8),
                         # Example of slurm options
-                        #Slurm(account="standard", time_limit=60, partition="standard",
+                        # Slurm(account="standard", time_limit=60, partition="standard",
                         #      qos="debug", reservation="standard"),
+                        Script(pre_script="comd_pre.sh"),
                         Slurm(time_limit=500),
                         Charliecloud(docker_file="Dockerfile.comd-x86_64", container_name="comd-mpi")
                      ])

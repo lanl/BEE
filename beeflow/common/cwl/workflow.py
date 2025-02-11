@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from beeflow.common.cwl.cwl import (CWL, CWLInput, CWLInputs, RunInput, Inputs, CWLOutput,
                                     Outputs, Run, RunOutput, Step, Steps, Hints,
                                     InputBinding, MPIRequirement, DockerRequirement,
-                                    SlurmRequirement)
+                                    ScriptRequirement, SlurmRequirement)
 
 
 @dataclass
@@ -105,6 +105,23 @@ class Charliecloud:
         return DockerRequirement(copy_container=self.container,
                                  docker_file=self.docker_file,
                                  container_name=self.container_name)
+
+
+@dataclass
+class Script:
+    """Represents charliecloud options."""
+
+    pre_script: str = None
+    post_script: str = None
+    enabled: str = None
+    shell: str = None
+
+    def requirement(self):
+        """Return a charliecloud requirement object."""
+        return ScriptRequirement(pre_script=self.pre_script,
+                                 post_script=self.post_script,
+                                 enabled=self.enabled,
+                                 shell=self.shell)
 
 
 @dataclass

@@ -422,8 +422,8 @@ class ScriptRequirement:
 
     pre_script: str = None
     post_script: str = None
-    enabled: bool = True
-    shell: str = "/bin/bash"
+    enabled: bool = None
+    shell: str = None
 
     def dump(self):
         """Dump script requirement to a dcitionary."""
@@ -433,8 +433,11 @@ class ScriptRequirement:
             script_dump[key]['pre_script'] = self.pre_script
         if self.post_script:
             script_dump[key]['post_script'] = self.post_script
-        script_dump[key]['enabled'] = self.enabled
-        script_dump[key]['shell'] = self.shell
+    
+        # Provide a default value if not passed in from the Workflow module
+        script_dump[key]['enabled'] = self.enabled if self.enabled is not None else True
+        default_shell = "/bin/bash"
+        script_dump[key]['shell'] = self.shell if self.shell is not None else default_shell
         return script_dump
 
     def __repr__(self):
