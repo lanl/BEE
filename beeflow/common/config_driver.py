@@ -281,7 +281,7 @@ VALIDATOR.section('workflow_manager', info='Workflow manager section.')
 # Task manager
 VALIDATOR.section('task_manager',
                   info='Task manager configuration and config of container to use.')
-VALIDATOR.option('task_manager', 'jobs_limit', default=2, prompt=True,
+VALIDATOR.option('task_manager', 'jobs_limit', default='', prompt=True,
                  info='The number of jobs that can be in the job queue.')
 VALIDATOR.option('task_manager', 'container_runtime', default='Charliecloud',
                  choices=('Charliecloud', 'Singularity'), prompt=False,

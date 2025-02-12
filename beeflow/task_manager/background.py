@@ -12,9 +12,18 @@ from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build_interfaces import build_main
 from beeflow.common.worker import WorkerError
 
-
+JOBS_MAX = 1000
 log = bee_logging.setup(__name__)
-jobs_limit = int(bc.get('task_manager', 'jobs_limit'))
+jobs_limit = bc.get('task_manager', 'jobs_limit')
+if not jobs_limit:
+    jobs_limit = JOBS_MAX
+else:
+    try:
+        jobs_limit = int(bc.get('task_manager', 'jobs_limit'))
+    except ValueError:
+        log.info(f'Value for jobs_limit in bee.conf not an integer, setting it to {JOBS_MAX}')
+        jobs_limit = JOBS_MAX
+log.info(f'The number of jobs queued will be limited to {jobs_limit}.')
 
 # States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
 COMPLETED_STATES = {'UNKNOWN', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'}
