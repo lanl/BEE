@@ -16,6 +16,7 @@ def test_archive_workflow(tmpdir, mocker, test_function, expected_state):
     """Regression test archive_workflow."""
     workdir = str(tmpdir / "workdir")
     db = mocker.MagicMock()
+    db.workflows.get_workflow_state.return_value = "Running"
     mocker.patch("os.path.expanduser", return_value=str(tmpdir))
     mocker.patch(
         "beeflow.wf_manager.resources.wf_utils.get_workflow_dir", return_value=workdir
@@ -54,3 +55,18 @@ def test_archive_workflow(tmpdir, mocker, test_function, expected_state):
         mock_update_wf_status.assert_called_once_with("wf_id_test", expected_state)
         mock_remove_wf_dir.assert_called_once_with("wf_id_test")
         mock_log.assert_called_once_with("Removing Workflow Directory")
+
+
+@pytest.mark.parametrize("wf_state", ["Archived", "Archived/Failed"])
+def test_archive_archived_wf(mocker, wf_state):
+    """Don't archive workflow that is already archived."""
+    db = mocker.MagicMock()
+    db.workflows.get_workflow_state.return_value = wf_state
+    mock_log_warning = mocker.patch("logging.Logger.warning")
+    wf_update.archive_workflow(db, "id")
+    mock_log_warning.assert_called_once_with(
+        (
+            "Attempted to archive workflow id which is already archived; "
+            f"in state {wf_state}."
+        )
+    )

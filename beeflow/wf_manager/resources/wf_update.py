@@ -22,6 +22,15 @@ db_path = wf_utils.get_db_path()
 
 def archive_workflow(db, wf_id, final_state=None):
     """Archive a workflow after completion."""
+    # this is the only way to retrieve wf state after archiving
+    wf_db_state = db.workflows.get_workflow_state(wf_id)
+    if wf_db_state.startswith("Archived"):
+        # Don't archive a workflow that has already been archived
+        log.warning((
+            f"Attempted to archive workflow {wf_id} which is already archived; "
+            f"in state {wf_db_state}."
+        ))
+        return
     # Archive Config
     workflow_dir = wf_utils.get_workflow_dir(wf_id)
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
