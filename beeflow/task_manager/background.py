@@ -19,7 +19,7 @@ if not jobs_limit:
     jobs_limit = JOBS_MAX
 else:
     try:
-        jobs_limit = int(bc.get('task_manager', 'jobs_limit'))
+        jobs_limit = int(jobs_limit)
     except ValueError:
         log.info(f'Value for jobs_limit in bee.conf not an integer, setting it to {JOBS_MAX}')
         jobs_limit = JOBS_MAX
