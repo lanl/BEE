@@ -28,10 +28,16 @@ def create_workflow_node(tx, workflow):
                       "CREATE (b)<-[:WORKFLOW_OF]-(w:Workflow) "
                       "SET w.id = $wf_id "
                       "SET w.name = $name "
-                      "SET w.state = $state")
+                      "SET w.state = $state "
+                      "SET w.reqs = $reqs "
+                      "SET w.hints = $hints "
+                      "SET w.restart = FALSE")
 
     # Store the workflow ID and name in a new workflow node
-    tx.run(workflow_query, wf_id=workflow.id, name=workflow.name, state=workflow.state)
+    reqs = len(workflow.requirements) > 0
+    hints = len(workflow.hints) > 0
+    tx.run(workflow_query, wf_id=workflow.id, name=workflow.name, state=workflow.state,
+           reqs=reqs, hints=hints)
 
 
 def create_workflow_hint_nodes(tx, workflow):
@@ -107,11 +113,16 @@ def create_task(tx, task):
                     "SET t.name = $name "
                     "SET t.base_command = $base_command "
                     "SET t.stdout = $stdout "
-                    "SET t.stderr = $stderr")
+                    "SET t.stderr = $stderr "
+                    "SET t.reqs = $reqs "
+                    "SET t.hints = $hints")
 
     # Unpack requirements, hints dictionaries into flat list
+    reqs = len(task.requirements) > 0
+    hints = len(task.hints) > 0
     tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
-           base_command=task.base_command, stdout=task.stdout, stderr=task.stderr)
+           base_command=task.base_command, stdout=task.stdout, stderr=task.stderr,
+           reqs=reqs, hints=hints)
 
 
 def create_task_hint_nodes(tx, task):
@@ -208,6 +219,8 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
     :type restarted_task: bool
     """
     if restarted_task:
+        set_restarted_wf = ("MATCH (w:Workflow {id: $wf_id}) "
+                            "SET w.restart = TRUE")
         delete_dependencies_query = ("MATCH (:Task {id: $task_id})<-[r:DEPENDS_ON]-(:Task) "
                                      "DETACH DELETE r")
         restarted_query = ("MATCH (s:Task {id: $old_task_id}), (t:Task {id: $new_task_id}) "
@@ -220,6 +233,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                             "AND (s.workflow_id = t.workflow_id) "
                             "MERGE (t)-[:DEPENDS_ON]->(s)")
 
+        tx.run(set_restarted_wf, wf_id=task.workflow_id)
         tx.run(delete_dependencies_query, task_id=old_task.id)
         tx.run(restarted_query, old_task_id=old_task.id, new_task_id=task.id)
         tx.run(dependency_query, task_id=task.id)
@@ -271,7 +285,9 @@ def get_task_hints(tx, task_id):
     """
     hints_query = "MATCH (:Task {id: $task_id})<-[:HINT_OF]-(h:Hint) RETURN h"
 
-    return [rec['h'] for rec in tx.run(hints_query, task_id=task_id)]
+    if get_task_by_id(tx, task_id)['hints']:
+        return [rec['h'] for rec in tx.run(hints_query, task_id=task_id)]
+    return []
 
 
 def get_task_requirements(tx, task_id):
@@ -283,7 +299,9 @@ def get_task_requirements(tx, task_id):
     """
     reqs_query = "MATCH (:Task {id: $task_id})<-[:REQUIREMENT_OF]-(r:Requirement) RETURN r"
 
-    return [rec['r'] for rec in tx.run(reqs_query, task_id=task_id)]
+    if get_task_by_id(tx, task_id)['reqs']:
+        return [rec['r'] for rec in tx.run(reqs_query, task_id=task_id)]
+    return []
 
 
 def get_task_inputs(tx, task_id):
@@ -344,7 +362,9 @@ def get_workflow_requirements(tx, wf_id):
     requirement_query = ("MATCH (:Workflow {id: $wf_id})<-[:REQUIREMENT_OF]-(r:Requirement) "
                          "RETURN r")
 
-    return [rec['r'] for rec in tx.run(requirement_query, wf_id=wf_id)]
+    if get_workflow_by_id(tx, wf_id)['reqs']:
+        return [rec['r'] for rec in tx.run(requirement_query, wf_id=wf_id)]
+    return []
 
 
 def get_workflow_hints(tx, wf_id):
@@ -356,7 +376,9 @@ def get_workflow_hints(tx, wf_id):
     """
     hints_query = "MATCH (:Workflow {id: $wf_id})<-[:HINT_OF]-(h:Hint) RETURN h"
 
-    return [rec['h'] for rec in tx.run(hints_query, wf_id=wf_id)]
+    if get_workflow_by_id(tx, wf_id)['hints']:
+        return [rec['h'] for rec in tx.run(hints_query, wf_id=wf_id)]
+    return []
 
 
 def get_workflow_inputs(tx, wf_id):
@@ -700,8 +722,9 @@ def final_tasks_completed(tx, wf_id):
     :type wf_id: str
     :rtype: bool
     """
+    restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
     not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
-                           "WHERE NOT (t)<-[:DEPENDS_ON|:RESTARTED_FROM]-(:Task) "
+                           f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
                            "AND m.state <> 'COMPLETED' "
                            "RETURN t IS NOT NULL LIMIT 1")
 
@@ -719,8 +742,9 @@ def cancelled_final_tasks_completed(tx, wf_id):
     :type wf_id: str
     :rtype: bool
     """
+    restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
     active_states_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
-                           "WHERE NOT (t)<-[:DEPENDS_ON|:RESTARTED_FROM]-(:Task) "
+                           f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
                            "AND m.state IN ['PENDING', 'RUNNING', 'COMPLETING'] "
                            "RETURN t IS NOT NULL LIMIT 1")
 

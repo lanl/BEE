@@ -149,7 +149,7 @@ class WFUpdate(Resource):
 
         # If the job failed and it doesn't include a checkpoint-restart hint,
         # then fail the entire workflow
-        if state_update.job_state == 'FAILED':
+        if state_update.job_state in ['FAILED', 'SUBMIT_FAIL']:
             set_dependent_tasks_dep_fail(db, wfi, state_update.wf_id, task)
             log.info("Workflow failed")
             wf_id = wfi.workflow_id

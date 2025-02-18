@@ -81,7 +81,15 @@ To activate the virtual environment ('exit' or EOF to deactivate):
 5. Test
 ---------
 
-Test your new feature/fixes
+Attempt to write tests that cover all the new/modified lines on your feature branch. Test files are in the ``beeflow/tests`` folder and follow the naming convention ``test_MODULE_NAME.py``. You may need to create a new file if one doesn't exist for the module you are working on. Make sure your test function begins with ``test_``; ``test_FUNCTION_NAME`` is a good naming convention.
+
+Some useful features of ``pytest`` to write your tests:
+
+* ``@pytest.mark.parametrize``: This allows you to run the same test with slight variations which can be useful to increase line coverage or the robustness of your test. See `How to parametrize fixtures and test functions <https://docs.pytest.org/en/stable/how-to/parametrize.html>`_.
+* ``tmp_path``: Many actions in the codebase create files. Do not let these files be left around at the end of the test. ``pytest`` provides a temporary directory that will automatically be cleaned up at the end of the test and can be accessed with ``tmp_path``. See `How to use temporary directories and files in tests <https://docs.pytest.org/en/stable/how-to/tmp_path.html>`_.
+* ``mocker``: If a function you are testing calls functions that cannot reasonably be called during the test; e.g. ``input``, you can tell ``pytest`` to ignore that function or create a dummy 'mocked' function to behave in a way you specify using ``mocker``. See `pytest-mock: Usage <https://pytest-mock.readthedocs.io/en/latest/usage.html>`_.
+
+See also :ref:`running-tests`
 
 6. Commit Changes
 -----------------
@@ -144,7 +152,7 @@ Publish the Package to a Remote Repository
 
 `poetry publish`
 
-
+.. _running-tests:
 Running Tests
 ==================
 
@@ -152,6 +160,17 @@ BEE includes unit and integration tests that can be run on a local system.
 
 To run the unit tests, make sure to install beeflow with ``poetry install -E cloud_extras``; the ``-E cloud_extras`` option forces Poetry to install extra dependencies required for some of the cloud API tests. After loading a shell with ``poetry shell``, you can run the unit tests with ``pytest beeflow/tests``.
 
+Some useful pytest options
+--------------------------
+
+* ``-k EXPRESSION``: Allows you to only run tests that match a keyword expression. This is useful when writing a test case as you can run only that test. You can also run a test file for a specific module when working on an enhancement to quickly ensure the most relevant tests still pass.
+* ``--durations 0``: This will show the durations of all tests run that are >= 0.005s. Since tests run on CI it is best to keep them as fast as possible. A test that takes over 1s is slow in this context.
+* ``--cov beeflow --cov-report term-missing``: This will check test line coverage for each file. It is useful to ensure lines being added/modified in a feature branch have test coverage. See `pytest-cov's documentation <https://pytest-cov.readthedocs.io/en/latest/>`_.
+
+See `How to invoke pytest <https://docs.pytest.org/en/stable/how-to/usage.html>`_ for even more options when running ``pytest``.
+
+Integration tests
+-----------------
 For the integration tests, you'll first have to start beeflow with ``beeflow core start`` (see :ref:`command-line-interface`). Then, making sure that you have Charliecloud loaded in your environment, you can run ``./ci/integration_test.py`` to run the tests. This must be done from the root of BEE repository. The integration tests will create a directory ``~/.beeflow-integration`` to be used for storing temporary files as well as inspecting failure results. The script itself includes a number of options for running extra tests, details of which can be found through ``--help`` and other command line options. Running the script without any options will run the default test suite. Some tests are disabled by default due to runtime or environment constraints and need to be specified in a comma-separated list with ``--tests`` (``-t``) to be run. Run the script with just ``--show-tests`` (``-s``) to see a list of all possible tests.
 
 Git Workflow

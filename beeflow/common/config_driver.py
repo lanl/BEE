@@ -203,6 +203,13 @@ def filepath_completion_input(*pargs, **kwargs):
         return input(*pargs, **kwargs)
 
 
+def unique_port():
+    """Assign unique port for remote user."""
+    uid = os.getuid()
+    port = ((uid%(16000-7777))+7777)
+    return port
+
+
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
 # singleton class above.
@@ -256,7 +263,7 @@ VALIDATOR.option('DEFAULT', 'remote_api', info='BEE remote REST API activation',
                  default=False, validator=validation.bool_, prompt=False)
 
 VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
-                 default=7777, validator=int, prompt=False)
+                 default=unique_port(), validator=int, prompt=False)
 
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  default='Slurm', info='backend workload scheduler to interact with ',
@@ -303,6 +310,10 @@ VALIDATOR.option('job', 'default_time_limit', validator=validation.time_limit, p
                  default='', info='default account time limit (leave blank if none)')
 VALIDATOR.option('job', 'default_partition', validator=lambda val: val.strip(), prompt=True,
                  default='', info='default partition to run jobs on (leave blank if none)')
+VALIDATOR.option('job', 'default_qos', validator=lambda val: val.strip(), prompt=True,
+                 default='', info='default qos to run jobs on (leave blank if none)')
+VALIDATOR.option('job', 'default_reservation', validator=lambda val: val.strip(), prompt=True,
+                 default='', info='default reservation to run jobs on (leave blank if none)')
 
 
 def validate_chrun_opts(opts):
