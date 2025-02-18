@@ -40,7 +40,7 @@ class LSFWorker(Worker):
         job_st = subprocess.check_output(['bjobs', '-aX', str(job_id), '-noheader'],
                                          stderr=subprocess.STDOUT)
         if 'not found' in str(job_st):
-            raise Exception
+            job_state = 'UNKNOWN'
         job_state = self.bee_states[job_st.decode().split()[2]]
         return job_state
 
