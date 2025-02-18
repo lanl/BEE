@@ -20,10 +20,11 @@ class Input:
     # Or a position like 2 if the command is "foo <file>"
     prefix: str = None
     position: int = None
-    
+
     pattern = re.compile(r"^[^/]+/[^/]+$")
 
     def has_source(self):
+        """Check if there's a source."""
         return bool(self.pattern.match(str(self.value)))
 
     def cwl_input(self):
@@ -88,8 +89,8 @@ class Slurm:
 
     def requirement(self):
         """Return a scheduler requirement object."""
-        return SlurmRequirement(time_limit=self.time_limit, account=self.account, partition=self.partition,
-                                qos=self.qos, reservation=self.reservation)
+        return SlurmRequirement(time_limit=self.time_limit, account=self.account,
+                partition=self.partition, qos=self.qos, reservation=self.reservation)
 
 
 @dataclass
