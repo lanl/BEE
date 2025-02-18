@@ -323,6 +323,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     workdir = workdir.resolve()
 
     tarball_path = ""
+    workflow = None
+    wf_tarball = None
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
         if os.path.isdir(wf_path):
@@ -662,6 +664,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
                   help='working directory for workflow containing input + output files')
               ):
     """Reexecute an archived workflow."""
+    wf_path = None
     if os.path.exists(wf_path):
         wf_tarball = open(wf_path, 'rb')
     else:

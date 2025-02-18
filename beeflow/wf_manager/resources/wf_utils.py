@@ -183,10 +183,11 @@ def _connect_scheduler():
 def _resource(component, tag=""):
     """Access Task Manager or Scheduler."""
     if component == "tm":
-        url = TM_URL + str(tag)
+        return TM_URL + str(tag)
     elif component == "sched":
-        url = SCHED_URL + str(tag)
-    return url
+        return SCHED_URL + str(tag)
+    else:
+        raise ValueError(f"Invalid component: {component}")
 
 
 # Submit tasks to the TM

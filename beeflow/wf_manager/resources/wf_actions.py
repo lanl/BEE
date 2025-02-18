@@ -82,6 +82,10 @@ class WFActions(Resource):
             archive_path = f"{archive_dir}/{wf_id}.tgz"
             if os.path.exists(archive_path):
                 os.remove(archive_path)
+        else:
+            log.error(f"Invalid option '{option}' provided for workflow deletion.")
+            resp = make_response(jsonify(status=f"Invalid option '{option}'"), 500)
+
         return resp
 
     def patch(self, wf_id):
