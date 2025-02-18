@@ -40,15 +40,15 @@ class Worker(ABC):
         """Load appropriate container runtime driver, based on configs in kwargs."""
         try:
             self.tm_crt = kwargs['container_runtime']
+            crt_driver = CharliecloudDriver #default
             if self.tm_crt == 'Charliecloud':
                 crt_driver = CharliecloudDriver
             elif self.tm_crt == 'Singularity':
                 crt_driver = SingularityDriver
             self.crt = ContainerRuntimeInterface(crt_driver)
         except KeyError:
-            log.warning("No container runtime specified in config, proceeding with caution.")
-            self.tm_crt = None
-            crt_driver = None
+            log.warning("No container runtime specified in config; setting to Charliecloud.")
+            self.tm_crt = Charliecloud
 
         # Get BEE workdir from config file
         self.workdir = bee_workdir
