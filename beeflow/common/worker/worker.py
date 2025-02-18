@@ -48,7 +48,7 @@ class Worker(ABC):
             self.crt = ContainerRuntimeInterface(crt_driver)
         except KeyError:
             log.warning("No container runtime specified in config; setting to Charliecloud.")
-            self.tm_crt = Charliecloud
+            self.tm_crt = 'Charliecloud'
 
         # Get BEE workdir from config file
         self.workdir = bee_workdir
