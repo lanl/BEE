@@ -664,7 +664,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
                   help='working directory for workflow containing input + output files')
               ):
     """Reexecute an archived workflow."""
-    wf_path = None
+    wf_tarball = None
     if os.path.exists(wf_path):
         wf_tarball = open(wf_path, 'rb')
     else:
