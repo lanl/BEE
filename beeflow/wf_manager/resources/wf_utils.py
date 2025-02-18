@@ -184,10 +184,10 @@ def _resource(component, tag=""):
     """Access Task Manager or Scheduler."""
     if component == "tm":
         return TM_URL + str(tag)
-    elif component == "sched":
+    if component == "sched":
         return SCHED_URL + str(tag)
-    else:
-        raise ValueError(f"Invalid component: {component}")
+
+    raise ValueError(f"Invalid component: {component}")
 
 
 # Submit tasks to the TM
