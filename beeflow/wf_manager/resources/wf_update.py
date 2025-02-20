@@ -134,6 +134,7 @@ class WFUpdate(Resource):
 
     def handle_state_change(self, state_update, task, wfi, db):
         """Handle a normal state change for a task."""
+        wf_state = wfi.get_workflow_state()
         if state_update.job_state == 'COMPLETED':
             for output in task.outputs:
                 if output.glob is not None:
@@ -141,32 +142,28 @@ class WFUpdate(Resource):
                 else:
                     wfi.set_task_output(task, output.id, "temp")
             tasks = wfi.finalize_task(task)
-            wf_state = wfi.get_workflow_state()
             if tasks and wf_state not in ('PAUSED', 'Cancelled'):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
-            if wfi.workflow_completed():
-                wf_id = wfi.workflow_id
-                log.info(f"Workflow {wf_id} Completed")
-                archive_workflow(db, state_update.wf_id)
-                log.info('Workflow Completed')
-            elif wf_state == 'Cancelled' and wfi.cancelled_workflow_completed():
-                wf_id = wfi.workflow_id
-                log.info(f"Scheduled tasks for cancelled workflow {wf_id} completed")
-                archive_workflow(db, wf_id, final_state=wf_state)
-                log.info('Workflow Archived')
-
-        # If the job failed and it doesn't include a checkpoint-restart hint,
-        # then fail the entire workflow
+        # If the job failed, fail the dependent tasks
         if state_update.job_state in ['FAILED', 'SUBMIT_FAIL']:
             set_dependent_tasks_dep_fail(db, wfi, state_update.wf_id, task)
-            log.info("Workflow failed")
-            wf_id = wfi.workflow_id
-            archive_fail_workflow(db, wf_id)
+            log.info(f"Task {task.name} failed")
 
         if state_update.job_state == 'BUILD_FAIL':
             log.error(f'Workflow failed due to failed container build for task {task.name}')
             archive_fail_workflow(db, state_update.wf_id)
+
+        if wfi.workflow_completed():
+            wf_id = wfi.workflow_id
+            log.info(f"Workflow {wf_id} Completed")
+            archive_workflow(db, wf_id)
+            log.info('Workflow Archived')
+        elif wf_state == 'Cancelled' and wfi.cancelled_workflow_completed():
+            wf_id = wfi.workflow_id
+            log.info(f"Scheduled tasks for cancelled workflow {wf_id} completed")
+            archive_workflow(db, wf_id, final_state=wf_state)
+            log.info('Workflow Archived')
 
     def update_task_state(self, state_update, db):
         """Update the state of a single task from the task manager."""
