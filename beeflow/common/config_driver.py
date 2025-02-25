@@ -259,9 +259,6 @@ VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop poin
                  default=DEFAULT_BEE_DROPPOINT, validator=validation.make_dir,
                  prompt=False)
 
-VALIDATOR.option('DEFAULT', 'remote_api', info='BEE remote REST API activation',
-                 default=False, validator=validation.bool_, prompt=False)
-
 VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
                  default=unique_port(), validator=int, prompt=False)
 
