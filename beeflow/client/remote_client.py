@@ -143,3 +143,21 @@ def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
     except subprocess.CalledProcessError as err:
         warn(f'Failed to submit workflow. Error: {err.stderr}')
         sys.exit(1)
+
+
+@app.command("core-status")
+def core_status(ssh_target: str = typer.Argument(..., help='the target to ssh to')):
+    """Check the status of BEEflow and the components."""
+    port = remote_port_val()
+    try:
+        result = subprocess.run(
+            ["curl", f"{ssh_target}:{port}/core/status/"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        print(result.stdout)
+    except subprocess.CalledProcessError:
+        warn(f'Failed to check status on {ssh_target}:{port}. Check connection to beeflow.')
+        sys.exit(1)

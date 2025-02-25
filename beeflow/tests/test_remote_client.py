@@ -221,3 +221,41 @@ def test_submit_failure(mocker):
         text=True,
         check=True
     )
+
+
+def test_core_status_success(mocker):
+    """Test core-status command when the API call succeeds."""
+    mocker.patch("beeflow.client.remote_client.remote_port_val", return_value="1234")
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = subprocess.CompletedProcess(
+            ["curl", "ssh_target:1234/core/status/"], returncode=0,
+            stdout='{"redis":"RUNNING","scheduler":"RUNNING","celery":"RUNNING",'
+            '"slurmrestd":"RUNNING","wf_manager":"RUNNING","task_manager":"RUNNING",'
+            '"remote_api":"RUNNING","neo4j-database":"RUNNING"}',
+            stderr=""
+    )
+
+    result = runner.invoke(app, ["core-status", "ssh_target"])
+
+    assert result.exit_code == 0
+    expected_output = '{"redis":"RUNNING","scheduler":"RUNNING","celery":"RUNNING",' \
+                      '"slurmrestd":"RUNNING","wf_manager":"RUNNING","task_manager":"RUNNING",' \
+                      '"remote_api":"RUNNING","neo4j-database":"RUNNING"}'
+    assert expected_output in result.output
+
+
+def test_core_status_failure(mocker):
+    """Test core-status command when the API call fails."""
+    mocker.patch("beeflow.client.remote_client.remote_port_val", return_value="1234")
+    mock_run = mocker.patch("subprocess.run")
+
+    # Simulate a failed subprocess run
+    mock_run.side_effect = subprocess.CalledProcessError(
+        returncode=1, cmd=["curl", "ssh_target:1234/core/status/"], stderr="Status check failed"
+    )
+
+    result = runner.invoke(app, ["core-status", "ssh_target"])
+
+    assert result.exit_code == 1
+    message = "Failed to check status on ssh_target:1234. Check connection to beeflow."
+    assert message in result.output
