@@ -57,6 +57,15 @@ class Worker(ABC):
         """Return the task save path used for storing submission scripts output logs."""
         return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
 
+    def write_script(self, task):
+        """Build task script; returns filename of script."""
+        task_text = self.build_text(task)
+        task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
+        with open(task_script, 'w', encoding='UTF-8') as script_f:
+            script_f.write(task_text)
+            script_f.close()
+        return task_script
+
     def prepare(self, task):
         """Prepare for the task; create the task save directory, etc."""
         task_save_path = self.task_save_path(task)

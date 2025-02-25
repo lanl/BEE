@@ -135,16 +135,6 @@ class BaseSlurmWorker(Worker):
 
         return '\n'.join(script)
 
-    def write_script(self, task):
-        """Build task script; returns filename of script."""
-        task_text = self.build_text(task)
-
-        task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
-        with open(task_script, 'w', encoding='UTF-8') as script_f:
-            script_f.write(task_text)
-            script_f.close()
-        return task_script
-
     def submit_job(self, script):
         """Worker submits job-returns (job_id, job_state)."""
         res = subprocess.run(['sbatch', '--parsable', script], text=True,  # pylint: disable=W1510
