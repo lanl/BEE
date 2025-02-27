@@ -15,8 +15,9 @@ The following sequence of commands can be used to remotely prepare and submit wo
 .. code-block::
 
     beeflow remote connection $SSH_TARGET # check the connection to the Beeflow client
+    beeflow remote core-status $SSH_TARGET # Check the status of Beeflow and the components
     beeflow remote droppoint $SSH_TARGET # get the drop point location on the remote machine
-    beeflow remote copy $PATH # copy path for the workflow to the droppoint
+    beeflow remote copy $USER $SSH_TARGET $PATH # copy path for the workflow to the droppoint
     beeflow remote submit $SSH_TARGET $WF_NAME $TARBALL $MAIN_CWL $YAML # submit the workflow
 
 
