@@ -81,15 +81,9 @@ def copy(user: str = typer.Argument(..., help='the username on the remote system
         sys.exit(1)
 
     try:
-        droppoint_result = subprocess.run(
-            ["jq", "-r", ".droppoint", "droppoint.env"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-        droppoint_path = droppoint_result.stdout.strip()
-        os.makedirs(droppoint_path, exist_ok=True)
+        with open("droppoint.env", "r") as f:
+            config = json.load(f)
+        droppoint_path = config.get("droppoint", "")
 
         if not droppoint_path:
             warn('Error: Could not retrieve droppoint location.')
@@ -100,6 +94,9 @@ def copy(user: str = typer.Argument(..., help='the username on the remote system
         subprocess.run(["rsync", "-a", str(file_path), f"{user}@{ssh_target}:{droppoint_path}"], check=True)
 
         print("Copy successful.")
+    except json.JSONDecodeError as jde:
+        warn(f'Error reading JSON configuration: {jde}')
+        sys.exit(1)
     except subprocess.CalledProcessError as err:
         warn(f'Error copying file: {err.stderr}')
         sys.exit(1)
