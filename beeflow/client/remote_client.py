@@ -72,7 +72,9 @@ def droppoint(ssh_target: str = typer.Argument(..., help='the target to ssh to')
 
 
 @app.command()
-def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to droppoint")):
+def copy(user: str = typer.Argument(..., help='the username on the remote system'),
+         host: str = typer.Argument(..., help="the remote machine's network identifier"),
+         file_path: pathlib.Path = typer.Argument(..., help="path to copy to droppoint")):
     """Copy path to droppoint."""
     if not file_path.exists():
         warn(f'Error: File or directory {file_path} does not exist.')
@@ -95,10 +97,7 @@ def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to dro
 
         print(f"Copying {str(file_path)} to {droppoint_path}")
 
-        if file_path.is_dir():
-            subprocess.run(["scp", "-r", str(file_path), droppoint_path], check=True)
-        else:
-            subprocess.run(["scp", str(file_path), droppoint_path], check=True)
+        subprocess.run(["rsync", "-a", str(file_path), f"{user}@{host}:{droppoint_path}"], check=True)
 
         print("Copy successful.")
     except subprocess.CalledProcessError as err:
