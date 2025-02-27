@@ -90,19 +90,19 @@ def test_droppoint_failure(mocker):
 def test_copy_file_success(mocker):
     """Test copying a file to the droppoint successfully."""
     mocker.patch("pathlib.Path.exists", return_value=True)
+    mocker.patch("os.makedirs")
     mock_droppoint = mocker.patch("subprocess.run")
 
     # Mock the first subprocess.run call to return a valid droppoint
     mock_droppoint.side_effect = [
         subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"],
-            returncode=0, stdout="remote:/path/to/droppoint\n"),
-        subprocess.CompletedProcess(args=["scp", "testfile.txt", "remote:/path/to/droppoint"],
+            returncode=0, stdout="/path/to/droppoint\n"),
+        subprocess.CompletedProcess(args=
+            ["rsync", "-a", "testfile.txt", "user@ssh_target:/path/to/droppoint"],
             returncode=0)
     ]
 
-    mocker.patch("pathlib.Path.is_dir", return_value=False)
-
-    result = runner.invoke(app, ["copy", "testfile.txt"])
+    result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
 
     assert result.exit_code == 0
 
@@ -115,44 +115,9 @@ def test_copy_file_success(mocker):
         check=True
     )
 
-    # Ensure subprocess.run was called with correct scp command
+    # Ensure subprocess.run was called with correct rsync command
     mock_droppoint.assert_any_call(
-        ["scp", "testfile.txt", "remote:/path/to/droppoint"],
-        check=True
-    )
-
-
-def test_copy_directory_success(mocker):
-    """Test copying a directory to the droppoint successfully."""
-    mocker.patch("pathlib.Path.exists", return_value=True)
-    mock_droppoint = mocker.patch("subprocess.run")
-
-    # Mock subprocess responses
-    mock_droppoint.side_effect = [
-        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"],
-            returncode=0, stdout="remote:/path/to/droppoint\n"),
-        subprocess.CompletedProcess(args=["scp", "-r", "testdir", "remote:/path/to/droppoint"],
-            returncode=0)
-    ]
-
-    mocker.patch("pathlib.Path.is_dir", return_value=True)
-
-    result = runner.invoke(app, ["copy", "testdir"])
-
-    assert result.exit_code == 0
-
-    # Ensure subprocess.run was called to fetch droppoint
-    mock_droppoint.assert_any_call(
-        ["jq", "-r", ".droppoint", "droppoint.env"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=True
-    )
-
-    # Ensure subprocess.run was called with correct scp command for a directory
-    mock_droppoint.assert_any_call(
-        ["scp", "-r", "testdir", "remote:/path/to/droppoint"],
+        ["rsync", "-a", "testfile.txt", "user@ssh_target:/path/to/droppoint"],
         check=True
     )
 
@@ -161,23 +126,23 @@ def test_copy_droppoint_fetch_fail(mocker):
     """Test failure when fetching droppoint fails."""
     mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "jq"))
 
-    result = runner.invoke(app, ["copy", "testfile.txt"])
+    result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
 
     assert result.exit_code != 0
 
 
-def test_copy_scp_fail(mocker):
-    """Test failure when scp command fails."""
+def test_copy_rsync_fail(mocker):
+    """Test failure when rsync command fails."""
     mock_droppoint = mocker.patch("subprocess.run")
 
     # First subprocess call succeeds (droppoint lookup)
     mock_droppoint.side_effect = [
         subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"],
-            returncode=0, stdout="remote:/path/to/droppoint\n"),
-        subprocess.CalledProcessError(1, "scp")  # Simulate scp failure
+            returncode=0, stdout="/path/to/droppoint\n"),
+        subprocess.CalledProcessError(1, "rsync")  # Simulate rsync failure
     ]
 
-    result = runner.invoke(app, ["copy", "testfile.txt"])
+    result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
     assert result.exit_code != 0
 
 
