@@ -90,33 +90,28 @@ def test_droppoint_failure(mocker):
 def test_copy_file_success(mocker):
     """Test copying a file to the droppoint successfully."""
     mocker.patch("pathlib.Path.exists", return_value=True)
-    mocker.patch("os.makedirs")
-    mock_droppoint = mocker.patch("subprocess.run")
 
-    # Mock the first subprocess.run call to return a valid droppoint
-    mock_droppoint.side_effect = [
-        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"],
-            returncode=0, stdout="/path/to/droppoint\n"),
-        subprocess.CompletedProcess(args=
-            ["rsync", "-a", "testfile.txt", "user@ssh_target:/path/to/droppoint"],
-            returncode=0)
-    ]
+    # Patch builtins.open to simulate a valid droppoint.env file.
+    mock_file = mocker.mock_open(read_data='{"droppoint": "/path/to/droppoint"}')
+    mocker.patch("builtins.open", mock_file)
 
-    result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
-
-    assert result.exit_code == 0
-
-    # Ensure subprocess.run was called to fetch droppoint
-    mock_droppoint.assert_any_call(
-        ["jq", "-r", ".droppoint", "droppoint.env"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=True
+    # Patch subprocess.run for the rsync call.
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=["rsync", "-a", "testfile.txt", "user@ssh_target:/path/to/droppoint"],
+        returncode=0,
+        stdout="",
+        stderr=""
     )
 
-    # Ensure subprocess.run was called with correct rsync command
-    mock_droppoint.assert_any_call(
+    result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
+    assert result.exit_code == 0
+
+    # Verify that droppoint.env was opened for reading.
+    mock_file.assert_called_once_with("droppoint.env", "r")
+
+    # Verify the rsync command was called with the expected arguments.
+    mock_run.assert_called_with(
         ["rsync", "-a", "testfile.txt", "user@ssh_target:/path/to/droppoint"],
         check=True
     )
@@ -124,26 +119,32 @@ def test_copy_file_success(mocker):
 
 def test_copy_droppoint_fetch_fail(mocker):
     """Test failure when fetching droppoint fails."""
-    mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "jq"))
+    mocker.patch("pathlib.Path.exists", return_value=True)
+
+    # Simulate an invalid droppoint.env file by patching open.
+    mock_file = mocker.mock_open(read_data="invalid json")
+    mocker.patch("builtins.open", mock_file)
 
     result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
-
     assert result.exit_code != 0
+
+    mock_file.assert_called_once_with("droppoint.env", "r")
 
 
 def test_copy_rsync_fail(mocker):
-    """Test failure when rsync command fails."""
-    mock_droppoint = mocker.patch("subprocess.run")
+    """Test failure when the rsync command fails."""
+    mocker.patch("pathlib.Path.exists", return_value=True)
 
-    # First subprocess call succeeds (droppoint lookup)
-    mock_droppoint.side_effect = [
-        subprocess.CompletedProcess(args=["jq", "-r", ".droppoint", "droppoint.env"],
-            returncode=0, stdout="/path/to/droppoint\n"),
-        subprocess.CalledProcessError(1, "rsync")  # Simulate rsync failure
-    ]
+    mock_file = mocker.mock_open(read_data='{"droppoint": "/path/to/droppoint"}')
+    mocker.patch("builtins.open", mock_file)
+
+    # Patch subprocess.run so that the rsync call fails.
+    mocker.patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "rsync"))
 
     result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
     assert result.exit_code != 0
+
+    mock_file.assert_called_once_with("droppoint.env", "r")
 
 
 def test_submit_success(mocker):
