@@ -79,13 +79,9 @@ class MPI:
 
 
 @dataclass
-class Slurm:
-    """Slurm options."""
-    account: str = None
-    time_limit: int = None
-    partition: str = None
-    qos: str = None
-    reservation: str = None
+class Slurm(SlurmRequirement):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def requirement(self):
         """Return a scheduler requirement object."""
