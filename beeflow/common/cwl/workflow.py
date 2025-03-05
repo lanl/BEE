@@ -80,8 +80,7 @@ class MPI:
 
 @dataclass
 class Slurm(SlurmRequirement):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    """Get Slurm Requirements."""
 
     def requirement(self):
         """Return a scheduler requirement object."""
