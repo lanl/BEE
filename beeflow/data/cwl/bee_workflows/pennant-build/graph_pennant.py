@@ -1,4 +1,8 @@
 """Graph the output of a PENNANT workflow."""
+
+# Disable C0103: This is just a simple script, not all globals should be UPPER_CASE here
+# pylint:disable=C0103
+
 import re
 import sys
 import matplotlib.pyplot as plt
@@ -38,6 +42,3 @@ ax.set_xlabel('Node count')
 ax.set_ylabel('Average wall time for cycle')
 # Save to a png file
 fig.savefig('graph.png')
-
-# Ignore C0103: This is just a simple script, not all globals should be UPPER_CASE here
-# pylama:ignore=C0103

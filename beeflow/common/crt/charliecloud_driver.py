@@ -42,7 +42,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         name = '.'.join(name)
         return name
 
-    def run_text(self, task):  # noqa
+    def run_text(self, task):  # pylint: disable=R0915
         """Create text for Charliecloud batch script."""
         os.makedirs(self.container_archive, exist_ok=True)
         log.info(f'Build container archive directory is: {self.container_archive}')
@@ -155,5 +155,5 @@ class CharliecloudDriver(ContainerRuntimeDriver):
     def build_text(self, userconfig, task):
         """Build text for Charliecloud batch script."""
         task_args = task2arg(task)
-        text = (f'beeflow --build {userconfig} {task_args}\n')
+        text = f'beeflow --build {userconfig} {task_args}\n'
         return text

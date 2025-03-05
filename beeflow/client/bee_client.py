@@ -4,6 +4,11 @@
 This script provides a client interface to the user to manage workflows.
 Capablities include submitting, starting, listing, pausing and cancelling workflows.
 """
+
+# Disable W0511: This allows us to have TODOs in the code
+# Disable R1732: Significant code restructuring required to fix
+# pylint:disable=W0511,R1732
+
 import os
 import sys
 import logging
@@ -34,7 +39,7 @@ from beeflow.common.db import client_db
 from beeflow.common.db import bdb
 
 # Length of a shortened workflow ID
-short_id_len = 6 #noqa: Not a constant
+short_id_len = 6 # pylint: disable=C0103 # not a constant
 
 # Maximum length of a workflow ID
 MAX_ID_LEN = 32
@@ -167,7 +172,7 @@ def error_exit(msg, include_caller=True):
         raise ClientError(msg) from None
 
 
-def error_handler(resp):  # noqa (this is an error handler, it doesn't need to return an expression)
+def error_handler(resp):  # pylint: disable=R1710 # error handler doesn't need to return an expression
     """Handle a 500 error in a response."""
     if resp.status_code != 500:
         return resp
@@ -231,7 +236,7 @@ def get_wf_list():
 
 def check_short_id_collision():
     """Check short workflow IDs for colliions; increase short ID length if detected."""
-    global short_id_len  #noqa: Not a constant
+    global short_id_len
     workflow_list = get_wf_list()
     if workflow_list:
         while short_id_len < MAX_ID_LEN:
@@ -318,6 +323,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     workdir = workdir.resolve()
 
     tarball_path = ""
+    workflow = None
+    wf_tarball = None
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
         if os.path.isdir(wf_path):
@@ -470,13 +477,13 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
     # Just use tar with subprocess. Python's tar library is not performant.
     return_code = subprocess.run(['tar', '-C', parent_dir, '-czf', tarball, wf_dir],
                                  check=True).returncode
-    package_path = package_dest.resolve()/tarball  # noqa: Not an arithmetic operation
+    package_path = package_dest.resolve()/tarball
 
     # Get the curent working directory
     cwd = pathlib.Path().absolute()
     if package_dest != cwd:
         # Move the tarball if the directory it's wanted in is not in the current working directory
-        tarball_path = cwd/tarball  # noqa: Not an arithmetic operation
+        tarball_path = cwd/tarball
         shutil.move(tarball_path, package_path)
 
     if return_code != 0:
@@ -657,6 +664,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
                   help='working directory for workflow containing input + output files')
               ):
     """Reexecute an archived workflow."""
+    wf_tarball = None
     if os.path.exists(wf_path):
         wf_tarball = open(wf_path, 'rb')
     else:
@@ -700,7 +708,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
-    if resp.status_code != requests.codes.created: #noqa: member does exist
+    if resp.status_code != requests.codes.created: # pylint: disable=E1101
         error_exit(f"Reexecute for {wf_name} failed. Please check the WF Manager.")
 
     wf_id = resp.json()['wf_id']
@@ -765,7 +773,3 @@ def main():
 
 if __name__ == "__main__":
     app()
-
-# Ignore W0511: This allows us to have TODOs in the code
-# Ignore R1732: Significant code restructuring required to fix
-# pylama:ignore=W0511,R1732

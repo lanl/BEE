@@ -4,6 +4,9 @@ Delegates the actual work to an instance of a subclass of
 the abstract base class 'Worker'. Default: 'SlurmWorker' class.
 """
 
+# Disable W0611 module imported but unused error; unsure which workload scheduler will be needed
+# pylint:disable=W0611
+
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.worker.lsf_worker import LSFWorker
 
@@ -50,5 +53,3 @@ class WorkerInterface:
         :rtype: tuple (int, string)
         """
         return self._worker.query_task(job_id)
-# Ignore W0611 module imported but unused error; unsure which workload scheduler will be needed
-# pylama:ignore=W0611

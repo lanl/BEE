@@ -1,4 +1,8 @@
 """Test the resource_allocation submodule of BEE."""
+
+# Disable W0511: This is related to issue #333
+# pylint:disable=W0511
+
 import json
 
 from beeflow.scheduler import resource_allocation
@@ -70,5 +74,3 @@ def test_requirements_encode_decode_json():
     decoded = resource_allocation.Requirements.decode(json.loads(s))
     assert decoded.max_runtime == requirements.max_runtime
     assert decoded.nodes == requirements.nodes
-# Ignore W0511: This is related to issue #333
-# pylama:ignore=W0511

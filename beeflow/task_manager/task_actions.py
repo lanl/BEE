@@ -24,7 +24,7 @@ class TaskActions(Resource):
             log.info(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
-            except Exception as err: # noqa (we have to catch everything here)
+            except Exception as err: # pylint: disable=W0718 # we have to catch everything here
                 log.error(err)
                 log.error(traceback.format_exc())
                 job_state = 'ZOMBIE'

@@ -10,7 +10,7 @@ import jsonpickle
 from flask import make_response, jsonify
 from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
-from celery import shared_task  # noqa (pylama can't find celery imports)
+from celery import shared_task
 
 from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler

@@ -27,7 +27,7 @@ class Connection:
 
     def handle_error(self, resp):
         """Handle an error, if there is one."""
-        if resp.status_code != requests.codes.okay:  # noqa (pylama can't find the okay member)
+        if resp.status_code != requests.codes.okay:  # pylint: disable=E1101 # pylint can't find the okay member
             return self._error_handler(resp)
         return resp
 

@@ -3,6 +3,10 @@
 All container-based build systems belong here.
 """
 
+# Disable W0231: linter doesn't know about abstract classes,
+# it's ok to now call the parent __init__
+# pylint:disable=W0231
+
 import os
 import shutil
 import subprocess
@@ -65,14 +69,14 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         try:
             requirement_docker_requirements = self.task.requirements['DockerRequirement'].keys()
             docker_requirements = docker_requirements.union(requirement_docker_requirements)
-            req_string = (f'{set(requirement_docker_requirements)}')
+            req_string = f'{set(requirement_docker_requirements)}'
             log.info(f'task {self.task.id} requirement DockerRequirements: {req_string}')
         except (TypeError, KeyError):
             log.info(f'task {self.task.name} {self.task.id} no DockerRequirements in requirement')
         try:
             hint_docker_requirements = self.task.hints['DockerRequirement'].keys()
             docker_requirements = docker_requirements.union(hint_docker_requirements)
-            hint_str = (f'{set(hint_docker_requirements)}')
+            hint_str = f'{set(hint_docker_requirements)}'
             log.info(f'task {self.task.name} {self.task.id} hint DockerRequirements: {hint_str}')
         except (TypeError, KeyError):
             log.info(f'task {self.task.name} {self.task.id} hints has no DockerRequirements')
@@ -252,7 +256,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
 
         # Pull the image.
         file_name = crt_driver.get_ccname(import_input_path)
-        cmd = (f'ch-convert {import_input_path} {self.deployed_image_root}/{file_name}')
+        cmd = f'ch-convert {import_input_path} {self.deployed_image_root}/{file_name}'
         log.info(f'Docker import: Assuming container name is {import_input_path}. Correct?')
         return subprocess.run(cmd, check=True, shell=True)
 
@@ -423,5 +427,3 @@ class SingularityBuildDriver(ContainerBuildDriver):
         param_output_directory may be used to override DockerRequirement
         specs.
         """
-# Ignore W0231: linter doesn't know about abstract classes, it's ok to now call the parent __init__
-# pylama:ignore=W0231

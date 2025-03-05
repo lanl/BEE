@@ -2,8 +2,8 @@
 
 import os
 from flask import Flask
-from celery import Celery # noqa (pylama can't find celery imports)
-from celery import shared_task #noqa
+from celery import Celery
+from celery import shared_task # pylint: disable=W0611 # pylint can't find celery imports
 from beeflow.common.api import BeeApi
 from beeflow.common import paths
 from beeflow.wf_manager.resources.wf_list import WFList

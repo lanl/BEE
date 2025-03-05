@@ -4,6 +4,7 @@ import os
 import shutil
 import requests
 import jsonpickle
+from celery import shared_task # pylint: disable=W0611 # pylint can't find celery imports
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -16,7 +17,6 @@ from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 
-from celery import shared_task #noqa (pylama can't find celery imports)
 
 log = bee_logging.setup(__name__)
 
@@ -183,15 +183,15 @@ def _connect_scheduler():
 def _resource(component, tag=""):
     """Access Task Manager or Scheduler."""
     if component == "tm":
-        url = TM_URL + str(tag)
-    elif component == "sched":
-        url = SCHED_URL + str(tag)
-    return url
+        return TM_URL + str(tag)
+    if component == "sched":
+        return SCHED_URL + str(tag)
+
+    raise ValueError(f"Invalid component: {component}")
 
 
 # Submit tasks to the TM
-# pylama:ignore=W0613
-def submit_tasks_tm(wf_id, tasks, allocation):
+def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
     for task in tasks:
@@ -251,7 +251,7 @@ def submit_tasks_scheduler(tasks):
 def schedule_submit_tasks(wf_id, tasks):
     """Schedule and then submit tasks to the TM."""
     # Submit ready tasks to the scheduler
-    allocation = submit_tasks_scheduler(tasks)  #NOQA
+    allocation = submit_tasks_scheduler(tasks)
     # Submit tasks to TM
     submit_tasks_tm(wf_id, tasks, allocation)
 
@@ -265,7 +265,7 @@ def connect_neo4j_driver(bolt_port):
     driver.create_bee_node()
 
 
-def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
+def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, # pylint: disable=W0613
                    tasks=None):
     """Initialize Workflow in Separate Process."""
     wfi = get_workflow_interface(wf_id)
