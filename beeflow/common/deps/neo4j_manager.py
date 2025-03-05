@@ -145,7 +145,7 @@ def create_database():
     """Create the neo4j database and return the process."""
     try:
         command = ['neo4j', 'console']
-        proc = subprocess.Popen([ #noqa can't use with because returning
+        proc = subprocess.Popen([ # pylint: disable=R1732 # can't use with because returning
             "ch-run",
             "--set-env=" + CONTAINER_PATH + "/ch/environment",
             "--set-env=apoc.export.file.enabled=true",

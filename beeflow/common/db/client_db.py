@@ -10,7 +10,7 @@ class ClientInfo:
 
     def __init__(self, db_file):
         """Initialize info and db file."""
-        self.Info = namedtuple("Info", "id hostname") # noqa Snake Case
+        self.Info = namedtuple("Info", "id hostname") # pylint: disable=C0103
         self.db_file = db_file
 
     def set_hostname(self, new_hostname):

@@ -6,6 +6,9 @@ The build_interface will access components of the build_driver and
 components of the gdb_interface as required.
 """
 
+# Disable W0703: Catching generic exception isn't a problem if we just want a descriptive report
+# pylint:disable=W0703
+
 # from beeflow.common.gdb.gdb_interface import GraphDatabaseInterface
 # from beeflow.common.build.container_drivers import CharliecloudBuildDriver,
 #                                                    SingularityBuildDriver
@@ -82,7 +85,3 @@ if __name__ == '__main__':
         log.info(f'{err}')
 
     build_main(local_task)
-
-# Ignore W0703: Catching generic exception isn't a problem if we just want a descriptive report
-# Ignore C901: "'build_main' is too complex" - this function is just around 40 lines
-# pylama:ignore=W0703,C901

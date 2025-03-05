@@ -8,7 +8,7 @@ def filter_and_validate(config, validator):
     """Filter and validate the configuration file."""
     default_keys = list(config['DEFAULT'])
     config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]
-                         if sec_name == 'DEFAULT' or key not in default_keys} # noqa
+                         if sec_name == 'DEFAULT' or key not in default_keys}
               for sec_name in config}
     # Validate the config
     return validator.validate(config)

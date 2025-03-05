@@ -2,6 +2,11 @@
 
 Tests of the REST interface for BEE Scheduler.
 """
+
+# Disable R1732: This suggestion about using `with` doesn't apply here.
+# Disable W0621: These are fixtures; it's supposed to work this way.
+# pylint:disable=R1732,W0621
+
 import os
 import tempfile
 import pytest
@@ -214,8 +219,3 @@ def test_schedule_multi_job_two_resources(scheduler):
     assert len(data[2]['allocations']) > 0
     # Ensure proper scheduled time
     assert data[2]['allocations'][0]['start_time'] < 6
-
-
-# Ignore R1732: This suggestion about using `with` doesn't apply here.
-# Ignore W0621: These are fixtures; it's supposed to work this way.
-# pylama:ignore=R1732,W0621

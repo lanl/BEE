@@ -5,10 +5,10 @@
 import os
 import shutil
 import subprocess
+from celery import shared_task # pylint: disable=W0611 # pylint can't find celery
 
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import paths
-from celery import shared_task #noqa pylama can't find celery
 
 
 class NoContainerRuntime(Exception):

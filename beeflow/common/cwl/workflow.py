@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from beeflow.common.cwl.cwl import (CWL, CWLInput, CWLInputs, RunInput, Inputs, CWLOutput,
                                     Outputs, Run, RunOutput, Step, Steps, Hints,
                                     InputBinding, MPIRequirement, DockerRequirement,
-                                    SlurmRequirement)
+                                    ScriptRequirement, SlurmRequirement)
 
 
 @dataclass
@@ -20,10 +20,11 @@ class Input:
     # Or a position like 2 if the command is "foo <file>"
     prefix: str = None
     position: int = None
-    
+
     pattern = re.compile(r"^[^/]+/[^/]+$")
 
     def has_source(self):
+        """Check if there's a source."""
         return bool(self.pattern.match(str(self.value)))
 
     def cwl_input(self):
@@ -78,18 +79,13 @@ class MPI:
 
 
 @dataclass
-class Slurm:
-    """Slurm options."""
-    account: str = None
-    time_limit: int = None
-    partition: str = None
-    qos: str = None
-    reservation: str = None
+class Slurm(SlurmRequirement):
+    """Get Slurm Requirements."""
 
     def requirement(self):
         """Return a scheduler requirement object."""
-        return SlurmRequirement(time_limit=self.time_limit, account=self.account, partition=self.partition,
-                                qos=self.qos, reservation=self.reservation)
+        return SlurmRequirement(time_limit=self.time_limit, account=self.account,
+                partition=self.partition, qos=self.qos, reservation=self.reservation)
 
 
 @dataclass
@@ -105,6 +101,23 @@ class Charliecloud:
         return DockerRequirement(copy_container=self.container,
                                  docker_file=self.docker_file,
                                  container_name=self.container_name)
+
+
+@dataclass
+class Script:
+    """Represents charliecloud options."""
+
+    pre_script: str = None
+    post_script: str = None
+    enabled: str = None
+    shell: str = None
+
+    def requirement(self):
+        """Return a charliecloud requirement object."""
+        return ScriptRequirement(pre_script=self.pre_script,
+                                 post_script=self.post_script,
+                                 enabled=self.enabled,
+                                 shell=self.shell)
 
 
 @dataclass

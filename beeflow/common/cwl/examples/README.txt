@@ -40,7 +40,7 @@ The output files from this example are: cat.txt, occur0.txt occur1.txt and out.t
 
 2.) To run the comd example: copy the comd.py script into a working directory. If you haven't started beeflow, please start it.
 Create the comd directory. 
-Copy dockerfile, Dockerfile.comd-x86_64 into the comd directory.
+Copy dockerfile, Dockerfile.comd-x86_64, and comd_pre.sh into the comd directory.
 Run the script  `python3 comd.py`. This will create the cwl and yml files in the comd directory. 
 Submit the workflow:
 `beeflow submit comd comd comd/comd.cwl comd/comd.yml .`

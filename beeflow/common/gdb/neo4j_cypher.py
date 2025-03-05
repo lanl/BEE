@@ -11,7 +11,7 @@ def create_bee_node(tx):
 
     This node connects to all workflows and allows them to exist in the same graph
     """
-    bee_query = ("MERGE (b:BEE {name:'Head'})")
+    bee_query = "MERGE (b:BEE {name:'Head'})"
 
     tx.run(bee_query)
 

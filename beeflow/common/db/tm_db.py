@@ -16,7 +16,7 @@ class SubmitQueue:
     def __init__(self, db_file):
         """Construct a submit queue handler."""
         self.db_file = db_file
-        self.Job = namedtuple("Job", "id task") #noqa Snake Case
+        self.Job = namedtuple("Job", "id task") # pylint: disable=C0103
 
     def __iter__(self):
         """Create an iterator for going over all elements."""
@@ -62,7 +62,7 @@ class JobQueue:
     def __init__(self, db_file):
         """Construct a job queue handler."""
         self.db_file = db_file
-        self.Job = namedtuple("Task", "id task job_id job_state") # noqa Snake Case
+        self.Job = namedtuple("Task", "id task job_id job_state") # pylint: disable=C0103
 
     def __iter__(self):
         """Create an iterator for going over all elements in the queue."""
