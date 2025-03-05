@@ -51,11 +51,7 @@ class ComponentManager:
         """Return a decorator function to be called."""
 
         def wrap(fn):
-            """Check to see if any components are disabled."""
-            if bc.get('DEFAULT', 'remote_api') is False and 'remote_api' in name:
-                return
-
-            # Add the component to the list.
+            """Add the component to the list."""
             self.components[name] = {
                 'fn': fn,
                 'deps': deps,
@@ -167,7 +163,7 @@ def need_slurmrestd():
             and not bc.get('slurm', 'use_commands'))
 
 
-def init_components():
+def init_components(remote=False):
     """Initialize the components and component manager."""
     mgr = ComponentManager()
 
@@ -200,12 +196,13 @@ def init_components():
         return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
                                     paths.sched_socket(), stdout=fp, stderr=fp)
 
-    @mgr.component('remote_api', ('wf_manager', 'task_manager'))
-    def start_remote_api():
-        """Start the remote API."""
-        fp = open_log('remote_api')
-        return launch_with_gunicorn('beeflow.remote.remote:create_app()',
-                                    paths.remote_socket(), stdout=fp, stderr=fp)
+    if remote:
+        @mgr.component('remote_api', ('wf_manager', 'task_manager'))
+        def start_remote_api():
+            """Start the remote API."""
+            fp = open_log('remote_api')
+            return launch_with_gunicorn('beeflow.remote.remote:create_app()',
+                                        paths.remote_socket(), stdout=fp, stderr=fp)
 
     @mgr.component('celery', ('redis',))
     def celery():
@@ -405,7 +402,8 @@ app = typer.Typer(no_args_is_help=True)
 @app.command()
 def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           help='run in the foreground'), backend: bool = typer.Option(False, '--backend',
-          '-B', help='allow to run on a backend node')):
+          '-B', help='allow to run on a backend node'), remote: bool = typer.Option(False, 
+          '--remote', '-R', help='allow remote connection')):
     """Start all BEE components."""
     start_hn = socket.gethostname()  # hostname when beeflow starts
     if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":
@@ -419,7 +417,12 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
         bee_client.set_backend_status("true")  # add flag to db
     else:
         check_dependencies()
-    mgr = init_components()
+
+    if remote:  # turn on REST API for remote connection
+        mgr = init_components(remote=True)
+    else:
+        mgr = init_components()
+
     beeflow_log = paths.log_fname('beeflow')
     sock_path = paths.beeflow_socket()
     if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not need_slurmrestd():

@@ -15,7 +15,7 @@ To interact with the daemon process you'll need to use the ``beeflow core`` sub-
 Options:
   -F, --foreground  run in the foreground  [default: False]
   -B, --backend  run on a back end node  [default: False]
-
+  -R, --remote  allow remote interactions  [default: False]
 
 ``beeflow core status``: Check the status of beeflow and the components.
 
