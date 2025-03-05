@@ -5,6 +5,9 @@ of the abstract base class 'ContainerRuntimeDriver'.
 Default: 'CharliecloudDriver' class.
 """
 
+# Disable module imported but unused error. No way to know which crt will be needed
+# pylint:disable=W0611
+
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver
 from beeflow.common.crt.singularity_driver import SingularityDriver
@@ -40,5 +43,3 @@ class ContainerRuntimeInterface:
         :rtype: string
         """
         return self._crt_driver.build_text(userconfig, task)
-# Ignore module imported but unused error. No way to know which crt will be needed
-# pylama:ignore=W0611

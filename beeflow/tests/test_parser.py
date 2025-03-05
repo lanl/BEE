@@ -38,8 +38,8 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_script(self):
         """Test parsing of workflow with a YAML input job file."""
-        cwl_wf_file = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-build_script/clamr_wf.cwl") #noqa
-        cwl_job_yaml = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-build_script/clamr_job.yml") #noqa
+        cwl_wf_file = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-build_script/clamr_wf.cwl") # pylint: disable=C0301
+        cwl_job_yaml = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-build_script/clamr_job.yml") # pylint: disable=C0301
 
         workflow_id = generate_workflow_id()
 
@@ -52,8 +52,8 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_validate_script(self):
         """Test parsing of workflow and validate pre/post script files."""
-        cwl_wf_file = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_wf.cwl") #noqa
-        cwl_job_yaml = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_job.yml") #noqa
+        cwl_wf_file = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_wf.cwl") # pylint: disable=C0301
+        cwl_job_yaml = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_job.yml") # pylint: disable=C0301
 
         workflow_id = generate_workflow_id()
 
@@ -64,15 +64,15 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_validate_shell(self):
         """Test parsing of workflow and check shell option matches pre/post script shebang line."""
-        cwl_wf_file = find("ci/test_workflows/shell_validate/workflow.cwl") #noqa
-        cwl_job_yaml = find("ci/test_workflows/shell_validate/input.yml") #noqa
+        cwl_wf_file = find("ci/test_workflows/shell_validate/workflow.cwl")
+        cwl_job_yaml = find("ci/test_workflows/shell_validate/input.yml")
 
         workflow_id = generate_workflow_id()
 
         with self.assertRaises(Exception) as context:
             self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
 
-        self.assertEqual(context.exception.args[0], "CWL file shell #!/bin/bash does not match post.sh shell #!/bin/bashoo") #noqa
+        self.assertEqual(context.exception.args[0], "CWL file shell #!/bin/bash does not match post.sh shell #!/bin/bashoo") # pylint: disable=C0301
 
     def test_parse_workflow_json(self):
         """Test parsing of workflow with a JSON input job file."""
@@ -164,8 +164,8 @@ TASKS_GOLD_SCRIPT = [
     Task(
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), #noqa
-               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"', 'post_script': 'echo "After run"', 'shell': '/bin/bash'})], #noqa
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), # pylint: disable=C0301
+               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"', 'post_script': 'echo "After run"', 'shell': '/bin/bash'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
                           source='steps_between_graphics', prefix='-g', position=None,
@@ -194,7 +194,7 @@ TASKS_GOLD_SCRIPT = [
     Task(
         name='ffmpeg',
         base_command='ffmpeg -y',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # noqa
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='ffmpeg_input', type='Directory', value=None, default=None,
                           source='clamr/outdir', prefix='-i', position=2,
@@ -223,8 +223,8 @@ TASKS_GOLD_VALIDATE_SCRIPT = [
     Task(
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), #noqa
-               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"\n', 'post_script': 'echo "After run"\n'})], #noqa
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), # pylint: disable=C0301
+               Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"\n', 'post_script': 'echo "After run"\n'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
                           source='steps_between_graphics', prefix='-g', position=None,
@@ -253,7 +253,7 @@ TASKS_GOLD_VALIDATE_SCRIPT = [
     Task(
         name='ffmpeg',
         base_command='ffmpeg -y',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # noqa
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='ffmpeg_input', type='Directory', value=None, default=None,
                           source='clamr/outdir', prefix='-i', position=2,
@@ -282,7 +282,7 @@ TASKS_GOLD = [
     Task(
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # noqa
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
                           source='steps_between_graphics', prefix='-g', position=None,
@@ -311,7 +311,7 @@ TASKS_GOLD = [
     Task(
         name='ffmpeg',
         base_command='ffmpeg -y',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # noqa
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='ffmpeg_input', type='Directory', value=None, default=None,
                           source='clamr/outdir', prefix='-i', position=2,
@@ -362,7 +362,7 @@ TASKS_NOJOB_GOLD = [
         workflow_id=WORKFLOW_NOJOB_GOLD.id),
     Task(
         name='ffmpeg',
-        base_command='ffmpeg -f image2 -i $HOME/graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p $HOME/CLAMR_movie.mp4', # noqa
+        base_command='ffmpeg -f image2 -i $HOME/graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p $HOME/CLAMR_movie.mp4', # pylint: disable=C0301
         hints=[],
         requirements=[],
         inputs=[StepInput(id='infile', type='File', value=None, default='graphics_output',

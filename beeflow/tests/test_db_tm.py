@@ -1,4 +1,9 @@
 """Tests of the TM database."""
+
+# Disable W0621: Pylint complains about redefining 'temp_db' from the outer
+#               scope. This is how pytest fixtures work.
+# pylint:disable=W0621
+
 import tempfile
 import os
 
@@ -183,6 +188,3 @@ def test_update_queue_order(temp_db):
 
     db.update_queue.clear()
     assert db.update_queue.updates() == []
-# Ignore W0621: PyLama complains about redefining 'temp_db' from the outer
-#               scope. This is how pytest fixtures work.
-# pylama:ignore=W0621

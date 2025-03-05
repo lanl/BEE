@@ -7,6 +7,9 @@ The current defaults are defined below, but should later be
 either standardized or read from a config file.
 """
 
+# Disable E1129: External module is missing proper resource context manager methods.
+# pylint:disable=E1129
+
 from neo4j import GraphDatabase as Neo4jDatabase
 from neo4j.exceptions import ServiceUnavailable
 
@@ -41,7 +44,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     def __new__(cls):
         """Create or get the instance of Neo4j database driver."""
         if not hasattr(cls, 'instance'):
-            cls.instance = super(Neo4jDriver, cls).__new__(cls) #noqa cls causing linting errors
+            cls.instance = super(Neo4jDriver, cls).__new__(cls) # pylint: disable=E1120
         return cls.instance
 
     def connect(self, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
@@ -60,7 +63,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         uri = f"bolt://{db_hostname}:{bolt_port}"
         try:
             # Connect to the Neo4j database using the Neo4j proprietary driver
-            self._driver = Neo4jDatabase.driver(uri, auth=(user, password)) #noqa outside init
+            self._driver = Neo4jDatabase.driver(uri, auth=(user, password)) # pylint: disable=W0201
             # Checks the connection and returns ServiceUnavailable if something is wrong
             self._driver.verify_connectivity()
         except ServiceUnavailable as sue:
@@ -627,6 +630,3 @@ def _reconstruct_metadata(metadata_record):
     :rtype: dict
     """
     return {key: val for key, val in metadata_record.items() if key != "state"}
-
-# Ignore E1129: External module is missing proper resource context manager methods.
-# pylama:ignore=E1129

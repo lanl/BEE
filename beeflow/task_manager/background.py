@@ -42,7 +42,7 @@ def submit_task(db, worker, task):
         job_state = 'BUILD_FAIL'
         log.error(f'Failed to build container for {task.name}: {err}')
         log.error(f'{task.name} state: {job_state}')
-    except Exception as err:  # noqa (we have to catch everything here)
+    except Exception as err:  # pylint: disable=W0718 # we have to catch everything here
         # Set job state to failed
         job_state = 'SUBMIT_FAIL'
         log.error(f'Task Manager submit task {task.name} failed! \n {err}')

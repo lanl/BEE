@@ -26,21 +26,12 @@ class LSFWorker(Worker):
         # Check for extra runner options
         self.runner_opts = kwargs['runner_opts'] if 'runner_opts' in kwargs else ''
 
-    def write_script(self, task):
-        """Build task script; returns filename of script."""
-        task_text = self.build_text(task)
-        task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
-        with open(task_script, 'w', encoding='UTF-8') as script_f:
-            script_f.write(task_text)
-            script_f.close()
-        return task_script
-
     def query_job(self, job_id):
         """Query lsf for job status."""
         job_st = subprocess.check_output(['bjobs', '-aX', str(job_id), '-noheader'],
                                          stderr=subprocess.STDOUT)
         if 'not found' in str(job_st):
-            raise Exception
+            job_state = 'UNKNOWN'
         job_state = self.bee_states[job_st.decode().split()[2]]
         return job_state
 

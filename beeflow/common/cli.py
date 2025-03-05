@@ -5,6 +5,6 @@ import click
 class NaturalOrderGroup(click.Group):
     """Natural ordering class for using with CLI code."""
 
-    def list_commands(self, ctx):  # noqa
+    def list_commands(self, ctx):
         """List the commands in order."""
         return self.commands.keys()

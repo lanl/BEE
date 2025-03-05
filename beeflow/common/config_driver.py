@@ -126,7 +126,7 @@ class BeeConfig:
         if cls.CONFIG is None:
             cls.init()
         try:
-            return cls.CONFIG[sec_name][opt_name] # noqa (this object is subscritable)
+            return cls.CONFIG[sec_name][opt_name] # pylint: disable=E1136 # object is subscritable
         except KeyError:
             raise RuntimeError(
                 f'Option {sec_name}::{opt_name} was not found. Please contact '
@@ -259,9 +259,6 @@ VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop poin
                  default=DEFAULT_BEE_DROPPOINT, validator=validation.make_dir,
                  prompt=False)
 
-VALIDATOR.option('DEFAULT', 'remote_api', info='BEE remote REST API activation',
-                 default=False, validator=validation.bool_, prompt=False)
-
 VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
                  default=unique_port(), validator=int, prompt=False)
 
@@ -370,7 +367,7 @@ VALIDATOR.option('scheduler', 'algorithm', default='fcfs', choices=SCHEDULER_ALG
                  info='scheduling algorithm to use', prompt=False)
 VALIDATOR.option('scheduler', 'default_algorithm', default='fcfs',
                  choices=SCHEDULER_ALGORITHMS, prompt=False,
-                 info=('default algorithm to use'))
+                 info='default algorithm to use')
 
 
 def print_wrap(text, next_line_indent=''):
@@ -616,7 +613,3 @@ def show(path: str = typer.Argument(default=USERCONFIG_FILE,
     print(f'# {path}')
     with open(path, encoding='utf-8') as fp:
         print(fp.read(), end='')
-# Ignore C901: "'ConfigGenerator.choose_values' is too complex" - I disagree, if
-#              it's just based on LOC, then there are a number `print()` functions
-#              that are increasing the line count
-# pylama:ignore=C901

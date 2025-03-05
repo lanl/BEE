@@ -92,7 +92,7 @@ class WFUpdate(Resource):
         for state_update in state_updates:
             self.update_task_state(state_update, db)
 
-        return make_response(jsonify(status=('Tasks updated successfully')), 200)
+        return make_response(jsonify(status='Tasks updated successfully'), 200)
 
     def handle_metadata(self, state_update, task, wfi):
         """Handle metadata for a task update."""
