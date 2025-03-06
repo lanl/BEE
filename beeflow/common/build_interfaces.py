@@ -77,7 +77,6 @@ if __name__ == '__main__':
         raise IndexError('build_interface must execute with 2 arguments.') from exc
 
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='build_interface.log')
 
     try:
         local_task = arg2task(my_args)
