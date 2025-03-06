@@ -209,8 +209,12 @@ def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to task manager to submit tasks.')
         return
-
-    if resp.status_code != 200:
+    # Change state of any tasks sent to the submit queue
+    if resp.status_code == 200:
+        for task in tasks:
+            log.info(f"change state of {task.name} to SUBMIT")
+            wfi.set_task_state(task, 'SUBMIT')
+    else:
         log.info(f"Submit task to TM returned bad status: {resp.status_code}")
 
 
