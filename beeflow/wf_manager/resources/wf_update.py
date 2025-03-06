@@ -156,8 +156,9 @@ class WFUpdate(Resource):
 
         if wfi.workflow_completed():
             wf_id = wfi.workflow_id
+            final_state = wfi.get_workflow_final_state()
             log.info(f"Workflow {wf_id} Completed")
-            archive_workflow(db, wf_id)
+            archive_workflow(db, wf_id, final_state)
             log.info('Workflow Archived')
         elif wf_state == 'Cancelled' and wfi.cancelled_workflow_completed():
             wf_id = wfi.workflow_id

@@ -285,6 +285,13 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_workflow_final_state(self):
+        """Get the final state of the workflow.
+
+        :rtype: Optional[str]
+        """
+
+    @abstractmethod
     def cancelled_workflow_completed(self):
         """Determine if a cancelled workflow has completed.
 
