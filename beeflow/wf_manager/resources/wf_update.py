@@ -31,7 +31,7 @@ def archive_workflow(db, wf_id, final_state=None):
     os.makedirs(graphmls_dir, exist_ok=True)
     dags_dir = workflow_dir + "/dags"
     os.makedirs(dags_dir, exist_ok=True)
-    wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True, copy_dag_in_archive=False)
+    wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True)
 
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
     db.workflows.update_workflow_state(wf_id, wf_state)

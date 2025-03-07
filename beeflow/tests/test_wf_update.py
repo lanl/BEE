@@ -45,8 +45,7 @@ def test_archive_workflow(tmpdir, mocker, test_function, expected_state):
             "wf_id_test",
             workdir + "/dags",
             workdir + "/graphmls",
-            no_dag_dir=True,
-            copy_dag_in_archive=False,
+            no_dag_dir=True
         )
         db.workflows.update_workflow_state.assert_called_once_with(
             "wf_id_test", expected_state
