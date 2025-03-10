@@ -1,3 +1,5 @@
+# pylint: disable=W0221
+
 """Neo4j interface module.
 
 Connection requires a valid URI, Username, and Password.
@@ -418,12 +420,43 @@ class Neo4jDriver(GraphDatabaseDriver):
     def workflow_completed(self, workflow_id):
         """Determine if a workflow in the Neo4j database has completed.
 
-        A workflow has completed if each of its final task nodes have state 'COMPLETED'.
+        A workflow has completed if each of its final tasks has finished or failed.
         :param workflow_id: the workflow id
         :type workflow_id: str
         :rtype: bool
         """
         return self._read_transaction(tx.final_tasks_completed, wf_id=workflow_id)
+
+
+    def get_workflow_final_state(self, workflow_id):
+        """Get the final state of the workflow. This should only be called if the
+        workflow has completed.
+
+        Possible options:
+
+        None: All tasks succeeded
+        'Failed': All tasks failed
+        'Partial-Fail': Some tasks failed
+
+        :param workflow_id: the workflow id
+        :type workflow_id: str
+        :rtype: Optional[str]
+        """
+        final_state = None
+        if self._read_transaction(tx.final_tasks_succeeded, wf_id=workflow_id):
+            # all tasks succeeded
+            final_state = None
+        elif self._read_transaction(tx.final_tasks_failed, wf_id=workflow_id):
+            # all tasks failed
+            final_state = "Failed"
+        elif self.workflow_completed(workflow_id):
+            # some tasks failed
+            final_state = "Partial-Fail"
+        else:
+            # workflow still running
+            raise ValueError(f"Workflow with id {workflow_id} has not finished.")
+        return final_state
+
 
     def cancelled_workflow_completed(self, workflow_id):
         """Determine if a cancelled workflow has completed.

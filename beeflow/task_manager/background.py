@@ -5,18 +5,28 @@ the Workflow Manager.
 """
 import traceback
 import jsonpickle
+from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.task_manager import utils
 from beeflow.common import log as bee_logging
 from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build_interfaces import build_main
 from beeflow.common.worker import WorkerError
 
-
+JOBS_MAX = 1000
 log = bee_logging.setup(__name__)
+jobs_limit = bc.get('task_manager', 'jobs_limit')
+if not jobs_limit:
+    jobs_limit = JOBS_MAX # pylint: disable=C0103 # not a constant
+else:
+    try:
+        jobs_limit = int(jobs_limit)
+    except ValueError:
+        log.info(f'Value for jobs_limit in bee.conf not an integer, setting it to {JOBS_MAX}')
+        jobs_limit = JOBS_MAX # pylint: disable=C0103 # not a constant
+log.info(f'The number of jobs queued will be limited to {jobs_limit}.')
 
 # States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
 COMPLETED_STATES = {'UNKNOWN', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'}
-
 
 def resolve_environment(task):
     """Use build interface to create a valid environment.
@@ -57,7 +67,7 @@ def submit_task(db, worker, task):
 def submit_jobs(db):
     """Submit all jobs currently in submit queue to the workload scheduler."""
     worker = utils.worker_interface()
-    while db.submit_queue.count() >= 1:
+    while db.submit_queue.count() >= 1 and db.job_queue.count() < jobs_limit:
         # Single value dictionary
         task = db.submit_queue.pop()
         job_state = submit_task(db, worker, task)

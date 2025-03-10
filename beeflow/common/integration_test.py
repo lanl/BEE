@@ -286,6 +286,29 @@ def comd_mpi(outer_workdir):
     utils.ci_assert(len(fnames) > 0, 'missing comd output yaml file')
 
 
+@TEST_RUNNER.add()
+def workflow_partial_fail(outer_workdir):
+    """Test that dependent tasks don't run after a failure."""
+    workdir = utils.make_workflow_workdir(outer_workdir)
+    workflow = utils.Workflow('partial-fail',
+                              'ci/test_workflows/partial-fail',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_workflow_partial_fail(workflow)
+    # Check each task state
+    fail_state = workflow.get_task_state_by_name('cat')
+    utils.ci_assert(fail_state == 'FAILED',
+                    f'task fail did not fail as expected: {fail_state}')
+    dep_fail_state = workflow.get_task_state_by_name('grep1')
+    utils.ci_assert(dep_fail_state == 'DEP_FAIL',
+                    f'task grep1 did not get state DEP_FAIL as expected: {dep_fail_state}')
+    for task in ['printf', 'grep0']:
+        task_state = workflow.get_task_state_by_name(task)
+        utils.ci_assert(task_state == 'COMPLETED',
+                        f'task {task} did not get state COMPLETED as expected: {task_state}')
+
+
 def test_input_callback(arg):
     """Parse a list of tests separated by commas."""
     return arg.split(',') if arg is not None else None
