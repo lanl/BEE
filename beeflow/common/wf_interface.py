@@ -305,6 +305,13 @@ class WorkflowInterface:
         """
         return self._gdb_driver.workflow_completed(self._workflow_id)
 
+    def get_workflow_final_state(self):
+        """Get final state of the workflow.
+
+        :rtype: Optional[str]
+        """
+        return self._gdb_driver.get_workflow_final_state(self._workflow_id)
+
     def cancelled_workflow_completed(self):
         """Return true if all a cancelled workflow's scheduled tasks have completed, else false.
 
