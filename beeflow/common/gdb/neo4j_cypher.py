@@ -716,7 +716,9 @@ def reset_workflow_id(tx, old_id, new_id):
 
 
 def final_tasks_completed(tx, wf_id):
-    """Return true if each of a workflow's final Task nodes has state 'COMPLETED'.
+    """Return true if each of a workflow's final Task nodes is in a finished state.
+
+    Finished states: 'COMPLETED', 'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', or 'DEP_FAIL'.
 
     :param wf_id: the workflow's id
     :type wf_id: str
@@ -725,7 +727,8 @@ def final_tasks_completed(tx, wf_id):
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
     not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           "AND m.state <> 'COMPLETED' "
+                           "AND NOT m.state IN "
+                           "['COMPLETED', 'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL'] "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task with state not 'COMPLETED'

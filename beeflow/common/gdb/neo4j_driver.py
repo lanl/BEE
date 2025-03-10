@@ -1,3 +1,5 @@
+# pylint: disable=W0221
+
 """Neo4j interface module.
 
 Connection requires a valid URI, Username, and Password.
@@ -418,7 +420,7 @@ class Neo4jDriver(GraphDatabaseDriver):
     def workflow_completed(self, workflow_id):
         """Determine if a workflow in the Neo4j database has completed.
 
-        A workflow has completed if each of its final task nodes have state 'COMPLETED'.
+        A workflow has completed if each of its final tasks has finished or failed.
         :param workflow_id: the workflow id
         :type workflow_id: str
         :rtype: bool

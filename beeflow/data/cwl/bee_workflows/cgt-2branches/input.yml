@@ -1,0 +1,8 @@
+input_file: lorem.txt
+input_file2: none.txt
+word0: Vivamus
+word1: pulvinar
+word2: Morbi
+word3: vitae
+tarball_fname: out.tgz
+tarball_fname2: out2.tgz
