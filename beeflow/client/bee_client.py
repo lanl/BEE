@@ -33,7 +33,7 @@ from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
-from beeflow.client import core # pylint: disable=R0401 WIP
+from beeflow.client import core # pylint: disable=R0401 #WIP
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
