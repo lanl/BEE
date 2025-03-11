@@ -23,7 +23,7 @@ import daemon
 import typer
 
 
-from beeflow.client import bee_client
+from beeflow.client import bee_client # pylint: disable=R0401 WIP
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.config_driver import AlterConfig
 from beeflow.common import cli_connection
