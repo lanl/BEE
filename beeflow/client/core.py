@@ -22,8 +22,7 @@ from pathlib import Path
 import daemon
 import typer
 
-
-from beeflow.client import bee_client
+from beeflow.client import client_utils
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.config_driver import AlterConfig
 from beeflow.common import cli_connection
@@ -137,11 +136,6 @@ class ComponentManager:
         for name, proc in self.procs.items():
             print(f'Killing {name}')
             proc.terminate()
-
-
-def warn(*pargs):
-    """Print a red warning message."""
-    typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
 
 
 def launch_with_gunicorn(module, sock_path, *args, **kwargs):
@@ -278,7 +272,7 @@ def load_check_charliecloud():
         module("load", "charliecloud")
         # Try loading the Charliecloud module then test again
         if not shutil.which('ch-run'):
-            warn('Charliecloud is not loaded. Please ensure that it is accessible'
+            client_utils.warn('Charliecloud is not loaded. Please ensure that it is accessible'
                  ' on your path.\nIf it\'s not installed on your system, please refer'
                  ' to: \n https://hpc.github.io/charliecloud/install.html')
             sys.exit(1)
@@ -296,7 +290,7 @@ def load_check_charliecloud():
         version = tuple(int(part) for part in version.split('.'))
         print(f'Found Charliecloud {version_str(version)}')
     if version < MIN_CHARLIECLOUD_VERSION:
-        warn('This version of Charliecloud is too old, please upgrade to at '
+        client_utils.warn('This version of Charliecloud is too old, please upgrade to at '
              f'least version {version_str(MIN_CHARLIECLOUD_VERSION)}')
         sys.exit(1)
 
@@ -306,15 +300,15 @@ def check_dependencies(backend=False):
     # Note: Code block of lines 309-320 is for SLURM scheduler!
     # Check if running on compute node under Slurm scheduler and --backend not specified
     if not backend and os.environ.get('SLURM_JOB_NODELIST') is not None:
-        warn('Slurm job node detected! Beeflow should not be run on a compute node. ')
-        warn(f'SLURM_JOB_NODELIST = {os.environ.get("SLURM_JOB_NODELIST")}')
-        bee_client.reset_client_db()
+        client_utils.warn('Slurm job node detected! Beeflow should not be run on a compute node. ')
+        client_utils.warn(f'SLURM_JOB_NODELIST = {os.environ.get("SLURM_JOB_NODELIST")}')
+        client_utils.reset_client_db()
         sys.exit(1)
     # Check if running on front end with --backend flag specified
     if backend and os.environ.get('SLURM_JOB_NODELIST') is None:
-        warn('Slurm node was not detected! Are you sure you are on a compute node? ')
-        warn("Please run 'beeflow core start' again without the --backend flag.")
-        bee_client.reset_client_db()
+        client_utils.warn('Slurm node was not detected! Are you sure you are on a compute node? ')
+        client_utils.warn("Please run 'beeflow core start' again without the --backend flag.")
+        client_utils.reset_client_db()
         sys.exit(1)
 
     # TO DO: Add checks when using Flux scheduler
@@ -327,7 +321,7 @@ def check_dependencies(backend=False):
         try:
             import flux  # pylint: disable=W0611,C0415 # don't need to check whether flux api is actually installed
         except ModuleNotFoundError:
-            warn('Failed to import flux Python API. Please make sure you can '
+            client_utils.warn('Failed to import flux Python API. Please make sure you can '
                  'use flux in your environment.')
             sys.exit(1)
 
@@ -406,15 +400,15 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           '--remote', '-R', help='allow remote connection')):
     """Start all BEE components."""
     start_hn = socket.gethostname()  # hostname when beeflow starts
-    if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":
-        bee_client.setup_hostname(start_hn)  # add to client db
+    if client_utils.get_hostname() == "" and client_utils.check_backend_status() == "":
+        client_utils.setup_hostname(start_hn)  # add to client db
     else:
         time.sleep(10)  # giving Slurm time to relinquish compute node, if necessary
-        bee_client.check_db_flags(start_hn)
+        client_utils.check_db_flags(start_hn)
 
     if backend:  # allow beeflow to run on backend node
         check_dependencies(backend=True)
-        bee_client.set_backend_status("true")  # add flag to db
+        client_utils.set_backend_status("true")  # add flag to db
     else:
         check_dependencies()
 
@@ -426,7 +420,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     beeflow_log = paths.log_fname('beeflow')
     sock_path = paths.beeflow_socket()
     if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not need_slurmrestd():
-        warn('Not using slurmrestd. Command-line interface will be used.')
+        client_utils.warn('Not using slurmrestd. Command-line interface will be used.')
     # Note: there is a possible race condition here, however unlikely
     if os.path.exists(sock_path):
         # Try to contact for a status
@@ -442,7 +436,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
                 pass
         else:
             # It's already running, so print an error and exit
-            warn(f'Beeflow appears to be running. Check the beeflow log: "{beeflow_log}"')
+            client_utils.warn(f'Beeflow appears to be running. Check the beeflow log: "{beeflow_log}"')
             sys.exit(1)
 
     version = importlib.metadata.version("hpc-beeflow")
@@ -467,10 +461,12 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 def status():
     """Check the status of beeflow and the components."""
     status_hn = socket.gethostname()  # hostname when beeflow core status returned
-    bee_client.check_hostname(status_hn)
+    print("here 1")
+    client_utils.check_hostname(status_hn)
+    print("here 2")
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'status'})
     if resp is None:
-        # bee_client.check_hostname(status_hn)  # need to remove since checked in line 465?
+        print('did not get a respons')
         sys.exit(1)
     print('beeflow components:')
     for comp, stat in resp['components'].items():
@@ -490,9 +486,9 @@ def info():
 def stop(query='yes'):
     """Stop the current running beeflow daemon."""
     stop_hn = socket.gethostname()  # hostname when beeflow core stop returned
-    bee_client.check_hostname(stop_hn)
+    client_utils.check_hostname(stop_hn)
     # Check workflow states; warn if there are active states, pause running workflows
-    workflow_list = bee_client.get_wf_list()
+    workflow_list = client_utils.get_wf_list()
     concern_states = {'Running', 'Initializing', 'Waiting'}
     concern = {item for row in workflow_list for item in row}.intersection(concern_states)
     # For the interactive case
@@ -507,19 +503,18 @@ def stop(query='yes'):
     if ans.lower() != 'y':
         return
     # Pause running or waiting workflows
-    workflow_list = bee_client.get_wf_list()
+    workflow_list = client_utils.get_wf_list()
     for _name, wf_id, state in workflow_list:
         if state in {'Running', 'Waiting'}:
             bee_client.pause(wf_id)
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
     if resp is None:
-        # bee_client.check_hostname(stop_hn)  # need to remove since checked in line 487?
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
     if query == "yes":
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
-        bee_client.reset_client_db()
+        client_utils.reset_client_db()
 
 
 def archive_dir(dir_to_archive):
@@ -547,7 +542,7 @@ def handle_rm_error(err, dir_to_check, wf_list):
         print(f"Unable to remove {dir_to_check} \n {err.strerror}")
         # Often initializing workflows cause a problem
         if any('Initializing' in sublist for sublist in wf_list):
-            warn('Initializing workflows may have prevented removal.\n')
+            client_utils.warn('Initializing workflows may have prevented removal.\n')
             print(f"Try removing {dir_to_check} manually, to complete reset.")
 
 
@@ -557,7 +552,7 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     """Stop all components and delete the bee_workdir directory."""
     # Check workflow states; warn if there are active states.
     reset_hn = socket.gethostname()
-    bee_client.check_hostname(reset_hn)
+    client_utils.check_hostname(reset_hn)
     workflow_list = bee_client.get_wf_list()
     active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
     caution = ""
@@ -570,7 +565,7 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
         """
     absolutely_sure = ""
     dir_to_delete = os.path.expanduser(wf_utils.get_bee_workdir())
-    warn(f"\n    A reset will remove this directory: {dir_to_delete}\n")
+    client_utils.warn(f"\n    A reset will remove this directory: {dir_to_delete}\n")
     if archive:
         print("    Archive flag is set: logs, workflows and containers will be backed up.")
     print("""
@@ -585,7 +580,7 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             Removing all beeflow logs.
     Beeflow configuration files from bee_cfg will not be deleted.
     """)
-    warn(f"{caution}\nAre you sure you want to reset?")
+    client_utils.warn(f"{caution}\nAre you sure you want to reset?")
     while absolutely_sure != "y" or absolutely_sure != "n":
         absolutely_sure = input("Respond with yes(y)/no(n): ")
         if absolutely_sure in ("n", "no"):
