@@ -15,17 +15,15 @@ from beeflow.common.deps import container_manager
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import log as bee_logging
 
-# Define directories within module scope
-bee_workdir = paths.workdir()
-mount_dir = os.path.join(bee_workdir, 'gdb_mount')
-data_dir = mount_dir + '/data'
-logs_dir = mount_dir + '/logs'
-run_dir = mount_dir + '/run'
-certs_dir = mount_dir + '/certificates'
-confs_dir = mount_dir + "/conf"
-dags_dir = os.path.join(bee_workdir, 'dags')
-graphmls_dir = dags_dir + "/graphmls"
-container_path = container_manager.get_container_dir('neo4j')
+BEE_WORKDIR = None
+MOUNT_DIR = None
+DATA_DIR = None
+LOGS_DIR = None
+RUN_DIR = None
+CERTS_DIR = None
+CONFS_DIR = None
+GRAPHMLS_DIR = None
+CONTAINER_PATH = Nonelog = bee_logging.setup('neo4j')
 log = bee_logging.setup('neo4j')
 
 
@@ -54,15 +52,29 @@ def setup_ports():
     return bolt_port, http_port, https_port
 
 
+def define_directories():
+    """Define directories within module scope."""
+    global BEE_WORKDIR, MOUNT_DIR, DATA_DIR, LOGS_DIR, RUN_DIR, \
+        CERTS_DIR, CONFS_DIR, GRAPHMLS_DIR, CONTAINER_PATH
+    BEE_WORKDIR = paths.workdir()
+    MOUNT_DIR = os.path.join(BEE_WORKDIR, 'gdb_mount')
+    DATA_DIR = MOUNT_DIR + '/data'
+    LOGS_DIR = MOUNT_DIR + '/logs'
+    RUN_DIR = MOUNT_DIR + '/run'
+    CERTS_DIR = MOUNT_DIR + '/certificates'
+    CONFS_DIR = MOUNT_DIR + "/conf"
+    GRAPHMLS_DIR = MOUNT_DIR + '/graphmls'
+    CONTAINER_PATH = container_manager.get_container_dir('neo4j')
+
+
 def setup_mounts():
     """Set up mount directories for the graph database."""
-    os.makedirs(data_dir, exist_ok=True)
-    os.makedirs(logs_dir, exist_ok=True)
-    os.makedirs(mount_dir, exist_ok=True)
-    os.makedirs(certs_dir, exist_ok=True)
-    os.makedirs(run_dir, exist_ok=True)
-    os.makedirs(dags_dir, exist_ok=True)
-    os.makedirs(graphmls_dir, exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    os.makedirs(MOUNT_DIR, exist_ok=True)
+    os.makedirs(CERTS_DIR, exist_ok=True)
+    os.makedirs(RUN_DIR, exist_ok=True)
+    os.makedirs(GRAPHMLS_DIR, exist_ok=True)
 
 
 def setup_configs(bolt_port, http_port, https_port):
@@ -71,9 +83,9 @@ def setup_configs(bolt_port, http_port, https_port):
     This function needs to be run before each new invocation since the
     config file could have changed.
     """
-    os.makedirs(confs_dir, exist_ok=True)
-    gdb_configfile = shutil.copyfile(container_path + "/var/lib/neo4j/conf/neo4j.conf",
-                                     confs_dir + "/neo4j.conf")
+    os.makedirs(CONFS_DIR, exist_ok=True)
+    gdb_configfile = shutil.copyfile(CONTAINER_PATH + "/var/lib/neo4j/conf/neo4j.conf",
+                                     CONFS_DIR + "/neo4j.conf")
     log.info(gdb_configfile)
 
     with open(gdb_configfile, "rt", encoding="utf8") as cfile:
@@ -90,7 +102,7 @@ def setup_configs(bolt_port, http_port, https_port):
     with open(gdb_configfile, "wt", encoding="utf8") as cfile:
         cfile.write(data)
 
-    apoc_configfile = os.path.join(confs_dir, "apoc.conf")
+    apoc_configfile = os.path.join(CONFS_DIR, "apoc.conf")
     if not os.path.exists(apoc_configfile):
         with open(apoc_configfile, "wt", encoding="utf8") as afile:
             afile.write("apoc.export.file.enabled=true\n")
@@ -116,13 +128,13 @@ def create_credentials():
         command = ['neo4j-admin', 'dbms', 'set-initial-password', str(db_password)]
         subprocess.run([
             "ch-run",
-            "--set-env=" + container_path + "/ch/environment",
+            "--set-env=" + CONTAINER_PATH + "/ch/environment",
             "--set-env=apoc.export.file.enabled=true",
-            "-b", confs_dir + ":/var/lib/neo4j/conf",
-            "-b", data_dir + ":/data",
-            "-b", logs_dir + ":/logs",
-            "-b", run_dir + ":/var/lib/neo4j/run", container_path,
-            "-W", "-b", graphmls_dir + ":/var/lib/neo4j/import",
+            "-b", CONFS_DIR + ":/var/lib/neo4j/conf",
+            "-b", DATA_DIR + ":/data",
+            "-b", LOGS_DIR + ":/logs",
+            "-b", RUN_DIR + ":/var/lib/neo4j/run", CONTAINER_PATH,
+            "-W", "-b", GRAPHMLS_DIR + ":/var/lib/neo4j/import",
             "--", *command
         ], check=True)
     except subprocess.CalledProcessError:
@@ -133,17 +145,17 @@ def create_database():
     """Create the neo4j database and return the process."""
     try:
         command = ['neo4j', 'console']
-        proc = subprocess.Popen([ #noqa can't use with because returning
+        proc = subprocess.Popen([ # pylint: disable=R1732 # can't use with because returning
             "ch-run",
-            "--set-env=" + container_path + "/ch/environment",
+            "--set-env=" + CONTAINER_PATH + "/ch/environment",
             "--set-env=apoc.export.file.enabled=true",
-            "-b", confs_dir + ":/var/lib/neo4j/conf",
-            "-b", data_dir + ":/data",
-            "-b", logs_dir + ":/logs",
-            "-b", run_dir + ":/var/lib/neo4j/run",
-            "-b", certs_dir + ":/var/lib/neo4j/certificates",
-            "-W", "-b", graphmls_dir + ":/var/lib/neo4j/import",
-            container_path, "--", *command
+            "-b", CONFS_DIR + ":/var/lib/neo4j/conf",
+            "-b", DATA_DIR + ":/data",
+            "-b", LOGS_DIR + ":/logs",
+            "-b", RUN_DIR + ":/var/lib/neo4j/run",
+            "-b", CERTS_DIR + ":/var/lib/neo4j/certificates",
+            "-W", "-b", GRAPHMLS_DIR + ":/var/lib/neo4j/import",
+            CONTAINER_PATH, "--", *command
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         wait_gdb()
         return proc
@@ -158,6 +170,8 @@ def start():
     log.info('Starting Neo4j Database')
 
     bolt_port, http_port, https_port = setup_ports()
+
+    define_directories()
 
     setup_configs(bolt_port, http_port, https_port)
 
@@ -180,8 +194,8 @@ def wait_gdb():
 
 def remove_gdb():
     """Remove the current GDB bind mount directory."""
-    gdb_workdir = os.path.join(bee_workdir, 'current_gdb')
-    old_gdb_workdir = os.path.join(bee_workdir, 'old_gdb')
+    gdb_workdir = os.path.join(BEE_WORKDIR, 'current_gdb')
+    old_gdb_workdir = os.path.join(BEE_WORKDIR, 'old_gdb')
     if os.path.isdir(gdb_workdir):
         # Rename the directory to guard against NFS errors
         shutil.move(gdb_workdir, old_gdb_workdir)

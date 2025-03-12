@@ -42,7 +42,7 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         name = '.'.join(name)
         return name
 
-    def run_text(self, task):  # noqa
+    def run_text(self, task):  # pylint: disable=R0915
         """Create text for Charliecloud batch script."""
         os.makedirs(self.container_archive, exist_ok=True)
         log.info(f'Build container archive directory is: {self.container_archive}')
@@ -97,13 +97,15 @@ class CharliecloudDriver(ContainerRuntimeDriver):
                                           main_command=Command([str(arg) for arg in task.command]),
                                           post_commands=[])
 
-        if task_container_name:
-            container_path = '/'.join([self.container_archive, task_container_name]) + '.tar.gz'
-
         # If use_container is specified, no copying is done, the file  path is used
+        squashfs = False
         if use_container:
             task_container_name = self.get_ccname(use_container)
             container_path = os.path.expanduser(use_container)
+            _, ext = os.path.splitext(container_path)
+            # infer if using SquashFS, similar to:
+            # https://hpc.github.io/charliecloud/ch-convert.html#format-inference
+            squashfs = ext in ['.sqfs', '.squash', '.squashfs']
         else:
             container_path = '/'.join([self.container_archive, task_container_name]) + '.tar.gz'
 
@@ -119,12 +121,20 @@ class CharliecloudDriver(ContainerRuntimeDriver):
             mpi_opt = ''
         command = ' '.join(task.command)
         env_code = '\n'.join([self.cc_setup if self.cc_setup else '', task_workdir_env])
-        deployed_path = deployed_image_root + '/' + task_container_name
-        pre_commands = [
-            Command(f'mkdir -p {deployed_image_root}\n'.split(), CommandType.ONE_PER_NODE),
-            Command(f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split(),
-                    CommandType.ONE_PER_NODE),
-        ]
+        pre_commands = []
+        post_commands = []
+        if squashfs:
+            deployed_path = container_path
+        else:
+            deployed_path = deployed_image_root + '/' + task_container_name
+            pre_commands = [
+                Command(f'mkdir -p {deployed_image_root}\n'.split(), CommandType.ONE_PER_NODE),
+                Command(f'ch-convert -i tar -o dir {container_path} {deployed_path}\n'.split(),
+                        CommandType.ONE_PER_NODE),
+            ]
+            post_commands = [
+                Command(f'rm -rf {deployed_path}\n'.split(), type_=CommandType.ONE_PER_NODE),
+            ]
         # Need to convert the path from inside to outside base on the bind mounts
         extra_opts = ''
         if task.workdir is not None:
@@ -140,13 +150,10 @@ class CharliecloudDriver(ContainerRuntimeDriver):
         main_command = (f'ch-run {mpi_opt} {deployed_path} {self.chrun_opts} '
                         f'{extra_opts} {bind_mount_opts} -- {command}\n').split()
         main_command = Command(main_command)
-        post_commands = [
-            Command(f'rm -rf {deployed_path}\n'.split(), type_=CommandType.ONE_PER_NODE),
-        ]
         return ContainerRuntimeResult(env_code, pre_commands, main_command, post_commands)
 
     def build_text(self, userconfig, task):
         """Build text for Charliecloud batch script."""
         task_args = task2arg(task)
-        text = (f'beeflow --build {userconfig} {task_args}\n')
+        text = f'beeflow --build {userconfig} {task_args}\n'
         return text

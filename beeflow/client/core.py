@@ -17,19 +17,26 @@ import shutil
 import datetime
 import time
 import importlib.metadata
+from pathlib import Path
 
 import daemon
 import typer
 
-from beeflow.client import bee_client
+
+from beeflow.client import bee_client # pylint: disable=R0401 #WIP
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.config_driver import AlterConfig
 from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.wf_manager.resources import wf_utils
+import beeflow.common.worker.utils as worker_utils
 
 from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
 from beeflow.common.deps import redis_manager
+
+
+REPO_PATH = Path(*Path(__file__).parts[:-3])
 
 
 class ComponentManager:
@@ -44,11 +51,7 @@ class ComponentManager:
         """Return a decorator function to be called."""
 
         def wrap(fn):
-            """Check to see if any components are disabled."""
-            if bc.get('DEFAULT', 'remote_api') is False and 'remote_api' in name:
-                return
-
-            # Add the component to the list.
+            """Add the component to the list."""
             self.components[name] = {
                 'fn': fn,
                 'deps': deps,
@@ -104,7 +107,7 @@ class ComponentManager:
         """Poll each process to check for errors, restart failed processes."""
         # Max number of times a component can be restarted
         max_restarts = bc.get('DEFAULT', 'max_restarts')
-        for name in self.procs:  # noqa no need to iterate with items() since self.procs may be set
+        for name in self.procs:  # pylint: disable=C0206 # no need to iterate with items() since self.procs may be set
             component = self.components[name]
             if component['failed']:
                 continue
@@ -160,7 +163,7 @@ def need_slurmrestd():
             and not bc.get('slurm', 'use_commands'))
 
 
-def init_components():
+def init_components(remote=False):
     """Initialize the components and component manager."""
     mgr = ComponentManager()
 
@@ -193,12 +196,13 @@ def init_components():
         return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
                                     paths.sched_socket(), stdout=fp, stderr=fp)
 
-    @mgr.component('remote_api', ('wf_manager', 'task_manager'))
-    def start_remote_api():
-        """Start the remote API."""
-        fp = open_log('remote_api')
-        return launch_with_gunicorn('beeflow.remote.remote:create_app()',
-                                    paths.remote_socket(), stdout=fp, stderr=fp)
+    if remote:
+        @mgr.component('remote_api', ('wf_manager', 'task_manager'))
+        def start_remote_api():
+            """Start the remote API."""
+            fp = open_log('remote_api')
+            return launch_with_gunicorn('beeflow.remote.remote:create_app()',
+                                        paths.remote_socket(), stdout=fp, stderr=fp)
 
     @mgr.component('celery', ('redis',))
     def celery():
@@ -241,13 +245,14 @@ def init_components():
             """Start BEESlurmRestD. Returns a Popen process object."""
             bee_workdir = bc.get('DEFAULT', 'bee_workdir')
             slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
-            openapi_version = bc.get('slurm', 'openapi_version')
+            openapi_version = worker_utils.get_slurmrestd_version()
+            print(f"Inferred slurmrestd version: {openapi_version}")
             slurm_args = f'-s openapi/{openapi_version}'
             # The following adds the db plugin we opted not to use for now
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
             slurm_socket = paths.slurm_socket()
             subprocess.run(['rm', '-f', slurm_socket], check=True)
-            fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
+            fp = open(slurmrestd_log, 'w', encoding='utf-8') # pylint: disable=R1732
             cmd = ['slurmrestd']
             cmd.extend(slurm_args.split())
             cmd.append(f'unix:{slurm_socket}')
@@ -269,7 +274,7 @@ def load_check_charliecloud():
     if not shutil.which('ch-run'):
         lmod = os.environ.get('MODULESHOME')
         sys.path.insert(0, lmod + '/init')
-        from env_modules_python import module #noqa No need to import at top
+        from env_modules_python import module # pylint: disable=C0415 # No need to import at top
         module("load", "charliecloud")
         # Try loading the Charliecloud module then test again
         if not shutil.which('ch-run'):
@@ -296,15 +301,31 @@ def load_check_charliecloud():
         sys.exit(1)
 
 
-def check_dependencies():
+def check_dependencies(backend=False):
     """Check for various dependencies in the environment."""
+    # Note: Code block of lines 309-320 is for SLURM scheduler!
+    # Check if running on compute node under Slurm scheduler and --backend not specified
+    if not backend and os.environ.get('SLURM_JOB_NODELIST') is not None:
+        warn('Slurm job node detected! Beeflow should not be run on a compute node. ')
+        warn(f'SLURM_JOB_NODELIST = {os.environ.get("SLURM_JOB_NODELIST")}')
+        bee_client.reset_client_db()
+        sys.exit(1)
+    # Check if running on front end with --backend flag specified
+    if backend and os.environ.get('SLURM_JOB_NODELIST') is None:
+        warn('Slurm node was not detected! Are you sure you are on a compute node? ')
+        warn("Please run 'beeflow core start' again without the --backend flag.")
+        bee_client.reset_client_db()
+        sys.exit(1)
+
+    # TO DO: Add checks when using Flux scheduler
+
     print('Checking dependencies...')
     # Check for Charliecloud and its version
     load_check_charliecloud()
     # Check for the flux API
     if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
         try:
-            import flux  # noqa needed to check whether flux api is actually installed
+            import flux  # pylint: disable=W0611,C0415 # don't need to check whether flux api is actually installed
         except ModuleNotFoundError:
             warn('Failed to import flux Python API. Please make sure you can '
                  'use flux in your environment.')
@@ -358,7 +379,7 @@ class Beeflow:
 
 def daemonize(mgr, base_components):
     """Start beeflow as a daemon, monitoring all processes."""
-    def handle_terminate(signum, stack): # noqa
+    def handle_terminate(signum, stack): # pylint: disable=W0613
         """Handle a terminate signal."""
         # Kill all subprocesses
         mgr.kill()
@@ -380,10 +401,28 @@ app = typer.Typer(no_args_is_help=True)
 
 @app.command()
 def start(foreground: bool = typer.Option(False, '--foreground', '-F',
-          help='run in the foreground')):
+          help='run in the foreground'), backend: bool = typer.Option(False, '--backend',
+          '-B', help='allow to run on a backend node'), remote: bool = typer.Option(False, 
+          '--remote', '-R', help='allow remote connection')):
     """Start all BEE components."""
-    check_dependencies()
-    mgr = init_components()
+    start_hn = socket.gethostname()  # hostname when beeflow starts
+    if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":
+        bee_client.setup_hostname(start_hn)  # add to client db
+    else:
+        time.sleep(10)  # giving Slurm time to relinquish compute node, if necessary
+        bee_client.check_db_flags(start_hn)
+
+    if backend:  # allow beeflow to run on backend node
+        check_dependencies(backend=True)
+        bee_client.set_backend_status("true")  # add flag to db
+    else:
+        check_dependencies()
+
+    if remote:  # turn on REST API for remote connection
+        mgr = init_components(remote=True)
+    else:
+        mgr = init_components()
+
     beeflow_log = paths.log_fname('beeflow')
     sock_path = paths.beeflow_socket()
     if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not need_slurmrestd():
@@ -408,6 +447,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 
     version = importlib.metadata.version("hpc-beeflow")
     print(f'Starting beeflow {version}...')
+    print(f'Running beeflow on {start_hn}')
     if not foreground:
         print('Run `beeflow core status` for more information.')
     # Create the log path if it doesn't exist yet
@@ -426,11 +466,11 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 @app.command()
 def status():
     """Check the status of beeflow and the components."""
+    status_hn = socket.gethostname()  # hostname when beeflow core status returned
+    bee_client.check_hostname(status_hn)
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'status'})
     if resp is None:
-        beeflow_log = paths.log_fname('beeflow')
-        warn('Cannot connect to the beeflow daemon, is it running? Check the '
-             f'log at "{beeflow_log}".')
+        # bee_client.check_hostname(status_hn)  # need to remove since checked in line 465?
         sys.exit(1)
     print('beeflow components:')
     for comp, stat in resp['components'].items():
@@ -449,6 +489,8 @@ def info():
 @app.command()
 def stop(query='yes'):
     """Stop the current running beeflow daemon."""
+    stop_hn = socket.gethostname()  # hostname when beeflow core stop returned
+    bee_client.check_hostname(stop_hn)
     # Check workflow states; warn if there are active states, pause running workflows
     workflow_list = bee_client.get_wf_list()
     concern_states = {'Running', 'Initializing', 'Waiting'}
@@ -471,15 +513,13 @@ def stop(query='yes'):
             bee_client.pause(wf_id)
     resp = cli_connection.send(paths.beeflow_socket(), {'type': 'quit'})
     if resp is None:
-        beeflow_log = paths.log_fname('beeflow')
-        warn('Error: beeflow is not running on this system. It could be '
-             'running on a different front end.\n'
-             f'       Check the beeflow log: "{beeflow_log}".')
+        # bee_client.check_hostname(stop_hn)  # need to remove since checked in line 487?
         sys.exit(1)
     # As long as it returned something, we should be good
     beeflow_log = paths.log_fname('beeflow')
     if query == "yes":
         print(f'Beeflow has stopped. Check the log at "{beeflow_log}".')
+        bee_client.reset_client_db()
 
 
 def archive_dir(dir_to_archive):
@@ -516,6 +556,8 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
     """Stop all components and delete the bee_workdir directory."""
     # Check workflow states; warn if there are active states.
+    reset_hn = socket.gethostname()
+    bee_client.check_hostname(reset_hn)
     workflow_list = bee_client.get_wf_list()
     active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
     caution = ""
@@ -536,6 +578,7 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
         Shutdown beeflow and all BEE components.
         Delete the bee_workdir directory which results in:
             Removing the archive of all workflows.
+                (unless archives is configured elsewhere).
             Removing the archive of workflow containers
                 (unless container_archive is configured elsewhere).
             Reset all databases associated with the beeflow app.
@@ -583,19 +626,26 @@ def pull_to_tar(ref, tarball):
     subprocess.check_call(['ch-convert', '-i', 'ch-image', '-o', 'tar', ref, tarball])
 
 
+def build_to_tar(tag, dockerfile, tarball):
+    """Build a container from a Dockerfile and convert to tarball."""
+    subprocess.check_call(['ch-image', 'build', '-t', tag, '-f', dockerfile, '.'])
+    subprocess.check_call(['ch-convert', '-i', 'ch-image', '-o', 'tar', tag, tarball])
+
+
 @app.command()
 def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
                                          help='directory to store containers in')):
     """Pull required BEE containers and store in outdir."""
     load_check_charliecloud()
     neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
-    pull_to_tar('neo4j:5.17', neo4j_path)
+    neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
+    build_to_tar('neo4j_image', neo4j_dockerfile, neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
-    print()
-    print('The BEE dependency containers have been successfully downloaded. '
-          'Please make sure to set the following options in your config:')
-    print()
-    print('[DEFAULT]')
-    print('neo4j_image =', neo4j_path)
-    print('redis_image =', redis_path)
+
+    AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path,
+                                     'redis_image': redis_path}}).save()
+
+    dep_dir = container_manager.get_dep_dir()
+    if os.path.isdir(dep_dir):
+        shutil.rmtree(dep_dir)

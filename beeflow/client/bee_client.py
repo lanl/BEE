@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """bee-client.
 
-This script provides an client interface to the user to manage workflows.
+This script provides a client interface to the user to manage workflows.
 Capablities include submitting, starting, listing, pausing and cancelling workflows.
 """
+
+# Disable W0511: This allows us to have TODOs in the code
+# Disable R1732: Significant code restructuring required to fix
+# pylint:disable=W0511,R1732
+
 import os
 import sys
 import logging
@@ -11,6 +16,7 @@ import inspect
 import pathlib
 import shutil
 import subprocess
+import getpass
 import tarfile
 import tempfile
 import textwrap
@@ -27,11 +33,13 @@ from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.wf_data import generate_workflow_id
-from beeflow.client import core
+from beeflow.client import core # pylint: disable=R0401 #WIP
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.common.db import client_db
+from beeflow.common.db import bdb
 
 # Length of a shortened workflow ID
-short_id_len = 6 #noqa: Not a constant
+short_id_len = 6 # pylint: disable=C0103 # not a constant
 
 # Maximum length of a workflow ID
 MAX_ID_LEN = 32
@@ -53,6 +61,104 @@ class ClientError(Exception):
         self.args = args
 
 
+def warn(*pargs):
+    """Print a red warning message."""
+    typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
+
+
+def db_path():
+    """Return the client database path."""
+    bee_workdir = config_driver.BeeConfig.get('DEFAULT', 'bee_workdir')
+    return os.path.join(bee_workdir, 'client.db')
+
+
+def setup_hostname(start_hn):
+    """Set up front end name when beeflow core start is returned."""
+    db = bdb.connect_db(client_db, db_path())
+    db.info.set_hostname(start_hn)
+
+
+def get_hostname():
+    """Check if beeflow is running somewhere else."""
+    db = bdb.connect_db(client_db, db_path())
+    curr_hn = db.info.get_hostname()
+    return curr_hn
+
+
+def set_backend_status(new_status):
+    """Set backend flag to true in database."""
+    db = bdb.connect_db(client_db, db_path())
+    db.info.set_backend_status(new_status)
+
+
+def check_backend_status():
+    """Check if backend flag has been set."""
+    db = bdb.connect_db(client_db, db_path())
+    status = db.info.get_backend_status()
+    return status
+
+
+def reset_client_db():
+    """Reset client db when beeflow is stopped."""
+    setup_hostname("")
+    set_backend_status("")
+
+
+def check_backend_jobs(start_hn, command=False):
+    """Check if there is an instance of beeflow running on a backend node."""
+    user_name = getpass.getuser()
+    cmd = ['squeue', '-u', f'{user_name}', '-o', '%N', '-h']
+    resp = subprocess.run(cmd, text=True, check=True, stdout=subprocess.PIPE)
+
+    # iterate through available nodes
+    data = resp.stdout.splitlines()
+    cur_alloc = False
+    if get_hostname() in data:
+        cur_alloc = True
+
+    if cur_alloc:
+        if command:
+            warn(f'beeflow was started on "{get_hostname()}" and you are trying to '
+                 f'run a command on "{start_hn}".')
+            sys.exit(1)
+        else:
+            warn(f'beeflow was started on compute node "{get_hostname()}" '
+                 'and it is still running. ')
+            sys.exit(1)
+    else:  # beeflow was started on compute node but user no longer owns node
+        if command:
+            warn('beeflow has not been started!')
+            sys.exit(1)
+        else:
+            warn('beeflow was started on a compute node (no longer owned by user) and '
+                 'not stopped correctly. ')
+            warn("Resetting client database.")
+            reset_client_db()
+            setup_hostname(start_hn)  # add to client db
+
+
+def check_db_flags(start_hn):
+    """Check that beeflow was stopped correctly during the last run."""
+    if get_hostname() and get_hostname() != start_hn and check_backend_status() == "":
+        warn(f'Error: beeflow is already running on "{get_hostname()}".')
+        sys.exit(1)
+    if get_hostname() and get_hostname() != start_hn and check_backend_status() == "true":
+        check_backend_jobs(start_hn)
+
+
+def check_hostname(curr_hn):
+    """Check current front end name matches the one beeflow was started on."""
+    if get_hostname() and curr_hn != get_hostname() and check_backend_status() == "":
+        warn(f'beeflow was started on "{get_hostname()}" and you are trying to '
+             f'run a command on "{curr_hn}".')
+        sys.exit(1)
+    elif get_hostname() and curr_hn != get_hostname() and check_backend_status() == "true":
+        check_backend_jobs(curr_hn, command=True)
+    if get_hostname() == "" and check_backend_status() == "":
+        warn('beeflow has not been started!')
+        sys.exit(1)
+
+
 def error_exit(msg, include_caller=True):
     """Print a message and exit or raise an error with that message."""
     if include_caller:
@@ -66,7 +172,7 @@ def error_exit(msg, include_caller=True):
         raise ClientError(msg) from None
 
 
-def error_handler(resp):  # noqa (this is an error handler, it doesn't need to return an expression)
+def error_handler(resp):  # pylint: disable=R1710 # error handler doesn't need to return an expression
     """Handle a 500 error in a response."""
     if resp.status_code != 500:
         return resp
@@ -115,7 +221,11 @@ def get_wf_list():
         conn = _wfm_conn()
         resp = conn.get(_url(), timeout=60)
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        if get_hostname() == "":
+            warn('beeflow has not been started!')
+            sys.exit(1)
+        else:
+            error_exit('Could not reach WF Manager.')
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit('WF Manager did not return workflow list')
@@ -126,7 +236,7 @@ def get_wf_list():
 
 def check_short_id_collision():
     """Check short workflow IDs for colliions; increase short ID length if detected."""
-    global short_id_len  #noqa: Not a constant
+    global short_id_len
     workflow_list = get_wf_list()
     if workflow_list:
         while short_id_len < MAX_ID_LEN:
@@ -213,6 +323,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     workdir = workdir.resolve()
 
     tarball_path = ""
+    workflow = None
+    wf_tarball = None
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
         if os.path.isdir(wf_path):
@@ -365,13 +477,13 @@ def package(wf_path: pathlib.Path = typer.Argument(...,
     # Just use tar with subprocess. Python's tar library is not performant.
     return_code = subprocess.run(['tar', '-C', parent_dir, '-czf', tarball, wf_dir],
                                  check=True).returncode
-    package_path = package_dest.resolve()/tarball  # noqa: Not an arithmetic operation
+    package_path = package_dest.resolve()/tarball
 
     # Get the curent working directory
     cwd = pathlib.Path().absolute()
     if package_dest != cwd:
         # Move the tarball if the directory it's wanted in is not in the current working directory
-        tarball_path = cwd/tarball  # noqa: Not an arithmetic operation
+        tarball_path = cwd/tarball
         shutil.move(tarball_path, package_path)
 
     if return_code != 0:
@@ -475,25 +587,6 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 
 @app.command()
-def metadata(wf_id: str = typer.Argument(..., callback=match_short_id)):
-    """Get metadata about a given workflow."""
-    try:
-        conn = _wfm_conn()
-        resp = conn.get(_resource(wf_id) + '/metadata', timeout=60)
-    except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
-
-    if resp.status_code != requests.codes.okay:  # noqa (pylama doesn't know about the okay member)
-        error_exit('Could not successfully query workflow manager')
-
-    # Print and or return the metadata
-    data = resp.json()
-    for key, value in data.items():
-        typer.echo(f'{key} = {value}')
-    return data
-
-
-@app.command()
 def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Pause a workflow (Running tasks will finish)."""
     long_wf_id = wf_id
@@ -571,6 +664,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
                   help='working directory for workflow containing input + output files')
               ):
     """Reexecute an archived workflow."""
+    wf_tarball = None
     if os.path.exists(wf_path):
         wf_tarball = open(wf_path, 'rb')
     else:
@@ -614,7 +708,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
-    if resp.status_code != requests.codes.created: #noqa: member does exist
+    if resp.status_code != requests.codes.created: # pylint: disable=E1101
         error_exit(f"Reexecute for {wf_name} failed. Please check the WF Manager.")
 
     wf_id = resp.json()['wf_id']
@@ -625,9 +719,36 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 
 
 @app.command()
-def dag(wf_id: str = typer.Argument(..., callback=match_short_id)):
+def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
+        output_dir: pathlib.Path = typer.Argument(...,
+        help='Path to the where the dag output will be'),
+        no_dag_dir: bool = typer.Option(False, '--no-dag-dir',
+        help='do not make a subdirectory within ouput_dir for the dags')):
     """Export a DAG of the workflow to a GraphML file."""
-    wf_utils.export_dag(wf_id)
+    output_dir = output_dir.resolve()
+    # Make sure output_dir is an absolute path and exists
+    output_dir = os.path.expanduser(output_dir)
+    output_dir = os.path.abspath(output_dir)
+    if not os.path.exists(output_dir):
+        error_exit(f"Path for dag directory \"{output_dir}\" doesn't exist")
+
+    # output_dir must be a string
+    output_dir = str(output_dir)
+    # Check if the workflow is archived
+    wf_status = get_wf_status(wf_id)
+    if wf_status == 'Archived':
+        bee_workdir = wf_utils.get_bee_workdir()
+        mount_dir = os.path.join(bee_workdir, 'gdb_mount')
+        graphmls_dir = mount_dir + '/graphmls'
+        typer.secho("Workflow has been archived. All new DAGs will look the same as the one "
+                    "in the archive directory.",
+                    fg=typer.colors.MAGENTA)
+        wf_utils.export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir)
+    else:
+        wf_dir = wf_utils.get_workflow_dir(wf_id)
+        graphmls_dir = wf_dir + '/graphmls'
+        os.makedirs(graphmls_dir, exist_ok=True)
+        wf_utils.export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, wf_dir)
     typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
                 fg=typer.colors.GREEN)
 
@@ -651,7 +772,3 @@ def main():
 
 if __name__ == "__main__":
     app()
-
-# Ignore W0511: This allows us to have TODOs in the code
-# Ignore R1732: Significant code restructuring required to fix
-# pylama:ignore=W0511,R1732

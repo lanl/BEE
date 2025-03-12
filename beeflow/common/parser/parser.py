@@ -12,7 +12,7 @@ import os
 import traceback
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
-from schema_salad.exceptions import ValidationException  # noqa (pylama can't find the exception)
+from schema_salad.exceptions import ValidationException
 
 from beeflow.common.wf_data import (Workflow,
                                     Task,
@@ -352,13 +352,13 @@ class CwlParser:
                     if 'shell' in items:
                         self._read_requirement_file('pre_script', items)
                     else:
-                        msg = f'pre script enabled but shell option undefined in cwl file.' #noqa
+                        msg = 'pre script enabled but shell option undefined in cwl file.'
                         raise CwlParseError(msg) from None
                 if 'post_script' in items and items['enabled']:
                     if 'shell' in items:
                         self._read_requirement_file('post_script', items)
                     else:
-                        msg = f'post script enabled but shell option undefined in cwl file.' #noqa
+                        msg = 'post script enabled but shell option undefined in cwl file.'
                         raise CwlParseError(msg) from None
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)

@@ -15,10 +15,15 @@ cat >> $BEE_CONFIG <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
 bee_workdir = $BEE_WORKDIR
+bee_archive_dir = $BEE_WORKDIR/archives
+bee_droppoint = $BEE_WORKDIR/droppoint
 workload_scheduler = $WORKLOAD_SCHEDULER
 neo4j_image = $NEO4J_CONTAINER
 redis_image = $REDIS_CONTAINER
 max_restarts = 2
+remote_api = False
+remote_api_port = 7777
+delete_completed_workflow_dirs = True
 
 [task_manager]
 container_runtime = Charliecloud
@@ -34,13 +39,12 @@ setup =
 default_account =
 default_time_limit =
 default_partition =
+default_qos=
+default_reservation=
 
 [graphdb]
 hostname = localhost
 dbpass = password
-bolt_port = 7687
-http_port = 7474
-https_port = 7473
 gdb_image_mntdir = /tmp
 sleep_time = 10
 
@@ -62,14 +66,12 @@ Slurmrestd)
     cat >> $BEE_CONFIG <<EOF
 [slurm]
 use_commands = False
-openapi_version = $OPENAPI_VERSION
 EOF
     ;;
 SlurmCommands)
     cat >> $BEE_CONFIG <<EOF
 [slurm]
 use_commands = True
-openapi_version = $OPENAPI_VERSION
 EOF
     ;;
 esac

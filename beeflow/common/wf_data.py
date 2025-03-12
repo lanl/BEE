@@ -1,4 +1,5 @@
 """Defines data structures for holding task and workflow data."""
+
 from collections import namedtuple
 from uuid import uuid4
 from copy import deepcopy
@@ -332,7 +333,3 @@ class Task:
                 break
 
         return command
-# Ignore C901: "'Task.command' is too complex" - right now this function is
-#              under 50 lines of code. If we add any more lines I think it
-#              might be best to break it up, but for now it seems fine.
-# pylama:ignore=C901

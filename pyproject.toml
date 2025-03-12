@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hpc-beeflow"
-version = "0.1.9"
+version = "0.1.10"
 description = "A software package for containerizing HPC applications and managing job workflows"
 
 
@@ -49,7 +49,7 @@ beecloud = 'beeflow.cloud_launcher:main'
 [tool.poetry.dependencies]
 
 # Python version (>=3.8.3, <=3.12.2)
-python = ">=3.8.3,<=3.12.2"
+python = ">=3.8.3,<=3.13.0"
 
 # Package dependencies
 Flask = { version = "^2.0" }
@@ -62,8 +62,7 @@ cwl-utils = "^0.16"
 APScheduler = "^3.6.3"
 jsonpickle = "^2.2.0"
 # Fix for urllib3 2.0 breaking change (similar error to this https://github.com/docker/docker-py/issues/3113)
-requests = "<2.29.0"
-requests-unixsocket = "^0.3.0"
+requests = "^2.32.3"
 python-daemon = "^2.3.1"
 gunicorn = ">=20.1,<23.0"
 # typer version 0.6 and above seem to be throwing an AssertionError with no
@@ -80,18 +79,17 @@ google-api-python-client = { version = "^2.66.0", optional = true }
 python-openstackclient = { version = "^6.0.0", optional = true }
 python-heatclient = { version = "^3.1.0", optional = true }
 graphviz = "^0.20.3"
+networkx = "3.1"
+requests-unixsocket2 = "^0.4.2"
+pylint = "3.2.7"
+pre-commit = "3.5.0"
 
 [tool.poetry.extras]
 cloud_extras = ["google-api-python-client", "python-openstackclient", "python-heatclient"]
 
 [tool.poetry.dev-dependencies]
 # Developer dependencies
-pycodestyle = { version = ">=2.5.0" }
-# Newer version of pydocstyle break pylama
-pydocstyle = "6.1.1"
-pyflakes = "3.0.1"
-pylama = "8.4.1"
-pylint = "2.15.9"
+pylint = "3.2.7"
 pytest = "7.2.0"
 pytest-mock = "3.3.1"
 pytest-cov = "5.0.0"

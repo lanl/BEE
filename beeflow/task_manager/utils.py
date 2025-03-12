@@ -9,6 +9,7 @@ from beeflow.common import worker
 from beeflow.common import paths
 from beeflow.common.connection import Connection
 from beeflow.common.worker_interface import WorkerInterface
+import beeflow.common.worker.utils as worker_utils
 
 
 def db_path():
@@ -37,13 +38,14 @@ def worker_interface():
         'runner_opts': bc.get('task_manager', 'runner_opts'),
     }
     # Job defaults
-    for default_key in ['default_account', 'default_time_limit', 'default_partition']:
+    for default_key in ['default_account', 'default_time_limit', 'default_partition',
+                        'default_qos', 'default_reservation']:
         worker_kwargs[default_key] = bc.get('job', default_key)
     # Special slurm arguments
     if wls == 'Slurm':
         worker_kwargs['use_commands'] = bc.get('slurm', 'use_commands')
         worker_kwargs['slurm_socket'] = paths.slurm_socket()
-        worker_kwargs['openapi_version'] = bc.get('slurm', 'openapi_version')
+        worker_kwargs['openapi_version'] = worker_utils.get_slurmrestd_version
     return WorkerInterface(worker_class, **worker_kwargs)
 
 

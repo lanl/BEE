@@ -19,7 +19,7 @@ class GoogleProvider(provider.Provider):
 
     def get_ext_ip_addr(self, node_name):
         """Get the external IP of this node (or None if no IP)."""
-        res = self._api.instances().get(instance=node_name,  # noqa (can't find instances member)
+        res = self._api.instances().get(instance=node_name,
                                         project=self.project,
                                         zone=self.zone).execute()
         try:
@@ -34,7 +34,7 @@ class GoogleProvider(provider.Provider):
         # This just creates instances one-by-one. There may be a better API call
         # to just create everything at once.
         for instance in config['instances']:
-            call = self._api.instances().insert(project=self.project,  # noqa (can't find instances member)
+            call = self._api.instances().insert(project=self.project,
                                                 zone=self.zone, body=instance)
             res = call.execute()
             print(res)

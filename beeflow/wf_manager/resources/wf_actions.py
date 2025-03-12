@@ -6,9 +6,11 @@ from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.wf_manager.resources.wf_update import archive_workflow
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
@@ -59,11 +61,15 @@ class WFActions(Resource):
         db = connect_db(wfm_db, db_path)
         if option == "cancel":
             wfi = wf_utils.get_workflow_interface(wf_id)
+            wf_state = wfi.get_workflow_state()
             # Remove all tasks currently in the database
             wfi.set_workflow_state('Cancelled')
             wf_utils.update_wf_status(wf_id, 'Cancelled')
             db.workflows.update_workflow_state(wf_id, 'Cancelled')
             log.info(f"Workflow {wf_id} cancelled")
+            # Archive cancelled workflow if it was originally paused
+            if wf_state == 'PAUSED':
+                archive_workflow(db, wf_id, final_state='Cancelled')
             resp = make_response(jsonify(status='Cancelled'), 202)
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
@@ -72,9 +78,14 @@ class WFActions(Resource):
             bee_workdir = wf_utils.get_bee_workdir()
             workflow_dir = f"{bee_workdir}/workflows/{wf_id}"
             shutil.rmtree(workflow_dir, ignore_errors=True)
-            archive_path = f"{bee_workdir}/archives/{wf_id}.tgz"
+            archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
+            archive_path = f"{archive_dir}/{wf_id}.tgz"
             if os.path.exists(archive_path):
                 os.remove(archive_path)
+        else:
+            log.error(f"Invalid option '{option}' provided for workflow deletion.")
+            resp = make_response(jsonify(status=f"Invalid option '{option}'"), 500)
+
         return resp
 
     def patch(self, wf_id):

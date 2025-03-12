@@ -14,14 +14,20 @@ Upon release, develop will be merged by the team lead into main. Additionally, a
 
 Style Guide
 ===========
-BEE is python code and adheres to style guidelines specified in **setup.cfg**. Before attempting to commit and push changes, please install our pre-commit githooks by running the following command in project root:
+BEE is python code and adheres to style guidelines specified in **setup.cfg**, enforced using `pylint <https://pylint.readthedocs.io/en/v3.2.7/#>`_. Before attempting to commit and push changes, please set up the git hook scripts by running the following command in the project root:
 
-If using `git --version` >= 2.9:
-    git config core.hooksPath .githooks
+.. code-block::
 
-Otherwise:
-    cp .githooks/* .git/hooks/
+    pre-commit install
 
-Using these git hooks will ensure your contributions adhere to style guidelines required for contribution. You will need to repeat these steps for every `BEE` repo you clone.
+Important Notes:
+----------------
 
+* To use the git hooks, you must have your Poetry environment set up and activated, as the hooks rely on the environment to run necessary checks.
+* If you wish to skip running the git hook for a specific commit, you can do so by using the following command:
 
+.. code-block::
+
+    SKIP=pylint git commit -m "foo"
+
+* Using these git hooks will ensure your contributions adhere to style guidelines required for contribution. You will need to repeat these steps for every **BEE** repo you clone.

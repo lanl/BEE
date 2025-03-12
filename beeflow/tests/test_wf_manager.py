@@ -1,5 +1,7 @@
 """Unit tests for the workflow manager."""
 
+# pylint:disable=W0621,W0613
+
 import tempfile
 import os
 import pathlib
@@ -190,6 +192,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
                  return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
+    mocker.patch('beeflow.wf_manager.resources.wf_actions.archive_workflow', return_value=None)
 
     wf_name = 'wf'
     workdir = 'dir'
@@ -257,4 +260,3 @@ def test_resume_workflow(client, mocker, setup_teardown_workflow, temp_db):
     resp = client().patch(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
     assert resp.json['status'] == 'Workflow Resumed'
     assert resp.status_code == 200
-# pylama:ignore=W0621,W0613

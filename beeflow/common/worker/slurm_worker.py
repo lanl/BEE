@@ -12,6 +12,7 @@ import requests_unixsocket
 import requests
 
 from beeflow.common import log as bee_logging
+import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
 from beeflow.common.worker.utils import get_state_sacct
@@ -24,12 +25,101 @@ log = bee_logging.setup(__name__)
 class BaseSlurmWorker(Worker):
     """Base slurm worker code."""
 
-    def __init__(self, default_account='', default_time_limit='', default_partition='', **kwargs):
+    def __init__(self, default_account='', default_time_limit='', default_partition='',
+            default_qos='', default_reservation='', **kwargs):
         """Initialize the base slurm worker."""
         super().__init__(**kwargs)
         self.default_account = default_account
         self.default_time_limit = default_time_limit
         self.default_partition = default_partition
+        self.default_qos = default_qos
+        self.default_reservation = default_reservation
+
+    def get_task_requirements(self, task):
+        """Get the task requirements."""
+        requirements = {
+                'nodes': task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1),
+                'ntasks': task.get_requirement('beeflow:MPIRequirement', 'ntasks',
+                    default=task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)),
+                # Need to rethink the MPI version parameter
+                'mpi_version': task.get_requirement('beeflow:MPIRequirement', 'mpiVersion',
+                    default=''),
+                'time_limit': validation.time_limit(task.get_requirement(
+                    'beeflow:SlurmRequirement', 'timeLimit', default=self.default_time_limit)),
+                'account': task.get_requirement('beeflow:SlurmRequirement', 'account',
+                    default=self.default_account),
+                'partition': task.get_requirement('beeflow:SlurmRequirement', 'partition',
+                    default=self.default_partition),
+                'qos': task.get_requirement('beeflow:SlurmRequirement', 'qos',
+                    default=self.default_qos),
+                'reservation': task.get_requirement('beeflow:SlurmRequirement', 'reservation',
+                    default=self.default_reservation),
+                'shell': task.get_requirement('beeflow:ScriptRequirement', 'shell',
+                    default="/bin/bash"),
+                'scripts_enabled': task.get_requirement('beeflow:ScriptRequirement', 'enabled',
+                    default=False)
+        }
+        return requirements
+
+    def build_sbatch_header(self, task, requirements, task_save_path):
+        """Build the sbatch header."""
+        header = [
+                f'#!{requirements["shell"]}',
+                f'#SBATCH --job-name={task.name}-{task.id}',
+                f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
+                f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
+                f'#SBATCH -N {requirements["nodes"]}',
+                f'#SBATCH -n {requirements["ntasks"]}',
+                '#SBATCH --open-mode=append',
+        ]
+        if requirements['time_limit']:
+            header.append(f'#SBATCH --time={requirements["time_limit"]}')
+        if requirements['account']:
+            header.append(f'#SBATCH --account {requirements["account"]}')
+        if requirements['partition']:
+            header.append(f'#SBATCH --partition {requirements["partition"]}')
+        if requirements['qos']:
+            header.append(f'#SBATCH --qos {requirements["qos"]}')
+        if requirements['reservation']:
+            header.append(f'#SBATCH --reservation {requirements["reservation"]}')
+        # Return immediately on error
+        if requirements["shell"] == "/bin/bash":
+            header.append('set -e')
+        return header
+
+    def srun(self, script_lines, script_cmd, nodes):
+        """Wrap a pre or post command with srun."""
+        cmd_args = ' '.join(script_cmd.args)
+        if script_cmd.type == 'one-per-node':
+            script_lines.append(f'srun -N {nodes} -n {nodes} {cmd_args}')
+        else:
+            script_lines.append(f'srun {cmd_args}')
+
+    def build_pre_commands(self, crt_res, script, requirements, pre_script=None):
+        """Build the pre commands."""
+        # Add pre-script commands if available
+        if pre_script:
+            for cmd in pre_script:
+                script.extend(pre_script)
+        for cmd in crt_res.pre_commands:
+            self.srun(script, cmd, requirements['nodes'])
+        return script
+
+    def build_main_command(self, crt_res, requirements, main_command_srun_args):
+        """Build the main command."""
+        mpi_arg = f'--mpi={requirements["mpi_version"]}' if requirements['mpi_version'] else ''
+        srun_args = ' '.join(main_command_srun_args)
+        args = ' '.join(crt_res.main_command.args)
+        return f'srun --nodes={requirements["nodes"]} {mpi_arg} {srun_args} {args}'
+
+    def build_post_commands(self, crt_res, script, requirements, post_script=None):
+        """Build post script commands."""
+        for cmd in crt_res.post_commands:
+            self.srun(script, cmd, requirements['nodes'])
+        # Add post-script commands if available
+        if post_script:
+            script.extend(post_script)
+        return script
 
     def build_text(self, task):
         """Build text for task script."""
@@ -45,98 +135,35 @@ class BaseSlurmWorker(Worker):
             main_command_srun_args = stderr_param
         else:
             main_command_srun_args = []
-        nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
-        ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=nodes)
-        # Need to rethink the MPI version parameter
-        mpi_version = task.get_requirement('beeflow:MPIRequirement', 'mpiVersion', default='')
-        time_limit = task.get_requirement('beeflow:SchedulerRequirement', 'timeLimit',
-                                          default=self.default_time_limit)
-        time_limit = validation.time_limit(time_limit)
-        account = task.get_requirement('beeflow:SchedulerRequirement', 'account',
-                                       default=self.default_account)
-        partition = task.get_requirement('beeflow:SchedulerRequirement',
-                                         'partition',
-                                         default=self.default_partition)
 
-        shell = task.get_requirement('beeflow:ScriptRequirement', 'shell', default="/bin/bash")
-        scripts_enabled = task.get_requirement('beeflow:ScriptRequirement', 'enabled',
-                                               default=False)
-        if scripts_enabled:
+        # Get task requirements
+        requirements = self.get_task_requirements(task)
+
+        pre_script, post_script = None, None
+        if requirements['scripts_enabled']:
             # We use StringIO here to properly break the script up into lines with readlines
             pre_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
                                      'pre_script')).readlines()
             post_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
                                       'post_script')).readlines()
-        # sbatch header
-        script = [
-            f'#!{shell}',
-            f'#SBATCH --job-name={task.name}-{task.id}',
-            f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
-            f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
-            f'#SBATCH -N {nodes}',
-            f'#SBATCH -n {ntasks}',
-            '#SBATCH --open-mode=append',
-        ]
-        if time_limit:
-            script.append(f'#SBATCH --time={time_limit}')
-        if account:
-            script.append(f'#SBATCH -A {account}')
-        if partition:
-            script.append(f'#SBATCH -p {partition}')
-
-        # Return immediately on error
-        if shell == "/bin/bash":
-            script.append('set -e')
+        # Build script sections
+        script = self.build_sbatch_header(task, requirements, task_save_path)
         script.append(crt_res.env_code)
 
-        def srun(script_lines, script_cmd):
-            """Wrap a pre or post command with srun."""
-            cmd_args = ' '.join(script_cmd.args)
-            if script_cmd.type == 'one-per-node':
-                script.append(f'srun -N {nodes} -n {nodes} {cmd_args}')
-            else:
-                script_lines.append(f'srun {cmd_args}')
-
         # Pre commands
-        if scripts_enabled:
-            for cmd in pre_script:
-                script.append(cmd)
-
-        for cmd in crt_res.pre_commands:
-            srun(script, cmd)
+        script = self.build_pre_commands(crt_res, script, requirements, pre_script)
 
         # Main command
-        srun_args = ' '.join(main_command_srun_args)
-        args = ' '.join(crt_res.main_command.args)
-        if mpi_version:
-            mpi_arg = f'--mpi={mpi_version}'
-        else:
-            mpi_arg = ''
-        script.append(f'srun --nodes={nodes} {mpi_arg} {srun_args} {args}')
+        script.append(self.build_main_command(crt_res, requirements, main_command_srun_args))
 
         # Post commands
-        for cmd in crt_res.post_commands:
-            srun(script, cmd)
-
-        if scripts_enabled:
-            for cmd in post_script:
-                script.append(cmd)
+        script = self.build_post_commands(crt_res, script, requirements, post_script)
 
         return '\n'.join(script)
 
-    def write_script(self, task):
-        """Build task script; returns filename of script."""
-        task_text = self.build_text(task)
-
-        task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
-        with open(task_script, 'w', encoding='UTF-8') as script_f:
-            script_f.write(task_text)
-            script_f.close()
-        return task_script
-
     def submit_job(self, script):
         """Worker submits job-returns (job_id, job_state)."""
-        res = subprocess.run(['sbatch', '--parsable', script], text=True,  # noqa if we use check=True here, then we can't see stderr
+        res = subprocess.run(['sbatch', '--parsable', script], text=True,  # pylint: disable=W1510
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if res.returncode != 0:
             raise WorkerError(f'Failed to submit job: {res.stderr}')
@@ -154,8 +181,9 @@ class BaseSlurmWorker(Worker):
 class SlurmrestdWorker(BaseSlurmWorker):
     """Worker class for when slurmrestd is available."""
 
-    def __init__(self, bee_workdir, openapi_version, **kwargs):
+    def __init__(self, bee_workdir, **kwargs):
         """Create a new Slurmrestd Worker object."""
+        openapi_version = worker_utils.get_slurmrestd_version()
         super().__init__(bee_workdir=bee_workdir, **kwargs)
         # Pull slurm socket configs from kwargs (Uses getpass.getuser() instead
         # of os.getlogin() because of an issue with using getlogin() without a
@@ -200,7 +228,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
         try:
             data = resp.json()
             check_slurm_error(data, errmsg)
-        except requests.exceptions.JSONDecodeError as exc:  # noqa requests is not installed in CI
+        except requests.exceptions.JSONDecodeError as exc:
             raise WorkerError(errmsg) from exc
         job_state = "CANCELLED"
         return job_state

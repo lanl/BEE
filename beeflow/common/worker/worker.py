@@ -1,5 +1,8 @@
 """Abstract base class for worker, the workload manager."""
 
+# Disable W0511: This allows us to have TODOs in the code
+# pylint:disable=W0511
+
 from abc import ABC, abstractmethod
 import os
 from beeflow.common import log as bee_logging
@@ -37,15 +40,15 @@ class Worker(ABC):
         """Load appropriate container runtime driver, based on configs in kwargs."""
         try:
             self.tm_crt = kwargs['container_runtime']
+            crt_driver = CharliecloudDriver #default
             if self.tm_crt == 'Charliecloud':
                 crt_driver = CharliecloudDriver
             elif self.tm_crt == 'Singularity':
                 crt_driver = SingularityDriver
             self.crt = ContainerRuntimeInterface(crt_driver)
         except KeyError:
-            log.warning("No container runtime specified in config, proceeding with caution.")
-            self.tm_crt = None
-            crt_driver = None
+            log.warning("No container runtime specified in config; setting to Charliecloud.")
+            self.tm_crt = 'Charliecloud'
 
         # Get BEE workdir from config file
         self.workdir = bee_workdir
@@ -53,6 +56,15 @@ class Worker(ABC):
     def task_save_path(self, task):
         """Return the task save path used for storing submission scripts output logs."""
         return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
+
+    def write_script(self, task):
+        """Build task script; returns filename of script."""
+        task_text = self.build_text(task)
+        task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
+        with open(task_script, 'w', encoding='UTF-8') as script_f:
+            script_f.write(task_text)
+            script_f.close()
+        return task_script
 
     def prepare(self, task):
         """Prepare for the task; create the task save directory, etc."""
@@ -93,6 +105,3 @@ class Worker(ABC):
         :type job_id: int
         :rtype: string
         """
-
-# Ignore W0511: This allows us to have TODOs in the code
-# pylama:ignore=W0511

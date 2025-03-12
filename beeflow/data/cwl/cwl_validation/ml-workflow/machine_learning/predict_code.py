@@ -1,4 +1,8 @@
 """Predict Code."""
+
+# Disable preserving code for now
+# pylint:disable=C0103,R1732
+
 import json
 import pickle
 import click
@@ -37,5 +41,3 @@ def pred(e, i, t):
 
 if __name__ == '__main__':
     pred(e=4, i=5, t=6)
-# Ignores preserving code for now
-# pylama:ignore=C0103,R1732,C0501

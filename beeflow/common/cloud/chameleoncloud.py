@@ -19,7 +19,7 @@ class ChameleoncloudProvider(provider.Provider):
             'Use the Horizon interface instead'
         )
 
-    def get_ext_ip_addr(self, node_name):  # noqa
+    def get_ext_ip_addr(self, node_name):  # pylint: disable=W0613
         """Get the external IP address of the node, if it has one."""
         if self._stack_name is not None:
             stack = self._api.get_stack(self._stack_name)

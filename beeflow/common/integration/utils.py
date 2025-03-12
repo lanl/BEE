@@ -252,6 +252,12 @@ def check_workflow_failed(workflow):
               f'workflow did not fail as expected (final status: {workflow.status})')
 
 
+def check_workflow_partial_fail(workflow):
+    """Ensure that the workflow completed in a Failed state."""
+    ci_assert(workflow.status == 'Archived/Partial-Fail',
+              f'workflow did not fail as expected (final status: {workflow.status})')
+
+
 def make_workflow_workdir(outer_workdir):
     """Create a workdir for the workflow run output files."""
     workdir = os.path.join(outer_workdir, uuid.uuid4().hex)
