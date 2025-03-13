@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hpc-beeflow"
-version = "0.1.10"
+version = "0.1.11dev"
 description = "A software package for containerizing HPC applications and managing job workflows"
 
 
