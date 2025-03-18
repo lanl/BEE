@@ -72,13 +72,23 @@ def droppoint(ssh_target: str = typer.Argument(..., help='the target to ssh to')
 
 
 @app.command()
-def copy(user: str = typer.Argument(..., help='the username on the remote system'),
-         ssh_target: str = typer.Argument(..., help="the target to ssh to"),
-         file_path: pathlib.Path = typer.Argument(..., help="path to copy to droppoint")):
+def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to droppoint"),
+         local: bool = typer.Option(False,
+             help="Local mode. When used, --user and --ssh_target are required."),
+         user: str = typer.Option(None, help='the username on the remote system'),
+         ssh_target: str = typer.Option(None, help="the target to ssh to")):
     """Copy path to droppoint."""
     if not file_path.exists():
         warn(f'Error: File or directory {file_path} does not exist.')
         sys.exit(1)
+
+    if local:
+        if user is None:
+            warn("The --user option is required when using the --local flag.")
+            sys.exit(1)
+        if ssh_target is None:
+            warn("The --ssh_target option is required when using the --local flag.")
+            sys.exit(1)
 
     try:
         with open("droppoint.env", "r") as f:
@@ -89,9 +99,12 @@ def copy(user: str = typer.Argument(..., help='the username on the remote system
             warn('Error: Could not retrieve droppoint location.')
             sys.exit(1)
 
+        if local:
+            droppoint_path = user + "@" + ssh_target + ":" + droppoint_path
+
         print(f"Copying {str(file_path)} to {droppoint_path}")
 
-        subprocess.run(["rsync", "-a", str(file_path), f"{user}@{ssh_target}:{droppoint_path}"], check=True)
+        subprocess.run(["scp", "-r", str(file_path), droppoint_path], check=True)
 
         print("Copy successful.")
     except json.JSONDecodeError as jde:
