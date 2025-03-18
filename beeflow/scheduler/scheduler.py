@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """REST Interface for the BEE Scheduler."""
 
+# Disable W0511: This allows us to have TODOs in the code
+# pylint:disable=W0511
+
 import argparse
 import os
 
@@ -49,7 +52,7 @@ class WorkflowJobHandler(Resource):
     """Schedule jobs for a specific workflow with the current resources."""
 
     @staticmethod
-    def put(workflow_name):  # noqa ('workflow_name' may be used in the future)
+    def put(workflow_name):   # pylint: disable=W0613 # 'workflow_name' may be used in the future
         """Schedules a new list of independent tasks with available resources."""
         db = connect_db(sched_db, db_path)
         data = request.json
@@ -93,10 +96,10 @@ def load_config_values():
 
     conf = argparse.Namespace(**conf)
     log.info('Config = [')
-    log.info(f'\talloc_logfile = {conf.alloc_logfile}')  # noqa pylama is wrong here
+    log.info(f'\talloc_logfile = {conf.alloc_logfile}')  # pylint: disable=E1101
     log.info(f'\talgorithm = {conf.algorithm}')
     log.info(f'\tdefault_algorithm = {conf.default_algorithm}')
-    log.info(f'\tworkdir = {conf.workdir}')  # noqa
+    log.info(f'\tworkdir = {conf.workdir}')  # pylint: disable=E1101 # pylint is wrong here
     log.info(']')
     return conf
 
@@ -112,8 +115,5 @@ def create_app():
     # Create the scheduler workdir, if necessary
     # sched_listen_port = wf_utils.get_open_port()
     # wf_db.set_sched_port(sched_listen_port)
-    os.makedirs(conf.workdir, exist_ok=True) # noqa
+    os.makedirs(conf.workdir, exist_ok=True) # pylint: disable=E1101
     return flask_app
-
-# Ignore W0511: This allows us to have TODOs in the code
-# pylama:ignore=W0511

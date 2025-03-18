@@ -1,5 +1,7 @@
 """Unit tests for the workflow manager."""
 
+# pylint:disable=W0621,W0613
+
 import tempfile
 import os
 import pathlib
@@ -258,4 +260,3 @@ def test_resume_workflow(client, mocker, setup_teardown_workflow, temp_db):
     resp = client().patch(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
     assert resp.json['status'] == 'Workflow Resumed'
     assert resp.status_code == 200
-# pylama:ignore=W0621,W0613

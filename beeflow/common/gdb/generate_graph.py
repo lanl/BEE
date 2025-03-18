@@ -5,10 +5,8 @@ import shutil
 import networkx as nx
 import graphviz
 
-from beeflow.wf_manager.resources import wf_utils
 
-
-def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, copy_dag_in_archive):
+def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     """Generate a PNG of a workflow graph from a GraphML file."""
     short_id = wf_id[:6]
     graphml_path = graphmls_dir + "/" + short_id + ".graphml"
@@ -36,9 +34,8 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, copy_dag_in_archiv
     png_data = dot.pipe(format='png')
     save_png(output_path, png_data)
 
-    if copy_dag_in_archive:
+    if workflow_dir:
         # Save and backup DAGs in the workflow_dir which will be archived
-        workflow_dir = wf_utils.get_workflow_dir(wf_id)
         archive_dag_dir = workflow_dir + "/dags"
         os.makedirs(archive_dag_dir, exist_ok=True)
         archive_dag_path = archive_dag_dir + "/" + short_id + ".png"

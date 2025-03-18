@@ -1,6 +1,6 @@
 """Init file for the worker package."""
 
-from beeflow.common.worker.worker import WorkerError  # noqa: this is imported for external code
+from beeflow.common.worker.worker import WorkerError
 from beeflow.common.worker.slurm_worker import SlurmWorker
 from beeflow.common.worker.lsf_worker import LSFWorker
 from beeflow.common.worker.flux_worker import FluxWorker

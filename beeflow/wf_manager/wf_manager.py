@@ -2,8 +2,8 @@
 
 import os
 from flask import Flask
-from celery import Celery # noqa (pylama can't find celery imports)
-from celery import shared_task #noqa
+from celery import Celery
+from celery import shared_task # pylint: disable=W0611 # pylint can't find celery imports
 from beeflow.common.api import BeeApi
 from beeflow.common import paths
 from beeflow.wf_manager.resources.wf_list import WFList
@@ -40,7 +40,3 @@ def create_app():
 if __name__ == '__main__':
     flask_app = create_app()
     bee_workdir = wf_utils.get_bee_workdir()
-    # handler = bee_logging.save_log(bee_workdir=bee_workdir, log=log, logfile='wf_manager.log')
-    # wfm_listen_port = wf_utils.get_open_port()
-    # wf_db.set_wfm_port(wfm_listen_port)
-    # flask_app.run(debug=False, port=str(wfm_listen_port))

@@ -11,7 +11,7 @@ def create_bee_node(tx):
 
     This node connects to all workflows and allows them to exist in the same graph
     """
-    bee_query = ("MERGE (b:BEE {name:'Head'})")
+    bee_query = "MERGE (b:BEE {name:'Head'})"
 
     tx.run(bee_query)
 
@@ -716,7 +716,9 @@ def reset_workflow_id(tx, old_id, new_id):
 
 
 def final_tasks_completed(tx, wf_id):
-    """Return true if each of a workflow's final Task nodes has state 'COMPLETED'.
+    """Return true if each of a workflow's final Task nodes is in a finished state.
+
+    Finished states: 'COMPLETED', 'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', or 'DEP_FAIL'.
 
     :param wf_id: the workflow's id
     :type wf_id: str
@@ -725,11 +727,49 @@ def final_tasks_completed(tx, wf_id):
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
     not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
+                           "AND NOT m.state IN "
+                           "['COMPLETED', 'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL'] "
+                           "RETURN t IS NOT NULL LIMIT 1")
+
+    # False if at least one task is not finished
+    return bool(tx.run(not_completed_query, wf_id=wf_id).single() is None)
+
+
+def final_tasks_succeeded(tx, wf_id):
+    """Return true if each of a workflow's final Task nodes has state 'COMPLETED'.
+
+    :param wf_id: the workflow's id
+    :type wf_id: str
+    :rtype: bool
+    """
+    restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
+    not_succeeded_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+                           f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
                            "AND m.state <> 'COMPLETED' "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task with state not 'COMPLETED'
-    return bool(tx.run(not_completed_query, wf_id=wf_id).single() is None)
+    return bool(tx.run(not_succeeded_query, wf_id=wf_id).single() is None)
+
+
+def final_tasks_failed(tx, wf_id):
+    """Return true if each of a workflow's final Task nodes is in a failed state.
+
+    Finished states: 'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', or 'DEP_FAIL'.
+
+    :param wf_id: the workflow's id
+    :type wf_id: str
+    :rtype: bool
+    """
+    restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
+    not_failed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+                        f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
+                        "AND NOT m.state IN "
+                        "['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL'] "
+                        "RETURN t IS NOT NULL LIMIT 1")
+
+    # False if at least one task is not failed
+    return bool(tx.run(not_failed_query, wf_id=wf_id).single() is None)
 
 
 def cancelled_final_tasks_completed(tx, wf_id):

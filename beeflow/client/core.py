@@ -23,7 +23,7 @@ import daemon
 import typer
 
 
-from beeflow.client import bee_client
+from beeflow.client import bee_client # pylint: disable=R0401 #WIP
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.config_driver import AlterConfig
 from beeflow.common import cli_connection
@@ -51,11 +51,7 @@ class ComponentManager:
         """Return a decorator function to be called."""
 
         def wrap(fn):
-            """Check to see if any components are disabled."""
-            if bc.get('DEFAULT', 'remote_api') is False and 'remote_api' in name:
-                return
-
-            # Add the component to the list.
+            """Add the component to the list."""
             self.components[name] = {
                 'fn': fn,
                 'deps': deps,
@@ -111,7 +107,7 @@ class ComponentManager:
         """Poll each process to check for errors, restart failed processes."""
         # Max number of times a component can be restarted
         max_restarts = bc.get('DEFAULT', 'max_restarts')
-        for name in self.procs:  # noqa no need to iterate with items() since self.procs may be set
+        for name in self.procs:  # pylint: disable=C0206 # no need to iterate with items() since self.procs may be set
             component = self.components[name]
             if component['failed']:
                 continue
@@ -167,7 +163,7 @@ def need_slurmrestd():
             and not bc.get('slurm', 'use_commands'))
 
 
-def init_components():
+def init_components(remote=False):
     """Initialize the components and component manager."""
     mgr = ComponentManager()
 
@@ -200,12 +196,13 @@ def init_components():
         return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
                                     paths.sched_socket(), stdout=fp, stderr=fp)
 
-    @mgr.component('remote_api', ('wf_manager', 'task_manager'))
-    def start_remote_api():
-        """Start the remote API."""
-        fp = open_log('remote_api')
-        return launch_with_gunicorn('beeflow.remote.remote:create_app()',
-                                    paths.remote_socket(), stdout=fp, stderr=fp)
+    if remote:
+        @mgr.component('remote_api', ('wf_manager', 'task_manager'))
+        def start_remote_api():
+            """Start the remote API."""
+            fp = open_log('remote_api')
+            return launch_with_gunicorn('beeflow.remote.remote:create_app()',
+                                        paths.remote_socket(), stdout=fp, stderr=fp)
 
     @mgr.component('celery', ('redis',))
     def celery():
@@ -255,7 +252,7 @@ def init_components():
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
             slurm_socket = paths.slurm_socket()
             subprocess.run(['rm', '-f', slurm_socket], check=True)
-            fp = open(slurmrestd_log, 'w', encoding='utf-8') # noqa
+            fp = open(slurmrestd_log, 'w', encoding='utf-8') # pylint: disable=R1732
             cmd = ['slurmrestd']
             cmd.extend(slurm_args.split())
             cmd.append(f'unix:{slurm_socket}')
@@ -277,7 +274,7 @@ def load_check_charliecloud():
     if not shutil.which('ch-run'):
         lmod = os.environ.get('MODULESHOME')
         sys.path.insert(0, lmod + '/init')
-        from env_modules_python import module #noqa No need to import at top
+        from env_modules_python import module # pylint: disable=C0415 # No need to import at top
         module("load", "charliecloud")
         # Try loading the Charliecloud module then test again
         if not shutil.which('ch-run'):
@@ -328,7 +325,7 @@ def check_dependencies(backend=False):
     # Check for the flux API
     if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
         try:
-            import flux  # noqa needed to check whether flux api is actually installed
+            import flux  # pylint: disable=W0611,C0415 # don't need to check whether flux api is actually installed
         except ModuleNotFoundError:
             warn('Failed to import flux Python API. Please make sure you can '
                  'use flux in your environment.')
@@ -382,7 +379,7 @@ class Beeflow:
 
 def daemonize(mgr, base_components):
     """Start beeflow as a daemon, monitoring all processes."""
-    def handle_terminate(signum, stack): # noqa
+    def handle_terminate(signum, stack): # pylint: disable=W0613
         """Handle a terminate signal."""
         # Kill all subprocesses
         mgr.kill()
@@ -405,7 +402,8 @@ app = typer.Typer(no_args_is_help=True)
 @app.command()
 def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           help='run in the foreground'), backend: bool = typer.Option(False, '--backend',
-          '-B', help='allow to run on a backend node')):
+          '-B', help='allow to run on a backend node'), remote: bool = typer.Option(False, 
+          '--remote', '-R', help='allow remote connection')):
     """Start all BEE components."""
     start_hn = socket.gethostname()  # hostname when beeflow starts
     if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":
@@ -419,7 +417,12 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
         bee_client.set_backend_status("true")  # add flag to db
     else:
         check_dependencies()
-    mgr = init_components()
+
+    if remote:  # turn on REST API for remote connection
+        mgr = init_components(remote=True)
+    else:
+        mgr = init_components()
+
     beeflow_log = paths.log_fname('beeflow')
     sock_path = paths.beeflow_socket()
     if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not need_slurmrestd():

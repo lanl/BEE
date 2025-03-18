@@ -1,4 +1,8 @@
 """Cloud init module."""
+
+# Disable W0611: These are meant to be used by external code
+# pylint:disable=W0611
+
 from beeflow.common.cloud import chameleoncloud
 from beeflow.common.cloud import openstack
 from beeflow.common.cloud import provider
@@ -21,5 +25,3 @@ def get_provider(name, **kwargs):
         return providers[name](**kwargs)
 
     raise RuntimeError(f'Invalid provider "{name}"')
-# Ignore W0611: These are meant to be used by external code
-# pylama:ignore=W0611

@@ -1,5 +1,9 @@
 """Flux worker interface."""
 
+# Disable W0511: TODO's are needed here to indicate parts of the code that may
+#                 need more work or thought
+# pylint:disable=W0511
+
 import io
 import os
 from beeflow.common import log as bee_logging
@@ -30,8 +34,8 @@ class FluxWorker(Worker):
         """Initialize the flux worker object."""
         super().__init__(**kwargs)
         # Only try to import the Flux API if we need it
-        import flux   # noqa this is necessary since flux may not be installed
-        from flux import job  # noqa
+        import flux   # pylint: disable=C0415 # this is necessary since flux may not be installed
+        from flux import job  # pylint: disable=C0415
         self.flux = flux
         self.job = job
 
@@ -149,6 +153,3 @@ class FluxWorker(Worker):
 
         # Note: using 'status' here instead of 'state'
         return BEE_STATES[info['status']]
-# Ignoring W0511: TODO's are needed here to indicate parts of the code that may
-#                 need more work or thought
-# pylama:ignore=W0511

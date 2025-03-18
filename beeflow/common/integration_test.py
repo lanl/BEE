@@ -1,4 +1,9 @@
 """BEE integration tests."""
+
+# Disable W0231: This is a user-defined exception and I don't think we need to call
+#               __init__ on the base class.
+# pylint:disable=W0231
+
 import glob
 from pathlib import Path
 import os
@@ -281,15 +286,38 @@ def comd_mpi(outer_workdir):
     utils.ci_assert(len(fnames) > 0, 'missing comd output yaml file')
 
 
+@TEST_RUNNER.add()
+def workflow_partial_fail(outer_workdir):
+    """Test that dependent tasks don't run after a failure."""
+    workdir = utils.make_workflow_workdir(outer_workdir)
+    workflow = utils.Workflow('partial-fail',
+                              'ci/test_workflows/partial-fail',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_workflow_partial_fail(workflow)
+    # Check each task state
+    fail_state = workflow.get_task_state_by_name('cat')
+    utils.ci_assert(fail_state == 'FAILED',
+                    f'task fail did not fail as expected: {fail_state}')
+    dep_fail_state = workflow.get_task_state_by_name('grep1')
+    utils.ci_assert(dep_fail_state == 'DEP_FAIL',
+                    f'task grep1 did not get state DEP_FAIL as expected: {dep_fail_state}')
+    for task in ['printf', 'grep0']:
+        task_state = workflow.get_task_state_by_name(task)
+        utils.ci_assert(task_state == 'COMPLETED',
+                        f'task {task} did not get state COMPLETED as expected: {task_state}')
+
+
 def test_input_callback(arg):
     """Parse a list of tests separated by commas."""
     return arg.split(',') if arg is not None else None
 
 
-def main(tests = typer.Option(None, '--tests', '-t',  # noqa (conflict on '=' sign)
+def main(tests = typer.Option(None, '--tests', '-t',
                               callback=test_input_callback,
                               help='tests run as comma-separated string'),
-         show_tests: bool = typer.Option(False, '--show-tests', '-s',  # noqa (conflict on '=' sign)
+         show_tests: bool = typer.Option(False, '--show-tests', '-s',
                                          help='show a list of all tests'),
          timeout: int = typer.Option(utils.TIMEOUT, '--timeout',
                                      help='workflow timeout in seconds')):
@@ -308,6 +336,3 @@ def main(tests = typer.Option(None, '--tests', '-t',  # noqa (conflict on '=' si
     # General clean up
     os.remove(generated_workflows.DOCKER_FILE_PATH)
     sys.exit(ret)
-# Ignore W0231: This is a user-defined exception and I don't think we need to call
-#               __init__ on the base class.
-# pylama:ignore=W0231

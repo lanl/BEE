@@ -10,7 +10,11 @@ class WorkflowInfo:
 
     def __init__(self, db_file):
         """Initialize Info and db file."""
-        self.Info = namedtuple("Info", "id wfm_port tm_port sched_port num_workflows bolt_port http_port https_port gdb_pid") # noqa Snake Case
+        self.Info = namedtuple( # pylint: disable=C0103
+                "Info",
+                "id wfm_port tm_port sched_port num_workflows "
+                "bolt_port http_port https_port gdb_pid"
+        )
         self.db_file = db_file
 
     def set_port(self, component, new_port):
@@ -63,9 +67,9 @@ class Workflows:
 
     def __init__(self, db_file):
         """Initialize Task, db_file, and Workflow object."""
-        self.Task = namedtuple("Task", "id task_id workflow_id name resource state slurm_id") #noqa
+        self.Task = namedtuple("Task", "id task_id workflow_id name resource state slurm_id") # pylint: disable=C0103
         self.db_file = db_file
-        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir") #noqa
+        self.Workflow = namedtuple("Workflow", "id workflow_id name state run_dir") # pylint: disable=C0103
 
     def get_workflow(self, workflow_id):
         """Return a workflow object."""
