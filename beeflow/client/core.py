@@ -461,7 +461,8 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
 
 
 @app.command()
-def status():
+def status(stdout: bool = typer.Option(True, '--stdout', '-S', 
+                 help='Print beeflow status to stdout')):
     """Check the status of beeflow and the components."""
     status_hn = socket.gethostname()  # hostname when beeflow core status returned
     bee_client.check_hostname(status_hn)
@@ -469,18 +470,29 @@ def status():
     if resp is None:
         # bee_client.check_hostname(status_hn)  # need to remove since checked in line 465?
         sys.exit(1)
-    print('beeflow components:')
+    
+    bee_status = {}
     for comp, stat in resp['components'].items():
-        print(f'{comp} ... {stat}')
-
+        bee_status[comp] = stat
+    if stdout:
+        print('beeflow components:')
+        for comp, stat in bee_status.items():
+            print(f'{comp} ... {stat}')
+    else:
+        return bee_status
 
 @app.command()
-def info():
+def info(stdout: bool = typer.Option(True, '--stdout', '-S', 
+                 help='Print beeflow info to stdout')):
     """Get information about beeflow's installation."""
     version = importlib.metadata.version("hpc-beeflow")
-    print(f"Beeflow version: {version}")
-    print(f"bee_workflow directory: {paths.workdir()}")
-    print(f"Log path: {paths.log_path()}")
+    if stdout:
+        print(f"Beeflow version: {version}")
+        print(f"bee_workflow directory: {paths.workdir()}")
+        print(f"Log path: {paths.log_path()}")
+    else:
+        info = {"version": version, "bee_workdir": paths.workdir(), "log_dir": paths.log_path()}
+        return info
 
 
 @app.command()
