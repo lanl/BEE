@@ -15,6 +15,7 @@ import json
 import typer
 
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.cli import NaturalOrderGroup
 
 
 def warn(*pargs):
@@ -27,7 +28,7 @@ def remote_port_val():
     return bc.get('DEFAULT', 'remote_api_port')
 
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(no_args_is_help=True, cls=NaturalOrderGroup)
 
 
 @app.command()
@@ -73,10 +74,10 @@ def droppoint(ssh_target: str = typer.Argument(..., help='the target to ssh to')
 
 @app.command()
 def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to droppoint"),
-         local: bool = typer.Option(False,
-             help="Local mode. When used, --user and --ssh_target are required."),
-         user: str = typer.Option(None, help='the username on the remote system'),
-         ssh_target: str = typer.Option(None, help="the target to ssh to")):
+         local: bool = typer.Option(False, '--local', '-L',
+             help="Local mode. When used, --user (-U) and --host (-H) are required."),
+         user: str = typer.Option(None, '--user', '-U', help="the username on the remote system"),
+         host: str = typer.Option(None, '--host', '-H', help="the host to copy files to")):
     """Copy path to droppoint."""
     if not file_path.exists():
         warn(f'Error: File or directory {file_path} does not exist.')
@@ -86,8 +87,8 @@ def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to dro
         if user is None:
             warn("The --user option is required when using the --local flag.")
             sys.exit(1)
-        if ssh_target is None:
-            warn("The --ssh_target option is required when using the --local flag.")
+        if host is None:
+            warn("The --host option is required when using the --local flag.")
             sys.exit(1)
 
     try:
@@ -100,7 +101,7 @@ def copy(file_path: pathlib.Path = typer.Argument(..., help="path to copy to dro
             sys.exit(1)
 
         if local:
-            droppoint_path = user + "@" + ssh_target + ":" + droppoint_path
+            droppoint_path = user + "@" + host + ":" + droppoint_path
 
         print(f"Copying {str(file_path)} to {droppoint_path}")
 
@@ -156,7 +157,7 @@ def submit(ssh_target: str = typer.Argument(..., help='the target to ssh to'),
 
 @app.command("core-status")
 def core_status(ssh_target: str = typer.Argument(..., help='the target to ssh to')):
-    """Check the status of BEEflow and the components."""
+    """Check the status of Beeflow and the components."""
     port = remote_port_val()
     try:
         result = subprocess.run(
