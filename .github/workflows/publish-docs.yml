@@ -32,4 +32,4 @@ jobs:
           path: docs/sphinx/_build/html
       - name: Publish
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4
