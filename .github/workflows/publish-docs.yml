@@ -22,14 +22,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: BEE Install and Build Docs
         run: |
           ./ci/docs.sh
       - name: Upload
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: docs/sphinx/_build/html
       - name: Publish
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4

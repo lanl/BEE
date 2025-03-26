@@ -24,7 +24,6 @@
    visualization
 
 .. Commented out 
-   wf_api
    rest_api
 
 Indices and tables
