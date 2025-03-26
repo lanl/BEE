@@ -3916,4 +3916,4 @@ cloud-extras = ["google-api-python-client", "python-heatclient", "python-opensta
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.3,<=3.13.0"
-content-hash = "5dc86a11a61981f58748d101787087085df2bf4b3f5e6e8a638943c4e2766678"
+content-hash = "299aae90cbf6450328d035a9c0c2903b60199f40f5d3edf5fdd15a0869246c67"
