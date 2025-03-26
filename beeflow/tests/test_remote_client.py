@@ -108,7 +108,7 @@ def test_copy_file_success(mocker):
     assert result.exit_code == 0
 
     # Verify that droppoint.env was opened for reading.
-    mock_file.assert_called_once_with("droppoint.env", "r")
+    mock_file.assert_called_once_with("droppoint.env", "r", encoding="utf-8")
 
     # Verify the rsync command was called with the expected arguments.
     mock_run.assert_called_with(
@@ -128,7 +128,7 @@ def test_copy_droppoint_fetch_fail(mocker):
     result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
     assert result.exit_code != 0
 
-    mock_file.assert_called_once_with("droppoint.env", "r")
+    mock_file.assert_called_once_with("droppoint.env", "r", encoding="utf-8")
 
 
 def test_copy_rsync_fail(mocker):
@@ -144,7 +144,7 @@ def test_copy_rsync_fail(mocker):
     result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
     assert result.exit_code != 0
 
-    mock_file.assert_called_once_with("droppoint.env", "r")
+    mock_file.assert_called_once_with("droppoint.env", "r", encoding="utf-8")
 
 
 def test_submit_success(mocker):

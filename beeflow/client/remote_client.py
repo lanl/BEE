@@ -9,7 +9,6 @@ copying files to the droppoint, and submitting the workflow to the client.
 import subprocess
 import pathlib
 import sys
-import os
 import json
 
 import typer
@@ -81,7 +80,7 @@ def copy(user: str = typer.Argument(..., help='the username on the remote system
         sys.exit(1)
 
     try:
-        with open("droppoint.env", "r") as f:
+        with open("droppoint.env", "r", encoding="utf-8") as f:
             config = json.load(f)
         droppoint_path = config.get("droppoint", "")
 
@@ -91,7 +90,8 @@ def copy(user: str = typer.Argument(..., help='the username on the remote system
 
         print(f"Copying {str(file_path)} to {droppoint_path}")
 
-        subprocess.run(["rsync", "-a", str(file_path), f"{user}@{ssh_target}:{droppoint_path}"], check=True)
+        subprocess.run(["rsync", "-a", str(file_path), f"{user}@{ssh_target}:{droppoint_path}"],
+                        check=True)
 
         print("Copy successful.")
     except json.JSONDecodeError as jde:
