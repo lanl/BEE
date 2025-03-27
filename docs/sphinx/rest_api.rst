@@ -20,6 +20,18 @@ The following sequence of commands can be used to remotely prepare and submit wo
     beeflow remote copy $USER $SSH_TARGET $PATH # copy path for the workflow to the droppoint
     beeflow remote submit $SSH_TARGET $WF_NAME $TARBALL $MAIN_CWL $YAML # submit the workflow
 
+Example of preparing and remotely submitting the cat-grep-tar workflow:
+
+.. code-block::
+
+    beeflow remote droppoint $SSH_TARGET
+    beeflow package $BEE_PATH/examples/cat-grep-tar .
+    beeflow remote copy $USER $SSH_TARGET cat-grep-tar.tgz
+    mkdir cat-grep-tar-workdir
+    cp $BEE_PATH/examples/cat-grep-tar/lorem.txt cat-grep-tar-workdir
+    beeflow remote copy $USER $SSH_TARGET cat-grep-tar-workdir
+    beeflow remote submit $SSH_TARGET test_remote cat-grep-tar.tgz workflow.cwl input.yml
+
 
 Endpoints
 ----------
