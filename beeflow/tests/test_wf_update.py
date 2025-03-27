@@ -71,7 +71,7 @@ def test_archive_archived_wf(mocker, wf_state):
     )
 
 
-@pytest.mark.parametrize("job_state", ["FAILED", "SUBMIT_FAIL"])
+@pytest.mark.parametrize("job_state", ["FAILED", "SUBMIT_FAIL", 'BUILD_FAIL'])
 def test_handle_state_change_failed_task(mocker, job_state):
     """Regression test task failure."""
     state_update = mocker.MagicMock()

@@ -146,13 +146,9 @@ class WFUpdate(Resource):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
         # If the job failed, fail the dependent tasks
-        if state_update.job_state in ['FAILED', 'SUBMIT_FAIL']:
+        if state_update.job_state in ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL']:
             set_dependent_tasks_dep_fail(db, wfi, state_update.wf_id, task)
             log.info(f"Task {task.name} failed")
-
-        if state_update.job_state == 'BUILD_FAIL':
-            log.error(f'Workflow failed due to failed container build for task {task.name}')
-            archive_fail_workflow(db, state_update.wf_id)
 
         if wfi.workflow_completed():
             wf_id = wfi.workflow_id
