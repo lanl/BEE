@@ -28,21 +28,58 @@ def test_connection_success(mocker):
     assert expected_output in result.output
 
 
-def test_connection_failure(mocker):
-    """Test CLI connection command when the API call fails."""
+def test_connection_failure_remote_not_started(mocker):
+    """Test CLI connection command when the API call fails and remote API is not started."""
     mocker.patch("beeflow.client.remote_client.remote_port_val", return_value="1234")
     mock_run = mocker.patch("subprocess.run")
-
-    # Simulate a failed subprocess run
-    mock_run.side_effect = subprocess.CalledProcessError(
-        returncode=1, cmd=["curl", "ssh_target:1234/"], stderr="Connection failed"
-    )
+    mock_run.side_effect = [
+        subprocess.CalledProcessError(
+            returncode=1,
+            cmd=["curl", "ssh_target:1234/"],
+            stderr="Connection failed"
+        ),
+        subprocess.CompletedProcess(
+            args='ssh {ssh_target} "ps aux | grep $USER | grep \'gunicorn\'"',
+            returncode=0,
+            stdout="",
+            stderr=""
+        )
+    ]
 
     result = runner.invoke(app, ["connection", "ssh_target"])
 
     assert result.exit_code == 1
     assert "Connection to ssh_target:1234 failed." in result.output
+    # It should warn that the remote API is not running.
+    assert "Remote API has not been started on ssh_target. Use remote flag when starting beeflow." in result.output
 
+
+def test_connection_failure_remote_started(mocker):
+    """Test CLI connection command when the API call fails but remote API is started."""
+    mocker.patch("beeflow.client.remote_client.remote_port_val", return_value="1234")
+    # define subprocess output is remote api is running
+    check_command_output = "Some process info ... beeflow.remote.remote:create_app ... more info"
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.side_effect = [
+        subprocess.CalledProcessError(
+            returncode=1,
+            cmd=["curl", "ssh_target:1234/"],
+            stderr="Connection failed"
+        ),
+        subprocess.CompletedProcess(
+            args='ssh {ssh_target} "ps aux | grep $USER | grep \'gunicorn\'"',
+            returncode=0,
+            stdout=check_command_output,
+            stderr=""
+        )
+    ]
+
+    result = runner.invoke(app, ["connection", "ssh_target"])
+
+    assert result.exit_code == 1
+    assert "Connection to ssh_target:1234 failed." in result.output
+    # the warning about the remote API not being started should not appear.
+    assert "Remote API has not been started on ssh_target." not in result.output
 
 
 def test_droppoint_success(mocker):

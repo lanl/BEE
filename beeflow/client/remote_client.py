@@ -44,6 +44,21 @@ def connection(ssh_target: str = typer.Argument(..., help='the target to ssh to'
         print(result.stdout)
     except subprocess.CalledProcessError:
         warn(f'Connection to {ssh_target}:{port} failed.')
+
+        # check if the remote API was started
+        check_command = 'ssh {ssh_target} "ps aux | grep $USER | grep \'gunicorn\'"'
+        result = subprocess.run(
+                check_command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False
+        )
+        lines = result.stdout.strip().splitlines()
+        if not any("beeflow.remote.remote:create_app" in element for element in lines):
+            warn(f'Remote API has not been started on {ssh_target}. '
+                  'Use remote flag when starting beeflow.')
         sys.exit(1)
 
 
