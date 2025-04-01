@@ -154,7 +154,18 @@ def test_copy_file_success(mocker):
     )
 
 
-def test_copy_droppoint_fetch_fail(mocker):
+def test_copy_droppoint_env_missing(mocker):
+    """Test failure when the droppoint.env file is missing."""
+    mocker.patch("pathlib.Path.exists", return_value=True)
+
+    # Simulate FileNotFoundError when trying to open droppoint.env.
+    mocker.patch("builtins.open", side_effect=FileNotFoundError())
+
+    result = runner.invoke(app, ["copy", "user", "ssh_target", "testfile.txt"])
+    assert result.exit_code != 0
+
+
+def test_copy_invalid_json(mocker):
     """Test failure when fetching droppoint fails."""
     mocker.patch("pathlib.Path.exists", return_value=True)
 

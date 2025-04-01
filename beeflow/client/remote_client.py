@@ -109,6 +109,10 @@ def copy(user: str = typer.Argument(..., help='the username on the remote system
                         check=True)
 
         print("Copy successful.")
+    except FileNotFoundError:
+        warn("Error: File droppoint.env not found. Did you run"
+             " 'beeflow remote droppoint $ssh_target' to create this file?")
+        sys.exit(1)
     except json.JSONDecodeError as jde:
         warn(f'Error reading JSON configuration: {jde}')
         sys.exit(1)
