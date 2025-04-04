@@ -4,7 +4,8 @@ from re import fullmatch
 from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
-
+failed_task_states = ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL', 'TIMEOUT', 'TIMELIMIT']
+final_task_states = ['COMPLETED'] + failed_task_states
 
 def create_bee_node(tx):
     """Create a BEE node in the Neo4j database.
@@ -718,8 +719,6 @@ def reset_workflow_id(tx, old_id, new_id):
 def final_tasks_completed(tx, wf_id):
     """Return true if each of a workflow's final Task nodes is in a finished state.
 
-    Finished states: 'COMPLETED', 'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', or 'DEP_FAIL'.
-
     :param wf_id: the workflow's id
     :type wf_id: str
     :rtype: bool
@@ -727,8 +726,7 @@ def final_tasks_completed(tx, wf_id):
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
     not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           "AND NOT m.state IN "
-                           "['COMPLETED', 'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL'] "
+                           f"AND NOT m.state IN {final_task_states} "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is not finished
@@ -755,8 +753,6 @@ def final_tasks_succeeded(tx, wf_id):
 def final_tasks_failed(tx, wf_id):
     """Return true if each of a workflow's final Task nodes is in a failed state.
 
-    Finished states: 'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', or 'DEP_FAIL'.
-
     :param wf_id: the workflow's id
     :type wf_id: str
     :rtype: bool
@@ -764,8 +760,7 @@ def final_tasks_failed(tx, wf_id):
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
     not_failed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
                         f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                        "AND NOT m.state IN "
-                        "['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL'] "
+                        f"AND NOT m.state IN {failed_task_states} "
                         "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is not failed
