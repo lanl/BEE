@@ -26,7 +26,7 @@ else:
 log.info(f'The number of jobs queued will be limited to {jobs_limit}.')
 
 # States are based on https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
-COMPLETED_STATES = {'UNKNOWN', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT', 'TIMELIMIT'}
+COMPLETED_STATES = {'UNKNOWN', 'COMPLETED', 'CANCELLED', 'FAILED', 'TIMEOUT'}
 
 def resolve_environment(task):
     """Use build interface to create a valid environment.
@@ -100,10 +100,10 @@ def update_jobs(db):
         if job_state != new_job_state:
             db.job_queue.update_job_state(id_, new_job_state)
             log.info(f"Job Updated '{task.name}' job_id: {job_id} job_state: {new_job_state}")
-            if new_job_state in ('FAILED', 'TIMELIMIT', 'TIMEOUT'):
+            if new_job_state in ('FAILED', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = task.get_full_requirement('beeflow:CheckpointRequirement')
-                log.info(f'TIMELIMIT/TIMEOUT task_checkpoint: {task_checkpoint}')
+                log.info(f'TIMEOUT task_checkpoint: {task_checkpoint}')
                 if task_checkpoint:
                     try:
                         checkpoint_file = utils.get_restart_file(task_checkpoint, task.workdir)

@@ -4,7 +4,7 @@ from re import fullmatch
 from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
-failed_task_states = ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL', 'TIMEOUT', 'TIMELIMIT']
+failed_task_states = ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL', 'TIMEOUT']
 final_task_states = ['COMPLETED'] + failed_task_states
 
 def create_bee_node(tx):
