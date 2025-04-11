@@ -46,6 +46,7 @@ class ComponentManager:
         """Construct the component manager."""
         self.components = {}
         self.procs = {}
+        self.order = []
 
     def component(self, name, deps=None):
         """Return a decorator function to be called."""
@@ -89,17 +90,17 @@ class ComponentManager:
                 s.append(dep)
         levels = list(levels.items())
         levels.sort(key=lambda t: t[1], reverse=True)
-        return [name for name, level in levels]
+        self.order = [name for name, level in levels]
 
     def run(self, base_components):
         """Start and run everything."""
         # Determine if there are any missing components listed
         self._validate(base_components)
         # Determine the order to launch components in (note: this should just ignore cycles)
-        order = self._find_order(base_components)
-        print(f'Launching components in order: {order}')
+        self._find_order(base_components)
+        print(f'Launching components in order: {self.order}')
         # Now launch the components
-        for name in order:
+        for name in self.order:
             component = self.components[name]
             self.procs[name] = component['fn']()
 
@@ -134,9 +135,17 @@ class ComponentManager:
 
     def kill(self):
         """Kill all components."""
-        for name, proc in self.procs.items():
-            print(f'Killing {name}')
-            proc.terminate()
+        # killing in this order prevents killing deps first
+        for name in self.order[::-1]:
+            proc = self.procs[name]
+            # https://slurm.schedmd.com/slurmrestd.html#SECTION_SIGNALS
+            if name in ['slurmrestd']:
+                print(f'Sending {name} SIGINT')
+                proc.send_signal(signal.SIGINT)
+            else:
+                print(f'Terminating {name}')
+                proc.terminate()
+            proc.communicate(timeout=30)
 
 
 def warn(*pargs):
@@ -538,19 +547,6 @@ def archive_dir(dir_to_archive):
           f"{backup_dir}")
 
 
-def handle_rm_error(err, dir_to_check, wf_list):
-    """Handle IO error caused by either initializing workflows or nfs files."""
-    # Check if only nfs mounts are causing the problem and ignore
-    dir_list = os.listdir(dir_to_check)
-    nfs_list = [x for x in dir_list if x.startswith('.nfs')]
-    if dir_list and (dir_list != nfs_list):
-        print(f"Unable to remove {dir_to_check} \n {err.strerror}")
-        # Often initializing workflows cause a problem
-        if any('Initializing' in sublist for sublist in wf_list):
-            warn('Initializing workflows may have prevented removal.\n')
-            print(f"Try removing {dir_to_check} manually, to complete reset.")
-
-
 @app.command()
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
@@ -593,19 +589,20 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             sys.exit()
         elif absolutely_sure in ("y", "yes"):
             # Stop all of the beeflow processes
-            stop("quiet")
             print("Beeflow is shutting down.")
             print("Waiting for components to cleanly stop.")
-            # This wait is essential. It takes a minute to shut down.
-            time.sleep(5)
-
+            stop("quiet")
             # Save the bee_workdir directory if the archive option was set
             if archive:
                 archive_dir(dir_to_delete)
-            try:
-                shutil.rmtree(dir_to_delete)
-            except OSError as err:
-                handle_rm_error(err, dir_to_delete, workflow_list)
+            # Attempt to delete entire bee_workdir
+            shutil.rmtree(dir_to_delete, ignore_errors=True)
+            if os.path.exists(dir_to_delete):
+                print(f"Cleanup incomplete. Files remain in {dir_to_delete}.")
+                # Often initializing workflows cause a problem
+                if any('Initializing' in sublist for sublist in workflow_list):
+                    warn('Initializing workflows may have prevented removal.\n')
+                print(f"Try removing {dir_to_delete} manually, to complete reset.")
             else:
                 print(f"{dir_to_delete} has been removed.")
             sys.exit()
