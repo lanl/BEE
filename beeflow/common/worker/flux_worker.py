@@ -140,7 +140,7 @@ class FluxWorker(Worker):
 
     def query_task(self, job_id):
         """Query job state for the task."""
-        # TODO: How does Flux handle TIMEOUT/TIMELIMIT? They don't seem to have
+        # TODO: How does Flux handle TIMEOUT? They don't seem to have
         # a state for this
         log.info(f'Querying task with job_id: {job_id}')
         flux = self.flux.Flux()
