@@ -1,4 +1,4 @@
-name: Unit tests
+name: Testing and Coverage
 
 on:
   # For manual exec
@@ -14,6 +14,38 @@ env: {}
 
 jobs:
   integration-test:
+    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
+    name: BEE Integration Test
+    strategy:
+      matrix:
+        bee_worker: [Slurmrestd, SlurmCommands, Flux]
+    env:
+      BEE_WORKER: ${{ matrix.bee_worker }}
+    # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
+    # available on 20.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install and Configure
+        run: |
+          . ./ci/env.sh
+          ./ci/deps_install.sh
+          ./ci/batch_scheduler.sh
+          ./ci/bee_install.sh
+          ./ci/bee_config.sh
+      - name: Integration Test
+        run: |
+          . ./ci/env.sh
+          ./ci/integration_test.sh
+          mv .coverage.integration ".coverage.${{ matrix.bee_worker }}"
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.bee_worker }}
+          include-hidden-files: true
+          path: ".coverage.${{ matrix.bee_worker }}"
+
+  unit-test:
     if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
     name: BEE Unit Tests
     env:
@@ -35,7 +67,56 @@ jobs:
         run: |
           . ./ci/env.sh
           ./ci/unit_tests.sh
-          
+          mv .coverage ".coverage.unittests"
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit-tests
+          include-hidden-files: true
+          path: ".coverage.unittests"
+
+  coverage:
+    needs: [integration-test, unit-test]
+    name: Coverage
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Get unit test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-unit-tests
+          path: ./
+
+      - name: Get Slurmrestd coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-Slurmrestd
+          path: ./
+
+      - name: Get SlurmCommands coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-SlurmCommands
+          path: ./
+
+      - name: Get Flux coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-Flux
+          path: ./
+
+      - name: Combine coverage
+        run: |
+          pip install coverage
+          coverage combine
+          coverage report --show-missing
+
       - name: Coverage Badge
         if: github.event_name == 'pull_request'
         uses: tj-actions/coverage-badge-py@v2
