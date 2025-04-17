@@ -148,7 +148,7 @@ class WFUpdate(Resource):
         # If the job failed, fail the dependent tasks
         # TIMEOUT states should only be seen here if they can't restart
         if state_update.job_state in [
-            'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'TIMEOUT'
+            'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'TIMEOUT', 'CANCELLED'
         ]:
             set_dependent_tasks_dep_fail(db, wfi, state_update.wf_id, task)
             log.info(f"Task {task.name} failed")
