@@ -37,6 +37,7 @@ class BaseSlurmWorker(Worker):
 
     def get_task_requirements(self, task):
         """Get the task requirements."""
+
         requirements = {
                 'nodes': task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1),
                 'ntasks': task.get_requirement('beeflow:MPIRequirement', 'ntasks',
@@ -45,7 +46,7 @@ class BaseSlurmWorker(Worker):
                 'mpi_version': task.get_requirement('beeflow:MPIRequirement', 'mpiVersion',
                     default=''),
                 'time_limit': validation.time_limit(task.get_requirement(
-                    'beeflow:SlurmRequirement', 'timeLimit', default=self.default_time_limit)),
+                    'beeflow:SlurmRequirement', 'time_limit', default=self.default_time_limit)),
                 'account': task.get_requirement('beeflow:SlurmRequirement', 'account',
                     default=self.default_account),
                 'partition': task.get_requirement('beeflow:SlurmRequirement', 'partition',
@@ -66,8 +67,10 @@ class BaseSlurmWorker(Worker):
         header = [
                 f'#!{requirements["shell"]}',
                 f'#SBATCH --job-name={task.name}-{task.id}',
-                f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
-                f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
+                # f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
+                f'#SBATCH --output={task.workdir}/{task.stdout}',
+                # f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
+                f'#SBATCH --error={task.workdir}/{task.stderr}',
                 f'#SBATCH -N {requirements["nodes"]}',
                 f'#SBATCH -n {requirements["ntasks"]}',
                 '#SBATCH --open-mode=append',
@@ -98,17 +101,18 @@ class BaseSlurmWorker(Worker):
     def build_pre_commands(self, crt_res, script, requirements, pre_script=None):
         """Build the pre commands."""
         # Add pre-script commands if available
-        if pre_script:
-            for cmd in pre_script:
-                script.extend(pre_script)
         for cmd in crt_res.pre_commands:
             self.srun(script, cmd, requirements['nodes'])
+        if pre_script:
+            script.extend(pre_script)
         return script
 
     def build_main_command(self, crt_res, requirements, main_command_srun_args):
         """Build the main command."""
         mpi_arg = f'--mpi={requirements["mpi_version"]}' if requirements['mpi_version'] else ''
-        srun_args = ' '.join(main_command_srun_args)
+        # TODO Removing this until we find a better way to save all output within one file
+        # srun_args = ' '.join(main_command_srun_args)
+        srun_args = ' '
         args = ' '.join(crt_res.main_command.args)
         return f'srun --nodes={requirements["nodes"]} {mpi_arg} {srun_args} {args}'
 

@@ -374,7 +374,7 @@ class SlurmRequirement:
         if self.partition:
             sched_dump['beeflow:SlurmRequirement']['partition'] = self.partition
         if self.qos:
-            sched_dump['beeflow:SlurmRequirement']['qos'] = self.partition
+            sched_dump['beeflow:SlurmRequirement']['qos'] = self.qos
         if self.reservation:
             sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
         return sched_dump
