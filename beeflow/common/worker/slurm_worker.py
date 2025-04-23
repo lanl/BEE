@@ -62,15 +62,22 @@ class BaseSlurmWorker(Worker):
         }
         return requirements
 
-    def build_sbatch_header(self, task, requirements, task_save_path):
+    def build_sbatch_header(self, task, requirements):
         """Build the sbatch header."""
+        if task.stdout:
+            stdout_path = f"{task.workdir}/{task.stdout}"
+        else:
+            # If user provide no stdout or stderr name use this as a fallback
+            stdout_path = f"{task.workdir}/{task.name}-{task.id[:4]}.out"
+        if task.stderr:
+            stderr_path = f"{task.workdir}/{task.stderr}"
+        else:
+            stderr_path = f"{task.workdir}/{task.name}-{task.id[:4]}.err"
         header = [
                 f'#!{requirements["shell"]}',
                 f'#SBATCH --job-name={task.name}-{task.id}',
-                # f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
-                f'#SBATCH --output={task.workdir}/{task.stdout}',
-                # f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
-                f'#SBATCH --error={task.workdir}/{task.stderr}',
+                f'#SBATCH --output={stdout_path}',
+                f'#SBATCH --error={stderr_path}',
                 f'#SBATCH -N {requirements["nodes"]}',
                 f'#SBATCH -n {requirements["ntasks"]}',
                 '#SBATCH --open-mode=append',
@@ -107,14 +114,12 @@ class BaseSlurmWorker(Worker):
             script.extend(pre_script)
         return script
 
-    def build_main_command(self, crt_res, requirements, main_command_srun_args):
+    def build_main_command(self, crt_res, requirements):
         """Build the main command."""
         mpi_arg = f'--mpi={requirements["mpi_version"]}' if requirements['mpi_version'] else ''
-        # TODO Removing this until we find a better way to save all output within one file
-        # srun_args = ' '.join(main_command_srun_args)
-        srun_args = ' '
+        # Removing this since everything is going to the workdir files now
         args = ' '.join(crt_res.main_command.args)
-        return f'srun --nodes={requirements["nodes"]} {mpi_arg} {srun_args} {args}'
+        return f'srun --nodes={requirements["nodes"]} {mpi_arg} {args}'
 
     def build_post_commands(self, crt_res, script, requirements, post_script=None):
         """Build post script commands."""
@@ -127,18 +132,18 @@ class BaseSlurmWorker(Worker):
 
     def build_text(self, task):
         """Build text for task script."""
-        task_save_path = self.task_save_path(task)
+        # task_save_path = self.task_save_path(task)
         crt_res = self.crt.run_text(task)
-        stdout_param = ['--output', task.stdout]
-        stderr_param = ['--error', task.stderr]
-        if task.stdout and task.stderr:
-            main_command_srun_args = stdout_param + stderr_param
-        elif task.stdout:
-            main_command_srun_args = stdout_param
-        elif task.stderr:
-            main_command_srun_args = stderr_param
-        else:
-            main_command_srun_args = []
+        # stdout_param = ['--output', task.stdout]
+        # stderr_param = ['--error', task.stderr]
+        # if task.stdout and task.stderr:
+        #     main_command_srun_args = stdout_param + stderr_param
+        # elif task.stdout:
+        #     main_command_srun_args = stdout_param
+        # elif task.stderr:
+        #     main_command_srun_args = stderr_param
+        # else:
+        #     main_command_srun_args = []
 
         # Get task requirements
         requirements = self.get_task_requirements(task)
@@ -151,14 +156,14 @@ class BaseSlurmWorker(Worker):
             post_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
                                       'post_script')).readlines()
         # Build script sections
-        script = self.build_sbatch_header(task, requirements, task_save_path)
+        script = self.build_sbatch_header(task, requirements)
         script.append(crt_res.env_code)
 
         # Pre commands
         script = self.build_pre_commands(crt_res, script, requirements, pre_script)
 
         # Main command
-        script.append(self.build_main_command(crt_res, requirements, main_command_srun_args))
+        script.append(self.build_main_command(crt_res, requirements))
 
         # Post commands
         script = self.build_post_commands(crt_res, script, requirements, post_script)
