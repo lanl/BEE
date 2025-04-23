@@ -27,10 +27,10 @@ TIMEOUT = 150
 # since this tests doesn't actually run with slurmrestd
 
 GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
-                 requirements=[], inputs=[], outputs=[], stdout='', stderr='',
+                 requirements=[], inputs=[], outputs=[], stdout='good.stdout', stderr='good.stderr',
                  workflow_id=uuid.uuid4().hex)
 BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[],
-                requirements=[], inputs=[], outputs=[], stdout='', stderr='',
+                requirements=[], inputs=[], outputs=[], stdout='bad.stdout', stderr='bad.stderr',
                 workflow_id=uuid.uuid4().hex)
 
 
