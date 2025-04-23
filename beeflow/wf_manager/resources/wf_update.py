@@ -144,7 +144,9 @@ class WFUpdate(Resource):
                     wfi.set_task_output(task, output.id, "temp")
             bee_workdir = wf_utils.get_bee_workdir()
             # Need to get this from the worker
-            task_save_path = pathlib.Path(f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}")
+            task_save_path = pathlib.Path(
+                    f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}"
+            )
             task_workdir = wfi.get_task_metadata(task)["workdir"]
             if task.stdout:
                 stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
