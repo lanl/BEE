@@ -370,7 +370,7 @@ class SlurmRequirement:
         if self.account:
             sched_dump['beeflow:SlurmRequirement']['account'] = self.account
         if self.time_limit:
-            sched_dump['beeflow:SlurmRequirement']['time_limit'] = self.time_limit
+            sched_dump['beeflow:SlurmRequirement']['timeLimit'] = self.time_limit
         if self.partition:
             sched_dump['beeflow:SlurmRequirement']['partition'] = self.partition
         if self.qos:

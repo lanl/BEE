@@ -46,7 +46,7 @@ class BaseSlurmWorker(Worker):
                 'mpi_version': task.get_requirement('beeflow:MPIRequirement', 'mpiVersion',
                     default=''),
                 'time_limit': validation.time_limit(task.get_requirement(
-                    'beeflow:SlurmRequirement', 'time_limit', default=self.default_time_limit)),
+                    'beeflow:SlurmRequirement', 'timeLimit', default=self.default_time_limit)),
                 'account': task.get_requirement('beeflow:SlurmRequirement', 'account',
                     default=self.default_account),
                 'partition': task.get_requirement('beeflow:SlurmRequirement', 'partition',
