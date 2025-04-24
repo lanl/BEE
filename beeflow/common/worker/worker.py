@@ -53,6 +53,19 @@ class Worker(ABC):
         # Get BEE workdir from config file
         self.workdir = bee_workdir
 
+    def resolve_stdout_stderr(self, task):
+        if task.stdout:
+            stdout_path = f"{task.workdir}/{task.stdout}"
+        else:
+            # If user provide no stdout or stderr name use this as a fallback
+            stdout_path = f"{task.workdir}/{task.name}-{task.id[:4]}.out"
+        if task.stderr:
+            stderr_path = f"{task.workdir}/{task.stderr}"
+        else:
+            stderr_path = f"{task.workdir}/{task.name}-{task.id[:4]}.err"
+        return stdout_path, stderr_path
+
+
     def task_save_path(self, task):
         """Return the task save path used for storing submission scripts output logs."""
         return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'

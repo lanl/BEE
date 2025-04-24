@@ -64,15 +64,7 @@ class BaseSlurmWorker(Worker):
 
     def build_sbatch_header(self, task, requirements):
         """Build the sbatch header."""
-        if task.stdout:
-            stdout_path = f"{task.workdir}/{task.stdout}"
-        else:
-            # If user provide no stdout or stderr name use this as a fallback
-            stdout_path = f"{task.workdir}/{task.name}-{task.id[:4]}.out"
-        if task.stderr:
-            stderr_path = f"{task.workdir}/{task.stderr}"
-        else:
-            stderr_path = f"{task.workdir}/{task.name}-{task.id[:4]}.err"
+        stdout_path, stderr_path = self.resolve_stdout_stderr(task)
         header = [
                 f'#!{requirements["shell"]}',
                 f'#SBATCH --job-name={task.name}-{task.id}',
