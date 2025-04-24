@@ -2,7 +2,6 @@
 
 import os
 import json
-import pathlib
 import shutil
 import subprocess
 import time
