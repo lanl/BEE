@@ -132,18 +132,7 @@ class BaseSlurmWorker(Worker):
 
     def build_text(self, task):
         """Build text for task script."""
-        # task_save_path = self.task_save_path(task)
         crt_res = self.crt.run_text(task)
-        # stdout_param = ['--output', task.stdout]
-        # stderr_param = ['--error', task.stderr]
-        # if task.stdout and task.stderr:
-        #     main_command_srun_args = stdout_param + stderr_param
-        # elif task.stdout:
-        #     main_command_srun_args = stdout_param
-        # elif task.stderr:
-        #     main_command_srun_args = stderr_param
-        # else:
-        #     main_command_srun_args = []
 
         # Get task requirements
         requirements = self.get_task_requirements(task)
