@@ -54,6 +54,7 @@ class Worker(ABC):
         self.workdir = bee_workdir
 
     def resolve_stdout_stderr(self, task):
+        """Reolves the path to the stderr and stdout in the task workdir."""
         if task.stdout:
             stdout_path = f"{task.workdir}/{task.stdout}"
         else:
