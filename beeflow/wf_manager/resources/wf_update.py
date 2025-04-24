@@ -142,24 +142,7 @@ class WFUpdate(Resource):
                     wfi.set_task_output(task, output.id, output.glob)
                 else:
                     wfi.set_task_output(task, output.id, "temp")
-            bee_workdir = wf_utils.get_bee_workdir()
-            # Need to get this from the worker
-            task_save_path = pathlib.Path(
-                    f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}"
-            )
-            task_workdir = wfi.get_task_metadata(task)["workdir"]
-            if task.stdout:
-                stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
-            else:
-                stdout_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}.out")
-
-            if task.stderr:
-                stderr_path = pathlib.Path(f"{task_workdir}/{task.stderr}")
-            else:
-                stderr_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}.err")
-
-            shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id}.out")
-            shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id}.err")
+            wf_utils.copy_task_output(task, wfi)
             tasks = wfi.finalize_task(task)
             if tasks and wf_state not in ('PAUSED', 'Cancelled'):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
@@ -169,6 +152,7 @@ class WFUpdate(Resource):
         if state_update.job_state in [
             'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'TIMEOUT', 'CANCELLED'
         ]:
+            wf_utils.copy_task_output(task, wfi)
             set_dependent_tasks_dep_fail(db, wfi, state_update.wf_id, task)
             log.info(f"Task {task.name} failed")
 
