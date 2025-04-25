@@ -46,6 +46,12 @@ import pytest
             {"out": {"type": "stdout"}},
         ),
         (
+            cwl.CWLOutput,
+            {"output_name": "out", "output_type": "stdout"},
+            "out:\n  type: stdout\n",
+            {"out": {"type": "stdout"}},
+        ),
+        (
             cwl.OutputBinding,
             {"prefix": "-o", "position": 1},
             "outputBinding:\n  position: 1\n  prefix: -o\n",
@@ -66,11 +72,189 @@ import pytest
                 }
             },
         ),
+        (
+            cwl.Inputs,
+            {
+                "inputs": [
+                    cwl.Input("fname1", "string"),
+                    cwl.Input("fname2", "string"),
+                ],
+            },
+            "inputs:\n  fname1: string\n  fname2: string\n",
+            {"inputs": {"fname1": "string", "fname2": "string"}},
+        ),
+        (
+            cwl.Outputs,
+            {
+                "outputs": [
+                    cwl.Output("fname1", "stdout"),
+                    cwl.Output("fname2", "stdout"),
+                ],
+            },
+            "outputs:\n  fname1:\n    type: stdout\n  fname2:\n    type: stdout\n",
+            {"outputs": {"fname1": {"type": "stdout"}, "fname2": {"type": "stdout"}}},
+        ),
+        (
+            cwl.DockerRequirement,
+            {"docker_pull": "container-image"},
+            "DockerRequirement:\n  dockerPull: container-image\n",
+            {"DockerRequirement": {"dockerPull": "container-image"}},
+        ),
+        (
+            cwl.DockerRequirement,
+            {"copy_container": "path-to-container-image"},
+            "DockerRequirement:\n  beeflow:copyContainer: path-to-container-image\n",
+            {"DockerRequirement": {"beeflow:copyContainer": "path-to-container-image"}},
+        ),
+        (
+            cwl.DockerRequirement,
+            {"use_container": "path-to-container-image"},
+            "DockerRequirement:\n  beeflow:useContainer: path-to-container-image\n",
+            {"DockerRequirement": {"beeflow:useContainer": "path-to-container-image"}},
+        ),
+        (
+            cwl.DockerRequirement,
+            {
+                "docker_file": "dockerfile-name",
+                "container_name": "container-name",
+                "force_type": "none",
+            },
+            "DockerRequirement:\n  dockerFile: dockerfile-name\n  beeflow:containerName: container-name\n  beeflow:forceType: none\n",
+            {
+                "DockerRequirement": {
+                    "dockerFile": "dockerfile-name",
+                    "beeflow:containerName": "container-name",
+                    "beeflow:forceType": "none",
+                }
+            },
+        ),
+        (
+            cwl.MPIRequirement,
+            {"nodes": 1, "ntasks": 2},
+            "beeflow:MPIRequirement:\n  nodes: 1\n  ntasks: 2\n",
+            {"beeflow:MPIRequirement": {"nodes": 1, "ntasks": 2}},
+        ),
+        (
+            cwl.SlurmRequirement,
+            {
+                "account": "my_account",
+                "time_limit": 500,
+                "partition": "gpu",
+                "qos": "shared",
+                "reservation": "my_reservation",
+            },
+            "beeflow:SlurmRequirement:\n  account: my_account\n  timeLimit: 500\n  partition: gpu\n  qos: shared\n  reservation: my_reservation\n",
+            {
+                "beeflow:SlurmRequirement": {
+                    "account": "my_account",
+                    "timeLimit": 500,
+                    "partition": "gpu",
+                    "qos": "shared",
+                    "reservation": "my_reservation",
+                }
+            },
+        ),
+        (
+            cwl.CheckpointRequirement,
+            {
+                "file_path": "checkpoint_output",
+                "container_path": "checkpoint_output",
+                "file_regex": "backup[0-9]*.crx",
+                "restart_parameters": "-R",
+                "num_tries": 2,
+            },
+            "beeflow:CheckpointRequirement:\n  enabled: true\n  file_path: checkpoint_output\n  container_path: checkpoint_output\n  file_regex: backup[0-9]*.crx\n  restart_parameters: -R\n  num_tries: 2\n",
+            {
+                "beeflow:CheckpointRequirement": {
+                    "enabled": True,
+                    "file_path": "checkpoint_output",
+                    "container_path": "checkpoint_output",
+                    "file_regex": "backup[0-9]*.crx",
+                    "restart_parameters": "-R",
+                    "num_tries": 2,
+                }
+            },
+        ),
+        (
+            cwl.ScriptRequirement,
+            {
+                "pre_script": "pre.sh",
+                "post_script": "post.sh",
+                "enabled": True,
+                "shell": "/bin/bash",
+            },
+            "beeflow:ScriptRequirement:\n  pre_script: pre.sh\n  post_script: post.sh\n  enabled: true\n  shell: /bin/bash\n",
+            {
+                "beeflow:ScriptRequirement": {
+                    "pre_script": "pre.sh",
+                    "post_script": "post.sh",
+                    "enabled": True,
+                    "shell": "/bin/bash",
+                },
+            },
+        ),
+        (
+            cwl.Hints,
+            {"hints": [cwl.MPIRequirement(1, 1)]},
+            "hints:\n  beeflow:MPIRequirement:\n    nodes: 1\n    ntasks: 1\n",
+            {"hints": {"beeflow:MPIRequirement": {"nodes": 1, "ntasks": 1}}},
+        ),
+        (
+            cwl.Run,
+            {
+                "base_command": "cat",
+                "inputs": cwl.Inputs(
+                    [cwl.RunInput("input_file", "File", cwl.InputBinding())]
+                ),
+                "outputs": cwl.Outputs([cwl.RunOutput("contents", "stdout")]),
+                "stdout": "cat.txt",
+            },
+            "run:\n  class: CommandLineTool\n  baseCommand: cat\n  stdout: cat.txt\n  inputs:\n    input_file:\n      type: File\n      inputBinding: {}\n  outputs:\n    contents:\n      type: stdout\n",
+            {
+                "run": {
+                    "class": "CommandLineTool",
+                    "baseCommand": "cat",
+                    "stdout": "cat.txt",
+                    "inputs": {"input_file": {"type": "File", "inputBinding": {}}},
+                    "outputs": {"contents": {"type": "stdout"}},
+                }
+            },
+        ),
+        (
+            cwl.Step,
+            {
+                "step_name": "step1",
+                "run": cwl.Run(
+                    "cat",
+                    cwl.Inputs(
+                        [cwl.RunInput("input_file", "File", cwl.InputBinding())]
+                    ),
+                    cwl.Outputs([cwl.RunOutput("contents", "stdout")]),
+                    "cat.txt",
+                ),
+            },
+            "step1:\n  run:\n    class: CommandLineTool\n    baseCommand: cat\n    stdout: cat.txt\n    inputs:\n      input_file:\n        type: File\n        inputBinding: {}\n    outputs:\n      contents:\n        type: stdout\n  in:\n    input_file: input_file\n  out: [contents]\n",
+            {
+                "step1": {
+                    "run": {
+                        "class": "CommandLineTool",
+                        "baseCommand": "cat",
+                        "stdout": "cat.txt",
+                        "inputs": {"input_file": {"type": "File", "inputBinding": {}}},
+                        "outputs": {"contents": {"type": "stdout"}},
+                    },
+                    "in": {"input_file": "input_file"},
+                    "out": ["contents"],
+                }
+            },
+        ),
     ],
 )
 def test_repr_dump(fn, inputs, expected_repr, expected_dump):
     """Regression test CWL dataclasses for just repr, dump."""
     res = fn(**inputs)
+    print(res.dump())
+    print(res)
     assert res.dump() == expected_dump
     assert repr(res) == expected_repr
 
@@ -96,3 +280,13 @@ def test_add_inputs():
     inputs2 = cwl.Inputs([input2])
     inputs_both = cwl.Inputs([input1, input2])
     assert inputs1 + inputs2 == inputs_both
+
+
+def test_add_outputs():
+    """Regression test Outputs __add__."""
+    output1 = cwl.Output("fout1", "stdout")
+    output2 = cwl.Output("fout1", "stdout")
+    outputs1 = cwl.Outputs([output1])
+    outputs2 = cwl.Outputs([output2])
+    outputs_both = cwl.Outputs([output1, output2])
+    assert outputs1 + outputs2 == outputs_both
