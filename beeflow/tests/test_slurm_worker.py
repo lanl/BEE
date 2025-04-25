@@ -9,6 +9,7 @@
 import uuid
 import shutil
 import time
+import tempfile
 import subprocess
 import os
 import pytest
@@ -27,9 +28,9 @@ TIMEOUT = 150
 # since this tests doesn't actually run with slurmrestd
 
 GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
-                 requirements=[], inputs=[], outputs=[], stdout='', stderr='',
+                 requirements=[], inputs=[], outputs=[], stdout='', stderr='', workdir='',
                  workflow_id=uuid.uuid4().hex)
-BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[],
+BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[], workdir='',
                 requirements=[], inputs=[], outputs=[], stdout='', stderr='',
                 workflow_id=uuid.uuid4().hex)
 
@@ -84,6 +85,8 @@ def slurmrestd_worker_no_daemon():
 
 def test_good_task(slurm_worker):
     """Test submission of a good task."""
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
     job_id, last_state = slurm_worker.submit_task(GOOD_TASK)
     if last_state == 'PENDING':
         last_state = wait_state(slurm_worker, job_id, 'PENDING')
@@ -91,11 +94,14 @@ def test_good_task(slurm_worker):
         last_state = wait_state(slurm_worker, job_id, 'RUNNING')
     if last_state == 'COMPLETING':
         last_state = wait_state(slurm_worker, job_id, 'COMPLETING')
+    shutil.rmtree(temp_workdir)
     assert last_state == 'COMPLETED'
 
 
 def test_bad_task(slurm_worker):
     """Test submission of a bad task."""
+    temp_workdir = tempfile.mkdtemp()
+    BAD_TASK.workdir = temp_workdir
     job_id, last_state = slurm_worker.submit_task(BAD_TASK)
     if last_state == 'PENDING':
         last_state = wait_state(slurm_worker, job_id, 'PENDING')
@@ -103,6 +109,7 @@ def test_bad_task(slurm_worker):
         last_state = wait_state(slurm_worker, job_id, 'RUNNING')
     if last_state == 'COMPLETING':
         last_state = wait_state(slurm_worker, job_id, 'COMPLETING')
+    shutil.rmtree(temp_workdir)
     assert last_state == 'FAILED'
 
 
@@ -114,15 +121,21 @@ def test_query_bad_job_id(slurm_worker):
 
 def test_cancel_good_job(slurm_worker):
     """Cancel a good job."""
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
     job_id, _ = slurm_worker.submit_task(GOOD_TASK)
     job_state = slurm_worker.cancel_task(job_id)
+    shutil.rmtree(temp_workdir)
     assert job_state == 'CANCELLED'
 
 
 def test_no_slurmrestd(slurmrestd_worker_no_daemon):
     """Test without running slurmrestd."""
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
     worker = slurmrestd_worker_no_daemon
     job_id, state = worker.submit_task(GOOD_TASK)
+    shutil.rmtree(temp_workdir)
     assert state == 'NOT_RESPONDING'
     assert worker.query_task(job_id) == 'NOT_RESPONDING'
     assert worker.cancel_task(job_id) == 'NOT_RESPONDING'
