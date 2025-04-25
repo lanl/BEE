@@ -171,7 +171,7 @@ setting in bee.conf. Current options supported are:
 
 An example is shown below::
 
-    beeflow:SchedulerRequirement:
+    beeflow:SlurmRequirement:
       timeLimit: 00:00:10
       account: account12345
       partition: partition-a
