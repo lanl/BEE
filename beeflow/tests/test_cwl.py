@@ -39,6 +39,33 @@ import pytest
                 }
             },
         ),
+        (
+            cwl.Output,
+            {"output_name": "out", "output_type": "stdout"},
+            "out:\n  type: stdout\n",
+            {"out": {"type": "stdout"}},
+        ),
+        (
+            cwl.OutputBinding,
+            {"prefix": "-o", "position": 1},
+            "outputBinding:\n  position: 1\n  prefix: -o\n",
+            {"outputBinding": {"position": 1, "prefix": "-o"}},
+        ),
+        (
+            cwl.RunOutput,
+            {
+                "output_name": "out",
+                "output_type": "File",
+                "output_binding": "filename.txt",
+            },
+            "out:\n  type: File\n  outputBinding:\n    glob: filename.txt\n",
+            {
+                "out": {
+                    "type": "File",
+                    "outputBinding": {"glob": "filename.txt"},
+                }
+            },
+        ),
     ],
 )
 def test_repr_dump(fn, inputs, expected_repr, expected_dump):
@@ -50,7 +77,9 @@ def test_repr_dump(fn, inputs, expected_repr, expected_dump):
 
 def test_cwl_input():
     """Regression test CWLInput."""
-    expected_repr = "CWLInput(input_name='fname', input_type='string', value='my_file.txt')"
+    expected_repr = (
+        "CWLInput(input_name='fname', input_type='string', value='my_file.txt')"
+    )
     expected_dump = {"fname": "string"}
     expected_value = "my_file.txt"
     res = cwl.CWLInput(input_name="fname", input_type="string", value="my_file.txt")
@@ -59,3 +88,11 @@ def test_cwl_input():
     assert res.value == expected_value
 
 
+def test_add_inputs():
+    """Regression test Inputs __add__."""
+    input1 = cwl.Input("fname1", "string")
+    input2 = cwl.Input("fname2", "string")
+    inputs1 = cwl.Inputs([input1])
+    inputs2 = cwl.Inputs([input2])
+    inputs_both = cwl.Inputs([input1, input2])
+    assert inputs1 + inputs2 == inputs_both
