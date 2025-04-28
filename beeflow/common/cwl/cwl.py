@@ -627,6 +627,4 @@ class CWL:
 
     def __repr__(self):
         """Return CWL file as a string."""
-        stream = StringIO()
-        yaml.dump(self.dump_wf(), stream)
-        return stream.getvalue()
+        return self.dump_wf()

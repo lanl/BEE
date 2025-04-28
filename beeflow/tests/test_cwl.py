@@ -248,13 +248,63 @@ import pytest
                 }
             },
         ),
+        (
+            cwl.Steps,
+            {
+                "steps": [
+                    cwl.Step(
+                        step_name="step1",
+                        run=cwl.Run(
+                            "cat",
+                            cwl.Inputs(
+                                [cwl.RunInput("input_file", "File", cwl.InputBinding())]
+                            ),
+                            cwl.Outputs([cwl.RunOutput("contents", "stdout")]),
+                            "cat.txt",
+                        ),
+                    )
+                ]
+            },
+            """steps:
+  step1:
+    run:
+      class: CommandLineTool
+      baseCommand: cat
+      stdout: cat.txt
+      inputs:
+        input_file:
+          type: File
+          inputBinding: {}
+      outputs:
+        contents:
+          type: stdout
+    in:
+      input_file: input_file
+    out: [contents]
+""",
+            {
+                "steps": {
+                    "step1": {
+                        "run": {
+                            "class": "CommandLineTool",
+                            "baseCommand": "cat",
+                            "stdout": "cat.txt",
+                            "inputs": {
+                                "input_file": {"type": "File", "inputBinding": {}}
+                            },
+                            "outputs": {"contents": {"type": "stdout"}},
+                        },
+                        "in": {"input_file": "input_file"},
+                        "out": ["contents"],
+                    }
+                }
+            },
+        ),
     ],
 )
 def test_repr_dump(fn, inputs, expected_repr, expected_dump):
     """Regression test CWL dataclasses for just repr, dump."""
     res = fn(**inputs)
-    print(res.dump())
-    print(res)
     assert res.dump() == expected_dump
     assert repr(res) == expected_repr
 
@@ -290,3 +340,60 @@ def test_add_outputs():
     outputs2 = cwl.Outputs([output2])
     outputs_both = cwl.Outputs([output1, output2])
     assert outputs1 + outputs2 == outputs_both
+
+
+def test_cwl_workflow():
+    """Regression test CWL class dumps and repr."""
+    expected_dump_wf = """cwlVersion: v1.0
+class: Workflow
+
+inputs:
+  fname: string
+
+outputs:
+  out:
+    type: stdout
+
+steps:
+  step1:
+    run:
+      class: CommandLineTool
+      baseCommand: cat
+      stdout: cat.txt
+      inputs:
+        input_file:
+          type: File
+          inputBinding: {}
+      outputs:
+        contents:
+          type: stdout
+    in:
+      input_file: input_file
+    out: [contents]
+"""
+    expected_dump_inputs = "fname: my_file.txt\n"
+    cwl_input = cwl.CWLInput("fname", "string", "my_file.txt")
+    cwl_output = cwl.CWLOutput("out", "stdout")
+    run_input = cwl.RunInput("input_file", "File", cwl.InputBinding())
+    run_output = cwl.RunOutput("contents", "stdout")
+    steps = cwl.Steps(
+        [
+            cwl.Step(
+                step_name="step1",
+                run=cwl.Run(
+                    "cat", cwl.Inputs([run_input]), cwl.Outputs([run_output]), "cat.txt"
+                ),
+            )
+        ]
+    )
+    workflow = cwl.CWL(
+        cwl_name="workflow",
+        inputs=cwl.CWLInputs([cwl_input]),
+        outputs=cwl.CWLOutputs([cwl_output]),
+        steps=steps,
+    )
+    dump_wf = workflow.dump_wf()
+    dump_inputs = workflow.dump_inputs()
+    assert repr(workflow) == expected_dump_wf
+    assert dump_wf == expected_dump_wf
+    assert dump_inputs == expected_dump_inputs
