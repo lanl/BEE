@@ -10,13 +10,13 @@ from beeflow.common.cwl.workflow import (
 )
 from importlib.resources import files
 
-examples = files("beeflow.common.cwl.examples")
+expected_folder = files("beeflow.tests.cwl_files")
 
 
 def test_workflow_cat_grep_tar(tmpdir):
     """Regression test of cat-grep-tar example."""
-    expected_wf = examples / "cat-grep-tar" / "cat-grep-tar.cwl"
-    expected_yaml = examples / "cat-grep-tar" / "cat-grep-tar.yml"
+    expected_wf = expected_folder / "cat-grep-tar.cwl"
+    expected_yaml = expected_folder / "cat-grep-tar.yml"
     cat = Task(
         name="cat",
         base_command="cat",
@@ -87,8 +87,8 @@ def test_workflow_cat_grep_tar(tmpdir):
 
 def test_workflow_comd(tmpdir):
     """Regression test of comd example."""
-    expected_wf = examples / "comd" / "comd.cwl"
-    expected_yaml = examples / "comd" / "comd.yml"
+    expected_wf = expected_folder / "comd.cwl"
+    expected_yaml = expected_folder / "comd.yml"
     comd_task = Task(
         name="comd",
         base_command="/CoMD/bin/CoMD-mpi -e",
