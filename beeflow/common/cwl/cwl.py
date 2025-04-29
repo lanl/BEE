@@ -321,7 +321,7 @@ class DockerRequirement:
         if self.container_name:
             docker_dump['DockerRequirement']['beeflow:containerName'] = self.container_name
         if self.force_type:
-            docker_dump['DockerRequirement']['beeflow:force=Type'] = self.force_type
+            docker_dump['DockerRequirement']['beeflow:forceType'] = self.force_type
         return docker_dump
 
     def __repr__(self):
@@ -406,8 +406,8 @@ class CheckpointRequirement:
         checkpoint_dump[req_name]['container_path'] = self.container_path
         checkpoint_dump[req_name]['file_regex'] = self.file_regex
         checkpoint_dump[req_name]['restart_parameters'] = self.restart_parameters
-        checkpoint_dump[req_name]['num_tries'] = self.enabled
-        return req_name
+        checkpoint_dump[req_name]['num_tries'] = self.num_tries
+        return checkpoint_dump
 
     def __repr__(self):
         """Return CheckpointRequirement as a yaml string."""
@@ -627,6 +627,4 @@ class CWL:
 
     def __repr__(self):
         """Return CWL file as a string."""
-        stream = StringIO()
-        yaml.dump(self.dump_wf(), stream)
-        return stream.getvalue()
+        return self.dump_wf()
