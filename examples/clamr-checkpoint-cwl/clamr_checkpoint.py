@@ -1,4 +1,4 @@
-"""COMD driver for CWL generator."""
+"""Clamr driver for CWL generator."""
 
 import pathlib
 from beeflow.common.cwl.workflow import (
@@ -57,9 +57,44 @@ def main():
             ),
         ],
     )
-    workflow = Workflow("clamr", [clamr_task])
-    workflow.write_wf("clamr")
-    workflow.write_yaml("clamr")
+    ffmpeg_task = Task(
+        name="ffmpeg",
+        base_command="ffmpeg -y",
+        stdout="ffmpeg.txt",
+        stderr="ffmpeg.err",
+        inputs=[
+            Input("input_format", "string", "image2", prefix="-f", position=1),
+            Input(
+                "ffmpeg_input",
+                "Directory",
+                value="clamr/outdir",
+                prefix="-i",
+                position=2,
+                value_from='$("/graph%05d.png")',
+            ),
+            Input("frame_rate", "int", 12, prefix="-r", position=3),
+            Input("frame_size", "string", "800x800", prefix="-s", position=4),
+            Input("pixel_format", "string", "yuv420p", prefix="-pix_fmt", position=5),
+            Input("output_filename", "string", "CLAMR_movie.mp4", position=6),
+        ],
+        outputs=[
+            Output(
+                "clamr_movie",
+                "File",
+                source="ffmpeg/movie",
+                glob="$(inputs.output_file)",
+            ),
+            Output("ffmpeg_stderr", "stderr", source="ffmpeg/ffmpeg_stderr"),
+        ],
+        hints=[
+            Charliecloud(
+                docker_file="Dockerfile.clamr-ffmpeg", container_name="clamr-ffmpeg"
+            )
+        ],
+    )
+    workflow = Workflow("clamr", [clamr_task, ffmpeg_task])
+    workflow.write_wf(".")
+    workflow.write_yaml(".")
 
 
 if __name__ == "__main__":

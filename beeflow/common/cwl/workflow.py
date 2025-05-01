@@ -15,12 +15,13 @@ class Input:
     name: str
     type_: str
     # This is either a value or a source connection
-    value: str
+    value: str = None
     # The prefix or position of the argument
     # This can either be a prefix such as -f or --file
     # Or a position like 2 if the command is "foo <file>"
     prefix: str = None
     position: int = None
+    value_from: str = None
 
     pattern = re.compile(r"^[^/]+/[^/]+$")
 
@@ -36,7 +37,8 @@ class Input:
 
     def run_input(self):
         """Create a RunInput from generic Input."""
-        bindings = {'prefix': self.prefix, 'position': self.position}
+        bindings = {'prefix': self.prefix, 'position': self.position,
+                    'value_from': self.value_from}
         source = {}
         if self.has_source():
             source.update({"source": self.value})
