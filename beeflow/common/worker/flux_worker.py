@@ -115,8 +115,9 @@ class FluxWorker(Worker):
                                                         num_slots=ntasks,
                                                         num_nodes=nodes)
         task_save_path = self.task_save_path(task)
-        jobspec.stdout = f'{task_save_path}/{task.name}-{task.id}.out'
-        jobspec.stderr = f'{task_save_path}/{task.name}-{task.id}.err'
+        stdout_path, stderr_path = self.resolve_stdout_stderr(task)
+        jobspec.stdout = stdout_path
+        jobspec.stderr = stderr_path
         jobspec.environment = dict(os.environ)
         # Save the script for later reference
         with open(f'{task_save_path}/{task.name}-{task.id}.sh', 'w', encoding='utf-8') as f_path:

@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import pathlib
 import requests
 import jsonpickle
 from celery import shared_task # pylint: disable=W0611 # pylint can't find celery imports
@@ -327,3 +328,25 @@ def start_workflow(wf_id):
     update_wf_status(wf_id, 'Running')
     db.workflows.update_workflow_state(wf_id, 'Running')
     return True
+
+
+def copy_task_output(task, wfi):
+    """Copies stdout and stderr to the task directory in the WF archive."""
+    bee_workdir = get_bee_workdir()
+    # Need to get this from the worker
+    task_save_path = pathlib.Path(
+            f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}"
+    )
+    task_workdir = wfi.get_task_metadata(task)["workdir"]
+    if task.stdout:
+        stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
+    else:
+        stdout_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}.out")
+
+    if task.stderr:
+        stderr_path = pathlib.Path(f"{task_workdir}/{task.stderr}")
+    else:
+        stderr_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}.err")
+
+    shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id}.out")
+    shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id}.err")
