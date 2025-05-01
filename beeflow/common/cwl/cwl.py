@@ -359,7 +359,7 @@ class SlurmRequirement:
     """Represents a beeflow custom MPI requirement."""
 
     account: str = None
-    time_limit: int = None
+    time_limit: str = None
     partition: str = None
     qos: str = None
     reservation: str = None

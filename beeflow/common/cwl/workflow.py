@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from beeflow.common.cwl.cwl import (CWL, CWLInput, CWLInputs, RunInput, Inputs, CWLOutput,
                                     Outputs, Run, RunOutput, Step, Steps, Hints,
                                     InputBinding, MPIRequirement, DockerRequirement,
-                                    ScriptRequirement, SlurmRequirement)
+                                    ScriptRequirement, SlurmRequirement,
+                                    CheckpointRequirement)
 
 
 @dataclass
@@ -118,6 +119,20 @@ class Script:
                                  post_script=self.post_script,
                                  enabled=self.enabled,
                                  shell=self.shell)
+
+
+@dataclass
+class Checkpoint(CheckpointRequirement):
+    """Get Checkpoint Requirements."""
+
+    def requirement(self):
+        """Return a checkpoint requirement object."""
+        return CheckpointRequirement(file_path=self.file_path,
+                                     container_path=self.container_path,
+                                     file_regex=self.file_regex,
+                                     restart_parameters=self.restart_parameters,
+                                     num_tries=self.num_tries,
+                                     enabled=self.enabled)
 
 
 @dataclass
