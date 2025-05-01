@@ -1,0 +1,12 @@
+# Dockerfile.clamr-ffmpeg
+# Developed on Chicoma @lanl
+# Patricia Grubel <pagrubel@lanl.gov>
+
+FROM debian:11
+
+
+RUN apt-get update && \
+    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev
+
+RUN git clone https://github.com/lanl/CLAMR.git
+RUN cd CLAMR && cmake . && make clamr_cpuonly
