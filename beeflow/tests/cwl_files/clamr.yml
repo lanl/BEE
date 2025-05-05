@@ -1,0 +1,8 @@
+max_levels: 3
+grid_resolution: 32
+steps_between_output: 10
+steps_between_graphics: 25
+time_steps: 10000
+graphics_type: png
+checkpoint_disk_interval: 50
+

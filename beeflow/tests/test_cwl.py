@@ -19,9 +19,15 @@ import pytest
         ),
         (
             cwl.InputBinding,
-            {"prefix": "-f", "position": 1},
-            "inputBinding:\n  position: 1\n  prefix: -f\n",
-            {"inputBinding": {"position": 1, "prefix": "-f"}},
+            {"prefix": "-f", "position": 1, "value_from": '$("/graph%05d.png")'},
+            'inputBinding:\n  position: 1\n  prefix: -f\n  valueFrom: $("/graph%05d.png")\n',
+            {
+                "inputBinding": {
+                    "position": 1,
+                    "prefix": "-f",
+                    "valueFrom": '$("/graph%05d.png")',
+                }
+            },
         ),
         (
             cwl.RunInput,
