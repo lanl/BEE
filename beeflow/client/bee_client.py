@@ -558,8 +558,6 @@ def list_workflows():
     else:
         typer.echo("There are currently no workflows.")
 
-    logging.info('List workflows:  {resp.text}')
-
 
 @app.command()
 def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
