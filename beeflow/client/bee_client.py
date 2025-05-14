@@ -231,7 +231,6 @@ def get_wf_list():
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit('WF Manager did not return workflow list')
 
-    logging.info('List Jobs:  {resp.text}')
     return jsonpickle.decode(resp.json()['workflow_list'])
 
 
@@ -557,8 +556,6 @@ def list_workflows():
             typer.echo(f"{name}\t{_short_id(wf_id)}\t{status}")
     else:
         typer.echo("There are currently no workflows.")
-
-    logging.info('List workflows:  {resp.text}')
 
 
 @app.command()
