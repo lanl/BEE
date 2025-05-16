@@ -5,6 +5,8 @@ import logging
 from beeflow.client import bee_client
 from beeflow.common.db import client_db
 from requests.exceptions import ConnectionError
+from pathlib import Path
+import subprocess
 
 
 @pytest.fixture(autouse=True)
@@ -407,6 +409,7 @@ def test_check_short_id_collision(mocker, id_list, exp_id_len):
 
 
 def test_check_short_id_collision_runtime(mocker):
+    """Regression test check_short_id_collision for multiple matches."""
     workflow_list = [["", "acd96a4ece434649abee1622c80e39e1"] for i in range(3)]
     mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=workflow_list)
     with pytest.raises(
@@ -421,6 +424,327 @@ def test_check_short_id_collision_no_jobs(mocker, capsys):
     bee_client.check_short_id_collision()
     cap = capsys.readouterr()
     assert cap.out == "There are currently no jobs.\n"
+
+
+@pytest.mark.parametrize(
+    "id_list, wf_id, exp_long_wf_id",
+    [
+        (
+            [
+                "acd96a4ece434649abee1622c80e39e1",
+                "c34e865453cf43b1b3759c60c78c43c1",
+                "8df4418a6d1b42f2bda87c7a07f2c00d",
+                "a5554c4138294427a9eb0a9f89215cee",
+                "e50d8669595a4b05b841bc7b5336c721",
+            ],
+            "c34e86",
+            "c34e865453cf43b1b3759c60c78c43c1",
+        ),
+        (
+            [
+                "123456" + "ece434649abee1622c80e39e1",
+                "123456" + "5453cf43b1b3759c60c78c43c1",
+                "123456" + "8a6d1b42f2bda87c7a07f2c00d",
+                "123456" + "4138294427a9eb0a9f89215cee",
+                "123456" + "69595a4b05b841bc7b5336c721",
+            ],
+            "123456e",
+            "123456ece434649abee1622c80e39e1",
+        ),
+    ],
+)
+def test_match_short_id(mocker, id_list, wf_id, exp_long_wf_id):
+    """Regression test match_short_id."""
+    workflow_list = [["", this_id] for this_id in id_list]
+    mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=workflow_list)
+    long_wf_id = bee_client.match_short_id(wf_id)
+    assert long_wf_id == exp_long_wf_id
+
+
+@pytest.mark.parametrize(
+    "id_list, wf_id, exception, match",
+    [
+        (
+            ["acd96a4ece434649abee1622c80e39e1"] * 2,
+            "acd96a",
+            bee_client.ClientError,
+            "provided workflow ID ambiguous",
+        ),
+        (
+            ["acd96a4ece434649abee1622c80e39e1"],
+            "abc123",
+            bee_client.ClientError,
+            "does not match any submitted workflows",
+        ),
+        (
+            [],
+            "",
+            SystemExit,
+            "There are currently no workflows.",
+        ),
+    ],
+)
+def test_match_sort_id_errors(mocker, id_list, wf_id, exception, match):
+    """Regression match_sort_id errors."""
+    workflow_list = [["", this_id] for this_id in id_list]
+    mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=workflow_list)
+    with pytest.raises(exception, match=match):
+        bee_client.match_short_id(wf_id)
+
+
+@pytest.mark.parametrize(
+    "exp_status",
+    ["Running", "Archived", "FakeStatus"],
+)
+def test_get_wf_status(mocker, exp_status):
+    """Regression test get_wf_status."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 200
+    fake_resp.json.return_value = {"wf_status": exp_status}
+    mock_conn = mocker.Mock()
+    mock_conn.get.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    # the wf_id is not used since we mock the request
+    status = bee_client.get_wf_status("123456")
+    assert status == exp_status
+
+
+@pytest.mark.parametrize(
+    "status_code, side_effect, exception, match",
+    [
+        (
+            500,
+            None,
+            bee_client.ClientError,
+            "Could not successfully query workflow manager",
+        ),
+        (200, ConnectionError(), bee_client.ClientError, "Could not reach WF Manager."),
+    ],
+)
+def test_get_wf_status_errors(mocker, status_code, side_effect, exception, match):
+    """Regression test get_wf_status errors."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = status_code
+    fake_resp.json.return_value = {"wf_status": "FakeStatus"}
+    mock_conn = mocker.Mock()
+    mock_conn.get.return_value = fake_resp
+    mocker.patch(
+        "beeflow.client.bee_client._wfm_conn",
+        return_value=mock_conn,
+        side_effect=side_effect,
+    )
+    with pytest.raises(exception, match=match):
+        bee_client.get_wf_status("123456")
+
+
+@pytest.mark.parametrize(
+    "msg",
+    ["msg1", "msg2"],
+)
+def test_start(mocker, capsys, msg):
+    """Regression test start."""
+    exp_msg = msg + "\n"
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 200
+    fake_resp.json.return_value = {"msg": msg}
+    mock_conn = mocker.Mock()
+    mock_conn.post.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    # the wf_id is not used since we mock the request
+    bee_client.start("123456")
+    cap = capsys.readouterr()
+    print(cap.out)
+    assert cap.out == exp_msg
+
+
+@pytest.mark.parametrize(
+    "status_code, side_effect, exception, match",
+    [
+        (200, ConnectionError(), bee_client.ClientError, "Could not reach WF Manager."),
+        (
+            400,
+            None,
+            bee_client.ClientError,
+            "Could not start workflow. It may have already been started",
+        ),
+        (500, None, bee_client.ClientError, "Starting 123456 failed."),
+    ],
+)
+def test_start_errors(mocker, status_code, side_effect, exception, match):
+    """Regression test start errors."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = status_code
+    fake_resp.json.return_value = {"msg": ""}
+    mock_conn = mocker.Mock()
+    mock_conn.post.return_value = fake_resp
+    mocker.patch(
+        "beeflow.client.bee_client._wfm_conn",
+        return_value=mock_conn,
+        side_effect=side_effect,
+    )
+    with pytest.raises(exception, match=match):
+        bee_client.start("123456")
+
+
+def test_package(tmpdir, capsys):
+    """Regression test package."""
+    exp_out = "Package wf.tgz created successfully\n"
+    wf_path = Path(str(tmpdir / "wf"))
+    wf_path.mkdir()
+    package_dest = Path(str(tmpdir / "dest"))
+    package_dest.mkdir()
+    exp_path = package_dest / "wf.tgz"
+    with tmpdir.as_cwd():
+        # make some file in the wf_path so something is tar'd
+        open("filename.txt", "w").close()
+        package_path = bee_client.package(wf_path, package_dest)
+    cap = capsys.readouterr()
+    assert cap.out == exp_out
+    assert package_path == exp_path
+
+
+@pytest.mark.parametrize(
+    "isdir, return_code, exception, match",
+    [
+        (False, 0, bee_client.ClientError, "is not a valid directory"),
+        (True, 1, bee_client.ClientError, "Package failed"),
+    ],
+)
+def test_package_errors(mocker, tmpdir, isdir, return_code, exception, match):
+    """Regression test package errors."""
+    wf_path = Path(str(tmpdir / "wf"))
+    package_dest = Path(str(tmpdir))
+    mocker.patch("os.path.isdir", return_value=isdir)
+    sp_run = mocker.patch("subprocess.run")
+    sp_run.return_code = return_code
+    with tmpdir.as_cwd(), pytest.raises(exception, match=match):
+        package_path = bee_client.package(wf_path, package_dest)
+
+
+@pytest.mark.parametrize(
+    "wf_status, input_val, status_code, side_effect, exception, match, exp_out",
+    [
+        (
+            "Cancelled",
+            "yes",
+            202,
+            None,
+            SystemExit,
+            "",
+            """Workflow Status is Cancelled
+Workflow removed!
+""",
+        ),
+        (
+            "Archived/Failed",
+            "n",
+            0,
+            None,
+            SystemExit,
+            "Workflow not removed",
+            "Workflow Status is Archived/Failed\n",
+        ),
+        (
+            "Paused",
+            "y",
+            0,
+            None,
+            bee_client.ClientError,
+            "WF Manager could not remove workflow",
+            "Workflow Status is Paused\n",
+        ),
+        (
+            "Archived",
+            "y",
+            202,
+            ConnectionError(),
+            bee_client.ClientError,
+            "Could not reach WF Manager",
+            "Workflow Status is Archived\n",
+        ),
+        (
+            "Running",
+            "",
+            0,
+            None,
+            SystemExit,
+            "",
+            """Workflow Status is Running
+123456 may still be running.
+The workflow must be cancelled before attempting removal.
+""",
+        ),
+    ],
+)
+def test_remove(
+    mocker,
+    capsys,
+    wf_status,
+    input_val,
+    status_code,
+    side_effect,
+    exception,
+    match,
+    exp_out,
+):
+    """Regression test remove."""
+    mocker.patch("beeflow.client.bee_client.get_wf_status", return_value=wf_status)
+    mocker.patch("builtins.input", return_value=input_val)
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = status_code
+    fake_resp.text = "fake text"
+    mock_conn = mocker.Mock()
+    mock_conn.delete.return_value = fake_resp
+    mocker.patch(
+        "beeflow.client.bee_client._wfm_conn",
+        return_value=mock_conn,
+        side_effect=side_effect,
+    )
+    with pytest.raises(exception, match=match):
+        bee_client.remove("123456")
+    cap = capsys.readouterr()
+    assert cap.out == exp_out
+
+
+def test_unpackage(tmp_path):
+    """Regression test unpackage."""
+    # make a dummy tar to use
+    wf_name = "my_wf"
+    test_dir = tmp_path / wf_name
+    test_dir.mkdir()
+    (test_dir / "file.txt").write_text("test file")
+    package_path = tmp_path / (wf_name + ".tgz")
+    subprocess.run(
+        ["tar", "czf", str(package_path), "-C", str(tmp_path), wf_name], check=True
+    )
+    dest_path = tmp_path / "dest"
+    dest_path.mkdir()
+    exp_path = dest_path / wf_name
+    wf_path = bee_client.unpackage(package_path, dest_path)
+    assert wf_path == exp_path
+
+
+@pytest.mark.parametrize(
+    "extension, return_code, exception, match",
+    [
+        (".png", 0, bee_client.ClientError, "Invalid package name"),
+        (".tgz", 2, bee_client.ClientError, "Unpackage failed"),
+    ],
+)
+def test_unpackage_errors(tmp_path, mocker, extension, return_code, exception, match):
+    """Regression test unpackage errors."""
+    wf_name = "my_wf"
+    test_dir = tmp_path / wf_name
+    test_dir.mkdir()
+    (test_dir / "file.txt").write_text("test file")
+    package_path = tmp_path / (wf_name + extension)
+    dest_path = tmp_path / "dest"
+    dest_path.mkdir()
+    return_value = mocker.Mock()
+    return_value.return_code = return_code
+    mocker.patch("subprocess.run", return_value=return_value)
+    with pytest.raises(exception, match=match):
+        wf_path = bee_client.unpackage(package_path, dest_path)
 
 
 @pytest.mark.parametrize(
