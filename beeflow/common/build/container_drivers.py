@@ -82,7 +82,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 docker_requirements = docker_requirements.union(hint_docker_requirements)
                 hint_str = f'{set(hint_docker_requirements)}'
                 log.info(f'task {self.task.name} {self.task.id} hint '
-                         'DockerRequirements: {hint_str}')
+                         f'DockerRequirements: {hint_str}')
             except (TypeError, KeyError):
                 log.info(f'task {self.task.name} {self.task.id} hints has no DockerRequirements')
             log.info(f'task {self.task.id} union DockerRequirements : {docker_requirements}')
@@ -90,7 +90,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             self.exec_list = [i for i in exec_superset if i[1] in docker_requirements]
             log_exec_list = [i[1] for i in self.exec_list]
             log.info(f'task {self.task.id} DockerRequirement execution order '
-                     'will be: {log_exec_list}')
+                     f'will be: {log_exec_list}')
             log.info('Execution order pre-empts hint/requirement status.')
 
     def get_docker_req(self, docker_req_param):
