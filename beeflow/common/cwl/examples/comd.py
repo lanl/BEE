@@ -33,7 +33,7 @@ def main():
                         # Slurm(account="standard", time_limit=60, partition="standard",
                         #      qos="debug", reservation="standard"),
                         Script(pre_script="comd_pre.sh"),
-                        Slurm(time_limit=500),
+                        Slurm(time_limit="500"),
                         Charliecloud(docker_file="Dockerfile.comd-x86_64",
                                      container_name="comd-mpi")
                      ])

@@ -72,6 +72,7 @@ class InputBinding:
 
     prefix: str = None
     position: int = None
+    value_from: str = None
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
@@ -80,6 +81,8 @@ class InputBinding:
             binding_yaml['inputBinding']['position'] = self.position
         if self.prefix:
             binding_yaml['inputBinding']['prefix'] = self.prefix
+        if self.value_from:
+            binding_yaml['inputBinding']['valueFrom'] = self.value_from
         return binding_yaml
 
     def __repr__(self):
@@ -359,7 +362,7 @@ class SlurmRequirement:
     """Represents a beeflow custom MPI requirement."""
 
     account: str = None
-    time_limit: int = None
+    time_limit: str = None
     partition: str = None
     qos: str = None
     reservation: str = None
