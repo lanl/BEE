@@ -789,3 +789,183 @@ def test_list_workflows(
     bee_client.list_workflows()
     cap = capsys.readouterr()
     assert cap.out == exp_out
+
+
+@pytest.mark.parametrize(
+    "wf_status, exp_out",
+    [
+        (
+            "Running",
+            """Running
+cat--Running
+grep--Pending
+""",
+        ),
+        (
+            "No Start",
+            """No Start
+cat
+grep
+""",
+        ),
+    ],
+)
+def test_query(mocker, capsys, wf_status, exp_out):
+    """Regression test query."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 200
+    fake_resp.json.return_value = {
+        "tasks_status": [("", "cat", "Running"), ("", "grep", "Pending")],
+        "wf_status": wf_status,
+    }
+    mock_conn = mocker.Mock()
+    mock_conn.get.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    bee_client.query(123456)
+    cap = capsys.readouterr()
+    assert cap.out == exp_out
+
+
+def test_pause(mocker):
+    """Regression test pause."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 200
+    mock_conn = mocker.Mock()
+    mock_conn.patch.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    bee_client.pause(123456)
+    mock_conn.patch.assert_called_once_with(
+        bee_client._resource(123456), json={"option": "pause"}, timeout=60
+    )
+
+
+def test_resume(mocker):
+    """Regression test resume."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 200
+    mock_conn = mocker.Mock()
+    mock_conn.patch.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    bee_client.resume(123456)
+    mock_conn.patch.assert_called_once_with(
+        bee_client._resource(123456),
+        json={"wf_id": 123456, "option": "resume"},
+        timeout=60,
+    )
+
+
+@pytest.mark.parametrize(
+    "wf_status, exp_out",
+    [
+        ("Running", "Workflow cancelled!\n"),
+        ("Paused", "Workflow cancelled!\n"),
+        ("No Start", "Workflow cancelled!\n"),
+        ("Intializing", "Workflow is Intializing, try cancel later.\n"),
+        ("Bad Status", "Workflow is Bad Status cannot cancel.\n"),
+    ],
+)
+def test_cancel(mocker, capsys, wf_status, exp_out):
+    """Regression test cancel."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 202
+    mock_conn = mocker.Mock()
+    mock_conn.delete.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    mocker.patch("beeflow.client.bee_client.get_wf_status", return_value=wf_status)
+    bee_client.cancel(123456)
+    cap = capsys.readouterr()
+    assert cap.out == exp_out
+
+
+@pytest.mark.parametrize(
+    "function, status_code, side_effect, exception, match",
+    [
+        (
+            bee_client.query,
+            200,
+            ConnectionError(),
+            bee_client.ClientError,
+            "Could not reach WF Manager",
+        ),
+        (
+            bee_client.pause,
+            200,
+            ConnectionError(),
+            bee_client.ClientError,
+            "Could not reach WF Manager",
+        ),
+        (
+            bee_client.resume,
+            200,
+            ConnectionError(),
+            bee_client.ClientError,
+            "Could not reach WF Manager",
+        ),
+        (
+            bee_client.cancel,
+            200,
+            ConnectionError(),
+            bee_client.ClientError,
+            "Could not reach WF Manager",
+        ),
+        (
+            bee_client.copy,
+            200,
+            ConnectionError(),
+            bee_client.ClientError,
+            "Could not reach WF Manager",
+        ),
+        (
+            bee_client.query,
+            500,
+            None,
+            bee_client.ClientError,
+            "Could not successfully query workflow manager",
+        ),
+        (
+            bee_client.pause,
+            500,
+            None,
+            bee_client.ClientError,
+            "WF Manager could not pause workflow",
+        ),
+        (
+            bee_client.resume,
+            500,
+            None,
+            bee_client.ClientError,
+            "WF Manager could not resume workflow",
+        ),
+        (
+            bee_client.cancel,
+            500,
+            None,
+            bee_client.ClientError,
+            "WF Manager could not cancel workflow",
+        ),
+        (
+            bee_client.copy,
+            500,
+            None,
+            bee_client.ClientError,
+            "WF Manager could not copy workflow",
+        ),
+    ],
+)
+def test_simple_req_errors(
+    mocker, function, status_code, side_effect, exception, match
+):
+    """Regression test errors for functions that accept wf_id and error on ConnectionError, bad status code."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = status_code
+    mock_conn = mocker.Mock()
+    mock_conn.patch.return_value = fake_resp
+    mock_conn.delete.return_value = fake_resp
+    mocker.patch(
+        "beeflow.client.bee_client._wfm_conn",
+        return_value=mock_conn,
+        side_effect=side_effect,
+    )
+    mocker.patch("beeflow.client.bee_client.get_wf_status", return_value="Running")
+    with pytest.raises(exception, match=match):
+        function(123456)
