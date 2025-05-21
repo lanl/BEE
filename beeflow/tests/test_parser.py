@@ -6,6 +6,8 @@ import unittest
 from beeflow.common.parser import CwlParser, CwlParseError
 from beeflow.common.wf_data import (generate_workflow_id, Workflow, Task, Hint,
                                     StepInput, StepOutput, InputParameter, OutputParameter)
+import pytest
+from collections import OrderedDict
 
 
 REPO_PATH = Path(*Path(__file__).parts[:-3])
@@ -373,6 +375,53 @@ TASKS_NOJOB_GOLD = [
         stderr=None,
         workflow_id=WORKFLOW_NOJOB_GOLD.id)
 ]
+
+
+@pytest.mark.parametrize(
+    "requirements, exp_reqs",
+    [
+        (
+            [
+                OrderedDict(
+                    [("timeLimit", "00:00:10"), ("class", "beeflow:SlurmRequirement")]
+                )
+            ],
+            [Hint(class_="beeflow:SlurmRequirement", params={"timeLimit": "00:00:10"})],
+        ),
+        (
+            [
+                OrderedDict(
+                    [
+                        ("enabled", True),
+                        ("file_path", "checkpoint_output"),
+                        ("container_path", "checkpoint_output"),
+                        ("file_regex", "backup[0-9]*.crx"),
+                        ("restart_parameters", None),
+                        ("num_tries", 3),
+                        ("class", "beeflow:CheckpointRequirement"),
+                    ]
+                )
+            ],
+            [
+                Hint(
+                    class_="beeflow:CheckpointRequirement",
+                    params={
+                        "enabled": True,
+                        "file_path": "checkpoint_output",
+                        "container_path": "checkpoint_output",
+                        "file_regex": "backup[0-9]*.crx",
+                        "num_tries": 3,
+                    },
+                )
+            ],
+        ),
+    ],
+)
+def test_parse_requirements_hints(requirements, exp_reqs):
+    """Regression test parse_requirements when as_hints=True."""
+    parser = CwlParser()
+    reqs = parser.parse_requirements(requirements, as_hints=True)
+    assert reqs == exp_reqs
 
 
 if __name__ == '__main__':

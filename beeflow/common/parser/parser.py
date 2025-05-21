@@ -339,7 +339,7 @@ class CwlParser:
             for req in requirements:
                 items = {}
                 for k, v in req.items():
-                    if k != 'class':
+                    if k != 'class' and v is not None:
                         if isinstance(v, (int, float)):
                             items[k] = v
                         else:
