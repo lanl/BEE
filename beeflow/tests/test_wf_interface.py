@@ -239,7 +239,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Assert inequality of Task objects
         self.assertNotEqual(task.id, new_task.id)
-        self.assertEqual("test_task(1)", new_task.name)
+        self.assertEqual("test_task-1", new_task.name)
 
         # Assert equality of graph database objects
         self.assertEqual(new_task, self.wfi.get_task_by_id(new_task.id))
@@ -258,7 +258,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Assert inequality of Task objects
         self.assertNotEqual(new_task.id, newer_task.id)
-        self.assertEqual("test_task(2)", newer_task.name)
+        self.assertEqual("test_task-2", newer_task.name)
 
         # Assert equality of graph database objects
         self.assertEqual(newer_task, self.wfi.get_task_by_id(newer_task.id))
