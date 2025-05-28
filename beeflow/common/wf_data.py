@@ -96,6 +96,45 @@ class Workflow:
                 f"requirements = {self.requirements} inputs={self.inputs} outputs={self.outputs}>")
 
 
+def get_requirement(requirements, hints, req_type, req_param, default=None):
+    """Get requirement from hints or requirements, prioritizing requirements over hints.
+
+    :param requirements: list of requirements
+    :type requirements: list
+    :param hints: list of hints
+    :type hints: list
+    :param req_type: the type of requirement (e.g. 'DockerRequirement')
+    :type req_type: str
+    :param req_param: the requirement parameter (e.g. 'dockerFile')
+    :type req_param: str
+    :param default: default value if the requirement is not found
+    :type default: any
+
+    When requirements are specified hints will be ignored.
+    By default, tasks need not specify hints or requirements
+    """
+    requirements = dict(requirements)
+    requirement = default
+    # Get value if specified in requirements
+    try:
+        # Try to get Requirement
+        requirement = requirements[req_type][req_param]
+    except (KeyError, TypeError):
+        # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
+        requirement = None
+    # Ignore hints if requirements available
+    if not requirement:
+        hints = dict(hints)
+        # Get value if specified in hints
+        try:
+            # Try to get Hints
+            requirement = hints[req_type][req_param]
+        except (KeyError, TypeError):
+            # Task Hints are not mandatory. No docker_req_param specified in task hints.
+            requirement = default
+    return requirement
+
+
 class Task:
     """Data structure for holding data about a single task."""
 
@@ -180,26 +219,7 @@ class Task:
         When requirements are specified hints will be ignored.
         By default, tasks need not specify hints or requirements
         """
-        requirements = dict(self.requirements)
-        requirement = default
-        # Get value if specified in requirements
-        try:
-            # Try to get Requirement
-            requirement = requirements[req_type][req_param]
-        except (KeyError, TypeError):
-            # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
-            requirement = None
-        # Ignore hints if requirements available
-        if not requirement:
-            hints = dict(self.hints)
-            # Get value if specified in hints
-            try:
-                # Try to get Hints
-                requirement = hints[req_type][req_param]
-            except (KeyError, TypeError):
-                # Task Hints are not mandatory. No docker_req_param specified in task hints.
-                requirement = default
-        return requirement
+        return get_requirement(self.requirements, self.hints, req_type, req_param, default)
 
     def get_full_requirement(self, req_type):
         """Get the full requirement (or hint) for this task, if it has one.
