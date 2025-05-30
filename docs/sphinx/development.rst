@@ -22,26 +22,38 @@ Installation Using a Python Environment
 ---------------------------------------
 To install Poetry using a python environment, you must first set up the environment using the following
 commands (Please note that the name of the environment is not limited to beedev-en). All of the
-commands should be run in your home directory. 
- 
-`mkdir beedev-env`
-`python3 -m venv beedev-env`
-`source beedev-env/bin/activate`
-`pip install poetry`
+commands should be run in your home directory. Make sure your default shell is set to bash by running
+``echo $SHELL``. If it is not in bash, run ``chsh -s /bin/bash`` and enter your personal device password.
+
+If you prefer your default shell to be in zsh and the following directions give you errors, use
+``pip3`` instead of ``pip``.     
+
+.. code-block::
+
+    mkdir beedev-env
+    python3 -m venv beedev-env
+    source beedev-env/bin/activate 
+    pip install poetry
 
 To activate the python environment and build beeflow:
 
-`source beedev-env/bin/activate`
-`cd <path to BEE repo>` 
-`poetry install` 
-`beeflow --version` 
+.. code-block::
+
+    source beedev-env/bin/activate
+    cd <path to BEE repo>
+    poetry install
+    beeflow --version
 
 If you want to exit the python environment, enter the following command:
 
-`deactivate'  
+.. code-block::
+    
+    deactivate
 
-Installation
-------------
+You can make sure Poetry is installed by using the following command: ``poetry --version``.
+
+Additional Installation
+-----------------------
 It is possible to install Poetry using Pip, but it is recommended to instead
 install it via a script using the following command:
 
