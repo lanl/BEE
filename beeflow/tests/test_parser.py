@@ -4,7 +4,7 @@
 from pathlib import Path
 import unittest
 import os
-from beeflow.common.parser import CwlParser, CwlParseError
+from beeflow.common.parser import CwlParser, CwlParseError, parser
 from beeflow.common.wf_data import (generate_workflow_id, Workflow, Task, Hint,
                                     StepInput, StepOutput, InputParameter, OutputParameter)
 import pytest
@@ -444,6 +444,19 @@ def test_parse_requirements_hints(requirements, exp_reqs):
     parser = CwlParser()
     reqs = parser.parse_requirements(requirements, as_hints=True)
     assert reqs == exp_reqs
+
+
+@pytest.mark.parametrize("step_workdir, workdir, exp_resolved_workdir",
+    [
+        (os.getcwd(), '', os.getcwd()),
+        (' ', 'workdir/', 'workdir/'),
+        ('step_dir', os.getcwd(), os.getcwd() + '/step_dir'),
+    ],
+)
+def test_resolve_step_workdir(step_workdir, workdir, exp_resolved_workdir):
+    """Regression test resolve_step_workdir."""
+    resolved_workdir = parser.resolve_step_workdir(step_workdir, workdir)
+    assert resolved_workdir == exp_resolved_workdir
 
 
 if __name__ == '__main__':
