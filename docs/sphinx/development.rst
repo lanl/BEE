@@ -21,12 +21,10 @@ Requirement: Python version 3.8 or greater
 Installation Using a Python Environment 
 ---------------------------------------
 To install Poetry using a python environment, you must first set up the environment using the following
-commands (Please note that the name of the environment is not limited to beedev-en). All of the
-commands should be run in your home directory. Make sure your default shell is set to bash by running
-``echo $SHELL``. If it is not in bash, run ``chsh -s /bin/bash`` and enter your personal device password.
+commands (Please note that the name of the environment is not limited to beedev-env). 
 
-If you prefer your default shell to be in zsh and the following directions give you errors, use
-``pip3`` instead of ``pip``.     
+Please note the following instructions are intended for the Bash shell. If your default shell is Zsh,
+the instructions may be slightly different.        
 
 .. code-block::
 
@@ -34,6 +32,8 @@ If you prefer your default shell to be in zsh and the following directions give 
     python3 -m venv beedev-env
     source beedev-env/bin/activate 
     pip install poetry
+
+You can make sure Poetry is installed by using the following command: ``poetry --version``.
 
 To activate the python environment and build beeflow:
 
@@ -50,41 +50,6 @@ If you want to exit the python environment, enter the following command:
     
     deactivate
 
-You can make sure Poetry is installed by using the following command: ``poetry --version``.
-
-Additional Installation
------------------------
-It is possible to install Poetry using Pip, but it is recommended to instead
-install it via a script using the following command:
-
-`curl -sSL https://install.python-poetry.org | python3 -`
-
-This will install Poetry to `~/.poetry/bin`, which should be automatically prepended to your PATH
-by modifying your `~/.profile`, `~/.bash_profile`, and/or `~/.bashrc`. If you are using a
-shell other than Bash, you will have to add it to your PATH manually.
-
-Environment Setup
------------------
-All of the following commands should be run in the root of our
-project directory as that is where our `.python-version`, `pyproject.toml`, and
-`poetry.lock` files are located (for use with Pyenv).
-
-**If you use Pyenv**, change the line in your `~/.bashrc`, etc.:
-
-`eval "$(pyenv init -)"`
-
-to:
-
-`[ $POETRY_ACTIVE ] || eval "$(pyenv init -)"`
-
-On MacOS, Poetry virtual environments are installed to `~/Library/Caches/pypoetry/virtualenvs`.
-To instead install to a local `.venv` directory, first run the command:
-
-`poetry config settings.virtualenvs.in-project true`
-
-When creating a Python virtual environment, Poetry will automatically install the version of Python of whatever `python` executable appears first on your PATH.
-
-
 Development Workflow
 ====================
 
@@ -92,27 +57,21 @@ Development Workflow
 ---------------
 To work on a fix or feature, switch to the feature branch in the BEE repo (see :ref:`contribute`).
 
-2. Create a Virtual Environment and Install Dependencies
----------------------------------------------------------
+2. Activate the Virtual Environment and Install Beeflow  
+-------------------------------------------------------
+You can refer to the instructions above or enter the following commands:
 
-After making your changes create a Python 3.x virtual environment and install our project
-dependencies (including developer dependencies):
+.. code-block::
+    
+    source beedev-env/bin/activate
+    poetry install
 
-``poetry install``
-
-3. Activate the Virtual Environment
------------------------------------
-
-To activate the virtual environment ('exit' or EOF to deactivate):
-
-``poetry shell``
-
-4. Start the BEE components
+3. Start the BEE components
 ---------------------------
 
 ``beeflow core start``
 
-5. Test
+4. Test
 ---------
 
 Attempt to write tests that cover all the new/modified lines on your feature branch. Test files are in the ``beeflow/tests`` folder and follow the naming convention ``test_MODULE_NAME.py``. You may need to create a new file if one doesn't exist for the module you are working on. Make sure your test function begins with ``test_``; ``test_FUNCTION_NAME`` is a good naming convention.
