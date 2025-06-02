@@ -146,12 +146,15 @@ An example ``beeflow:CheckpointRequirement`` in BEE is shown below::
             container_path: checkpoint_output
             file_regex: backup[0-9]*.crx
             restart_parameters: -R
+            add_parameters: --additional-options True
             num_tries: 3
 
 For the above example ``file_path`` is the location of the checkpoint_file. The
 ``file_regex`` specifies the regular expression for the possible checkpoint
 filenames, the ``restart parameter`` will be added to the run command followed
-by the path to the latest checkpoint file, and ``num_tries`` specifies the maximum
+by the path to the latest checkpoint file. ``add_parameters`` allows for
+additional parameters that need to be specified; these will be appended to the
+run command after the checkpoint file. ``num_tries`` specifies the maximum
 number of times the task will be restarted.
 
 beeflow:SlurmRequirement
