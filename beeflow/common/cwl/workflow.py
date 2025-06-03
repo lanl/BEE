@@ -139,7 +139,7 @@ class Checkpoint(CheckpointRequirement):
 
 @dataclass
 class TaskReq(TaskRequirement):
-    """Get Checkpoint Requirements."""
+    """Get Task Requirements."""
 
     def requirement(self):
         """Return a task requirement object."""
