@@ -85,6 +85,7 @@ class Worker(ABC):
     def prepare(self, task):
         """Prepare for the task; create the task save directory, etc."""
         task_save_path = self.task_save_path(task)
+        os.makedirs(task.workdir, exist_ok=True)
         os.makedirs(task_save_path, exist_ok=True)
 
     @abstractmethod
