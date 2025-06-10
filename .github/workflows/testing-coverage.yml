@@ -149,3 +149,27 @@ jobs:
         with:
           github_token: ${{ secrets.github_token }}
           branch: ${{ github.event.pull_request.head.ref }}
+
+- name: Display coverage sorted by missed lines
+  run: |
+    pip install tabulate
+    python3 << EOF
+import re
+from tabulate import tabulate
+
+lines = []
+with open("raw_coverage.txt") as f:
+    for line in f:
+        if re.match(r"^\S", line) and "%" in line:
+            parts = re.split(r"\s+", line.strip())
+            if len(parts) >= 6 and parts[0] != "Name":
+                filename = parts[0]
+                missed = int(parts[3])
+                lines.append((missed, filename, *parts[1:]))
+
+lines.sort(reverse=True)  # Sort by missed lines descending
+print("\nSorted coverage report by missed lines:\n")
+print(tabulate([(fn, *rest) for _, fn, *rest in lines],
+               headers=["File", "Stmts", "Miss", "Cover", "Missing", "Cover%"]))
+EOF
+
