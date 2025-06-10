@@ -18,38 +18,37 @@ Additional Poetry documentation:
 Requirement: Python version 3.8 or greater
 ------------------------------------------
 
-Installation
-------------
-It is possible to install Poetry using Pip, but it is recommended to instead
-install it via a script using the following command:
+Installation Using a Python Environment 
+---------------------------------------
+To install Poetry using a python environment, you must first set up the environment using the following
+commands (Please note that the name of the environment is not limited to beedev-env). 
 
-`curl -sSL https://install.python-poetry.org | python3 -`
+Please note the following instructions are intended for the Bash shell. If your default shell is Zsh,
+the instructions may be slightly different.        
 
-This will install Poetry to `~/.poetry/bin`, which should be automatically prepended to your PATH
-by modifying your `~/.profile`, `~/.bash_profile`, and/or `~/.bashrc`. If you are using a
-shell other than Bash, you will have to add it to your PATH manually.
+.. code-block::
 
-Environment Setup
------------------
-All of the following commands should be run in the root of our
-project directory as that is where our `.python-version`, `pyproject.toml`, and
-`poetry.lock` files are located (for use with Pyenv).
+    mkdir beedev-env
+    python3 -m venv beedev-env
+    source beedev-env/bin/activate 
+    pip install poetry
 
-**If you use Pyenv**, change the line in your `~/.bashrc`, etc.:
+You can make sure Poetry is installed by using the following command: ``poetry --version``.
 
-`eval "$(pyenv init -)"`
+To activate the python environment and build beeflow:
 
-to:
+.. code-block::
 
-`[ $POETRY_ACTIVE ] || eval "$(pyenv init -)"`
+    source beedev-env/bin/activate
+    cd <path to BEE repo>
+    poetry install
+    beeflow --version
 
-On MacOS, Poetry virtual environments are installed to `~/Library/Caches/pypoetry/virtualenvs`.
-To instead install to a local `.venv` directory, first run the command:
+If you want to exit the python environment, enter the following command:
 
-`poetry config settings.virtualenvs.in-project true`
-
-When creating a Python virtual environment, Poetry will automatically install the version of Python of whatever `python` executable appears first on your PATH.
-
+.. code-block::
+    
+    deactivate
 
 Development Workflow
 ====================
@@ -58,27 +57,21 @@ Development Workflow
 ---------------
 To work on a fix or feature, switch to the feature branch in the BEE repo (see :ref:`contribute`).
 
-2. Create a Virtual Environment and Install Dependencies
----------------------------------------------------------
+2. Activate the Virtual Environment and Install Beeflow  
+-------------------------------------------------------
+You can refer to the instructions above or enter the following commands:
 
-After making your changes create a Python 3.x virtual environment and install our project
-dependencies (including developer dependencies):
+.. code-block::
+    
+    source beedev-env/bin/activate
+    poetry install
 
-``poetry install``
-
-3. Activate the Virtual Environment
------------------------------------
-
-To activate the virtual environment ('exit' or EOF to deactivate):
-
-``poetry shell``
-
-4. Start the BEE components
+3. Start the BEE components
 ---------------------------
 
 ``beeflow core start``
 
-5. Test
+4. Test
 ---------
 
 Attempt to write tests that cover all the new/modified lines on your feature branch. Test files are in the ``beeflow/tests`` folder and follow the naming convention ``test_MODULE_NAME.py``. You may need to create a new file if one doesn't exist for the module you are working on. Make sure your test function begins with ``test_``; ``test_FUNCTION_NAME`` is a good naming convention.

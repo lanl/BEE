@@ -121,12 +121,12 @@ class WorkflowInterface:
         # Pattern match on task name
         # Append (1) if not in name already
         # Increment number on each restart
-        match = re.match(r".+\(([0-9]+)\)$", new_task.name)
+        match = re.search(r"-(\d+)$", new_task.name)
         if not match:
-            new_task.name += "(1)"
+            new_task.name += "-1"
         else:
             i = int(match.group(1))
-            new_task.name = re.sub(r"\([0-9]+\)", f"({i + 1})", new_task.name)
+            new_task.name = re.sub(r"-(\d+)$", f"-{i + 1}", new_task.name)
         metadata = self.get_task_metadata(task)
         self._gdb_driver.restart_task(task, new_task)
         self.set_task_metadata(new_task, metadata)
