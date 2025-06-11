@@ -165,7 +165,7 @@ jobs:
                       parts = re.split(r"\s+", line.strip())
                       if len(parts) >= 6 and parts[0] != "Name":
                           filename = parts[0]
-                          missed = int(parts[3])
+                          missed = int(parts[2])
                           lines.append((missed, filename, *parts[1:]))
 
           lines.sort(reverse=True)  # Sort by missed lines descending
