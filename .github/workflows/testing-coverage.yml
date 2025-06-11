@@ -115,7 +115,8 @@ jobs:
         run: |
           pip install coverage
           coverage combine
-          coverage report --show-missing
+          coverage report --show-missing > raw_coverage.txt
+          coverage report
 
       - name: Coverage Badge
         if: github.event_name == 'pull_request'
