@@ -116,6 +116,7 @@ jobs:
           pip install coverage
           coverage combine
           coverage report > raw_coverage.txt
+          coverage report 
           coverage report --show-missing
 
       - name: Coverage Badge
