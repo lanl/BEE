@@ -171,6 +171,6 @@ jobs:
           lines.sort(reverse=True)  # Sort by missed lines descending
           print("\nSorted coverage report by missed lines:\n")
           print(tabulate([(fn, *rest) for _, fn, *rest in lines],
-                         headers=["File", "Stmts", "Miss", "Cover", "Missing", "Cover%"]))
+                         headers=["File", "Stmts", "Miss", "Cover"]))
           EOF
 
