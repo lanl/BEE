@@ -169,7 +169,14 @@ class CwlParser:
             ),
             workdir,
         )
-        step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout,
+
+        # When using container do not add the path to the output
+        # This can be changed when we fix binding for containers
+        if any(hint.class_ == 'DockerRequirement' for hint in step_hints):
+            step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout,
+                                               step_cwl.stderr)
+        else:
+            step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout,
                                                step_cwl.stderr, workdir=step_workdir)
         step_stdout = step_cwl.stdout
         step_stderr = step_cwl.stderr
@@ -244,7 +251,7 @@ class CwlParser:
         return inputs
 
     @staticmethod
-    def parse_step_outputs(cwl_out, step_outputs, stdout, stderr, workdir):
+    def parse_step_outputs(cwl_out, step_outputs, stdout, stderr, workdir=None):
         """Parse step outputs from CWL step output objects.
 
         :param cwl_out: the step outputs from the Workflow file
@@ -290,8 +297,10 @@ class CwlParser:
             else:
                 if out_map[out].outputBinding:
                     glob = out_map[out].outputBinding.glob
+
             if workdir is not None:
                 glob = os.path.abspath(os.path.join(workdir, glob))
+
             outputs.append(StepOutput(out, output_type, None, glob))
         return outputs
 
