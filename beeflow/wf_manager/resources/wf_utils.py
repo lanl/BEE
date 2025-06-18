@@ -303,8 +303,11 @@ def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     """Export the DAG of the workflow."""
     wfi = get_workflow_interface(wf_id)
     wfi.export_graphml()
-    update_graphml(wf_id, graphmls_dir)
-    generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir)
+    if shutil.which("dot") is not None:
+        update_graphml(wf_id, graphmls_dir)
+        generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir)
+    else:
+        update_graphml(wf_id, graphmls_dir, output_dir, no_dag_dir)
 
 
 def start_workflow(wf_id):

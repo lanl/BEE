@@ -31,7 +31,18 @@ default_key_definitions = {
 }
 
 
-def update_graphml(wf_id, graphmls_dir):
+def backup_graphml(path, graphmls_dir, short_id):
+    """Backup graphmls."""
+    if os.path.exists(path):
+        i = 1
+        backup_path = f'{graphmls_dir}/{short_id}_v{i}.graphml'
+        while os.path.exists(backup_path):
+            i += 1
+            backup_path = f'{graphmls_dir}/{short_id}_v{i}.graphml'
+        shutil.copy(path, backup_path)
+
+
+def update_graphml(wf_id, graphmls_dir, extra_output_dir=None, no_dag_dir=False):
     """Update GraphML file by ensuring required keys are present and updating its structure."""
     short_id = wf_id[:6]
     # Define paths
@@ -41,13 +52,7 @@ def update_graphml(wf_id, graphmls_dir):
     gdb_graphml_path = gdb_graphmls_dir + "/" + short_id + ".graphml"
     output_graphml_path = graphmls_dir + "/" + short_id + ".graphml"
     # Handle making multiple versions of the graphmls without overriding old ones
-    if os.path.exists(output_graphml_path):
-        i = 1
-        backup_path = f'{graphmls_dir}/{short_id}_v{i}.graphml'
-        while os.path.exists(backup_path):
-            i += 1
-            backup_path = f'{graphmls_dir}/{short_id}_v{i}.graphml'
-        shutil.copy(output_graphml_path, backup_path)
+    backup_graphml(output_graphml_path, graphmls_dir, short_id)
     # Parse the GraphML file and preserve namespaces
     tree = ET.parse(gdb_graphml_path)
     root = tree.getroot()
@@ -69,3 +74,15 @@ def update_graphml(wf_id, graphmls_dir):
 
     # Save the updated GraphML file
     tree.write(output_graphml_path, encoding='UTF-8', xml_declaration=True)
+
+    # Saving the GraphML file to an extra user specified location
+    if extra_output_dir:
+        if not no_dag_dir:
+            extra_output_dir += "/" + short_id + "-graphmls"
+        extra_graphml_path = extra_output_dir + "/" + short_id + ".graphml"
+        os.makedirs(extra_output_dir, exist_ok=True)
+        if extra_graphml_path != output_graphml_path:
+            backup_graphml(extra_graphml_path, extra_output_dir, short_id)
+            tree.write(extra_graphml_path, encoding='UTF-8', xml_declaration=True)
+
+
