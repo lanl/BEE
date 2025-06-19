@@ -350,6 +350,8 @@ class Task:
                         os.getenv('HOME'): os.path.join('/home', os.getenv('USER')),
                     }
                     command.append(convert_path(checkpoint_file, bind_mounts))
+                    if "add_parameters" in hint.params:
+                        command.append(hint.params["add_parameters"])
                 break
 
         return command

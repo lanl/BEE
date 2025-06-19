@@ -133,6 +133,7 @@ class Checkpoint(CheckpointRequirement):
                                      container_path=self.container_path,
                                      file_regex=self.file_regex,
                                      restart_parameters=self.restart_parameters,
+                                     add_parameters=self.add_parameters,
                                      num_tries=self.num_tries,
                                      enabled=self.enabled)
 

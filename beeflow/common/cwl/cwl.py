@@ -1,6 +1,7 @@
 """Create and manage CWL files."""
 from dataclasses import dataclass
 from io import StringIO
+from typing import Optional
 import ruamel.yaml
 
 # Create the global object for ruamel.ymal
@@ -399,6 +400,7 @@ class CheckpointRequirement:
     restart_parameters: str
     num_tries: int
     enabled: bool = True
+    add_parameters: Optional[str] = None
 
     def dump(self):
         """Dump beeflow requirement to a dictionary."""
@@ -409,6 +411,7 @@ class CheckpointRequirement:
         checkpoint_dump[req_name]['container_path'] = self.container_path
         checkpoint_dump[req_name]['file_regex'] = self.file_regex
         checkpoint_dump[req_name]['restart_parameters'] = self.restart_parameters
+        checkpoint_dump[req_name]['add_parameters'] = self.add_parameters
         checkpoint_dump[req_name]['num_tries'] = self.num_tries
         return checkpoint_dump
 

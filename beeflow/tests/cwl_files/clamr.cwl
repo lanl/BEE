@@ -85,6 +85,7 @@ steps:
         container_path: checkpoint_output
         file_regex: backup[0-9]*.crx
         restart_parameters: -R
+        add_parameters:
         num_tries: 3
       beeflow:SlurmRequirement:
         timeLimit: 00:00:10
