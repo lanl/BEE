@@ -54,16 +54,18 @@ class Worker(ABC):
         self.workdir = bee_workdir
 
     def resolve_stdout_stderr(self, task):
-        """Reolves the path to the stderr and stdout in the task workdir."""
+        """Resolves the path to the stderr and stdout in the task workdir."""
+        task_dir = f"{task.workdir}/{task.name}-{task.id[:4]}"
+        os.makedirs(task_dir,exist_ok=True)
         if task.stdout:
             stdout_path = f"{task.workdir}/{task.stdout}"
         else:
             # If user provide no stdout or stderr name use this as a fallback
-            stdout_path = f"{task.workdir}/{task.name}-{task.id[:4]}.out"
+            stdout_path = f"{task.workdir}/{task.name}-{task.id[:4]}/{task.name}-{task.id[:4]}.out"
         if task.stderr:
             stderr_path = f"{task.workdir}/{task.stderr}"
         else:
-            stderr_path = f"{task.workdir}/{task.name}-{task.id[:4]}.err"
+            stderr_path = f"{task.workdir}/{task.name}-{task.id[:4]}/{task.name}-{task.id[:4]}.err"
         return stdout_path, stderr_path
 
 
@@ -74,8 +76,13 @@ class Worker(ABC):
     def write_script(self, task):
         """Build task script; returns filename of script."""
         task_text = self.build_text(task)
-        task_script_archive = f"{self.task_save_path(task)}/{task.name}-{task.id}.sh"
-        task_script_workdir = f"{task.workdir}/{task.name}-{task.id[:4]}.sh"
+        task_archive_dir = f"{self.task_save_path(task)}/{task.name}-{task.id}"
+        os.makedirs(task_archive_dir,exist_ok=True)
+        task_script_archive = f"{self.task_save_path(task)}/{task.name}-{task.id}/{task.name}-{task.id}.sh"
+        task_script_dir = f"{task.workdir}/{task.name}-{task.id[:4]}"
+        os.makedirs(task_script_dir,exist_ok=True)
+        task_script_workdir = f"{task.workdir}/{task.name}-{task.id[:4]}/{task.name}-{task.id[:4]}.sh"
+
         with open(task_script_workdir, 'w', encoding="UTF-8") as workdir_script, \
              open(task_script_archive, 'w', encoding="UTF-8") as archive_script:
             workdir_script.write(task_text)
