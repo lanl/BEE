@@ -84,5 +84,3 @@ def update_graphml(wf_id, graphmls_dir, extra_output_dir=None, no_dag_dir=False)
         if extra_graphml_path != output_graphml_path:
             backup_graphml(extra_graphml_path, extra_output_dir, short_id)
             tree.write(extra_graphml_path, encoding='UTF-8', xml_declaration=True)
-
-
