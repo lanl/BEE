@@ -320,6 +320,18 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     wf_path = wf_path.resolve()
     workdir = workdir.resolve()
 
+    # Make sure the workdir is an absolute path and exists
+    workdir = os.path.expanduser(workdir)
+    workdir = os.path.abspath(workdir)
+    if not os.path.exists(workdir):
+        error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
+
+    # Make sure the workdir is not in /var or /var/tmp
+    if os.path.commonpath([os.path.realpath('/tmp'), workdir]) == os.path.realpath('/tmp'):
+        error_exit("Workflow working directory cannot be in \"/tmp\"")
+    if os.path.commonpath([os.path.realpath('/var/tmp'), workdir]) == os.path.realpath('/var/tmp'):
+        error_exit("Workflow working directory cannot be in \"/var/tmp\"")
+
     tarball_path = ""
     workflow = None
     wf_tarball = None
@@ -359,7 +371,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         parser = CwlParser()
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
-                                                job=str(yaml_path))
+                                                job=str(yaml_path), workdir=workdir)
         tasks = [jsonpickle.encode(task) for task in tasks]
 
         wf_tarball = open(package_path, 'rb')
@@ -368,18 +380,6 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
             shutil.rmtree(tempdir_path)
     else:
         error_exit(f'Workflow tarball {wf_path} cannot be found')
-
-    # Make sure the workdir is an absolute path and exists
-    workdir = os.path.expanduser(workdir)
-    workdir = os.path.abspath(workdir)
-    if not os.path.exists(workdir):
-        error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
-
-    # Make sure the workdir is not in /var or /var/tmp
-    if os.path.commonpath([os.path.realpath('/tmp'), workdir]) == os.path.realpath('/tmp'):
-        error_exit("Workflow working directory cannot be in \"/tmp\"")
-    if os.path.commonpath([os.path.realpath('/var/tmp'), workdir]) == os.path.realpath('/var/tmp'):
-        error_exit("Workflow working directory cannot be in \"/var/tmp\"")
 
     # TODO: Can all of this information be sent as a file?
     data = {

@@ -307,6 +307,18 @@ import pytest
                 }
             },
         ),
+        (
+            cwl.TaskRequirement,
+            {
+                "workdir": "my_workdir",
+            },
+            "beeflow:TaskRequirement:\n  workdir: my_workdir\n",
+            {
+                "beeflow:TaskRequirement": {
+                    "workdir": "my_workdir",
+                },
+            },
+        ),
     ],
 )
 def test_repr_dump(fn, inputs, expected_repr, expected_dump):

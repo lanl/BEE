@@ -454,6 +454,27 @@ class ScriptRequirement:
 
 
 @dataclass
+class TaskRequirement:
+    """Defines task requirement."""
+
+    workdir: str
+
+    def dump(self):
+        """Dump task requirement to a dictionary."""
+        key = 'beeflow:TaskRequirement'
+        this_dump = {key: {}}
+        if self.workdir:
+            this_dump[key]['workdir'] = self.workdir
+        return this_dump
+
+    def __repr__(self):
+        """Return TaskRequirement as a yaml string."""
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
+
+
+@dataclass
 class Hints:
     """Holds all the hints for a CWL workflow."""
 

@@ -210,3 +210,20 @@ An example ``beeflow:ScriptRequirement`` is shown below::
       pre_script: before.sh
       post_script: after.sh
       shell: /bin/bash
+
+beeflow:TaskRequirement
+-------------------------
+
+* ``workdir`` - Enables the use of a different working directory for a task
+
+Example for using ``beeflow:TaskRequirement`` shown below::
+
+
+    beeflow:TaskRequirement:
+      workdir: ~/task_workdir
+
+Notes:
+
+1.) The task workdir can be an absolute path or relative to the workdir specified by the submit command.
+
+2.) When using containers, the relative path is used. If a step depends on the output of a previous step, the task_workdir for the subsequent task must match, or you can use pre-script to place the required files in the proper subdirectory.

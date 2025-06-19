@@ -8,6 +8,7 @@ from beeflow.common.cwl.workflow import (
     Slurm,
     Script,
     Checkpoint,
+    TaskReq,
 )
 from importlib.resources import files
 
@@ -194,6 +195,51 @@ def test_workflow_checkpoint(tmpdir):
             expected = f2.read()
             assert actual == expected
         with open("clamr.yml", "r") as f1, open(expected_yaml, "r") as f2:
+            actual = f1.read()
+            expected = f2.read()
+            assert actual == expected
+
+
+def test_workflow_task_req(tmpdir):
+    """Regression test of example setting task workdir."""
+    expected_wf = expected_folder / "task-req.cwl"
+    expected_yaml = expected_folder / "task-req.yml"
+    cat = Task(
+        name="cat",
+        base_command="cat",
+        stdout="cat.txt",
+        stderr="cat.err",
+        # Position is just where the argument is in the argument list
+        # So for this example it's cat lorem.txt
+        inputs=[Input("input_file", "File", "lorem.txt", position=1)],
+        outputs=[
+            Output("contents", "stdout"),
+            Output("cat_stderr", "stderr", source="cat/cat_stderr"),
+        ],
+        hints=[TaskReq(workdir="cat_workdir")],
+    )
+
+    grep = Task(
+        name="grep",
+        base_command="grep",
+        stdout="occur.txt",
+        inputs=[
+            Input("word", "string", "Vivamus", position=1),
+            # This task takes the contents output from the previous task as input
+            Input("text_file", "File", "cat/contents", position=2),
+        ],
+        outputs=[Output("occur", "stdout")],
+    )
+
+    workflow = Workflow("task-req", [cat, grep])
+    with tmpdir.as_cwd():
+        workflow.write_wf(".")
+        workflow.write_yaml(".")
+        with open("task-req.cwl", "r") as f1, open(expected_wf, "r") as f2:
+            actual = f1.read()
+            expected = f2.read()
+            assert actual == expected
+        with open("task-req.yml", "r") as f1, open(expected_yaml, "r") as f2:
             actual = f1.read()
             expected = f2.read()
             assert actual == expected

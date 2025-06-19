@@ -6,7 +6,7 @@ from beeflow.common.cwl.cwl import (CWL, CWLInput, CWLInputs, RunInput, Inputs, 
                                     Outputs, Run, RunOutput, Step, Steps, Hints,
                                     InputBinding, MPIRequirement, DockerRequirement,
                                     ScriptRequirement, SlurmRequirement,
-                                    CheckpointRequirement)
+                                    CheckpointRequirement, TaskRequirement)
 
 
 @dataclass
@@ -136,6 +136,15 @@ class Checkpoint(CheckpointRequirement):
                                      add_parameters=self.add_parameters,
                                      num_tries=self.num_tries,
                                      enabled=self.enabled)
+
+
+@dataclass
+class TaskReq(TaskRequirement):
+    """Get Task Requirements."""
+
+    def requirement(self):
+        """Return a task requirement object."""
+        return TaskRequirement(workdir=self.workdir)
 
 
 @dataclass
