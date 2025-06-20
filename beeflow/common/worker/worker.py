@@ -78,10 +78,12 @@ class Worker(ABC):
         task_text = self.build_text(task)
         task_archive_dir = f"{self.task_save_path(task)}/{task.name}-{task.id}"
         os.makedirs(task_archive_dir,exist_ok=True)
-        task_script_archive = f"{self.task_save_path(task)}/{task.name}-{task.id}/{task.name}-{task.id}.sh"
+        task_script_archive = f"{self.task_save_path(task)}/{task.name}-{task.id}"\
+                f"/{task.name}-{task.id}.sh"
         task_script_dir = f"{task.workdir}/{task.name}-{task.id[:4]}"
         os.makedirs(task_script_dir,exist_ok=True)
-        task_script_workdir = f"{task.workdir}/{task.name}-{task.id[:4]}/{task.name}-{task.id[:4]}.sh"
+        task_script_workdir = f"{task.workdir}/{task.name}-{task.id[:4]}"\
+                f"/{task.name}-{task.id[:4]}.sh"
 
         with open(task_script_workdir, 'w', encoding="UTF-8") as workdir_script, \
              open(task_script_archive, 'w', encoding="UTF-8") as archive_script:
