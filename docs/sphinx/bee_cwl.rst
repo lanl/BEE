@@ -146,12 +146,15 @@ An example ``beeflow:CheckpointRequirement`` in BEE is shown below::
             container_path: checkpoint_output
             file_regex: backup[0-9]*.crx
             restart_parameters: -R
+            add_parameters: --additional-options True
             num_tries: 3
 
 For the above example ``file_path`` is the location of the checkpoint_file. The
 ``file_regex`` specifies the regular expression for the possible checkpoint
 filenames, the ``restart parameter`` will be added to the run command followed
-by the path to the latest checkpoint file, and ``num_tries`` specifies the maximum
+by the path to the latest checkpoint file. ``add_parameters`` allows for
+additional parameters that need to be specified; these will be appended to the
+run command after the checkpoint file. ``num_tries`` specifies the maximum
 number of times the task will be restarted.
 
 beeflow:SlurmRequirement
@@ -207,3 +210,20 @@ An example ``beeflow:ScriptRequirement`` is shown below::
       pre_script: before.sh
       post_script: after.sh
       shell: /bin/bash
+
+beeflow:TaskRequirement
+-------------------------
+
+* ``workdir`` - Enables the use of a different working directory for a task
+
+Example for using ``beeflow:TaskRequirement`` shown below::
+
+
+    beeflow:TaskRequirement:
+      workdir: ~/task_workdir
+
+Notes:
+
+1.) The task workdir can be an absolute path or relative to the workdir specified by the submit command.
+
+2.) When using containers, the relative path is used. If a step depends on the output of a previous step, the task_workdir for the subsequent task must match, or you can use pre-script to place the required files in the proper subdirectory.

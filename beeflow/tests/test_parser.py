@@ -3,9 +3,12 @@
 
 from pathlib import Path
 import unittest
-from beeflow.common.parser import CwlParser, CwlParseError
+import os
+from beeflow.common.parser import CwlParser, CwlParseError, parser
 from beeflow.common.wf_data import (generate_workflow_id, Workflow, Task, Hint,
                                     StepInput, StepOutput, InputParameter, OutputParameter)
+import pytest
+from collections import OrderedDict
 
 
 REPO_PATH = Path(*Path(__file__).parts[:-3])
@@ -14,6 +17,17 @@ REPO_PATH = Path(*Path(__file__).parts[:-3])
 def find(path):
     """Find a path relative to the root of the repo."""
     return str(Path(REPO_PATH, path))
+
+
+def normalize_globs(tasks):
+    """Remove absolute portion of output glob for comparison."""
+    root = os.getcwd()
+    for task in tasks:
+        new_outputs = [
+            output._replace(glob=output.glob.replace(root, '').strip('/'))
+            for output in task.outputs
+        ]
+        task.outputs = new_outputs
 
 
 class TestParser(unittest.TestCase):
@@ -30,7 +44,7 @@ class TestParser(unittest.TestCase):
         cwl_job_yaml = find("examples/clamr-ffmpeg-build/clamr_job.yml")
         workflow_id = generate_workflow_id()
         workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
-
+        normalize_globs(tasks)
         self.assertEqual(workflow, WORKFLOW_GOLD)
         self.assertListEqual(tasks, TASKS_GOLD)
         for task in tasks:
@@ -44,7 +58,7 @@ class TestParser(unittest.TestCase):
         workflow_id = generate_workflow_id()
 
         workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
-
+        normalize_globs(tasks)
         self.assertEqual(workflow, WORKFLOW_GOLD)
         self.assertListEqual(tasks, TASKS_GOLD_SCRIPT)
         for task in tasks:
@@ -81,7 +95,7 @@ class TestParser(unittest.TestCase):
         workflow_id = generate_workflow_id()
 
         workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_json)
-
+        normalize_globs(tasks)
         self.assertEqual(workflow, WORKFLOW_GOLD)
         self.assertListEqual(tasks, TASKS_GOLD)
         for task in tasks:
@@ -94,7 +108,7 @@ class TestParser(unittest.TestCase):
         # cwl_wf_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
 
         workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file)
-
+        normalize_globs(tasks)
         self.assertEqual(workflow, WORKFLOW_NOJOB_GOLD)
         self.assertListEqual(tasks, TASKS_NOJOB_GOLD)
         for task in tasks:
@@ -189,7 +203,8 @@ TASKS_GOLD_SCRIPT = [
                             glob='total_execution_time.log')],
         stdout='clamr_stdout.txt',
         stderr=None,
-        workflow_id=WORKFLOW_GOLD.id
+        workflow_id=WORKFLOW_GOLD.id,
+        workdir='.'
     ),
     Task(
         name='ffmpeg',
@@ -215,7 +230,9 @@ TASKS_GOLD_SCRIPT = [
                             glob='ffmpeg_stderr.txt')],
         stdout=None,
         stderr='ffmpeg_stderr.txt',
-        workflow_id=WORKFLOW_GOLD.id)
+        workflow_id=WORKFLOW_GOLD.id,
+        workdir='.'
+    )
 ]
 
 
@@ -306,7 +323,8 @@ TASKS_GOLD = [
                             glob='total_execution_time.log')],
         stdout='clamr_stdout.txt',
         stderr=None,
-        workflow_id=WORKFLOW_GOLD.id
+        workflow_id=WORKFLOW_GOLD.id,
+        workdir='.'
     ),
     Task(
         name='ffmpeg',
@@ -332,7 +350,9 @@ TASKS_GOLD = [
                             glob='ffmpeg_stderr.txt')],
         stdout=None,
         stderr='ffmpeg_stderr.txt',
-        workflow_id=WORKFLOW_GOLD.id)
+        workflow_id=WORKFLOW_GOLD.id,
+        workdir='.'
+    )
 ]
 
 
@@ -359,7 +379,9 @@ TASKS_NOJOB_GOLD = [
                             glob='graphics_output')],
         stdout='graphics_output',
         stderr=None,
-        workflow_id=WORKFLOW_NOJOB_GOLD.id),
+        workflow_id=WORKFLOW_NOJOB_GOLD.id,
+        workdir='.'
+    ),
     Task(
         name='ffmpeg',
         base_command='ffmpeg -f image2 -i $HOME/graphics_output/graph%05d.png -r 12 -s 800x800 -pix_fmt yuv420p $HOME/CLAMR_movie.mp4', # pylint: disable=C0301
@@ -371,8 +393,70 @@ TASKS_NOJOB_GOLD = [
                             glob='CLAMR_movie.mp4')],
         stdout='CLAMR_movie.mp4',
         stderr=None,
-        workflow_id=WORKFLOW_NOJOB_GOLD.id)
+        workflow_id=WORKFLOW_NOJOB_GOLD.id,
+        workdir='.'
+    )
 ]
+
+
+@pytest.mark.parametrize(
+    "requirements, exp_reqs",
+    [
+        (
+            [
+                OrderedDict(
+                    [("timeLimit", "00:00:10"), ("class", "beeflow:SlurmRequirement")]
+                )
+            ],
+            [Hint(class_="beeflow:SlurmRequirement", params={"timeLimit": "00:00:10"})],
+        ),
+        (
+            [
+                OrderedDict(
+                    [
+                        ("enabled", True),
+                        ("file_path", "checkpoint_output"),
+                        ("container_path", "checkpoint_output"),
+                        ("file_regex", "backup[0-9]*.crx"),
+                        ("restart_parameters", None),
+                        ("num_tries", 3),
+                        ("class", "beeflow:CheckpointRequirement"),
+                    ]
+                )
+            ],
+            [
+                Hint(
+                    class_="beeflow:CheckpointRequirement",
+                    params={
+                        "enabled": True,
+                        "file_path": "checkpoint_output",
+                        "container_path": "checkpoint_output",
+                        "file_regex": "backup[0-9]*.crx",
+                        "num_tries": 3,
+                    },
+                )
+            ],
+        ),
+    ],
+)
+def test_parse_requirements_hints(requirements, exp_reqs):
+    """Regression test parse_requirements when as_hints=True."""
+    parser = CwlParser()
+    reqs = parser.parse_requirements(requirements, as_hints=True)
+    assert reqs == exp_reqs
+
+
+@pytest.mark.parametrize("step_workdir, workdir, exp_resolved_workdir",
+    [
+        (os.getcwd(), '', os.getcwd()),
+        (' ', 'workdir/', 'workdir/'),
+        ('step_dir', os.getcwd(), os.getcwd() + '/step_dir'),
+    ],
+)
+def test_resolve_step_workdir(step_workdir, workdir, exp_resolved_workdir):
+    """Regression test resolve_step_workdir."""
+    resolved_workdir = parser.resolve_step_workdir(step_workdir, workdir)
+    assert resolved_workdir == exp_resolved_workdir
 
 
 if __name__ == '__main__':

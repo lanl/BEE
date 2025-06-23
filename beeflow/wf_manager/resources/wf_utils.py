@@ -283,7 +283,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
         task_state = "" if no_start else "WAITING"
         wfi.add_task(task, task_state)
         metadata = wfi.get_task_metadata(task)
-        metadata['workdir'] = wf_workdir
+        metadata['workdir'] = task.workdir
         wfi.set_task_metadata(task, metadata)
         db.workflows.add_task(task.id, wf_id, task.name, task_state)
 

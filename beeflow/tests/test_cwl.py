@@ -169,9 +169,10 @@ import pytest
                 "restart_parameters": "-R",
                 "num_tries": 2,
             },
-            "beeflow:CheckpointRequirement:\n  enabled: true\n  file_path: checkpoint_output\n  container_path: checkpoint_output\n  file_regex: backup[0-9]*.crx\n  restart_parameters: -R\n  num_tries: 2\n",
+            "beeflow:CheckpointRequirement:\n  enabled: true\n  file_path: checkpoint_output\n  container_path: checkpoint_output\n  file_regex: backup[0-9]*.crx\n  restart_parameters: -R\n  add_parameters:\n  num_tries: 2\n",
             {
                 "beeflow:CheckpointRequirement": {
+                    "add_parameters": None,
                     "enabled": True,
                     "file_path": "checkpoint_output",
                     "container_path": "checkpoint_output",
@@ -304,6 +305,18 @@ import pytest
                         "out": ["contents"],
                     }
                 }
+            },
+        ),
+        (
+            cwl.TaskRequirement,
+            {
+                "workdir": "my_workdir",
+            },
+            "beeflow:TaskRequirement:\n  workdir: my_workdir\n",
+            {
+                "beeflow:TaskRequirement": {
+                    "workdir": "my_workdir",
+                },
             },
         ),
     ],

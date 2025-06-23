@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import traceback
+from pathlib import Path
 import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException
@@ -22,7 +23,8 @@ from beeflow.common.wf_data import (Workflow,
                                     StepOutput,
                                     Hint,
                                     Requirement,
-                                    generate_workflow_id)
+                                    generate_workflow_id,
+                                    get_requirement)
 
 # Map CWL types to Python types
 type_map = {
@@ -57,7 +59,7 @@ class CwlParser:
         self.steps = []
         self.params = None
 
-    def parse_workflow(self, workflow_id, cwl_path, job=None):
+    def parse_workflow(self, workflow_id, cwl_path, job=None, workdir='.'):
         """Parse a CWL Workflow file and load it into the graph database.
 
         Returns an instance of the WorkflowInterface.
@@ -117,11 +119,11 @@ class CwlParser:
 
         workflow = Workflow(workflow_name, workflow_hints, workflow_requirements, workflow_inputs,
                             workflow_outputs, workflow_id)
-        tasks = [self.parse_step(step, workflow_id) for step in self.cwl.steps]
+        tasks = [self.parse_step(step, workflow_id, workdir) for step in self.cwl.steps]
 
         return workflow, tasks
 
-    def parse_step(self, step, workflow_id):
+    def parse_step(self, step, workflow_id, workdir):
         """Parse a CWL step object.
 
         Calling this to parse a CommandLineTool file without a corresponding
@@ -153,17 +155,34 @@ class CwlParser:
         step_name = os.path.basename(step_id).split(".")[0]
         step_command = step_cwl.baseCommand
         step_inputs = self.parse_step_inputs(step.in_, step_cwl.inputs)
-        step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout,
-                                               step_cwl.stderr)
         step_requirements = self.parse_requirements(step.requirements)
         step_requirements.extend(self.parse_requirements(step_cwl.requirements))
         step_hints = self.parse_requirements(step.hints, as_hints=True)
         step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
+        step_workdir = resolve_step_workdir(
+            get_requirement(
+                step_requirements,
+                step_hints,
+                "beeflow:TaskRequirement",
+                "workdir",
+                 default=''
+            ),
+            workdir,
+        )
+
+        # When using container do not add the path to the output
+        # This can be changed when we fix binding for containers
+        if any(hint.class_ == 'DockerRequirement' for hint in step_hints):
+            step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout,
+                                               step_cwl.stderr)
+        else:
+            step_outputs = self.parse_step_outputs(step.out, step_cwl.outputs, step_cwl.stdout,
+                                               step_cwl.stderr, workdir=step_workdir)
         step_stdout = step_cwl.stdout
         step_stderr = step_cwl.stderr
 
         return Task(step_name, step_command, step_hints, step_requirements, step_inputs,
-                    step_outputs, step_stdout, step_stderr, workflow_id)
+                    step_outputs, step_stdout, step_stderr, workflow_id, workdir=step_workdir)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
@@ -229,11 +248,10 @@ class CwlParser:
                 inputs.append(StepInput(_shortname(step_input.id), input_type, None,
                                         step_input.default, source_map[_shortname(step_input.id)],
                                         None, None))
-
         return inputs
 
     @staticmethod
-    def parse_step_outputs(cwl_out, step_outputs, stdout, stderr):
+    def parse_step_outputs(cwl_out, step_outputs, stdout, stderr, workdir=None):
         """Parse step outputs from CWL step output objects.
 
         :param cwl_out: the step outputs from the Workflow file
@@ -280,8 +298,10 @@ class CwlParser:
                 if out_map[out].outputBinding:
                     glob = out_map[out].outputBinding.glob
 
-            outputs.append(StepOutput(out, output_type, None, glob))
+            if workdir is not None:
+                glob = os.path.abspath(os.path.join(workdir, glob))
 
+            outputs.append(StepOutput(out, output_type, None, glob))
         return outputs
 
     def _read_requirement_file(self, key, items):
@@ -339,7 +359,7 @@ class CwlParser:
             for req in requirements:
                 items = {}
                 for k, v in req.items():
-                    if k != 'class':
+                    if k != 'class' and v is not None:
                         if isinstance(v, (int, float)):
                             items[k] = v
                         else:
@@ -401,6 +421,18 @@ def parse_args(args=None):
                         required=False)
 
     return parser.parse_args(args)
+
+
+def resolve_step_workdir(step_workdir, workdir):
+    """Resolve step workdir relative to workflow workdir."""
+    if not step_workdir or step_workdir.strip() == '':
+        return workdir
+    # should be redundant
+    workdir = Path(workdir).expanduser().resolve()
+    desired = Path(step_workdir).expanduser()
+    if desired.is_absolute():
+        return str(desired.resolve())
+    return str((workdir / desired).resolve())
 
 
 def main():

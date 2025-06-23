@@ -63,10 +63,12 @@ Contributors:
 * Tim Randles - `trandles-lanl <https://github.com/trandles-lanl>`_
 * Jacob Tronge - `jtronge <https://github.com/jtronge>`_
 * Kabir Vats - `kabir-vats <https://github.com/kabir-vats>`_
+* Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
 
 Concept and Design Contributors
 
 * James Ahrens
+* Curt Canada 
 * Allen McPherson
 * Li-Ta Lo
 * Louis Vernon
