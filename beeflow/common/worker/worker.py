@@ -71,15 +71,15 @@ class Worker(ABC):
 
     def task_save_path(self, task):
         """Return the task save path used for storing submission scripts output logs."""
-        return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
+        return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}'
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
         task_text = self.build_text(task)
-        task_archive_dir = f"{self.task_save_path(task)}/{task.name}-{task.id}"
+        task_archive_dir = self.task_save_path(task)
         os.makedirs(task_archive_dir,exist_ok=True)
-        task_script_archive = f"{self.task_save_path(task)}/{task.name}-{task.id}"\
-                f"/{task.name}-{task.id}.sh"
+        task_script_archive = f"{self.task_save_path(task)}"\
+                f"/{task.name}-{task.id[:4]}.sh"
         task_script_dir = f"{task.workdir}/{task.name}-{task.id[:4]}"
         os.makedirs(task_script_dir,exist_ok=True)
         task_script_workdir = f"{task.workdir}/{task.name}-{task.id[:4]}"\

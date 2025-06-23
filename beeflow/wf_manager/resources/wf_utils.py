@@ -335,7 +335,7 @@ def copy_task_output(task, wfi):
     bee_workdir = get_bee_workdir()
     # Need to get this from the worker
     task_save_path = pathlib.Path(
-            f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}"
+            f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
     task_workdir = wfi.get_task_metadata(task)["workdir"]
     if task.stdout:
@@ -350,5 +350,5 @@ def copy_task_output(task, wfi):
         stderr_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
                 f"{task.name}-{task.id[:4]}.err")
 
-    shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id}.out")
-    shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id}.err")
+        shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
+    shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
