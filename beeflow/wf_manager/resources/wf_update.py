@@ -91,6 +91,7 @@ class WFUpdate(Resource):
 
         for state_update in state_updates:
             self.update_task_state(state_update, db)
+            log.debug(f"State Update in wf_update {state_update}")
 
         return make_response(jsonify(status='Tasks updated successfully'), 200)
 
@@ -101,8 +102,10 @@ class WFUpdate(Resource):
         # Get metadata from update if available
         if state_update.metadata is not None:
             old_metadata = wfi.get_task_metadata(task)
+            log.debug(f"Old metadata: {old_metadata}")
             old_metadata.update(state_update.metadata)
-            wfi.set_task_metadata(task, old_metadata)
+            log.debug(f"Updated metadata: {old_metadata}")
+            wfi.set_task_metadata(task, old_metadata) 
 
         # Get output from the task
         if state_update.output is not None:

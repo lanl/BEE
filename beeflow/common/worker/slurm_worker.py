@@ -18,6 +18,8 @@ from beeflow.common import validation
 from beeflow.common.worker.utils import get_state_sacct
 from beeflow.common.worker.utils import parse_key_val
 
+import datetime # Beste 
+
 
 log = bee_logging.setup(__name__)
 
@@ -151,21 +153,23 @@ class BaseSlurmWorker(Worker):
 
         return '\n'.join(script)
 
-    def submit_job(self, script):
+    def submit_job(self, script): # Beste 
         """Worker submits job-returns (job_id, job_state)."""
         res = subprocess.run(['sbatch', '--parsable', script], text=True,  # pylint: disable=W1510
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if res.returncode != 0:
             raise WorkerError(f'Failed to submit job: {res.stderr}')
         job_id = int(res.stdout)
-        job_state = self.query_task(job_id)
-        return job_id, job_state
+        job_state,job_info = self.query_task(job_id)
+        log.debug("In submit_job: {job_info}")
+        return job_id, job_state,job_info
 
-    def submit_task(self, task):
+    def submit_task(self, task): # Beste 
         """Worker builds & submits script."""
         task_script = self.write_script(task)
-        job_id, job_state = self.submit_job(task_script)
-        return job_id, job_state
+        job_id, job_state,job_info = self.submit_job(task_script)
+        log.debug("In submit_task: {job_info}")
+        return job_id,job_state,job_info
 
 
 class SlurmrestdWorker(BaseSlurmWorker):
@@ -184,12 +188,13 @@ class SlurmrestdWorker(BaseSlurmWorker):
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/{openapi_version}"
 
-    def query_task(self, job_id):
+    '''def query_task(self, job_id):
         """Worker queries job; returns job_state."""
         try:
             resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
+            
             if resp.status_code == 200:
-                data = json.loads(resp.text)
+                data = json.loads(resp.text) 
                 # Check for errors in the response
                 check_slurm_error(data, f'Failed to query job {job_id}, slurm error.')
                 # For some versions of slurm, the job_state isn't included on failure
@@ -202,7 +207,45 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 job_state = get_state_sacct(job_id)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
-        return job_state
+        return job_state'''
+
+    def query_task(self,job_id): # Beste 
+        """Worker queries job; returns job_state,job_name,start_time,time_left."""
+        try:
+            resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
+            if resp.status_code == 200:
+                data = json.loads(resp.text) 
+                # Check for errors in the response
+                check_slurm_error(data, f'Failed to query job {job_id}, slurm error.')
+                # For some versions of slurm, the job_state isn't included on failure
+                try:
+                    job_state = data['jobs'][0]['job_state']
+                    job_name = data['jobs'][0]['name']
+                    start_time = datetime.datetime.utcfromtimestamp(data['jobs'][0]['start_time'])
+                    end_time = datetime.datetime.utcfromtimestamp(data['jobs'][0]['end_time'])
+
+                    now = datetime.datetime.utcnow()
+
+                    if data['jobs'][0]['end_time'] > 0:
+                        time_left = end_time - now
+                        time_left = str(time_left)
+                    else:
+                        time_left = '0'
+                        
+                    start_time = start_time.isoformat()
+
+                    job_info = {"job_name": job_name,"start_time":start_time,"time_left":time_left}
+                except (KeyError, IndexError) as exc:
+                    raise WorkerError(f'Failed to query job {job_id}') from exc
+            else:
+                # If slurmrestd does not find job make last attempt with sacct command
+                job_state = get_state_sacct(job_id)
+                job_info = {} # returns this for now 
+        except requests.exceptions.ConnectionError:
+            job_state = "NOT RESPONDING"
+            job_info = {}
+        return job_state,job_info 
+
 
     def cancel_task(self, job_id):
         """Worker cancels job, returns job_state."""

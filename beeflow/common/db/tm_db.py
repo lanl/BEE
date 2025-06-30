@@ -141,10 +141,12 @@ class UpdateQueue:
         state_updates = []
         for result in bdb.getall(self.db_file, stmt):
             wf_id, task_id, job_state, task_info, metadata, output = result
+            log.warning(f"This is metadata : {metadata} and this is output: {output}")
             state_updates.append(TaskStateUpdate(wf_id, task_id, job_state,
                                                  jsonpickle.decode(task_info),
                                                  jsonpickle.decode(metadata),
                                                  jsonpickle.decode(output)))
+          
         return state_updates
 
     def clear(self):

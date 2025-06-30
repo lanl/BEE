@@ -7,7 +7,7 @@ from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.resources.wf_update import archive_workflow
-
+from beeflow.common.db import bdb # Beste 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.config_driver import BeeConfig as bc
@@ -35,19 +35,25 @@ class WFActions(Resource):
         return resp
 
     @staticmethod
-    def get(wf_id):
+    def get(wf_id): # Beste
         """Check the database for the current status of all tasks."""
         db = connect_db(wfm_db, db_path)
+        db_file = wf_utils.get_db_path()
         tasks = db.workflows.get_tasks(wf_id)
+        log.warning(f"Tasks found for {wf_id}: {tasks}")
         tasks_status = []
         if not tasks:
             log.info(f"Bad query for wf {wf_id}.")
             wf_status = 'No workflow with that ID is currently loaded'
             resp = make_response(jsonify(tasks_status=tasks_status,
                                  wf_status=wf_status, status='not found'), 404)
-
+        wfi = wf_utils.get_workflow_interface(wf_id)
         for task in tasks:
-            tasks_status.append((task.id, task.name, task.state))
+            task_id = wfi.get_task_by_id(task.task_id)
+            metadata = wfi.get_task_metadata(task_id)
+            log.warning(f"Here's the metadata: {metadata}")
+            tasks_status.append((task.id, task.name, task.state, metadata))
+            log.warning(f"This is tasks_status in wf_update {tasks_status}")
         wf_status = db.workflows.get_workflow_state(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,

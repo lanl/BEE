@@ -23,7 +23,7 @@ Requirement = namedtuple("Requirement", ["class_", "params"])
 Hint = namedtuple("Hint", ["class_", "params"])
 # Task state update, usually sent from the task manager
 TaskStateUpdate = namedtuple("TaskStateUpdate", ["wf_id", "task_id", "job_state",
-                                                 "task_info", "output", "metadata"])
+                                                 "task_info", "metadata","output"])
 
 
 def generate_workflow_id():

@@ -37,23 +37,24 @@ def resolve_environment(task):
     build_main(task)
 
 
-def submit_task(db, worker, task):
+def submit_task(db, worker, task): # Beste
     """Submit (or resubmit) a task."""
     try:
         log.info(f'Resolving environment for task {task.name}')
         resolve_environment(task)
         log.info(f'Environment preparation complete for task {task.name}')
-        job_id, job_state = worker.submit_task(task)
+        job_id, job_state,job_info = worker.submit_task(task)
         log.info(f"Job Submitted '{task.name}' job_id: {job_id} job_state: {job_state}")
         # place job in queue to monitor
         db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
-        # update_task_metadata(task.id, task_metadata)
     except ContainerBuildError as err:
+        job_info = {}
         job_state = 'BUILD_FAIL'
         log.error(f'Failed to build container for {task.name}: {err}')
         log.error(f'{task.name} state: {job_state}')
     except Exception as err:  # pylint: disable=W0718 # we have to catch everything here
         # Set job state to failed
+        job_info = {}
         job_state = 'SUBMIT_FAIL'
         log.error(f'Task Manager submit task {task.name} failed! \n {err}')
         log.error(f'{task.name} state: {job_state}')
@@ -61,17 +62,18 @@ def submit_task(db, worker, task):
         log.error(traceback.format_exc())
     # Send the initial state to WFM
     # update_task_state(task.id, job_state, metadata=task_metadata)
-    return job_state
+    return job_state,job_info
 
 
-def submit_jobs(db):
+def submit_jobs(db): # Beste 
     """Submit all jobs currently in submit queue to the workload scheduler."""
     worker = utils.worker_interface()
     while db.submit_queue.count() >= 1 and db.job_queue.count() < jobs_limit:
         # Single value dictionary
         task = db.submit_queue.pop()
-        job_state = submit_task(db, worker, task)
-        db.update_queue.push(task.workflow_id, task.id, job_state)
+        job_state,job_info = submit_task(db, worker, task)
+        log.debug(f"In background, metadata: {job_info}")
+        db.update_queue.push(task.workflow_id, task.id, job_state, task_info=None, metadata=job_info, output=None)
 
 
 def update_jobs(db):
@@ -91,10 +93,12 @@ def update_jobs(db):
             continue
 
         try:
-            new_job_state = worker.query_task(job_id)
+            new_job_state,job_info = worker.query_task(job_id)
+            log.debug(f"This is job_info: {job_info} and job_state {job_state}")
         except WorkerError as err:
             log.warning(f'Failed to query job {job_id}: {err}')
             new_job_state = 'UNKNOWN'
+            job_info = {}
 
         # If state changes update the WFM
         if job_state != new_job_state:
@@ -108,21 +112,21 @@ def update_jobs(db):
                     try:
                         checkpoint_file = utils.get_restart_file(task_checkpoint, task.workdir)
                         task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
-                        db.update_queue.push(task.workflow_id, task.id, new_job_state,
-                                             task_info=task_info)
+                        db.update_queue.push(task.workflow_id, task.id, new_job_state, task_info=task_info,metadata=job_info,output=None)
                     except utils.CheckpointRestartError as err:
                         log.error(f'Checkpoint restart failed for {task.name} ({task.id}): {err}')
-                        db.update_queue.push(task.workflow_id, task.id, 'FAILED')
+                        db.update_queue.push(task.workflow_id, task.id, 'FAILED',task_info=None,metadata=job_info,output=None)
                 else:
-                    db.update_queue.push(task.workflow_id, task.id, new_job_state)
+                    db.update_queue.push(task.workflow_id, task.id, new_job_state,task_info=None,metadata=job_info,output=None)
             elif new_job_state in ('BOOT_FAIL', 'NODE_FAIL', 'OUT_OF_MEMORY', 'PREEMPTED'):
                 # Don't update wfm, just resubmit
                 log.info(f'Resubmitting task {task.name}')
                 db.job_queue.remove_by_id(id_)
-                job_state = submit_task(db, worker, task)
-                db.update_queue.push(task.workflow_id, task.id, job_state)
+                job_state,job_info = submit_task(db, worker, task)
+                db.update_queue.push(task.workflow_id, task.id, job_state,task_info=None,metadata=job_info,output=None)
             else:
-                db.update_queue.push(task.workflow_id, task.id, new_job_state)
+                db.update_queue.push(task.workflow_id, task.id, new_job_state,task_info=None,metadata=job_info,output=None)
+                log.debug(f"Is it pushing correct metadata? {job_info}")
 
         if job_state in COMPLETED_STATES:
             # Remove from the job queue. Our job is finished
@@ -140,6 +144,7 @@ def process_queues():
     # Attempt to send a batch of task updates to the wfm, otherwise keep the
     # updates for later
     state_updates = jsonpickle.encode(db.update_queue.updates())
+    log.debug(f"State_updates in process_queues in background.py : {state_updates}")
     conn = utils.wfm_conn()
     resp = conn.put(utils.wfm_resource_url("update/"), json={'state_updates': state_updates})
     if resp.status_code == 200:
