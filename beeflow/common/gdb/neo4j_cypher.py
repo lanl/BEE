@@ -675,12 +675,13 @@ def set_paused_tasks_to_running(tx):
 def set_runnable_tasks_to_ready(tx, wf_id):
     """Set task states to 'READY' if all required inputs have values."""
     set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->"
-                                "(t:Task {workflow_id: $wf_id})<-[:INPUT_OF]-(i:Input) "
-                                "WITH m, t, collect(i) AS ilist "
+                                "(t:Task {workflow_id: $wf_id}) "
                                 "WHERE m.state = 'WAITING' "
-                                "AND all(i IN ilist WHERE i.value IS NOT NULL) "
+                                "AND NOT EXISTS { "
+                                "MATCH (t)-[:DEPENDS_ON]->(dep:Task)<-[:DESCRIBES]-(depmeta:METADATA) "
+                                "WHERE depmeta.state <> 'COMPLETED' "
+                                "} "
                                 "SET m.state = 'READY'")
-
     tx.run(set_runnable_ready_query, wf_id=wf_id)
 
 
