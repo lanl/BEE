@@ -609,8 +609,8 @@ def set_init_task_inputs(tx, wf_id):
     :param wf_id: the workflow id
     :type wf_id: str
     """
-    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:TASK_OF]->(:Workflow {id: $wf_id})"
-                         "<-[:INPUT_OF]-(wi:Input) "
+    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:TASK_OF]->"
+                         "(:Workflow {id: $wf_id})<-[:INPUT_OF]-(wi:Input) "
                          "WHERE i.source = wi.id AND wi.value IS NOT NULL "
                          "SET i.value = wi.value")
     # Set any values to defaults if necessary
@@ -678,8 +678,8 @@ def set_runnable_tasks_to_ready(tx, wf_id):
                                 "(t:Task {workflow_id: $wf_id}) "
                                 "WHERE m.state = 'WAITING' "
                                 "AND NOT EXISTS { "
-                                "MATCH (t)-[:DEPENDS_ON]->(dep:Task)<-[:DESCRIBES]-(depmeta:Metadata) "
-                                "WHERE depmeta.state <> 'COMPLETED' "
+                                "MATCH (t)-[:DEPENDS_ON]->(dep:Task)<-[:DESCRIBES]-(dm:Metadata) "
+                                "WHERE dm.state <> 'COMPLETED' "
                                 "} "
                                 "SET m.state = 'READY'")
     tx.run(set_runnable_ready_query, wf_id=wf_id)
