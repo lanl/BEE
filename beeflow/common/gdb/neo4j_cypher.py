@@ -239,8 +239,8 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
         tx.run(restarted_query, old_task_id=old_task.id, new_task_id=task.id)
         tx.run(dependency_query, task_id=task.id)
     else:
-        begins_query = ("MATCH (s:Task {id: $task_id}) "
-                        "MATCH (w:Workflow (id: s.workflow_id}) "
+        task_of_query = ("MATCH (s:Task {id: $task_id}) "
+                        "MATCH (w:Workflow {id: s.workflow_id}) "
                         "MERGE (s)-[:TASK_OF]->(w)")
         dependency_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
                             "WITH s, collect(i.source) as sources "
@@ -257,7 +257,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                            "AND s.workflow_id = t.workflow_id "
                            "MERGE (t)-[:DEPENDS_ON]->(s)")
 
-        tx.run(begins_query, task_id=task.id, wf_id=task.workflow_id)
+        tx.run(task_of_query, task_id=task.id, wf_id=task.workflow_id)
         tx.run(dependency_query, task_id=task.id)
         tx.run(dependent_query, task_id=task.id)
 
