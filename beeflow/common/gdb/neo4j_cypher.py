@@ -239,12 +239,9 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
         tx.run(restarted_query, old_task_id=old_task.id, new_task_id=task.id)
         tx.run(dependency_query, task_id=task.id)
     else:
-        begins_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
-                        "WITH s, collect(i.source) AS sources "
-                        "MATCH (w:Workflow {id: s.workflow_id})<-[:INPUT_OF]-(i:Input) "
-                        "WITH s, w, sources, collect(i.id) AS inputs "
-                        "WHERE any(input IN sources WHERE input IN inputs) "
-                        "MERGE (s)-[:BEGINS]->(w)")
+        begins_query = ("MATCH (s:Task {id: $task_id}) "
+                        "MATCH (w:Workflow (id: s.workflow_id}) "
+                        "MERGE (s)-[:TASK_OF]->(w)")
         dependency_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
                             "WITH s, collect(i.source) as sources "
                             "MATCH (t:Task)<-[:OUTPUT_OF]-(o:Output) "
@@ -612,12 +609,12 @@ def set_init_task_inputs(tx, wf_id):
     :param wf_id: the workflow id
     :type wf_id: str
     """
-    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:BEGINS]->(:Workflow {id: $wf_id})"
+    task_inputs_query = ("MATCH (i:Input)-[:INPUT_OF]->(:Task)-[:TASK_OF]->(:Workflow {id: $wf_id})"
                          "<-[:INPUT_OF]-(wi:Input) "
                          "WHERE i.source = wi.id AND wi.value IS NOT NULL "
                          "SET i.value = wi.value")
     # Set any values to defaults if necessary
-    defaults_query = ("MATCH (i:Input)-[:INPUT_OF]->(t:Task)-[:BEGINS]->(:Workflow {id: $wf_id})"
+    defaults_query = ("MATCH (i:Input)-[:INPUT_OF]->(t:Task)-[:TASK_OF]->(:Workflow {id: $wf_id})"
                       "<-[:INPUT_OF]-(wi:Input) "
                       "WHERE i.source = wi.id "
                       "AND i.value IS NULL AND i.default IS NOT NULL "
