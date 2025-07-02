@@ -37,7 +37,7 @@ def resolve_environment(task):
     build_main(task)
 
 
-def submit_task(db, worker, task): # Beste
+def submit_task(db, worker, task): 
     """Submit (or resubmit) a task."""
     try:
         log.info(f'Resolving environment for task {task.name}')
@@ -65,14 +65,13 @@ def submit_task(db, worker, task): # Beste
     return job_state,job_info
 
 
-def submit_jobs(db): # Beste 
+def submit_jobs(db): 
     """Submit all jobs currently in submit queue to the workload scheduler."""
     worker = utils.worker_interface()
     while db.submit_queue.count() >= 1 and db.job_queue.count() < jobs_limit:
         # Single value dictionary
         task = db.submit_queue.pop()
         job_state,job_info = submit_task(db, worker, task)
-        log.debug(f"In background, metadata: {job_info}")
         db.update_queue.push(task.workflow_id, task.id, job_state, task_info=None, metadata=job_info, output=None)
 
 
@@ -94,7 +93,6 @@ def update_jobs(db):
 
         try:
             new_job_state,job_info = worker.query_task(job_id)
-            log.debug(f"This is job_info: {job_info} and job_state {job_state}")
         except WorkerError as err:
             log.warning(f'Failed to query job {job_id}: {err}')
             new_job_state = 'UNKNOWN'
@@ -125,8 +123,7 @@ def update_jobs(db):
                 job_state,job_info = submit_task(db, worker, task)
                 db.update_queue.push(task.workflow_id, task.id, job_state,task_info=None,metadata=job_info,output=None)
             else:
-                db.update_queue.push(task.workflow_id, task.id, new_job_state,task_info=None,metadata=job_info,output=None)
-                log.debug(f"Is it pushing correct metadata? {job_info}")
+                db.update_queue.push(task.workflow_id, task.id, new_job_state,task_info=None,metadata=job_info,output=None) 
 
         if job_state in COMPLETED_STATES:
             # Remove from the job queue. Our job is finished
@@ -144,7 +141,6 @@ def process_queues():
     # Attempt to send a batch of task updates to the wfm, otherwise keep the
     # updates for later
     state_updates = jsonpickle.encode(db.update_queue.updates())
-    log.debug(f"State_updates in process_queues in background.py : {state_updates}")
     conn = utils.wfm_conn()
     resp = conn.put(utils.wfm_resource_url("update/"), json={'state_updates': state_updates})
     if resp.status_code == 200:

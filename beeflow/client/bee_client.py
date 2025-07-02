@@ -572,10 +572,8 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
     typer.echo(wf_status)
-    for _task_id, task_name, task_state,metadata in tasks_status:
-        logging.warning(f"Metadata: {metadata}")
+    for _task_id, task_name, task_state,metadata in tasks_status:  
         job_name = metadata.get("job_name","N/A")
-        logging.warning(f"Job Name: {job_name}")
         start_time = metadata.get("start_time","N/A")
         time_left = metadata.get("time_left","N/A")
         if wf_status == 'No Start':

@@ -140,8 +140,7 @@ class UpdateQueue:
                   FROM update_queue ORDER BY id ASC"""
         state_updates = []
         for result in bdb.getall(self.db_file, stmt):
-            wf_id, task_id, job_state, task_info, metadata, output = result
-            log.warning(f"This is metadata : {metadata} and this is output: {output}")
+            wf_id, task_id, job_state, task_info, metadata, output = result 
             state_updates.append(TaskStateUpdate(wf_id, task_id, job_state,
                                                  jsonpickle.decode(task_info),
                                                  jsonpickle.decode(metadata),

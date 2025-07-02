@@ -196,8 +196,7 @@ def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
     for task in tasks:
-        metadata = wfi.get_task_metadata(task)
-        log.debug(f"This is what metadata looks like in submit_tasks_tm: {metadata}")
+        metadata = wfi.get_task_metadata(task) 
         task.workdir = metadata['workdir']
     # Serialize task with json
     tasks_json = jsonpickle.encode(tasks)
@@ -284,12 +283,9 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
         task_state = "" if no_start else "WAITING"
         wfi.add_task(task, task_state)
         metadata = wfi.get_task_metadata(task)
-        log.debug(f"This is metadata when setting up workflow: {metadata}")
         if metadata.get('workdir') is None:
             metadata['workdir'] = task.workdir
-            wfi.set_task_metadata(task, metadata)
-        else:
-            log.debug(f"this is metadata: {metadata}")
+            wfi.set_task_metadata(task, metadata) 
         db.workflows.add_task(task.id, wf_id, task.name, task_state)
 
     if no_start:
