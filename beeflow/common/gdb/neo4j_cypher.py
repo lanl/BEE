@@ -678,7 +678,7 @@ def set_runnable_tasks_to_ready(tx, wf_id):
                                 "(t:Task {workflow_id: $wf_id}) "
                                 "WHERE m.state = 'WAITING' "
                                 "AND NOT EXISTS { "
-                                "MATCH (t)-[:DEPENDS_ON]->(dep:Task)<-[:DESCRIBES]-(depmeta:METADATA) "
+                                "MATCH (t)-[:DEPENDS_ON]->(dep:Task)<-[:DESCRIBES]-(depmeta:Metadata) "
                                 "WHERE depmeta.state <> 'COMPLETED' "
                                 "} "
                                 "SET m.state = 'READY'")
