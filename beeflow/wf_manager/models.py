@@ -11,3 +11,9 @@ class SubmitWorkflowRequest(BaseModel):
     workflow: Workflow
     tasks: list[Task]
     encoded_tarball: Optional[str] = None
+
+class SubmitWorkflowResponse(BaseModel):
+    """Response model for workflow submission."""
+    msg: str
+    status: str
+    wf_id: Optional[str] = None

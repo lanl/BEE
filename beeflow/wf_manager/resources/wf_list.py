@@ -7,7 +7,6 @@ import base64
 import os
 import subprocess
 import jsonpickle
-import shutil
 
 from flask import make_response, jsonify, request
 from pydantic_core import ValidationError
@@ -18,7 +17,7 @@ from celery import shared_task
 from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
-from beeflow.wf_manager.models import SubmitWorkflowRequest
+from beeflow.wf_manager.models import SubmitWorkflowRequest, SubmitWorkflowResponse
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common import object_models
 
@@ -88,10 +87,13 @@ class WFList(Resource):
         db = connect_db(wfm_db, db_path)
         try:
             data = SubmitWorkflowRequest.model_validate(request.json)
-        except Exception as e:
+        except ValidationError as e:
             log.error(f"Error parsing request data: {e}")
-            return make_response(jsonify(msg='Invalid request data', status='error',
-                                         errors=e.errors()), 400)
+            return SubmitWorkflowResponse(
+                msg='Invalid request data',
+                status='error',
+                wf_id=None
+            ).model_dump(), 400
 
         wf_id = data.workflow.id
         wf_dir = extract_wf(wf_id, data.wf_filename, data.encoded_tarball)
@@ -101,8 +103,8 @@ class WFList(Resource):
         init_workflow.delay(wf_id, data.wf_name, wf_dir, data.wf_workdir,
                             data.no_start, workflow=data.workflow, tasks=data.tasks)
 
-        return make_response(jsonify(msg='Workflow uploaded', status='ok',
-                             wf_id=wf_id), 201)
+        return SubmitWorkflowResponse(msg='Workflow uploaded', status='ok',
+                             wf_id=wf_id).model_dump(), 201
 
     def put(self):  # This method can be deleted / deprecated
         """Reexecute a workflow."""
