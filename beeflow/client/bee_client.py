@@ -591,7 +591,7 @@ def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
-        resp = conn.patch(_resource(long_wf_id), ModifyWorkflowRequest(option='pause', wf_id=long_wf_id).model_dump(),
+        resp = conn.patch(_resource(long_wf_id), json=ModifyWorkflowRequest(option='pause').model_dump(),
                           timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
@@ -607,7 +607,7 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
     try:
         conn = _wfm_conn()
         resp = conn.patch(_resource(long_wf_id),
-                          ModifyWorkflowRequest(option='resume').model_dump(),
+                          json=ModifyWorkflowRequest(option='resume').model_dump(),
                           timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
