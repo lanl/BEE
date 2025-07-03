@@ -17,7 +17,7 @@ from celery import shared_task
 from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
-from beeflow.wf_manager.models import SubmitWorkflowRequest, SubmitWorkflowResponse
+from beeflow.wf_manager.models import ListWorkflowsResponse, SubmitWorkflowRequest, SubmitWorkflowResponse, WorkflowInfo
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common import object_models
 
@@ -74,13 +74,11 @@ class WFList(Resource):
         db = connect_db(wfm_db, db_path)
         workflow_list = db.workflows.get_workflows()
         info = []
-        for wf_info in workflow_list:
-            wf_id = wf_info.workflow_id
-            wf_status = wf_info.state
-            wf_name = wf_info.name
-            info.append([wf_name, wf_id, wf_status])
-        resp = make_response(jsonify(workflow_list=jsonpickle.encode(info)), 200)
-        return resp
+        for workflow in workflow_list:
+            info.append(WorkflowInfo(wf_id=workflow.workflow_id,
+                                     wf_name=workflow.name,
+                                     wf_status=workflow.state))
+        return ListWorkflowsResponse(workflow_info_list=info).model_dump(), 200
 
     def post(self):
         """Upload a workflown and start."""

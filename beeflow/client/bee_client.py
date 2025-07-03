@@ -37,7 +37,7 @@ from beeflow.common.parser import CwlParser
 from beeflow.common.object_models import generate_workflow_id
 from beeflow.client import core # pylint: disable=R0401 #WIP
 from beeflow.client import remote_client
-from beeflow.wf_manager.models import SubmitWorkflowRequest
+from beeflow.wf_manager.models import ListWorkflowsResponse, SubmitWorkflowRequest
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
@@ -234,7 +234,7 @@ def get_wf_list():
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit('WF Manager did not return workflow list')
 
-    return jsonpickle.decode(resp.json()['workflow_list'])
+    return ListWorkflowsResponse.model_validate(resp.json()).workflow_info_list
 
 
 def check_short_id_collision():
@@ -550,8 +550,8 @@ def list_workflows():
     if workflow_list:
         typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
 
-        for name, wf_id, status in workflow_list:
-            typer.echo(f"{name}\t{_short_id(wf_id)}\t{status}")
+        for workflow_info in workflow_list:
+            typer.echo(f"{workflow_info.wf_name}\t{_short_id(workflow_info.wf_id)}\t{workflow_info.wf_status}")
     else:
         typer.echo("There are currently no workflows.")
 
