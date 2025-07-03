@@ -15,7 +15,7 @@ import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException
 
-from beeflow.common.wf_data import (Workflow,
+from beeflow.common.wf_models import (Workflow,
                                     Task,
                                     InputParameter,
                                     OutputParameter,

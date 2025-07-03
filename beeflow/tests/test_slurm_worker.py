@@ -18,7 +18,7 @@ import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.worker.worker import WorkerError
 from beeflow.common.worker.slurm_worker import SlurmWorker
-from beeflow.common.wf_data import Task
+from beeflow.common.wf_models import Task
 
 
 # Timeout (seconds) for waiting on tasks

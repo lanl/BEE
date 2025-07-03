@@ -6,7 +6,7 @@
 
 import unittest
 
-from beeflow.common.wf_data import (Workflow, Task, Requirement, Hint, InputParameter,
+from beeflow.common.wf_models import (Workflow, Task, Requirement, Hint, InputParameter,
                                     OutputParameter, StepInput, StepOutput, generate_workflow_id)
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.tests.mocks import MockGDBDriver
