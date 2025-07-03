@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from beeflow.common.object_models import Workflow, Task
 
 class WorkflowInfo(BaseModel):
@@ -27,3 +27,23 @@ class SubmitWorkflowResponse(BaseModel):
     msg: str
     status: str
     wf_id: Optional[str] = None
+
+
+class TaskStateUpdate(BaseModel):
+    """Information about a task state update."""
+    wf_id: str
+    task_id: str
+    job_state: str
+    task_info: Optional[dict] = None
+    output: Optional[dict] = None
+    metadata: Optional[dict] = None
+
+
+class TaskStateUpdateRequest(BaseModel):
+    """Request model for Task State Update."""
+    state_updates: List[TaskStateUpdate]
+
+
+class TaskStateUpdateResponse(BaseModel):
+    """Response model for Task State Update."""
+    status: str

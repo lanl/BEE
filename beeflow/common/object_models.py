@@ -58,15 +58,6 @@ class Hint(BaseModel):
         yield "class_", self.class_
         yield "params", self.params
 
-class TaskStateUpdate(BaseModel):
-    """Pydantic model for TaskStateUpdate."""
-    wf_id: str
-    task_id: str
-    job_state: str
-    task_info: Optional[dict] = None
-    output: Optional[dict] = None
-    metadata: Optional[dict] = None
-
 
 def generate_workflow_id():
     """Generate a unique workflow ID.

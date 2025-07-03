@@ -243,7 +243,7 @@ def check_short_id_collision():
     workflow_list = get_wf_list()
     if workflow_list:
         while short_id_len < MAX_ID_LEN:
-            id_list = [_short_id(job[1]) for job in workflow_list]
+            id_list = [_short_id(job.wf_id) for job in workflow_list]
             id_list_set = set(id_list)
             # Collision if set shorter than list
             if len(id_list_set) < len(id_list):
@@ -262,8 +262,8 @@ def match_short_id(wf_id):
     workflow_list = get_wf_list()
     if workflow_list:
         for job in workflow_list:
-            if job[1].startswith(wf_id):
-                matched_ids.append(job[1])
+            if job.wf_id.startswith(wf_id):
+                matched_ids.append(job.wf_id)
         if len(matched_ids) > 1:
             logging.info(f"user-provided workflow ID {wf_id} matched multiple stored workflow IDs")
             error_exit("provided workflow ID ambiguous")
