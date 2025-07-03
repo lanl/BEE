@@ -118,7 +118,7 @@ class CwlParser:
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
 
         workflow = Workflow(name=workflow_name, hints=workflow_hints, requirements=workflow_requirements, inputs=workflow_inputs,
-                            outputs=workflow_outputs, workflow_id=workflow_id)
+                            outputs=workflow_outputs, id=workflow_id)
         tasks = [self.parse_step(step, workflow_id, workdir) for step in self.cwl.steps]
 
         return workflow, tasks

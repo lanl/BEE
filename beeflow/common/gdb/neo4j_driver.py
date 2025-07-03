@@ -627,7 +627,7 @@ def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
     :rtype: Workflow
     """
     return Workflow(name=workflow_record["name"], hints=hints, requirements=requirements,
-                    inputs=inputs, outputs=outputs, workflow_id=workflow_record["id"])
+                    inputs=inputs, outputs=outputs, id=workflow_record["id"])
 
 
 def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
@@ -648,7 +648,7 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs):
     return Task(name=task_record["name"], base_command=task_record["base_command"],
                 hints=hints, requirements=requirements, inputs=inputs, outputs=outputs,
                 stdout=task_record["stdout"], stderr=task_record["stderr"],
-                workflow_id=task_record["workflow_id"], task_id=task_record["id"])
+                workflow_id=task_record["workflow_id"], id=task_record["id"])
 
 
 def _reconstruct_metadata(metadata_record):

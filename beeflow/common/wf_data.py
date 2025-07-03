@@ -4,7 +4,7 @@
 from collections import namedtuple
 from uuid import uuid4
 from copy import deepcopy
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 import os
 
 from typing import Optional, List, Dict
@@ -95,32 +95,15 @@ def generate_workflow_id():
     return uuid4().hex
 
 
-class Workflow:
+class Workflow(BaseModel):
     """Data structure for holding data about a workflow."""
-
-    def __init__(self, name, hints, requirements, inputs, outputs, workflow_id):
-        """Store a workflow description.
-
-        :param name: the workflow name
-        :type name: string
-        :param hints: the workflow hints
-        :type hints: list of Requirements
-        :param requirements: the workflow requirements
-        :type requirements: list of Requirements
-        :param inputs: the workflow inputs
-        :type inputs: list of InputParameter
-        :param outputs: the workflow outputs
-        :type outputs: list of OutputParameter
-        :param workflow_id: the workflow ID
-        :type workflow_id: str
-        """
-        self.name = name
-        self.hints = hints
-        self.requirements = requirements
-        self.inputs = inputs
-        self.outputs = outputs
-        self.id = workflow_id
-        self.state = "SUBMITTED"
+    name: str
+    hints: List[Hint] = []
+    requirements: List[Requirement] = []
+    inputs: List[InputParameter] = []
+    outputs: List[OutputParameter] = []
+    id: str
+    state: Optional[str] = "SUBMITTED"
 
     def __eq__(self, other):
         """Test the equality of two workflows.
@@ -196,62 +179,25 @@ def get_requirement(requirements, hints, req_type, req_param, default=None):
     return requirement
 
 
-class Task:
+class Task(BaseModel):
     """Data structure for holding data about a single task."""
-
-    def __init__(self, name, base_command, hints, requirements, inputs, outputs, stdout, stderr,
-                 workflow_id, task_id=None, workdir=None):
-        """Store a task description.
-
-        Task ID should only be given as a parameter when reconstructing the Task object
-        from the graph database.
-
-        :param name: the task name
-        :type name: str
-        :param base_command: the base command to run for the task
-        :type base_command: str or list of str
-        :param hints: the task hints (optional requirements)
-        :type hints: list of Hint
-        :param requirements: the task requirements
-        :type requirements: list of Requirement
-        :param inputs: the task inputs
-        :type inputs: list of StepInput
-        :param outputs: the task outputs
-        :type outputs: list of StepOutput
-        :param stdout: the name of the file to which to redirect stdout
-        :type stdout: str
-        :param stderr: the name of the file to which to redirect stderr
-        :type stderr: str
-        :param workflow_id: the workflow ID
-        :type workflow_id: str
-        :param task_id: the task ID
-        :type task_id: str, optional
-        :param workdir: the working directory from which to get and store data
-        :type workdir: path, optional
-        """
-        self.name = name
-        self.base_command = base_command
-        self.hints = hints
-        self.requirements = requirements
-        self.inputs = inputs
-        self.outputs = outputs
-        self.stdout = stdout
-        self.stderr = stderr
-        self.workflow_id = workflow_id
-        self.workdir = workdir
-
-        # Task ID as UUID if not given
-        if task_id is None:
-            self.id = self.generate_task_id()
-        else:
-            self.id = task_id
-
-    def generate_task_id(self):
-        """Generate a unique task ID.
-
-        :rtype: str
-        """
-        return uuid4().hex
+    name: str
+    base_command: str | List[str]
+    hints: List[Hint] = []
+    requirements: List[Requirement] = []
+    inputs: List[StepInput] = []
+    outputs: List[StepOutput] = []
+    stdout: Optional[str] = None
+    stderr: Optional[str] = None
+    workflow_id: str
+    workdir: Optional[str] = None
+    id: Optional[str] = None
+    
+    @model_validator(mode='before')
+    def generate_id_if_missing(cls, data):
+        if isinstance(data, dict) and 'id' not in data:
+            data['id'] = uuid4().hex
+        return data
 
     def copy(self, new_id=False):
         """Make a copy of this task.
@@ -260,12 +206,12 @@ class Task:
         :type new_id: bool
         :rtype: Task
         """
-        task_id = self.generate_task_id() if new_id else self.id
+        task_id = uuid4().hex if new_id else self.id
         return Task(name=self.name, base_command=self.base_command,
                     hints=deepcopy(self.hints), requirements=deepcopy(self.requirements),
                     inputs=deepcopy(self.inputs), outputs=deepcopy(self.outputs),
                     stdout=self.stdout, stderr=self.stderr, workflow_id=self.workflow_id,
-                    task_id=task_id, workdir=self.workdir)
+                    id=task_id, workdir=self.workdir)
 
     def get_requirement(self, req_type, req_param, default=None):
         """Get requirement from hints or requirements, prioritizing requirements over hints.
