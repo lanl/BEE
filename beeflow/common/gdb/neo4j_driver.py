@@ -534,7 +534,7 @@ def _reconstruct_requirements(req_records):
     :type req_records: BoltStatementResult
     :rtype: list of Requirement
     """
-    return [Requirement(rec["class"], {k: v for k, v in rec.items() if k != "class"})
+    return [Requirement(class_=rec["class"], params={k: v for k, v in rec.items() if k != "class"})
             for rec in req_records]
 
 
@@ -545,7 +545,7 @@ def _reconstruct_hints(hint_records):
     :type hint_records: BoltStatementResult
     :rtype: list of Hint
     """
-    return [Hint(rec["class"], {k: v for k, v in rec.items() if k != "class"})
+    return [Hint(class_=rec["class"], params={k: v for k, v in rec.items() if k != "class"})
             for rec in hint_records]
 
 
@@ -556,7 +556,7 @@ def _reconstruct_workflow_inputs(input_records):
     :type input_records: BoltStatementResult
     :rtype: list of InputParameter
     """
-    return [InputParameter(rec["id"], rec["type"], rec["value"]) for rec in input_records]
+    return [InputParameter(id=rec["id"], type=rec["type"], value=rec["value"]) for rec in input_records]
 
 
 def _reconstruct_workflow_outputs(output_records):
@@ -566,7 +566,7 @@ def _reconstruct_workflow_outputs(output_records):
     :type output_records: BoltStatementResult
     :rtype: list of OutputParameter
     """
-    return [OutputParameter(rec["id"], rec["type"], rec["value"], rec["source"])
+    return [OutputParameter(id=rec["id"], type=rec["type"], value=rec["value"], source=rec["source"])
             for rec in output_records]
 
 
@@ -587,8 +587,8 @@ def _reconstruct_task_input(rec):
     :type rec: BoltStatementResult
     :rtype: StepInput
     """
-    return StepInput(rec["id"], rec["type"], rec["value"], rec["default"], rec["source"],
-                     rec["prefix"], rec["position"], rec["value_from"])
+    return StepInput(id=rec["id"], type=rec["type"], value=rec["value"], default=rec["default"], source=rec["source"],
+                     prefix=rec["prefix"], position=rec["position"], value_from=rec["value_from"])
 
 
 def _reconstruct_task_outputs(output_records):
@@ -608,7 +608,7 @@ def _reconstruct_task_output(rec):
     :type rec: BoltStatementResult
     :rtype: StepOutput
     """
-    return StepOutput(rec["id"], rec["type"], rec["value"], rec["glob"])
+    return StepOutput(id=rec["id"], type=rec["type"], value=rec["value"], glob=rec["glob"])
 
 
 def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs):

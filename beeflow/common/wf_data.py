@@ -1,12 +1,17 @@
-"""Defines data structures for holding task and workflow data."""
+"""Defines data structures for holding task and workflow data using pydantic models. 
+"""
 
 from collections import namedtuple
 from uuid import uuid4
 from copy import deepcopy
+from pydantic import BaseModel
 import os
+
+from typing import Optional, List, Dict
 
 from beeflow.common.container_path import convert_path
 
+'''
 # Workflow input parameter class
 InputParameter = namedtuple("InputParameter", ["id", "type", "value"])
 # Workflow output parameter class
@@ -24,6 +29,62 @@ Hint = namedtuple("Hint", ["class_", "params"])
 # Task state update, usually sent from the task manager
 TaskStateUpdate = namedtuple("TaskStateUpdate", ["wf_id", "task_id", "job_state",
                                                  "task_info", "output", "metadata"])
+'''
+                                                 
+class InputParameter(BaseModel):
+    """Pydantic model for InputParameter."""
+    id: str
+    type: str
+    value: str
+
+class OutputParameter(BaseModel):
+    """Pydantic model for OutputParameter."""
+    id: str
+    type: str
+    value: Optional[str] = None
+    source: str
+
+class StepInput(BaseModel):
+    """Pydantic model for StepInput."""
+    id: str
+    type: str
+    value: Optional[str] = None
+    default: Optional[str] = None
+    source: Optional[str] = None
+    prefix: Optional[str] = None
+    position: Optional[int] = None
+    value_from: Optional[str] = None
+
+class StepOutput(BaseModel):
+    """Pydantic model for StepOutput."""
+    id: str
+    type: str
+    value: Optional[str] = None
+    glob: Optional[str] = None
+
+class Requirement(BaseModel):
+    """Pydantic model for Requirement."""
+    class_: str
+    params: dict
+
+class Hint(BaseModel):
+    """Pydantic model for Hint."""
+    class_: str
+    params: dict
+
+    def __iter__(self):
+        """Make Hint iterable for dict conversion."""
+        yield "class_", self.class_
+        yield "params", self.params
+
+class TaskStateUpdate(BaseModel):
+    """Pydantic model for TaskStateUpdate."""
+    wf_id: str
+    task_id: str
+    job_state: str
+    task_info: Optional[dict] = None
+    output: Optional[dict] = None
+    metadata: Optional[dict] = None
 
 
 def generate_workflow_id():

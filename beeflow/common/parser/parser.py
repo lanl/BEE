@@ -108,17 +108,17 @@ class CwlParser:
             return value
 
         workflow_name = os.path.basename(cwl_path).split(".")[0]
-        workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
-                                          resolve_input(input_, input_.type))
-                           for input_ in self.cwl.inputs}
-        workflow_outputs = {OutputParameter(_shortname(output.id), output.type, None,
-                                            _shortname(output.outputSource, True))
-                            for output in self.cwl.outputs}
+        workflow_inputs = [InputParameter(id=_shortname(input_.id), type=input_.type,
+                                          value=resolve_input(input_, input_.type))
+                           for input_ in self.cwl.inputs]
+        workflow_outputs = [OutputParameter(id=_shortname(output.id), type=output.type, value=None,
+                                            source=_shortname(output.outputSource, True))
+                            for output in self.cwl.outputs]
         workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
 
-        workflow = Workflow(workflow_name, workflow_hints, workflow_requirements, workflow_inputs,
-                            workflow_outputs, workflow_id)
+        workflow = Workflow(name=workflow_name, hints=workflow_hints, requirements=workflow_requirements, inputs=workflow_inputs,
+                            outputs=workflow_outputs, workflow_id=workflow_id)
         tasks = [self.parse_step(step, workflow_id, workdir) for step in self.cwl.steps]
 
         return workflow, tasks
@@ -181,8 +181,8 @@ class CwlParser:
         step_stdout = step_cwl.stdout
         step_stderr = step_cwl.stderr
 
-        return Task(step_name, step_command, step_hints, step_requirements, step_inputs,
-                    step_outputs, step_stdout, step_stderr, workflow_id, workdir=step_workdir)
+        return Task(name=step_name, base_command=step_command, hints=step_hints, requirements=step_requirements, inputs=step_inputs,
+                    outputs=step_outputs, stdout=step_stdout, stderr=step_stderr, workflow_id=workflow_id, workdir=step_workdir)
 
     def parse_job(self, job):
         """Parse a CWL input job file.
@@ -239,15 +239,15 @@ class CwlParser:
                 input_type = step_input.type[1]
 
             if step_input.inputBinding:
-                inputs.append(StepInput(_shortname(step_input.id), input_type, None,
-                                        step_input.default, source_map[_shortname(step_input.id)],
-                                        step_input.inputBinding.prefix,
-                                        step_input.inputBinding.position,
-                                        step_input.inputBinding.valueFrom))
+                inputs.append(StepInput(id=_shortname(step_input.id), type=input_type, value=None,
+                                        default=step_input.default, source=source_map[_shortname(step_input.id)],
+                                        prefix=step_input.inputBinding.prefix,
+                                        position=step_input.inputBinding.position,
+                                        value_from=step_input.inputBinding.valueFrom))
             else:
-                inputs.append(StepInput(_shortname(step_input.id), input_type, None,
-                                        step_input.default, source_map[_shortname(step_input.id)],
-                                        None, None))
+                inputs.append(StepInput(id=_shortname(step_input.id), type=input_type, value=None,
+                                        default=step_input.default, source=source_map[_shortname(step_input.id)],
+                                        prefix=None, position=None, value_from=None))
         return inputs
 
     @staticmethod
@@ -301,7 +301,7 @@ class CwlParser:
             if workdir is not None:
                 glob = os.path.abspath(os.path.join(workdir, glob))
 
-            outputs.append(StepOutput(out, output_type, None, glob))
+            outputs.append(StepOutput(id=out, type=output_type, value=None, glob=glob))
         return outputs
 
     def _read_requirement_file(self, key, items):
@@ -382,10 +382,10 @@ class CwlParser:
                         raise CwlParseError(msg) from None
                 if 'beeflow:bindMounts' in items:
                     self._read_requirement_file('beeflow:bindMounts', items)
-                reqs.append(Hint(req['class'], items))
+                reqs.append(Hint(class_=req['class'], params=items))
         else:
             for req in requirements:
-                reqs.append(Requirement(req.class_, {k: str(v) for k, v in vars(req).items()
+                reqs.append(Requirement(class_=req.class_, params={k: str(v) for k, v in vars(req).items()
                                                      if k not in ("extension_fields",
                                                                   "loadingOptions", "class_")
                                                      and v is not None}))
