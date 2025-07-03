@@ -37,7 +37,7 @@ from beeflow.common.parser import CwlParser
 from beeflow.common.object_models import generate_workflow_id
 from beeflow.client import core # pylint: disable=R0401 #WIP
 from beeflow.client import remote_client
-from beeflow.wf_manager.models import ListWorkflowsResponse, SubmitWorkflowRequest
+from beeflow.wf_manager.models import ListWorkflowsResponse, SubmitWorkflowRequest, ModifyWorkflowRequest, WorkflowStatusResponse, WorkflowActionResponse
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
@@ -509,7 +509,7 @@ def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
         elif response in ("y", "yes"):
             try:
                 conn = _wfm_conn()
-                resp = conn.delete(_resource(long_wf_id), json={'option': 'remove'}, timeout=60)
+                resp = conn.delete(_resource(long_wf_id), json=ModifyWorkflowRequest(option="remove").model_dump(), timeout=60)
             except requests.exceptions.ConnectionError:
                 error_exit('Could not reach WF Manager.')
             if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
@@ -569,9 +569,11 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit('Could not successfully query workflow manager')
+    
+    status = WorkflowStatusResponse.model_validate(resp.json())
 
-    tasks_status = resp.json()['tasks_status']
-    wf_status = resp.json()['wf_status']
+    tasks_status = status.tasks_status
+    wf_status = status.wf_status
     typer.echo(wf_status)
     for _task_id, task_name, task_state in tasks_status:
         if wf_status == 'No Start':
@@ -589,7 +591,7 @@ def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
-        resp = conn.patch(_resource(long_wf_id), json={'option': 'pause'},
+        resp = conn.patch(_resource(long_wf_id), ModifyWorkflowRequest(option='pause', wf_id=long_wf_id).model_dump(),
                           timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
@@ -605,7 +607,7 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
     try:
         conn = _wfm_conn()
         resp = conn.patch(_resource(long_wf_id),
-                          json={'wf_id': long_wf_id, 'option': 'resume'},
+                          ModifyWorkflowRequest(option='resume').model_dump(),
                           timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
@@ -622,7 +624,7 @@ def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
     if wf_status in ('Running', 'Paused', 'No Start'):
         try:
             conn = _wfm_conn()
-            resp = conn.delete(_resource(long_wf_id), json={'option': 'cancel'}, timeout=60)
+            resp = conn.delete(_resource(long_wf_id), json=ModifyWorkflowRequest(option='cancel').model_dump(), timeout=60)
 
         except requests.exceptions.ConnectionError:
             error_exit('Could not reach WF Manager.')
