@@ -3,11 +3,14 @@
 This contains endpoints forsubmitting, starting, and reexecuting workflows.
 """
 
+import base64
 import os
 import subprocess
 import jsonpickle
+import shutil
 
-from flask import make_response, jsonify
+from flask import make_response, jsonify, request
+from pydantic_core import ValidationError
 from werkzeug.datastructures import FileStorage
 from flask_restful import Resource, reqparse
 from celery import shared_task
@@ -15,6 +18,7 @@ from celery import shared_task
 from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
+from beeflow.wf_manager.models import SubmitWorkflowRequest
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common import object_models
 
@@ -35,12 +39,13 @@ log = bee_logging.setup(__name__)
 #    wf_profiler = WorkflowProfiler(wf_name, output_path)
 
 
-def extract_wf(wf_id, filename, workflow_archive):
+def extract_wf(wf_id, filename, encoded_archive_tarball):
     """Extract a workflow into the workflow directory."""
     wf_utils.create_workflow_dir(wf_id)
     wf_dir = wf_utils.get_workflow_dir(wf_id)
     archive_path = os.path.join(wf_dir, filename)
-    workflow_archive.save(archive_path)
+    with open(archive_path, 'wb') as archive_file:
+        archive_file.write(base64.b64decode(encoded_archive_tarball))
     cwl_dir = wf_dir + "/cwl_files"
 
     os.mkdir(cwl_dir)
@@ -81,39 +86,20 @@ class WFList(Resource):
     def post(self):
         """Upload a workflown and start."""
         db = connect_db(wfm_db, db_path)
-        reqparser = reqparse.RequestParser()
-        reqparser.add_argument('wf_name', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('wf_filename', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('workdir', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('workflow', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('tasks', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('no_start', type=str, required=True, location='form')
-        reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
-                               location='files')
-        data = reqparser.parse_args()
-        wf_tarball = data['workflow_archive']
-        wf_filename = data['wf_filename']
-        wf_name = data['wf_name']
-        wf_workdir = data['workdir']
-        # Note we have to check for the 'true' string value
-        no_start = data['no_start'].lower() == 'true'
-        workflow = jsonpickle.decode(data['workflow'])
-        # May have to decode the list and task objects separately
-        tasks = [jsonpickle.decode(task) if isinstance(task, str) else task
-                 for task in jsonpickle.decode(data['tasks'])]
+        try:
+            data = SubmitWorkflowRequest.model_validate(request.json)
+        except Exception as e:
+            log.error(f"Error parsing request data: {e}")
+            return make_response(jsonify(msg='Invalid request data', status='error',
+                                         errors=e.errors()), 400)
 
-        wf_id = workflow.id
-        wf_dir = extract_wf(wf_id, wf_filename, wf_tarball)
+        wf_id = data.workflow.id
+        wf_dir = extract_wf(wf_id, data.wf_filename, data.encoded_tarball)
 
-        db.workflows.init_workflow(wf_id, wf_name, wf_dir)
+        db.workflows.init_workflow(wf_id, data.wf_name, wf_dir)
 
-        init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir,
-                            no_start, workflow=workflow, tasks=tasks)
+        init_workflow.delay(wf_id, data.wf_name, wf_dir, data.wf_workdir,
+                            data.no_start, workflow=data.workflow, tasks=data.tasks)
 
         return make_response(jsonify(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id), 201)

@@ -9,9 +9,11 @@ Capablities include submitting, starting, listing, pausing and cancelling workfl
 # Disable R1732: Significant code restructuring required to fix
 # pylint:disable=W0511,R1732
 
+import json
 import os
 import sys
 import logging
+import base64
 import inspect
 import pathlib
 import shutil
@@ -35,6 +37,7 @@ from beeflow.common.parser import CwlParser
 from beeflow.common.object_models import generate_workflow_id
 from beeflow.client import core # pylint: disable=R0401 #WIP
 from beeflow.client import remote_client
+from beeflow.wf_manager.models import SubmitWorkflowRequest
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
@@ -334,7 +337,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
 
     tarball_path = ""
     workflow = None
-    wf_tarball = None
+    encoded_tarball = None
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
         if os.path.isdir(wf_path):
@@ -372,9 +375,8 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
                                                 job=str(yaml_path), workdir=workdir)
-        tasks = [jsonpickle.encode(task) for task in tasks]
-
-        wf_tarball = open(package_path, 'rb')
+        with open(package_path, 'rb') as f:
+            encoded_tarball = base64.b64encode(f.read()).decode('utf-8')
         shutil.rmtree(untar_path)
         if os.path.isdir(wf_path):
             shutil.rmtree(tempdir_path)
@@ -382,20 +384,19 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         error_exit(f'Workflow tarball {wf_path} cannot be found')
 
     # TODO: Can all of this information be sent as a file?
-    data = {
-        'wf_name': wf_name.encode(),
-        'wf_filename': os.path.basename(wf_path).encode(),
-        'workdir': workdir,
-        'workflow': jsonpickle.encode(workflow),
-        'tasks': jsonpickle.encode(tasks, warn=True),
-        'no_start': no_start,
-    }
-    files = {
-        'workflow_archive': wf_tarball
-    }
+    payload = SubmitWorkflowRequest(
+        wf_name=wf_name,
+        wf_filename=os.path.basename(wf_path),
+        wf_workdir=workdir,
+        no_start=no_start,
+        workflow=workflow,
+        tasks=tasks,
+        encoded_tarball=encoded_tarball,
+    )
+
     try:
         conn = _wfm_conn()
-        resp = conn.post(_url(), data=data, files=files, timeout=60)
+        resp = conn.post(_url(), json=payload.model_dump(), timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
 
