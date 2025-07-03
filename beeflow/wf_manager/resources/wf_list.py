@@ -16,7 +16,7 @@ from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
 from beeflow.wf_manager.resources import wf_utils
-from beeflow.common import wf_models
+from beeflow.common import object_models
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
@@ -136,7 +136,7 @@ class WFList(Resource):
         wf_name = data['wf_name']
         wf_workdir = data['workdir']
 
-        wf_id = wf_models.generate_workflow_id()
+        wf_id = object_models.generate_workflow_id()
         wf_dir = extract_wf(wf_id, wf_filename, workflow_archive)
 
         db.workflows.init_workflow(wf_id, wf_name, wf_dir)

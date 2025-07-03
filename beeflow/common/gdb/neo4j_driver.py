@@ -15,7 +15,7 @@ from neo4j.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.gdb import neo4j_cypher as tx
-from beeflow.common.wf_models import (Workflow, Task, Requirement, Hint,
+from beeflow.common.object_models import (Workflow, Task, Requirement, Hint,
                                     InputParameter, OutputParameter, StepInput, StepOutput)
 from beeflow.common import log as bee_logging
 

@@ -1,7 +1,7 @@
 """Charliecloud driver tests."""
 import pytest
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
-from beeflow.common.wf_models import Task, Requirement
+from beeflow.common.object_models import Task, Requirement
 
 
 @pytest.mark.parametrize(

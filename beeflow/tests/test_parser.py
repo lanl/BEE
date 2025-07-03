@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 import os
 from beeflow.common.parser import CwlParser, CwlParseError, parser
-from beeflow.common.wf_models import (generate_workflow_id, Workflow, Task, Hint,
+from beeflow.common.object_models import (generate_workflow_id, Workflow, Task, Hint,
                                     StepInput, StepOutput, InputParameter, OutputParameter)
 import pytest
 from collections import OrderedDict

@@ -32,7 +32,7 @@ from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.parser import CwlParser
-from beeflow.common.wf_models import generate_workflow_id
+from beeflow.common.object_models import generate_workflow_id
 from beeflow.client import core # pylint: disable=R0401 #WIP
 from beeflow.client import remote_client
 from beeflow.wf_manager.resources import wf_utils

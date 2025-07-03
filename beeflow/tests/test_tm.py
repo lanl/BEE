@@ -11,7 +11,7 @@ from mocks import MockWorkerCompletion, MockWorkerSubmission
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.db import tm_db
 import beeflow.task_manager.task_manager as tm
-from beeflow.common.wf_models import Task
+from beeflow.common.object_models import Task
 import beeflow
 
 

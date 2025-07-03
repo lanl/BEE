@@ -5,7 +5,7 @@ import jsonpickle
 
 from beeflow.common.db import bdb
 from beeflow.common import log as bee_logging
-from beeflow.common.wf_models import TaskStateUpdate
+from beeflow.common.object_models import TaskStateUpdate
 
 log = bee_logging.setup(__name__)
 

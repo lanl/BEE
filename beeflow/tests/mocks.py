@@ -1,7 +1,7 @@
 """Mocks for the WFM and TM tests."""
 
 from copy import deepcopy
-from beeflow.common.wf_models import StepInput, StepOutput
+from beeflow.common.object_models import StepInput, StepOutput
 from beeflow.common import expr
 
 
