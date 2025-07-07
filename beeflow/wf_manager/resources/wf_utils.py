@@ -307,6 +307,14 @@ def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir)
 
 
+def convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir):
+    dot_avail = bool(shutil.which("dot"))
+    if dot_avail:
+        generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir)
+    else:
+        log.error('Unable to convert graphmls to DAGs. Graphviz is not available.')
+
+
 def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
     db = connect_db(wfm_db, get_db_path())
