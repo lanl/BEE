@@ -79,8 +79,8 @@ class Workflow(BaseModel):
     """Data structure for holding data about a workflow."""
 
     name: str
-    hints: list[Hint] = []
-    requirements: list[Requirement] = []
+    hints: Optional[list[Hint]] = []
+    requirements: Optional[list[Requirement]] = []
     inputs: list[InputParameter] = []
     outputs: list[OutputParameter] = []
     id: str
@@ -98,16 +98,14 @@ class Workflow(BaseModel):
         if not isinstance(other, Workflow):
             return False
 
-        def id_sort(i):
-            return i.id
+        if not (self.name == other.name and self.state == other.state):
+            return False
 
-        return bool(
-            self.name == other.name
-            and sorted(self.hints) == sorted(other.hints)
-            and sorted(self.requirements) == sorted(other.requirements)
-            and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
-            and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort)
-        )
+    # Convert collections to sets of string representations
+        return (set(repr(h) for h in self.hints) == set(repr(h) for h in other.hints) and
+                set(repr(r) for r in self.requirements) == set(repr(r) for r in other.requirements) and
+                set(repr(i) for i in self.inputs) == set(repr(i) for i in other.inputs) and
+                set(repr(o) for o in self.outputs) == set(repr(o) for o in other.outputs))
 
     def __ne__(self, other):
         """Test the inequality of two workflows.
@@ -169,8 +167,8 @@ class Task(BaseModel):
 
     name: str
     base_command: str | list[str]
-    hints: list[Hint] = []
-    requirements: list[Requirement] = []
+    hints: Optional[list[Hint]] = []
+    requirements: Optional[list[Requirement]] = []
     inputs: list[StepInput] = []
     outputs: list[StepOutput] = []
     stdout: Optional[str] = None
@@ -281,20 +279,18 @@ class Task(BaseModel):
         if not isinstance(other, Task):
             return False
 
-        def id_sort(i):
-            return i.id
+        if not (self.name == other.name and
+            self.base_command == other.base_command and
+            self.stdout == other.stdout and
+            self.stderr == other.stderr and
+            self.workdir == other.workdir):
+            return False
 
-        return bool(
-            self.name == other.name
-            and self.base_command == other.base_command
-            and sorted(self.hints) == sorted(other.hints)
-            and sorted(self.requirements) == sorted(other.requirements)
-            and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
-            and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort)
-            and self.stdout == other.stdout
-            and self.stderr == other.stderr
-            and self.workdir == other.workdir
-        )
+    # Convert collections to sets of string representations
+        return (set(repr(h) for h in self.hints) == set(repr(h) for h in other.hints) and
+                set(repr(r) for r in self.requirements) == set(repr(r) for r in other.requirements) and
+                set(repr(i) for i in self.inputs) == set(repr(i) for i in other.inputs) and
+                set(repr(o) for o in self.outputs) == set(repr(o) for o in other.outputs))
 
     def __ne__(self, other):
         """Test the inequality of two tasks.

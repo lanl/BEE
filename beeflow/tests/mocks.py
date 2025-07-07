@@ -257,8 +257,8 @@ class MockGDBDriver:
             inp.id # pylint: disable=W0104 #trying to get an AttributeError here
             return inp
         except AttributeError:
-            return StepInput(input_id, 'File', inp,
-                             'default.txt', input_id, None, None, None)
+            return StepInput(id=input_id, type='File', value=inp,
+                             default='default.txt', source=input_id, prefix=None, position=None, value_from=None)
 
     def set_task_input(self, task, input_id, value):
         """Set the value of a task input."""
@@ -271,7 +271,7 @@ class MockGDBDriver:
     def set_task_output(self, task, output_id, value):
         """Set the value of a task output."""
         self.outputs[task.id][output_id] = StepOutput(
-            output_id, 'File', value, value,
+            id=output_id, type='File', value=value, glob=value,
         )
 
     def evaluate_expression(self, task, id_, output):
@@ -281,17 +281,17 @@ class MockGDBDriver:
             step_outp = self.outputs[task.id][id_]
             val = expr.eval_output(input_pairs, step_outp.glob)
             if val is not None:
-                self.outputs[task.id][id_] = StepOutput(step_outp.id, step_outp.type,
-                                                        step_outp.value, val)
+                self.outputs[task.id][id_] = StepOutput(id=step_outp.id, type=step_outp.type,
+                                                        value=step_outp.value, glob=val)
         else:
             step_inp = self.inputs[task.id][id_]
             val = expr.eval_input(input_pairs, step_inp.value_from)
-            self.inputs[task.id][id_] = StepInput(step_inp.id, 'string', val,
-                                                  step_inp.default,
-                                                  step_inp.source,
-                                                  step_inp.prefix,
-                                                  step_inp.position,
-                                                  step_inp.value_from)
+            self.inputs[task.id][id_] = StepInput(id=step_inp.id, type='string', value=val,
+                                                  default=step_inp.default,
+                                                  source=step_inp.source,
+                                                  prefix=step_inp.prefix,
+                                                  position=step_inp.position,
+                                                  value_from=step_inp.value_from)
 
     def workflow_completed(self, workflow_id): # pylint: disable=W0613
         """Return true if all of a workflow's final tasks have completed, else false."""

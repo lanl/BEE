@@ -73,7 +73,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             # Connect to the Neo4j database using the Neo4j proprietary driver
             self._driver = Neo4jDatabase.driver(   # pylint: disable=W0201
                 uri, auth=(user, password)
-            ) 
+            )
             # Checks the connection and returns ServiceUnavailable if something is wrong
             self._driver.verify_connectivity()
         except ServiceUnavailable as sue:
