@@ -202,7 +202,7 @@ def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
     tasks_json = jsonpickle.encode(tasks)
     # Send task_msg to task manager
     names = [task.name for task in tasks]
-    log.info(f"Submitted {names} to Task Manager")
+    log.info("Submitted %s to Task Manager",names)
     try:
         conn = _connect_tm()
         resp = conn.post(_resource('tm', "submit/"), json={'tasks': tasks_json},
@@ -213,10 +213,10 @@ def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
     # Change state of any tasks sent to the submit queue
     if resp.status_code == 200:
         for task in tasks:
-            log.info(f"change state of {task.name} to SUBMIT")
+            log.info("change state of %s to SUBMIT",task.name)
             wfi.set_task_state(task, 'SUBMIT')
     else:
-        log.info(f"Submit task to TM returned bad status: {resp.status_code}")
+        log.info("Submit task to TM returned bad status: %s",resp.status_code)
 
 
 def tasks_to_sched(tasks):
@@ -248,7 +248,7 @@ def submit_tasks_scheduler(tasks):
         return "Did not work"
 
     if resp.status_code != 200:
-        log.info(f"Something bad happened {resp.status_code}")
+        log.info("Something bad happened %s",resp.status_code)
         return "Did not work"
     return resp.json()
 
@@ -283,7 +283,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
         task_state = "" if no_start else "WAITING"
         wfi.add_task(task, task_state)
         metadata = wfi.get_task_metadata(task)
-        metadata['workdir'] = wf_workdir
+        metadata['workdir'] = task.workdir
         wfi.set_task_metadata(task, metadata)
         db.workflows.add_task(task.id, wf_id, task.name, task_state)
 
@@ -303,8 +303,13 @@ def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     """Export the DAG of the workflow."""
     wfi = get_workflow_interface(wf_id)
     wfi.export_graphml()
-    update_graphml(wf_id, graphmls_dir)
-    generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir)
+    dot_avail = bool(shutil.which("dot"))
+    if dot_avail:
+        update_graphml(wf_id, graphmls_dir)
+        generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir)
+    else:
+        update_graphml(wf_id, graphmls_dir, output_dir, no_dag_dir)
+    return dot_avail
 
 
 def convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir):
@@ -343,18 +348,20 @@ def copy_task_output(task, wfi):
     bee_workdir = get_bee_workdir()
     # Need to get this from the worker
     task_save_path = pathlib.Path(
-            f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}"
+            f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
     task_workdir = wfi.get_task_metadata(task)["workdir"]
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:
-        stdout_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}.out")
+        stdout_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
+                f"{task.name}-{task.id[:4]}.out")
 
     if task.stderr:
         stderr_path = pathlib.Path(f"{task_workdir}/{task.stderr}")
     else:
-        stderr_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}.err")
+        stderr_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
+                f"{task.name}-{task.id[:4]}.err")
 
-    shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id}.out")
-    shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id}.err")
+        shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
+    shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
