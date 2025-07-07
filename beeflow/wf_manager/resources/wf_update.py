@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import time
 
-from flask import make_response, jsonify, request
+from flask import request
 from flask_restful import Resource, reqparse
 from beeflow.wf_manager.models import TaskStateUpdateRequest, TaskStateUpdateResponse
 from beeflow.wf_manager.resources import wf_utils

@@ -186,7 +186,7 @@ class Task(BaseModel):
             data["id"] = uuid4().hex
         return data
 
-    def copy(self, *, deep=True, update=None, include=None, exclude=None):
+    def copy(self, *, deep=True, update=None, include=None, exclude=None):  # pylint: disable=W0613
         """Make a copy of this task.
 
         :param deep: Whether to make a deep copy

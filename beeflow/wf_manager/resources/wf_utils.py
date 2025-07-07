@@ -282,8 +282,8 @@ def connect_neo4j_driver(bolt_port):
 def setup_workflow(
     wf_id,
     wf_name,
-    wf_dir,
-    wf_workdir,
+    wf_dir,  # pylint: disable=W0613
+    wf_workdir,  # pylint: disable=W0613
     no_start,
     workflow=None,  # pylint: disable=W0613
     tasks=None,

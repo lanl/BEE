@@ -198,9 +198,7 @@ def error_exit(msg, include_caller=True):
         raise ClientError(msg) from None
 
 
-def error_handler(
-    resp,
-):  # pylint: disable=R1710 # error handler doesn't need to return an expression
+def error_handler(resp):  # pylint: disable=R1710 # error handler doesn't need to return an expression
     """Handle a 500 error in a response."""
     if resp.status_code != 500:
         return resp
@@ -331,10 +329,10 @@ app.add_typer(config_driver.app, name="config")
 
 
 @app.command()
-def submit(
+def submit(  # pylint:disable=R0915
     wf_name: str = typer.Argument(
         ..., help="the workflow name"
-    ),  # pylint:disable=R0915
+    ),
     wf_path: pathlib.Path = typer.Argument(
         ..., help="path to the workflow .tgz or dir"
     ),
@@ -616,9 +614,9 @@ def list_workflows():
     if workflow_list:
         typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
 
-        for workflow_info in workflow_list:
+        for wf_info in workflow_list:
             typer.echo(
-                f"{workflow_info.wf_name}\t{_short_id(workflow_info.wf_id)}\t{workflow_info.wf_status}"
+                f"{wf_info.wf_name}\t{_short_id(wf_info.wf_id)}\t{wf_info.wf_status}"
             )
     else:
         typer.echo("There are currently no workflows.")
