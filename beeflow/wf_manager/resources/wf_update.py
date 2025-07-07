@@ -92,7 +92,7 @@ class WFUpdate(Resource):
             self.update_task_state(state_update, db)
 
         return TaskStateUpdateResponse(
-            status='Task states updated successfully',
+            msg='Task states updated successfully',
         ).model_dump(), 200
 
     def handle_metadata(self, state_update, task, wfi):

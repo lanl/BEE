@@ -54,7 +54,7 @@ class TaskStateUpdateRequest(BaseModel):
 
 class TaskStateUpdateResponse(BaseModel):
     """Response model for Task State Update."""
-    status: str
+    msg: str
 
 class ModifyWorkflowRequest(BaseModel):
     """Request model for modifying a workflow."""
@@ -68,4 +68,4 @@ class WorkflowStatusResponse(BaseModel):
     """Response model for workflow status."""
     tasks_status: List[tuple]
     wf_status: str
-    status: str
+    msg: str

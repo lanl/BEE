@@ -50,7 +50,7 @@ class WFActions(Resource):
             return WorkflowStatusResponse(
                 tasks_status=tasks_status,
                 wf_status=wf_status,
-                status='not found'
+                msg='Workflow not found'
             ).model_dump(), 404
 
         for task in tasks:
@@ -60,7 +60,7 @@ class WFActions(Resource):
         return WorkflowStatusResponse(
             tasks_status=tasks_status,
             wf_status=wf_status,
-            status='ok'
+            msg='Workflow status retrieved successfully'
         ).model_dump(), 200
 
 
