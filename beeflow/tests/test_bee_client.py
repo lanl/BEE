@@ -8,6 +8,8 @@ from requests.exceptions import ConnectionError
 from pathlib import Path
 import subprocess
 
+from beeflow.wf_manager.models import ListWorkflowsResponse, WorkflowInfo
+
 
 @pytest.fixture(autouse=True)
 def reset_short_id_len():
@@ -321,20 +323,19 @@ def test_resource():
 
 @pytest.mark.parametrize(
     "input_data",
-    [([["checkpoint_test", "8df4418a6d1b42f2bda87c7a07f2c00d", "Archived"]])],
+    [[{"wf_name": "checkpoint_test", "wf_id": "8df4418a6d1b42f2bda87c7a07f2c00d", "wf_status": "Archived"}]],
 )
 def test_get_wf_list(mocker, input_data):
     """Regression test get_wf_list."""
-    encoded_data = jsonpickle.encode(input_data)
     fake_resp = mocker.Mock()
     fake_resp.status_code = 200
-    fake_resp.json.return_value = {"workflow_list": encoded_data}
+    fake_resp.json.return_value = {"workflow_info_list": input_data}
     mock_conn = mocker.Mock()
     mock_conn.get.return_value = fake_resp
     mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
     result = bee_client.get_wf_list()
     # this should just decode back to the data we gave it
-    assert result == input_data
+    assert result[0].model_dump() == input_data[0]
 
 
 def test_get_wf_list_except(mocker):
@@ -402,7 +403,7 @@ def test_get_wf_list_500(mocker):
 )
 def test_check_short_id_collision(mocker, id_list, exp_id_len):
     """Regression test check_short_id_collision."""
-    workflow_list = [["", this_id] for this_id in id_list]
+    workflow_list = [WorkflowInfo(wf_name="", wf_id=this_id, wf_status="") for this_id in id_list]
     mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=workflow_list)
     bee_client.check_short_id_collision()
     assert bee_client.short_id_len == exp_id_len
@@ -410,7 +411,7 @@ def test_check_short_id_collision(mocker, id_list, exp_id_len):
 
 def test_check_short_id_collision_runtime(mocker):
     """Regression test check_short_id_collision for multiple matches."""
-    workflow_list = [["", "acd96a4ece434649abee1622c80e39e1"] for i in range(3)]
+    workflow_list = [WorkflowInfo(wf_name="", wf_id="acd96a4ece434649abee1622c80e39e1", wf_status="") for i in range(3)]
     mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=workflow_list)
     with pytest.raises(
         RuntimeError, match="collision detected between two full workflow IDs"
@@ -455,7 +456,7 @@ def test_check_short_id_collision_no_jobs(mocker, capsys):
 )
 def test_match_short_id(mocker, id_list, wf_id, exp_long_wf_id):
     """Regression test match_short_id."""
-    workflow_list = [["", this_id] for this_id in id_list]
+    workflow_list = [WorkflowInfo(wf_name="", wf_id=this_id, wf_status="") for this_id in id_list]
     mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=workflow_list)
     long_wf_id = bee_client.match_short_id(wf_id)
     assert long_wf_id == exp_long_wf_id
@@ -486,7 +487,7 @@ def test_match_short_id(mocker, id_list, wf_id, exp_long_wf_id):
 )
 def test_match_sort_id_errors(mocker, id_list, wf_id, exception, match):
     """Regression match_sort_id errors."""
-    workflow_list = [["", this_id] for this_id in id_list]
+    workflow_list = [WorkflowInfo(wf_name="", wf_id=this_id, wf_status="") for this_id in id_list]
     mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=workflow_list)
     with pytest.raises(exception, match=match):
         bee_client.match_short_id(wf_id)
@@ -751,21 +752,21 @@ def test_unpackage_errors(tmp_path, mocker, extension, return_code, exception, m
     "mock_in, exp_out",
     [
         (
-            [
-                [
-                    "checkpoint_test",
-                    "acd96a4ece434649abee1622c80e39e1",
-                    "Archived/Failed",
-                ],
-                [
-                    "checkpoint_test",
-                    "c34e865453cf43b1b3759c60c78c43c1",
-                    "Archived/Failed",
-                ],
-                ["checkpoint_test", "8df4418a6d1b42f2bda87c7a07f2c00d", "Archived"],
-                ["test", "a5554c4138294427a9eb0a9f89215cee", "Archived/Failed"],
-                ["test", "e50d8669595a4b05b841bc7b5336c721", "Archived"],
-            ],
+            {"workflow_info_list": [
+                {
+                    "wf_name": "checkpoint_test",
+                    "wf_id": "acd96a4ece434649abee1622c80e39e1",
+                    "wf_status": "Archived/Failed",
+                },
+                {
+                    "wf_name": "checkpoint_test",
+                    "wf_id": "c34e865453cf43b1b3759c60c78c43c1",
+                    "wf_status": "Archived/Failed",
+                },
+                {"wf_name": "checkpoint_test", "wf_id": "8df4418a6d1b42f2bda87c7a07f2c00d", "wf_status": "Archived"},
+                {"wf_name": "test", "wf_id": "a5554c4138294427a9eb0a9f89215cee", "wf_status": "Archived/Failed"},
+                {"wf_name": "test", "wf_id": "e50d8669595a4b05b841bc7b5336c721", "wf_status": "Archived"},
+            ]},
             """Name	ID	Status
 checkpoint_test	acd96a	Archived/Failed
 checkpoint_test	c34e86	Archived/Failed
@@ -774,7 +775,7 @@ test	a5554c	Archived/Failed
 test	e50d86	Archived
 """,
         ),
-        ([], "There are currently no workflows.\n"),
+        ({"workflow_info_list": []}, "There are currently no workflows.\n"),
     ],
 )
 def test_list_workflows(
@@ -785,7 +786,7 @@ def test_list_workflows(
     exp_out,
 ):
     """Regression test list_workflows."""
-    mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=mock_in)
+    mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=ListWorkflowsResponse.model_validate(mock_in).workflow_info_list)
     bee_client.list_workflows()
     cap = capsys.readouterr()
     assert cap.out == exp_out
@@ -816,7 +817,7 @@ def test_query(mocker, capsys, wf_status, exp_out):
     fake_resp.status_code = 200
     fake_resp.json.return_value = {
         "tasks_status": [("", "cat", "Running"), ("", "grep", "Pending")],
-        "wf_status": wf_status,
+        "wf_status": wf_status, "msg": "Workflow status retrieved successfully"
     }
     mock_conn = mocker.Mock()
     mock_conn.get.return_value = fake_resp
@@ -849,7 +850,7 @@ def test_resume(mocker):
     bee_client.resume(123456)
     mock_conn.patch.assert_called_once_with(
         bee_client._resource(123456),
-        json={"wf_id": 123456, "option": "resume"},
+        json={"option": "resume"},
         timeout=60,
     )
 
@@ -968,4 +969,4 @@ def test_simple_req_errors(
     )
     mocker.patch("beeflow.client.bee_client.get_wf_status", return_value="Running")
     with pytest.raises(exception, match=match):
-        function(123456)
+        function("123456")
