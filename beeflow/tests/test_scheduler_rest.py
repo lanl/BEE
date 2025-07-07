@@ -11,7 +11,9 @@ import os
 import tempfile
 import pytest
 
+from beeflow.scheduler.models import ScheduleTasksRequest, SchedulerTask
 from beeflow.scheduler.scheduler import create_app
+from beeflow.task_manager.models import SubmitTasksRequest
 
 SCHEDULER_TEST_PORT = '5100'
 
@@ -46,22 +48,25 @@ def test_schedule_job_no_resources(scheduler):
     """
     conn = scheduler
     workflow_name = 'test-workflow'
-    task1 = {
-        'workflow_name': workflow_name,
-        'task_name': 'test-task',
-        'requirements': {
+    task1 = SchedulerTask(
+        workflow_name=workflow_name,
+        task_name='test-task',
+        requirements={
             'max_runtime': 1,
         },
-    }
-    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=[task1])
+    )
+    
+    submit_request = ScheduleTasksRequest(tasks=[task1]).model_dump()
+    print(submit_request)
+    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=submit_request)
 
     assert req.status_code == 200
     data = req.json
     assert len(data) == 1
-    assert data[0]['workflow_name'] == workflow_name
-    assert data[0]['task_name'] == 'test-task'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert data[0]['allocations'] == []
+    assert data['tasks'][0]['workflow_name'] == workflow_name
+    assert data['tasks'][0]['task_name'] == 'test-task'
+    assert data['tasks'][0]['requirements']['max_runtime'] == 1
+    assert data['tasks'][0]['allocations'] == []
 
 
 def test_schedule_job_one_resource(scheduler):
@@ -91,19 +96,19 @@ def test_schedule_job_one_resource(scheduler):
             'max_runtime': 1,
         },
     }
-    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=[task1])
+    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=ScheduleTasksRequest(tasks=[task1]).model_dump())
 
     assert req.status_code == 200
     data = req.json
     assert len(data) == 1
-    assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['task_name'] == 'test-task'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert len(data[0]['allocations']) == 1
-    assert data[0]['allocations'][0]['id_'] == 'resource-1'
-    assert data[0]['allocations'][0]['nodes'] == 1
-    assert data[0]['allocations'][0]['start_time'] == 0
-    assert data[0]['allocations'][0]['max_runtime'] == 1
+    assert data['tasks'][0]['workflow_name'] == 'test-workflow'
+    assert data['tasks'][0]['task_name'] == 'test-task'
+    assert data['tasks'][0]['requirements']['max_runtime'] == 1
+    assert len(data['tasks'][0]['allocations']) == 1
+    assert data['tasks'][0]['allocations'][0]['id_'] == 'resource-1'
+    assert data['tasks'][0]['allocations'][0]['nodes'] == 1
+    assert data['tasks'][0]['allocations'][0]['start_time'] == 0
+    assert data['tasks'][0]['allocations'][0]['max_runtime'] == 1
 
 
 def test_schedule_job_two_resources(scheduler):
@@ -137,15 +142,15 @@ def test_schedule_job_two_resources(scheduler):
             'max_runtime': 1,
         },
     }
-    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=[task1])
+    req = conn.put(endpoint('workflows', workflow_name, 'jobs'), json=ScheduleTasksRequest(tasks=[task1]).model_dump())
 
     assert req.status_code == 200
     data = req.json
-    assert len(data) == 1
-    assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['task_name'] == 'test-task'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert len(data[0]['allocations']) > 0
+    assert len(data["tasks"]) == 1
+    assert data["tasks"][0]['workflow_name'] == 'test-workflow'
+    assert data["tasks"][0]['task_name'] == 'test-task'
+    assert data["tasks"][0]['requirements']['max_runtime'] == 1
+    assert len(data["tasks"][0]['allocations']) > 0
 
 
 def test_schedule_multi_job_two_resources(scheduler):
@@ -195,27 +200,27 @@ def test_schedule_multi_job_two_resources(scheduler):
         },
     }
     req = conn.put(endpoint('workflows', workflow_name, 'jobs'),
-                   json=[task1, task2, task3])
+                   json=ScheduleTasksRequest(tasks=[task1, task2, task3]).model_dump())
 
     assert req.status_code == 200
     data = req.json
-    assert len(data) == 3
-    assert data[0]['workflow_name'] == 'test-workflow'
-    assert data[0]['task_name'] == 'test-task-0'
-    assert data[0]['requirements']['max_runtime'] == 1
-    assert len(data[0]['allocations']) > 0
+    assert len(data["tasks"]) == 3
+    assert data["tasks"][0]['workflow_name'] == 'test-workflow'
+    assert data["tasks"][0]['task_name'] == 'test-task-0'
+    assert data["tasks"][0]['requirements']['max_runtime'] == 1
+    assert len(data["tasks"][0]['allocations']) > 0
     # Ensure proper scheduled time
-    assert data[0]['allocations'][0]['start_time'] < 6
-    assert data[1]['workflow_name'] == 'test-workflow'
-    assert data[1]['task_name'] == 'test-task-1'
-    assert data[1]['requirements']['max_runtime'] == 1
-    assert len(data[1]['allocations']) > 0
+    assert data["tasks"][0]['allocations'][0]['start_time'] < 6
+    assert data["tasks"][1]['workflow_name'] == 'test-workflow'
+    assert data["tasks"][1]['task_name'] == 'test-task-1'
+    assert data["tasks"][1]['requirements']['max_runtime'] == 1
+    assert len(data["tasks"][1]['allocations']) > 0
     # Ensure proper scheduled time
-    assert data[1]['allocations'][0]['start_time'] < 6
-    assert data[2]['workflow_name'] == 'test-workflow'
-    assert data[2]['task_name'] == 'test-task-2'
-    assert data[2]['requirements']['max_runtime'] == 4
-    assert data[2]['requirements']['nodes'] == 16
-    assert len(data[2]['allocations']) > 0
+    assert data["tasks"][1]['allocations'][0]['start_time'] < 6
+    assert data["tasks"][2]['workflow_name'] == 'test-workflow'
+    assert data["tasks"][2]['task_name'] == 'test-task-2'
+    assert data["tasks"][2]['requirements']['max_runtime'] == 4
+    assert data["tasks"][2]['requirements']['nodes'] == 16
+    assert len(data["tasks"][2]['allocations']) > 0
     # Ensure proper scheduled time
-    assert data[2]['allocations'][0]['start_time'] < 6
+    assert data["tasks"][2]['allocations'][0]['start_time'] < 6
