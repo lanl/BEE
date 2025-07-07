@@ -9,6 +9,7 @@ import os
 
 from flask import Flask, request
 from flask_restful import Resource, Api
+from pydantic import ValidationError
 
 from beeflow.scheduler import algorithms
 from beeflow.scheduler.models import ScheduleTasksRequest, ScheduleTasksResponse
@@ -57,7 +58,7 @@ class WorkflowJobHandler(Resource):
         db = connect_db(sched_db, db_path)
         try:
             tasks = ScheduleTasksRequest.model_validate(request.json).tasks
-        except Exception as exc:
+        except ValidationError as exc:
             log.error('Error parsing request: %s', exc)
         # Pick the scheduling algorithm
         algorithm = algorithms.choose(**vars(flask_app.sched_conf))

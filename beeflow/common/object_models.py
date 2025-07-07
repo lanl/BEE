@@ -1,32 +1,34 @@
-"""Defines data structures for holding task and workflow data using pydantic models. 
-"""
+"""Defines data structures for holding task and workflow data using pydantic models."""
 
-from collections import namedtuple
 from uuid import uuid4
 from copy import deepcopy
-from pydantic import BaseModel, model_validator
 import os
-
-from typing import Optional, List, Dict
+from typing import Optional
+from pydantic import BaseModel, model_validator
 
 from beeflow.common.container_path import convert_path
 
-                                                 
+
 class InputParameter(BaseModel):
     """Pydantic model for InputParameter."""
+
     id: str
     type: str
     value: str
 
+
 class OutputParameter(BaseModel):
     """Pydantic model for OutputParameter."""
+
     id: str
     type: str
     value: Optional[str] = None
     source: str
 
+
 class StepInput(BaseModel):
     """Pydantic model for StepInput."""
+
     id: str
     type: str
     value: Optional[str] = None
@@ -36,20 +38,26 @@ class StepInput(BaseModel):
     position: Optional[int] = None
     value_from: Optional[str] = None
 
+
 class StepOutput(BaseModel):
     """Pydantic model for StepOutput."""
+
     id: str
     type: str
     value: Optional[str] = None
     glob: Optional[str] = None
 
+
 class Requirement(BaseModel):
     """Pydantic model for Requirement."""
+
     class_: str
     params: dict
 
+
 class Hint(BaseModel):
     """Pydantic model for Hint."""
+
     class_: str
     params: dict
 
@@ -69,11 +77,12 @@ def generate_workflow_id():
 
 class Workflow(BaseModel):
     """Data structure for holding data about a workflow."""
+
     name: str
-    hints: List[Hint] = []
-    requirements: List[Requirement] = []
-    inputs: List[InputParameter] = []
-    outputs: List[OutputParameter] = []
+    hints: list[Hint] = []
+    requirements: list[Requirement] = []
+    inputs: list[InputParameter] = []
+    outputs: list[OutputParameter] = []
     id: str
     state: Optional[str] = "SUBMITTED"
 
@@ -92,11 +101,13 @@ class Workflow(BaseModel):
         def id_sort(i):
             return i.id
 
-        return bool(self.name == other.name
-                    and sorted(self.hints) == sorted(other.hints)
-                    and sorted(self.requirements) == sorted(other.requirements)
-                    and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
-                    and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort))
+        return bool(
+            self.name == other.name
+            and sorted(self.hints) == sorted(other.hints)
+            and sorted(self.requirements) == sorted(other.requirements)
+            and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
+            and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort)
+        )
 
     def __ne__(self, other):
         """Test the inequality of two workflows.
@@ -108,8 +119,10 @@ class Workflow(BaseModel):
 
     def __repr__(self):
         """Construct a workflow's string representation."""
-        return (f"<Workflow id={self.id} name={self.name} hints={self.hints} "
-                f"requirements = {self.requirements} inputs={self.inputs} outputs={self.outputs}>")
+        return (
+            f"<Workflow id={self.id} name={self.name} hints={self.hints} "
+            f"requirements = {self.requirements} inputs={self.inputs} outputs={self.outputs}>"
+        )
 
 
 def get_requirement(requirements, hints, req_type, req_param, default=None):
@@ -153,37 +166,62 @@ def get_requirement(requirements, hints, req_type, req_param, default=None):
 
 class Task(BaseModel):
     """Data structure for holding data about a single task."""
+
     name: str
-    base_command: str | List[str]
-    hints: List[Hint] = []
-    requirements: List[Requirement] = []
-    inputs: List[StepInput] = []
-    outputs: List[StepOutput] = []
+    base_command: str | list[str]
+    hints: list[Hint] = []
+    requirements: list[Requirement] = []
+    inputs: list[StepInput] = []
+    outputs: list[StepOutput] = []
     stdout: Optional[str] = None
     stderr: Optional[str] = None
     workflow_id: str
     workdir: Optional[str] = None
     id: Optional[str] = None
-    
-    @model_validator(mode='before')
-    def generate_id_if_missing(cls, data):
-        if isinstance(data, dict) and 'id' not in data:
-            data['id'] = uuid4().hex
+
+    @model_validator(mode="before")
+    def generate_id_if_missing(self, data):
+        """Generate a unique ID for the task if it is not provided."""
+        if isinstance(data, dict) and "id" not in data:
+            data["id"] = uuid4().hex
         return data
 
-    def copy(self, new_id=False):
+    def copy(self, *, deep=True, update=None, include=None, exclude=None):
         """Make a copy of this task.
 
-        :param new_id: generate a new task ID
-        :type new_id: bool
+        :param deep: Whether to make a deep copy
+        :param update: Values to update in the copy
+        :param include: Fields to include
+        :param exclude: Fields to exclude
         :rtype: Task
         """
-        task_id = uuid4().hex if new_id else self.id
-        return Task(name=self.name, base_command=self.base_command,
-                    hints=deepcopy(self.hints), requirements=deepcopy(self.requirements),
-                    inputs=deepcopy(self.inputs), outputs=deepcopy(self.outputs),
-                    stdout=self.stdout, stderr=self.stderr, workflow_id=self.workflow_id,
-                    id=task_id, workdir=self.workdir)
+        # Ignore the parent implementation but keep the signature compatible
+        task_id = uuid4().hex if update and update.get("new_id", False) else self.id
+
+        # Your existing implementation with the proper deep copy logic
+        copy_method = deepcopy if deep else lambda x: x
+
+        task = Task(
+            name=self.name,
+            base_command=self.base_command,
+            hints=copy_method(self.hints),
+            requirements=copy_method(self.requirements),
+            inputs=copy_method(self.inputs),
+            outputs=copy_method(self.outputs),
+            stdout=self.stdout,
+            stderr=self.stderr,
+            workflow_id=self.workflow_id,
+            id=task_id,
+            workdir=self.workdir,
+        )
+
+        # Apply any updates if provided
+        if update:
+            for key, value in update.items():
+                if key != "new_id":  # Skip our special parameter
+                    setattr(task, key, value)
+
+        return task
 
     def get_requirement(self, req_type, req_param, default=None):
         """Get requirement from hints or requirements, prioritizing requirements over hints.
@@ -198,7 +236,9 @@ class Task(BaseModel):
         When requirements are specified hints will be ignored.
         By default, tasks need not specify hints or requirements
         """
-        return get_requirement(self.requirements, self.hints, req_type, req_param, default)
+        return get_requirement(
+            self.requirements, self.hints, req_type, req_param, default
+        )
 
     def get_full_requirement(self, req_type):
         """Get the full requirement (or hint) for this task, if it has one.
@@ -244,15 +284,17 @@ class Task(BaseModel):
         def id_sort(i):
             return i.id
 
-        return bool(self.name == other.name
-                    and self.base_command == other.base_command
-                    and sorted(self.hints) == sorted(other.hints)
-                    and sorted(self.requirements) == sorted(other.requirements)
-                    and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
-                    and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort)
-                    and self.stdout == other.stdout
-                    and self.stderr == other.stderr
-                    and self.workdir == other.workdir)
+        return bool(
+            self.name == other.name
+            and self.base_command == other.base_command
+            and sorted(self.hints) == sorted(other.hints)
+            and sorted(self.requirements) == sorted(other.requirements)
+            and sorted(self.inputs, key=id_sort) == sorted(other.inputs, key=id_sort)
+            and sorted(self.outputs, key=id_sort) == sorted(other.outputs, key=id_sort)
+            and self.stdout == other.stdout
+            and self.stderr == other.stderr
+            and self.workdir == other.workdir
+        )
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
@@ -275,10 +317,12 @@ class Task(BaseModel):
 
         :rtype: str
         """
-        return (f"<Task id={self.id} name={self.name} base_command={self.base_command} "
-                f"hints={self.hints} requirements = {self.requirements} "
-                f"inputs={self.inputs} outputs={self.outputs} stdout={self.stdout} "
-                f"stderr={self.stderr} workflow_id={self.workflow_id}> ")
+        return (
+            f"<Task id={self.id} name={self.name} base_command={self.base_command} "
+            f"hints={self.hints} requirements = {self.requirements} "
+            f"inputs={self.inputs} outputs={self.outputs} stdout={self.stdout} "
+            f"stderr={self.stderr} workflow_id={self.workflow_id}> "
+        )
 
     @property
     def command(self):
@@ -291,8 +335,10 @@ class Task(BaseModel):
         for input_ in self.inputs:
             if input_.value is None:
                 raise ValueError(
-                    ("trying to construct command for task with missing input value "
-                     f"(id: {input_.id})")
+                    (
+                        "trying to construct command for task with missing input value "
+                        f"(id: {input_.id})"
+                    )
                 )
 
             if input_.position is not None:
@@ -326,7 +372,7 @@ class Task(BaseModel):
                     # Charliecloud default bind mounts (this should taken from
                     # another requirement)
                     bind_mounts = {
-                        os.getenv('HOME'): os.path.join('/home', os.getenv('USER')),
+                        os.getenv("HOME"): os.path.join("/home", os.getenv("USER")),
                     }
                     command.append(convert_path(checkpoint_file, bind_mounts))
                     if "add_parameters" in hint.params:
