@@ -5,7 +5,7 @@
 
 import json
 
-from beeflow.scheduler import resource_allocation
+from beeflow.scheduler import resource_allocation, models
 
 
 def test_resource_simple():
@@ -33,7 +33,7 @@ def test_resource_encode_decode_json():
 
 def test_allocation_simple():
     """Test creating an allocation."""
-    allocation = resource_allocation.Allocation(id_='resource-0', start_time=0,
+    allocation = models.Allocation(id_='resource-0', start_time=0,
                                                 max_runtime=4, nodes=2)
 
     assert allocation.id_ == 'resource-0'
@@ -42,35 +42,11 @@ def test_allocation_simple():
     assert allocation.nodes == 2
 
 
-def test_allocation_encode_decode_json():
-    """Test that an allocation can be encoded/decoded to/from JSON."""
-    allocation = resource_allocation.Allocation(id_='resource-0', start_time=3,
-                                                max_runtime=5, nodes=6)
-
-    s = json.dumps(allocation.encode())
-
-    decoded = resource_allocation.Allocation.decode(json.loads(s))
-    assert decoded.id_ == allocation.id_
-    assert decoded.start_time == allocation.start_time
-    assert decoded.max_runtime == allocation.max_runtime
-    assert decoded.nodes == allocation.nodes
-
-
 def test_requirements_simple():
     """Test creating a requirement."""
-    requirements = resource_allocation.Requirements(max_runtime=3, nodes=1)
+    requirements = models.SchedulerRequirements(max_runtime=3, nodes=1)
 
     assert requirements.max_runtime == 3
     assert requirements.nodes == 1
     # TODO: Determine what the default per node requirements should be
 
-
-def test_requirements_encode_decode_json():
-    """Test that an allocation can be encoded/decoded to/from JSON."""
-    requirements = resource_allocation.Requirements(max_runtime=1, nodes=3)
-
-    s = json.dumps(requirements.encode())
-
-    decoded = resource_allocation.Requirements.decode(json.loads(s))
-    assert decoded.max_runtime == requirements.max_runtime
-    assert decoded.nodes == requirements.nodes

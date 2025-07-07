@@ -24,7 +24,7 @@ def normalize_globs(tasks):
     root = os.getcwd()
     for task in tasks:
         new_outputs = [
-            output._replace(glob=output.glob.replace(root, '').strip('/'))
+            output.__replace__(glob=output.glob.replace(root, '').strip('/'))
             for output in task.outputs
         ]
         task.outputs = new_outputs
