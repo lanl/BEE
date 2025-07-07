@@ -205,7 +205,7 @@ def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
     log.info("Submitted %s to Task Manager",names)
     try:
         conn = _connect_tm()
-        resp = conn.post(_resource('tm', "submit/"), json={'tasks': tasks_json},
+        resp = conn.post(_resource('tm'), json={'tasks': tasks_json},
                          timeout=5)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to task manager to submit tasks.')
