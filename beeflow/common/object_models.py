@@ -102,11 +102,15 @@ class Workflow(BaseModel):
         if not (self.name == other.name and self.state == other.state):
             return False
 
-    # Convert collections to sets of string representations
-        return (set(repr(h) for h in self.hints) == set(repr(h) for h in other.hints) and
-                set(repr(r) for r in self.requirements) == set(repr(r) for r in other.requirements) and
-                set(repr(i) for i in self.inputs) == set(repr(i) for i in other.inputs) and
-                set(repr(o) for o in self.outputs) == set(repr(o) for o in other.outputs))
+        # Convert collections to sets of string representations
+        return (
+            set(repr(h) for h in self.hints) == set(repr(h) for h in other.hints)
+            and set(repr(r) for r in self.requirements)
+            == set(repr(r) for r in other.requirements)
+            and set(repr(i) for i in self.inputs) == set(repr(i) for i in other.inputs)
+            and set(repr(o) for o in self.outputs)
+            == set(repr(o) for o in other.outputs)
+        )
 
     def __ne__(self, other):
         """Test the inequality of two workflows.
@@ -179,13 +183,15 @@ class Task(BaseModel):
     id: Optional[str] = None
 
     @model_validator(mode="before")
-    def generate_id_if_missing(cls, data): # pylint: disable=E0213
+    def generate_id_if_missing(cls, data):  # pylint: disable=E0213
         """Generate a unique ID for the task if it is not provided."""
         if isinstance(data, dict) and "id" not in data:
             data["id"] = uuid4().hex
         return data
 
-    def copy(self, *, deep=True, update=None, include=None, exclude=None):  # pylint: disable=W0613
+    def copy(
+        self, *, deep=True, update=None, include=None, exclude=None  # pylint: disable=W0613
+    ):
         """Make a copy of this task.
 
         :param deep: Whether to make a deep copy
@@ -280,18 +286,24 @@ class Task(BaseModel):
         if not isinstance(other, Task):
             return False
 
-        if not (self.name == other.name and
-            self.base_command == other.base_command and
-            self.stdout == other.stdout and
-            self.stderr == other.stderr and
-            self.workdir == other.workdir):
+        if not (
+            self.name == other.name
+            and self.base_command == other.base_command
+            and self.stdout == other.stdout
+            and self.stderr == other.stderr
+            and self.workdir == other.workdir
+        ):
             return False
 
-    # Convert collections to sets of string representations
-        return (set(repr(h) for h in self.hints) == set(repr(h) for h in other.hints) and
-                set(repr(r) for r in self.requirements) == set(repr(r) for r in other.requirements) and
-                set(repr(i) for i in self.inputs) == set(repr(i) for i in other.inputs) and
-                set(repr(o) for o in self.outputs) == set(repr(o) for o in other.outputs))
+        # Convert collections to sets of string representations
+        return (
+            set(repr(h) for h in self.hints) == set(repr(h) for h in other.hints)
+            and set(repr(r) for r in self.requirements)
+            == set(repr(r) for r in other.requirements)
+            and set(repr(i) for i in self.inputs) == set(repr(i) for i in other.inputs)
+            and set(repr(o) for o in self.outputs)
+            == set(repr(o) for o in other.outputs)
+        )
 
     def __ne__(self, other):
         """Test the inequality of two tasks.
