@@ -14,7 +14,7 @@ class InputParameter(BaseModel):
 
     id: str
     type: str
-    value: str
+    value: str | int
 
 
 class OutputParameter(BaseModel):
@@ -180,7 +180,7 @@ class Task(BaseModel):
     id: Optional[str] = None
 
     @model_validator(mode="before")
-    def generate_id_if_missing(self, data):
+    def generate_id_if_missing(cls, data): # pylint: disable=E0213
         """Generate a unique ID for the task if it is not provided."""
         if isinstance(data, dict) and "id" not in data:
             data["id"] = uuid4().hex
