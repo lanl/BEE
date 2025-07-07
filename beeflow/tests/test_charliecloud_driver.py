@@ -1,4 +1,5 @@
 """Charliecloud driver tests."""
+import pathlib
 import pytest
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
 from beeflow.common.object_models import Task, Requirement
@@ -28,8 +29,8 @@ def test_run_text_use_container(
     mocker.patch("os.getenv", return_value=str(tmpdir))
     requirements = [
         Requirement(
-            "DockerRequirement",
-            {
+            class_="DockerRequirement",
+            params={
                 "beeflow:containerName": None,
                 "beeflow:bindMounts": None,
                 "beeflow:copyContainer": None,

@@ -1,5 +1,6 @@
 """Defines data structures for holding task and workflow data using pydantic models."""
 
+from pathlib import Path
 from uuid import uuid4
 from copy import deepcopy
 import os
@@ -174,7 +175,7 @@ class Task(BaseModel):
     stdout: Optional[str] = None
     stderr: Optional[str] = None
     workflow_id: str
-    workdir: Optional[str] = None
+    workdir: Optional[str | Path | os.PathLike] = None
     id: Optional[str] = None
 
     @model_validator(mode="before")
