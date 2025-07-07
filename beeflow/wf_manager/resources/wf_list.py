@@ -104,34 +104,6 @@ class WFList(Resource):
         return SubmitWorkflowResponse(msg='Workflow uploaded', status='ok',
                              wf_id=wf_id).model_dump(), 201
 
-    def put(self):  # This method can be deleted / deprecated
-        """Reexecute a workflow."""
-        db = connect_db(wfm_db, db_path)
-        reqparser = reqparse.RequestParser()
-        reqparser.add_argument('wf_name', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('wf_filename', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('workdir', type=str, required=True,
-                               location='form')
-        reqparser.add_argument('workflow_archive', type=FileStorage, required=False,
-                               location='files')
-        data = reqparser.parse_args()
-        workflow_archive = data['workflow_archive']
-        wf_filename = data['wf_filename']
-        wf_name = data['wf_name']
-        wf_workdir = data['workdir']
-
-        wf_id = object_models.generate_workflow_id()
-        wf_dir = extract_wf(wf_id, wf_filename, workflow_archive)
-
-        db.workflows.init_workflow(wf_id, wf_name, wf_dir)
-        init_workflow.delay(wf_id, wf_name, wf_dir, wf_workdir, no_start=False)
-
-        # Returnid and created
-        resp = make_response(jsonify(msg='Workflow uploaded', status='ok',
-                             wf_id=wf_id), 201)
-        return resp
 
     def patch(self):
         """Copy workflow archive."""

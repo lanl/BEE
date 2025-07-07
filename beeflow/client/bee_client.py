@@ -695,27 +695,6 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
 
         return submit(wf_name, pathlib.Path(cwl_path), main_cwl, yaml_file, pathlib.Path(workdir))
 
-    data = {
-        'wf_filename': os.path.basename(wf_path).encode(),
-        'wf_name': wf_name.encode(),
-        'workdir': workdir
-    }
-    try:
-        conn = _wfm_conn()
-        resp = conn.put(_url(), data=data,
-                        files={'workflow_archive': wf_tarball}, timeout=60)
-    except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
-
-    if resp.status_code != requests.codes.created: # pylint: disable=E1101
-        error_exit(f"Reexecute for {wf_name} failed. Please check the WF Manager.")
-
-    wf_id = resp.json()['wf_id']
-    typer.secho("Workflow submitted! Your workflow id is "
-                f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
-    logging.info(f'ReExecute Workflow: {resp.text}')
-    return wf_id
-
 
 @app.command()
 def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
