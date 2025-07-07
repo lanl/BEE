@@ -207,7 +207,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
                         time_left = end_time - now
                         time_left = str(time_left)
                     else:
-                        time_left = '0'
+                        time_left = '0:00:00'
                     
                     start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -219,7 +219,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 job_state = get_state_sacct(job_id)
                 job_info = {} # returns this for now 
         except requests.exceptions.ConnectionError:
-            job_state = "NOT RESPONDING"
+            job_state = "NOT_RESPONDING"
             job_info = {}
         return job_state,job_info 
 
@@ -256,12 +256,32 @@ class SlurmCLIWorker(BaseSlurmWorker):
         except subprocess.CalledProcessError:
             # If show job cannot find job get state using sacct (not same info)
             job_state = get_state_sacct(job_id)
+            job_info = {"job_name": "Unknown","start_time":"Unknown","time_left":"Unknown"}
         else:
             # Output is in a space-separated list of 'key=value' pairs
             pairs = res.stdout.split()
             key_vals = dict(parse_key_val(pair) for pair in pairs)
             job_state = key_vals['JobState']
-        return job_state
+            job_name = key_vals['JobName']
+            start_time = key_vals['StartTime']
+            end_time = key_vals['EndTime']
+
+            if start_time != 'Unknown':
+                start_time = datetime.datetime.fromisoformat(start_time)
+                start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                start_time = '0:00:00'
+
+            now = datetime.datetime.now()
+            if end_time != 'Unknown':
+                end_time =datetime.datetime.fromisoformat(end_time)
+                time_left = end_time - now
+                time_left = str(time_left)
+            else:
+                time_left = '0:00:00'
+
+            job_info = {"job_name": job_name,"start_time":start_time,"time_left":time_left}
+        return job_state,job_info
 
     def cancel_task(self, job_id):
         """Cancel task with job_id; returns job_state."""

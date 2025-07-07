@@ -39,13 +39,13 @@ def wait_state(worker_iface, job_id, state):
     """Wait for Slurm to switch the job to another state."""
     time.sleep(1)
     n = 1
-    last_state = worker_iface.query_task(job_id)
+    last_state,_ = worker_iface.query_task(job_id)
     while last_state == state:
         if n >= TIMEOUT:
             raise RuntimeError(f'job timed out, still in state {state}')
         time.sleep(1)
         n += 1
-        last_state = worker_iface.query_task(job_id)
+        last_state,_ = worker_iface.query_task(job_id)
     return last_state
 
 
@@ -87,7 +87,7 @@ def test_good_task(slurm_worker):
     """Test submission of a good task."""
     temp_workdir = tempfile.mkdtemp()
     GOOD_TASK.workdir = temp_workdir
-    job_id, last_state = slurm_worker.submit_task(GOOD_TASK)
+    job_id, last_state, job_info = slurm_worker.submit_task(GOOD_TASK)
     if last_state == 'PENDING':
         last_state = wait_state(slurm_worker, job_id, 'PENDING')
     if last_state == 'RUNNING':
@@ -102,7 +102,7 @@ def test_bad_task(slurm_worker):
     """Test submission of a bad task."""
     temp_workdir = tempfile.mkdtemp()
     BAD_TASK.workdir = temp_workdir
-    job_id, last_state = slurm_worker.submit_task(BAD_TASK)
+    job_id, last_state, job_info = slurm_worker.submit_task(BAD_TASK)
     if last_state == 'PENDING':
         last_state = wait_state(slurm_worker, job_id, 'PENDING')
     if last_state == 'RUNNING':
@@ -123,7 +123,7 @@ def test_cancel_good_job(slurm_worker):
     """Cancel a good job."""
     temp_workdir = tempfile.mkdtemp()
     GOOD_TASK.workdir = temp_workdir
-    job_id, _ = slurm_worker.submit_task(GOOD_TASK)
+    job_id, _, _ = slurm_worker.submit_task(GOOD_TASK)
     job_state = slurm_worker.cancel_task(job_id)
     shutil.rmtree(temp_workdir)
     assert job_state == 'CANCELLED'
@@ -134,8 +134,9 @@ def test_no_slurmrestd(slurmrestd_worker_no_daemon):
     temp_workdir = tempfile.mkdtemp()
     GOOD_TASK.workdir = temp_workdir
     worker = slurmrestd_worker_no_daemon
-    job_id, state = worker.submit_task(GOOD_TASK)
+    job_id, state, _ = worker.submit_task(GOOD_TASK)
     shutil.rmtree(temp_workdir)
+    job_state, job_info = worker.query_task(job_id)
     assert state == 'NOT_RESPONDING'
-    assert worker.query_task(job_id) == 'NOT_RESPONDING'
+    assert job_state == 'NOT_RESPONDING'
     assert worker.cancel_task(job_id) == 'NOT_RESPONDING'
