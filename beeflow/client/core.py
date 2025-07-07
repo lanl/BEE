@@ -344,6 +344,9 @@ class Beeflow:
     def loop(self):
         """Run the main loop."""
         print(f'Running on {socket.gethostname()}')
+        # Check for Graphviz:
+        if not shutil.which("dot"):
+            print('Graphviz was not found on PATH.')
         self.mgr.run(self.base_components)
         with cli_connection.server(paths.beeflow_socket()) as server:
             while not self.quit:
