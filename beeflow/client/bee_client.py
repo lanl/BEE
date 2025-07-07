@@ -9,7 +9,6 @@ Capablities include submitting, starting, listing, pausing and cancelling workfl
 # Disable R1732: Significant code restructuring required to fix
 # pylint:disable=W0511,R1732
 
-import json
 import os
 import sys
 import logging
@@ -37,7 +36,7 @@ from beeflow.common.parser import CwlParser
 from beeflow.common.object_models import generate_workflow_id
 from beeflow.client import core # pylint: disable=R0401 #WIP
 from beeflow.client import remote_client
-from beeflow.wf_manager.models import ListWorkflowsResponse, SubmitWorkflowRequest, ModifyWorkflowRequest, WorkflowStatusResponse, WorkflowActionResponse
+from beeflow.wf_manager.models import CopyWorkflowRequest, CopyWorkflowResponse, ListWorkflowsResponse, SubmitWorkflowRequest, ModifyWorkflowRequest, WorkflowStatusResponse
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
@@ -644,13 +643,14 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
-        resp = conn.patch(_url(), files={'wf_id': long_wf_id}, timeout=60)
+        resp = conn.patch(_url(), json=CopyWorkflowRequest(wf_id=long_wf_id).model_dump(), timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit('Could not reach WF Manager.')
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit('WF Manager could not copy workflow.')
-    archive_file = jsonpickle.decode(resp.json()['archive_file'])
-    archive_filename = resp.json()['archive_filename']
+    archive_info = CopyWorkflowResponse.model_validate(resp.json())
+    archive_file = jsonpickle.decode(archive_info.archive_file_pickle)
+    archive_filename = archive_info.archive_filename
     logging.info(f'Copy workflow: {resp.text}')
     return archive_file, archive_filename
 
@@ -663,10 +663,7 @@ def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
                   help='working directory for workflow containing input + output files')
               ):
     """Reexecute an archived workflow."""
-    wf_tarball = None
-    if os.path.exists(wf_path):
-        wf_tarball = open(wf_path, 'rb')
-    else:
+    if not os.path.exists(wf_path):
         error_exit(f'Workflow tarball {wf_path} cannot be found')
 
     # Make sure the workdir is an absolute path and exists

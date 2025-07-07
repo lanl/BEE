@@ -17,7 +17,7 @@ from celery import shared_task
 from beeflow.common import log as bee_logging
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
-from beeflow.wf_manager.models import ListWorkflowsResponse, SubmitWorkflowRequest, SubmitWorkflowResponse, WorkflowInfo
+from beeflow.wf_manager.models import CopyWorkflowRequest, CopyWorkflowResponse, ListWorkflowsResponse, SubmitWorkflowRequest, SubmitWorkflowResponse, WorkflowInfo
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common import object_models
 
@@ -107,14 +107,13 @@ class WFList(Resource):
 
     def patch(self):
         """Copy workflow archive."""
-        reqparser = reqparse.RequestParser()
-        data = reqparser.parse_args()
-        wf_id = data['wf_id']
+        wf_id = CopyWorkflowRequest.model_validate(request.json).wf_id
         archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
         archive_path = os.path.join(archive_dir, wf_id + '.tgz')
         with open(archive_path, 'rb') as archive:
             archive_file = jsonpickle.encode(archive.read())
         archive_filename = os.path.basename(archive_path)
-        resp = make_response(jsonify(archive_file=archive_file,
-                             archive_filename=archive_filename), 200)
-        return resp
+        return CopyWorkflowResponse(
+            archive_file_pickle=archive_file,
+            archive_filename=archive_filename
+        ).model_dump(), 200
