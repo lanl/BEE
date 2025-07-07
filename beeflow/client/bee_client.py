@@ -317,7 +317,7 @@ def get_wf_status(wf_id):
         error_exit("Could not reach WF Manager.")
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit("Could not successfully query workflow manager")
+        logging.error("Could not successfully query workflow manager")
 
     return resp.json()["wf_status"]
 
@@ -634,7 +634,7 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         error_exit("Could not reach WF Manager.")
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit("Could not successfully query workflow manager")
+        logging.error("Could not successfully query workflow manager")
 
     status = WorkflowStatusResponse.model_validate(resp.json())
 
