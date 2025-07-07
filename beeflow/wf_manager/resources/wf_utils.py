@@ -17,6 +17,7 @@ from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.scheduler.models import ScheduleTasksRequest, ScheduleTasksResponse, SchedulerTask
 from beeflow.task_manager.models import SubmitTasksRequest
 
 
@@ -222,14 +223,14 @@ def tasks_to_sched(tasks):
     """Convert gdb tasks to sched tasks."""
     sched_tasks = []
     for task in tasks:
-        sched_task = {
-            'workflow_name': 'workflow',
-            'task_name': task.name,
-            'requirements': {
-                'max_runtime': 1,
-                'nodes': 1
+        sched_task = SchedulerTask(
+            workflow_name="workflow",
+            task_name=task.name,
+            requirements={
+                "max_runtime": 1,
+                "nodes": 1
             }
-        }
+        )
         sched_tasks.append(sched_task)
     return sched_tasks
 
@@ -240,7 +241,7 @@ def submit_tasks_scheduler(tasks):
     # The workflow name will eventually be added to the wfi workflow object
     try:
         conn = _connect_scheduler()
-        resp = conn.put(_resource('sched', "workflows/workflow/jobs"), json=sched_tasks,
+        resp = conn.put(_resource('sched', "workflows/workflow/jobs"), json=ScheduleTasksRequest(tasks=sched_tasks).model_dump(),
                         timeout=5)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to scheduler to submit tasks.')
@@ -249,7 +250,7 @@ def submit_tasks_scheduler(tasks):
     if resp.status_code != 200:
         log.info("Something bad happened %s",resp.status_code)
         return "Did not work"
-    return resp.json()
+    return ScheduleTasksResponse.model_validate(resp.json()).tasks
 
 
 def schedule_submit_tasks(wf_id, tasks):
