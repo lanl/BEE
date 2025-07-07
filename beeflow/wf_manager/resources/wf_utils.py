@@ -17,6 +17,7 @@ from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.task_manager.models import SubmitTasksRequest
 
 
 log = bee_logging.setup(__name__)
@@ -199,13 +200,11 @@ def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
         metadata = wfi.get_task_metadata(task)
         task.workdir = metadata['workdir']
     # Serialize task with json
-    tasks_json = jsonpickle.encode(tasks)
-    # Send task_msg to task manager
     names = [task.name for task in tasks]
     log.info("Submitted %s to Task Manager",names)
     try:
         conn = _connect_tm()
-        resp = conn.post(_resource('tm'), json={'tasks': tasks_json},
+        resp = conn.post(_resource('tm'), json=SubmitTasksRequest(tasks=tasks).model_dump(),
                          timeout=5)
     except requests.exceptions.ConnectionError:
         log.error('Unable to connect to task manager to submit tasks.')

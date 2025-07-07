@@ -1,10 +1,12 @@
 """Handle task submission."""
 import traceback
-from flask import jsonify, make_response
+from flask import jsonify, make_response, request
 from flask_restful import Resource, reqparse
 import jsonpickle
+from pydantic import ValidationError
 from beeflow.common import log as bee_logging
 from beeflow.task_manager import utils
+from beeflow.task_manager.models import SubmitTasksRequest, TaskActionResponse
 
 log = bee_logging.setup(__name__)
 
@@ -14,17 +16,19 @@ class TaskActions(Resource):
 
     @staticmethod
     def post():
-        """Receives task from WFM."""
+        """Receives tasks from WFM."""
         db = utils.connect_db()
-        parser = reqparse.RequestParser()
-        parser.add_argument('tasks', type=str, location='json')
-        data = parser.parse_args()
-        tasks = jsonpickle.decode(data['tasks'])
+        try:
+            tasks = SubmitTasksRequest.model_validate(request.json).tasks
+        except Exception as err:
+            log.error(f"Invalid request data: {err}")
+            return TaskActionResponse(msg=str(err)), 400
         for task in tasks:
             db.submit_queue.push(task)
             log.info(f"Added {task.name} task to the submit queue")
-        resp = make_response(jsonify(msg='Tasks Added!', status='ok'), 200)
-        return resp
+        return TaskActionResponse(
+            msg='Tasks submitted successfully'
+        ).model_dump(), 200
     
     @staticmethod
     def delete():
@@ -46,6 +50,7 @@ class TaskActions(Resource):
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
         db.job_queue.clear()
         db.submit_queue.clear()
-        resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
-        return resp
+        return TaskActionResponse(
+            msg=f'Cancelled all tasks: {cancel_msg}'
+        ).model_dump(), 200
 
