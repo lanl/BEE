@@ -20,18 +20,7 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None)
     output_path = dags_dir + "/" + short_id + ".png"
     backup_dag(output_path, dags_dir, short_id)
 
-    # Load the GraphML file using NetworkX
-    graph = nx.read_graphml(graphml_path)
-
-    # Initialize Graphviz graph
-    dot = graphviz.Digraph(comment='Hierarchical Graph')
-
-    # Add nodes and edges using helper functions
-    add_nodes_to_dot(graph, dot)
-    add_edges_to_dot(graph, dot)
-
-    # Render the graph and save as PNG
-    png_data = dot.pipe(format='png')
+    png_data = render_png_data(graphml_path)
     save_png(output_path, png_data)
 
     if workflow_dir:
@@ -58,11 +47,7 @@ def generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
             output_path = dags_dir + "/" + name_without_ext + ".png"
             graphml_path = os.path.join(graphmls_dir, filename)
 
-            graph = nx.read_graphml(graphml_path)
-            dot = graphviz.Digraph(comment='Hierarchical Graph')
-            add_nodes_to_dot(graph, dot)
-            add_edges_to_dot(graph, dot)
-            png_data = dot.pipe(format='png')
+            png_data = render_png_data(graphml_path)
             save_png(output_path, png_data)
 
 
@@ -75,6 +60,23 @@ def backup_dag(path, dags_dir, short_id):
             i += 1
             backup_path = f'{dags_dir}/{short_id}_v{i}.png'
         shutil.copy(path, backup_path)
+
+
+def render_png_data(graphml_path):
+    """Read a GraphML file, build the Graphviz Digraph, and return PNG bytes."""
+    # Load the GraphML file using NetworkX
+    graph = nx.read_graphml(graphml_path)
+
+    # Initialize Graphviz graph
+    dot = graphviz.Digraph(comment='Hierarchical Graph')
+
+    # Add nodes and edges using helper functions
+    add_nodes_to_dot(graph, dot)
+    add_edges_to_dot(graph, dot)
+
+    # Render the graph
+    png_data = dot.pipe(format='png')
+    return png_data
 
 
 def add_nodes_to_dot(graph, dot):
