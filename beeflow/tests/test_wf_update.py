@@ -3,6 +3,7 @@
 import os
 import pytest
 from beeflow.wf_manager.resources import wf_update
+from beeflow.tests.mocks import MockWFI
 
 
 @pytest.mark.parametrize(
@@ -20,6 +21,12 @@ def test_archive_workflow(tmpdir, mocker, test_function, expected_state):
     mocker.patch("os.path.expanduser", return_value=str(tmpdir))
     mocker.patch(
         "beeflow.wf_manager.resources.wf_utils.get_workflow_dir", return_value=workdir
+    )
+    mock_wfi = MockWFI()
+    mock_wfi.set_workflow_state = mocker.MagicMock()
+    mocker.patch(
+        "beeflow.wf_manager.resources.wf_utils.get_workflow_interface", 
+        return_value=mock_wfi
     )
     mocker.patch(
         "beeflow.common.config_driver.BeeConfig.get",
@@ -54,6 +61,7 @@ def test_archive_workflow(tmpdir, mocker, test_function, expected_state):
         mock_update_wf_status.assert_called_once_with("wf_id_test", expected_state)
         mock_remove_wf_dir.assert_called_once_with("wf_id_test")
         mock_log.assert_called_once_with("Removing Workflow Directory")
+        mock_wfi.set_workflow_state.assert_called_once_with(expected_state)
 
 
 @pytest.mark.parametrize("wf_state", ["Archived", "Archived/Failed"])

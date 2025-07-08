@@ -45,6 +45,8 @@ def archive_workflow(db, wf_id, final_state=None):
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
     db.workflows.update_workflow_state(wf_id, wf_state)
     wf_utils.update_wf_status(wf_id, wf_state)
+    wfi = wf_utils.get_workflow_interface(wf_id)
+    wfi.set_workflow_state(wf_state)
 
     archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
     os.makedirs(archive_dir, exist_ok=True)
