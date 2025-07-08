@@ -324,15 +324,10 @@ def convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir):
                      exception occurs; otherwise returns None on success.
     """
     if not shutil.which("dot"):
-        err_msg = 'Unable to convert graphmls to DAGs. Graphviz is not available.'
-        return err_msg
-
-    try:
-        generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir)
-        return None
-    except Exception as exc:
-        err_msg = f'Error while generating visualizations: {exc}'
-        return err_msg
+        msg = 'Unable to convert graphmls to DAGs. Graphviz is not available.'
+    else:
+        msg = generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir)
+    return msg
 
 
 def start_workflow(wf_id):

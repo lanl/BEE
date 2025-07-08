@@ -41,14 +41,21 @@ def generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
         dags_dir = output_dir + "/" + short_id + "-dags"
         os.makedirs(dags_dir, exist_ok=True)
 
+    msgs = []
     for filename in os.listdir(graphmls_dir):
         if filename.endswith('.graphml'):
             name_without_ext = os.path.splitext(filename)[0]
             output_path = dags_dir + "/" + name_without_ext + ".png"
             graphml_path = os.path.join(graphmls_dir, filename)
 
-            png_data = render_png_data(graphml_path)
-            save_png(output_path, png_data)
+            try:
+                png_data = render_png_data(graphml_path)
+                save_png(output_path, png_data)
+            except Exception as exc:
+                err_msg = f'Error while generating visualization for {graphml_path}: {exc}'
+                msgs.append(err_msg)
+
+    return  "\n".join(map(str, msgs))
 
 
 def backup_dag(path, dags_dir, short_id):
