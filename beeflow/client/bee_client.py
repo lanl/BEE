@@ -735,10 +735,13 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
 
     # Convert existing graphmls to DAGs if graphmls_dir was given
     if graphmls_dir:
-        wf_utils.convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir)
-        typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
-                fg=typer.colors.GREEN)
-        return
+        resp = wf_utils.convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir)
+        if resp:
+            error_exit(resp)
+        else:
+            typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
+                    fg=typer.colors.GREEN)
+            return
     # Check if the workflow is archived
     wf_status = get_wf_status(wf_id)
     if wf_status == 'Archived':

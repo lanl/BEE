@@ -313,11 +313,26 @@ def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
 
 
 def convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir):
-    dot_avail = bool(shutil.which("dot"))
-    if dot_avail:
+    """
+    Convert a directory of graphmls into DAGs.
+    
+    This function is used to turn graphmls that were generated
+    on a system without graphviz into DAGs on a system with graphviz.
+
+    Returns:
+        str or None: Returns an error message if Graphviz is not available or an
+                     exception occurs; otherwise returns None on success.
+    """
+    if not shutil.which("dot"):
+        err_msg = 'Unable to convert graphmls to DAGs. Graphviz is not available.'
+        return err_msg
+
+    try:
         generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir)
-    else:
-        log.error('Unable to convert graphmls to DAGs. Graphviz is not available.')
+        return None
+    except Exception as exc:
+        err_msg = f'Error while generating visualizations: {exc}'
+        return err_msg
 
 
 def start_workflow(wf_id):
