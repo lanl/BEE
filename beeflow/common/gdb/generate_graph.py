@@ -4,6 +4,8 @@ import os
 import shutil
 import networkx as nx
 import graphviz
+import subprocess
+import xml.etree.ElementTree
 
 
 def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
@@ -48,7 +50,12 @@ def generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
                     os.makedirs(dags_dir, exist_ok=True)
                     first = False
                 save_png(output_path, png_data)
-            except Exception as exc:
+
+            except(
+                nx.NetworkXError,
+                xml.etree.ElementTree.ParseError,
+                subprocess.CalledProcessError
+            ) as exc:
                 err_msg = f'Error while generating visualization for {graphml_path}: {exc}'
                 msgs.append(err_msg)
 
