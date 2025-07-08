@@ -55,6 +55,7 @@ class WFActions(Resource):
         db = connect_db(wfm_db, db_path)
         tasks = db.workflows.get_tasks(wf_id)
         tasks_status = []
+        """
         if not tasks:
             log.info(f"Bad query for wf {wf_id}.")
             wf_status = "No workflow with that ID is currently loaded"
@@ -66,7 +67,7 @@ class WFActions(Resource):
                 ).model_dump(),
                 404,
             )
-
+        """
         for task in tasks:
             tasks_status.append((task.id, task.name, task.state))
         wf_status = db.workflows.get_workflow_state(wf_id)
