@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 from copy import deepcopy
 import os
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel, model_validator
 
 from beeflow.common.container_path import convert_path
@@ -15,7 +15,7 @@ class InputParameter(BaseModel):
 
     id: str
     type: str
-    value: str | int
+    value: Any
 
 
 class OutputParameter(BaseModel):
@@ -23,7 +23,7 @@ class OutputParameter(BaseModel):
 
     id: str
     type: str
-    value: Optional[str] = None
+    value: Optional[Any] = None
     source: str
 
 
@@ -32,8 +32,8 @@ class StepInput(BaseModel):
 
     id: str
     type: str
-    value: Optional[str] = None
-    default: Optional[str] = None
+    value: Optional[Any] = None
+    default: Optional[Any] = None
     source: Optional[str] = None
     prefix: Optional[str] = None
     position: Optional[int] = None
@@ -45,7 +45,7 @@ class StepOutput(BaseModel):
 
     id: str
     type: str
-    value: Optional[str] = None
+    value: Optional[Any] = None
     glob: Optional[str] = None
 
 
@@ -54,6 +54,11 @@ class Requirement(BaseModel):
 
     class_: str
     params: dict
+
+    def __iter__(self):
+        """Make Requirement iterable for dict conversion."""
+        yield self.class_
+        yield self.params
 
 
 class Hint(BaseModel):
@@ -64,8 +69,8 @@ class Hint(BaseModel):
 
     def __iter__(self):
         """Make Hint iterable for dict conversion."""
-        yield "class_", self.class_
-        yield "params", self.params
+        yield self.class_
+        yield self.params
 
 
 def generate_workflow_id():

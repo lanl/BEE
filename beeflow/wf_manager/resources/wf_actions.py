@@ -53,24 +53,23 @@ class WFActions(Resource):
     def get(wf_id):
         """Check the database for the current status of all tasks."""
         db = connect_db(wfm_db, db_path)
-        tasks = db.workflows.get_tasks(wf_id)
-        tasks_status = []
-        """
-        if not tasks:
-            log.info(f"Bad query for wf {wf_id}.")
-            wf_status = "No workflow with that ID is currently loaded"
+
+        wf_status = db.workflows.get_workflow_state(wf_id)
+        if not wf_status:
+            log.info(f"Workflow {wf_id} not found in the database.")
             return (
                 WorkflowStatusResponse(
-                    tasks_status=tasks_status,
-                    wf_status=wf_status,
+                    tasks_status=[],
+                    wf_status="Not Found",
                     msg="Workflow not found",
                 ).model_dump(),
                 404,
             )
-        """
+
+        tasks = db.workflows.get_tasks(wf_id)
+        tasks_status = []
         for task in tasks:
             tasks_status.append((task.id, task.name, task.state))
-        wf_status = db.workflows.get_workflow_state(wf_id)
 
         return (
             WorkflowStatusResponse(
