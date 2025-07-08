@@ -10,7 +10,7 @@ from celery import shared_task # pylint: disable=W0611 # pylint can't find celer
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb import neo4j_driver
-from beeflow.common.gdb.generate_graph import generate_viz
+from beeflow.common.gdb.generate_graph import generate_viz, generate_all_viz
 from beeflow.common.gdb.graphml_key_updater import update_graphml
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
