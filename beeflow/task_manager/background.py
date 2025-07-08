@@ -40,9 +40,11 @@ def resolve_environment(task):
 def submit_task(db, worker, task):
     """Submit (or resubmit) a task."""
     try:
-        log.info(f'Resolving environment for task {task.name}')
-        resolve_environment(task)
-        log.info(f'Environment preparation complete for task {task.name}')
+        has_container = task.get_full_requirement('DockerRequirement')
+        if has_container:
+            log.info(f'Resolving environment for task {task.name}')
+            resolve_environment(task)
+            log.info(f'Environment preparation complete for task {task.name}')
         job_id, job_state = worker.submit_task(task)
         log.info(f"Job Submitted '{task.name}' job_id: {job_id} job_state: {job_state}")
         # place job in queue to monitor

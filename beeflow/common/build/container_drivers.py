@@ -45,48 +45,53 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         :param task: the task to build for
         :type task: Task
         """
-        # Store build container archive pased on config file or relative to bee_workdir if not set.
-        container_archive = bc.get('builder', 'container_archive')
-        self.container_archive = bc.resolve_path(container_archive)
-        os.makedirs(self.container_archive, exist_ok=True)
-        # Deploy build tarballs relative to /var/tmp/username/beeflow by default
-        deployed_image_root = bc.get('builder', 'deployed_image_root')
-        # Make sure conf_file path exists
-        os.makedirs(deployed_image_root, exist_ok=True)
-        # Make sure path is absolute
-        deployed_image_root = bc.resolve_path(deployed_image_root)
-        self.deployed_image_root = deployed_image_root
-        os.makedirs(self.deployed_image_root, exist_ok=True)
-        # Set container-relative output directory based on BeeConfig, or use '/'
-        container_output_path = bc.get('builder', 'container_output_path')
-        self.container_output_path = container_output_path
-        # record that a Charliecloud builder was used
-        # bc.modify_section('user', 'builder', {'container_type': 'charliecloud'})
-        self.task = task
-        self.docker_image_id = None
-        self.container_name = None
-        docker_requirements = set()
-        try:
-            requirement_docker_requirements = dict(self.task.requirements)[
-                'DockerRequirement'].keys()
-            docker_requirements = docker_requirements.union(requirement_docker_requirements)
-            req_string = f'{set(requirement_docker_requirements)}'
-            log.info(f'task {self.task.id} requirement DockerRequirements: {req_string}')
-        except (TypeError, KeyError):
-            log.info(f'task {self.task.name} {self.task.id} no DockerRequirements in requirement')
-        try:
-            hint_docker_requirements = dict(self.task.hints)['DockerRequirement'].keys()
-            docker_requirements = docker_requirements.union(hint_docker_requirements)
-            hint_str = f'{set(hint_docker_requirements)}'
-            log.info(f'task {self.task.name} {self.task.id} hint DockerRequirements: {hint_str}')
-        except (TypeError, KeyError):
-            log.info(f'task {self.task.name} {self.task.id} hints has no DockerRequirements')
-        log.info(f'task {self.task.id} union DockerRequirements : {docker_requirements}')
-        exec_superset = self.resolve_priority()
-        self.exec_list = [i for i in exec_superset if i[1] in docker_requirements]
-        log_exec_list = [i[1] for i in self.exec_list]
-        log.info(f'task {self.task.id} DockerRequirement execution order will be: {log_exec_list}')
-        log.info('Execution order pre-empts hint/requirement status.')
+        has_container = task.get_full_requirement('DockerRequirement')
+        if has_container:  # only try to build if task has a container
+            # Store build container archive pased on config file or relative to bee_workdir
+            # if not set.
+            container_archive = bc.get('builder', 'container_archive')
+            self.container_archive = bc.resolve_path(container_archive)
+            os.makedirs(self.container_archive, exist_ok=True)
+            # Deploy build tarballs relative to /var/tmp/username/beeflow by default
+            deployed_image_root = bc.get('builder', 'deployed_image_root')
+            # Make sure conf_file path exists
+            os.makedirs(deployed_image_root, exist_ok=True)
+            # Make sure path is absolute
+            deployed_image_root = bc.resolve_path(deployed_image_root)
+            self.deployed_image_root = deployed_image_root
+            os.makedirs(self.deployed_image_root, exist_ok=True)
+            # Set container-relative output directory based on BeeConfig, or use '/'
+            container_output_path = bc.get('builder', 'container_output_path')
+            self.container_output_path = container_output_path
+            # record that a Charliecloud builder was used
+            # bc.modify_section('user', 'builder', {'container_type': 'charliecloud'})
+            self.task = task
+            self.docker_image_id = None
+            self.container_name = None
+            docker_requirements = set()
+            try:
+                req_docker_requirements = dict(self.task.requirements)['DockerRequirement'].keys()
+                docker_requirements = docker_requirements.union(req_docker_requirements)
+                req_string = f'{set(req_docker_requirements)}'
+                log.info(f'task {self.task.id} requirement DockerRequirements: {req_string}')
+            except (TypeError, KeyError):
+                log.info(f'task {self.task.name} {self.task.id} '
+                         'no DockerRequirements in requirement')
+            try:
+                hint_docker_requirements = dict(self.task.hints)['DockerRequirement'].keys()
+                docker_requirements = docker_requirements.union(hint_docker_requirements)
+                hint_str = f'{set(hint_docker_requirements)}'
+                log.info(f'task {self.task.name} {self.task.id} hint '
+                         f'DockerRequirements: {hint_str}')
+            except (TypeError, KeyError):
+                log.info(f'task {self.task.name} {self.task.id} hints has no DockerRequirements')
+            log.info(f'task {self.task.id} union DockerRequirements : {docker_requirements}')
+            exec_superset = self.resolve_priority()
+            self.exec_list = [i for i in exec_superset if i[1] in docker_requirements]
+            log_exec_list = [i[1] for i in self.exec_list]
+            log.info(f'task {self.task.id} DockerRequirement execution order '
+                     f'will be: {log_exec_list}')
+            log.info('Execution order pre-empts hint/requirement status.')
 
     def get_docker_req(self, docker_req_param):
         """Get dockerRequirement, prioritizing requirements over hints.
