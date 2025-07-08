@@ -56,8 +56,9 @@ def generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
         if filename.endswith('.graphml'):
             name_without_ext = os.path.splitext(filename)[0]
             output_path = dags_dir + "/" + name_without_ext + ".png"
+            graphml_path = os.path.join(graphmls_dir, filename)
 
-            graph = nx.read_graphml(filename)
+            graph = nx.read_graphml(graphml_path)
             dot = graphviz.Digraph(comment='Hierarchical Graph')
             add_nodes_to_dot(graph, dot)
             add_edges_to_dot(graph, dot)
