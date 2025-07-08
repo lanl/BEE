@@ -10,17 +10,14 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None)
     """Generate a PNG of a workflow graph from a GraphML file."""
     short_id = wf_id[:6]
     graphml_path = graphmls_dir + "/" + short_id + ".graphml"
+    # Render png data
+    png_data = render_png_data(graphml_path)
 
-    if no_dag_dir:
-        dags_dir = output_dir
-    else:
-        dags_dir = output_dir + "/" + short_id + "-dags"
-        os.makedirs(dags_dir, exist_ok=True)
-
+    # Back up DAG and save
+    dags_dir = output_dir if no_dag_dir else os.path.join(output_dir, f"{short_id}-dags")
+    os.makedirs(dags_dir, exist_ok=True)
     output_path = dags_dir + "/" + short_id + ".png"
     backup_dag(output_path, dags_dir, short_id)
-
-    png_data = render_png_data(graphml_path)
     save_png(output_path, png_data)
 
     if workflow_dir:
@@ -35,13 +32,10 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None)
 def generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
     "Create DAGs from an exisiting collection of GraphMLs."
     short_id = wf_id[:6]
-    if no_dag_dir:
-        dags_dir = output_dir
-    else:
-        dags_dir = output_dir + "/" + short_id + "-dags"
-        os.makedirs(dags_dir, exist_ok=True)
+    dags_dir = output_dir if no_dag_dir else os.path.join(output_dir, f"{short_id}-dags")
 
     msgs = []
+    first = True
     for filename in os.listdir(graphmls_dir):
         if filename.endswith('.graphml'):
             name_without_ext = os.path.splitext(filename)[0]
@@ -50,6 +44,9 @@ def generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
 
             try:
                 png_data = render_png_data(graphml_path)
+                if first:
+                    os.makedirs(dags_dir, exist_ok=True)
+                    first = False
                 save_png(output_path, png_data)
             except Exception as exc:
                 err_msg = f'Error while generating visualization for {graphml_path}: {exc}'
