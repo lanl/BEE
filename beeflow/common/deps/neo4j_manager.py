@@ -7,11 +7,12 @@ import subprocess
 import time
 import logging
 
-from neo4j import GraphDatabase
-from neo4j import exceptions as neo4j_exc
+from neo4j import GraphDatabase as Neo4jDatabase
+from neo4j.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.neo4j_driver import (DEFAULT_USER, DEFAULT_PASSWORD, DEFAULT_HOSTNAME,
-                                             DEFAULT_BOLT_PORT, MAX_WAIT_SECS, RETRY_DELAY_SECS)
+                                             DEFAULT_BOLT_PORT, MAX_WAIT_SECS, RETRY_DELAY_SECS,
+                                             Neo4jNotRunning)
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import wfm_db
@@ -206,19 +207,17 @@ def wait_gdb(bolt_port=DEFAULT_BOLT_PORT, user=DEFAULT_USER, password=DEFAULT_PA
     uri = f"bolt://{db_hostname}:{bolt_port}"
     start_time = time.monotonic()
 
+    driver = Neo4jDatabase.driver(uri, auth=(user, password))
     while True:
         try:
-            with GraphDatabase.driver(uri, auth=(user, password)) as driver:
-                driver.verify_connectivity()      # asks server for a tiny query
-            # Success → database is ready
+            driver.verify_connectivity()
             log.info("Neo4j is up and responding")
             return
-        except (neo4j_exc.ServiceUnavailable,
-                neo4j_exc.DriverError):
+        except ServiceUnavailable as sue:
             elapsed = time.monotonic() - start_time
             if elapsed >= MAX_WAIT_SECS:
-                log.info("Max wait time elapsed")
-                return
+                log.error("Neo4j database is unavailable")
+                raise Neo4jNotRunning("Neo4j database is unavailable") from sue
             log.info(f"Waiting {RETRY_DELAY_SECS} seconds for Neo4j to become ready...")
             time.sleep(RETRY_DELAY_SECS)
 
