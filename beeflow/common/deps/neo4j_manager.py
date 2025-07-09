@@ -10,7 +10,8 @@ import logging
 from beeflow.common.gdb import neo4j_driver
 from beeflow.common.gdb.neo4j_driver import (DEFAULT_BOLT_PORT)
 
-from beeflow.wf_manager.resources import wf_utils
+from beeflow.common.db.bdb import connect_db
+
 from beeflow.common.db import wfm_db
 
 from beeflow.common import paths
@@ -49,7 +50,7 @@ def setup_ports():
     http_port = get_open_port()
     https_port = get_open_port()
 
-    db = wf_utils.connect_db(wfm_db, wf_utils.get_db_path())
+    db = connect_db(wfm_db, bc.get('DEFAULT', 'bee_workdir') + "/wfm.db")
 
     db.info.set_port('bolt', bolt_port)
     db.info.set_port('http', http_port)
