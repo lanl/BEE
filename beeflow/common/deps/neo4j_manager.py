@@ -7,12 +7,8 @@ import subprocess
 import time
 import logging
 
-from neo4j import GraphDatabase as Neo4jDatabase
-from neo4j.exceptions import ServiceUnavailable
-
-from beeflow.common.gdb.neo4j_driver import (DEFAULT_USER, DEFAULT_PASSWORD, DEFAULT_HOSTNAME,
-                                             DEFAULT_BOLT_PORT, MAX_WAIT_SECS, RETRY_DELAY_SECS,
-                                             Neo4jNotRunning)
+from beeflow.common.gdb import neo4j_driver
+from beeflow.common.gdb.neo4j_driver import (DEFAULT_BOLT_PORT)
 
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import wfm_db
@@ -166,8 +162,7 @@ def create_database(bolt_port):
             "-W", "-b", GRAPHMLS_DIR + ":/var/lib/neo4j/import",
             CONTAINER_PATH, "--", *command
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        wait_gdb(bolt_port=bolt_port, user="neo4j", password=bc.get('graphdb', 'dbpass'),
-                 hostname=bc.get('graphdb', 'hostname'))
+        wait_gdb(bolt_port=bolt_port)
         return proc
 
     except FileNotFoundError:
@@ -198,28 +193,20 @@ def start():
     return create_database(bolt_port=bolt_port)
 
 
-def wait_gdb(bolt_port=DEFAULT_BOLT_PORT, user=DEFAULT_USER, password=DEFAULT_PASSWORD, **kwargs):
+def wait_gdb(bolt_port=DEFAULT_BOLT_PORT):
     """
-    Block until the Neo4j instance answers a Bolt handshake
-    or raise RuntimeError after MAX_WAIT_SECS.
+    Block until the Neo4j instance answers a Bolt handshake.
     """
-    db_hostname = kwargs.get("db_hostname", DEFAULT_HOSTNAME)
-    uri = f"bolt://{db_hostname}:{bolt_port}"
-    start_time = time.monotonic()
+    connect_neo4j_driver(bolt_port)
 
-    driver = Neo4jDatabase.driver(uri, auth=(user, password))
-    while True:
-        try:
-            driver.verify_connectivity()
-            log.info("Neo4j is up and responding")
-            return
-        except ServiceUnavailable as sue:
-            elapsed = time.monotonic() - start_time
-            if elapsed >= MAX_WAIT_SECS:
-                log.error("Neo4j database is unavailable")
-                raise Neo4jNotRunning("Neo4j database is unavailable") from sue
-            log.info(f"Waiting {RETRY_DELAY_SECS} seconds for Neo4j to become ready...")
-            time.sleep(RETRY_DELAY_SECS)
+
+def connect_neo4j_driver(bolt_port):
+    """Create a neo4j driver to a gdb through bolt port."""
+    driver = neo4j_driver.Neo4jDriver()
+    driver.connect(user="neo4j", bolt_port=bolt_port,
+                   db_hostname=bc.get("graphdb", "hostname"),
+                   password=bc.get("graphdb", "dbpass"))
+    driver.create_bee_node()
 
 
 def remove_gdb():
