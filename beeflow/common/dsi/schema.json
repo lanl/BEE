@@ -1,0 +1,51 @@
+{
+  "workflow": {
+    "primary_key": "id"
+  },
+  "task": {
+    "primary_key": "id",
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "input_parameter": {
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "output_parameter": {
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "step_input": {
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "step_output": {
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "requirement": {
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "hint": {
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "task_requirement": {
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "task_hint": {
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  }
+}
