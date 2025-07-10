@@ -17,6 +17,7 @@ from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
+from beeflow.common.deps.neo4j_manager import connect_neo4j_driver
 
 
 log = bee_logging.setup(__name__)
@@ -259,15 +260,6 @@ def schedule_submit_tasks(wf_id, tasks):
     allocation = submit_tasks_scheduler(tasks)
     # Submit tasks to TM
     submit_tasks_tm(wf_id, tasks, allocation)
-
-
-def connect_neo4j_driver(bolt_port):
-    """Create a neo4j driver to a gdb through bolt port."""
-    driver = neo4j_driver.Neo4jDriver()
-    driver.connect(user="neo4j", bolt_port=bolt_port,
-                   db_hostname=bc.get("graphdb", "hostname"),
-                   password=bc.get("graphdb", "dbpass"))
-    driver.create_bee_node()
 
 
 def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, # pylint: disable=W0613
