@@ -70,7 +70,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             self.container_name = None
             docker_requirements = set()
             try:
-                req_docker_requirements = self.task.requirements['DockerRequirement'].keys()
+                req_docker_requirements = dict(self.task.requirements)['DockerRequirement'].keys()
                 docker_requirements = docker_requirements.union(req_docker_requirements)
                 req_string = f'{set(req_docker_requirements)}'
                 log.info(f'task {self.task.id} requirement DockerRequirements: {req_string}')
@@ -78,7 +78,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
                 log.info(f'task {self.task.name} {self.task.id} '
                          'no DockerRequirements in requirement')
             try:
-                hint_docker_requirements = self.task.hints['DockerRequirement'].keys()
+                hint_docker_requirements = dict(self.task.hints)['DockerRequirement'].keys()
                 docker_requirements = docker_requirements.union(hint_docker_requirements)
                 hint_str = f'{set(hint_docker_requirements)}'
                 log.info(f'task {self.task.name} {self.task.id} hint '
@@ -106,7 +106,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
         # Get value if specified in requirements
         try:
             # Try to get Requirements
-            task_docker_req = self.task.requirements['DockerRequirement'][docker_req_param]
+            task_docker_req = dict(self.task.requirements)['DockerRequirement'][docker_req_param]
         except (KeyError, TypeError):
             # Task Requirements are not mandatory. No docker_req_param specified in task reqs.
             task_docker_req = None
@@ -115,7 +115,7 @@ class CharliecloudBuildDriver(ContainerBuildDriver):
             # Get value if specified in hints
             try:
                 # Try to get Hints
-                task_docker_req = self.task.hints['DockerRequirement'][docker_req_param]
+                task_docker_req = dict(self.task.hints)['DockerRequirement'][docker_req_param]
             except (KeyError, TypeError):
                 # Task Hints are not mandatory. No docker_req_param specified in task hints.
                 task_docker_req = None

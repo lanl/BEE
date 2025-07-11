@@ -9,9 +9,10 @@ import os
 
 from flask import Flask, request
 from flask_restful import Resource, Api
+from pydantic import ValidationError
 
 from beeflow.scheduler import algorithms
-from beeflow.scheduler import task
+from beeflow.scheduler.models import ScheduleTasksRequest, ScheduleTasksResponse
 from beeflow.scheduler import resource_allocation
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.db import sched_db
@@ -55,12 +56,14 @@ class WorkflowJobHandler(Resource):
     def put(workflow_name):   # pylint: disable=W0613 # 'workflow_name' may be used in the future
         """Schedules a new list of independent tasks with available resources."""
         db = connect_db(sched_db, db_path)
-        data = request.json
-        tasks = [task.Task.decode(t) for t in data]
+        try:
+            tasks = ScheduleTasksRequest.model_validate(request.json).tasks
+        except ValidationError as exc:
+            log.error('Error parsing request: %s', exc)
         # Pick the scheduling algorithm
         algorithm = algorithms.choose(**vars(flask_app.sched_conf))
         algorithm.schedule_all(tasks, list(db.resources))
-        return [t.encode() for t in tasks]
+        return ScheduleTasksResponse(tasks=tasks).model_dump(), 200
 
 
 api.add_resource(ResourcesHandler, '/bee_sched/v1/resources')

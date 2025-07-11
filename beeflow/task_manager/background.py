@@ -4,13 +4,13 @@ This code processes submitted tasks, monitors status, and sends info back to
 the Workflow Manager.
 """
 import traceback
-import jsonpickle
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.task_manager import utils
 from beeflow.common import log as bee_logging
 from beeflow.common.build.utils import ContainerBuildError
 from beeflow.common.build_interfaces import build_main
 from beeflow.common.worker import WorkerError
+from beeflow.wf_manager.models import TaskStateUpdateRequest
 
 JOBS_MAX = 1000
 log = bee_logging.setup(__name__)
@@ -141,9 +141,9 @@ def process_queues():
 
     # Attempt to send a batch of task updates to the wfm, otherwise keep the
     # updates for later
-    state_updates = jsonpickle.encode(db.update_queue.updates())
+    state_updates = TaskStateUpdateRequest(state_updates=db.update_queue.updates())
     conn = utils.wfm_conn()
-    resp = conn.put(utils.wfm_resource_url("update/"), json={'state_updates': state_updates})
+    resp = conn.put(utils.wfm_resource_url("update/"), json=state_updates.model_dump())
     if resp.status_code == 200:
         # The workflow manager received the updates, so clear the queue
         db.update_queue.clear()

@@ -4,6 +4,7 @@
 # pylint:disable=W0511
 
 from beeflow.scheduler import serializable
+from beeflow.scheduler.models import Allocation
 
 
 class TaskAllocator:
@@ -188,78 +189,3 @@ class Resource(serializable.Serializable):
         :type data: dict
         """
         return Resource(**data)
-
-
-class Requirements(serializable.Serializable):
-    """Requirements class.
-
-    Requirements class representing task requirements.
-    """
-
-    # TODO: Determine default requirements
-    def __init__(self, max_runtime, nodes=1, mem_per_node=1024,
-                 gpus_per_node=0, cost=1):
-        """Construct a requirements object.
-
-        :param max_runtime: maximum runtime in seconds
-        :type max_runtime: int
-        :param nodes: number of nodes in total
-        :type nodes: int
-        :param mem_per_node: amount of memory per node
-        :type mem_per_node: int
-        :param gpus_per_node: number of gpus per node
-        :type gpus_per_node: int
-        :param cost: cost value
-        :type cost: float
-        """
-        self.max_runtime = max_runtime
-        self.nodes = nodes
-        self.mem_per_node = mem_per_node
-        self.gpus_per_node = gpus_per_node
-        # TODO: Determine what other requirement properties are needed
-        # TODO: Determine what the cost should be and how it is computed
-        self.cost = cost
-
-    @staticmethod
-    def decode(data):
-        """Decode the requirements.
-
-        :param data: data representing the requirements
-        :type data: dict
-        """
-        return Requirements(**data)
-
-
-class Allocation(serializable.Serializable):
-    """Allocation class.
-
-    This represents an allocation for a task on a single resource.
-    """
-
-    def __init__(self, id_, start_time, max_runtime, nodes):
-        """Allocation constructor.
-
-        :param id_: ID of the resource
-        :type id_: str
-        :param start_time: start time of the allocation (seconds)
-        :type start_time: int
-        :param max_runtime: maximum runtime of the allocation (seconds)
-        :type max_runtime: int
-        :param nodes: number of nodes allocated
-        :type nodes: int
-        """
-        self.id_ = id_
-        self.start_time = start_time
-        self.max_runtime = max_runtime
-        # TODO: Determine what other allocation properties are needed (other
-        # than just nodes)
-        self.nodes = nodes
-
-    @staticmethod
-    def decode(data):
-        """Decode the allocation.
-
-        :param data: data representing the allocation
-        :type data: dict
-        """
-        return Allocation(**data)

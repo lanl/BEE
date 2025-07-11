@@ -8,7 +8,6 @@ import sys
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, jsonify, make_response
 from beeflow.common.api import BeeApi
-from beeflow.task_manager.task_submit import TaskSubmit
 from beeflow.task_manager.task_actions import TaskActions
 from beeflow.task_manager.background import process_queues
 from beeflow.common.config_driver import BeeConfig as bc
@@ -20,7 +19,6 @@ def create_app():
     api = BeeApi(app)
 
     # Endpoints
-    api.add_resource(TaskSubmit, '/bee_tm/v1/task/submit/')
     api.add_resource(TaskActions, '/bee_tm/v1/task/')
 
     @app.route('/status')

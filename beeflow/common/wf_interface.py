@@ -117,7 +117,7 @@ class WorkflowInterface:
             log.error("invalid task for checkpoint restart")
             raise ValueError("invalid task for checkpoint restart")
 
-        new_task = task.copy(new_id=True)
+        new_task = task.copy(update={"new_id": True})
         # Pattern match on task name
         # Append (1) if not in name already
         # Increment number on each restart

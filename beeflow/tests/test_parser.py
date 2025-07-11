@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 import os
 from beeflow.common.parser import CwlParser, CwlParseError, parser
-from beeflow.common.wf_data import (generate_workflow_id, Workflow, Task, Hint,
+from beeflow.common.object_models import (generate_workflow_id, Workflow, Task, Hint,
                                     StepInput, StepOutput, InputParameter, OutputParameter)
 import pytest
 from collections import OrderedDict
@@ -24,7 +24,7 @@ def normalize_globs(tasks):
     root = os.getcwd()
     for task in tasks:
         new_outputs = [
-            output._replace(glob=output.glob.replace(root, '').strip('/'))
+            output.__replace__(glob=output.glob.replace(root, '').strip('/'))
             for output in task.outputs
         ]
         task.outputs = new_outputs
@@ -129,7 +129,7 @@ WORKFLOW_GOLD_SCRIPT = Workflow(
     name='clamr_wf',
     hints=[],
     requirements=[],
-    inputs={InputParameter(id='input_format', type='string', value='image2'),
+    inputs=[InputParameter(id='input_format', type='string', value='image2'),
             InputParameter(id='time_steps', type='int', value=5000),
             InputParameter(id='output_filename', type='string', value='./CLAMR_movie.mp4'),
             InputParameter(id='frame_size', type='string', value='800x800'),
@@ -139,22 +139,22 @@ WORKFLOW_GOLD_SCRIPT = Workflow(
             InputParameter(id='steps_between_outputs', type='int', value=10),
             InputParameter(id='pixel_format', type='string', value='yuv420p'),
             InputParameter(id='grid_resolution', type='int', value=32),
-            InputParameter(id='steps_between_graphics', type='int', value=25)},
-    outputs={OutputParameter(id='clamr_stdout', type='File', value=None,
+            InputParameter(id='steps_between_graphics', type='int', value=25)],
+    outputs=[OutputParameter(id='clamr_stdout', type='File', value=None,
                              source='clamr/clamr_stdout'),
              OutputParameter(id='clamr_movie', type='File', value=None, source='ffmpeg/movie'),
              OutputParameter(id='ffmpeg_stderr', type='File', value=None,
                              source='ffmpeg/ffmpeg_stderr'),
              OutputParameter(id='clamr_time_log', type='File', value=None,
-                             source='clamr/time_log')},
-    workflow_id=generate_workflow_id())
+                             source='clamr/time_log')],
+    id=generate_workflow_id())
 
 
 WORKFLOW_GOLD = Workflow(
     name='clamr_wf',
     hints=[],
     requirements=[],
-    inputs={InputParameter(id='input_format', type='string', value='image2'),
+    inputs=[InputParameter(id='input_format', type='string', value='image2'),
             InputParameter(id='time_steps', type='int', value=5000),
             InputParameter(id='output_filename', type='string', value='CLAMR_movie.mp4'),
             InputParameter(id='frame_size', type='string', value='800x800'),
@@ -164,15 +164,15 @@ WORKFLOW_GOLD = Workflow(
             InputParameter(id='steps_between_outputs', type='int', value=10),
             InputParameter(id='pixel_format', type='string', value='yuv420p'),
             InputParameter(id='grid_resolution', type='int', value=32),
-            InputParameter(id='steps_between_graphics', type='int', value=25)},
-    outputs={OutputParameter(id='clamr_stdout', type='File', value=None,
+            InputParameter(id='steps_between_graphics', type='int', value=25)],
+    outputs=[OutputParameter(id='clamr_stdout', type='File', value=None,
                              source='clamr/clamr_stdout'),
              OutputParameter(id='clamr_movie', type='File', value=None, source='ffmpeg/movie'),
              OutputParameter(id='ffmpeg_stderr', type='File', value=None,
                              source='ffmpeg/ffmpeg_stderr'),
              OutputParameter(id='clamr_time_log', type='File', value=None,
-                             source='clamr/time_log')},
-    workflow_id=generate_workflow_id())
+                             source='clamr/time_log')],
+    id=generate_workflow_id())
 
 TASKS_GOLD_SCRIPT = [
     Task(
@@ -360,10 +360,10 @@ WORKFLOW_NOJOB_GOLD = Workflow(
     name='cf',
     hints=[],
     requirements=[],
-    inputs={InputParameter(id='infile', type='File', value='infile')},
-    outputs={OutputParameter(id='ffmpeg_movie', type='File', value=None, source='ffmpeg/outfile'),
-             OutputParameter(id='clamr_dir', type='File', value=None, source='clamr/outfile')},
-    workflow_id=generate_workflow_id())
+    inputs=[InputParameter(id='infile', type='File', value='infile')],
+    outputs=[OutputParameter(id='ffmpeg_movie', type='File', value=None, source='ffmpeg/outfile'),
+             OutputParameter(id='clamr_dir', type='File', value=None, source='clamr/outfile')],
+    id=generate_workflow_id())
 
 
 TASKS_NOJOB_GOLD = [
