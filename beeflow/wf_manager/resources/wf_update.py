@@ -16,6 +16,8 @@ from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.config_driver import BeeConfig as bc
 
+from beeflow.common.dsi.dsi_manager import dsi_manager
+
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
 
@@ -45,6 +47,9 @@ def archive_workflow(db, wf_id, final_state=None):
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
     db.workflows.update_workflow_state(wf_id, wf_state)
     wf_utils.update_wf_status(wf_id, wf_state)
+    wfi = wf_utils.get_workflow_interface(wf_id)
+    wfi.set_workflow_state(wf_state)
+    dsi_manager.save_wf_info(wfi)
 
     archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
     os.makedirs(archive_dir, exist_ok=True)

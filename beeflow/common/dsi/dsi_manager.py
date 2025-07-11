@@ -1,14 +1,17 @@
 """Contains the DSI manager for workflow histories"""
-from dsi.dsi import DSI
-from beeflow.common.paths import workdir
 import json
+import importlib.resources
+from dsi.dsi import DSI
+
+from beeflow.common.paths import workdir
 
 
 class DSIManager:
     """Manager for the DSI (Data Storage Interface) used in Beeflow."""
     def __init__(self):
         self.dsi = DSI(f'{workdir()}/bee.db')
-        self.dsi.schema("schema.json")
+        with importlib.resources.path("beeflow.common.dsi", "schema.json") as schema_path:
+            self.dsi.schema(str(schema_path))
 
     def save_wf_info(self, wfi):
         """Save workflow information to the DSI."""
@@ -23,7 +26,6 @@ class DSIManager:
         task_dict_list = [{
             "id": task.id,
             "name": task.name,
-            "state": task.state,
             "stdout": task.stdout,
             "stderr": task.stderr,
             "workdir": str(task.workdir),
