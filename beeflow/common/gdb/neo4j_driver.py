@@ -10,6 +10,7 @@ either standardized or read from a config file.
 # Disable E1129: External module is missing proper resource context manager methods.
 # pylint:disable=E1129
 
+import time
 from neo4j import GraphDatabase as Neo4jDatabase
 from neo4j.exceptions import ServiceUnavailable
 
@@ -35,6 +36,8 @@ DEFAULT_HOSTNAME = "localhost"
 DEFAULT_BOLT_PORT = "7687"
 DEFAULT_USER = "neo4j"
 DEFAULT_PASSWORD = "password"
+MAX_WAIT_SECS = 60
+RETRY_DELAY_SECS = 5
 
 
 class Neo4jNotRunning(Exception):
@@ -69,16 +72,20 @@ class Neo4jDriver(GraphDatabaseDriver):
         bolt_port = kwargs.get("bolt_port", DEFAULT_BOLT_PORT)
         password = kwargs.get("db_pass", DEFAULT_PASSWORD)
         uri = f"bolt://{db_hostname}:{bolt_port}"
-        try:
-            # Connect to the Neo4j database using the Neo4j proprietary driver
-            self._driver = Neo4jDatabase.driver(   # pylint: disable=W0201
-                uri, auth=(user, password)
-            )
-            # Checks the connection and returns ServiceUnavailable if something is wrong
-            self._driver.verify_connectivity()
-        except ServiceUnavailable as sue:
-            log.error("Neo4j database is unavailable")
-            raise Neo4jNotRunning("Neo4j database is unavailable") from sue
+
+        start_time = time.monotonic()
+        self._driver = Neo4jDatabase.driver(uri, auth=(user, password)) # pylint: disable=W0201
+        while True:
+            try:
+                self._driver.verify_connectivity()
+                return
+            except ServiceUnavailable as sue:
+                elapsed = time.monotonic() - start_time
+                if elapsed >= MAX_WAIT_SECS:
+                    log.error("Neo4j database is unavailable")
+                    raise Neo4jNotRunning("Neo4j database is unavailable") from sue
+            log.info(f"Waiting {RETRY_DELAY_SECS} seconds for Neo4j to become ready...")
+            time.sleep(RETRY_DELAY_SECS)
 
     def create_bee_node(self):
         """Create the "BEE" node for all workflows to connect to."""

@@ -5,8 +5,13 @@ import shutil
 import re
 import subprocess
 import time
+import logging
 
-from beeflow.wf_manager.resources import wf_utils
+from beeflow.common.gdb import neo4j_driver
+from beeflow.common.gdb.neo4j_driver import (DEFAULT_BOLT_PORT)
+
+from beeflow.common.db.bdb import connect_db
+
 from beeflow.common.db import wfm_db
 
 from beeflow.common import paths
@@ -14,6 +19,7 @@ from beeflow.common.deps import container_manager
 
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common import log as bee_logging
+
 
 BEE_WORKDIR = None
 MOUNT_DIR = None
@@ -23,9 +29,9 @@ RUN_DIR = None
 CERTS_DIR = None
 CONFS_DIR = None
 GRAPHMLS_DIR = None
-CONTAINER_PATH = Nonelog = bee_logging.setup('neo4j')
-log = bee_logging.setup('neo4j')
+CONTAINER_PATH = None
 
+log = None  # pylint: disable=C0103
 
 def get_open_port():
     """Return an open ephemeral port."""
@@ -44,7 +50,7 @@ def setup_ports():
     http_port = get_open_port()
     https_port = get_open_port()
 
-    db = wf_utils.connect_db(wfm_db, wf_utils.get_db_path())
+    db = connect_db(wfm_db, bc.get('DEFAULT', 'bee_workdir') + "/wfm.db")
 
     db.info.set_port('bolt', bolt_port)
     db.info.set_port('http', http_port)
@@ -141,7 +147,7 @@ def create_credentials():
         log.error("neo4j-admin set-initial-password failed")
 
 
-def create_database():
+def create_database(bolt_port):
     """Create the neo4j database and return the process."""
     try:
         command = ['neo4j', 'console']
@@ -157,7 +163,7 @@ def create_database():
             "-W", "-b", GRAPHMLS_DIR + ":/var/lib/neo4j/import",
             CONTAINER_PATH, "--", *command
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        wait_gdb()
+        wait_gdb(bolt_port=bolt_port)
         return proc
 
     except FileNotFoundError:
@@ -167,6 +173,12 @@ def create_database():
 
 def start():
     """Start the graph database."""
+
+    global log
+    log = bee_logging.setup("neo4j")
+    log.setLevel(logging.INFO)
+    log.propagate = False
+
     log.info('Starting Neo4j Database')
 
     bolt_port, http_port, https_port = setup_ports()
@@ -179,17 +191,23 @@ def start():
 
     create_credentials()
 
-    return create_database()
+    return create_database(bolt_port=bolt_port)
 
 
-def wait_gdb():
-    """Need to wait for the GDB. Currently, we're using the sleep time paramater.
-
-    We'd like to remove that in the future.
+def wait_gdb(bolt_port=DEFAULT_BOLT_PORT):
     """
-    gdb_sleep_time = bc.get('graphdb', 'sleep_time')
-    print(f'waiting {gdb_sleep_time}s for GDB to come up')
-    time.sleep(gdb_sleep_time)
+    Block until the Neo4j instance answers a Bolt handshake.
+    """
+    connect_neo4j_driver(bolt_port)
+
+
+def connect_neo4j_driver(bolt_port):
+    """Create a neo4j driver to a gdb through bolt port."""
+    driver = neo4j_driver.Neo4jDriver()
+    driver.connect(user="neo4j", bolt_port=bolt_port,
+                   db_hostname=bc.get("graphdb", "hostname"),
+                   password=bc.get("graphdb", "dbpass"))
+    driver.create_bee_node()
 
 
 def remove_gdb():
