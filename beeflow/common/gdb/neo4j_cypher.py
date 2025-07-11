@@ -329,6 +329,16 @@ def get_task_outputs(tx, task_id):
     return [rec['o'] for rec in tx.run(outputs_query, task_id=task_id)]
 
 
+def get_all_workflows(tx):
+    """Get all workflows from the Neo4j database.
+
+    :rtype: neo4j.Result
+    """
+    workflows_query = "MATCH (w:Workflow) RETURN w"
+
+    return [rec['w'] for rec in tx.run(workflows_query)]
+
+
 def get_workflow_by_id(tx, wf_id):
     """Get the workflow from the Neo4j database.
 

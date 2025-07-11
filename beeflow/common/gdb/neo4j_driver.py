@@ -27,6 +27,9 @@ from beeflow.common.object_models import (
     StepOutput,
 )
 from beeflow.common import log as bee_logging
+from beeflow.wf_manager.models import (
+    WorkflowInfo
+)
 
 log = bee_logging.setup(__name__)
 
@@ -241,6 +244,43 @@ class Neo4jDriver(GraphDatabaseDriver):
         return _reconstruct_task(
             tuples[0][0], tuples[0][1], tuples[0][2], tuples[0][3], tuples[0][4]
         )
+
+    def get_all_workflow_info(self):
+        """Return all workflow information from the Neo4j database.
+        :rtype: list of WorkflowInfo
+        """
+        workflow_records = self._read_transaction(tx.get_all_workflows)
+        info = []
+        for record in workflow_records:
+            info.append(
+                WorkflowInfo(
+                    wf_id=record["id"],
+                    wf_name=record["name"],
+                    wf_status=record["state"],
+                )
+            )
+        return info
+
+    def get_all_workflows(self):
+        """Return all workflows from the Neo4j database.
+        :rtype: list of Workflow
+        """
+        workflow_records = self._read_transaction(tx.get_all_workflows)
+        wf_requirements, wf_hints, wf_inputs, wf_outputs = [], [], [], []
+        for record in workflow_records:
+            wf_id = record["id"]
+            requirements, hints = self.get_workflow_requirements_and_hints(wf_id)
+            inputs, outputs = self.get_workflow_inputs_and_outputs(wf_id)
+            wf_requirements.append(requirements)
+            wf_hints.append(hints)
+            wf_inputs.append(inputs)
+            wf_outputs.append(outputs)
+        return [
+            _reconstruct_workflow(
+                record, wf_hints[i], wf_requirements[i], wf_inputs[i], wf_outputs[i]
+            )
+            for i, record in enumerate(workflow_records)
+        ]
 
     def get_workflow_description(self, workflow_id):
         """Return a reconstructed Workflow object from the Neo4j database.

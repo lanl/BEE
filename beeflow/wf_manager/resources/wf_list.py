@@ -14,6 +14,7 @@ from flask_restful import Resource
 from celery import shared_task
 
 from beeflow.common import log as bee_logging
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
@@ -81,20 +82,13 @@ class WFList(Resource):
     def get(self):
         """Return list of workflows to client."""
         db = connect_db(wfm_db, db_path)
-        workflow_list = db.workflows.get_workflows()
-        info = []
-        for workflow in workflow_list:
-            info.append(
-                WorkflowInfo(
-                    wf_id=workflow.workflow_id,
-                    wf_name=workflow.name,
-                    wf_status=workflow.state,
-                )
-            )
+        wf_utils.connect_neo4j_driver(db.info.get_port("bolt"))
+        info = Neo4jDriver().get_all_workflow_info()
+
         return ListWorkflowsResponse(workflow_info_list=info).model_dump(), 200
 
     def post(self):
-        """Upload a workflown and start."""
+        """Upload a workflow and start."""
         db = connect_db(wfm_db, db_path)
         try:
             data = SubmitWorkflowRequest.model_validate(request.json)
