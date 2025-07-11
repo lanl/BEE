@@ -728,6 +728,7 @@ def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
         inputs=inputs,
         outputs=outputs,
         id=workflow_record["id"],
+        state=workflow_record["state"],
     )
 
 

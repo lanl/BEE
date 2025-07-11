@@ -113,7 +113,6 @@ class CwlParser:
                 )
             return value
 
-        workflow_name = os.path.basename(cwl_path).split(".")[0]
         workflow_inputs = [
             InputParameter(
                 id=_shortname(input_.id),
