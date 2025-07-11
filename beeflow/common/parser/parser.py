@@ -59,7 +59,7 @@ class CwlParser:
         self.steps = []
         self.params = None
 
-    def parse_workflow(self, workflow_id, cwl_path, job=None, workdir='.'):
+    def parse_workflow(self, workflow_id, workflow_name, cwl_path, job=None, workdir='.'):
         """Parse a CWL Workflow file and load it into the graph database.
 
         Returns an instance of the WorkflowInterface.
@@ -107,7 +107,6 @@ class CwlParser:
                                     f"{input_id}/{value}")
             return value
 
-        workflow_name = os.path.basename(cwl_path).split(".")[0]
         workflow_inputs = {InputParameter(_shortname(input_.id), input_.type,
                                           resolve_input(input_, input_.type))
                            for input_ in self.cwl.inputs}

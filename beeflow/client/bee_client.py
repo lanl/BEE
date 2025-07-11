@@ -370,7 +370,7 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
         parser = CwlParser()
         workflow_id = generate_workflow_id()
-        workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
+        workflow, tasks = parser.parse_workflow(workflow_id, wf_name, str(main_cwl_path),
                                                 job=str(yaml_path), workdir=workdir)
         tasks = [jsonpickle.encode(task) for task in tasks]
 

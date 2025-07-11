@@ -23,14 +23,21 @@ class DSIManager:
             "state": workflow.state,
         }
 
-        task_dict_list = [{
-            "id": task.id,
-            "name": task.name,
-            "stdout": task.stdout,
-            "stderr": task.stderr,
-            "workdir": str(task.workdir),
-            "workflow_id": workflow.id
-        } for task in tasks]
+        task_dict_list = []
+        for task in tasks:
+            task_dict = {
+                "id": task.id,
+                "name": task.name,
+                "workflow_id": workflow.id,
+            }
+            if task.stdout:
+                task_dict["stdout"] = task.stdout
+            if task.stderr:
+                task_dict["stderr"] = task.stderr
+            if task.workdir:
+                task_dict["workdir"] = str(task.workdir)
+            task_dict_list.append(task_dict)
+
 
         # make json file that is just the workflow dict
         workflow_json = f'/tmp/{workflow.id}_workflow.json'
