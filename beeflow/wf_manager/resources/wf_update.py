@@ -23,12 +23,12 @@ db_path = wf_utils.get_db_path()
 def archive_workflow(db, wf_id, final_state=None):
     """Archive a workflow after completion."""
     # this is the only way to retrieve wf state after archiving
-    wf_db_state = db.workflows.get_workflow_state(wf_id)
-    if wf_db_state.startswith("Archived"):
+    wf_state = wf_utils.get_wf_status(wf_id)
+    if wf_state.startswith("Archived"):
         # Don't archive a workflow that has already been archived
         log.warning((
             f"Attempted to archive workflow {wf_id} which is already archived; "
-            f"in state {wf_db_state}."
+            f"in state {wf_state}."
         ))
         return
     # Archive Config
@@ -43,7 +43,6 @@ def archive_workflow(db, wf_id, final_state=None):
     wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True)
 
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
-    db.workflows.update_workflow_state(wf_id, wf_state)
     wf_utils.update_wf_status(wf_id, wf_state)
 
     archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
@@ -71,7 +70,6 @@ def set_dependent_tasks_dep_fail(db, wfi, wf_id, task):
         dep_tasks = wfi.get_dependent_tasks(set_tasks.pop())
         for dep_task in dep_tasks:
             wfi.set_task_state(dep_task, 'DEP_FAIL')
-            db.workflows.update_task_state(dep_task.id, wf_id, 'DEP_FAIL')
         set_tasks.extend(dep_tasks)
 
 
@@ -125,7 +123,6 @@ class WFUpdate(Resource):
                 log.info('No more restarts')
                 archive_fail_workflow(db, state_update.wf_id)
                 return True
-            db.workflows.add_task(new_task.id, state_update.wf_id, new_task.name, "WAITING")
             # Submit the restart task
             tasks = [new_task]
             wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
@@ -135,7 +132,8 @@ class WFUpdate(Resource):
 
     def handle_state_change(self, state_update, task, wfi, db):
         """Handle a normal state change for a task."""
-        wf_state = wfi.get_workflow_state()
+        wf_id = wfi.workflow_id
+        wf_state = wf_utils.get_wf_status(wf_id)
         if state_update.job_state == 'COMPLETED':
             for output in task.outputs:
                 if output.glob is not None:
@@ -156,13 +154,11 @@ class WFUpdate(Resource):
             log.info(f"Task {task.name} failed")
 
         if wfi.workflow_completed():
-            wf_id = wfi.workflow_id
             final_state = wfi.get_workflow_final_state()
             log.info(f"Workflow {wf_id} Completed")
             archive_workflow(db, wf_id, final_state)
             log.info('Workflow Archived')
         elif wf_state == 'Cancelled' and wfi.cancelled_workflow_completed():
-            wf_id = wfi.workflow_id
             log.info(f"Scheduled tasks for cancelled workflow {wf_id} completed")
             archive_workflow(db, wf_id, final_state=wf_state)
             log.info('Workflow Archived')
@@ -172,8 +168,6 @@ class WFUpdate(Resource):
         wfi = wf_utils.get_workflow_interface(state_update.wf_id)
         task = wfi.get_task_by_id(state_update.task_id)
         wfi.set_task_state(task, state_update.job_state)
-        db.workflows.update_task_state(state_update.task_id, state_update.wf_id,
-                                       state_update.job_state)
 
         self.handle_metadata(state_update, task, wfi)
         if not self.handle_checkpoint_restart(state_update, task, wfi, db):

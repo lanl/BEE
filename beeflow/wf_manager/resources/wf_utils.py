@@ -102,22 +102,15 @@ def create_wf_status(wf_id):
 
 
 def update_wf_status(wf_id, status_msg):
-    """Update workflow status metadata file."""
-    bee_workdir = get_bee_workdir()
-    workflows_dir = os.path.join(bee_workdir, "workflows", wf_id)
-    status_path = os.path.join(workflows_dir, "bee_wf_status")
-    with open(status_path, "w", encoding="utf8") as status:
-        status.write(status_msg)
+    """Update workflow status"""
+    wfi = get_workflow_interface(wf_id)
+    wfi.set_workflow_state(status_msg)
 
 
-def read_wf_status(wf_id):
+def get_wf_status(wf_id):
     """Read workflow status metadata file."""
-    bee_workdir = get_bee_workdir()
-    workflows_dir = os.path.join(bee_workdir, "workflows", wf_id)
-    status_path = os.path.join(workflows_dir, "bee_wf_status")
-    with open(status_path, "r", encoding="utf8") as status:
-        wf_status = status.readline()
-    return wf_status
+    wfi = get_workflow_interface(wf_id)
+    return wfi.get_workflow_state()
 
 
 def read_wf_name(wf_id):
@@ -283,17 +276,13 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
         metadata = wfi.get_task_metadata(task)
         metadata["workdir"] = task.workdir
         wfi.set_task_metadata(task, metadata)
-        db.workflows.add_task(task.id, wf_id, task.name, task_state)
 
     if no_start:
         update_wf_status(wf_id, "No Start")
-        db.workflows.update_workflow_state(wf_id, "No Start")
         log.info("Not starting workflow, as requested")
     else:
         update_wf_status(wf_id, "Waiting")
-        db.workflows.update_workflow_state(wf_id, "Waiting")
         log.info("Starting workflow")
-        db.workflows.update_workflow_state(wf_id, "Running")
         start_workflow(wf_id)
 
 
@@ -312,10 +301,9 @@ def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
 
 def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
-    db = connect_db(wfm_db, get_db_path())
     wfi = get_workflow_interface(wf_id)
-    state = wfi.get_workflow_state()
-    if state in ("RUNNING", "PAUSED", "COMPLETED"):
+    state = get_wf_status(wf_id)
+    if state not in ("Waiting", "No Start"):
         return False
     _, tasks = wfi.get_workflow()
     tasks.reverse()
@@ -323,13 +311,10 @@ def start_workflow(wf_id):
         task_state = wfi.get_task_state(task)
         if task_state == "":
             wfi.set_task_state(task, "WAITING")
-            db.workflows.update_task_state(task.id, wf_id, "WAITING")
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)
-    wf_id = wfi.workflow_id
     update_wf_status(wf_id, "Running")
-    db.workflows.update_workflow_state(wf_id, "Running")
     return True
 
 

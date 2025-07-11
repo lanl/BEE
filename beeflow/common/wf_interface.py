@@ -169,6 +169,13 @@ class WorkflowInterface:
         tasks = self._gdb_driver.get_workflow_tasks(self._workflow_id)
         return workflow, tasks
 
+    def get_tasks(self):
+        """Get all tasks in the workflow.
+
+        :rtype: list of Task
+        """
+        return self._gdb_driver.get_workflow_tasks(self._workflow_id)
+
     def get_workflow_outputs(self):
         """Get the outputs from a BEE workflow.
 
@@ -224,8 +231,8 @@ class WorkflowInterface:
         This method should not be used to set a task as completed.
         finalize_task() should instead be used.
 
-        :param task: the task whose state to set
-        :type task: Task
+        :param task_id: the id of task whose state to set
+        :type task_id: str
         :param state: the new state of the task
         :type state: str
         """

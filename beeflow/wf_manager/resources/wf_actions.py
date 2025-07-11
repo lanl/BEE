@@ -31,9 +31,7 @@ class WFActions(Resource):
 
     def post(self, wf_id):
         """Start workflow. Send ready tasks to the task manager."""
-        db = connect_db(wfm_db, db_path)
         if wf_utils.start_workflow(wf_id):
-            db.workflows.update_workflow_state(wf_id, "Running")
             resp = (
                 WorkflowActionResponse(
                     msg="Workflow started successfully"
@@ -52,9 +50,9 @@ class WFActions(Resource):
     @staticmethod
     def get(wf_id):
         """Check the database for the current status of all tasks."""
-        db = connect_db(wfm_db, db_path)
+        wfi = wf_utils.get_workflow_interface(wf_id)
 
-        wf_status = db.workflows.get_workflow_state(wf_id)
+        wf_status = wf_utils.get_wf_status(wf_id)
         if not wf_status:
             log.info(f"Workflow {wf_id} not found in the database.")
             return (
@@ -66,10 +64,11 @@ class WFActions(Resource):
                 404,
             )
 
-        tasks = db.workflows.get_tasks(wf_id)
+        tasks = wfi.get_tasks()
         tasks_status = []
         for task in tasks:
-            tasks_status.append((task.id, task.name, task.state))
+            state = wfi.get_task_state(task)
+            tasks_status.append((task.id, task.name, state))
 
         return (
             WorkflowStatusResponse(
@@ -85,15 +84,12 @@ class WFActions(Resource):
         option = ModifyWorkflowRequest.model_validate(request.json).option
         db = connect_db(wfm_db, db_path)
         if option == "cancel":
-            wfi = wf_utils.get_workflow_interface(wf_id)
-            wf_state = wfi.get_workflow_state()
+            wf_state = wf_utils.get_wf_status(wf_id)
             # Remove all tasks currently in the database
-            wfi.set_workflow_state("Cancelled")
             wf_utils.update_wf_status(wf_id, "Cancelled")
-            db.workflows.update_workflow_state(wf_id, "Cancelled")
             log.info(f"Workflow {wf_id} cancelled")
             # Archive cancelled workflow if it was originally paused
-            if wf_state == "PAUSED":
+            if wf_state == "Paused":
                 archive_workflow(db, wf_id, final_state="Cancelled")
             resp = (
                 WorkflowActionResponse(
@@ -103,7 +99,7 @@ class WFActions(Resource):
             )
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
-            db.workflows.delete_workflow(wf_id)
+            # TODO: Find how to delete in gdb
             resp = (
                 WorkflowActionResponse(
                     msg="Workflow removed successfully",
@@ -131,21 +127,17 @@ class WFActions(Resource):
         db = connect_db(wfm_db, db_path)
         option = ModifyWorkflowRequest.model_validate(request.json).option
 
-        wfi = wf_utils.get_workflow_interface(wf_id)
         log.info("Pausing/resuming workflow")
-        wf_state = wfi.get_workflow_state()
-        if option == "pause" and wf_state in ("RUNNING", "INITIALIZING"):
-            wfi.pause_workflow()
+        wf_state = wf_utils.get_wf_status(wf_id)
+        if option == "pause" and wf_state in ("Running", "Initializing"):
             wf_utils.update_wf_status(wf_id, "Paused")
-            db.workflows.update_workflow_state(wf_id, "Paused")
             log.info(f"Workflow {wf_id} Paused")
             resp = WorkflowActionResponse(msg="Workflow Paused").model_dump(), 200
-        elif option == "resume" and wf_state == "PAUSED":
-            wfi.resume_workflow()
+        elif option == "resume" and wf_state == "Paused":
+            wf_utils.update_wf_status(wf_id, "Running")
+            wfi = wf_utils.get_workflow_interface(wf_id)
             tasks = wfi.get_ready_tasks()
             wf_utils.schedule_submit_tasks(wf_id, tasks)
-            wf_utils.update_wf_status(wf_id, "Running")
-            db.workflows.update_workflow_state(wf_id, "Running")
             log.info(f"Workflow {wf_id} Resumed")
             resp = WorkflowActionResponse(msg="Workflow Resumed").model_dump(), 200
         else:
