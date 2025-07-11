@@ -454,7 +454,7 @@ def get_ready_tasks(tx, wf_id):
     return [rec['t'] for rec in tx.run(get_ready_query, wf_id=wf_id)]
 
 
-def get_dependent_tasks(tx, task):
+def get_dependent_tasks(tx, task_id):
     """Get the tasks that depend on a specified task.
 
     :param task: the task whose dependencies to obtain
@@ -463,10 +463,10 @@ def get_dependent_tasks(tx, task):
     """
     dependents_query = "MATCH (t:Task)-[:DEPENDS_ON]->(:Task {id: $task_id}) RETURN t"
 
-    return [rec['t'] for rec in tx.run(dependents_query, task_id=task.id)]
+    return [rec['t'] for rec in tx.run(dependents_query, task_id=task_id)]
 
 
-def get_task_state(tx, task):
+def get_task_state(tx, task_id):
     """Get the state of a task.
 
     :param task: the task whose state to get
@@ -475,10 +475,10 @@ def get_task_state(tx, task):
     """
     state_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) RETURN m.state"
 
-    return tx.run(state_query, task_id=task.id).single().value()
+    return tx.run(state_query, task_id=task_id).single().value()
 
 
-def set_task_state(tx, task, state):
+def set_task_state(tx, task_id, state):
     """Set a task's state.
 
     :param task: the task whose state to set
@@ -489,10 +489,10 @@ def set_task_state(tx, task, state):
     state_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) "
                    "SET m.state = $state")
 
-    tx.run(state_query, task_id=task.id, state=state)
+    tx.run(state_query, task_id=task_id, state=state)
 
 
-def get_task_metadata(tx, task):
+def get_task_metadata(tx, task_id):
     """Get a task's metadata.
 
     :param task: the task whose metadata to get
@@ -501,10 +501,10 @@ def get_task_metadata(tx, task):
     """
     metadata_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) RETURN m"
 
-    return dict(tx.run(metadata_query, task_id=task.id).single()['m'])
+    return dict(tx.run(metadata_query, task_id=task_id).single()['m'])
 
 
-def set_task_metadata(tx, task, metadata):
+def set_task_metadata(tx, task_id, metadata):
     """Set a task's metadata.
 
     :param task: the task whose metadata to set
@@ -520,10 +520,10 @@ def set_task_metadata(tx, task, metadata):
         metadata_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) "
                           f"SET m.{k} = $value")
 
-        tx.run(metadata_query, task_id=task.id, value=v)
+        tx.run(metadata_query, task_id=task_id, value=v)
 
 
-def get_task_input(tx, task, input_id):
+def get_task_input(tx, task_id, input_id):
     """Get a task input object.
 
     :param task: the task whose input to retrieve
@@ -535,10 +535,10 @@ def get_task_input(tx, task, input_id):
     input_query = ("MATCH (t:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
                    "RETURN i")
 
-    return dict(tx.run(input_query, task_id=task.id, input_id=input_id).single()['i'])
+    return dict(tx.run(input_query, task_id=task_id, input_id=input_id).single()['i'])
 
 
-def set_task_input(tx, task, input_id, value):
+def set_task_input(tx, task_id, input_id, value):
     """Set the value of a task input.
 
     :param task: the task whose input to set
@@ -550,10 +550,10 @@ def set_task_input(tx, task, input_id, value):
     input_query = ("MATCH (t:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
                    "SET i.value = $value")
 
-    tx.run(input_query, task_id=task.id, input_id=input_id, value=value)
+    tx.run(input_query, task_id=task_id, input_id=input_id, value=value)
 
 
-def get_task_output(tx, task, output_id):
+def get_task_output(tx, task_id, output_id):
     """Get a task output object.
 
     :param task: the task whose output to retrieve
@@ -565,10 +565,10 @@ def get_task_output(tx, task, output_id):
     output_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
                     "RETURN o")
 
-    return dict(tx.run(output_query, task_id=task.id, output_id=output_id).single()['o'])
+    return dict(tx.run(output_query, task_id=task_id, output_id=output_id).single()['o'])
 
 
-def set_task_output(tx, task, output_id, value):
+def set_task_output(tx, task_id, output_id, value):
     """Set a task's output value.
 
     :param task: the task whose output to set
@@ -581,10 +581,10 @@ def set_task_output(tx, task, output_id, value):
     output_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
                     "SET o.value = $value")
 
-    tx.run(output_query, task_id=task.id, output_id=output_id, value=value)
+    tx.run(output_query, task_id=task_id, output_id=output_id, value=value)
 
 
-def set_task_input_type(tx, task, input_id, type_):
+def set_task_input_type(tx, task_id, input_id, type_):
     """Set the type of a task input.
 
     :param task: the task whose input type to set
@@ -597,10 +597,10 @@ def set_task_input_type(tx, task, input_id, type_):
     type_query = ("MATCH (:Task {id: $task_id})<-[:INPUT_OF]-(i:Input {id: $input_id}) "
                   "SET i.type = $type_")
 
-    tx.run(type_query, task_id=task.id, input_id=input_id, type_=type_)
+    tx.run(type_query, task_id=task_id, input_id=input_id, type_=type_)
 
 
-def set_task_output_glob(tx, task, output_id, glob):
+def set_task_output_glob(tx, task_id, output_id, glob):
     """Set a task's output value.
 
     :param task: the task whose output to set
@@ -613,7 +613,7 @@ def set_task_output_glob(tx, task, output_id, glob):
     glob_query = ("MATCH (:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output {id: $output_id}) "
                   "SET o.glob = $glob")
 
-    tx.run(glob_query, task_id=task.id, output_id=output_id, glob=glob)
+    tx.run(glob_query, task_id=task_id, output_id=output_id, glob=glob)
 
 
 def set_init_task_inputs(tx, wf_id):

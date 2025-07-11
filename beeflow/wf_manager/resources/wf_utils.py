@@ -195,7 +195,7 @@ def submit_tasks_tm(wf_id, tasks, allocation):  # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
     for task in tasks:
-        metadata = wfi.get_task_metadata(task)
+        metadata = wfi.get_task_metadata(task.id)
         task.workdir = metadata["workdir"]
     # Serialize task with json
     names = [task.name for task in tasks]
@@ -214,7 +214,7 @@ def submit_tasks_tm(wf_id, tasks, allocation):  # pylint: disable=W0613
     if resp.status_code == 200:
         for task in tasks:
             log.info("change state of %s to SUBMIT", task.name)
-            wfi.set_task_state(task, "SUBMIT")
+            wfi.set_task_state(task.id, "SUBMIT")
     else:
         log.info("Submit task to TM returned bad status: %s", resp.status_code)
 
@@ -273,15 +273,15 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
     for task in tasks:
         task_state = "" if no_start else "WAITING"
         wfi.add_task(task, task_state)
-        metadata = wfi.get_task_metadata(task)
+        metadata = wfi.get_task_metadata(task.id)
         metadata["workdir"] = task.workdir
-        wfi.set_task_metadata(task, metadata)
+        wfi.set_task_metadata(task.id, metadata)
 
     if no_start:
         update_wf_status(wf_id, "No Start")
         log.info("Not starting workflow, as requested")
     else:
-        update_wf_status(wf_id, "Waiting")
+        update_wf_status(wf_id, "Starting")
         log.info("Starting workflow")
         start_workflow(wf_id)
 
@@ -303,14 +303,14 @@ def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
     wfi = get_workflow_interface(wf_id)
     state = get_wf_status(wf_id)
-    if state not in ("Waiting", "No Start"):
+    if state not in ("Starting", "No Start"):
         return False
     _, tasks = wfi.get_workflow()
     tasks.reverse()
     for task in tasks:
-        task_state = wfi.get_task_state(task)
+        task_state = wfi.get_task_state(task.id)
         if task_state == "":
-            wfi.set_task_state(task, "WAITING")
+            wfi.set_task_state(task.id, "WAITING")
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)
@@ -325,7 +325,7 @@ def copy_task_output(task, wfi):
     task_save_path = pathlib.Path(
         f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
-    task_workdir = wfi.get_task_metadata(task)["workdir"]
+    task_workdir = wfi.get_task_metadata(task.id)["workdir"]
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:

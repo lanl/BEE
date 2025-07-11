@@ -117,7 +117,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         self._write_transaction(tx.set_init_task_inputs, wf_id=workflow_id)
         self._write_transaction(tx.set_runnable_tasks_to_ready, wf_id=workflow_id)
         self._write_transaction(
-            tx.set_workflow_state, state="RUNNING", wf_id=workflow_id
+            tx.set_workflow_state, state="Running", wf_id=workflow_id
         )
 
     def pause_workflow(self, workflow_id):
@@ -144,7 +144,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         """
         with self._driver.session() as session:
             session.write_transaction(
-                tx.set_workflow_state, state="RUNNING", wf_id=workflow_id
+                tx.set_workflow_state, state="Running", wf_id=workflow_id
             )
 
     def reset_workflow(self, old_id, new_id):
@@ -227,7 +227,7 @@ class Neo4jDriver(GraphDatabaseDriver):
         :param task: the task to finalize
         :type task: Task
         """
-        self._write_transaction(tx.set_task_state, task=task, state="COMPLETED")
+        self._write_transaction(tx.set_task_state, task_id=task.id, state="COMPLETED")
         self._write_transaction(tx.copy_task_outputs, task=task)
 
     def get_task_by_id(self, task_id):
@@ -380,139 +380,139 @@ class Neo4jDriver(GraphDatabaseDriver):
             _reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples
         ]
 
-    def get_dependent_tasks(self, task):
+    def get_dependent_tasks(self, task_id):
         """Return the dependent tasks of a specified workflow task.
 
-        :param task: the task whose dependents to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose dependents to retrieve
+        :type task_id: str
         :rtype: list of Task
         """
-        task_records = self._read_transaction(tx.get_dependent_tasks, task=task)
+        task_records = self._read_transaction(tx.get_dependent_tasks, task_id=task_id)
         tuples = self._get_task_data_tuples(task_records)
         return [
             _reconstruct_task(tup[0], tup[1], tup[2], tup[3], tup[4]) for tup in tuples
         ]
 
-    def get_task_state(self, task):
+    def get_task_state(self, task_id):
         """Return the state of a task in the Neo4j workflow.
 
-        :param task: the task whose state to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose state to retrieve
+        :type task_id: str
         :rtype: str
         """
-        return self._read_transaction(tx.get_task_state, task=task)
+        return self._read_transaction(tx.get_task_state, task_id=task_id)
 
-    def set_task_state(self, task, state):
+    def set_task_state(self, task_id, state):
         """Set the state of a task in the Neo4j workflow.
 
-        :param task: the task whose state to change
-        :type task: Task
+        :param task_id: the ID of the task whose state to change
+        :type task_id: str
         :param state: the new state
         :type state: str
         """
-        self._write_transaction(tx.set_task_state, task=task, state=state)
+        self._write_transaction(tx.set_task_state, task_id=task_id, state=state)
 
-    def get_task_metadata(self, task):
+    def get_task_metadata(self, task_id):
         """Return the metadata of a task in the Neo4j workflow.
 
-        :param task: the task whose metadata to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose metadata to retrieve
+        :type task_id: str
         :rtype: dict
         """
-        metadata_record = self._read_transaction(tx.get_task_metadata, task=task)
+        metadata_record = self._read_transaction(tx.get_task_metadata, task_id=task_id)
         return _reconstruct_metadata(metadata_record)
 
-    def set_task_metadata(self, task, metadata):
+    def set_task_metadata(self, task_id, metadata):
         """Set the metadata of a task in the Neo4j workflow.
 
-        :param task: the task whose metadata to set
-        :type task: Task
+        :param task_id: the ID of the task whose metadata to set
+        :type task_id: str
         :param metadata: the job description metadata
         :type metadata: dict
         """
-        self._write_transaction(tx.set_task_metadata, task=task, metadata=metadata)
+        self._write_transaction(tx.set_task_metadata, task_id=task_id, metadata=metadata)
 
-    def get_task_input(self, task, input_id):
+    def get_task_input(self, task_id, input_id):
         """Get a task input object.
 
-        :param task: the task whose input to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose input to retrieve
+        :type task_id: str
         :param input_id: the ID of the input
         :type input_id: str
         :rtype: StepInput
         """
         input_record = self._read_transaction(
-            tx.get_task_input, task=task, input_id=input_id
+            tx.get_task_input, task_id=task_id, input_id=input_id
         )
         return _reconstruct_task_input(input_record)
 
-    def set_task_input(self, task, input_id, value):
+    def set_task_input(self, task_id, input_id, value):
         """Set the value of a task input.
 
-        :param task: the task whose input to set
-        :type task: Task
+        :param task_id: the ID of the task whose input to set
+        :type task_id: str
         :param input_id: the ID of the input
         :type input_id: str
         :param value: str or int or float
         """
         self._write_transaction(
-            tx.set_task_input, task=task, input_id=input_id, value=value
+            tx.set_task_input, task_id=task_id, input_id=input_id, value=value
         )
 
-    def get_task_output(self, task, output_id):
+    def get_task_output(self, task_id, output_id):
         """Get a task output object.
 
-        :param task: the task whose output to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose output to retrieve
+        :type task_id: str
         :param output_id: the ID of the output
         :type output_id: str
         :rtype: StepOutput
         """
         output_record = self._read_transaction(
-            tx.get_task_output, task=task, output_id=output_id
+            tx.get_task_output, task_id=task_id, output_id=output_id
         )
         return _reconstruct_task_output(output_record)
 
-    def set_task_output(self, task, output_id, value):
+    def set_task_output(self, task_id, output_id, value):
         """Set the value of a task output.
 
-        :param task: the task whose output to set
-        :type task: Task
+        :param task_id: the ID of the task whose output to set
+        :type task_id: str
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
         :type value: str or int or float
         """
         self._write_transaction(
-            tx.set_task_output, task=task, output_id=output_id, value=value
+            tx.set_task_output, task_id=task_id, output_id=output_id, value=value
         )
 
-    def set_task_input_type(self, task, input_id, type_):
+    def set_task_input_type(self, task_id, input_id, type_):
         """Set the type of a task input.
 
-        :param task: the task whose input type to set
-        :type task: Task
+        :param task_id: the ID of the task whose input type to set
+        :type task_id: str
         :param input_id: the ID of the input
         :type input_id: str
         :param type_: the input type to set
         :param type_: str
         """
         self._write_transaction(
-            tx.set_task_input_type, task=task, input_id=input_id, type_=type_
+            tx.set_task_input_type, task_id=task_id, input_id=input_id, type_=type_
         )
 
-    def set_task_output_glob(self, task, output_id, glob):
+    def set_task_output_glob(self, task_id, output_id, glob):
         """Set the glob of a task output.
 
-        :param task: the task whose output to set
-        :type task: Task
+        :param task_id: the ID of the task whose output to set
+        :type task_id: str
         :param output_id: the ID of the output
         :type output_id: str
         :param glob: the output glob to set
         :type glob: str
         """
         self._write_transaction(
-            tx.set_task_output_glob, task=task, output_id=output_id, glob=glob
+            tx.set_task_output_glob, task_id=task_id, output_id=output_id, glob=glob
         )
 
     def workflow_completed(self, workflow_id):

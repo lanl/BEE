@@ -67,7 +67,7 @@ class WFActions(Resource):
         tasks = wfi.get_tasks()
         tasks_status = []
         for task in tasks:
-            state = wfi.get_task_state(task)
+            state = wfi.get_task_state(task.id)
             tasks_status.append((task.id, task.name, state))
 
         return (

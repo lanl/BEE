@@ -67,9 +67,9 @@ def set_dependent_tasks_dep_fail(db, wfi, wf_id, task):
     # List of tasks whose states have already been updated
     set_tasks = [task]
     while len(set_tasks) > 0:
-        dep_tasks = wfi.get_dependent_tasks(set_tasks.pop())
+        dep_tasks = wfi.get_dependent_tasks(set_tasks.pop().id)
         for dep_task in dep_tasks:
-            wfi.set_task_state(dep_task, 'DEP_FAIL')
+            wfi.set_task_state(dep_task.id, 'DEP_FAIL')
         set_tasks.extend(dep_tasks)
 
 
@@ -93,19 +93,19 @@ class WFUpdate(Resource):
             msg='Task states updated successfully',
         ).model_dump(), 200
 
-    def handle_metadata(self, state_update, task, wfi):
+    def handle_metadata(self, state_update, task_id, wfi):
         """Handle metadata for a task update."""
         bee_workdir = wf_utils.get_bee_workdir()
 
         # Get metadata from update if available
         if state_update.metadata is not None:
-            old_metadata = wfi.get_task_metadata(task)
+            old_metadata = wfi.get_task_metadata(task_id)
             old_metadata.update(state_update.metadata)
-            wfi.set_task_metadata(task, old_metadata)
+            wfi.set_task_metadata(task_id, old_metadata)
 
         # Get output from the task
         if state_update.output is not None:
-            fname = f'{wfi.workflow_id}_{task.id}_{int(time.time())}.json'
+            fname = f'{wfi.workflow_id}_{task_id}_{int(time.time())}.json'
             task_output_path = os.path.join(bee_workdir, fname)
             with open(task_output_path, 'w', encoding='utf8') as fp:
                 json.dump(state_update.output, fp, indent=4)
@@ -137,9 +137,9 @@ class WFUpdate(Resource):
         if state_update.job_state == 'COMPLETED':
             for output in task.outputs:
                 if output.glob is not None:
-                    wfi.set_task_output(task, output.id, output.glob)
+                    wfi.set_task_output(task.id, output.id, output.glob)
                 else:
-                    wfi.set_task_output(task, output.id, "temp")
+                    wfi.set_task_output(task.id, output.id, "temp")
             wf_utils.copy_task_output(task, wfi)
             tasks = wfi.finalize_task(task)
             if tasks and wf_state not in ('PAUSED', 'Cancelled'):
@@ -167,8 +167,8 @@ class WFUpdate(Resource):
         """Update the state of a single task from the task manager."""
         wfi = wf_utils.get_workflow_interface(state_update.wf_id)
         task = wfi.get_task_by_id(state_update.task_id)
-        wfi.set_task_state(task, state_update.job_state)
+        wfi.set_task_state(state_update.task_id, state_update.job_state)
 
-        self.handle_metadata(state_update, task, wfi)
+        self.handle_metadata(state_update, state_update.task_id, wfi)
         if not self.handle_checkpoint_restart(state_update, task, wfi, db):
             self.handle_state_change(state_update, task, wfi, db)
