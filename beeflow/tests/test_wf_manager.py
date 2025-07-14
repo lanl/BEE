@@ -6,9 +6,9 @@ import tempfile
 import os
 import pathlib
 import pytest
-import jsonpickle
 import base64
 
+from beeflow.common.object_models import Task
 from beeflow.wf_manager.models import SubmitWorkflowRequest
 from test_parser import WORKFLOW_GOLD, TASKS_GOLD
 from beeflow.wf_manager.wf_manager import create_app
@@ -57,7 +57,6 @@ def teardown_workflow():
 def setup_teardown_workflow(teardown_workflow):
     """Set up and tear down for tests that use the workflow directory."""
     wf_utils.create_workflow_dir(WF_ID)
-    wf_utils.create_wf_status(WF_ID)
     yield
 
 
@@ -135,37 +134,56 @@ def mock_connect_db(*pargs, **kwargs):
 
 
 # WFActions Tests
-def test_start_workflow(client, mocker, temp_db):
+def test_start_workflow(client, mocker):
     """Test starting a workflow."""
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.connect_db', new=mock_connect_db)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_scheduler', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', return_value=None)
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', new=lambda: temp_db.db_file)
-    mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
-    mocker.patch('beeflow.common.wf_interface.WorkflowInterface.get_workflow_state', 'Waiting')
+    mocker.patch('beeflow.tests.mocks.MockWFI.get_workflow_state', return_value='No Start')
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert resp.status_code == 200
+    assert resp.json['msg'] == 'Workflow started successfully'
 
 
-def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
+def test_workflow_status(client, mocker, setup_teardown_workflow):
     """Test getting workflow status."""
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
-                 return_value=MockWFI())
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
-    mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
-    wf_name = 'wf'
-    workdir = 'dir'
 
-    temp_db.workflows.init_workflow(WF_ID, wf_name, workdir)
-    temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
-    temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
+    mockGDB = MockGDBDriver()
+    mockGDB.workflow_state = 'Running'
+    mockGDB.tasks = {'123':Task(
+        id='123',
+        workflow_id=WF_ID,
+        name='task',
+        base_command='',
+    ), '124': Task(
+        id='124',
+        workflow_id=WF_ID,
+        name='task',
+        base_command='',
+    )}
+    mockGDB.task_states = {
+        '123': 'RUNNING',
+        '124': 'WAITING',
+    }
+
+
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
+                 return_value=WorkflowInterface(WF_ID, gdb_driver=mockGDB))
 
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
+    wf_status = resp.json['wf_status']
+    assert wf_status == 'Running'
     tasks_status = resp.json['tasks_status']
-    assert tasks_status[0][2] == 'RUNNING' or tasks_status[1][2] == 'RUNNING'
+    assert len(tasks_status) == 2
+    sorted_status = sorted(tasks_status, key=lambda x: x[0])
+    assert sorted_status[0][0] == '123'
+    assert sorted_status[0][1] == 'task'
+    assert sorted_status[0][2] == 'RUNNING'
+    assert sorted_status[1][0] == '124'
+    assert sorted_status[1][1] == 'task'
+    assert sorted_status[1][2] == 'WAITING'
 
 
 def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
@@ -191,17 +209,27 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
 
 def test_remove_workflow(client, mocker, setup_teardown_workflow, temp_db):
     """Test removing a workflow."""
+    mockGDB = MockGDBDriver()
+    mockGDB.workflow_state = 'Cancelled'
+    mockGDB.tasks = {'123':Task(
+        id='123',
+        workflow_id=WF_ID,
+        name='task',
+        base_command='',
+    ), '124': Task(
+        id='124',
+        workflow_id=WF_ID,
+        name='task',
+        base_command='',
+    )}
+    mockGDB.task_states = {
+        '123': 'RUNNING',
+        '124': 'WAITING',
+    }
+
+
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
-                 return_value=MockWFI())
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
-    mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
-
-    wf_name = 'wf'
-    workdir = 'dir'
-
-    temp_db.workflows.init_workflow(WF_ID, wf_name, workdir)
-    temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
-    temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
+                 return_value=WorkflowInterface(WF_ID, gdb_driver=mockGDB))
 
     request = {'wf_id': WF_ID, 'option': 'remove'}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
@@ -211,14 +239,10 @@ def test_remove_workflow(client, mocker, setup_teardown_workflow, temp_db):
 
 def test_pause_workflow(client, mocker, setup_teardown_workflow, temp_db):
     """Test pausing a workflow."""
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
-                 return_value=MockWFI())
-    mocker.patch('beeflow.tests.mocks.MockWFI.get_workflow_state',
-                 return_value='RUNNING')
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
-    mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
-
-    wf_utils.update_wf_status(WF_ID, 'Running')
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_wf_status', 
+                 return_value='Running')
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', 
+                 return_value=None)
     request = {'option': 'pause'}
     resp = client().patch(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
     assert resp.json['msg'] == 'Workflow Paused'
@@ -230,12 +254,10 @@ def test_resume_workflow(client, mocker, setup_teardown_workflow, temp_db):
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
     mocker.patch('beeflow.tests.mocks.MockWFI.get_workflow_state',
-                 return_value='PAUSED')
+                 return_value='Paused')
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_scheduler', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', return_value=None)
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
-    mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
 
     wf_utils.update_wf_status(WF_ID, 'Paused')
     request = {'option': 'resume'}
