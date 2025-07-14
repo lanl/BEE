@@ -12,8 +12,6 @@ either standardized or read from a config file.
 
 import time
 from beeflow.wf_manager.models import WorkflowInfo
-from neo4j import GraphDatabase as Neo4jDatabase
-from neo4j.exceptions import ServiceUnavailable
 
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.gdb import neo4j_cypher as tx
@@ -75,6 +73,11 @@ class Neo4jDriver(GraphDatabaseDriver):
         uri = f"bolt://{db_hostname}:{bolt_port}"
 
         start_time = time.monotonic()
+
+
+        from neo4j.exceptions import ServiceUnavailable # pylint: disable=C0415 # Costly import
+        from neo4j import GraphDatabase as Neo4jDatabase # pylint: disable=C0415 # Costly import
+
         self._driver = Neo4jDatabase.driver(uri, auth=(user, password)) # pylint: disable=W0201
         while True:
             try:

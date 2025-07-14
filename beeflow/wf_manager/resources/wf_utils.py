@@ -4,7 +4,6 @@ import os
 import shutil
 import pathlib
 import requests
-from celery import shared_task  # pylint: disable=W0611 # pylint can't find celery imports
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -21,6 +20,7 @@ from beeflow.scheduler.models import (
     ScheduleTasksResponse,
     SchedulerTask,
 )
+
 from beeflow.task_manager.models import SubmitTasksRequest
 from beeflow.common.deps.neo4j_manager import connect_neo4j_driver
 
