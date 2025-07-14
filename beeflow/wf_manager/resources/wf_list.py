@@ -6,7 +6,6 @@ This contains endpoints forsubmitting, starting, and reexecuting workflows.
 import base64
 import os
 import subprocess
-from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 import jsonpickle
 
 from flask import request
@@ -15,6 +14,7 @@ from flask_restful import Resource
 from celery import shared_task
 
 from beeflow.common import log as bee_logging
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
@@ -24,7 +24,6 @@ from beeflow.wf_manager.models import (
     ListWorkflowsResponse,
     SubmitWorkflowRequest,
     SubmitWorkflowResponse,
-    WorkflowInfo,
 )
 from beeflow.wf_manager.resources import wf_utils
 
@@ -89,7 +88,6 @@ class WFList(Resource):
 
     def post(self):
         """Upload a workflown and start."""
-        db = connect_db(wfm_db, db_path)
         try:
             data = SubmitWorkflowRequest.model_validate(request.json)
         except ValidationError as e:

@@ -9,8 +9,6 @@ from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.resources.wf_update import archive_workflow
 
-from beeflow.common.db import wfm_db
-from beeflow.common.db.bdb import connect_db
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.wf_manager.models import (
     WorkflowActionResponse,
@@ -82,7 +80,6 @@ class WFActions(Resource):
     def delete(self, wf_id):
         """Cancel or delete the workflow. For cancel, current tasks finish running."""
         option = ModifyWorkflowRequest.model_validate(request.json).option
-        db = connect_db(wfm_db, db_path)
         if option == "cancel":
             wf_state = wf_utils.get_wf_status(wf_id)
             # Remove all tasks currently in the database
@@ -90,7 +87,7 @@ class WFActions(Resource):
             log.info(f"Workflow {wf_id} cancelled")
             # Archive cancelled workflow if it was originally paused
             if wf_state == "Paused":
-                archive_workflow(db, wf_id, final_state="Cancelled")
+                archive_workflow(wf_id, final_state="Cancelled")
             resp = (
                 WorkflowActionResponse(
                     msg="Workflow cancelled successfully",
@@ -124,7 +121,6 @@ class WFActions(Resource):
 
     def patch(self, wf_id):
         """Pause or resume workflow."""
-        db = connect_db(wfm_db, db_path)
         option = ModifyWorkflowRequest.model_validate(request.json).option
 
         log.info("Pausing/resuming workflow")

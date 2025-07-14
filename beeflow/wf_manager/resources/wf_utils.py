@@ -269,7 +269,6 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
 
     log.info("Setting workflow metadata")
     create_wf_metadata(wf_id, wf_name)
-    db = connect_db(wfm_db, get_db_path())
     for task in tasks:
         task_state = "" if no_start else "WAITING"
         wfi.add_task(task, task_state)
