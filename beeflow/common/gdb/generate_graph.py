@@ -2,10 +2,10 @@
 
 import os
 import shutil
-import networkx as nx
-import graphviz
 import subprocess
 import xml.etree.ElementTree
+import networkx as nx
+import graphviz
 
 
 def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
