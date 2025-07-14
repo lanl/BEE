@@ -326,6 +326,11 @@ class WorkflowInterface:
         """
         return self._gdb_driver.cancelled_workflow_completed(self._workflow_id)
 
+    def remove_workflow(self):
+        """Remove the workflow from the graph database."""
+        self._gdb_driver.remove_workflow(self._workflow_id)
+        self._workflow_id = None
+
     def export_graphml(self):
         """Export a BEE workflow as a graphml."""
         self._gdb_driver.export_graphml(self._workflow_id)

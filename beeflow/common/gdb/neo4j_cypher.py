@@ -808,6 +808,31 @@ def is_empty(tx):
     return bool(tx.run(empty_query).single() is None)
 
 
+def remove_workflow(tx, wf_id):
+    """Remove a workflow and all its tasks from the database.
+
+    :param wf_id: the workflow's ID
+    :type wf_id: str
+    """
+    remove_query = (
+        "MATCH (w:Workflow {id: $wf_id}) "
+        "OPTIONAL MATCH (w)<-[:WORKFLOW_OF]-(wf) "
+        "OPTIONAL MATCH (w)<-[:INPUT_OF]-(wi:Input) "
+        "OPTIONAL MATCH (w)<-[:OUTPUT_OF]-(wo:Output) "
+        "OPTIONAL MATCH (w)<-[:HINT_OF]-(wh:Hint) "
+        "OPTIONAL MATCH (w)<-[:REQUIREMENT_OF]-(wr:Requirement) "
+        "OPTIONAL MATCH (t:Task {workflow_id: $wf_id}) "
+        "OPTIONAL MATCH (t)<-[:INPUT_OF]-(ti:Input) "
+        "OPTIONAL MATCH (t)<-[:OUTPUT_OF]-(to:Output) "
+        "OPTIONAL MATCH (t)<-[:HINT_OF]-(th:Hint) "
+        "OPTIONAL MATCH (t)<-[:REQUIREMENT_OF]-(tr:Requirement) "
+        "OPTIONAL MATCH (m:Metadata)-[:DESCRIBES]->(t) "
+        "DETACH DELETE w, wf, wi, wo, wh, wr, t, ti, to, th, tr, m"
+    )
+
+    tx.run(remove_query, wf_id=wf_id)
+
+
 def cleanup(tx):
     """Clean up all workflow data in the database."""
     cleanup_query = "MATCH (n) DETACH DELETE n"

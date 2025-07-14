@@ -570,6 +570,14 @@ class Neo4jDriver(GraphDatabaseDriver):
             tx.cancelled_final_tasks_completed, wf_id=workflow_id
         )
 
+    def remove_workflow(self, workflow_id):
+        """Remove a workflow from the Neo4j database.
+
+        :param workflow_id: the workflow id
+        :type workflow_id: str
+        """
+        self._write_transaction(tx.remove_workflow, wf_id=workflow_id)
+
     def close(self):
         """Close the connection to the Neo4j database."""
         self._driver.close()

@@ -96,7 +96,8 @@ class WFActions(Resource):
             )
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
-            # TODO: Find how to delete in gdb
+            wfi = wf_utils.get_workflow_interface(wf_id)
+            wfi.remove_workflow()
             resp = (
                 WorkflowActionResponse(
                     msg="Workflow removed successfully",
