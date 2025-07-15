@@ -90,7 +90,7 @@ class Workflow(BaseModel):
     inputs: list[InputParameter] = []
     outputs: list[OutputParameter] = []
     id: str
-    state: Optional[str] = "INITIALIZING"
+    state: Optional[str] = "Initializing"
 
     def __eq__(self, other):
         """Test the equality of two workflows.

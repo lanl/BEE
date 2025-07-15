@@ -84,7 +84,8 @@ class Workflow:
     @property
     def running(self):
         """Check if the workflow is running or about to run."""
-        return bee_client.query(self.wf_id)[0] in ('Initializing', 'Waiting', 'Running', 'Pending')
+        return bee_client.query(self.wf_id)[0] in ('Initializing', 'Starting', 
+                                                   'Waiting', 'Running', 'Pending')
 
     @property
     def status(self):
