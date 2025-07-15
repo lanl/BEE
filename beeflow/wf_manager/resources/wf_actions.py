@@ -34,11 +34,10 @@ class WFActions(Resource):
         return resp
 
     @staticmethod
-    def get(wf_id): 
+    def get(wf_id):
         """Check the database for the current status of all tasks."""
         db = connect_db(wfm_db, db_path)
-        db_file = wf_utils.get_db_path()
-        tasks = db.workflows.get_tasks(wf_id) 
+        tasks = db.workflows.get_tasks(wf_id)
         tasks_status = []
         if not tasks:
             log.info(f"Bad query for wf {wf_id}.")
@@ -49,7 +48,6 @@ class WFActions(Resource):
         for task in tasks:
             task_id = wfi.get_task_by_id(task.task_id)
             metadata = wfi.get_task_metadata(task_id)
-        
             tasks_status.append((task.id, task.name, task.state, metadata))
         wf_status = db.workflows.get_workflow_state(wf_id)
 

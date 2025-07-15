@@ -572,7 +572,7 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
     typer.echo(wf_status)
-    for _task_id, task_name, task_state,metadata in tasks_status:  
+    for _task_id, task_name, task_state,metadata in tasks_status:
         job_name = metadata.get("job_name","N/A")
         start_time = metadata.get("start_time","N/A")
         time_left = metadata.get("time_left","N/A")

@@ -196,7 +196,7 @@ def submit_tasks_tm(wf_id, tasks, allocation): # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
     for task in tasks:
-        metadata = wfi.get_task_metadata(task) 
+        metadata = wfi.get_task_metadata(task)
         task.workdir = metadata['workdir']
     # Serialize task with json
     tasks_json = jsonpickle.encode(tasks)
@@ -285,7 +285,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
         metadata = wfi.get_task_metadata(task)
         if metadata.get('workdir') is None:
             metadata['workdir'] = task.workdir
-            wfi.set_task_metadata(task, metadata) 
+            wfi.set_task_metadata(task, metadata)
         db.workflows.add_task(task.id, wf_id, task.name, task_state)
 
     if no_start:
@@ -343,7 +343,11 @@ def copy_task_output(task, wfi):
     task_save_path = pathlib.Path(
             f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
-    task_workdir = wfi.get_task_metadata(task)["workdir"]
+    task_metadata = wfi.get_task_metadata(task)
+    task_workdir = task_metadata["workdir"]
+
+    task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
+                f"metadata.json")
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:
@@ -358,3 +362,4 @@ def copy_task_output(task, wfi):
 
         shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
     shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
+    shutil.copy(task_metadata_path, task_save_path / "metadata.json")

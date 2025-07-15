@@ -100,9 +100,17 @@ class WFUpdate(Resource):
 
         # Get metadata from update if available
         if state_update.metadata is not None:
-            old_metadata = wfi.get_task_metadata(task) 
+            old_metadata = wfi.get_task_metadata(task)
             old_metadata.update(state_update.metadata)
-            wfi.set_task_metadata(task, old_metadata) 
+            wfi.set_task_metadata(task, old_metadata)
+
+            task_workdir = old_metadata['workdir']
+            task_dir = f'{task_workdir}/{task.name}-{task.id[:4]}'
+            metadata_path = os.path.join(task_dir,'metadata.json')
+            if os.path.exists(task_dir):
+                with open(metadata_path,'a',encoding='utf-8') as f:
+                    json.dump(old_metadata,f,indent=4)
+                    f.write('\n')
 
         # Get output from the task
         if state_update.output is not None:

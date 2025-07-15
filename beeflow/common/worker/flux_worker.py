@@ -130,7 +130,8 @@ class FluxWorker(Worker):
         jobspec = self.build_jobspec(task)
         flux = self.flux.Flux()
         job_id = self.job.submit(flux, jobspec)
-        return job_id, self.query_task(job_id)
+        job_state, job_info = self.query_task(job_id)
+        return job_id, job_state, job_info
 
     def cancel_task(self, job_id):
         """Cancel task with job_id; returns job_state."""
@@ -147,10 +148,10 @@ class FluxWorker(Worker):
         flux = self.flux.Flux()
         info = self.job.get_job(flux, job_id)
         log.info(info)
-
+        job_info = {} # Empty placeholder for now to pass integration tests - Beste
         # TODO: May need to check for return codes other than 0 if
         # specified by the task (although I'm not sure how we can keep
         # track of this with job ID alone)
 
         # Note: using 'status' here instead of 'state'
-        return BEE_STATES[info['status']]
+        return BEE_STATES[info['status']], job_info
