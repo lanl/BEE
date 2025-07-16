@@ -167,9 +167,7 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_requirement_nodes, task=task)
             session.write_transaction(tx.create_task_input_nodes, task=task)
             session.write_transaction(tx.create_task_output_nodes, task=task)
-            session.write_transaction(
-                tx.create_task_metadata_node, task=task, metadata=task.metadata
-            )
+            session.write_transaction(tx.create_task_metadata_node, task=task)
             session.write_transaction(tx.add_dependencies, task=task)
 
     def initialize_ready_tasks(self, workflow_id):
