@@ -5,6 +5,8 @@ import shutil
 import pathlib
 import requests
 
+from celery import shared_task
+
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb import neo4j_driver
@@ -110,7 +112,12 @@ def update_wf_status(wf_id, status_msg):
 def get_wf_status(wf_id):
     """Read workflow status metadata file."""
     wfi = get_workflow_interface(wf_id)
-    return wfi.get_workflow_state()
+    try:
+        state = wfi.get_workflow_state()
+        return state
+    except AttributeError:
+        log.info(f"Workflow {wf_id} not found in the database.")
+        return None
 
 
 def read_wf_name(wf_id):
@@ -263,7 +270,7 @@ def schedule_submit_tasks(wf_id, tasks):
 
 def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, # pylint: disable=W0613
                    tasks=None):
-    """Initialize Workflow in Separate Process."""
+    """Initialize Workflow and Tasks then start workflow in separate process"""
     wfi = get_workflow_interface(wf_id)
     wfi.initialize_workflow(workflow)
 
@@ -282,7 +289,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
     else:
         update_wf_status(wf_id, "Starting")
         log.info("Starting workflow")
-        start_workflow(wf_id)
+        start_workflow.delay(wf_id)
 
 
 def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
@@ -298,6 +305,7 @@ def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     return dot_avail
 
 
+@shared_task
 def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
     wfi = get_workflow_interface(wf_id)

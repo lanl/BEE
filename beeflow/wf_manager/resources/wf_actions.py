@@ -52,7 +52,6 @@ class WFActions(Resource):
 
         wf_status = wf_utils.get_wf_status(wf_id)
         if not wf_status:
-            log.info(f"Workflow {wf_id} not found in the database.")
             return (
                 WorkflowStatusResponse(
                     tasks_status=[],

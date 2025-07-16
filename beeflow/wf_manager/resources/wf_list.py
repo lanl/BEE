@@ -11,7 +11,6 @@ import jsonpickle
 from flask import request
 from pydantic_core import ValidationError
 from flask_restful import Resource
-from celery import shared_task
 
 from beeflow.common import log as bee_logging
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
@@ -60,7 +59,6 @@ def extract_wf(wf_id, filename, encoded_archive_tarball):
     return cwl_dir
 
 
-@shared_task(ignore_result=True)
 def init_workflow(
     wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, tasks=None
 ):
@@ -102,7 +100,7 @@ class WFList(Resource):
         wf_id = data.workflow.id
         wf_dir = extract_wf(wf_id, data.wf_filename, data.encoded_tarball)
 
-        init_workflow.delay(
+        init_workflow(
             wf_id,
             data.wf_name,
             wf_dir,
