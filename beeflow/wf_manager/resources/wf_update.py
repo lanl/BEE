@@ -139,7 +139,7 @@ class WFUpdate(Resource):
                     wfi.set_task_output(task.id, output.id, "temp")
             wf_utils.copy_task_output(task, wfi)
             tasks = wfi.finalize_task(task)
-            if tasks and wf_state not in ('PAUSED', 'Cancelled'):
+            if tasks and wf_state not in ('Paused', 'Cancelled'):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
         # If the job failed, fail the dependent tasks
