@@ -59,17 +59,6 @@ def extract_wf(wf_id, filename, encoded_archive_tarball):
     return cwl_dir
 
 
-def init_workflow(
-    wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, tasks=None
-):
-    """Initialize the workflow in a separate process."""
-    db = connect_db(wfm_db, db_path)
-    wf_utils.connect_neo4j_driver(db.info.get_port("bolt"))
-    wf_utils.setup_workflow(
-        wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow, tasks
-    )
-
-
 db_path = wf_utils.get_db_path()
 
 
@@ -100,7 +89,7 @@ class WFList(Resource):
         wf_id = data.workflow.id
         wf_dir = extract_wf(wf_id, data.wf_filename, data.encoded_tarball)
 
-        init_workflow(
+        wf_utils.setup_workflow(
             wf_id,
             data.wf_name,
             wf_dir,

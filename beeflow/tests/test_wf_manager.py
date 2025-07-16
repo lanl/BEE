@@ -84,10 +84,10 @@ class MockTask:
 # WFList Tests
 def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     """Test submitting a workflow."""
-    mocker.patch('beeflow.wf_manager.resources.wf_list.init_workflow', new=MockTask)
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.start_workflow', new=MockTask)
     mocker.patch('beeflow.common.object_models.generate_workflow_id', return_value='42')
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
-                 return_value=WorkflowInterface(MockGDBDriver()))
+                 return_value=WorkflowInterface(WORKFLOW_GOLD.id, MockGDBDriver()))
 
     mocker.patch('subprocess.run', return_value=True)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)

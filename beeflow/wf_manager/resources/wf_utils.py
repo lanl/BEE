@@ -273,6 +273,7 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
     """Initialize Workflow and Tasks then start workflow in separate process"""
     wfi = get_workflow_interface(wf_id)
     wfi.initialize_workflow(workflow)
+    print('hi')
 
     log.info("Setting workflow metadata")
     create_wf_metadata(wf_id, wf_name)
