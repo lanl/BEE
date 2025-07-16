@@ -67,12 +67,6 @@ class WorkflowInterface:
         """Resume the execution of a paused BEE workflow."""
         self._gdb_driver.resume_workflow(self._workflow_id)
 
-    def reset_workflow(self, workflow_id):
-        """Reset the execution state and ID of a BEE workflow."""
-        self._gdb_driver.reset_workflow(self._workflow_id, workflow_id)
-        self._workflow_id = workflow_id
-        self._gdb_driver.set_workflow_state(self._workflow_id, 'SUBMITTED')
-
     def add_task(self, task, task_state):
         """Add a new task to a BEE workflow.
 
