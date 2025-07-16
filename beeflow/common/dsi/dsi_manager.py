@@ -1,0 +1,55 @@
+"""Contains the DSI manager for workflow histories"""
+import json
+import importlib.resources
+from dsi.dsi import DSI
+
+from beeflow.common.paths import workdir
+
+
+class DSIManager:
+    """Manager for the DSI (Data Storage Interface) used in Beeflow."""
+    def __init__(self):
+        self.dsi = DSI(f'{workdir()}/bee.db')
+        with importlib.resources.path("beeflow.common.dsi", "schema.json") as schema_path:
+            self.dsi.schema(str(schema_path))
+
+    def save_wf_info(self, wfi):
+        """Save workflow information to the DSI."""
+        workflow, tasks = wfi.get_workflow()
+        # Create temporary json files for info to store
+        workflow_dict = {
+            "id": workflow.id,
+            "name": workflow.name,
+            "state": workflow.state,
+        }
+
+        task_dict_list = []
+        for task in tasks:
+            task_dict = {
+                "id": task.id,
+                "name": task.name,
+                "workflow_id": workflow.id,
+            }
+            if task.stdout:
+                task_dict["stdout"] = task.stdout
+            if task.stderr:
+                task_dict["stderr"] = task.stderr
+            if task.workdir:
+                task_dict["workdir"] = str(task.workdir)
+            task_dict_list.append(task_dict)
+
+
+        # make json file that is just the workflow dict
+        workflow_json = f'/tmp/{workflow.id}_workflow.json'
+        with open(workflow_json, 'w', encoding='utf-8') as f:
+            json.dump(workflow_dict, f)
+        self.dsi.read(workflow_json, "JSON", table_name="workflow")
+
+        for task in task_dict_list:
+            task_json = f'/tmp/{task["id"]}_task.json'
+            with open(task_json, 'w', encoding='utf-8') as f:
+                json.dump(task, f)
+            self.dsi.read(task_json, "JSON", table_name="task")
+
+
+dsi_manager = DSIManager()
