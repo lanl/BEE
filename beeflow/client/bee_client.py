@@ -424,7 +424,7 @@ def submit(  # pylint:disable=R0915
 
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(
-            workflow_id, str(main_cwl_path), job=str(yaml_path), workdir=workdir
+            workflow_id, wf_name, str(main_cwl_path), job=str(yaml_path), workdir=workdir
         )
         with open(package_path, "rb") as f:
             encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
