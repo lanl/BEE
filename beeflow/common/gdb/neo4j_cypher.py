@@ -196,7 +196,7 @@ def create_task_output_nodes(tx, task):
                value=output.value, glob=output.glob)
 
 
-def create_task_metadata_node(tx, task, metadata):
+def create_task_metadata_node(tx, task):
     """Create a task metadata node in the Neo4j database.
 
     The node holds metadata about a task's execution state.
@@ -208,7 +208,7 @@ def create_task_metadata_node(tx, task, metadata):
                       "CREATE (m:Metadata)-[:DESCRIBES]->(t)")
 
     tx.run(metadata_query, task_id=task.id)
-    set_task_metadata(tx, task.id, metadata)
+    set_task_metadata(tx, task.id, task.metadata)
 
 
 def add_dependencies(tx, task, old_task=None, restarted_task=False):
@@ -688,9 +688,9 @@ def final_tasks_completed(tx, wf_id):
     :rtype: bool
     """
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
-    not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+    not_completed_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           f"AND NOT m.state IN {final_task_states} "
+                           f"AND NOT t.state IN {final_task_states} "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is not finished
@@ -705,9 +705,9 @@ def final_tasks_succeeded(tx, wf_id):
     :rtype: bool
     """
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
-    not_succeeded_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+    not_succeeded_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           "AND m.state <> 'COMPLETED' "
+                           "AND t.state <> 'COMPLETED' "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task with state not 'COMPLETED'
@@ -722,9 +722,9 @@ def final_tasks_failed(tx, wf_id):
     :rtype: bool
     """
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
-    not_failed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+    not_failed_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                         f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                        f"AND NOT m.state IN {failed_task_states} "
+                        f"AND NOT t.state IN {failed_task_states} "
                         "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is not failed
@@ -742,9 +742,9 @@ def cancelled_final_tasks_completed(tx, wf_id):
     :rtype: bool
     """
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
-    active_states_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+    active_states_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           "AND m.state IN ['PENDING', 'RUNNING', 'COMPLETING'] "
+                           "AND t.state IN ['PENDING', 'RUNNING', 'COMPLETING'] "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is in 'PENDING', 'RUNNING', or 'COMPLETING'

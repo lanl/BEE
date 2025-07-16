@@ -277,9 +277,9 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
     log.info("Setting workflow metadata")
     create_wf_metadata(wf_id, wf_name)
     for task in tasks:
-        task_state = "" if no_start else "WAITING"
-        wfi.add_task(task, task_state)
-        metadata = wfi.get_task_metadata(task.id)
+        task.state = "" if no_start else "WAITING"
+        wfi.add_task(task)
+        metadata = wfi.get_task_metadata(task.id) # TODO can reduce lines?
         metadata["workdir"] = task.workdir
         wfi.set_task_metadata(task.id, metadata)
 
@@ -315,8 +315,7 @@ def start_workflow(wf_id):
     _, tasks = wfi.get_workflow()
     tasks.reverse()
     for task in tasks:
-        task_state = wfi.get_task_state(task.id)
-        if task_state == "":
+        if task.state == "":
             wfi.set_task_state(task.id, "WAITING")
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()

@@ -67,7 +67,7 @@ class WorkflowInterface:
         """Resume the execution of a paused BEE workflow."""
         self._gdb_driver.resume_workflow(self._workflow_id)
 
-    def add_task(self, task, task_state):
+    def add_task(self, task):
         """Add a new task to a BEE workflow.
 
         :param task: the name of the file to which to redirect stderr
@@ -84,7 +84,7 @@ class WorkflowInterface:
             task.hints = []
 
         # Load the new task into the graph database
-        self._gdb_driver.load_task(task, task_state)
+        self._gdb_driver.load_task(task)
 
     def restart_task(self, task, checkpoint_file):
         """Restart a failed BEE workflow task.
