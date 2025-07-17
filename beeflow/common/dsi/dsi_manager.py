@@ -40,7 +40,6 @@ class DSIManager:
     def save_wf_info(self, wfi):
         """Save workflow information to the DSI."""
         workflow, tasks = wfi.get_workflow()
-        print(workflow)
         # Create temporary json files for info to store
         workflow_dict = {
             "id": workflow.id,
@@ -103,6 +102,8 @@ class DSIManager:
             )
 
             task.metadata['task_id'] = task.id
+            group_val = task.metadata.pop('Group', None)
+            task.metadata['Group_val'] = group_val
             task_metadata_dict_list.append(
                 {k: v for k, v in task.metadata.items() if v is not None}
             )
@@ -125,7 +126,6 @@ class DSIManager:
                     task_hint_dict[key] = value
                 task_hint_dict_list.append(task_hint_dict)
 
-        print(task_metadata_dict_list)
         # make csv files to store in dsi
         self.store_dict_list([workflow_dict], "workflow")
         self.store_dict_list(wf_input_dict_list, "workflow_input")

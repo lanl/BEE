@@ -298,9 +298,7 @@ class SlurmWorker(Worker):
 
     def get_task_metadata(self, job_id):
         """Gets all the relevant fields of a job through sacct"""
-        log.info("trying to get job metadata for job_id: %s", job_id)
         fmt = ','.join(self._all_sacct_fields())
-        log.info(fmt)
         cmd = [
             "sacct",
             "-P", "--noconvert",
@@ -308,13 +306,11 @@ class SlurmWorker(Worker):
             f"--format={fmt}"
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        log.info(result.stdout)
         lines = result.stdout.strip().splitlines()
         reader = csv.reader(lines, delimiter='|')
         header = next(reader)
         rows = [dict(zip(header, row)) for row in reader]
         for r in rows:
-            log.info(r)
             if r.get("JobID") == str(job_id):
                 return r
 
