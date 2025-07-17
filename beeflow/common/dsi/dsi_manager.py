@@ -13,9 +13,34 @@ class DSIManager:
         with importlib.resources.path("beeflow.common.dsi", "schema.json") as schema_path:
             self.dsi.schema(str(schema_path))
 
+
+    def list_of_dict(self, data, secondary_key, secondary_value):
+        """Convert inputs or outputs to list of dict"""
+        result = []
+        if data:
+            for item in data:
+                d = {key: value for key, value in item.dict().items() if value is not None}
+                d[secondary_key] = secondary_value
+                result.append(d)
+            return result
+        return None
+
+
+    def store_dict_list(self, data, table_name):
+        """Store a list of dicts in the DSI"""
+        if not data:
+            return
+        for datum in data:
+            json_file = f'/tmp/{table_name}.json'
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(datum, f)
+            self.dsi.read(json_file, "JSON", table_name=table_name)
+
+
     def save_wf_info(self, wfi):
         """Save workflow information to the DSI."""
         workflow, tasks = wfi.get_workflow()
+        print(workflow)
         # Create temporary json files for info to store
         workflow_dict = {
             "id": workflow.id,
@@ -23,12 +48,42 @@ class DSIManager:
             "state": workflow.state,
         }
 
+        wf_input_dict_list = self.list_of_dict(workflow.inputs, "workflow_id", workflow.id)
+
+        wf_output_dict_list = self.list_of_dict(workflow.outputs, "workflow_id", workflow.id)
+
+        wf_requirement_dict_list = []
+        for requirement in workflow.requirements:
+            wf_requirement_dict = {
+                "workflow_id": workflow.id,
+                "class_": requirement.class_,
+            }
+            for key, value in requirement.params.items():
+                wf_requirement_dict[key] = value
+            wf_requirement_dict_list.append(wf_requirement_dict)
+
+        wf_hint_dict_list = []
+        for hint in workflow.hints:
+            wf_hint_dict = {
+                "workflow_id": workflow.id,
+                "class_": hint.class_,
+            }
+            for key, value in hint.params.items():
+                wf_hint_dict[key] = value
+            wf_hint_dict_list.append(wf_hint_dict)
+
         task_dict_list = []
+        task_input_dict_list = []
+        task_output_dict_list = []
+        task_requirement_dict_list = []
+        task_hint_dict_list = []
         for task in tasks:
             task_dict = {
                 "id": task.id,
                 "name": task.name,
                 "workflow_id": workflow.id,
+                "state": task.state,
+                "base_command": str(task.base_command),
             }
             if task.stdout:
                 task_dict["stdout"] = task.stdout
@@ -38,18 +93,43 @@ class DSIManager:
                 task_dict["workdir"] = str(task.workdir)
             task_dict_list.append(task_dict)
 
+            task_input_dict_list.extend(
+                self.list_of_dict(task.inputs, "task_id", task.id)
+            )
 
-        # make json file that is just the workflow dict
-        workflow_json = f'/tmp/{workflow.id}_workflow.json'
-        with open(workflow_json, 'w', encoding='utf-8') as f:
-            json.dump(workflow_dict, f)
-        self.dsi.read(workflow_json, "JSON", table_name="workflow")
+            task_output_dict_list.extend(
+                self.list_of_dict(task.outputs, "task_id", task.id)
+            )
 
-        for task in task_dict_list:
-            task_json = f'/tmp/{task["id"]}_task.json'
-            with open(task_json, 'w', encoding='utf-8') as f:
-                json.dump(task, f)
-            self.dsi.read(task_json, "JSON", table_name="task")
+            for requirement in task.requirements:
+                task_requirement_dict = {
+                    "task_id": task.id,
+                    "class_": requirement.class_,
+                }
+                for key, value in requirement.params.items():
+                    task_requirement_dict[key] = value
+                task_requirement_dict_list.append(task_requirement_dict)
+
+            for hint in task.hints:
+                task_hint_dict = {
+                    "task_id": task.id,
+                    "class_": hint.class_,
+                }
+                for key, value in hint.params.items():
+                    task_hint_dict[key] = value
+                task_hint_dict_list.append(task_hint_dict)
+
+        # make csv files to store in dsi
+        self.store_dict_list([workflow_dict], "workflow")
+        self.store_dict_list(wf_input_dict_list, "workflow_input")
+        self.store_dict_list(wf_output_dict_list, "workflow_output")
+        self.store_dict_list(wf_requirement_dict_list, "workflow_requirement")
+        self.store_dict_list(wf_hint_dict_list, "workflow_hint")
+        self.store_dict_list(task_dict_list, "task")
+        self.store_dict_list(task_input_dict_list, "task_input")
+        self.store_dict_list(task_output_dict_list, "task_output")
+        self.store_dict_list(task_requirement_dict_list, "task_requirement")
+        self.store_dict_list(task_hint_dict_list, "task_hint")
 
 
 dsi_manager = DSIManager()

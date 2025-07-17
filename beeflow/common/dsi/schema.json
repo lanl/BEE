@@ -8,32 +8,32 @@
       "workflow_id": ["workflow", "id"]
     }
   },
-  "input_parameter": {
+  "workflow_input": {
     "foreign_key": {
       "workflow_id": ["workflow", "id"]
     }
   },
-  "output_parameter": {
+  "workflow_output": {
     "foreign_key": {
       "workflow_id": ["workflow", "id"]
     }
   },
-  "step_input": {
+  "task_input": {
     "foreign_key": {
       "task_id": ["task", "id"]
     }
   },
-  "step_output": {
+  "task_output": {
     "foreign_key": {
       "task_id": ["task", "id"]
     }
   },
-  "requirement": {
+  "workflow_requirement": {
     "foreign_key": {
       "workflow_id": ["workflow", "id"]
     }
   },
-  "hint": {
+  "workflow_hint": {
     "foreign_key": {
       "workflow_id": ["workflow", "id"]
     }
