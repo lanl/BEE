@@ -77,6 +77,7 @@ class DSIManager:
         task_output_dict_list = []
         task_requirement_dict_list = []
         task_hint_dict_list = []
+        task_metadata_dict_list = []
         for task in tasks:
             task_dict = {
                 "id": task.id,
@@ -101,6 +102,11 @@ class DSIManager:
                 self.list_of_dict(task.outputs, "task_id", task.id)
             )
 
+            task.metadata['task_id'] = task.id
+            task_metadata_dict_list.append(
+                {k: v for k, v in task.metadata.items() if v is not None}
+            )
+
             for requirement in task.requirements:
                 task_requirement_dict = {
                     "task_id": task.id,
@@ -119,6 +125,7 @@ class DSIManager:
                     task_hint_dict[key] = value
                 task_hint_dict_list.append(task_hint_dict)
 
+        print(task_metadata_dict_list)
         # make csv files to store in dsi
         self.store_dict_list([workflow_dict], "workflow")
         self.store_dict_list(wf_input_dict_list, "workflow_input")
@@ -130,6 +137,7 @@ class DSIManager:
         self.store_dict_list(task_output_dict_list, "task_output")
         self.store_dict_list(task_requirement_dict_list, "task_requirement")
         self.store_dict_list(task_hint_dict_list, "task_hint")
+        self.store_dict_list(task_metadata_dict_list, "task_metadata")
 
 
 dsi_manager = DSIManager()

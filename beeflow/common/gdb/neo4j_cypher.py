@@ -117,14 +117,15 @@ def create_task(tx, task):
                     "SET t.stderr = $stderr "
                     "SET t.reqs = $reqs "
                     "SET t.hints = $hints "
-                    "SET t.state = $state")
+                    "SET t.state = $state "
+                    "SET t.workdir = $workdir")
 
     # Unpack requirements, hints dictionaries into flat list
     reqs = len(task.requirements) > 0
     hints = len(task.hints) > 0
     tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
            base_command=task.base_command, stdout=task.stdout, stderr=task.stderr,
-           reqs=reqs, hints=hints, state=task.state)
+           reqs=reqs, hints=hints, state=task.state, workdir=task.workdir)
 
 
 def create_task_hint_nodes(tx, task):

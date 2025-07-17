@@ -102,6 +102,13 @@ def update_jobs(db):
         if job_state != new_job_state:
             db.job_queue.update_job_state(id_, new_job_state)
             log.info(f"Job Updated '{task.name}' job_id: {job_id} job_state: {new_job_state}")
+            job_meta = None
+            if new_job_state in COMPLETED_STATES:
+                try:
+                    job_meta = worker.get_task_metadata(job_id)
+                except WorkerError as err:
+                    log.warning(f'Failed to get metadata for job {job_id}: {err}')
+                    job_meta = None
             if new_job_state in ('FAILED', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = task.get_full_requirement('beeflow:CheckpointRequirement')
@@ -111,20 +118,20 @@ def update_jobs(db):
                         checkpoint_file = utils.get_restart_file(task_checkpoint, task.workdir)
                         task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
                         db.update_queue.push(task.workflow_id, task.id, new_job_state,
-                                             task_info=task_info)
+                                             task_info=task_info, metadata=job_meta)
                     except utils.CheckpointRestartError as err:
                         log.error(f'Checkpoint restart failed for {task.name} ({task.id}): {err}')
-                        db.update_queue.push(task.workflow_id, task.id, 'FAILED')
+                        db.update_queue.push(task.workflow_id, task.id, 'FAILED', metadata=job_meta)
                 else:
-                    db.update_queue.push(task.workflow_id, task.id, new_job_state)
+                    db.update_queue.push(task.workflow_id, task.id, new_job_state, metadata=job_meta)
             elif new_job_state in ('BOOT_FAIL', 'NODE_FAIL', 'OUT_OF_MEMORY', 'PREEMPTED'):
                 # Don't update wfm, just resubmit
                 log.info(f'Resubmitting task {task.name}')
                 db.job_queue.remove_by_id(id_)
                 job_state = submit_task(db, worker, task)
-                db.update_queue.push(task.workflow_id, task.id, job_state)
+                db.update_queue.push(task.workflow_id, task.id, job_state, metadata=job_meta)
             else:
-                db.update_queue.push(task.workflow_id, task.id, new_job_state)
+                db.update_queue.push(task.workflow_id, task.id, new_job_state, metadata=job_meta)
 
         if job_state in COMPLETED_STATES:
             # Remove from the job queue. Our job is finished

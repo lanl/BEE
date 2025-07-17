@@ -3,6 +3,7 @@
 Builds command for submitting batch job.
 """
 
+import csv
 import io
 import subprocess
 import json
@@ -282,6 +283,43 @@ class SlurmWorker(Worker):
     def query_task(self, job_id):
         """Query job state for the task."""
         return self._inner.query_task(job_id)
+    
+    def _all_sacct_fields(self) -> list[str]:
+        """Get all sacct fields supported by Slurm."""
+        out = subprocess.run(
+            ['sacct', '--helpformat'], capture_output=True, text=True, check=True
+        ).stdout
+        fields = [
+            word for line in out.splitlines()
+            for word in line.split()
+            if word.isidentifier()
+        ]
+        return fields
+
+    def get_task_metadata(self, job_id):
+        """Gets all the relevant fields of a job through sacct"""
+        log.info("trying to get job metadata for job_id: %s", job_id)
+        fmt = ','.join(self._all_sacct_fields())
+        log.info(fmt)
+        cmd = [
+            "sacct",
+            "-P", "--noconvert",
+            f"--jobs={job_id}",
+            f"--format={fmt}"
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        log.info(result.stdout)
+        lines = result.stdout.strip().splitlines()
+        reader = csv.reader(lines, delimiter='|')
+        header = next(reader)
+        rows = [dict(zip(header, row)) for row in reader]
+        for r in rows:
+            log.info(r)
+            if r.get("JobID") == str(job_id):
+                return r
+
+        raise WorkerError(f"Job {job_id} not found in sacct output.")
+
 
 
 def check_slurm_error(data, msg):

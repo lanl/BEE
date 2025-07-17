@@ -798,6 +798,7 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs, metadat
         workflow_id=task_record["workflow_id"],
         id=task_record["id"],
         state=task_record["state"],
+        workdir=task_record["workdir"],
     )
 
 

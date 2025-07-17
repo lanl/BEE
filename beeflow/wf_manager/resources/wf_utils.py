@@ -201,9 +201,6 @@ def _resource(component, tag=""):
 def submit_tasks_tm(wf_id, tasks, allocation):  # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
-    for task in tasks:
-        metadata = wfi.get_task_metadata(task.id)
-        task.workdir = metadata["workdir"]
     # Serialize task with json
     names = [task.name for task in tasks]
     log.info("Submitted %s to Task Manager", names)
@@ -279,9 +276,6 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
     for task in tasks:
         task.state = "" if no_start else "WAITING"
         wfi.add_task(task)
-        metadata = wfi.get_task_metadata(task.id) # TODO can reduce lines?
-        metadata["workdir"] = task.workdir
-        wfi.set_task_metadata(task.id, metadata)
 
     if no_start:
         update_wf_status(wf_id, "No Start")
@@ -324,14 +318,14 @@ def start_workflow(wf_id):
     return True
 
 
-def copy_task_output(task, wfi):
+def copy_task_output(task):
     """Copies stdout and stderr to the task directory in the WF archive."""
     bee_workdir = get_bee_workdir()
     # Need to get this from the worker
     task_save_path = pathlib.Path(
         f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
-    task_workdir = wfi.get_task_metadata(task.id)["workdir"]
+    task_workdir = task.workdir
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:
