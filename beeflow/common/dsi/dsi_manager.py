@@ -1,9 +1,36 @@
 """Contains the DSI manager for workflow histories"""
 import json
+import re
 import importlib.resources
 from dsi.dsi import DSI
 
 from beeflow.common.paths import workdir
+
+_SQLITE_RESERVED = {
+    "ABORT","ADD","ALL","AND","AS","ASC","BY","CASE","CHECK","CREATE",
+    "DEFAULT","DELETE","DESC","DISTINCT","DROP","ELSE","FROM","GROUP",
+    "HAVING","IN","INDEX","INSERT","INTO","IS","JOIN","LIMIT","NOT",
+    "NULL","ON","OR","ORDER","PRIMARY","SELECT","SET","TABLE","THEN",
+    "UNION","UPDATE","VALUES","WHEN","WHERE"
+}
+
+_clean_re = re.compile(r"[^A-Za-z0-9_]")
+
+def clean_key(k: str) -> str:
+    """
+    Turn an arbitrary JSON key into a SQLite-safe column name.
+
+    • replaces every bad character with '_'  
+    • prefixes keys that start with a digit with '_'  
+    • appends '_col' when the cleaned key is a reserved word
+    """
+    k = _clean_re.sub("_", k)
+    if k and k[0].isdigit():
+        k = "_"+k
+    if k.upper() in _SQLITE_RESERVED:
+        k = f"{k}_col"
+    return k
+
 
 
 class DSIManager:
@@ -31,9 +58,11 @@ class DSIManager:
         if not data:
             return
         for datum in data:
+            safe_row = {clean_key(k): v for k, v in datum.items() if v is not None}
+            print(safe_row)
             json_file = f'/tmp/{table_name}.json'
             with open(json_file, 'w', encoding='utf-8') as f:
-                json.dump(datum, f)
+                json.dump(safe_row, f)
             self.dsi.read(json_file, "JSON", table_name=table_name)
 
 
@@ -102,8 +131,6 @@ class DSIManager:
             )
 
             task.metadata['task_id'] = task.id
-            group_val = task.metadata.pop('Group', None)
-            task.metadata['Group_val'] = group_val
             task_metadata_dict_list.append(
                 {k: v for k, v in task.metadata.items() if v is not None}
             )

@@ -16,8 +16,7 @@ from beeflow.common import log as bee_logging
 import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
-from beeflow.common.worker.utils import get_state_sacct
-from beeflow.common.worker.utils import parse_key_val
+from beeflow.common.worker.utils import get_state_sacct, parse_key_val, parse_slurm_fields
 
 
 log = bee_logging.setup(__name__)
@@ -303,7 +302,7 @@ class SlurmWorker(Worker):
             "sacct",
             "-P", "--noconvert",
             f"--jobs={job_id}",
-            f"--format={fmt}"
+            "--format=ALL"
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         lines = result.stdout.strip().splitlines()
@@ -312,7 +311,7 @@ class SlurmWorker(Worker):
         rows = [dict(zip(header, row)) for row in reader]
         for r in rows:
             if r.get("JobID") == str(job_id):
-                return r
+                return parse_slurm_fields(r)
 
         raise WorkerError(f"Job {job_id} not found in sacct output.")
 
