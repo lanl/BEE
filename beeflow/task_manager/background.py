@@ -155,6 +155,6 @@ def process_queues():
         # The workflow manager received the updates, so clear the queue
         db.update_queue.clear()
     else:
-        log.info(resp.json()['error'])
+        log.info(resp)
         # Something bad happened so keep the udpates until the next round
         log.warning("WFM not responding when sending task updates.")
