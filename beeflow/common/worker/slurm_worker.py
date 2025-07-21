@@ -8,7 +8,6 @@ import subprocess
 import json
 import urllib
 import getpass
-import datetime
 import requests_unixsocket
 import requests
 
@@ -18,6 +17,8 @@ from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
 from beeflow.common.worker.utils import get_state_sacct
 from beeflow.common.worker.utils import parse_key_val
+from beeflow.common.worker.utils import calculate_time_left
+from beeflow.common.worker.utils import format_start_time
 
 
 log = bee_logging.setup(__name__)
@@ -184,6 +185,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/{openapi_version}"
+        self.cli_worker = SlurmCLIWorker(bee_workdir=bee_workdir, **kwargs)
 
     def query_task(self,job_id):
         """Worker queries job; returns job_state,job_info."""
@@ -197,30 +199,18 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 try:
                     job_state = data['jobs'][0]['job_state']
                     job_name = data['jobs'][0]['name']
-                    start_time = datetime.datetime.fromtimestamp(data['jobs'][0]['start_time'])
-                    end_time = datetime.datetime.fromtimestamp(data['jobs'][0]['end_time'])
+                    start_time = data['jobs'][0]['start_time']
+                    end_time = data['jobs'][0]['end_time']
 
-                    now = datetime.datetime.now()
-
-                    if data['jobs'][0]['end_time'] > 0:
-                        time_left = end_time - now
-                        total_seconds = int(time_left.total_seconds())
-                        hours = total_seconds // 3600
-                        minutes = (total_seconds % 3600) // 60
-                        seconds = total_seconds % 60
-                        time_left = f"{hours:02}:{minutes:02}:{seconds:02}"
-                    else:
-                        time_left = '0:00:00'
-
-                    start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
+                    time_left = calculate_time_left(end_time)
+                    start_time = format_start_time(start_time)
 
                     job_info = {"job_name": job_name,"start_time":start_time,"time_left":time_left}
                 except (KeyError, IndexError) as exc:
                     raise WorkerError(f'Failed to query job {job_id}') from exc
             else:
                 # If slurmrestd does not find job make last attempt with sacct command
-                job_state = get_state_sacct(job_id)
-                job_info = {"job_name": "Unknown","start_time":"Unknown","time_left":"Unknown"}
+                job_state,job_info = self.cli_worker.query_task(job_id)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
             job_info = {"job_name": "Unknown","start_time":"Unknown","time_left":"Unknown"}
@@ -268,19 +258,8 @@ class SlurmCLIWorker(BaseSlurmWorker):
             start_time = key_vals['StartTime']
             end_time = key_vals['EndTime']
 
-            if start_time != 'Unknown':
-                start_time = datetime.datetime.fromisoformat(start_time)
-                start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                start_time = '0:00:00'
-
-            now = datetime.datetime.now()
-            if end_time != 'Unknown':
-                end_time =datetime.datetime.fromisoformat(end_time)
-                time_left = end_time - now
-                time_left = str(time_left)
-            else:
-                time_left = '0:00:00'
+            start_time = format_start_time(start_time)
+            time_left = calculate_time_left(end_time)
 
             job_info = {"job_name": job_name,"start_time":start_time,"time_left":time_left}
         return job_state,job_info
@@ -292,7 +271,6 @@ class SlurmCLIWorker(BaseSlurmWorker):
         except subprocess.CalledProcessError:
             raise WorkerError(f'Failed to cancel job {job_id}') from None
         return 'CANCELLED'
-
 
 class SlurmWorker(Worker):
     """Main slurm worker class."""

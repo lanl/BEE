@@ -573,13 +573,16 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     wf_status = resp.json()['wf_status']
     typer.echo(wf_status)
     for _task_id, task_name, task_state,metadata in tasks_status:
-        job_name = metadata.get("job_name","N/A")
-        start_time = metadata.get("start_time","N/A")
-        time_left = metadata.get("time_left","N/A")
+        job_name = metadata.get("job_name")
+        start_time = metadata.get("start_time")
+        time_left = metadata.get("time_left")
         if wf_status == 'No Start':
             typer.echo(f'{task_name}')
-        else:
+            continue
+        if all([job_name,start_time,time_left]):
             typer.echo(f'{task_name}--{task_state}--{job_name}--{start_time}--{time_left}')
+        else:
+            typer.echo(f'{task_name}--{task_state}')
 
     logging.info('Query workflow:  {resp.text}')
     return wf_status, tasks_status
