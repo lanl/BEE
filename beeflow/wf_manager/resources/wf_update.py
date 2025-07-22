@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import time
+import threading
 
 from flask import request
 from flask_restful import Resource, reqparse
@@ -44,7 +45,7 @@ def archive_workflow(wf_id, final_state=None):
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
     wf_utils.update_wf_status(wf_id, wf_state)
     wfi = wf_utils.get_workflow_interface(wf_id)
-    dsi_manager.save_wf_info(wfi)
+    threading.Thread(target=dsi_manager.save_wf_info, args=(wfi,)).start()
 
     archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
     os.makedirs(archive_dir, exist_ok=True)

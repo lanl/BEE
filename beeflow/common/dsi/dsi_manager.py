@@ -3,6 +3,7 @@ import json
 import re
 import importlib.resources
 from dsi.dsi import DSI
+from celery import shared_task
 
 from beeflow.common.paths import workdir
 
@@ -68,6 +69,9 @@ class DSIManager:
 
     def save_wf_info(self, wfi):
         """Save workflow information to the DSI."""
+        self.dsi = DSI(f'{workdir()}/bee.db')
+        with importlib.resources.path("beeflow.common.dsi", "schema.json") as schema_path:
+            self.dsi.schema(str(schema_path))
         workflow, tasks = wfi.get_workflow()
         # Create temporary json files for info to store
         workflow_dict = {
