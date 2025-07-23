@@ -1,0 +1,35 @@
+FROM almalinux:9
+
+# 1. Update the system and install python3 + pip (no python3-venv)
+RUN dnf update -y \
+ && dnf install -y \
+      python3 \
+      python3-pip \
+      libjpeg-turbo \
+      libpng \
+      zlib \
+      bzip2 \
+      freetype \
+      fontconfig \
+ && dnf clean all
+
+# 2. Create a venv (venv is built-in) and install your Python deps
+RUN python3 -m venv /venv \
+ && /venv/bin/python -m pip install --upgrade pip \
+ && /venv/bin/pip install --no-cache-dir \
+       matplotlib \
+       numpy \
+       pandas \
+       joblib \
+       scikit-learn
+
+# 3. Copy your scripts into the image
+COPY workdir/fire-workflow/preprocess.py workdir/fire-workflow/preprocess.sh workdir/fire-workflow/split_data.py workdir/fire-workflow/split_data.sh workdir/fire-workflow/optimize_models.py workdir/fire-workflow/optimize_models.sh workdir/fire-workflow/eval_models.py workdir/fire-workflow/eval_models.sh workdir/fire-workflow/create_tables.py workdir/fire-workflow/create_tables.sh workdir/fire-workflow/pred_display.py workdir/fire-workflow/pred_display.sh workdir/fire-workflow/confusion_matrix_maker.py workdir/fire-workflow/confusion_matrix_maker.sh workdir/fire-workflow/feature_perm.py workdir/fire-workflow/feature_perm.sh /
+
+# 4. Make the shell script executable
+RUN chmod 755 /preprocess.sh /split_data.sh /optimize_models.sh /eval_models.sh /create_tables.sh /pred_display.sh /confusion_matrix_maker.sh /feature_perm.sh
+
+# (Optional) so that /venv/bin is always on PATH
+ENV PATH="/venv/bin:${PATH}"
+
+
