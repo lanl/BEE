@@ -281,7 +281,7 @@ class CwlParser:
                 raise CwlParseError(f"specified step output {out} not produced by CommandLineTool")
 
             output_type = out_map[out].type
-            glob = None
+            glob = ""
             if output_type == "stdout":
                 if not stdout:
                     raise CwlParseError(f"stdout capture required for step output {out} "
