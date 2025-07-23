@@ -720,7 +720,7 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
         help='Path to the where the dag output will be'),
         no_dag_dir: bool = typer.Option(False, '--no-dag-dir',
         help='do not make a subdirectory within ouput_dir for the dags'),
-        graphmls_dir: str = typer.Option(None, '--graphmls_dir',
+        graphmls_dir: pathlib.Path = typer.Option(None, '--graphmls_dir',
         help='Graphmls directory to convert into a DAG')):
     """Export a DAG of the workflow to a GraphML file."""
     output_dir = output_dir.resolve()
@@ -735,6 +735,14 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
 
     # Convert existing graphmls to DAGs if graphmls_dir was given
     if graphmls_dir:
+        # Make sure graphmls_dir is an absolute path and exists
+        graphmls_dir = os.path.expanduser(graphmls_dir)
+        graphmls_dir = os.path.abspath(graphmls_dir)
+        if not os.path.exists(graphmls_dir):
+            error_exit(f'Path for graphmls directory "{graphmls_dir}" doesn\'t exist')
+        graphmls_dir = str(graphmls_dir)
+
+        # Convert
         resp = wf_utils.convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir)
         if resp:
             error_exit(resp)
