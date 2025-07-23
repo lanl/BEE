@@ -45,3 +45,6 @@ beeflow submit firebee fire-workflow/ fire-workflow/fire-workflow.cwl fire-workf
 - fire-workflow/confusion_matrix_maker.py [creates a confusion matrix based on true and predicted values](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.ConfusionMatrixDisplay.html#sklearn.metrics.ConfusionMatrixDisplay.from_predictions). The output is located in metrics/behaviour/displays. 
 - fire-workflow/feature_perm.py creates a csv and a plot for the [permutation feature importance](https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html#feature-importance-based-on-feature-permutation). The output is located in metrics/(area or behaviour)/features
 
+## Customizing Your Workflow
+
+This workflow was written in a way such that it can easily be applied to other supervised machine learning problems! Edit firebee.py or any other workflow components to fit your needs.
