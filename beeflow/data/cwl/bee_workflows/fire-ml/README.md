@@ -3,11 +3,11 @@
 This is a supervised machine learning workflow orchestrated by BEE that predicts fire behaviour and burned area. It includes preprocessing, data splitting, model optimization, evaluation, and reporting. This workflow is inspired by the work described in the paper, [Explainable machine learning approaches for understanding fire outcomes](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/12675/1267515/Explainable-machine-learning-approaches-for-understanding-fire-outcomes/10.1117/12.2677931.full?webSyncID=0cbad059-329a-d883-c9d9-02bc9993ced2&sessionGUID=68bead49-a285-31ab-0d3a-6b03c97c009b).
 
 ## Workflow DAGs
-![firebee DAG](docs/sphinx/images/fire_tasks.png)
+![firebee DAG](fire_tasks.png)
 
 *DAG of the tasks produced by firebee.py*
 
-![rf DAG](docs/sphinx/images/rf_fire_tasks.png)
+![rf DAG](rf_fire_tasks.png)
 
 *DAG of the tasks produced by rf_only_firebee.py*
 
