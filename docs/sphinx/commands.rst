@@ -109,7 +109,7 @@ Arguments:
 Arguments:
   WF_ID  [required]
 
-``beeflow dag``: Export a directed acyclic graph (DAG) of a submitted workflow. This command can be run at any point of the workflow. To see the DAG of a workflow before it runs, submit the workflow with the ``--no-start`` flag and then use the dag command. The DAGs are exported to $OUTPUT_DIR/$WD_ID-dags by default. If the ``no-dag-dir`` flag is specified when the dag command is run, the DAG will be exported to $OUTPUT_DIR. The dag command makes multiple versions of the DAGs. The most recent version is $WF_ID.png and the others are $WD_ID_v1.png, $WF_ID_v2.png ... where v1 is the oldest. See :ref:`workflow-visualization` for more information.
+``beeflow dag``: Export a directed acyclic graph (DAG) of a submitted workflow. This command can be run at any point of the workflow. To see the DAG of a workflow before it runs, submit the workflow with the ``--no-start`` flag and then use the dag command. The DAGs are exported to $OUTPUT_DIR/$WD_ID-dags by default. If the ``no-dag-dir`` flag is specified when the dag command is run, the DAG will be exported to $OUTPUT_DIR. The dag command makes multiple versions of the DAGs. The most recent version is $WF_ID.png and the others are $WD_ID_v1.png, $WF_ID_v2.png ... where v1 is the oldest. If the ``graphmls_dir`` flag is specified when the dag command is run, BEE will convert the Graphmls in the specified directory into DAGs. See :ref:`workflow-visualization` for more information.
 
 Arguments:
   - WF_ID  [required]
@@ -117,6 +117,7 @@ Arguments:
     
 Options:
   ``no-dag-dir``: Do not make a subdirectory within the output_dir for the DAGs.
+  ``graphmls_dir``: Directory of Graphmls to convert into DAGs.
 
 Generating and Managing Configuration Files
 ===========================================
