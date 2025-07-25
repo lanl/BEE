@@ -297,7 +297,6 @@ class SlurmWorker(Worker):
 
     def get_task_metadata(self, job_id):
         """Gets all the relevant fields of a job through sacct"""
-        fmt = ','.join(self._all_sacct_fields())
         cmd = [
             "sacct",
             "-P", "--noconvert",
@@ -308,13 +307,18 @@ class SlurmWorker(Worker):
         lines = result.stdout.strip().splitlines()
         reader = csv.reader(lines, delimiter='|')
         header = next(reader)
-        rows = [dict(zip(header, row)) for row in reader]
+        rows = [parse_slurm_fields(dict(zip(header, row))) for row in reader]
+        log.info(rows)
+        slurm_job = ''
+        slurm_steps = []
         for r in rows:
-            if r.get("JobID") == str(job_id):
-                return parse_slurm_fields(r)
-
-        raise WorkerError(f"Job {job_id} not found in sacct output.")
-
+            if r['JobID'] == str(job_id):
+                slurm_job = json.dumps(r)
+            else:
+                slurm_steps.append(json.dumps(r))
+        if not slurm_job:
+            raise WorkerError("No Job Found With That ID")
+        return {"SlurmJob": slurm_job, "SlurmSteps": slurm_steps}
 
 
 def check_slurm_error(data, msg):

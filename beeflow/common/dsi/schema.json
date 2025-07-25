@@ -48,9 +48,15 @@
       "task_id": ["task", "id"]
     }
   }, 
-  "task_metadata": {
+  "slurm_job": {
+    "primary_key": "JobID",
     "foreign_key": {
       "task_id": ["task", "id"]
+    }
+  },
+  "slurm_step": {
+    "foreign_key": {
+      "job_id_link": ["slurm_job", "JobID"]
     }
   }
 }

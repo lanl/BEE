@@ -3,7 +3,14 @@ import json
 import re
 import importlib.resources
 from dsi.dsi import DSI
-from celery import shared_task
+
+"""
+TODO:
+CSV Reader / colleciton reader for efficiency
+Save sub-steps in SLURM!! CRUCIAL.
+Flux Support
+Save more workflow related info / archive things
+"""
 
 from beeflow.common.paths import workdir
 
@@ -109,7 +116,8 @@ class DSIManager:
         task_output_dict_list = []
         task_requirement_dict_list = []
         task_hint_dict_list = []
-        task_metadata_dict_list = []
+        slurm_job_dict_list = []
+        slurm_step_dict_list = []
         for task in tasks:
             task_dict = {
                 "id": task.id,
@@ -134,10 +142,14 @@ class DSIManager:
                 self.list_of_dict(task.outputs, "task_id", task.id)
             )
 
-            task.metadata['task_id'] = task.id
-            task_metadata_dict_list.append(
-                {k: v for k, v in task.metadata.items() if v is not None}
-            )
+            slurm_job = json.loads(task.metadata["SlurmJob"])
+            slurm_job["task_id"] = task.id
+            slurm_steps = [json.loads(s) for s in task.metadata["SlurmSteps"]]
+            for step in slurm_steps:
+                step["task_id"] = task.id
+                step["job_id_link"] = slurm_job["JobID"]
+            slurm_job_dict_list.append(slurm_job)
+            slurm_step_dict_list.extend(slurm_steps)
 
             for requirement in task.requirements:
                 task_requirement_dict = {
@@ -168,7 +180,8 @@ class DSIManager:
         self.store_dict_list(task_output_dict_list, "task_output")
         self.store_dict_list(task_requirement_dict_list, "task_requirement")
         self.store_dict_list(task_hint_dict_list, "task_hint")
-        self.store_dict_list(task_metadata_dict_list, "task_metadata")
+        self.store_dict_list(slurm_job_dict_list, "slurm_job")
+        self.store_dict_list(slurm_step_dict_list, "slurm_step")
 
 
 dsi_manager = DSIManager()
