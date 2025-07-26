@@ -7,7 +7,6 @@ from dsi.dsi import DSI
 """
 TODO:
 CSV Reader / colleciton reader for efficiency
-Save sub-steps in SLURM!! CRUCIAL.
 Flux Support
 Save more workflow related info / archive things
 """

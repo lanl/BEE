@@ -163,8 +163,16 @@ def parse_slurm_fields(sacct: dict):
         elif value == "float":
             parsed_sacct[key] = float(sacct[key])
         elif value == "time":
-            # convert time format to seconds
-            parsed_sacct[key] = sum(float(x) * 60 ** i for i, x in enumerate(reversed(sacct[key].split(":"))))
+            # convert time format to seconds from days-HH:MM:SS
+            parts = sacct[key].split('-')
+            if len(parts) == 2:
+                days = int(parts[0])
+                time_parts = parts[1].split(':')
+                seconds = sum(float(x) * 60 ** i for i, x in enumerate(reversed(time_parts))) + days * 86400
+            else:
+                time_parts = parts[0].split(':')
+                seconds = sum(float(x) * 60 ** i for i, x in enumerate(reversed(time_parts)))
+            parsed_sacct[key] = seconds
         elif value == "str":
             parsed_sacct[key] = sacct[key]
         else:

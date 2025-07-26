@@ -134,7 +134,6 @@ def update_jobs(db):
                 db.update_queue.push(task.workflow_id, task.id, new_job_state, metadata=job_meta)
 
         if job_state in COMPLETED_STATES:
-            # Remove from the job queue. Our job is finished
             db.job_queue.remove_by_id(id_)
 
 
