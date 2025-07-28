@@ -3,7 +3,9 @@ Publishing a new release
 
 Verify all current changes in develop run correctly on nightly tests.
 Note: If you are publishing a pre-release from develop just checkout develop and pull,
-verify it is up to date and do steps 7 & 8 but stay on the develop branch.
+verify it is up to date and do steps 7 & 8 but stay on the develop branch. For both
+pre-releases (that will be published on PYPI) and release versions verify the information in
+README.rst has the correct tags and URL's.
 
 1. Start a branch named Release-0.x.x  Change the version in pyproject.toml and verify docs build, add to HISTORY.md for this release,
    and get this change merged into develop. (You may want to set the bypass as in step 2 on develop).
