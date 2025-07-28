@@ -47,7 +47,7 @@ BEE Sites
    * - Stable release
      - ``0.1.10``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
-   * - Pre Release
+   * - Pre-release
      - ``0.1.11dev3``
      - `https://lanl.github.io/BEE/0.1.11dev3/ <https://lanl.github.io/BEE/0.1.11dev3/>`__
 
