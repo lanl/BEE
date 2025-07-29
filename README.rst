@@ -35,7 +35,8 @@ BEE Sites
 
 * Github: `https://github.com/lanl/BEE <https://github.com/lanl/BEE>`_
 
-* Documentation:
+
+* PyPi: `https://pypi.org/project/hpc-beeflow/ <https://pypi.org/project/hpc-beeflow/>`_
 
 .. list-table:: 
    :header-rows: 1
@@ -43,7 +44,8 @@ BEE Sites
 
    * - Purpose
      - Git Tag
-     - GitHub Pages URL
+     - Documentation
+
    * - Stable release
      - ``0.1.10``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
