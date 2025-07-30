@@ -797,8 +797,10 @@ def test_list_workflows(
         (
             "Running",
             """Running
-cat--Running--cat-f3eacafc6bc2433a879e41f9990eca43--2025-07-03 13:38:22--1 day, 23:59:35.874235
-grep--Pending--grep0-17869ede0fe24571be99dd61fa46e0e6--1969-12-31 17:00:00--0:00:00
+task_name    task_state    partition    nodes
+-----------  ------------  -----------  -------
+cat          RUNNING       general      cn740
+grep         PENDING
 """,
         ),
         (
@@ -815,8 +817,8 @@ def test_query(mocker, capsys, wf_status, exp_out):
     fake_resp = mocker.Mock()
     fake_resp.status_code = 200
     fake_resp.json.return_value = {
-        "tasks_status": [("", "cat", "Running",{"job_name":"cat-f3eacafc6bc2433a879e41f9990eca43","start_time":"2025-07-03 13:38:22","time_left":"1 day, 23:59:35.874235","workdir":""}),\
- ("", "grep", "Pending",{"job_name":"grep0-17869ede0fe24571be99dd61fa46e0e6","start_time":"1969-12-31 17:00:00","time_left":"0:00:00","workdir":""})],
+        "tasks_status": [("", "cat", "RUNNING",{"partition":"general","nodes":"cn740"}),\
+ ("", "grep", "PENDING",{})],
         "wf_status": wf_status,
     }
     mock_conn = mocker.Mock()

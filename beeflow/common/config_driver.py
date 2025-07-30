@@ -314,6 +314,110 @@ VALIDATOR.option('job', 'default_qos', validator=lambda val: val.strip(), prompt
 VALIDATOR.option('job', 'default_reservation', validator=lambda val: val.strip(), prompt=True,
                  default='', info='default reservation to run jobs on (leave blank if none)')
 
+def validate_attributes(val):
+    if not isinstance(val,str):
+        raise ValueError("Expected a comma-separated string or list of strings.")
+    return [v.strip() for v in val.split(',') if v.strip()]
+
+slurm_command_attr= [
+    "AllocCPUs", "AllocNodes", "AllocTres", "AveCPU", "AveCPUFreq", "AveDiskRead", "AveDiskWrite",
+    "AvePages", "AveRSS", "AveVMSize", "Cluster", "Constraints", "ConsumedEnergy", "ConsumedEnergyRaw",
+    "Container", "CPUTime", "CPUTimeRAW", "DBIndex", "DerivedExitCode", "Elapsed", "ElapsedRaw",
+    "Eligible", "End", "ExitCode", "FailedNode", "JobID", "JobIDRaw", "JobName", "Layout",
+    "MaxDiskRead", "MaxDiskReadNode", "MaxDiskReadTask", "MaxDiskWrite", "MaxDiskWriteNode", "MaxDiskWriteTask",
+    "MaxPages", "MaxPagesNode", "MaxPagesTask", "MaxRSS", "MaxRSSNode", "MaxRSSTask", "MaxVMSize",
+    "MaxVMSizeNode", "MaxVMSizeTask", "MCSLabel", "MinCPU", "MinCPUNode", "MinCPUTask", "NCPUS",
+    "NNodes", "NodeList", "NTasks", "Partition", "Planned", "PlannedCPU", "PlannedCPURAW", "Priority",
+    "Reason", "ReqCPUFreq", "ReqCPUFreqGov", "ReqCPUFreqMax", "ReqCPUFreqMin", "ReqCPUS", "ReqMem",
+    "ReqNodes", "ReqTres", "ReqReservation", "Reservation", "ReservationId", "Restarts", "SegmentSize",
+    "Start", "State", "StdErr", "StdIn", "StdOut", "Submit", "SubmitLine", "Suspended",
+    "SystemComment", "SystemCPU", "Timelimit", "TimelimitRaw", "TotalCPU", "TresUsageInAve",
+    "TresUsageInMax", "TresUsageInMaxNode", "TresUsageInMaxTask", "TresUsageInMin", "TresUsageInMinNode",
+    "TresUsageInMinTask", "TresUsageInTot", "TresUsageOutAve", "TresUsageOutMax", "TresUsageOutMaxNode",
+    "TresUsageOutMaxTask", "TresUsageOutMin", "TresUsageOutMinNode", "TresUsageOutMinTask",
+    "TresUsageOutTot", "UserCPU", "WorkDir"
+]
+slurm_attr = [
+    'account', 'accrue_time', 'admin_comment', 'allocating_node',
+    'array_job_id_set', 'array_job_id_infinite', 'array_job_id_number',
+    'array_task_id_set', 'array_task_id_infinite', 'array_task_id_number',
+    'array_max_tasks_set', 'array_max_tasks_infinite', 'array_max_tasks_number',
+    'array_task_string', 'association_id', 'batch_features', 'batch_flag',
+    'batch_host', 'flags', 'burst_buffer', 'burst_buffer_state', 'cluster',
+    'cluster_features', 'command', 'comment', 'container', 'container_id',
+    'contiguous', 'core_spec', 'thread_spec', 'cores_per_socket_set',
+    'cores_per_socket_infinite', 'cores_per_socket_number', 'billable_tres_set',
+    'billable_tres_infinite', 'billable_tres_number', 'cpus_per_task_set',
+    'cpus_per_task_infinite', 'cpus_per_task_number',
+    'cpu_frequency_minimum_set', 'cpu_frequency_minimum_infinite',
+    'cpu_frequency_minimum_number', 'cpu_frequency_maximum_set',
+    'cpu_frequency_maximum_infinite', 'cpu_frequency_maximum_number',
+    'cpu_frequency_governor_set', 'cpu_frequency_governor_infinite',
+    'cpu_frequency_governor_number', 'cpus_per_tres', 'cron', 'deadline',
+    'delay_boot_set', 'delay_boot_infinite', 'delay_boot_number', 'dependency',
+    'derived_exit_code_set', 'derived_exit_code_infinite',
+    'derived_exit_code_number', 'eligible_time', 'end_time', 'excluded_nodes',
+    'exit_code_set', 'exit_code_infinite', 'exit_code_number', 'extra',
+    'failed_node', 'features', 'federation_origin', 'federation_siblings_active',
+    'federation_siblings_viable', 'gres_detail', 'group_id', 'group_name',
+    'het_job_id_set', 'het_job_id_infinite', 'het_job_id_number',
+    'het_job_offset_set', 'het_job_offset_infinite', 'het_job_offset_number',
+    'job_id', 'job_resources_nodes', 'job_resources_allocated_cores',
+    'job_resources_allocated_cpus', 'job_resources_allocated_hosts',
+    'job_size_str', 'job_state', 'last_sched_evaluation', 'licenses',
+    'mail_type', 'mail_user', 'max_cpus_set', 'max_cpus_infinite',
+    'max_cpus_number', 'max_nodes_set', 'max_nodes_infinite', 'max_nodes_number',
+    'mcs_label', 'memory_per_tres', 'name', 'network', 'nodes', 'nice',
+    'tasks_per_core_set', 'tasks_per_core_infinite', 'tasks_per_core_number',
+    'tasks_per_tres_set', 'tasks_per_tres_infinite', 'tasks_per_tres_number',
+    'tasks_per_node_set', 'tasks_per_node_infinite', 'tasks_per_node_number',
+    'tasks_per_socket_set', 'tasks_per_socket_infinite',
+    'tasks_per_socket_number', 'tasks_per_board_set', 'tasks_per_board_infinite',
+    'tasks_per_board_number', 'cpus_set', 'cpus_infinite', 'cpus_number',
+    'node_count_set', 'node_count_infinite', 'node_count_number', 'tasks_set',
+    'tasks_infinite', 'tasks_number', 'partition', 'prefer',
+    'memory_per_cpu_set', 'memory_per_cpu_infinite', 'memory_per_cpu_number',
+    'memory_per_node_set', 'memory_per_node_infinite',
+    'memory_per_node_number', 'minimum_cpus_per_node_set',
+    'minimum_cpus_per_node_infinite', 'minimum_cpus_per_node_number',
+    'minimum_tmp_disk_per_node_set', 'minimum_tmp_disk_per_node_infinite',
+    'minimum_tmp_disk_per_node_number', 'power_flags', 'preempt_time',
+    'preemptable_time', 'pre_sus_time', 'hold', 'priority_set',
+    'priority_infinite', 'priority_number', 'profile', 'qos', 'reboot',
+    'required_nodes', 'minimum_switches', 'requeue', 'resize_time',
+    'restart_cnt', 'resv_name', 'scheduled_nodes', 'selinux_context',
+    'shared', 'exclusive', 'oversubscribe', 'show_flags', 'sockets_per_board',
+    'sockets_per_node_set', 'sockets_per_node_infinite',
+    'sockets_per_node_number', 'start_time', 'state_description',
+    'state_reason', 'standard_error', 'standard_input', 'standard_output',
+    'submit_time', 'suspend_time', 'system_comment', 'time_limit_set',
+    'time_limit_infinite', 'time_limit_number', 'time_minimum_set',
+    'time_minimum_infinite', 'time_minimum_number', 'threads_per_core_set',
+    'threads_per_core_infinite', 'threads_per_core_number', 'tres_bind',
+    'tres_freq', 'tres_per_job', 'tres_per_node', 'tres_per_socket',
+    'tres_per_task', 'tres_req_str', 'tres_alloc_str', 'user_id', 'user_name',
+    'maximum_switch_wait_time', 'wckey', 'current_working_directory'
+]
+
+flux_attr = [
+    "t_depend", "t_submit", "t_run", "t_cleanup", "t_inactive", "t_remaining", "duration", "runtime",
+    "name", "id", "cwd", "queue", "ntasks", "ncores", "nnodes", "ranks", "nodelist", "priority",
+    "urgency", "state", "status", "success", "result", "waitstatus", "returncode", "dependencies",
+    "exception.occurred", "exception.severity", "exception.type", "exception.note"
+]
+
+#Job attributes
+VALIDATOR.section('slurm attributes',info='Available task information for the slurm scheduler\n',depends_on=('slurm', 'use_commands', 'False'))
+VALIDATOR.option('slurm attributes','attributes',validator=validate_attributes,prompt=False, default='partition,nodes',
+                 info=('Enter task attributes (comma-separated)'))
+
+VALIDATOR.section('slurm command attributes',info='Available task information for sacct\n',depends_on=('slurm', 'use_commands', 'True'))
+VALIDATOR.option('slurm command attributes','attributes',validator=validate_attributes,prompt=False,default='Partition,RunTime,NodeList',
+                 info=('Enter task attributes (comma-separated)'))
+
+VALIDATOR.section('flux attributes', info = 'Available task information for the flux scheduler\n',depends_on=('DEFAULT', 'workload_scheduler', 'Flux'))
+VALIDATOR.option('flux attributes','attributes',validator=validate_attributes,prompt=False,default='queue,runtime,nodelist',
+                 info=('Enter task attributes (comma-separated).'))
 
 def validate_chrun_opts(opts):
     """Ensure that chrun_opts don't contain options that'll conflict with BEE."""
@@ -387,7 +491,7 @@ class ConfigGenerator:
         self.validator = validator
         self.sections = {}
 
-    def choose_values(self, interactive=False, flux=False):
+    def choose_values(self, interactive=False, flux=False, attributes=False):
         """Choose configuration values based on user input."""
         dirname = os.path.dirname(self.fname)
         if dirname:
@@ -403,6 +507,10 @@ class ConfigGenerator:
             print('Please enter values for the following sections and options:')
         # Let the user choose values for each required attribute
         for sec_name, section in self.validator.sections:
+            print(f"[DEBUG] checking section: {sec_name}")
+            print(f"[DEBUG] attributes flag: {attributes}")
+            print(f"[DEBUG] is valid: {self.validator.is_section_valid(self.sections, sec_name)}")
+
             # Determine if this section is valid under the current configuration
             if not self.validator.is_section_valid(self.sections, sec_name):
                 continue
@@ -420,6 +528,18 @@ class ConfigGenerator:
                 if flux is True and opt_name == 'workload_scheduler':
                     this_default = "Flux"
                     option.prompt = False
+                if attributes and not interactive and opt_name == 'attributes':
+                    print(f'\nAvailable attributes for [{sec_name}]:')
+                    if sec_name == 'slurm attributes':
+                        attr_list = slurm_attr
+                    elif sec_name =='slurm command attributes':
+                        attr_list = slurm_command_attr
+                    else:
+                        attr_list = flux_attr
+                    print(attr_list)
+                    value = self._input_loop(opt_name, option)
+                    self.sections[sec_name][opt_name] = value
+                    continue
                 # Check for a default value
                 if (not interactive or option.prompt is False) and this_default is not None:
                     value = option.validate(this_default)
@@ -500,7 +620,9 @@ class AlterConfig:
         self._load_config()
 
         for sec_name, opts in self.changes.items():
+            print(f"[DEBUG] section: {sec_name} -> {opts}")
             for opt_name, new_value in opts.items():
+                print(f"[DEBUG]   option: {opt_name} = {new_value}")
                 self.change_value(sec_name, opt_name, new_value)
 
     def _load_config(self):
@@ -590,10 +712,11 @@ def info():
 def new(path: str = typer.Argument(default=USERCONFIG_FILE,
                                    help='Path to new config file'),
         interactive: bool = typer.Option(False, '--interactive', '-i',
-                                         help='Whether or not to be prompted'
-                                         + ' during config generation'),
+                                         help='Interactive session to generate config'),
         flux: bool = typer.Option(False, '--flux', '-f',
-                                  help='Changes default scheduler to Flux')):
+                                  help='Changes default scheduler to Flux'),
+        attributes: bool = typer.Option(False, '--attributes', '-a',
+                                        help='Chooses task attributes to display for "beeflow query"')):
     """Create a new config file."""
     if os.path.exists(path):
         if not interactive or check_yes(f'Path "{path}" already exists.\n'
@@ -601,7 +724,8 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
             config_utils.backup(path)
     ConfigGenerator(path, VALIDATOR).choose_values(
         flux=flux,
-        interactive=interactive
+        interactive=interactive,
+        attributes=attributes
     ).save(interactive=interactive)
 
 

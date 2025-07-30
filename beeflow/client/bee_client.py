@@ -38,6 +38,8 @@ from beeflow.client import remote_client
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
+from beeflow.common import validation 
+from tabulate import tabulate
 
 # Length of a shortened workflow ID
 short_id_len = 6 # pylint: disable=C0103 # not a constant
@@ -572,18 +574,33 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     tasks_status = resp.json()['tasks_status']
     wf_status = resp.json()['wf_status']
     typer.echo(wf_status)
+
+    scheduler = config_driver.BeeConfig.get('DEFAULT','workload_scheduler').lower()
+    if scheduler == 'slurm' and config_driver.BeeConfig.get('slurm','use_commands'):
+        section = 'slurm command attributes'
+    elif scheduler == 'flux':
+        section = 'flux attributes'
+    else:
+        section= 'slurm attributes'
+
+    attrs = config_driver.BeeConfig.get(section, 'attributes')
+    #if isinstance(attrs, str):
+        #attrs = [v.strip() for v in attrs.split(',') if v.strip()]
+    attr_data=[]
     for _task_id, task_name, task_state,metadata in tasks_status:
-        job_name = metadata.get("job_name")
-        start_time = metadata.get("start_time")
-        time_left = metadata.get("time_left")
         if wf_status == 'No Start':
             typer.echo(f'{task_name}')
             continue
-        if all([job_name,start_time,time_left]):
-            typer.echo(f'{task_name}--{task_state}--{job_name}--{start_time}--{time_left}')
-        else:
-            typer.echo(f'{task_name}--{task_state}')
 
+        output_fields=[task_name,task_state]
+        for attr in attrs:
+            value = metadata.get(attr)
+            if value is not None:
+                output_fields.append(str(value))
+        attr_data.append(output_fields)
+    headers = ['task_name','task_state'] + attrs
+    if attr_data:
+        typer.echo(tabulate(attr_data,headers=headers,tablefmt="fancy grid"))
     logging.info('Query workflow:  {resp.text}')
     return wf_status, tasks_status
 

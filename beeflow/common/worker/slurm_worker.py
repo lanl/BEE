@@ -17,9 +17,9 @@ from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
 from beeflow.common.worker.utils import get_state_sacct
 from beeflow.common.worker.utils import parse_key_val
-from beeflow.common.worker.utils import calculate_time_left
+from beeflow.common.worker.utils import calculate_duration
 from beeflow.common.worker.utils import format_start_time
-
+from copy import deepcopy
 
 log = bee_logging.setup(__name__)
 
@@ -198,14 +198,15 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 # For some versions of slurm, the job_state isn't included on failure
                 try:
                     job_state = data['jobs'][0]['job_state']
-                    job_name = data['jobs'][0]['name']
-                    start_time = data['jobs'][0]['start_time']
-                    end_time = data['jobs'][0]['end_time']
+                    #job_name = data['jobs'][0]['name'][:12]
+                    #start_time = data['jobs'][0]['start_time']
 
-                    time_left = calculate_time_left(end_time)
-                    start_time = format_start_time(start_time)
+                    #duration = calculate_duration(start_time)
+                    #start_time = format_start_time(start_time)
 
-                    job_info = {"job_name": job_name,"start_time":start_time,"time_left":time_left}
+                    #job_info = {"job_name": job_name,"start_time":start_time,"duration":duration}
+                    job_info = deepcopy(data['jobs'][0])
+ 
                 except (KeyError, IndexError) as exc:
                     raise WorkerError(f'Failed to query job {job_id}') from exc
             else:
@@ -213,7 +214,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 job_state,job_info = self.cli_worker.query_task(job_id)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
-            job_info = {"job_name": "Unknown","start_time":"Unknown","time_left":"Unknown"}
+            job_info = {"job_name": "Unknown","start_time":"Unknown","duration":"Unknown"}
         return job_state,job_info
 
     def cancel_task(self, job_id):
@@ -248,20 +249,14 @@ class SlurmCLIWorker(BaseSlurmWorker):
         except subprocess.CalledProcessError:
             # If show job cannot find job get state using sacct (not same info)
             job_state = get_state_sacct(job_id)
-            job_info = {"job_name": "Unknown","start_time":"Unknown","time_left":"Unknown"}
+            job_info = {}
         else:
             # Output is in a space-separated list of 'key=value' pairs
             pairs = res.stdout.split()
             key_vals = dict(parse_key_val(pair) for pair in pairs)
             job_state = key_vals['JobState']
-            job_name = key_vals['JobName']
-            start_time = key_vals['StartTime']
-            end_time = key_vals['EndTime']
 
-            start_time = format_start_time(start_time)
-            time_left = calculate_time_left(end_time)
-
-            job_info = {"job_name": job_name,"start_time":start_time,"time_left":time_left}
+            job_info = deepcopy(key_vals)
         return job_state,job_info
 
     def cancel_task(self, job_id):

@@ -6,6 +6,7 @@ import pathlib
 import requests
 import jsonpickle
 from celery import shared_task # pylint: disable=W0611 # pylint can't find celery imports
+from flatten_dict import flatten
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -346,8 +347,8 @@ def copy_task_output(task, wfi):
     task_metadata = wfi.get_task_metadata(task)
     task_workdir = task_metadata["workdir"]
 
-    task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
-                f"metadata.json")
+    #task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
+                #f"metadata.json")
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:
@@ -362,4 +363,27 @@ def copy_task_output(task, wfi):
 
         shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
     shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
-    shutil.copy(task_metadata_path, task_save_path / "metadata.json")
+    #shutil.copy(task_metadata_path, task_save_path / "metadata.json")
+
+def flatten_metadata_dict(metadata_dict,parent_key='',sep='_',seen_keys=None):
+    if seen_keys is None:
+        seen_keys=set()
+    flattened_dict = {}
+
+    for k, v in metadata_dict.items():
+        safe_key = k.replace(':', '_').replace('/', '_').replace('\\', '_')
+        new_key = f"{parent_key}{sep}{safe_key}" if parent_key else safe_key
+
+        if new_key in seen_keys:
+            continue
+        seen_keys.add(new_key)
+
+        if isinstance(v, dict):
+            flattened_dict.update(flatten_metadata_dict(v, new_key, sep=sep, seen_keys=seen_keys))
+        elif isinstance(v, list):
+            if all(isinstance(i, (str, int, float, bool, type(None))) for i in v):
+                flattened_dict[new_key] = v
+        elif isinstance(v, (str, int, float, bool, type(None))):
+            flattened_dict[new_key] = v
+    return flattened_dict
+

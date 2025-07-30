@@ -8,7 +8,7 @@ import io
 import os
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import Worker
-
+from beeflow.common.worker.utils import format_start_time
 log = bee_logging.setup(__name__)
 
 # Map from flux states to BEE statuses
@@ -147,11 +147,14 @@ class FluxWorker(Worker):
         log.info(f'Querying task with job_id: {job_id}')
         flux = self.flux.Flux()
         info = self.job.get_job(flux, job_id)
-        log.info(info)
-        job_info = {} # Empty placeholder for now to pass integration tests - Beste
+
+        job_name = info['name']
+        start_time = format_start_time(info['t_submit'])
+        time_left = info['runtime']
+        job_info = {"job_name":job_name,"start_time":start_time,"time_left":time_left} 
+
         # TODO: May need to check for return codes other than 0 if
         # specified by the task (although I'm not sure how we can keep
         # track of this with job ID alone)
-
         # Note: using 'status' here instead of 'state'
         return BEE_STATES[info['status']], job_info

@@ -76,6 +76,27 @@ EOF
     ;;
 esac
 
+case $BEE_WORKER in
+Slurmrestd)
+	cat >> $BEE_CONFIG << EOF
+[slurm attributes]
+attributes = $BEE_ATTR
+EOF
+	;;
+SlurmCommands)
+	cat >> $BEE_CONFIG << EOF
+[slurm command attributes]
+attributes = $BEE_ATTR
+EOF
+	;;
+Flux)
+	cat >> $BEE_CONFIG << EOF
+[flux attributes]
+attributes = $BEE_ATTR
+EOF
+	;;
+esac
+
 printf "\n\n"
 printf "#### %s ####\n" $BEE_CONFIG
 cat $BEE_CONFIG

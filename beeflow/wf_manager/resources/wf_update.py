@@ -95,22 +95,18 @@ class WFUpdate(Resource):
         return make_response(jsonify(status='Tasks updated successfully'), 200)
 
     def handle_metadata(self, state_update, task, wfi):
-        """Handle metadata for a task update."""
+        """Handle metadata for a task update. Write metadata to the working
+            directory each time the metadata is updated.
+         """
         bee_workdir = wf_utils.get_bee_workdir()
 
         # Get metadata from update if available
         if state_update.metadata is not None:
             old_metadata = wfi.get_task_metadata(task)
-            old_metadata.update(state_update.metadata)
+            new_metadata = wf_utils.flatten_metadata_dict(state_update.metadata)
+            log.debug(f"This is new metadata:{new_metadata}")
+            old_metadata.update(new_metadata)
             wfi.set_task_metadata(task, old_metadata)
-
-            task_workdir = old_metadata['workdir']
-            task_dir = f'{task_workdir}/{task.name}-{task.id[:4]}'
-            metadata_path = os.path.join(task_dir,'metadata.json')
-            if os.path.exists(task_dir):
-                with open(metadata_path,'a',encoding='utf-8') as f:
-                    json.dump(old_metadata,f,indent=4)
-                    f.write('\n')
 
         # Get output from the task
         if state_update.output is not None:

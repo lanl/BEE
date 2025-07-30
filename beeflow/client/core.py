@@ -36,6 +36,37 @@ from beeflow.common.deps import neo4j_manager
 from beeflow.common.deps import redis_manager
 
 
+from configparser import ConfigParser
+import os
+
+from beeflow.common.config_driver import USERCONFIG_FILE
+
+def patch_attribute_section():
+    config = ConfigParser()
+    if not os.path.exists(USERCONFIG_FILE):
+        return
+
+    with open(USERCONFIG_FILE, encoding='utf-8') as f:
+        config.read_file(f)
+
+    if config.get('DEFAULT', 'workload_scheduler', fallback='Slurm') != 'Slurm':
+        config['flux attributes'] = {'attributes': 'queue,runtime,nodelist'}
+        config.pop('slurm attributes', None)
+        config.pop('slurm command attributes', None)
+    else:
+        use_cmds = config.get('slurm', 'use_commands', fallback='False').strip().lower() == 'true'
+
+        if use_cmds:
+            config['slurm command attributes'] = {'attributes': 'Partition,RunTime,NodeList'}
+            config.pop('slurm attributes', None)
+        else:
+            config['slurm attributes'] = {'attributes': 'partition,nodes'}
+            config.pop('slurm command attributes', None)
+
+    with open(USERCONFIG_FILE, 'w', encoding='utf-8') as f:
+        config.write(f)
+patch_attribute_section()
+
 REPO_PATH = Path(*Path(__file__).parts[:-3])
 
 
@@ -398,7 +429,6 @@ def daemonize(mgr, base_components):
                               umask=0o002):
         Beeflow(mgr, base_components).loop()
 
-
 app = typer.Typer(no_args_is_help=True)
 
 
@@ -430,6 +460,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     sock_path = paths.beeflow_socket()
     if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not need_slurmrestd():
         warn('Not using slurmrestd. Command-line interface will be used.')
+
     # Note: there is a possible race condition here, however unlikely
     if os.path.exists(sock_path):
         # Try to contact for a status
