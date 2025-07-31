@@ -8,24 +8,18 @@ import os
 import subprocess
 import jsonpickle
 
-from flask import request
+from flask import make_response, jsonify, request
 from pydantic_core import ValidationError
-from flask_restful import Resource
+from werkzeug.datastructures import FileStorage
+from flask_restful import Resource, reqparse
 from celery import shared_task
 
 from beeflow.common import log as bee_logging
-
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
-from beeflow.wf_manager.models import (
-    CopyWorkflowRequest,
-    CopyWorkflowResponse,
-    ListWorkflowsResponse,
-    SubmitWorkflowRequest,
-    SubmitWorkflowResponse,
-    WorkflowInfo,
-)
+from beeflow.wf_manager.models import CopyWorkflowRequest, CopyWorkflowResponse, ListWorkflowsResponse, SubmitWorkflowRequest, SubmitWorkflowResponse, WorkflowInfo
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.common import object_models
 
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
@@ -49,27 +43,24 @@ def extract_wf(wf_id, filename, encoded_archive_tarball):
     wf_utils.create_workflow_dir(wf_id)
     wf_dir = wf_utils.get_workflow_dir(wf_id)
     archive_path = os.path.join(wf_dir, filename)
-    with open(archive_path, "wb") as archive_file:
+    with open(archive_path, 'wb') as archive_file:
         archive_file.write(base64.b64decode(encoded_archive_tarball))
     cwl_dir = wf_dir + "/cwl_files"
 
     os.mkdir(cwl_dir)
-    subprocess.run(
-        ["tar", "-xf", archive_path, "--strip-components=1", "-C", cwl_dir], check=False
-    )
+    subprocess.run(['tar', '-xf', archive_path, '--strip-components=1', '-C', cwl_dir],
+                   check=False)
     return cwl_dir
 
 
 @shared_task(ignore_result=True)
-def init_workflow(
-    wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, tasks=None
-):
+def init_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None,
+                  tasks=None):
     """Initialize the workflow in a separate process."""
     db = connect_db(wfm_db, db_path)
-    wf_utils.connect_neo4j_driver(db.info.get_port("bolt"))
-    wf_utils.setup_workflow(
-        wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow, tasks
-    )
+    wf_utils.connect_neo4j_driver(db.info.get_port('bolt'))
+    wf_utils.setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start,
+                            workflow, tasks)
 
 
 db_path = wf_utils.get_db_path()
@@ -84,13 +75,9 @@ class WFList(Resource):
         workflow_list = db.workflows.get_workflows()
         info = []
         for workflow in workflow_list:
-            info.append(
-                WorkflowInfo(
-                    wf_id=workflow.workflow_id,
-                    wf_name=workflow.name,
-                    wf_status=workflow.state,
-                )
-            )
+            info.append(WorkflowInfo(wf_id=workflow.workflow_id,
+                                     wf_name=workflow.name,
+                                     wf_status=workflow.state))
         return ListWorkflowsResponse(workflow_info_list=info).model_dump(), 200
 
     def post(self):
@@ -100,46 +87,33 @@ class WFList(Resource):
             data = SubmitWorkflowRequest.model_validate(request.json)
         except ValidationError as e:
             log.error(f"Error parsing request data: {e}")
-            return (
-                SubmitWorkflowResponse(
-                    msg="Invalid request data", status="error", wf_id=None
-                ).model_dump(),
-                400,
-            )
+            return SubmitWorkflowResponse(
+                msg='Invalid request data',
+                status='error',
+                wf_id=None
+            ).model_dump(), 400
 
         wf_id = data.workflow.id
         wf_dir = extract_wf(wf_id, data.wf_filename, data.encoded_tarball)
 
         db.workflows.init_workflow(wf_id, data.wf_name, wf_dir)
 
-        init_workflow.delay(
-            wf_id,
-            data.wf_name,
-            wf_dir,
-            data.wf_workdir,
-            data.no_start,
-            workflow=data.workflow,
-            tasks=data.tasks,
-        )
+        init_workflow.delay(wf_id, data.wf_name, wf_dir, data.wf_workdir,
+                            data.no_start, workflow=data.workflow, tasks=data.tasks)
 
-        return (
-            SubmitWorkflowResponse(
-                msg="Workflow uploaded", status="ok", wf_id=wf_id
-            ).model_dump(),
-            201,
-        )
+        return SubmitWorkflowResponse(msg='Workflow uploaded', status='ok',
+                             wf_id=wf_id).model_dump(), 201
+
 
     def patch(self):
         """Copy workflow archive."""
         wf_id = CopyWorkflowRequest.model_validate(request.json).wf_id
-        archive_dir = bc.get("DEFAULT", "bee_archive_dir")
-        archive_path = os.path.join(archive_dir, wf_id + ".tgz")
-        with open(archive_path, "rb") as archive:
+        archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
+        archive_path = os.path.join(archive_dir, wf_id + '.tgz')
+        with open(archive_path, 'rb') as archive:
             archive_file = jsonpickle.encode(archive.read())
         archive_filename = os.path.basename(archive_path)
-        return (
-            CopyWorkflowResponse(
-                archive_file_pickle=archive_file, archive_filename=archive_filename
-            ).model_dump(),
-            200,
-        )
+        return CopyWorkflowResponse(
+            archive_file_pickle=archive_file,
+            archive_filename=archive_filename
+        ).model_dump(), 200

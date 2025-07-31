@@ -1,7 +1,5 @@
-"""Models for workflow management in Beeflow."""
-
-from typing import Optional, List
 from pydantic import BaseModel
+from typing import Optional, List
 from beeflow.common.object_models import Workflow, Task
 
 class WorkflowInfo(BaseModel):

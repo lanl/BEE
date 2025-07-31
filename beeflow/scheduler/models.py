@@ -3,8 +3,8 @@
 This file holds classes for respresenting workflows and tasks/jobs, as
 well as resources that will be used during scheduling.
 """
-from typing import Optional
 from pydantic import BaseModel
+from typing import Optional
 
 
 class SchedulerRequirements(BaseModel):
@@ -17,7 +17,6 @@ class SchedulerRequirements(BaseModel):
 
 
 class Allocation(BaseModel):
-    """Allocation class for representing a resource allocation."""
     id_: str
     start_time: int
     max_runtime: int
@@ -44,3 +43,6 @@ class ScheduleTasksRequest(BaseModel):
 class ScheduleTasksResponse(BaseModel):
     """Response for scheduling tasks"""
     tasks: list[SchedulerTask]
+
+
+
