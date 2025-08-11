@@ -41,10 +41,6 @@ class FluxWorker(Worker):
 
     def build_text(self, task):
         """Build text for task script."""
-        # TODO: Not used for the Flux worker
-
-    def build_jobspec(self, task):
-        """Build the job spec for a task."""
         # TODO: This has a lot of code in common with the other worker's build_text
         crt_res = self.crt.run_text(task)
         shell = task.get_requirement('beeflow:ScriptRequirement', 'shell', default='/bin/bash')
@@ -110,18 +106,25 @@ class FluxWorker(Worker):
             for cmd in post_script:
                 script.append(cmd)
 
-        script = '\n'.join(script)
+        return '\n'.join(script)
+
+    def build_jobspec(self, task):
+        """Build the job spec for a task."""
+
+        script = self.build_text(task)
+        nodes = task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)
+        ntasks = task.get_requirement('beeflow:MPIRequirement', 'ntasks', default=nodes)
+
         jobspec = self.job.JobspecV1.from_batch_command(script, task.name,
                                                         num_slots=ntasks,
                                                         num_nodes=nodes)
-        task_save_path = self.task_save_path(task)
+
         stdout_path, stderr_path = self.resolve_stdout_stderr(task)
         jobspec.stdout = stdout_path
         jobspec.stderr = stderr_path
         jobspec.environment = dict(os.environ)
-        # Save the script for later reference
-        with open(f'{task_save_path}/{task.name}-{task.id}.sh', 'w', encoding='utf-8') as f_path:
-            f_path.write(script)
+
+        self.write_script(task)
         return jobspec
 
     def submit_task(self, task):
@@ -146,7 +149,6 @@ class FluxWorker(Worker):
         log.info(f'Querying task with job_id: {job_id}')
         flux = self.flux.Flux()
         info = self.job.get_job(flux, job_id)
-        log.info(info)
 
         # TODO: May need to check for return codes other than 0 if
         # specified by the task (although I'm not sure how we can keep
