@@ -91,6 +91,11 @@ class Workflow(BaseModel):
     outputs: list[OutputParameter] = []
     id: str
     state: Optional[str] = "Initializing"
+    workdir: Optional[str | Path | os.PathLike] = None
+    main_cwl: Optional[str | Path | os.PathLike] = None
+    wf_path: Optional[str | Path | os.PathLike] = None
+    yaml: Optional[str | Path | os.PathLike] = None
+
 
     def __eq__(self, other):
         """Test the equality of two workflows.
