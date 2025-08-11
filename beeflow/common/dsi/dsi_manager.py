@@ -61,16 +61,23 @@ class DSIManager:
 
 
     def store_dict_list(self, data, table_name):
-        """Store a list of dicts in the DSI"""
+        """Store a list of dicts in the DSI from csv"""
         if not data:
             return
+
         for datum in data:
             safe_row = {clean_key(k): v for k, v in datum.items() if v is not None}
             print(safe_row)
             json_file = f'/tmp/{table_name}.json'
             with open(json_file, 'w', encoding='utf-8') as f:
                 json.dump(safe_row, f)
-            self.dsi.read(json_file, "JSON", table_name=table_name)
+        csv_file = f'/tmp/{table_name}.csv'
+        with open(csv_file, 'w', encoding='utf-8') as f:
+            f.write("sep=,\n")
+            f.write(','.join(clean_key(k) for k in safe_row.keys()) + '\n')
+            for row in data:
+                f.write(','.join(str(row.get(clean_key(k), '')) for k in safe_row.keys()) + '\n')
+        self.dsi.read(csv_file, "CSV", table_name=table_name)
 
 
     def save_wf_info(self, wfi):
@@ -142,9 +149,11 @@ class DSIManager:
             )
 
             slurm_job = json.loads(task.metadata["SlurmJob"])
+            slurm_job = {clean_key(k): v for k, v in slurm_job.items()}
             slurm_job["task_id"] = task.id
             slurm_steps = [json.loads(s) for s in task.metadata["SlurmSteps"]]
             for step in slurm_steps:
+                step = {clean_key(k): v for k, v in step.items()}
                 step["task_id"] = task.id
                 step["job_id_link"] = slurm_job["JobID"]
             slurm_job_dict_list.append(slurm_job)
@@ -165,7 +174,7 @@ class DSIManager:
                     "class_": hint.class_,
                 }
                 for key, value in hint.params.items():
-                    task_hint_dict[key] = value
+                    task_hint_dict[clean_key(key)] = value
                 task_hint_dict_list.append(task_hint_dict)
 
         # make csv files to store in dsi
