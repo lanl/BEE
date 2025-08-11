@@ -65,18 +65,12 @@ class DSIManager:
         if not data:
             return
 
-        for datum in data:
-            safe_row = {clean_key(k): v for k, v in datum.items() if v is not None}
-            print(safe_row)
-            json_file = f'/tmp/{table_name}.json'
-            with open(json_file, 'w', encoding='utf-8') as f:
-                json.dump(safe_row, f)
         csv_file = f'/tmp/{table_name}.csv'
         with open(csv_file, 'w', encoding='utf-8') as f:
             f.write("sep=,\n")
-            f.write(','.join(clean_key(k) for k in safe_row.keys()) + '\n')
+            f.write(','.join(clean_key(k) for k in data[0].keys()) + '\n')
             for row in data:
-                f.write(','.join(str(row.get(clean_key(k), '')) for k in safe_row.keys()) + '\n')
+                f.write(','.join(str(row.get(clean_key(k), '')) for k in data[0].keys()) + '\n')
         self.dsi.read(csv_file, "CSV", table_name=table_name)
 
 
