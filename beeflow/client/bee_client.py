@@ -27,6 +27,7 @@ import requests
 import typer
 import yaml
 
+from tabulate import tabulate
 from beeflow.common import config_driver
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
@@ -38,8 +39,6 @@ from beeflow.client import remote_client
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
-from beeflow.common import validation 
-from tabulate import tabulate
 
 # Length of a shortened workflow ID
 short_id_len = 6 # pylint: disable=C0103 # not a constant
@@ -584,8 +583,7 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         section= 'slurm attributes'
 
     attrs = config_driver.BeeConfig.get(section, 'attributes')
-    #if isinstance(attrs, str):
-        #attrs = [v.strip() for v in attrs.split(',') if v.strip()]
+
     attr_data=[]
     for _task_id, task_name, task_state,metadata in tasks_status:
         if wf_status == 'No Start':

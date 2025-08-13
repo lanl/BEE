@@ -800,7 +800,7 @@ def test_list_workflows(
 task_name    task_state    partition    nodes
 -----------  ------------  -----------  -------
 cat          RUNNING       general      cn740
-grep         PENDING
+grep         PENDING       general
 """,
         ),
         (
@@ -818,7 +818,7 @@ def test_query(mocker, capsys, wf_status, exp_out):
     fake_resp.status_code = 200
     fake_resp.json.return_value = {
         "tasks_status": [("", "cat", "RUNNING",{"partition":"general","nodes":"cn740"}),\
- ("", "grep", "PENDING",{})],
+ ("", "grep", "PENDING",{"partition":"general","nodes":""})],
         "wf_status": wf_status,
     }
     mock_conn = mocker.Mock()
@@ -826,6 +826,11 @@ def test_query(mocker, capsys, wf_status, exp_out):
     mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
     bee_client.query(123456)
     cap = capsys.readouterr()
+    print("==== cap.out ====")
+    print(repr(cap.out))
+    print("==== exp_out ====")
+    print(repr(exp_out))
+
     assert cap.out == exp_out
 
 

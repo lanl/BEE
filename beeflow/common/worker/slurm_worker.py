@@ -3,6 +3,7 @@
 Builds command for submitting batch job.
 """
 
+from copy import deepcopy
 import io
 import subprocess
 import json
@@ -17,9 +18,6 @@ from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
 from beeflow.common.worker.utils import get_state_sacct
 from beeflow.common.worker.utils import parse_key_val
-from beeflow.common.worker.utils import calculate_duration
-from beeflow.common.worker.utils import format_start_time
-from copy import deepcopy
 
 log = bee_logging.setup(__name__)
 
@@ -198,15 +196,8 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 # For some versions of slurm, the job_state isn't included on failure
                 try:
                     job_state = data['jobs'][0]['job_state']
-                    #job_name = data['jobs'][0]['name'][:12]
-                    #start_time = data['jobs'][0]['start_time']
-
-                    #duration = calculate_duration(start_time)
-                    #start_time = format_start_time(start_time)
-
-                    #job_info = {"job_name": job_name,"start_time":start_time,"duration":duration}
                     job_info = deepcopy(data['jobs'][0])
- 
+
                 except (KeyError, IndexError) as exc:
                     raise WorkerError(f'Failed to query job {job_id}') from exc
             else:
@@ -214,7 +205,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 job_state,job_info = self.cli_worker.query_task(job_id)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
-            job_info = {"job_name": "Unknown","start_time":"Unknown","duration":"Unknown"}
+            job_info = {}
         return job_state,job_info
 
     def cancel_task(self, job_id):
