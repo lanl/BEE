@@ -4,6 +4,7 @@
 #                 need more work or thought
 # pylint:disable=W0511
 
+from copy import deepcopy
 import io
 import os
 from beeflow.common import log as bee_logging
@@ -150,7 +151,9 @@ class FluxWorker(Worker):
         log.info(f'Querying task with job_id: {job_id}')
         flux = self.flux.Flux()
         info = self.job.get_job(flux, job_id)
-        job_info = {}
+        log.debug(info)
+        job_info = deepcopy(info)
+
         # TODO: May need to check for return codes other than 0 if
         # specified by the task (although I'm not sure how we can keep
         # track of this with job ID alone)
