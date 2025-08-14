@@ -308,7 +308,6 @@ class SlurmWorker(Worker):
         reader = csv.reader(lines, delimiter='|')
         header = next(reader)
         rows = [parse_slurm_fields(dict(zip(header, row))) for row in reader]
-        log.info(rows)
         slurm_job = ''
         slurm_steps = []
         for r in rows:

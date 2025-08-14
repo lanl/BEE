@@ -67,7 +67,6 @@ class DSIManager:
 
         csv_file = f'/tmp/{table_name}.csv'
         with open(csv_file, 'w', encoding='utf-8') as f:
-            f.write("sep=,\n")
             f.write(','.join(clean_key(k) for k in data[0].keys()) + '\n')
             for row in data:
                 f.write(','.join(str(row.get(clean_key(k), '')) for k in data[0].keys()) + '\n')
@@ -85,6 +84,10 @@ class DSIManager:
             "id": workflow.id,
             "name": workflow.name,
             "state": workflow.state,
+            "workdir": str(workflow.workdir),
+            "main_cwl": str(workflow.main_cwl),
+            "wf_path": str(workflow.wf_path),
+            "yaml": json.dumps(workflow.yaml, indent=2),
         }
 
         wf_input_dict_list = self.list_of_dict(workflow.inputs, "workflow_id", workflow.id)

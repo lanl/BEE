@@ -141,8 +141,8 @@ class CwlParser:
             outputs=workflow_outputs,
             id=workflow_id,
             workdir=workdir,
-            main_cwl=cwl_path,
-            wf_path=wf_path,
+            main_cwl=str(cwl_path),
+            wf_path=str(wf_path),
             yaml=job,
         )
         tasks = [self.parse_step(step, workflow_id, workdir) for step in self.cwl.steps]
