@@ -7,7 +7,6 @@ import subprocess
 import time
 import jsonpickle
 import yaml
-from flux.job.JobID import JobID
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.wf_manager.resources import wf_utils
@@ -113,7 +112,6 @@ class WFUpdate(Resource):
             task_dir = f'{task_workdir}/{task.name}-{task.id[:4]}'
             metadata_path = os.path.join(task_dir,'metadata.yaml')
 
-            yaml.SafeDumper.add_representer(JobID, wf_utils.represent_jobid)
             if os.path.exists(task_dir):
                 with open(metadata_path,'w',encoding='utf-8') as f:
                     yaml.safe_dump(old_metadata,f,allow_unicode=True)

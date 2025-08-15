@@ -455,6 +455,3 @@ def clean_dict(metadata_dict):
             metadata_dict.pop(k,None)
     return metadata_dict
 
-def represent_jobid(dumper, data):
-    """Converts Flux JobID object to an integer for yaml dumping"""
-    return dumper.represent_int(int(data))
