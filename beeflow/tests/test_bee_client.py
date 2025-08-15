@@ -826,11 +826,6 @@ def test_query(mocker, capsys, wf_status, exp_out):
     mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
     bee_client.query(123456)
     cap = capsys.readouterr()
-    print("==== cap.out ====")
-    print(repr(cap.out))
-    print("==== exp_out ====")
-    print(repr(exp_out))
-
     assert cap.out == exp_out
 
 
