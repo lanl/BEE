@@ -355,8 +355,9 @@ VALIDATOR.option('slurm attributes','attributes',validator=validate_attributes,p
 
 VALIDATOR.section('slurm command attributes',info='Available task information for sacct\n',
         depends_on=('slurm', 'use_commands', 'True'))
-VALIDATOR.option('slurm command attributes','attributes',validator=validate_attributes,prompt=False,
-        default='Partition,RunTime,NodeList',info='Enter task attributes (comma-separated)')
+VALIDATOR.option('slurm command attributes','attributes',validator=validate_attributes,
+        prompt=False,default='Partition,RunTime,NodeList',
+        info='Enter task attributes (comma-separated)')
 
 VALIDATOR.section('flux attributes', info = 'Available task information for the flux scheduler\n',
         depends_on=('DEFAULT', 'workload_scheduler', 'Flux'))
