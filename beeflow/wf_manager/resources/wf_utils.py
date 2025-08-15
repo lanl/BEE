@@ -454,4 +454,3 @@ def clean_dict(metadata_dict):
         if k in excluded_keys:
             metadata_dict.pop(k,None)
     return metadata_dict
-
