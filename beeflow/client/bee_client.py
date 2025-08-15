@@ -583,6 +583,9 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         section= 'slurm attributes'
 
     attrs = config_driver.BeeConfig.get(section, 'attributes')
+    logging.info(attrs)
+    if isinstance(attrs,str):
+        attrs = [attr.strip() for attr in attrs.split(',') if attr.strip()]
 
     attr_data=[]
     for _task_id, task_name, task_state,metadata in tasks_status:

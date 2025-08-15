@@ -339,7 +339,7 @@ def copy_task_output(task, wfi):
     task_workdir = wfi.get_task_metadata(task)["workdir"]
 
     task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
-                f"metadata.txt")
+                f"metadata.yaml")
 
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
@@ -355,7 +355,7 @@ def copy_task_output(task, wfi):
 
         shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
     shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
-    shutil.copy(task_metadata_path, task_save_path / "metadata.txt")
+    shutil.copy(task_metadata_path, task_save_path / "metadata.yaml")
 
 
 def flatten_metadata_dict(metadata_dict,parent_key='',sep='_',seen_keys=None):
@@ -383,7 +383,8 @@ def flatten_metadata_dict(metadata_dict,parent_key='',sep='_',seen_keys=None):
     return flattened_dict
 
 def clean_dict(metadata_dict):
-    """Removes unnecessary information from the metadata"""
+    """Removes unnecessary information from the metadata depending on
+        the scheduler"""
     scheduler = bc.get('DEFAULT','workload_scheduler').lower()
     if scheduler == 'slurm' and bc.get('slurm','use_commands'):
         excluded_keys =[
@@ -393,10 +394,13 @@ def clean_dict(metadata_dict):
         "AllocTRES", "Socks/Node", "CoreSpec", "MinCPUsNode", "MinMemoryNode",
         "MinTmpDiskNode", "Features", "DelayBoot", "OverSubscribe", "Contiguous",
         "Licenses", "Network","BatchHost", "NtasksPerN_B_S_C", "ReqB_S_C_T", "Socks_Node",
-        "WorkDir", "duration", "job_name","start_time","AllocNode_Sid"]
+        "WorkDir", "duration", "job_name","start_time","AllocNode_Sid","Priority"]
 
     elif scheduler == 'flux':
-        excluded_keys =[]
+        excluded_keys =["exception","uri","annotations","success","bank","project",
+        "duration","t_depend","t_cleanup","cwd","urgency","dependencies","state",
+        "ranks","annotations_user_uri","exception_note","exception_occurred",
+        "exception_severity","exception_type","expiration","priority","result"]
     else:
         excluded_keys = [
         "billable_tres", "minimum_switches", "exclusive", "system_comment", "het_job_id",
@@ -450,3 +454,7 @@ def clean_dict(metadata_dict):
         if k in excluded_keys:
             metadata_dict.pop(k,None)
     return metadata_dict
+
+def represent_jobid(dumper, data):
+    """Converts Flux JobID object to an integer for yaml dumping"""
+    return dumper.represent_int(int(data))

@@ -18,7 +18,7 @@ import datetime
 import time
 import importlib.metadata
 from pathlib import Path
-
+from configparser import ConfigParser
 import daemon
 import typer
 
@@ -35,37 +35,45 @@ from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
 from beeflow.common.deps import redis_manager
 
-
-from configparser import ConfigParser
-import os
-
 from beeflow.common.config_driver import USERCONFIG_FILE
 
 def patch_attribute_section():
-    config = ConfigParser()
+    """Replace the default attributes in the config file based on the scheduler"""
     if not os.path.exists(USERCONFIG_FILE):
         return
 
+    config= ConfigParser()
     with open(USERCONFIG_FILE, encoding='utf-8') as f:
         config.read_file(f)
 
-    if config.get('DEFAULT', 'workload_scheduler', fallback='Slurm') != 'Slurm':
-        config['flux attributes'] = {'attributes': 'queue,runtime,nodelist'}
-        config.pop('slurm attributes', None)
-        config.pop('slurm command attributes', None)
-    else:
-        use_cmds = config.get('slurm', 'use_commands', fallback='False').strip().lower() == 'true'
-
+    sched = config.get('DEFAULT', 'workload_scheduler', fallback='Slurm')
+    if sched == 'Flux':
+        section = 'flux attributes'
+        default_attrs = 'queue,runtime,nodelist'
+    elif sched == 'Slurm':
+        use_cmds = config.get('slurm', 'use_commands', fallback='True').strip().lower() == 'true'
         if use_cmds:
-            config['slurm command attributes'] = {'attributes': 'Partition,RunTime,NodeList'}
-            config.pop('slurm attributes', None)
+            section = 'slurm command attributes'
+            default_attrs = 'Partition,RunTime,NodeList'
         else:
-            config['slurm attributes'] = {'attributes': 'partition,nodes'}
-            config.pop('slurm command attributes', None)
+            section = 'slurm attributes'
+            default_attrs = 'partition,nodes'
+    else:
+        return
+
+    if not config.has_section(section):
+        config.add_section(section)
+        config.set(section, 'attributes', default_attrs)
+    else:
+        cur_attrs = config.get(section, 'attributes', fallback='').strip()
+        if not cur_attrs:
+            config.set(section, 'attributes', default_attrs)
+        else:
+            return
 
     with open(USERCONFIG_FILE, 'w', encoding='utf-8') as f:
         config.write(f)
-patch_attribute_section()
+
 
 REPO_PATH = Path(*Path(__file__).parts[:-3])
 
@@ -438,6 +446,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           '-B', help='allow to run on a backend node'), remote: bool = typer.Option(False, 
           '--remote', '-R', help='allow remote connection')):
     """Start all BEE components."""
+    patch_attribute_section()
     start_hn = socket.gethostname()  # hostname when beeflow starts
     if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":
         bee_client.setup_hostname(start_hn)  # add to client db

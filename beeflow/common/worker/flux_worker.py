@@ -9,7 +9,6 @@ import io
 import os
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import Worker
-from beeflow.common.worker.utils import format_start_time
 log = bee_logging.setup(__name__)
 
 # Map from flux states to BEE statuses
@@ -151,7 +150,6 @@ class FluxWorker(Worker):
         log.info(f'Querying task with job_id: {job_id}')
         flux = self.flux.Flux()
         info = self.job.get_job(flux, job_id)
-        log.debug(info)
         job_info = deepcopy(info)
 
         # TODO: May need to check for return codes other than 0 if
