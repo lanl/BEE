@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import time
 import jsonpickle
-import yaml
+#import yaml
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.wf_manager.resources import wf_utils
@@ -110,11 +110,12 @@ class WFUpdate(Resource):
 
             task_workdir = old_metadata['workdir']
             task_dir = f'{task_workdir}/{task.name}-{task.id[:4]}'
-            metadata_path = os.path.join(task_dir,'metadata.yaml')
+            metadata_path = os.path.join(task_dir,'metadata.txt')
 
             if os.path.exists(task_dir):
                 with open(metadata_path,'w',encoding='utf-8') as f:
-                    yaml.safe_dump(old_metadata,f,allow_unicode=True)
+                    for key in sorted(old_metadata):
+                        f.write(f'- {key}: {old_metadata[key]}\n')
 
 
         # Get output from the task
