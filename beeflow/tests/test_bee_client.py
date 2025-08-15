@@ -814,6 +814,9 @@ grep
 )
 def test_query(mocker, capsys, wf_status, exp_out):
     """Regression test query."""
+    mocker.patch.dict(os.environ, {"COLUMNS": "200"}, clear=False)
+    mocker.patch("shutil.get_terminal_size", return_value=os.terminal_size((200, 40)))
+    mocker.patch("beeflow.client.bee_client.sys.stdout.isatty", return_value=True)
     fake_resp = mocker.Mock()
     fake_resp.status_code = 200
     fake_resp.json.return_value = {
