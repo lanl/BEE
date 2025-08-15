@@ -797,10 +797,10 @@ def test_list_workflows(
         (
             "Running",
             """Running
-task_name    task_state    partition    nodes
------------  ------------  -----------  -------
-cat          RUNNING       general      cn740
-grep         PENDING       general
+task_name    task_state
+-----------  ------------
+cat          RUNNING
+grep         PENDING
 """,
         ),
         (
@@ -814,14 +814,11 @@ grep
 )
 def test_query(mocker, capsys, wf_status, exp_out):
     """Regression test query."""
-    mocker.patch.dict(os.environ, {"COLUMNS": "200"}, clear=False)
-    mocker.patch("shutil.get_terminal_size", return_value=os.terminal_size((200, 40)))
-    mocker.patch("beeflow.client.bee_client.sys.stdout.isatty", return_value=True)
     fake_resp = mocker.Mock()
     fake_resp.status_code = 200
     fake_resp.json.return_value = {
-        "tasks_status": [("", "cat", "RUNNING",{"partition":"general","nodes":"cn740"}),\
- ("", "grep", "PENDING",{"partition":"general","nodes":""})],
+        "tasks_status": [("", "cat", "RUNNING",{}),\
+ ("", "grep", "PENDING",{})],
         "wf_status": wf_status,
     }
     mock_conn = mocker.Mock()
