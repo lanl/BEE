@@ -389,8 +389,8 @@ def submit(  # pylint:disable=R0915
             print(
                 "Detected directory instead of packaged workflow. Packaging Directory..."
             )
-            main_cwl_path = pathlib.Path(main_cwl).resolve()
-            yaml_path = pathlib.Path(yaml_file).resolve()
+            orig_cwl_path = pathlib.Path(main_cwl).resolve()
+            orig_yaml_path = pathlib.Path(yaml_file).resolve()
 
             if not main_cwl_path.exists():
                 error_exit(f"Main CWL file {main_cwl} does not exist")
@@ -398,8 +398,8 @@ def submit(  # pylint:disable=R0915
                 error_exit(f"YAML file {yaml_file} does not exist")
 
             # Packaging in temp dir, after copying alternate cwl_main or yaml file
-            cwl_indir = is_parent(wf_path, main_cwl_path)
-            yaml_indir = is_parent(wf_path, yaml_path)
+            cwl_indir = is_parent(wf_path, orig_cwl_path)
+            yaml_indir = is_parent(wf_path, orig_yaml_path)
 
             # Always create temp dir for the workflow
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
@@ -411,6 +411,8 @@ def submit(  # pylint:disable=R0915
                 shutil.copy2(yaml_file, tempdir_wf_path)
             package_path = package(tempdir_wf_path, tempdir_path)
         else:
+            orig_cwl_path = main_cwl
+            orig_yaml_path = yaml_file
             package_path = wf_path
 
         # Untar and parse workflow
@@ -424,7 +426,7 @@ def submit(  # pylint:disable=R0915
 
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(
-            workflow_id, wf_name, str(main_cwl_path), job=str(yaml_path), workdir=workdir, wf_path=wf_path
+            workflow_id, wf_name, str(orig_cwl_path), job=str(orig_yaml_path), workdir=workdir, wf_path=wf_path
         )
         with open(package_path, "rb") as f:
             encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
