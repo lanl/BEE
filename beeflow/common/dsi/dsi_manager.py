@@ -43,7 +43,7 @@ def clean_key(k: str) -> str:
 class DSIManager:
     """Manager for the DSI (Data Storage Interface) used in Beeflow."""
     def __init__(self):
-        self.dsi = DSI(f'{workdir()}/bee.db')
+        self.dsi = DSI(f'{workdir()}/dsi.db')
         with importlib.resources.path("beeflow.common.dsi", "schema.json") as schema_path:
             self.dsi.schema(str(schema_path))
 
