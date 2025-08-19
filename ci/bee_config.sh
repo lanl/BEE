@@ -21,11 +21,10 @@ workload_scheduler = $WORKLOAD_SCHEDULER
 neo4j_image = $NEO4J_CONTAINER
 redis_image = $REDIS_CONTAINER
 max_restarts = 2
-remote_api = False
-remote_api_port = 7777
 delete_completed_workflow_dirs = True
 
 [task_manager]
+jobs_limit =
 container_runtime = Charliecloud
 runner_opts =
 background_interval = 2
