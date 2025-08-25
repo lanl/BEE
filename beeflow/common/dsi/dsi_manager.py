@@ -3,10 +3,10 @@ import json
 import re
 import importlib.resources
 from dsi.dsi import DSI
+from beeflow.common.dsi import dsi_sync
 
 """
 TODO:
-CSV Reader / colleciton reader for efficiency
 Flux Support
 Save more workflow related info / archive things
 """
@@ -51,11 +51,13 @@ class DSIManager:
     def list_of_dict(self, data, secondary_key, secondary_value):
         """Convert inputs or outputs to list of dict"""
         result = []
+        print(data)
         if data:
             for item in data:
                 d = {key: value for key, value in item.dict().items() if value is not None}
                 d[secondary_key] = secondary_value
                 result.append(d)
+            print(result)
             return result
         return None
 
@@ -64,18 +66,22 @@ class DSIManager:
         """Store a list of dicts in the DSI from csv"""
         if not data:
             return
+        print(data)
 
         csv_file = f'/tmp/{table_name}.csv'
+        keys = set()
+        for row in data:
+            keys.update(row.keys())
         with open(csv_file, 'w', encoding='utf-8') as f:
-            f.write(','.join(clean_key(k) for k in data[0].keys()) + '\n')
+            f.write(','.join(clean_key(k) for k in keys) + '\n')
             for row in data:
-                f.write(','.join(str(row.get(clean_key(k), '')) for k in data[0].keys()) + '\n')
+                f.write(','.join(str(row.get(clean_key(k), '')) for k in keys) + '\n')
         self.dsi.read(csv_file, "CSV", table_name=table_name)
 
 
     def save_wf_info(self, wfi):
         """Save workflow information to the DSI."""
-        self.dsi = DSI(f'{workdir()}/bee.db')
+        self.dsi = DSI(f'{workdir()}/dsi.db')
         with importlib.resources.path("beeflow.common.dsi", "schema.json") as schema_path:
             self.dsi.schema(str(schema_path))
         workflow, tasks = wfi.get_workflow()
@@ -187,6 +193,12 @@ class DSIManager:
         self.store_dict_list(task_hint_dict_list, "task_hint")
         self.store_dict_list(slurm_job_dict_list, "slurm_job")
         self.store_dict_list(slurm_step_dict_list, "slurm_step")
+    
+    def query_files(self, type, query):
+        """
+        Query files from DSI. The type would be either wf_input, wf_output, task_input, task_output
+        """
+
 
 
 dsi_manager = DSIManager()

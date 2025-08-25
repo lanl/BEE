@@ -392,9 +392,9 @@ def submit(  # pylint:disable=R0915
             orig_cwl_path = pathlib.Path(main_cwl).resolve()
             orig_yaml_path = pathlib.Path(yaml_file).resolve()
 
-            if not main_cwl_path.exists():
+            if not orig_cwl_path.exists():
                 error_exit(f"Main CWL file {main_cwl} does not exist")
-            if not yaml_path.exists():
+            if not orig_yaml_path.exists():
                 error_exit(f"YAML file {yaml_file} does not exist")
 
             # Packaging in temp dir, after copying alternate cwl_main or yaml file
