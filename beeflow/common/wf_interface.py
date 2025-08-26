@@ -140,6 +140,7 @@ class WorkflowInterface:
         :type task: Task
         :rtype: list of Task
         """
+        self.evaluate_output_expression(task.id)
         self._gdb_driver.finalize_task(task)
         self._gdb_driver.initialize_ready_tasks(self._workflow_id)
         return self._gdb_driver.get_ready_tasks(self._workflow_id)
