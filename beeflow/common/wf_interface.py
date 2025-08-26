@@ -6,6 +6,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 import re
 from beeflow.common import log as bee_logging
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
+from beeflow.common import expr
 
 log = bee_logging.setup(__name__)
 
@@ -328,3 +329,13 @@ class WorkflowInterface:
     def export_graphml(self):
         """Export a BEE workflow as a graphml."""
         self._gdb_driver.export_graphml(self._workflow_id)
+
+    def evaluate_output_expression(self, task_id):
+        """
+        Evaluate javascript expresssions in workflow output specification"""
+        task = self.get_task_by_id(task_id)
+        input_pairs = {input.id: input.value for input in task.inputs}
+        for output in task.outputs:
+            val = expr.eval_output(input_pairs, output.glob)
+            if val is not None:
+                self._gdb_driver.set_task_output_glob(task_id, output.id, val)
