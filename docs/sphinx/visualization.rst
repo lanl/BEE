@@ -20,6 +20,10 @@ most recent version is $WF_ID.png and the others are $WD_ID_v1.png,
 $WF_ID_v2.png ... where v1 is the oldest. The graphmls used to make the DAGs are saved
 in the workflow archive and are saved with their version number. These graphmls can
 be useful for debugging when there are errors creating the DAGs.
+If the --graphmls_dir flag is specified when the dag command is run, BEE will convert
+the GraphMLs in the specified directory into DAGs. This is especially helpful
+when transferring workflows from a system without Graphviz (BEE will only generate
+GraphMLs in that case) to a system with Graphviz.
 
 Example DAG
 ===========

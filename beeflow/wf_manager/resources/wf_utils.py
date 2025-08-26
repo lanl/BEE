@@ -10,7 +10,7 @@ from celery import shared_task # pylint: disable=W0611 # pylint can't find celer
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb import neo4j_driver
-from beeflow.common.gdb.generate_graph import generate_viz
+from beeflow.common.gdb.generate_graph import generate_viz, generate_all_viz
 from beeflow.common.gdb.graphml_key_updater import update_graphml
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.common.connection import Connection
@@ -303,6 +303,24 @@ def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     else:
         update_graphml(wf_id, graphmls_dir, output_dir, no_dag_dir)
     return dot_avail
+
+
+def convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir):
+    """
+    Convert a directory of graphmls into DAGs.
+    
+    This function is used to turn graphmls that were generated
+    on a system without graphviz into DAGs on a system with graphviz.
+
+    Returns:
+        str or None: Returns an error message if Graphviz is not available or an
+                     exception occurs; otherwise returns None on success.
+    """
+    if not shutil.which("dot"):
+        msg = 'Unable to convert graphmls to DAGs. Graphviz is not available.'
+    else:
+        msg = generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir)
+    return msg
 
 
 def start_workflow(wf_id):

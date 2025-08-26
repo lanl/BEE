@@ -2,6 +2,8 @@
 
 import os
 import shutil
+import subprocess
+import xml.etree.ElementTree
 import networkx as nx
 import graphviz
 
@@ -10,28 +12,14 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None)
     """Generate a PNG of a workflow graph from a GraphML file."""
     short_id = wf_id[:6]
     graphml_path = graphmls_dir + "/" + short_id + ".graphml"
+    # Render png data
+    png_data = render_png_data(graphml_path)
 
-    if no_dag_dir:
-        dags_dir = output_dir
-    else:
-        dags_dir = output_dir + "/" + short_id + "-dags"
-        os.makedirs(dags_dir, exist_ok=True)
-
+    # Back up DAG and save
+    dags_dir = output_dir if no_dag_dir else os.path.join(output_dir, f"{short_id}-dags")
+    os.makedirs(dags_dir, exist_ok=True)
     output_path = dags_dir + "/" + short_id + ".png"
     backup_dag(output_path, dags_dir, short_id)
-
-    # Load the GraphML file using NetworkX
-    graph = nx.read_graphml(graphml_path)
-
-    # Initialize Graphviz graph
-    dot = graphviz.Digraph(comment='Hierarchical Graph')
-
-    # Add nodes and edges using helper functions
-    add_nodes_to_dot(graph, dot)
-    add_edges_to_dot(graph, dot)
-
-    # Render the graph and save as PNG
-    png_data = dot.pipe(format='png')
     save_png(output_path, png_data)
 
     if workflow_dir:
@@ -43,6 +31,37 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None)
         save_png(archive_dag_path, png_data)
 
 
+def generate_all_viz(wf_id, output_dir, graphmls_dir, no_dag_dir):
+    "Create DAGs from an exisiting collection of GraphMLs."
+    short_id = wf_id[:6]
+    dags_dir = output_dir if no_dag_dir else os.path.join(output_dir, f"{short_id}-dags")
+
+    msgs = []
+    first = True
+    for filename in os.listdir(graphmls_dir):
+        if filename.endswith('.graphml'):
+            name_without_ext = os.path.splitext(filename)[0]
+            output_path = dags_dir + "/" + name_without_ext + ".png"
+            graphml_path = os.path.join(graphmls_dir, filename)
+
+            try:
+                png_data = render_png_data(graphml_path)
+                if first:
+                    os.makedirs(dags_dir, exist_ok=True)
+                    first = False
+                save_png(output_path, png_data)
+
+            except(
+                nx.NetworkXError,
+                xml.etree.ElementTree.ParseError,
+                subprocess.CalledProcessError
+            ) as exc:
+                err_msg = f'Error while generating visualization for {graphml_path}: {exc}'
+                msgs.append(err_msg)
+
+    return  "\n".join(map(str, msgs))
+
+
 def backup_dag(path, dags_dir, short_id):
     """Backup DAGs."""
     if os.path.exists(path):
@@ -52,6 +71,23 @@ def backup_dag(path, dags_dir, short_id):
             i += 1
             backup_path = f'{dags_dir}/{short_id}_v{i}.png'
         shutil.copy(path, backup_path)
+
+
+def render_png_data(graphml_path):
+    """Read a GraphML file, build the Graphviz Digraph, and return PNG bytes."""
+    # Load the GraphML file using NetworkX
+    graph = nx.read_graphml(graphml_path)
+
+    # Initialize Graphviz graph
+    dot = graphviz.Digraph(comment='Hierarchical Graph')
+
+    # Add nodes and edges using helper functions
+    add_nodes_to_dot(graph, dot)
+    add_edges_to_dot(graph, dot)
+
+    # Render the graph
+    png_data = dot.pipe(format='png')
+    return png_data
 
 
 def add_nodes_to_dot(graph, dot):

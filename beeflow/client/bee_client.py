@@ -743,7 +743,9 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
         output_dir: pathlib.Path = typer.Argument(...,
         help='Path to the where the dag output will be'),
         no_dag_dir: bool = typer.Option(False, '--no-dag-dir',
-        help='do not make a subdirectory within ouput_dir for the dags')):
+        help='do not make a subdirectory within ouput_dir for the dags'),
+        graphmls_dir: pathlib.Path = typer.Option(None, '--graphmls_dir',
+        help='Directory of Graphmls to convert into DAGs.')):
     """Export a DAG of the workflow to a GraphML file."""
     output_dir = output_dir.resolve()
     # Make sure output_dir is an absolute path and exists
@@ -754,6 +756,24 @@ def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
 
     # output_dir must be a string
     output_dir = str(output_dir)
+
+    # Convert existing graphmls to DAGs if graphmls_dir was given
+    if graphmls_dir:
+        # Make sure graphmls_dir is an absolute path and exists
+        graphmls_dir = os.path.expanduser(graphmls_dir)
+        graphmls_dir = os.path.abspath(graphmls_dir)
+        if not os.path.exists(graphmls_dir):
+            error_exit(f'Path for graphmls directory "{graphmls_dir}" doesn\'t exist')
+        graphmls_dir = str(graphmls_dir)
+
+        # Convert
+        resp = wf_utils.convert_to_dag(wf_id, output_dir, graphmls_dir, no_dag_dir)
+        if resp:
+            error_exit(resp)
+        else:
+            typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
+                    fg=typer.colors.GREEN)
+            return
     # Check if the workflow is archived
     wf_status = get_wf_status(wf_id)
     if wf_status == 'Archived':
