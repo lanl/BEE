@@ -134,10 +134,9 @@ beeflow:CheckpointRequirement
 BEE is designed to manage workflows that include long running scientific
 simulations, requiring checkpointing and restarting. We implemented the
 ``beeflow:CheckpointRequirement`` for this purpose. If a step in a workflow
-includes this requirement and the task stops, such as for a timelimit on the job, 
+includes this requirement and the task stops, such as for a timelimit on the job,
 a subtask will run to continue the simulation using the specified checkpoint
 file.
-
 An example ``beeflow:CheckpointRequirement`` in BEE is shown below::
 
        beeflow:CheckpointRequirement:
@@ -156,6 +155,13 @@ by the path to the latest checkpoint file. ``add_parameters`` allows for
 additional parameters that need to be specified; these will be appended to the
 run command after the checkpoint file. ``num_tries`` specifies the maximum
 number of times the task will be restarted.
+
+.. container:: red-block
+
+   Warning: beeflow is not responsible for saving outputs from each subtask that
+   may be overwritten. We suggest you include a pre-script to preserve any desired 
+   intermediate outputs. To do this use `beflow:SriptRequirement`.
+
 
 beeflow:SlurmRequirement
 ----------------------------
