@@ -337,6 +337,8 @@ class WorkflowInterface:
         task = self.get_task_by_id(task_id)
         input_pairs = {input.id: input.value for input in task.inputs}
         for output in task.outputs:
-            val = expr.eval_output(input_pairs, output.glob)
-            if val is not None:
-                self._gdb_driver.set_task_output_glob(task_id, output.id, val)
+            if output.glob:
+                val = expr.eval_output(input_pairs, output.glob)
+                if val is not None:
+                    self._gdb_driver.set_task_output_glob(task_id, output.id, val)
+                    self._gdb_driver.set_task_output(task_id, output.id, val)
