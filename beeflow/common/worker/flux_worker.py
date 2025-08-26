@@ -4,11 +4,11 @@
 #                 need more work or thought
 # pylint:disable=W0511
 
+from copy import deepcopy
 import io
 import os
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import Worker
-
 log = bee_logging.setup(__name__)
 
 # Map from flux states to BEE statuses
@@ -133,7 +133,8 @@ class FluxWorker(Worker):
         jobspec = self.build_jobspec(task)
         flux = self.flux.Flux()
         job_id = self.job.submit(flux, jobspec)
-        return job_id, self.query_task(job_id)
+        job_state, job_info = self.query_task(job_id)
+        return job_id, job_state, job_info
 
     def cancel_task(self, job_id):
         """Cancel task with job_id; returns job_state."""
@@ -149,10 +150,10 @@ class FluxWorker(Worker):
         log.info(f'Querying task with job_id: {job_id}')
         flux = self.flux.Flux()
         info = self.job.get_job(flux, job_id)
+        job_info = deepcopy(info)
 
         # TODO: May need to check for return codes other than 0 if
         # specified by the task (although I'm not sure how we can keep
         # track of this with job ID alone)
-
         # Note: using 'status' here instead of 'state'
-        return BEE_STATES[info['status']]
+        return BEE_STATES[info['status']], job_info

@@ -7,7 +7,6 @@ from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.resources.wf_update import archive_workflow
-
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.config_driver import BeeConfig as bc
@@ -45,9 +44,11 @@ class WFActions(Resource):
             wf_status = 'No workflow with that ID is currently loaded'
             resp = make_response(jsonify(tasks_status=tasks_status,
                                  wf_status=wf_status, status='not found'), 404)
-
+        wfi = wf_utils.get_workflow_interface(wf_id)
         for task in tasks:
-            tasks_status.append((task.id, task.name, task.state))
+            task_id = wfi.get_task_by_id(task.task_id)
+            metadata = wfi.get_task_metadata(task_id)
+            tasks_status.append((task.id, task.name, task.state, metadata))
         wf_status = db.workflows.get_workflow_state(wf_id)
 
         resp = make_response(jsonify(tasks_status=tasks_status,

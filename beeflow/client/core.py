@@ -18,7 +18,7 @@ import datetime
 import time
 import importlib.metadata
 from pathlib import Path
-
+from configparser import ConfigParser
 import daemon
 import typer
 
@@ -34,6 +34,45 @@ import beeflow.common.worker.utils as worker_utils
 from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
 from beeflow.common.deps import redis_manager
+
+from beeflow.common.config_driver import USERCONFIG_FILE
+
+def patch_attribute_section():
+    """Replace the default attributes in the config file based on the scheduler"""
+    if not os.path.exists(USERCONFIG_FILE):
+        return
+
+    config= ConfigParser()
+    with open(USERCONFIG_FILE, encoding='utf-8') as f:
+        config.read_file(f)
+
+    sched = config.get('DEFAULT', 'workload_scheduler', fallback='Slurm')
+    if sched == 'Flux':
+        section = 'flux attributes'
+        default_attrs = 'queue,runtime,nodelist'
+    elif sched == 'Slurm':
+        use_cmds = config.get('slurm', 'use_commands', fallback='True').strip().lower() == 'true'
+        if use_cmds:
+            section = 'slurm command attributes'
+            default_attrs = 'Partition,RunTime,NodeList'
+        else:
+            section = 'slurm attributes'
+            default_attrs = 'partition,nodes'
+    else:
+        return
+
+    if not config.has_section(section):
+        config.add_section(section)
+        config.set(section, 'attributes', default_attrs)
+    else:
+        cur_attrs = config.get(section, 'attributes', fallback='').strip()
+        if not cur_attrs:
+            config.set(section, 'attributes', default_attrs)
+        else:
+            return
+
+    with open(USERCONFIG_FILE, 'w', encoding='utf-8') as f:
+        config.write(f)
 
 
 REPO_PATH = Path(*Path(__file__).parts[:-3])
@@ -398,7 +437,6 @@ def daemonize(mgr, base_components):
                               umask=0o002):
         Beeflow(mgr, base_components).loop()
 
-
 app = typer.Typer(no_args_is_help=True)
 
 
@@ -408,6 +446,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
           '-B', help='allow to run on a backend node'), remote: bool = typer.Option(False, 
           '--remote', '-R', help='allow remote connection')):
     """Start all BEE components."""
+    patch_attribute_section()
     start_hn = socket.gethostname()  # hostname when beeflow starts
     if bee_client.get_hostname() == "" and bee_client.check_backend_status() == "":
         bee_client.setup_hostname(start_hn)  # add to client db
@@ -430,6 +469,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     sock_path = paths.beeflow_socket()
     if bc.get('DEFAULT', 'workload_scheduler') == 'Slurm' and not need_slurmrestd():
         warn('Not using slurmrestd. Command-line interface will be used.')
+
     # Note: there is a possible race condition here, however unlikely
     if os.path.exists(sock_path):
         # Try to contact for a status

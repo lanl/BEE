@@ -797,8 +797,10 @@ def test_list_workflows(
         (
             "Running",
             """Running
-cat--Running
-grep--Pending
+task_name    task_state
+-----------  ------------
+cat          RUNNING
+grep         PENDING
 """,
         ),
         (
@@ -815,7 +817,8 @@ def test_query(mocker, capsys, wf_status, exp_out):
     fake_resp = mocker.Mock()
     fake_resp.status_code = 200
     fake_resp.json.return_value = {
-        "tasks_status": [("", "cat", "Running"), ("", "grep", "Pending")],
+        "tasks_status": [("", "cat", "RUNNING",{}),\
+ ("", "grep", "PENDING",{})],
         "wf_status": wf_status,
     }
     mock_conn = mocker.Mock()

@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import time
 import jsonpickle
-
+#import yaml
 from flask import make_response, jsonify
 from flask_restful import Resource, reqparse
 from beeflow.wf_manager.resources import wf_utils
@@ -95,14 +95,28 @@ class WFUpdate(Resource):
         return make_response(jsonify(status='Tasks updated successfully'), 200)
 
     def handle_metadata(self, state_update, task, wfi):
-        """Handle metadata for a task update."""
+        """Handle metadata for a task update. Write metadata to the working
+            directory each time the metadata is updated.
+         """
         bee_workdir = wf_utils.get_bee_workdir()
 
         # Get metadata from update if available
         if state_update.metadata is not None:
             old_metadata = wfi.get_task_metadata(task)
-            old_metadata.update(state_update.metadata)
+            new_metadata = wf_utils.flatten_metadata_dict(state_update.metadata)
+            clean_metadata = wf_utils.clean_dict(new_metadata)
+            old_metadata.update(clean_metadata)
             wfi.set_task_metadata(task, old_metadata)
+
+            task_workdir = old_metadata['workdir']
+            task_dir = f'{task_workdir}/{task.name}-{task.id[:4]}'
+            metadata_path = os.path.join(task_dir,'metadata.txt')
+
+            if os.path.exists(task_dir):
+                with open(metadata_path,'w',encoding='utf-8') as f:
+                    for key in sorted(old_metadata):
+                        f.write(f'- {key}: {old_metadata[key]}\n')
+
 
         # Get output from the task
         if state_update.output is not None:
