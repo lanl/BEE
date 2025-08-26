@@ -46,9 +46,9 @@ def get_open_port():
 def setup_ports():
     """Return three open ports for bolt, http, https."""
     # Get ports for neo4j to run
-    bolt_port = 43023 #get_open_port()
-    http_port = 35637 #get_open_port()
-    https_port = 35637 #get_open_port()
+    bolt_port = get_open_port()
+    http_port = get_open_port()
+    https_port = get_open_port()
 
     db = connect_db(wfm_db, bc.get('DEFAULT', 'bee_workdir') + "/wfm.db")
 
