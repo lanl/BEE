@@ -160,7 +160,80 @@ number of times the task will be restarted.
 
    Warning: beeflow is not responsible for saving outputs from each subtask that
    may be overwritten. We suggest you include a pre-script to preserve any desired 
-   intermediate outputs. To do this use `beflow:SriptRequirement`.
+   intermediate outputs. To do this use `beflow:ScriptRequirement` and a script
+   similar to those below:
+
+Example pre-script to preserve outputs during Checkpoint/Restarts (tcsh)
+      -- Contributed by Lilikoi Latimer
+
+.. code-block::
+
+     # Cleanup output files from previous job
+     # Make outputs folder if it doesn't already exist
+     if (! -d outputs ) then
+        mkdir outputs
+     endif
+     # Set list of file extensions to move
+     set output_ext=(.example .extensions .here)
+
+     # Prevents errors with setting array to patterns if no
+     # files matching the pattern are found
+     set nonomatch
+
+     # Move output files
+     foreach ext ($output_ext)
+         set pattern="*$ext"
+         set timestamp=`date "+%Y%m%d%H%M%S"`
+
+         # Make list of files with extension, continuing if none exist
+         set files=($pattern)
+         if (! -e $files[1] ) then
+             continue
+         endif
+
+         # Loop through files, moving to outputs
+         foreach file ($files)
+             cp $file "outputs/$file.$timestamp"
+         end
+     end
+
+     unset nonomatch
+
+Example pre-script to preserve outputs during Checkpoint/Restarts (bash)
+      -- Contributed by Lilikoi Latimer
+
+.. code-block::
+
+     set -euo pipefail
+
+     # Cleanup output files from previous job
+
+     # Make outputs folder if it doesn't already exist
+     mkdir -p outputs
+
+     # Set list of file extensions to move
+     output_ext=(.example .extensions .here)
+
+     # Prevents treating unmatched globs as literals
+     shopt -s nullglob
+
+     # Move output files
+     for ext in "${output_ext[@]}"; do
+         pattern="*${ext}"
+         timestamp=$(date "+%Y%m%d%H%M%S")
+
+         # Make list of files with extension, continue if none exist
+         files=($pattern)
+         ((${#files[@]} == 0)) && continue
+
+         # Loop through files, copying to outputs with timestamp
+         for file in "${files[@]}"; do
+             cp -- "$file" "outputs/$file.$timestamp"
+         done
+     done
+
+     # Restore default globbing behavior
+     shopt -u nullglob
 
 
 beeflow:SlurmRequirement
@@ -191,7 +264,8 @@ beeflow:ScriptRequirement
 -------------------------
 
 Some tasks may require small additional commands for setup or teardown such as
-loading modules, setting up checkpointing files, or cleaning up after a run.
+loading modules, setting up checkpointing files, perserving outputs of subtasks
+that have been restarted, or cleaning up after a run.
 The script requirement enables this by adding shell scripts that will run before
 and after a task. The script must be within the workflow directory. The desired
 shell interpreter must be specified in both the ``beeflow:ScriptRequirement`` section
