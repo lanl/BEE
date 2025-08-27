@@ -74,6 +74,7 @@ Contributors:
 * Ragini Gupta - `raginigupta6 <https://github.com/raginigupta6>`_
 * Aaron R Hall - `arhall0 <https://github.com/arhall0>`_
 * Leah Howell - `Leahh02 <https://github.com/Leahh02>`_
+* Lilikoi Latimer - `lilikoi-l <https://github.com/lilikoi-l>
 * Andres Quan - `aquan9 <https://github.com/aquan9>`_
 * Quincy Wofford - `qwofford <https://github.com/qwofford>`_
 * Tim Randles - `trandles-lanl <https://github.com/trandles-lanl>`_
