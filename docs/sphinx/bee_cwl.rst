@@ -158,10 +158,10 @@ number of times the task will be restarted.
 
 .. container:: red-block
 
-   Warning: beeflow is not responsible for saving outputs from each subtask that
-   may be overwritten. We suggest you include a pre-script to preserve any desired 
-   intermediate outputs. To do this use `beflow:ScriptRequirement` and a script
-   similar to those below:
+   Warning: beeflow is not responsible for preserving outputs from each restart
+   subtask. We suggest you include a pre-script to preserve any desired intermediate 
+   outputs. To do this use `beflow:ScriptRequirement` and a script similar to 
+   the examples below (shown for both tcsh and bash):
 
 Example pre-script to preserve outputs during Checkpoint/Restarts (tcsh)
       -- Contributed by Lilikoi Latimer
