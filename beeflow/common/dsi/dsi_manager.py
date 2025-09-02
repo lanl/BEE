@@ -125,6 +125,8 @@ class DSIManager:
         task_hint_dict_list = []
         slurm_job_dict_list = []
         slurm_step_dict_list = []
+        flux_job_dict_list = []
+        lsf_job_dict_list = []
         for task in tasks:
             task_dict = {
                 "id": task.id,
@@ -149,16 +151,27 @@ class DSIManager:
                 self.list_of_dict(task.outputs, "task_id", task.id)
             )
 
-            slurm_job = json.loads(task.metadata["SlurmJob"])
-            slurm_job = {clean_key(k): v for k, v in slurm_job.items()}
-            slurm_job["task_id"] = task.id
-            slurm_steps = [json.loads(s) for s in task.metadata["SlurmSteps"]]
-            for step in slurm_steps:
-                step = {clean_key(k): v for k, v in step.items()}
-                step["task_id"] = task.id
-                step["job_id_link"] = slurm_job["JobID"]
-            slurm_job_dict_list.append(slurm_job)
-            slurm_step_dict_list.extend(slurm_steps)
+            if task.metadata["SlurmJob"]:
+                slurm_job = json.loads(task.metadata["SlurmJob"])
+                slurm_job = {clean_key(k): v for k, v in slurm_job.items()}
+                slurm_job["task_id"] = task.id
+                slurm_steps = [json.loads(s) for s in task.metadata["SlurmSteps"]]
+                for step in slurm_steps:
+                    step = {clean_key(k): v for k, v in step.items()}
+                    step["task_id"] = task.id
+                    step["job_id_link"] = slurm_job["JobID"]
+                slurm_job_dict_list.append(slurm_job)
+                slurm_step_dict_list.extend(slurm_steps)
+            elif task.metadata["FluxJob"]:
+                flux_job = json.loads(task.metadata["FluxJob"])
+                flux_job = {clean_key(k): v for k, v in flux_job.items()}
+                flux_job["task_id"] = task.id
+                flux_job_dict_list.append(flux_job)
+            elif task.metadata["LSFJob"]:
+                lsf_job = json.loads(task.metadata["LSFJob"])
+                lsf_job = {clean_key(k): v for k, v in lsf_job.items()}
+                lsf_job["task_id"] = task.id
+                lsf_job_dict_list.append(lsf_job)
 
             for requirement in task.requirements:
                 task_requirement_dict = {
@@ -191,6 +204,8 @@ class DSIManager:
         self.store_dict_list(task_hint_dict_list, "task_hint")
         self.store_dict_list(slurm_job_dict_list, "slurm_job")
         self.store_dict_list(slurm_step_dict_list, "slurm_step")
+        self.store_dict_list(flux_job_dict_list, "flux_job")
+        self.store_dict_list(lsf_job_dict_list, "lsf_job")
     
     def query_files(self, type, query):
         """
