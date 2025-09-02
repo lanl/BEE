@@ -136,11 +136,6 @@ class WFUpdate(Resource):
         wf_id = wfi.workflow_id
         wf_state = wf_utils.get_wf_status(wf_id)
         if state_update.job_state == 'COMPLETED':
-            for output in task.outputs:
-                if output.glob is not None:
-                    wfi.set_task_output(task.id, output.id, output.glob)
-                else:
-                    wfi.set_task_output(task.id, output.id, "temp")
             wf_utils.copy_task_output(task)
             tasks = wfi.finalize_task(task)
             if tasks and wf_state not in ('Paused', 'Cancelled'):

@@ -4,6 +4,7 @@ Delegates its work to a GraphDatabaseInterface instance.
 """
 
 import re
+import glob
 from beeflow.common import log as bee_logging
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
 from beeflow.common import expr
@@ -341,4 +342,31 @@ class WorkflowInterface:
                 val = expr.eval_output(input_pairs, output.glob)
                 if val is not None:
                     self._gdb_driver.set_task_output_glob(task_id, output.id, val)
-                    self._gdb_driver.set_task_output(task_id, output.id, val)
+                    output.glob = val
+                if output.type == "File":
+                    self._gdb_driver.set_task_output(task_id, output.id, output.glob)
+                elif output.type == "String":
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            val = f.read()
+                        self._gdb_driver.set_task_output(task_id, output.id, val)
+                elif output.type == "int":
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            try:
+                                val = int(f.read())
+                            except ValueError:
+                                val = None
+                        self._gdb_driver.set_task_output(task_id, output.id, val)
+                elif output.type == "float":
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            try:
+                                val = float(f.read())
+                            except ValueError:
+                                val = None
+                        self._gdb_driver.set_task_output(task_id, output.id, val)
+
