@@ -285,7 +285,6 @@ class CwlParser:
                 input_type = step_input.type
             else:
                 input_type = step_input.type[1]
-            print(step_input)
 
             if step_input.inputBinding:
                 inputs.append(

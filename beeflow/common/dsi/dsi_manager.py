@@ -51,7 +51,6 @@ class DSIManager:
     def list_of_dict(self, data, secondary_key, secondary_value):
         """Convert inputs or outputs to list of dict"""
         result = []
-        print(data)
         if data:
             for item in data:
                 d = {key: value for key, value in item.dict().items() if value is not None}
@@ -66,7 +65,6 @@ class DSIManager:
         """Store a list of dicts in the DSI from csv"""
         if not data:
             return
-        print(data)
 
         csv_file = f'/tmp/{table_name}.csv'
         keys = set()
@@ -197,6 +195,8 @@ class DSIManager:
     def query_files(self, type, query):
         """
         Query files from DSI. The type would be either wf_input, wf_output, task_input, task_output
+
+        returns a list of file paths from DSI
         """
 
 
