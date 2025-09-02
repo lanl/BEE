@@ -201,12 +201,12 @@ class CwlParser:
         else:
             raise CwlParseError("Unsupported input job file extension (only .yml "
                                 "and .json supported)")
-
-        for k, v in self.params.items():
-            if not isinstance(k, str):
-                raise CwlParseError(f"Invalid input job key: {str(k)}")
-            if not isinstance(v, (str, int, float)):
-                raise CwlParseError(f"Invalid input job parameter type: {type(v)}")
+        if self.params:
+            for k, v in self.params.items():
+                if not isinstance(k, str):
+                    raise CwlParseError(f"Invalid input job key: {str(k)}")
+                if not isinstance(v, (str, int, float)):
+                    raise CwlParseError(f"Invalid input job parameter type: {type(v)}")
 
     @staticmethod
     def parse_step_inputs(cwl_in, step_inputs):
