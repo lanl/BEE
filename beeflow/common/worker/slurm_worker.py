@@ -282,18 +282,6 @@ class SlurmWorker(Worker):
     def query_task(self, job_id):
         """Query job state for the task."""
         return self._inner.query_task(job_id)
-    
-    def _all_sacct_fields(self) -> list[str]:
-        """Get all sacct fields supported by Slurm."""
-        out = subprocess.run(
-            ['sacct', '--helpformat'], capture_output=True, text=True, check=True
-        ).stdout
-        fields = [
-            word for line in out.splitlines()
-            for word in line.split()
-            if word.isidentifier()
-        ]
-        return fields
 
     def get_task_metadata(self, job_id):
         """Gets all the relevant fields of a job through sacct"""

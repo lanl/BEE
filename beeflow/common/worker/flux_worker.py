@@ -6,6 +6,8 @@
 
 import io
 import os
+import subprocess
+import json
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import Worker
 
@@ -154,3 +156,19 @@ class FluxWorker(Worker):
 
         # Note: using 'status' here instead of 'state'
         return BEE_STATES[info['status']]
+
+    def get_task_metadata(self, job_id):
+        """Gets all available fields of a Flux job"""
+        # job info in JSON
+        cmd = ["flux", "job", "info", str(job_id), "--json"]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        job_data = json.loads(result.stdout)
+
+        # For steps: Flux does not track steps like Slurm.
+        # Only the top-level job exists.
+        flux_job = json.dumps(job_data)
+
+        if not job_data:
+            raise RuntimeError("No Job Found With That ID")
+
+        return {"FluxJob": flux_job}

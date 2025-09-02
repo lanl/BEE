@@ -58,5 +58,17 @@
     "foreign_key": {
       "job_id_link": ["slurm_job", "JobID"]
     }
+  },
+  "flux_job": {
+    "primary_key": "id",
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "lsf_job": {
+    "primary_key": "JOBID",
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
   }
 }
