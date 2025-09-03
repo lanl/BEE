@@ -157,7 +157,6 @@ class Inputs:
 
 class RunInputs(Inputs):
     """Represents run inputs."""
-    pass
 
 class CWLInputs(Inputs):
     """CWLInputs is used to generate the YAML file."""
