@@ -252,11 +252,11 @@ def submit_tasks_scheduler(tasks):
         )
     except requests.exceptions.ConnectionError:
         log.error("Unable to connect to scheduler to submit tasks.")
-        return "Did not work"
+        return "Unable to connect to scheduler."
 
     if resp.status_code != 200:
         log.info("Something bad happened %s", resp.status_code)
-        return "Did not work"
+        return "Error occured submitting to scheduler"
     return ScheduleTasksResponse.model_validate(resp.json()).tasks
 
 
