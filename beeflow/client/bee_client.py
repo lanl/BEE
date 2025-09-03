@@ -34,15 +34,22 @@ from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.object_models import generate_workflow_id
-from beeflow.client import core # pylint: disable=R0401 #WIP
+from beeflow.client import core  # pylint: disable=R0401 #WIP
 from beeflow.client import remote_client
-from beeflow.wf_manager.models import CopyWorkflowRequest, CopyWorkflowResponse, ListWorkflowsResponse, SubmitWorkflowRequest, ModifyWorkflowRequest, WorkflowStatusResponse
+from beeflow.wf_manager.models import (
+    CopyWorkflowRequest,
+    CopyWorkflowResponse,
+    ListWorkflowsResponse,
+    SubmitWorkflowRequest,
+    ModifyWorkflowRequest,
+    WorkflowStatusResponse,
+)
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common.db import client_db
 from beeflow.common.db import bdb
 
 # Length of a shortened workflow ID
-short_id_len = 6 # pylint: disable=C0103 # not a constant
+short_id_len = 6  # pylint: disable=C0103 # not a constant
 
 # Maximum length of a workflow ID
 MAX_ID_LEN = 32
@@ -53,7 +60,7 @@ _INTERACTIVE = False
 
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("neo4j").setLevel(logging.WARNING)
-WORKFLOW_MANAGER = 'bee_wfm/v1/jobs/'
+WORKFLOW_MANAGER = "bee_wfm/v1/jobs/"
 
 
 class ClientError(Exception):
@@ -66,13 +73,13 @@ class ClientError(Exception):
 
 def warn(*pargs):
     """Print a red warning message."""
-    typer.secho(' '.join(pargs), fg=typer.colors.RED, file=sys.stderr)
+    typer.secho(" ".join(pargs), fg=typer.colors.RED, file=sys.stderr)
 
 
 def db_path():
     """Return the client database path."""
-    bee_workdir = config_driver.BeeConfig.get('DEFAULT', 'bee_workdir')
-    return os.path.join(bee_workdir, 'client.db')
+    bee_workdir = config_driver.BeeConfig.get("DEFAULT", "bee_workdir")
+    return os.path.join(bee_workdir, "client.db")
 
 
 def setup_hostname(start_hn):
@@ -110,7 +117,7 @@ def reset_client_db():
 def check_backend_jobs(start_hn, command=False):
     """Check if there is an instance of beeflow running on a backend node."""
     user_name = getpass.getuser()
-    cmd = ['squeue', '-u', f'{user_name}', '-o', '%N', '-h']
+    cmd = ["squeue", "-u", f"{user_name}", "-o", "%N", "-h"]
     resp = subprocess.run(cmd, text=True, check=True, stdout=subprocess.PIPE)
 
     # iterate through available nodes
@@ -121,20 +128,26 @@ def check_backend_jobs(start_hn, command=False):
 
     if cur_alloc:
         if command:
-            warn(f'beeflow was started on "{get_hostname()}" and you are trying to '
-                 f'run a command on "{start_hn}".')
+            warn(
+                f'beeflow was started on "{get_hostname()}" and you are trying to '
+                f'run a command on "{start_hn}".'
+            )
             sys.exit(1)
         else:
-            warn(f'beeflow was started on compute node "{get_hostname()}" '
-                 'and it is still running. ')
+            warn(
+                f'beeflow was started on compute node "{get_hostname()}" '
+                "and it is still running. "
+            )
             sys.exit(1)
     else:  # beeflow was started on compute node but user no longer owns node
         if command:
-            warn('beeflow has not been started!')
+            warn("beeflow has not been started!")
             sys.exit(1)
         else:
-            warn('beeflow was started on a compute node (no longer owned by user) and '
-                 'not stopped correctly. ')
+            warn(
+                "beeflow was started on a compute node (no longer owned by user) and "
+                "not stopped correctly. "
+            )
             warn("Resetting client database.")
             reset_client_db()
             setup_hostname(start_hn)  # add to client db
@@ -145,20 +158,30 @@ def check_db_flags(start_hn):
     if get_hostname() and get_hostname() != start_hn and check_backend_status() == "":
         warn(f'Error: beeflow is already running on "{get_hostname()}".')
         sys.exit(1)
-    if get_hostname() and get_hostname() != start_hn and check_backend_status() == "true":
+    if (
+        get_hostname()
+        and get_hostname() != start_hn
+        and check_backend_status() == "true"
+    ):
         check_backend_jobs(start_hn)
 
 
 def check_hostname(curr_hn):
     """Check current front end name matches the one beeflow was started on."""
     if get_hostname() and curr_hn != get_hostname() and check_backend_status() == "":
-        warn(f'beeflow was started on "{get_hostname()}" and you are trying to '
-             f'run a command on "{curr_hn}".')
+        warn(
+            f'beeflow was started on "{get_hostname()}" and you are trying to '
+            f'run a command on "{curr_hn}".'
+        )
         sys.exit(1)
-    elif get_hostname() and curr_hn != get_hostname() and check_backend_status() == "true":
+    elif (
+        get_hostname()
+        and curr_hn != get_hostname()
+        and check_backend_status() == "true"
+    ):
         check_backend_jobs(curr_hn, command=True)
     if get_hostname() == "" and check_backend_status() == "":
-        warn('beeflow has not been started!')
+        warn("beeflow has not been started!")
         sys.exit(1)
 
 
@@ -166,7 +189,7 @@ def error_exit(msg, include_caller=True):
     """Print a message and exit or raise an error with that message."""
     if include_caller:
         caller_func = str.capitalize(inspect.stack()[1].function)
-        msg = caller_func + ': ' + msg
+        msg = caller_func + ": " + msg
     if _INTERACTIVE:
         typer.secho(msg, fg=typer.colors.RED, file=sys.stderr)
         sys.exit(1)
@@ -180,25 +203,26 @@ def error_handler(resp):  # pylint: disable=R1710 # error handler doesn't need t
     if resp.status_code != 500:
         return resp
     data = resp.json()
-    if 'error' not in data:
+    if "error" not in data:
         return resp
-    error = data['error']
-    error_file = f'bee-error-{int(time.time())}.log'
+    error = data["error"]
+    error_file = f"bee-error-{int(time.time())}.log"
     # Save the args and exception info to the file
-    with open(error_file, 'w', encoding='utf-8') as fp:
+    with open(error_file, "w", encoding="utf-8") as fp:
         fp.write(f'args: {" ".join(sys.argv)}\n')
         fp.write(error)
-    msg = ('An error occurred with the WFM. Please save your workflow and the '
-           f'error log "{error_file}". If possible, please report this to the '
-           'BEE development team.')
+    msg = (
+        "An error occurred with the WFM. Please save your workflow and the "
+        f'error log "{error_file}". If possible, please report this to the '
+        "BEE development team."
+    )
     msg = textwrap.fill(msg)
     error_exit(msg, include_caller=False)
 
 
 def _wfm_conn():
     """Return a connection to the WFM."""
-    return Connection(paths.wfm_socket(),
-                      error_handler=error_handler)
+    return Connection(paths.wfm_socket(), error_handler=error_handler)
 
 
 def _url():
@@ -225,13 +249,13 @@ def get_wf_list():
         resp = conn.get(_url(), timeout=60)
     except requests.exceptions.ConnectionError:
         if get_hostname() == "":
-            warn('beeflow has not been started!')
+            warn("beeflow has not been started!")
             sys.exit(1)
         else:
-            error_exit('Could not reach WF Manager.')
+            error_exit("Could not reach WF Manager.")
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('WF Manager did not return workflow list')
+        error_exit("WF Manager did not return workflow list")
 
     return ListWorkflowsResponse.model_validate(resp.json()).workflow_info_list
 
@@ -264,16 +288,21 @@ def match_short_id(wf_id):
             if job.wf_id.startswith(wf_id):
                 matched_ids.append(job.wf_id)
         if len(matched_ids) > 1:
-            logging.info(f"user-provided workflow ID {wf_id} matched multiple stored workflow IDs")
+            logging.info(
+                f"user-provided workflow ID {wf_id} matched multiple stored workflow IDs"
+            )
             error_exit("provided workflow ID ambiguous")
         elif not matched_ids:
-            logging.info(f"user-provided workflow ID {wf_id} did not match any"
-                         "stored workflow ID")
-            error_exit("Provided workflow ID does not match any submitted "
-                       "workflows")
+            logging.info(
+                f"user-provided workflow ID {wf_id} did not match any"
+                "stored workflow ID"
+            )
+            error_exit("Provided workflow ID does not match any submitted workflows")
         else:
-            logging.info(f"user-provided workflow ID {wf_id} matched stored"
-                         "workflow ID {matched_ids[0]}")
+            logging.info(
+                f"user-provided workflow ID {wf_id} matched stored"
+                "workflow ID {matched_ids[0]}"
+            )
             long_wf_id = matched_ids[0]
             return long_wf_id
     sys.exit("There are currently no workflows.")
@@ -285,34 +314,48 @@ def get_wf_status(wf_id):
         conn = _wfm_conn()
         resp = conn.get(_resource(wf_id), timeout=60)
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        error_exit("Could not reach WF Manager.")
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('Could not successfully query workflow manager')
+        error_exit("Could not successfully query workflow manager")
 
-    return resp.json()['wf_status']
+    return resp.json()["wf_status"]
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
-app.add_typer(core.app, name='core')
-app.add_typer(remote_client.app, name='remote')
-app.add_typer(config_driver.app, name='config')
+app.add_typer(core.app, name="core")
+app.add_typer(remote_client.app, name="remote")
+app.add_typer(config_driver.app, name="config")
 
 
 @app.command()
-def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pylint:disable=R0915
-           wf_path: pathlib.Path = typer.Argument(..., help='path to the workflow .tgz or dir'),
-           main_cwl: str = typer.Argument(...,
-           help='filename of main CWL (if using CWL tarball), '
-           + 'path of main CWL (if using CWL directory)'),
-           yaml_file: str = typer.Argument(...,
-           help='filename of yaml file (if using CWL tarball), '
-           + 'path of yaml file (if using CWL directory)'),
-           workdir: pathlib.Path = typer.Argument(...,
-           help='working directory for workflow containing input + output files',),
-           no_start: bool = typer.Option(False, '--no-start', '-n',
-                                         help='do not start the workflow')):
+def submit(  # pylint:disable=R0915
+    wf_name: str = typer.Argument(
+        ..., help="the workflow name"
+    ),
+    wf_path: pathlib.Path = typer.Argument(
+        ..., help="path to the workflow .tgz or dir"
+    ),
+    main_cwl: str = typer.Argument(
+        ...,
+        help="filename of main CWL (if using CWL tarball), "
+        + "path of main CWL (if using CWL directory)",
+    ),
+    yaml_file: str = typer.Argument(
+        ...,
+        help="filename of yaml file (if using CWL tarball), "
+        + "path of yaml file (if using CWL directory)",
+    ),
+    workdir: pathlib.Path = typer.Argument(
+        ...,
+        help="working directory for workflow containing input + output files",
+    ),
+    no_start: bool = typer.Option(
+        False, "--no-start", "-n", help="do not start the workflow"
+    ),
+):
     """Submit a new workflow."""
+
     def is_parent(parent, path):
         """Return true if the path is a child of the other path."""
         parent = os.path.abspath(parent)
@@ -326,28 +369,35 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     workdir = os.path.expanduser(workdir)
     workdir = os.path.abspath(workdir)
     if not os.path.exists(workdir):
-        error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
+        error_exit(f'Workflow working directory "{workdir}" doesn\'t exist')
 
     # Make sure the workdir is not in /var or /var/tmp
-    if os.path.commonpath([os.path.realpath('/tmp'), workdir]) == os.path.realpath('/tmp'):
-        error_exit("Workflow working directory cannot be in \"/tmp\"")
-    if os.path.commonpath([os.path.realpath('/var/tmp'), workdir]) == os.path.realpath('/var/tmp'):
-        error_exit("Workflow working directory cannot be in \"/var/tmp\"")
+    if os.path.commonpath([os.path.realpath("/tmp"), workdir]) == os.path.realpath(
+        "/tmp"
+    ):
+        error_exit('Workflow working directory cannot be in "/tmp"')
+    if os.path.commonpath([os.path.realpath("/var/tmp"), workdir]) == os.path.realpath(
+        "/var/tmp"
+    ):
+        error_exit('Workflow working directory cannot be in "/var/tmp"')
 
     tarball_path = ""
     workflow = None
     encoded_tarball = None
+    tasks = []
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
         if os.path.isdir(wf_path):
-            print("Detected directory instead of packaged workflow. Packaging Directory...")
+            print(
+                "Detected directory instead of packaged workflow. Packaging Directory..."
+            )
             main_cwl_path = pathlib.Path(main_cwl).resolve()
             yaml_path = pathlib.Path(yaml_file).resolve()
 
             if not main_cwl_path.exists():
-                error_exit(f'Main CWL file {main_cwl} does not exist')
+                error_exit(f"Main CWL file {main_cwl} does not exist")
             if not yaml_path.exists():
-                error_exit(f'YAML file {yaml_file} does not exist')
+                error_exit(f"YAML file {yaml_file} does not exist")
 
             # Packaging in temp dir, after copying alternate cwl_main or yaml file
             cwl_indir = is_parent(wf_path, main_cwl_path)
@@ -372,15 +422,16 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
         parser = CwlParser()
         workflow_id = generate_workflow_id()
-        workflow, tasks = parser.parse_workflow(workflow_id, str(main_cwl_path),
-                                                job=str(yaml_path), workdir=workdir)
-        with open(package_path, 'rb') as f:
-            encoded_tarball = base64.b64encode(f.read()).decode('utf-8')
+        workflow, tasks = parser.parse_workflow(
+            workflow_id, str(main_cwl_path), job=str(yaml_path), workdir=workdir
+        )
+        with open(package_path, "rb") as f:
+            encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
         shutil.rmtree(untar_path)
         if os.path.isdir(wf_path):
             shutil.rmtree(tempdir_path)
     else:
-        error_exit(f'Workflow tarball {wf_path} cannot be found')
+        error_exit(f"Workflow tarball {wf_path} cannot be found")
 
     # TODO: Can all of this information be sent as a file?
     payload = SubmitWorkflowRequest(
@@ -397,21 +448,23 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
         conn = _wfm_conn()
         resp = conn.post(_url(), json=payload.model_dump(), timeout=60)
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        error_exit("Could not reach WF Manager.")
 
     if resp.status_code != requests.codes.created:  # pylint: disable=no-member
         if resp.status_code == 400:
             data = resp.json()
-            error_exit(data['msg'])
+            error_exit(data["msg"])
         error_exit(f"Submit for {wf_name} failed. Please check the WF Manager.")
 
     check_short_id_collision()
-    if 'wf_id' not in resp.json():
+    if "wf_id" not in resp.json():
         error_exit("wf_id not in WFM response")
-    wf_id = resp.json()['wf_id']
-    typer.secho("Workflow submitted! Your workflow id is "
-                f"{_short_id(wf_id)}.", fg=typer.colors.GREEN)
-    logging.info('Sumit workflow:  {resp.text}')
+    wf_id = resp.json()["wf_id"]
+    typer.secho(
+        "Workflow submitted! Your workflow id is " f"{_short_id(wf_id)}.",
+        fg=typer.colors.GREEN,
+    )
+    logging.info("Sumit workflow:  {resp.text}")
 
     # Cleanup code
     if tarball_path:
@@ -422,15 +475,15 @@ def submit(wf_name: str = typer.Argument(..., help='the workflow name'),  # pyli
     sub_wf_dir = wf_dir + "/submit_command_args.yaml"
 
     cmd = {
-        'wf_name': wf_name,
-        'wf_path': str(wf_path),
-        'main_cwl': main_cwl,
-        'yaml': yaml_file,
-        'workdir': workdir,
-        'wf_id': wf_id
+        "wf_name": wf_name,
+        "wf_path": str(wf_path),
+        "main_cwl": main_cwl,
+        "yaml": yaml_file,
+        "workdir": workdir,
+        "wf_id": wf_id,
     }
 
-    with open(sub_wf_dir, "w", encoding='utf-8') as command_file:
+    with open(sub_wf_dir, "w", encoding="utf-8") as command_file:
         yaml.dump(cmd, command_file)
 
     return wf_id
@@ -444,44 +497,49 @@ def start(wf_id: str = typer.Argument(..., callback=match_short_id)):
         conn = _wfm_conn()
         resp = conn.post(_resource(long_wf_id), timeout=60)
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        error_exit("Could not reach WF Manager.")
 
     if resp.status_code == 400:
-        error_exit("Could not start workflow. It may have already been started "
-                   "and ran to completion (or failure).")
+        error_exit(
+            "Could not start workflow. It may have already been started "
+            "and ran to completion (or failure)."
+        )
     elif resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit(f"Starting {long_wf_id} failed."
-                   f" Returned {resp.status_code}")
+        error_exit(f"Starting {long_wf_id} failed." f" Returned {resp.status_code}")
 
     typer.echo(f"{resp.json()['msg']}")
-    logging.info('Started  {resp.text}')
+    logging.info("Started  {resp.text}")
 
 
 @app.command()
-def package(wf_path: pathlib.Path = typer.Argument(...,
-            help='Path to the workflow package directory'),
-            package_dest: pathlib.Path = typer.Argument(...,
-            help='Path for where the packaged workflow should be saved')
-            ):
+def package(
+    wf_path: pathlib.Path = typer.Argument(
+        ..., help="Path to the workflow package directory"
+    ),
+    package_dest: pathlib.Path = typer.Argument(
+        ..., help="Path for where the packaged workflow should be saved"
+    ),
+):
     """Package a workflow into a tarball."""
     if not os.path.isdir(wf_path):
         error_exit(f"{wf_path} is not a valid directory.")
 
     # Get the filename
     wf_dir = wf_path.name
-    tarball = wf_path.name + '.tgz'
+    tarball = wf_path.name + ".tgz"
     # Get the parent directory and resolve it in case the path is relative
     parent_dir = wf_path.resolve().parent
     # Just use tar with subprocess. Python's tar library is not performant.
-    return_code = subprocess.run(['tar', '-C', parent_dir, '-czf', tarball, wf_dir],
-                                 check=True).returncode
-    package_path = package_dest.resolve()/tarball
+    return_code = subprocess.run(
+        ["tar", "-C", parent_dir, "-czf", tarball, wf_dir], check=True
+    ).returncode
+    package_path = package_dest.resolve() / tarball
 
     # Get the curent working directory
     cwd = pathlib.Path().absolute()
     if package_dest != cwd:
         # Move the tarball if the directory it's wanted in is not in the current working directory
-        tarball_path = cwd/tarball
+        tarball_path = cwd / tarball
         shutil.move(tarball_path, package_path)
 
     if return_code != 0:
@@ -499,22 +557,28 @@ def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
     wf_status = get_wf_status(wf_id)
     print(f"Workflow Status is {wf_status}")
-    if wf_status in ('Cancelled', 'Paused') or 'Archived' in wf_status:
-        verify = f"All stored information for workflow {_short_id(wf_id)} will be removed."
-        verify += "\nContinue to remove? yes(y)/no(n): """
+    if wf_status in ("Cancelled", "Paused") or "Archived" in wf_status:
+        verify = (
+            f"All stored information for workflow {_short_id(wf_id)} will be removed."
+        )
+        verify += "\nContinue to remove? yes(y)/no(n): " ""
         response = input(verify)
         if response in ("n", "no"):
             sys.exit("Workflow not removed.")
         elif response in ("y", "yes"):
             try:
                 conn = _wfm_conn()
-                resp = conn.delete(_resource(long_wf_id), json=ModifyWorkflowRequest(option="remove").model_dump(), timeout=60)
+                resp = conn.delete(
+                    _resource(long_wf_id),
+                    json=ModifyWorkflowRequest(option="remove").model_dump(),
+                    timeout=60,
+                )
             except requests.exceptions.ConnectionError:
-                error_exit('Could not reach WF Manager.')
+                error_exit("Could not reach WF Manager.")
             if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
-                error_exit('WF Manager could not remove workflow.')
+                error_exit("WF Manager could not remove workflow.")
             typer.secho("Workflow removed!", fg=typer.colors.GREEN)
-            logging.info(f'Remove workflow: {resp.text}')
+            logging.info(f"Remove workflow: {resp.text}")
     else:
         print(f"{_short_id(wf_id)} may still be running.")
         print("The workflow must be cancelled before attempting removal.")
@@ -527,13 +591,14 @@ def unpackage(package_path, dest_path):
     package_str = str(package_path)
     package_path = package_path.resolve()
 
-    if not package_str.endswith('.tgz'):
+    if not package_str.endswith(".tgz"):
         # No cleanup, maybe we should rm dest_path?
         error_exit("Invalid package name, please use the beeflow package command")
     wf_dir = pathlib.Path(package_path).stem
 
-    return_code = subprocess.run(['tar', '-C', dest_path, '-xf', package_path],
-                                 check=True).returncode
+    return_code = subprocess.run(
+        ["tar", "-C", dest_path, "-xf", package_path], check=True
+    ).returncode
     if return_code != 0:
         # No cleanup, maybe we should rm dest_path?
         error_exit("Unpackage failed")
@@ -542,15 +607,17 @@ def unpackage(package_path, dest_path):
     return pathlib.Path(dest_path / wf_dir)
 
 
-@app.command('list')
+@app.command("list")
 def list_workflows():
     """List all workflows."""
     workflow_list = get_wf_list()
     if workflow_list:
         typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
 
-        for workflow_info in workflow_list:
-            typer.echo(f"{workflow_info.wf_name}\t{_short_id(workflow_info.wf_id)}\t{workflow_info.wf_status}")
+        for wf_info in workflow_list:
+            typer.echo(
+                f"{wf_info.wf_name}\t{_short_id(wf_info.wf_id)}\t{wf_info.wf_status}"
+            )
     else:
         typer.echo("There are currently no workflows.")
 
@@ -564,23 +631,23 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
         conn = _wfm_conn()
         resp = conn.get(_resource(long_wf_id), timeout=60)
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        error_exit("Could not reach WF Manager.")
 
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('Could not successfully query workflow manager')
-    
+        error_exit("Could not successfully query workflow manager")
+
     status = WorkflowStatusResponse.model_validate(resp.json())
 
     tasks_status = status.tasks_status
     wf_status = status.wf_status
     typer.echo(wf_status)
     for _task_id, task_name, task_state in tasks_status:
-        if wf_status == 'No Start':
-            typer.echo(f'{task_name}')
+        if wf_status == "No Start":
+            typer.echo(f"{task_name}")
         else:
-            typer.echo(f'{task_name}--{task_state}')
+            typer.echo(f"{task_name}--{task_state}")
 
-    logging.info('Query workflow:  {resp.text}')
+    logging.info("Query workflow:  {resp.text}")
     return wf_status, tasks_status
 
 
@@ -590,13 +657,16 @@ def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
-        resp = conn.patch(_resource(long_wf_id), json=ModifyWorkflowRequest(option='pause').model_dump(),
-                          timeout=60)
+        resp = conn.patch(
+            _resource(long_wf_id),
+            json=ModifyWorkflowRequest(option="pause").model_dump(),
+            timeout=60,
+        )
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        error_exit("Could not reach WF Manager.")
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('WF Manager could not pause workflow.')
-    logging.info('Pause workflow:  {resp.text}')
+        error_exit("WF Manager could not pause workflow.")
+    logging.info("Pause workflow:  {resp.text}")
 
 
 @app.command()
@@ -605,14 +675,16 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
-        resp = conn.patch(_resource(long_wf_id),
-                          json=ModifyWorkflowRequest(option='resume').model_dump(),
-                          timeout=60)
+        resp = conn.patch(
+            _resource(long_wf_id),
+            json=ModifyWorkflowRequest(option="resume").model_dump(),
+            timeout=60,
+        )
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        error_exit("Could not reach WF Manager.")
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('WF Manager could not resume workflow.')
-    logging.info('Resume workflow:  {resp.text}')
+        error_exit("WF Manager could not resume workflow.")
+    logging.info("Resume workflow:  {resp.text}")
 
 
 @app.command()
@@ -620,17 +692,21 @@ def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
     """Cancel a paused or running workflow."""
     long_wf_id = wf_id
     wf_status = get_wf_status(wf_id)
-    if wf_status in ('Running', 'Paused', 'No Start'):
+    if wf_status in ("Running", "Paused", "No Start"):
         try:
             conn = _wfm_conn()
-            resp = conn.delete(_resource(long_wf_id), json=ModifyWorkflowRequest(option='cancel').model_dump(), timeout=60)
+            resp = conn.delete(
+                _resource(long_wf_id),
+                json=ModifyWorkflowRequest(option="cancel").model_dump(),
+                timeout=60,
+            )
 
         except requests.exceptions.ConnectionError:
-            error_exit('Could not reach WF Manager.')
+            error_exit("Could not reach WF Manager.")
         if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
-            error_exit('WF Manager could not cancel workflow.')
+            error_exit("WF Manager could not cancel workflow.")
         typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
-        logging.info(f'Cancel workflow: {resp.text}')
+        logging.info(f"Cancel workflow: {resp.text}")
     elif wf_status == "Intializing":
         print(f"Workflow is {wf_status}, try cancel later.")
     else:
@@ -643,95 +719,115 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
-        resp = conn.patch(_url(), json=CopyWorkflowRequest(wf_id=long_wf_id).model_dump(), timeout=60)
+        resp = conn.patch(
+            _url(), json=CopyWorkflowRequest(wf_id=long_wf_id).model_dump(), timeout=60
+        )
     except requests.exceptions.ConnectionError:
-        error_exit('Could not reach WF Manager.')
+        error_exit("Could not reach WF Manager.")
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit('WF Manager could not copy workflow.')
+        error_exit("WF Manager could not copy workflow.")
     archive_info = CopyWorkflowResponse.model_validate(resp.json())
     archive_file = jsonpickle.decode(archive_info.archive_file_pickle)
     archive_filename = archive_info.archive_filename
-    logging.info(f'Copy workflow: {resp.text}')
+    logging.info(f"Copy workflow: {resp.text}")
     return archive_file, archive_filename
 
 
 @app.command()
-def reexecute(wf_name: str = typer.Argument(..., help='The workflow name'),
-              wf_path: pathlib.Path = typer.Argument(..., help='Path to the workflow archive'),
-              workdir: pathlib.Path = typer.Argument(
-                  ...,
-                  help='working directory for workflow containing input + output files')
-              ):
+def reexecute(
+    wf_name: str = typer.Argument(..., help="The workflow name"),
+    wf_path: pathlib.Path = typer.Argument(..., help="Path to the workflow archive"),
+    workdir: pathlib.Path = typer.Argument(
+        ..., help="working directory for workflow containing input + output files"
+    ),
+):
     """Reexecute an archived workflow."""
     if not os.path.exists(wf_path):
-        error_exit(f'Workflow tarball {wf_path} cannot be found')
+        error_exit(f"Workflow tarball {wf_path} cannot be found")
 
     # Make sure the workdir is an absolute path and exists
     workdir = os.path.expanduser(workdir)
     workdir = os.path.abspath(workdir)
     if not os.path.exists(workdir):
-        error_exit(f"Workflow working directory \"{workdir}\" doesn't exist")
+        error_exit(f'Workflow working directory "{workdir}" doesn\'t exist')
     cwl_path = pathlib.Path(tempfile.mkdtemp())
     archive_id = str(wf_path.stem)
     with tarfile.open(wf_path) as archive:
-        archive_cmd = yaml.load(archive.extractfile(
-            str(pathlib.Path(archive_id) / 'submit_command_args.yaml')).read(),
-            Loader=yaml.Loader)
+        archive_cmd = yaml.load(
+            archive.extractfile(
+                str(pathlib.Path(archive_id) / "submit_command_args.yaml")
+            ).read(),
+            Loader=yaml.Loader,
+        )
 
         cwl_files = [
-            tarinfo for tarinfo in archive.getmembers()
-            if tarinfo.name.startswith(archive_id + '/cwl_files/')
-            and tarinfo.isreg()
+            tarinfo
+            for tarinfo in archive.getmembers()
+            if tarinfo.name.startswith(archive_id + "/cwl_files/") and tarinfo.isreg()
         ]
         for path in cwl_files:
             path.name = os.path.basename(path.name)
         archive.extractall(path=cwl_path, members=cwl_files)
 
-        main_cwl = cwl_path / pathlib.Path(archive_cmd['main_cwl']).name
-        yaml_file = cwl_path / pathlib.Path(archive_cmd['yaml']).name
+        main_cwl = cwl_path / pathlib.Path(archive_cmd["main_cwl"]).name
+        yaml_file = cwl_path / pathlib.Path(archive_cmd["yaml"]).name
 
-        return submit(wf_name, pathlib.Path(cwl_path), main_cwl, yaml_file, pathlib.Path(workdir))
+        return submit(
+            wf_name, pathlib.Path(cwl_path), main_cwl, yaml_file, pathlib.Path(workdir)
+        )
 
 
 @app.command()
-def dag(wf_id: str = typer.Argument(..., callback=match_short_id),
-        output_dir: pathlib.Path = typer.Argument(...,
-        help='Path to the where the dag output will be'),
-        no_dag_dir: bool = typer.Option(False, '--no-dag-dir',
-        help='do not make a subdirectory within ouput_dir for the dags')):
+def dag(
+    wf_id: str = typer.Argument(..., callback=match_short_id),
+    output_dir: pathlib.Path = typer.Argument(
+        ..., help="Path to the where the dag output will be"
+    ),
+    no_dag_dir: bool = typer.Option(
+        False,
+        "--no-dag-dir",
+        help="do not make a subdirectory within ouput_dir for the dags",
+    ),
+):
     """Export a DAG of the workflow to a GraphML file."""
     output_dir = output_dir.resolve()
     # Make sure output_dir is an absolute path and exists
     output_dir = os.path.expanduser(output_dir)
     output_dir = os.path.abspath(output_dir)
     if not os.path.exists(output_dir):
-        error_exit(f"Path for dag directory \"{output_dir}\" doesn't exist")
+        error_exit(f'Path for dag directory "{output_dir}" doesn\'t exist')
 
     # output_dir must be a string
     output_dir = str(output_dir)
     # Check if the workflow is archived
     wf_status = get_wf_status(wf_id)
-    if wf_status == 'Archived':
+    if wf_status == "Archived":
         bee_workdir = wf_utils.get_bee_workdir()
-        mount_dir = os.path.join(bee_workdir, 'gdb_mount')
-        graphmls_dir = mount_dir + '/graphmls'
-        typer.secho("Workflow has been archived. All new DAGs will look the same as the one "
-                    "in the archive directory.",
-                    fg=typer.colors.MAGENTA)
+        mount_dir = os.path.join(bee_workdir, "gdb_mount")
+        graphmls_dir = mount_dir + "/graphmls"
+        typer.secho(
+            "Workflow has been archived. All new DAGs will look the same as the one "
+            "in the archive directory.",
+            fg=typer.colors.MAGENTA,
+        )
         dot_avail = wf_utils.export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir)
     else:
         wf_dir = wf_utils.get_workflow_dir(wf_id)
-        graphmls_dir = wf_dir + '/graphmls'
+        graphmls_dir = wf_dir + "/graphmls"
         os.makedirs(graphmls_dir, exist_ok=True)
-        dot_avail = wf_utils.export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, wf_dir)
+        dot_avail = wf_utils.export_dag(
+            wf_id, output_dir, graphmls_dir, no_dag_dir, wf_dir
+        )
     if dot_avail:
-        typer.secho(f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
-                    fg=typer.colors.GREEN)
+        typer.secho(
+            f"DAG for workflow {_short_id(wf_id)} has been exported successfully.",
+            fg=typer.colors.GREEN,
+        )
     else:
         typer.secho(
             f"GraphML for workflow {_short_id(wf_id)} has been exported successfully."
             "(Graphviz not found, so no rendered DAG was produced.)",
-            fg=typer.colors.GREEN
+            fg=typer.colors.GREEN,
         )
 
 

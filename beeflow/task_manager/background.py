@@ -4,7 +4,6 @@ This code processes submitted tasks, monitors status, and sends info back to
 the Workflow Manager.
 """
 import traceback
-import jsonpickle
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.task_manager import utils
 from beeflow.common import log as bee_logging
