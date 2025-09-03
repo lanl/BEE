@@ -40,8 +40,8 @@ def main():
                         source="tar/tarball")])
 
     workflow = Workflow("cat-grep-tar", [cat, grep0, grep1, tar])
-    workflow.write_wf("cat-grep-tar")
-    workflow.write_yaml("cat-grep-tar")
+    workflow.dump_wf("cat-grep-tar")
+    workflow.dump_yaml("cat-grep-tar")
 
 
 if __name__ == "__main__":
