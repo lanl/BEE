@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from io import StringIO
 from typing import Optional
 import ruamel.yaml
+import pathlib
 
 # Create the global object for ruamel.ymal
 yaml = ruamel.yaml.YAML()
@@ -635,6 +636,8 @@ class CWL:
         yaml.dump(cwl_dump, stream)
         wf_contents = stream.getvalue()
         if path:
+            p = pathlib.Path(path)
+            p.mkdir(parents=True, exist_ok=True)
             with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
         return wf_contents
@@ -645,6 +648,8 @@ class CWL:
         yaml.dump(self.inputs.generate_yaml_inputs(), stream)
         yaml_contents = stream.getvalue()
         if path:
+            p = pathlib.Path(path)
+            p.mkdir(parents=True, exist_ok=True)
             with open(f"{path}/{self.cwl_name}.yml", "w", encoding="utf-8") as yaml_file:
                 print(yaml_contents, file=yaml_file)
         return yaml_contents
