@@ -165,7 +165,23 @@ class Workflow:
     def __init__(self, name, tasks):
         self.name = name
         self.tasks = tasks
-        self.generate_cwl()
+
+        # Generate a CWL object from a Workflow object.
+        cwl_inputs = []
+        for task in self.tasks:
+            cwl_inputs.extend([input_.cwl_input()
+                               for input_ in task.inputs if input_.cwl_input() is not None])
+        cwl_inputs = CWLInputs(cwl_inputs)
+
+        cwl_outputs = []
+        for task in self.tasks:
+            cwl_outputs.extend([output_.cwl_output()
+                                for output_ in task.outputs if output_.cwl_output() is not None])
+        cwl_outputs = Outputs(cwl_outputs)
+
+        cwl_steps = Steps([self.generate_step(task) for task in self.tasks])
+        self.cwl = CWL(self.name, cwl_inputs, cwl_outputs, cwl_steps)
+
 
     def generate_step(self, task):
         """Generates a Step object based off a Task object."""
@@ -186,27 +202,14 @@ class Workflow:
             step = Step(step_name, step_run)
         return step
 
-    def generate_cwl(self):
-        """Generate a CWL object from a Workflow object."""
-        cwl_inputs = []
-        for task in self.tasks:
-            cwl_inputs.extend([input_.cwl_input()
-                               for input_ in task.inputs if input_.cwl_input() is not None])
-        cwl_inputs = CWLInputs(cwl_inputs)
-
-        cwl_outputs = []
-        for task in self.tasks:
-            cwl_outputs.extend([output_.cwl_output()
-                                for output_ in task.outputs if output_.cwl_output() is not None])
-        cwl_outputs = Outputs(cwl_outputs)
-
-        cwl_steps = Steps([self.generate_step(task) for task in self.tasks])
-        self.cwl = CWL(self.name, cwl_inputs, cwl_outputs, cwl_steps)
-
-    def write_wf(self, path):
+    def dump_wf(self, path=None):
         """Write the workflow."""
-        self.cwl.dump_wf(path)
+        if not path:
+            return self.cwl.dump_wf()
+        return self.cwl.dump_wf(path)
 
-    def write_yaml(self, path):
+    def dump_yaml(self, path=None):
         """Write the yaml file."""
-        self.cwl.dump_inputs(path)
+        if not path:
+            return self.cwl.dump_inputs()
+        return self.cwl.dump_inputs(path)
