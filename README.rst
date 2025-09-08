@@ -33,9 +33,25 @@ Containers provide many benefits:
 BEE Sites
 =========
 
-* Documentation: `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`_
-
 * Github: `https://github.com/lanl/BEE <https://github.com/lanl/BEE>`_
+
+
+* PyPi: `https://pypi.org/project/hpc-beeflow/ <https://pypi.org/project/hpc-beeflow/>`_
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 20 25 55
+
+   * - Purpose
+     - Git Tag
+     - Documentation
+
+   * - Stable release
+     - ``0.1.10``
+     - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
+   * - Pre-release
+     - ``0.1.11dev4``
+     - `https://lanl.github.io/BEE/0.1.11dev4/ <https://lanl.github.io/BEE/0.1.11dev4/>`__
 
 
 Contact
@@ -58,6 +74,7 @@ Contributors:
 * Ragini Gupta - `raginigupta6 <https://github.com/raginigupta6>`_
 * Aaron R Hall - `arhall0 <https://github.com/arhall0>`_
 * Leah Howell - `Leahh02 <https://github.com/Leahh02>`_
+* Lilikoi Latimer - `lilikoi-l <https://github.com/lilikoi-l>`_
 * Andres Quan - `aquan9 <https://github.com/aquan9>`_
 * Quincy Wofford - `qwofford <https://github.com/qwofford>`_
 * Tim Randles - `trandles-lanl <https://github.com/trandles-lanl>`_

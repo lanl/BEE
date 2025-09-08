@@ -314,6 +314,55 @@ VALIDATOR.option('job', 'default_qos', validator=lambda val: val.strip(), prompt
 VALIDATOR.option('job', 'default_reservation', validator=lambda val: val.strip(), prompt=True,
                  default='', info='default reservation to run jobs on (leave blank if none)')
 
+def validate_attributes(val):
+    """Ensures the atributes are stored as a comma-separated string in"""
+    if isinstance(val, str):
+        parts = [p.strip() for p in val.split(',') if p.strip()]
+    elif isinstance(val, (list, tuple)):
+        parts = [str(v).strip() for v in val if str(v).strip()]
+    else:
+        raise ValueError("Expected a comma-separated string or list of strings.")
+    return ",".join(parts)
+
+slurm_command_attr= [
+        "Account","AccrueTime","CPUs_Task","Command","EligibleTime",
+        "EndTime","ExitCode","JobId","JobName","JobState",
+        "NodeList","NumCPUs","NumNodes","NumTasks","Partition",
+        "Priority","QOS","Reason","RunTime","StartTime","StdErr",
+        "StdIn","StdOut","SubmitTime","TimeLimit","UserId"
+    ]
+
+slurm_attr = [
+        "account","accrue_time","allocating_node","cluster",
+        "command","eligible_time","end_time","exit_code_number",
+        "failed_node","job_id","job_state","name","nodes",
+        "partition","qos","scheduled_nodes","standard_error",
+        "standard_input","standard_output","start_time",
+        "submit_time","tres_alloc_str"
+   ]
+
+flux_attr = [
+    "t_submit", "t_run", "t_inactive", "t_remaining","runtime",
+    "name", "id", "queue", "ntasks", "ncores", "nnodes", "nodelist","status",
+    "waitstatus", "returncode"
+]
+
+#Job attributes
+VALIDATOR.section('slurm attributes',info='Available task information for the slurm scheduler\n',
+        depends_on=('slurm', 'use_commands', 'False'))
+VALIDATOR.option('slurm attributes','attributes',validator=validate_attributes,prompt=False,
+        default='partition,nodes',info='Enter task attributes (comma-separated)')
+
+VALIDATOR.section('slurm command attributes',info='Available task information for sacct\n',
+        depends_on=('slurm', 'use_commands', 'True'))
+VALIDATOR.option('slurm command attributes','attributes',validator=validate_attributes,
+        prompt=False,default='Partition,RunTime,NodeList',
+        info='Enter task attributes (comma-separated)')
+
+VALIDATOR.section('flux attributes', info = 'Available task information for the flux scheduler\n',
+        depends_on=('DEFAULT', 'workload_scheduler', 'Flux'))
+VALIDATOR.option('flux attributes','attributes',validator=validate_attributes,prompt=False,
+        default='queue,runtime,nodelist',info='Enter task attributes (comma-separated).')
 
 def validate_chrun_opts(opts):
     """Ensure that chrun_opts don't contain options that'll conflict with BEE."""
@@ -387,8 +436,9 @@ class ConfigGenerator:
         self.validator = validator
         self.sections = {}
 
-    def choose_values(self, interactive=False, flux=False):
+    def choose_values(self, interactive=False, flux=False, attributes=False):
         """Choose configuration values based on user input."""
+        print("[DEBUG] choose_values() started")
         dirname = os.path.dirname(self.fname)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
@@ -420,6 +470,20 @@ class ConfigGenerator:
                 if flux is True and opt_name == 'workload_scheduler':
                     this_default = "Flux"
                     option.prompt = False
+                if attributes and not interactive and opt_name == 'attributes':
+                    print(f'\nAvailable attributes for [{sec_name}]:')
+                    if sec_name == 'slurm attributes':
+                        attr_list = slurm_attr
+                    elif sec_name =='slurm command attributes':
+                        attr_list = slurm_command_attr
+                    else:
+                        attr_list = flux_attr
+                    print(attr_list)
+                    value = self._input_loop(opt_name, option)
+                    validated = option.validate(value)
+                    self.sections[sec_name][opt_name] = validated
+                    continue
+
                 # Check for a default value
                 if (not interactive or option.prompt is False) and this_default is not None:
                     value = option.validate(this_default)
@@ -455,7 +519,7 @@ class ConfigGenerator:
                 value = None
         return value
 
-    def save(self, interactive=False):
+    def save(self, interactive=False,attributes=False):
         """Save the config to a file."""
         print()
         print('The following configuration options were chosen:')
@@ -465,7 +529,7 @@ class ConfigGenerator:
             for opt_name in section:
                 print(f'{opt_name} = {section[opt_name]}')
         print()
-        if interactive:
+        if interactive or attributes:
             ans = input('Would you like to save this config? [y/n] ')
             if ans.lower() != 'y':
                 print('Quitting without saving')
@@ -530,12 +594,12 @@ class AlterConfig:
         for option_name, option in options:
             if option_name == opt_name:
                 # Validate the new value before changing
-                option.validate(new_value)
-                self.config[sec_name][opt_name] = new_value
+                validated = option.validate(new_value)
+                self.config[sec_name][opt_name] = validated
                 # Track changes in attribute
                 if sec_name not in self.changes:
                     self.changes[sec_name] = {}
-                self.changes[sec_name][opt_name] = new_value
+                self.changes[sec_name][opt_name] = validated
                 return
 
         raise ValueError(f'Option {opt_name} not found in the validator for section {sec_name}.')
@@ -590,10 +654,12 @@ def info():
 def new(path: str = typer.Argument(default=USERCONFIG_FILE,
                                    help='Path to new config file'),
         interactive: bool = typer.Option(False, '--interactive', '-i',
-                                         help='Whether or not to be prompted'
-                                         + ' during config generation'),
+                                         help='Interactive session to generate config'),
         flux: bool = typer.Option(False, '--flux', '-f',
-                                  help='Changes default scheduler to Flux')):
+                                  help='Changes default scheduler to Flux'),
+        attributes: bool = typer.Option(False, '--attributes', '-a',
+                                        help='Chooses task attributes to display'
+                                        'for "beeflow query"')):
     """Create a new config file."""
     if os.path.exists(path):
         if not interactive or check_yes(f'Path "{path}" already exists.\n'
@@ -601,8 +667,9 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
             config_utils.backup(path)
     ConfigGenerator(path, VALIDATOR).choose_values(
         flux=flux,
-        interactive=interactive
-    ).save(interactive=interactive)
+        interactive=interactive,
+        attributes=attributes
+    ).save(interactive=interactive,attributes=attributes)
 
 
 @app.command()

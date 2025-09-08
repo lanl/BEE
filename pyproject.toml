@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hpc-beeflow"
-version = "0.1.11dev2"
+version = "0.1.11dev5"
 description = "A software package for containerizing HPC applications and managing job workflows"
 
 
@@ -62,6 +62,7 @@ flask_restful = "0.3.9"
 cwl-utils = "^0.16"
 APScheduler = "^3.6.3"
 jsonpickle = "^2.2.0"
+tabulate = "^0.9.0"
 # Fix for urllib3 2.0 breaking change (similar error to this https://github.com/docker/docker-py/issues/3113)
 requests = "^2.32.3"
 python-daemon = "^2.3.1"

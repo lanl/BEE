@@ -154,7 +154,7 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     """Test getting workflow status."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', return_value=temp_db.db_file)
     mocker.patch('beeflow.wf_manager.resources.wf_actions.db_path', temp_db.db_file)
     wf_name = 'wf'
     workdir = 'dir'
@@ -162,8 +162,12 @@ def test_workflow_status(client, mocker, setup_teardown_workflow, temp_db):
     temp_db.workflows.init_workflow(WF_ID, wf_name, workdir)
     temp_db.workflows.add_task(123, WF_ID, 'task', "WAITING")
     temp_db.workflows.add_task(124, WF_ID, 'task', "RUNNING")
-
+    
+    print("DEBUG WF_ID:", WF_ID, type(WF_ID))
+    print("DEBUG get_tasks(WF_ID):", temp_db.workflows.get_tasks(WF_ID))
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
+    print("Response JSON:", resp.json)
+    print("Response Status Code:", resp.status_code)
     tasks_status = resp.json['tasks_status']
     assert tasks_status[0][2] == 'RUNNING' or tasks_status[1][2] == 'RUNNING'
 

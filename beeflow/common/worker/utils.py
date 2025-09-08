@@ -2,6 +2,7 @@
 
 import re
 import subprocess
+import datetime
 from packaging.version import Version
 
 from beeflow.common.worker.worker import WorkerError
@@ -51,3 +52,36 @@ def get_slurmrestd_version():
     # Sort the versions and grab the newest one
     newest_api = sorted(api_versions, key=Version, reverse=True)[0]
     return newest_api
+
+def calculate_duration(start_time):
+    """Calculates the duration of a task based on various start time formats."""
+    now = datetime.datetime.now()
+    if isinstance(start_time,int) and start_time>0:
+        start_time = datetime.datetime.fromtimestamp(start_time)
+    elif isinstance(start_time,str) and start_time != 'Unknown':
+        start_time = datetime.datetime.fromisoformat(start_time)
+    elif not isinstance(start_time,datetime.datetime):
+        return '0:00:00'
+    delta = start_time-now
+    total_seconds = int(delta.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+def format_start_time(start_time):
+    """Formats the start time of a task.""" 
+    if isinstance(start_time,(float,int)):
+        if start_time == 0.0:
+            return '0:00:00'
+        start_time = datetime.datetime.fromtimestamp(start_time)
+        if start_time.strftime('%Y-%m-%d %H:%M:%S') == '1969-12-31 17:00:00':
+            start_time = '0:00:00'
+        else:
+            start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
+    elif isinstance(start_time,str) and start_time != 'Unknown':
+        start_time = datetime.datetime.fromisoformat(start_time)
+        start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        start_time = '0:00:00'
+    return start_time

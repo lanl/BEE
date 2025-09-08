@@ -8,7 +8,6 @@ from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.resources.wf_update import archive_workflow
-
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.config_driver import BeeConfig as bc
@@ -68,8 +67,9 @@ class WFActions(Resource):
 
         tasks = db.workflows.get_tasks(wf_id)
         tasks_status = []
+        wfi = wf_utils.get_workflow_interface(wf_id)
         for task in tasks:
-            tasks_status.append((task.id, task.name, task.state))
+            tasks_status.append((task.id, task.name, task.state, wfi.get_task_metadata(task.id)))
 
         return (
             WorkflowStatusResponse(

@@ -25,6 +25,8 @@ def write_config(file_name, sections):
                 print(file=fp)
                 print(f'[{sec_name}]', file=fp)
                 for opt_name, value in section.items():
+                    if isinstance(value, (list, tuple)):
+                        value = ",".join(str(v).strip() for v in value if str(v).strip())
                     print(f'{opt_name} = {value}', file=fp)
     except FileNotFoundError:
         print('Configuration file does not exist!')

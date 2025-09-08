@@ -798,8 +798,10 @@ def test_list_workflows(
         (
             "Running",
             """Running
-cat--Running
-grep--Pending
+task_name    task_state
+-----------  ------------
+cat          RUNNING
+grep         PENDING
 """,
         ),
         (
