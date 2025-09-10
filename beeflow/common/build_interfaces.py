@@ -25,10 +25,7 @@ log = bee_logging.setup(__name__)
 
 def build_main(task):
     """Process build instructions - main code."""
-    # The build driver treats Hint and Requirement objects as Dicts.
     task_local = task.copy()
-    task_local.hints = dict(task_local.hints)
-    task_local.requirements = dict(task_local.requirements)
     builder = CharliecloudBuildDriver(task_local)
     log.info('CharliecloudBuildDriver initialized')
 

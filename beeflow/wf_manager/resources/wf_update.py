@@ -5,10 +5,10 @@ import json
 import shutil
 import subprocess
 import time
-import jsonpickle
-#import yaml
-from flask import make_response, jsonify
+
+from flask import request
 from flask_restful import Resource, reqparse
+from beeflow.wf_manager.models import TaskStateUpdateRequest, TaskStateUpdateResponse
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common import log as bee_logging
 
@@ -86,13 +86,14 @@ class WFUpdate(Resource):
     def put(self):
         """Do a batch update of task states from the task manager."""
         db = connect_db(wfm_db, db_path)
-        data = self.reqparse.parse_args()
-        state_updates = jsonpickle.decode(data['state_updates'])
+        state_updates = TaskStateUpdateRequest.model_validate(request.json).state_updates
 
         for state_update in state_updates:
             self.update_task_state(state_update, db)
 
-        return make_response(jsonify(status='Tasks updated successfully'), 200)
+        return TaskStateUpdateResponse(
+            msg='Task states updated successfully',
+        ).model_dump(), 200
 
     def handle_metadata(self, state_update, task, wfi):
         """Handle metadata for a task update. Write metadata to the working

@@ -7,7 +7,9 @@ import os
 import pathlib
 import pytest
 import jsonpickle
+import base64
 
+from beeflow.wf_manager.models import SubmitWorkflowRequest
 from test_parser import WORKFLOW_GOLD, TASKS_GOLD
 from beeflow.wf_manager.wf_manager import create_app
 from beeflow.wf_manager.resources import wf_utils
@@ -84,7 +86,7 @@ class MockTask:
 def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     """Test submitting a workflow."""
     mocker.patch('beeflow.wf_manager.resources.wf_list.init_workflow', new=MockTask)
-    mocker.patch('beeflow.common.wf_data.generate_workflow_id', return_value='42')
+    mocker.patch('beeflow.common.object_models.generate_workflow_id', return_value='42')
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=WorkflowInterface(MockGDBDriver()))
 
@@ -94,41 +96,21 @@ def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     script_path = pathlib.Path(__file__).parent.resolve()
     tarball = script_path / 'clamr-wf.tgz'
     with open(tarball, 'rb') as tarball_contents:
-        resp = client().post('/bee_wfm/v1/jobs/', data={
-            'wf_name': 'clamr'.encode(),
-            'wf_filename': tarball,
-            'workdir': '.',
-            'workflow': jsonpickle.encode(WORKFLOW_GOLD),
-            'tasks': jsonpickle.encode(TASKS_GOLD, warn=True),
-            'workflow_archive': tarball_contents,
-            'no_start': False
-        })
+        payload = SubmitWorkflowRequest(
+            wf_name='clamr',
+            wf_filename=str(tarball),
+            wf_workdir='.',
+            no_start=False,
+            workflow=WORKFLOW_GOLD,
+            tasks=TASKS_GOLD,
+            encoded_tarball=base64.b64encode(tarball_contents.read()).decode('utf-8'),
+        )
+        resp = client().post(
+            '/bee_wfm/v1/jobs/', json=payload.model_dump())
 
     # Remove task added during the test
+    print(resp)
     assert resp.json['msg'] == 'Workflow uploaded'
-
-
-def test_reexecute_workflow(client, mocker, teardown_workflow, temp_db):
-    """Test reexecuting a workflow."""
-    mocker.patch('beeflow.wf_manager.resources.wf_list.init_workflow', new=MockTask)
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
-                 return_value=MockWFI())
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_db_path', temp_db.db_file)
-    mocker.patch('beeflow.wf_manager.resources.wf_list.db_path', temp_db.db_file)
-    mocker.patch('beeflow.common.wf_data.generate_workflow_id', return_value='42')
-    mocker.patch('subprocess.run', return_value=True)
-
-    script_path = pathlib.Path(__file__).parent.resolve()
-    tarball = script_path / '42.tgz'
-    with open(tarball, 'rb') as tarball_contents:
-        resp = client().put('/bee_wfm/v1/jobs/', data={
-                            'wf_filename': tarball,
-                            'wf_name': 'clamr',
-                            'workflow_archive': tarball_contents,
-                            'workdir': '.'
-                            })
-
-        assert resp.json['msg'] == 'Workflow uploaded'
 
 
 class MockDBWorkflowHandle:
@@ -207,7 +189,7 @@ def test_cancel_workflow(client, mocker, setup_teardown_workflow, temp_db):
 
     request = {'wf_id': WF_ID, 'option': 'cancel'}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
-    assert resp.json['status'] == 'Cancelled'
+    assert resp.json['msg'] == 'Workflow cancelled successfully'
     assert resp.status_code == 202
 
 
@@ -227,7 +209,7 @@ def test_remove_workflow(client, mocker, setup_teardown_workflow, temp_db):
 
     request = {'wf_id': WF_ID, 'option': 'remove'}
     resp = client().delete(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
-    assert resp.json['status'] == 'Removed'
+    assert resp.json['msg'] == 'Workflow removed successfully'
     assert resp.status_code == 202
 
 
@@ -243,7 +225,7 @@ def test_pause_workflow(client, mocker, setup_teardown_workflow, temp_db):
     wf_utils.update_wf_status(WF_ID, 'Running')
     request = {'option': 'pause'}
     resp = client().patch(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
-    assert resp.json['status'] == 'Workflow Paused'
+    assert resp.json['msg'] == 'Workflow Paused'
     assert resp.status_code == 200
 
 
@@ -262,5 +244,5 @@ def test_resume_workflow(client, mocker, setup_teardown_workflow, temp_db):
     wf_utils.update_wf_status(WF_ID, 'Paused')
     request = {'option': 'resume'}
     resp = client().patch(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
-    assert resp.json['status'] == 'Workflow Resumed'
+    assert resp.json['msg'] == 'Workflow Resumed'
     assert resp.status_code == 200

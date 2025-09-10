@@ -4,13 +4,14 @@ import os
 import uuid
 import pytest
 import jsonpickle
+from beeflow.task_manager.models import SubmitTasksRequest
 from mocks import mock_put
 from mocks import MockWorkerCompletion, MockWorkerSubmission
 
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.db import tm_db
 import beeflow.task_manager.task_manager as tm
-from beeflow.common.wf_data import Task
+from beeflow.common.object_models import Task
 import beeflow
 
 
@@ -25,7 +26,7 @@ def flask_client():
 def generate_tasks(n):
     """Generate n tasks for testing."""
     return [
-        Task(f'task-{i}', base_command=['ls', '/'], hints=[], requirements=[],
+        Task(name=f'task-{i}', base_command=['ls', '/'], hints=[], requirements=[],
              inputs=[], outputs=[], stdout=None, stderr=None,
              workflow_id=uuid.uuid4().hex,workdir=f"/tmp/test_workdir_{i}")
         for i in range(n)
@@ -50,10 +51,10 @@ def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
     # Generate a task
     tasks = generate_tasks(1)
-    tasks_json = jsonpickle.encode(tasks)
+    task_request = SubmitTasksRequest(tasks=tasks).model_dump()
 
-    response = flask_client.post('/bee_tm/v1/task/submit/',
-                                 json={'tasks': tasks_json})
+    response = flask_client.post('/bee_tm/v1/task/',
+                                 json=task_request)
 
     mocker.patch('beeflow.task_manager.utils.worker_interface',
                  MockWorkerSubmission)
@@ -61,7 +62,6 @@ def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     # Patch the connection object for WFM communication
     mocker.patch('beeflow.common.connection.Connection.put', mock_put)
     beeflow.task_manager.background.process_queues()
-
     msg = response.get_json()['msg']
     status = response.status_code
     job_queue = list(temp_db.job_queue)
@@ -74,7 +74,7 @@ def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     assert job.job_state == 'RUNNING'
 
     assert status == 200
-    assert msg == 'Tasks Added!'
+    assert msg == 'Tasks submitted successfully'
 
 
 @pytest.mark.usefixtures('flask_client', 'mocker')
