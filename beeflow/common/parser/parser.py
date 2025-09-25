@@ -131,8 +131,9 @@ class CwlParser:
             )
             for output in self.cwl.outputs
         ]
-        workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
-        workflow_requirements = self.parse_requirements(self.cwl.requirements)
+        print(f"Pat: workdir {workdir}")
+        workflow_hints = self.parse_requirements(self.cwl.hints, workdir, as_hints=True)
+        workflow_requirements = self.parse_requirements(self.cwl.requirements, workdir)
 
         workflow = Workflow(
             name=workflow_name,
@@ -179,10 +180,10 @@ class CwlParser:
         step_name = os.path.basename(step_id).split(".")[0]
         step_command = step_cwl.baseCommand
         step_inputs = self.parse_step_inputs(step.in_, step_cwl.inputs)
-        step_requirements = self.parse_requirements(step.requirements)
-        step_requirements.extend(self.parse_requirements(step_cwl.requirements))
-        step_hints = self.parse_requirements(step.hints, as_hints=True)
-        step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
+        step_requirements = self.parse_requirements(step.requirements, workdir)
+        step_requirements.extend(self.parse_requirements(step_cwl.requirements, workdir))
+        step_hints = self.parse_requirements(step.hints, workdir, as_hints=True)
+        step_hints.extend(self.parse_requirements(step_cwl.hints, workdir, as_hints=True))
         step_workdir = resolve_step_workdir(
             get_requirement(
                 step_requirements,
@@ -377,16 +378,24 @@ class CwlParser:
             outputs.append(StepOutput(id=out, type=output_type, value=None, glob=glob))
         return outputs
 
-    def _read_requirement_file(self, key, items):
+    def _read_requirement_file(self, key, items, stepdir=None):
         """Read in a requirement file and replace it in the parsed items."""
-        base_path = os.path.dirname(self.path)
+        # pre and post scripts are relative to step workdir
+        if key in {"pre_script", "post_script"}:
+            if stepdir is None:
+                base_path = ""
+            else:
+                base_path = stepdir
+        else:
+            base_path = os.path.dirname(self.path)
         fname = items[key]
         path = os.path.join(base_path, fname)
+        print(f"Pat: path {path}")
         try:
             with open(path, encoding="utf-8") as fp:
                 items[key] = fp.read()
         except FileNotFoundError:
-            msg = f"Could not find a file for {key}: {fname}"
+            msg = f"Could not find a file for {key}: {path}"
             raise CwlParseError(msg) from None
         if key in {"pre_script", "post_script"}:
             self._validate_prepost_shell_env(key, items, fname)
@@ -418,7 +427,7 @@ class CwlParser:
         rm_line = "\n".join(rm_line)
         items.update({key: rm_line})
 
-    def parse_requirements(self, requirements, as_hints=False):
+    def parse_requirements(self, requirements, workdir, as_hints=False):
         """Parse CWL hints/requirements.
 
         :param requirements: the CWL requirements
@@ -428,9 +437,14 @@ class CwlParser:
         :rtype: list of Hint or list of Requirement or None
         """
         reqs = []
+        print(f"Pat: workdir {workdir}")
         if not requirements:
             return reqs
         if as_hints:
+            # The pre and post scripts are relative to the working directory for the step
+            stepdir = next((req["workdir"] for req in requirements if "workdir" in req), None)
+            if stepdir: stepdir = os.path.expanduser(stepdir)
+# I need to add the workdir/stepdir but what if it is an absolute path
             for req in requirements:
                 items = {}
                 for k, v in req.items():
@@ -445,7 +459,7 @@ class CwlParser:
                 # Load in pre/post scripts and make sure shell option is defined in cwl file
                 if "pre_script" in items and items["enabled"]:
                     if "shell" in items:
-                        self._read_requirement_file("pre_script", items)
+                        self._read_requirement_file("pre_script", items, stepdir=stepdir)
                     else:
                         msg = (
                             "pre script enabled but shell option undefined in cwl file."
@@ -453,7 +467,7 @@ class CwlParser:
                         raise CwlParseError(msg) from None
                 if "post_script" in items and items["enabled"]:
                     if "shell" in items:
-                        self._read_requirement_file("post_script", items)
+                        self._read_requirement_file("post_script", items, stepdir=stepdir)
                     else:
                         msg = "post script enabled but shell option undefined in cwl file."
                         raise CwlParseError(msg) from None
