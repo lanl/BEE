@@ -73,12 +73,13 @@ class Output:
 @dataclass
 class MPI:
     """MPI options."""
-    nodes: int
-    ntasks: int
+    nodes: int = None
+    ntasks: int = None
+    load_from_file: str = None
 
     def requirement(self):
         """Return MPI requirement object."""
-        return MPIRequirement(self.nodes, self.ntasks)
+        return MPIRequirement(self.nodes, self.ntasks, self.load_from_file)
 
 
 @dataclass

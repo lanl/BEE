@@ -35,30 +35,68 @@ class BaseSlurmWorker(Worker):
         self.default_qos = default_qos
         self.default_reservation = default_reservation
 
+    def get_req(self, task, req_type, key, config, default=None):
+        """Get requierment from config if it exists otherwise get it from requirement."""
+        if config is not None and key in config and config[key] is not None:
+            return config[key]
+        value = task.get_requirement(req_type, key, default=None)
+        return default if value is None else value
+
+    def load_config_from(self, task, req_type):
+        """Load a json config of slurm and mpi parameters."""
+        config_input_id = task.get_requirement(req_type, 'load_from_file',
+                                                default=None)
+        if not config_input_id:
+            return {}
+
+        input_config = next((i for i in task.inputs if i.id == config_input_id), None)
+        if not (input_config and getattr(input_config.value, 'path', None)):
+            return {}
+        with open(input_config.value.path, "r", encoding="utf-8") as f:
+            return json.load(f) or {}
+
+
     def get_task_requirements(self, task):
         """Get the task requirements."""
 
+        config_mpi = self.load_config_from(task, 'beeflow:MPIRequirement')
+        config_slurm = self.load_config_from(task, 'beeflow:SlurmRequirement')
+        config = {**config_mpi, **config_slurm}
+
+        nodes = self.get_req(task, 'beeflow:MPIRequirement', 'nodes',  config, default=1)
+        ntasks = self.get_req(task, 'beeflow:MPIRequirement', 'ntasks', config, default=nodes)
+        mpi_version = self.get_req(task, 'beeflow:MPIRequirement', 'mpiVersion', config,
+           default='')
+
+        time_limit_raw = self.get_req(
+            task, 'beeflow:SlurmRequirement', 'timeLimit', config, default=self.default_time_limit
+        )
+        time_limit = validation.time_limit(time_limit_raw)
+        account = self.get_req(task, 'beeflow:SlurmRequirement', 'account', config,
+                               default=self.default_account)
+        partition = self.get_req(task, 'beeflow:SlurmRequirement', 'partition', config,
+                                 default=self.default_partition)
+        qos = self.get_req(task, 'beeflow:SlurmRequirement', 'qos', config,
+                           default=self.default_qos)
+        reservation = self.get_req(task, 'beeflow:SlurmRequirement', 'reservation', config,
+                                   default=self.default_reservation)
+
+        shell = self.get_req(task, 'beeflow:ScriptRequirement', 'shell', config,
+                             default="/bin/bash")
+        scripts_enabled = self.get_req(task, 'beeflow:ScriptRequirement', 'enabled', config,
+                                       default=False)
+
         requirements = {
-                'nodes': task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1),
-                'ntasks': task.get_requirement('beeflow:MPIRequirement', 'ntasks',
-                    default=task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)),
-                # Need to rethink the MPI version parameter
-                'mpi_version': task.get_requirement('beeflow:MPIRequirement', 'mpiVersion',
-                    default=''),
-                'time_limit': validation.time_limit(task.get_requirement(
-                    'beeflow:SlurmRequirement', 'timeLimit', default=self.default_time_limit)),
-                'account': task.get_requirement('beeflow:SlurmRequirement', 'account',
-                    default=self.default_account),
-                'partition': task.get_requirement('beeflow:SlurmRequirement', 'partition',
-                    default=self.default_partition),
-                'qos': task.get_requirement('beeflow:SlurmRequirement', 'qos',
-                    default=self.default_qos),
-                'reservation': task.get_requirement('beeflow:SlurmRequirement', 'reservation',
-                    default=self.default_reservation),
-                'shell': task.get_requirement('beeflow:ScriptRequirement', 'shell',
-                    default="/bin/bash"),
-                'scripts_enabled': task.get_requirement('beeflow:ScriptRequirement', 'enabled',
-                    default=False)
+            'nodes': nodes,
+            'ntasks': ntasks,
+            'mpi_version': mpi_version,
+            'time_limit': time_limit,
+            'account': account,
+            'partition': partition,
+            'qos': qos,
+            'reservation': reservation,
+            'shell': shell,
+            'scripts_enabled': scripts_enabled
         }
         return requirements
 

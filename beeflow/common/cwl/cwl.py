@@ -341,6 +341,7 @@ class MPIRequirement:
 
     nodes: int = None
     ntasks: int = None
+    load_from_file: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -349,6 +350,8 @@ class MPIRequirement:
             mpi_dump['beeflow:MPIRequirement']['nodes'] = self.nodes
         if self.ntasks:
             mpi_dump['beeflow:MPIRequirement']['ntasks'] = self.ntasks
+        if self.load_from_file:
+            mpi_dump['beeflow:MPIRequirement']['load_from_file'] = self.load_from_file
         return mpi_dump
 
     def __repr__(self):
@@ -367,6 +370,7 @@ class SlurmRequirement:
     partition: str = None
     qos: str = None
     reservation: str = None
+    load_from_file: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -381,6 +385,8 @@ class SlurmRequirement:
             sched_dump['beeflow:SlurmRequirement']['qos'] = self.qos
         if self.reservation:
             sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
+        if self.load_from_file:
+            sched_dump['beeflow:MPIRequirement']['load_from_file'] = self.load_from_file
         return sched_dump
 
     def __repr__(self):
