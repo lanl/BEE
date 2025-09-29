@@ -3632,6 +3632,20 @@ files = [
 pbr = ">=2.0.0"
 
 [[package]]
+name = "tabulate"
+version = "0.9.0"
+description = "Pretty-print tabular data"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
+    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
+]
+
+[package.extras]
+widechars = ["wcwidth"]
+
+[[package]]
 name = "tomli"
 version = "2.1.0"
 description = "A lil' TOML parser"
@@ -3918,4 +3932,4 @@ cloud-extras = ["google-api-python-client", "python-heatclient", "python-opensta
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.3,<=3.13.0"
-content-hash = "a62d5710d7530e69449218218a8b49adf9627c9141e4763fca0491313dcb9600"
+content-hash = "eb9cca872e1aafc8d26fa430625b0562a836c36a76018a42f4ea29db340b240f"

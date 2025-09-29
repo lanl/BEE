@@ -9,7 +9,7 @@ from beeflow.common import paths
 
 expected_keys = {"id", "name", "state", "class", "type", "value", "source",
                  "workflow_id", "base_command", "stdout", "stderr", "default",
-                 "prefix", "position", "value_from", "glob"}
+                 "prefix", "position", "value_from", "glob", "nodes", "label", "labels"}
 
 default_key_definitions = {
     "id": {"for": "node", "attr.name": "id", "attr.type": "string"},
@@ -29,7 +29,12 @@ default_key_definitions = {
     "value_from": {"for": "node", "attr.name": "value_from", "attr.type": "string"},
     "glob": {"for": "node", "attr.name": "glob", "attr.type": "string"},
 }
-
+# add to default_key_definitions
+default_key_definitions.update({
+    "nodes":  {"for": "node", "attr.name": "nodes",  "attr.type": "string"},
+    "label":  {"for": "edge", "attr.name": "label",  "attr.type": "string"},
+    "labels": {"for": "node", "attr.name": "labels", "attr.type": "string"},  # your viz reads this
+})
 
 def backup_graphml(path, graphmls_dir, short_id):
     """Backup graphmls."""

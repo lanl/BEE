@@ -28,6 +28,7 @@ import requests
 import typer
 import yaml
 
+from tabulate import tabulate
 from beeflow.common import config_driver
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
@@ -421,7 +422,6 @@ def submit(  # pylint:disable=R0915
 
         from beeflow.common.parser import CwlParser # pylint: disable=C0415 # Costly import
         parser = CwlParser()
-
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(
             workflow_id, str(main_cwl_path), job=str(yaml_path), workdir=workdir
@@ -642,13 +642,36 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
     tasks_status = status.tasks_status
     wf_status = status.wf_status
     typer.echo(wf_status)
-    for _task_id, task_name, task_state in tasks_status:
-        if wf_status == "No Start":
-            typer.echo(f"{task_name}")
-        else:
-            typer.echo(f"{task_name}--{task_state}")
 
-    logging.info("Query workflow:  {resp.text}")
+    scheduler = config_driver.BeeConfig.get('DEFAULT','workload_scheduler').lower()
+    if scheduler == 'slurm' and config_driver.BeeConfig.get('slurm','use_commands'):
+        section = 'slurm command attributes'
+    elif scheduler == 'flux':
+        section = 'flux attributes'
+    else:
+        section= 'slurm attributes'
+
+    attrs = config_driver.BeeConfig.get(section, 'attributes')
+    logging.info(attrs)
+    if isinstance(attrs,str):
+        attrs = [attr.strip() for attr in attrs.split(',') if attr.strip()]
+
+    attr_data=[]
+    for _task_id, task_name, task_state,metadata in tasks_status:
+        if wf_status == 'No Start':
+            typer.echo(f'{task_name}')
+            continue
+
+        output_fields=[task_name,task_state]
+        for attr in attrs:
+            value = metadata.get(attr)
+            if value is not None:
+                output_fields.append(str(value))
+        attr_data.append(output_fields)
+    headers = ['task_name','task_state'] + attrs
+    if attr_data:
+        typer.echo(tabulate(attr_data,headers=headers,tablefmt="fancy grid"))
+    logging.info('Query workflow:  {resp.text}')
     return wf_status, tasks_status
 
 

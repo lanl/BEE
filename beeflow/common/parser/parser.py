@@ -348,7 +348,7 @@ class CwlParser:
                 )
 
             output_type = out_map[out].type
-            glob = None
+            glob = ""
             if output_type == "stdout":
                 if not stdout:
                     raise CwlParseError(
