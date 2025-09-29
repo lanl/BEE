@@ -24,7 +24,6 @@ from beeflow.wf_manager.models import (
     ListWorkflowsResponse,
     SubmitWorkflowRequest,
     SubmitWorkflowResponse,
-    WorkflowInfo,
 )
 from beeflow.wf_manager.resources import wf_utils
 

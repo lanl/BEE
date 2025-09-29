@@ -64,7 +64,7 @@ class WFActions(Resource):
         tasks_status = []
         for task in tasks:
             state = wfi.get_task_state(task.id)
-            tasks_status.append((task.id, task.name, state))
+            tasks_status.append((task.id, task.name, state, wfi.get_task_metadata(task.id)))
 
         return (
             WorkflowStatusResponse(

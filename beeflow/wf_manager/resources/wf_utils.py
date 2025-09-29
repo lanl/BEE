@@ -334,6 +334,8 @@ def copy_task_output(task, wfi):
         f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
     task_workdir = wfi.get_task_metadata(task.id)["workdir"]
+    task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
+                f"metadata.txt")
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:
