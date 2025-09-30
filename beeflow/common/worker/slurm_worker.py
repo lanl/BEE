@@ -50,9 +50,9 @@ class BaseSlurmWorker(Worker):
             return {}
 
         input_config = next((i for i in task.inputs if i.id == config_input_id), None)
-        if not (input_config and getattr(input_config.value, 'path', None)):
+        if not input_config:
             return {}
-        with open(input_config.value.path, "r", encoding="utf-8") as f:
+        with open(input_config.value, "r", encoding="utf-8") as f:
             return json.load(f) or {}
 
 

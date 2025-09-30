@@ -1,4 +1,5 @@
 """Create and manage CWL files."""
+import os
 from dataclasses import dataclass
 from io import StringIO
 from typing import Optional
@@ -386,7 +387,7 @@ class SlurmRequirement:
         if self.reservation:
             sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
         if self.load_from_file:
-            sched_dump['beeflow:MPIRequirement']['load_from_file'] = self.load_from_file
+            sched_dump['beeflow:SlurmRequirement']['load_from_file'] = self.load_from_file
         return sched_dump
 
     def __repr__(self):
@@ -641,6 +642,7 @@ class CWL:
         yaml.dump(cwl_dump, stream)
         wf_contents = stream.getvalue()
         if path:
+            os.makedirs(path, exist_ok=True)
             with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
         return wf_contents

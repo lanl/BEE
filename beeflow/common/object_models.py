@@ -9,6 +9,8 @@ from pydantic import BaseModel, model_validator
 
 from beeflow.common.container_path import convert_path
 
+from beeflow.common import log as bee_logging
+log = bee_logging.setup(__name__)
 
 class InputParameter(BaseModel):
     """Pydantic model for InputParameter."""
