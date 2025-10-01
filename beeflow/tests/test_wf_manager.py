@@ -169,10 +169,16 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
         '123': 'RUNNING',
         '124': 'WAITING',
     }
+    mockGDB.task_metadata = {
+        '123': {'key': 'value'},
+        '124': {'key': 'value'},
+    }
 
 
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=WorkflowInterface(WF_ID, gdb_driver=mockGDB))
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_wf_status',
+                 return_value='Running')
 
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
     wf_status = resp.json['wf_status']
