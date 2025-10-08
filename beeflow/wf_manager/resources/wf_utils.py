@@ -4,8 +4,8 @@ import os
 import shutil
 import pathlib
 import requests
-
 from celery import shared_task
+
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -318,14 +318,17 @@ def start_workflow(wf_id):
     return True
 
 
-def copy_task_output(task):
-    """Copies stdout and stderr to the task directory in the WF archive."""
+def copy_task_output(task, wfi):
+    """Copies stdout, stderr, and metadata information to the task directory in the
+        WF archive."""
     bee_workdir = get_bee_workdir()
     # Need to get this from the worker
     task_save_path = pathlib.Path(
         f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
     task_workdir = task.workdir
+    task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
+                f"metadata.txt")
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:
@@ -344,3 +347,102 @@ def copy_task_output(task):
 
         shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
     shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
+    shutil.copy(task_metadata_path, task_save_path / "metadata.txt")
+
+
+def flatten_metadata_dict(metadata_dict,parent_key='',sep='_',seen_keys=None):
+    """Transforms a nested dictionary into a single-level dictionary for storage
+        in the Neo4j database"""
+    if seen_keys is None:
+        seen_keys=set()
+    flattened_dict = {}
+
+    for k, v in metadata_dict.items():
+        safe_key = k.replace(':', '_').replace('/', '_').replace('\\', '_')
+        new_key = f"{parent_key}{sep}{safe_key}" if parent_key else safe_key
+
+        if new_key in seen_keys:
+            continue
+        seen_keys.add(new_key)
+
+        if isinstance(v, dict):
+            flattened_dict.update(flatten_metadata_dict(v, new_key, sep=sep, seen_keys=seen_keys))
+        elif isinstance(v, list):
+            if all(isinstance(i, (str, int, float, bool, type(None))) for i in v):
+                flattened_dict[new_key] = v
+        elif isinstance(v, (str, int, float, bool, type(None))):
+            flattened_dict[new_key] = v
+    return flattened_dict
+
+def clean_dict(metadata_dict):
+    """Removes unnecessary information from the metadata depending on
+        the scheduler"""
+    scheduler = bc.get('DEFAULT','workload_scheduler').lower()
+    if scheduler == 'slurm' and bc.get('slurm','use_commands'):
+        excluded_keys =[
+        "GroupId", "MCS_label", "Nice", "Dependency", "Requeue", "Restarts",
+        "BatchFlag", "Reboot", "TimeMin", "Deadline", "SuspendTime", "SecsPreSuspend",
+        "LastSchedEval", "Scheduler", "ReqNodeList", "ExcNodeList", "ReqTRES",
+        "AllocTRES", "Socks/Node", "CoreSpec", "MinCPUsNode", "MinMemoryNode",
+        "MinTmpDiskNode", "Features", "DelayBoot", "OverSubscribe", "Contiguous",
+        "Licenses", "Network","BatchHost", "NtasksPerN_B_S_C", "ReqB_S_C_T", "Socks_Node",
+        "WorkDir", "duration", "job_name","start_time","AllocNode_Sid","Priority"]
+
+    elif scheduler == 'flux':
+        excluded_keys =["exception","uri","annotations","success","bank","project",
+        "duration","t_depend","t_cleanup","cwd","urgency","dependencies","state",
+        "ranks","annotations_user_uri","exception_note","exception_occurred",
+        "exception_severity","exception_type","expiration","priority","result"]
+    else:
+        excluded_keys = [
+        "billable_tres", "minimum_switches", "exclusive", "system_comment", "het_job_id",
+        "group_name","profile", "tres_per_job", "tasks_per_board_number", 
+        "max_cpus_infinite", "selinux_context","tasks_per_socket_set", "container_id",
+        "sockets_per_node_set", "user_name", "delay_boot_number","admin_comment",
+        "time_minimum_infinite", "tasks_per_tres_infinite", "cluster_features",
+        "deadline", "minimum_tmp_disk_per_node_infinite", "minimum_cpus_per_node_infinite",
+        "licenses","max_cpus_set", "cpu_frequency_minimum_infinite", 
+        "job_resources_allocated_cpus","tasks_per_node_number", "cores_per_socket_infinite",
+        "threads_per_core_set","job_resources_allocated_hosts", "hold",
+        "cpu_frequency_maximum_number", "features","time_minimum_number", "tasks_per_core_set",
+        "show_flags", "tasks_infinite","cpu_frequency_governor_infinite", "tres_req_str",
+        "tasks_per_board_set", "cron", "oversubscribe","node_count_set", "memory_per_cpu_number",
+        "wckey", "exit_code_set", "tasks_per_core_number","batch_flag",
+        "threads_per_core_infinite", "time_limit_set", "array_job_id_infinite","contiguous",
+        "federation_siblings_viable", "batch_features", "restart_cnt","memory_per_node_set",
+        "array_job_id_number", "minimum_cpus_per_node_number","array_task_id_set",
+        "threads_per_core_number", "cpus_per_task_set", "delay_boot_set","time_limit_infinite",
+        "pre_sus_time", "tasks_per_board_infinite", "tres_freq","het_job_id_number",
+        "tres_per_task", "het_job_offset_number", "priority_number", "mail_user",
+        "tasks_per_tres_number", "comment", "array_task_id_infinite",
+        "minimum_tmp_disk_per_node_number","memory_per_tres", "resize_time", "cpus_set",
+        "cores_per_socket_set", "preemptable_time","cpus_per_tres", "federation_siblings_active",
+        "cpu_frequency_maximum_infinite","tasks_per_socket_infinite", "memory_per_node_infinite",
+        "tasks_per_tres_set","sockets_per_node_number", "maximum_switch_wait_time", "power_flags",
+        "mcs_label", "core_spec","tres_bind", "required_nodes", "user_id", "federation_origin",
+        "memory_per_cpu_set","time_limit_number", "flags", "job_resources_allocated_cores",
+        "billable_tres_infinite","delay_boot_infinite", "max_nodes_number", "mail_type",
+        "tasks_per_socket_number","sockets_per_board", "array_max_tasks_set", "array_job_id_set",
+        "tasks_per_node_set", "nice","cpu_frequency_minimum_number", "last_sched_evaluation",
+        "het_job_offset_infinite","tres_per_node", "burst_buffer", "excluded_nodes",
+        "time_minimum_set","cpus_per_task_infinite","prefer", "derived_exit_code_set",
+        "cpu_frequency_minimum_set","job_size_str", "priority_set","state_description",
+        "het_job_id_set", "cpus_infinite","burst_buffer_state", "tres_per_socket",
+        "array_task_string", "max_nodes_infinite","cpu_frequency_governor_set",
+        "cores_per_socket_number", "exit_code_infinite","minimum_cpus_per_node_set","preempt_time",
+        "derived_exit_code_infinite","cpu_frequency_governor_number", "thread_spec", "gres_detail",
+        "memory_per_node_number","cpus_per_task_number","network", "array_max_tasks_number",
+        "resv_name", "cpu_frequency_maximum_set","extra","het_job_id_infinite","state_reason",
+        "node_count_number","max_nodes_set", "het_job_offset_set","reboot", 
+        "minimum_tmp_disk_per_node_set", "tasks_set","max_cpus_number", "cpus_number", "group_id",
+        "tasks_per_core_infinite", "suspend_time", "array_max_tasks_infinite", "association_id",
+        "job_resources_nodes","container","dependency","requeue", "node_count_infinite",
+        "memory_per_cpu_infinite","batch_host", "array_task_id_number","tasks_number",
+        "billable_tres_set","tasks_per_node_infinite","sockets_per_node_infinite",
+        "priority_infinite","array_job_id","shared","derived_exit_code_number",
+        "billable_tres_number","current_working_directory"]
+
+    for k in list(metadata_dict):
+        if k in excluded_keys:
+            metadata_dict.pop(k,None)
+    return metadata_dict

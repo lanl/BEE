@@ -8,7 +8,6 @@ from flask_restful import Resource, reqparse
 from beeflow.common import log as bee_logging
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.wf_manager.resources.wf_update import archive_workflow
-
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.wf_manager.models import (
     WorkflowActionResponse,
@@ -64,7 +63,8 @@ class WFActions(Resource):
         tasks = wfi.get_tasks()
         tasks_status = []
         for task in tasks:
-            tasks_status.append((task.id, task.name, task.state))
+            state = wfi.get_task_state(task.id)
+            tasks_status.append((task.id, task.name, task.state, wfi.get_task_metadata(task.id)))
 
         return (
             WorkflowStatusResponse(
@@ -78,6 +78,7 @@ class WFActions(Resource):
     def delete(self, wf_id):
         """Cancel or delete the workflow. For cancel, current tasks finish running."""
         option = ModifyWorkflowRequest.model_validate(request.json).option
+
         if option == "cancel":
             wf_state = wf_utils.get_wf_status(wf_id)
             # Remove all tasks currently in the database
@@ -94,8 +95,10 @@ class WFActions(Resource):
             )
         elif option == "remove":
             log.info(f"Removing workflow {wf_id}.")
+
             wfi = wf_utils.get_workflow_interface(wf_id)
             wfi.remove_workflow()
+
             resp = (
                 WorkflowActionResponse(
                     msg="Workflow removed successfully",
@@ -133,6 +136,7 @@ class WFActions(Resource):
             wfi = wf_utils.get_workflow_interface(wf_id)
             tasks = wfi.get_ready_tasks()
             wf_utils.schedule_submit_tasks(wf_id, tasks)
+
             log.info(f"Workflow {wf_id} Resumed")
             resp = WorkflowActionResponse(msg="Workflow Resumed").model_dump(), 200
         else:

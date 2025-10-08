@@ -3,6 +3,7 @@
 Builds command for submitting batch job.
 """
 
+from copy import deepcopy
 import csv
 import io
 import subprocess
@@ -152,20 +153,20 @@ class BaseSlurmWorker(Worker):
         return '\n'.join(script)
 
     def submit_job(self, script):
-        """Worker submits job-returns (job_id, job_state)."""
+        """Worker submits job-returns (job_id, job_state,job_info)."""
         res = subprocess.run(['sbatch', '--parsable', script], text=True,  # pylint: disable=W1510
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if res.returncode != 0:
             raise WorkerError(f'Failed to submit job: {res.stderr}')
         job_id = int(res.stdout)
-        job_state = self.query_task(job_id)
-        return job_id, job_state
+        job_state,job_info = self.query_task(job_id)
+        return job_id, job_state,job_info
 
     def submit_task(self, task):
         """Worker builds & submits script."""
         task_script = self.write_script(task)
-        job_id, job_state = self.submit_job(task_script)
-        return job_id, job_state
+        job_id, job_state,job_info = self.submit_job(task_script)
+        return job_id,job_state,job_info
 
 
 class SlurmrestdWorker(BaseSlurmWorker):
@@ -183,9 +184,10 @@ class SlurmrestdWorker(BaseSlurmWorker):
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/{openapi_version}"
+        self.cli_worker = SlurmCLIWorker(bee_workdir=bee_workdir, **kwargs)
 
-    def query_task(self, job_id):
-        """Worker queries job; returns job_state."""
+    def query_task(self,job_id):
+        """Worker queries job; returns job_state,job_info."""
         try:
             resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
             if resp.status_code == 200:
@@ -195,14 +197,17 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 # For some versions of slurm, the job_state isn't included on failure
                 try:
                     job_state = data['jobs'][0]['job_state']
+                    job_info = deepcopy(data['jobs'][0])
+
                 except (KeyError, IndexError) as exc:
                     raise WorkerError(f'Failed to query job {job_id}') from exc
             else:
                 # If slurmrestd does not find job make last attempt with sacct command
-                job_state = get_state_sacct(job_id)
+                job_state,job_info = self.cli_worker.query_task(job_id)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
-        return job_state
+            job_info = {}
+        return job_state,job_info
 
     def cancel_task(self, job_id):
         """Worker cancels job, returns job_state."""
@@ -228,7 +233,7 @@ class SlurmCLIWorker(BaseSlurmWorker):
     """Slurm worker interface that uses the CLI."""
 
     def query_task(self, job_id):
-        """Query job state for the task."""
+        """Query job state and job information for the task."""
         # Use scontrol since it gives a lot of useful info; may want to save info
         try:
             res = subprocess.run(['scontrol', 'show', 'job', str(job_id)],
@@ -236,12 +241,15 @@ class SlurmCLIWorker(BaseSlurmWorker):
         except subprocess.CalledProcessError:
             # If show job cannot find job get state using sacct (not same info)
             job_state = get_state_sacct(job_id)
+            job_info = {}
         else:
             # Output is in a space-separated list of 'key=value' pairs
             pairs = res.stdout.split()
             key_vals = dict(parse_key_val(pair) for pair in pairs)
             job_state = key_vals['JobState']
-        return job_state
+
+            job_info = deepcopy(key_vals)
+        return job_state,job_info
 
     def cancel_task(self, job_id):
         """Cancel task with job_id; returns job_state."""
@@ -250,7 +258,6 @@ class SlurmCLIWorker(BaseSlurmWorker):
         except subprocess.CalledProcessError:
             raise WorkerError(f'Failed to cancel job {job_id}') from None
         return 'CANCELLED'
-
 
 class SlurmWorker(Worker):
     """Main slurm worker class."""

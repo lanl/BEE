@@ -1,5 +1,4 @@
 """Unit tests for the task manager."""
-
 import tempfile
 import os
 import uuid
@@ -29,9 +28,10 @@ def generate_tasks(n):
     return [
         Task(name=f'task-{i}', base_command=['ls', '/'], hints=[], requirements=[],
              inputs=[], outputs=[], stdout=None, stderr=None,
-             workflow_id=uuid.uuid4().hex)
+             workflow_id=uuid.uuid4().hex,workdir=f"/tmp/test_workdir_{i}")
         for i in range(n)
     ]
+
 
 
 @pytest.fixture

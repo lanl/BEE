@@ -621,9 +621,8 @@ class CWL:
         self.steps = steps
 
     def dump_wf(self, path=None):
-        """Dump the workflow. If no path is specified print to stdout."""
+        """Dump the workflow. If no path is specified return cwl file as a string."""
         cwl_dump = ruamel.yaml.comments.CommentedMap()
-        # cwl_dump = {}
         cwl_dump.update(self.header.dump())
         cwl_dump.update(self.header.dump())
         cwl_dump.update(self.inputs.dump())
@@ -638,12 +637,10 @@ class CWL:
         if path:
             with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
-        else:
-            print(wf_contents)
         return wf_contents
 
     def dump_inputs(self, path=None):
-        """Dump YAML inputs."""
+        """Dump YAML inputs. If no path is specified return yaml file as a string."""
         stream = StringIO()
         yaml.dump(self.inputs.generate_yaml_inputs(), stream)
         yaml_contents = stream.getvalue()

@@ -333,11 +333,11 @@ class MockWorkerSubmission:
 
     def submit_task(self, task): # pylint: disable=W0613
         """Return submission."""
-        return 1, 'PENDING'
+        return 1, 'PENDING',{'job_name':'mock-job','start_time':'1969-12-31 17:00:00','time_left':'0:00:00','workdir':''}
 
     def query_task(self, job_id): # pylint: disable=W0613
-        """Return state of task."""
-        return 'RUNNING'
+        """Return state, start time, and remaining time of task."""
+        return 'RUNNING', {'job_name':'mock-job','start_time':'2025-07-03 13:38:22','time_left':'1 day, 23:59:35.874235','workdir':''}
 
     def cancel_task(self, job_id): # pylint: disable=W0613
         """Return cancelled status"""
@@ -349,11 +349,11 @@ class MockWorkerCompletion:
 
     def submit_task(self, task): # pylint: disable=W0613
         """Submit a task."""
-        return 1, 'PENDING'
+        return 1, 'PENDING', {'job_name':'mock-job','start_time':'1969-12-31 17:00:00','time_left':'0:00:00','workdir':''}
 
     def query_task(self, job_id): # pylint: disable=W0613
         """Submit a task."""
-        return 'COMPLETED'
+        return 'COMPLETED', {'job_name':'mock-job','start_time':'2025-07-03 13:38:22','time_left':'1 day, 23:59:35.874235','workdir':''}
 
     def cancel_task(self, job_id): # pylint: disable=W0613
         """Cancel a task."""

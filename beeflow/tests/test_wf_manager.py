@@ -9,6 +9,7 @@ import pytest
 import base64
 
 from beeflow.common.object_models import Task
+
 from beeflow.wf_manager.models import SubmitWorkflowRequest
 from test_parser import WORKFLOW_GOLD, TASKS_GOLD
 from beeflow.wf_manager.wf_manager import create_app
@@ -85,6 +86,7 @@ class MockTask:
 def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     """Test submitting a workflow."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.start_workflow', new=MockTask)
+
     mocker.patch('beeflow.common.object_models.generate_workflow_id', return_value='42')
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=WorkflowInterface(WORKFLOW_GOLD.id, MockGDBDriver()))
@@ -167,14 +169,21 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
         '123': 'RUNNING',
         '124': 'WAITING',
     }
+    mockGDB.task_metadata = {
+        '123': {'key': 'value'},
+        '124': {'key': 'value'},
+    }
 
 
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=WorkflowInterface(WF_ID, gdb_driver=mockGDB))
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.get_wf_status',
+                 return_value='Running')
 
     resp = client().get(f'/bee_wfm/v1/jobs/{WF_ID}')
     wf_status = resp.json['wf_status']
     assert wf_status == 'Running'
+
     tasks_status = resp.json['tasks_status']
     assert len(tasks_status) == 2
     sorted_status = sorted(tasks_status, key=lambda x: x[0])

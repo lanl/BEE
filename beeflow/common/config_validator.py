@@ -92,8 +92,10 @@ class ConfigValidator:
             return True
         if depends_on[0] not in conf or depends_on[1] not in conf[depends_on[0]]:
             return False
+        actual=str(conf[depends_on[0]][depends_on[1]])
+        expected=str(depends_on[2])
         # Value must match for the section to be valid
-        return conf[depends_on[0]][depends_on[1]] == depends_on[2]
+        return actual.strip().lower()==expected.strip().lower()
 
     def is_section_valid(self, cur_conf, sec_name):
         """Determine if given the current configuration, sec_name is valid.

@@ -75,8 +75,8 @@ def test_workflow_cat_grep_tar(tmpdir):
 
     workflow = Workflow("cat-grep-tar", [cat, grep0, grep1, tar])
     with tmpdir.as_cwd():
-        workflow.write_wf(".")
-        workflow.write_yaml(".")
+        workflow.dump_wf(".")
+        workflow.dump_yaml(".")
         with open("cat-grep-tar.cwl", "r") as f1, open(expected_wf, "r") as f2:
             actual = f1.read()
             expected = f2.read()
@@ -128,8 +128,8 @@ def test_workflow_comd(tmpdir):
     )
     workflow = Workflow("comd", [comd_task])
     with tmpdir.as_cwd():
-        workflow.write_wf(".")
-        workflow.write_yaml(".")
+        workflow.dump_wf(".")
+        workflow.dump_yaml(".")
         with open("comd.cwl", "r") as f1, open(expected_wf, "r") as f2:
             actual = f1.read()
             expected = f2.read()
@@ -188,8 +188,8 @@ def test_workflow_checkpoint(tmpdir):
     )
     workflow = Workflow("clamr", [clamr_task])
     with tmpdir.as_cwd():
-        workflow.write_wf(".")
-        workflow.write_yaml(".")
+        workflow.dump_wf(".")
+        workflow.dump_yaml(".")
         with open("clamr.cwl", "r") as f1, open(expected_wf, "r") as f2:
             actual = f1.read()
             expected = f2.read()
@@ -233,8 +233,8 @@ def test_workflow_task_req(tmpdir):
 
     workflow = Workflow("task-req", [cat, grep])
     with tmpdir.as_cwd():
-        workflow.write_wf(".")
-        workflow.write_yaml(".")
+        workflow.dump_wf(".")
+        workflow.dump_yaml(".")
         with open("task-req.cwl", "r") as f1, open(expected_wf, "r") as f2:
             actual = f1.read()
             expected = f2.read()
