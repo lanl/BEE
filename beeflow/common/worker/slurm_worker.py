@@ -167,6 +167,31 @@ class BaseSlurmWorker(Worker):
         task_script = self.write_script(task)
         job_id, job_state,job_info = self.submit_job(task_script)
         return job_id,job_state,job_info
+    
+    def get_task_metadata(self, job_id):
+        """Gets all the relevant fields of a job through sacct"""
+        cmd = [
+            "sacct",
+            "-P", "--noconvert",
+            f"--jobs={job_id}",
+            "--format=ALL"
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        lines = result.stdout.strip().splitlines()
+        reader = csv.reader(lines, delimiter='|')
+        header = next(reader)
+        rows = [parse_slurm_fields(dict(zip(header, row))) for row in reader]
+        slurm_job = ''
+        slurm_steps = []
+        for r in rows:
+            if r['JobID'] == str(job_id):
+                slurm_job = json.dumps(r)
+            else:
+                slurm_steps.append(json.dumps(r))
+        if not slurm_job:
+            raise WorkerError("No Job Found With That ID")
+        return {"SlurmJob": slurm_job, "SlurmSteps": slurm_steps}
+
 
 
 class SlurmrestdWorker(BaseSlurmWorker):
@@ -289,31 +314,10 @@ class SlurmWorker(Worker):
     def query_task(self, job_id):
         """Query job state for the task."""
         return self._inner.query_task(job_id)
-
+    
     def get_task_metadata(self, job_id):
-        """Gets all the relevant fields of a job through sacct"""
-        cmd = [
-            "sacct",
-            "-P", "--noconvert",
-            f"--jobs={job_id}",
-            "--format=ALL"
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        lines = result.stdout.strip().splitlines()
-        reader = csv.reader(lines, delimiter='|')
-        header = next(reader)
-        rows = [parse_slurm_fields(dict(zip(header, row))) for row in reader]
-        slurm_job = ''
-        slurm_steps = []
-        for r in rows:
-            if r['JobID'] == str(job_id):
-                slurm_job = json.dumps(r)
-            else:
-                slurm_steps.append(json.dumps(r))
-        if not slurm_job:
-            raise WorkerError("No Job Found With That ID")
-        return {"SlurmJob": slurm_job, "SlurmSteps": slurm_steps}
-
+        """Get metadata for a task with job_id (usually a finished one)."""
+        return self._inner.get_task_metadata(job_id)
 
 def check_slurm_error(data, msg):
     """Check for an error in a Slurm response."""

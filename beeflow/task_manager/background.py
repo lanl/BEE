@@ -105,13 +105,12 @@ def update_jobs(db):
         if job_state != new_job_state:
             db.job_queue.update_job_state(id_, new_job_state)
             log.info(f"Job Updated '{task.name}' job_id: {job_id} job_state: {new_job_state}")
-            job_meta = None
             if new_job_state in COMPLETED_STATES:
                 try:
-                    job_meta = worker.get_task_metadata(job_id)
+                    job_info = worker.get_task_metadata(job_id)
                 except WorkerError as err:
                     log.warning(f'Failed to get metadata for job {job_id}: {err}')
-                    job_meta = None
+                    job_info = None
             if new_job_state in ('FAILED', 'TIMEOUT'):
                 # Harvest lastest checkpoint file.
                 task_checkpoint = task.get_full_requirement('beeflow:CheckpointRequirement')
@@ -121,10 +120,10 @@ def update_jobs(db):
                         checkpoint_file = utils.get_restart_file(task_checkpoint, task.workdir)
                         task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
                         db.update_queue.push(task.workflow_id, task.id, new_job_state,
-                                             task_info=task_info, metadata=job_meta)
+                                             task_info=task_info, metadata=job_info)
                     except utils.CheckpointRestartError as err:
                         log.error(f'Checkpoint restart failed for {task.name} ({task.id}): {err}')
-                        db.update_queue.push(task.workflow_id, task.id, 'FAILED', metadata=job_meta)
+                        db.update_queue.push(task.workflow_id, task.id, 'FAILED', metadata=job_info)
                 else:
                     db.update_queue.push(task.workflow_id, task.id, new_job_state,\
                                         task_info=None,metadata=job_info,output=None)

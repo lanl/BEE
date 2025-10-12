@@ -318,7 +318,7 @@ def start_workflow(wf_id):
     return True
 
 
-def copy_task_output(task, wfi):
+def copy_task_output(task):
     """Copies stdout, stderr, and metadata information to the task directory in the
         WF archive."""
     bee_workdir = get_bee_workdir()

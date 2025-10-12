@@ -151,23 +151,24 @@ class DSIManager:
                 self.list_of_dict(task.outputs, "task_id", task.id)
             )
 
-            if task.metadata["SlurmJob"]:
+            if "SlurmJob" in task.metadata:
                 slurm_job = json.loads(task.metadata["SlurmJob"])
                 slurm_job = {clean_key(k): v for k, v in slurm_job.items()}
                 slurm_job["task_id"] = task.id
-                slurm_steps = [json.loads(s) for s in task.metadata["SlurmSteps"]]
-                for step in slurm_steps:
-                    step = {clean_key(k): v for k, v in step.items()}
-                    step["task_id"] = task.id
-                    step["job_id_link"] = slurm_job["JobID"]
+                if "SlurmSteps" in task.metadata:
+                    slurm_steps = [json.loads(s) for s in task.metadata["SlurmSteps"]]
+                    for step in slurm_steps:
+                        step = {clean_key(k): v for k, v in step.items()}
+                        step["task_id"] = task.id
+                        step["job_id_link"] = slurm_job["JobID"]
+                        slurm_step_dict_list.extend(slurm_steps)
                 slurm_job_dict_list.append(slurm_job)
-                slurm_step_dict_list.extend(slurm_steps)
-            elif task.metadata["FluxJob"]:
+            elif "FluxJob" in task.metadata:
                 flux_job = json.loads(task.metadata["FluxJob"])
                 flux_job = {clean_key(k): v for k, v in flux_job.items()}
                 flux_job["task_id"] = task.id
                 flux_job_dict_list.append(flux_job)
-            elif task.metadata["LSFJob"]:
+            elif "LSFJob" in task.metadata:
                 lsf_job = json.loads(task.metadata["LSFJob"])
                 lsf_job = {clean_key(k): v for k, v in lsf_job.items()}
                 lsf_job["task_id"] = task.id

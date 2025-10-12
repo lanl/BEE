@@ -312,7 +312,6 @@ class CwlParser:
                         value_from=None,
                     )
                 )
-        print(inputs)
         return inputs
 
     @staticmethod
