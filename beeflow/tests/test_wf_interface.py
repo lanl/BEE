@@ -104,40 +104,6 @@ class TestWorkflowInterface(unittest.TestCase):
         # Workflow state should now be 'RESUME'
         self.assertEqual("RESUME", self.wfi.get_workflow_state())
 
-    def test_reset_workflow(self):
-        """Test workflow execution resetting (set all tasks to 'WAITING', delete metadata)."""
-        workflow_id = generate_workflow_id()
-        workflow = Workflow(
-            name="test_workflow", hints=None, requirements=None,
-            inputs=[InputParameter(id="test_input", type="File", value="input.txt")],
-            outputs=[OutputParameter(id="test_output", type="File", value="output.txt", source="viz/output")],
-            id=workflow_id)
-        self.wfi.initialize_workflow(workflow)
-        tasks = self._create_test_tasks(workflow_id)
-        metadata = {"cluster": "fog", "crt": "charliecloud",
-                    "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
-
-        # Set tasks' metadata, set state to COMPLETED
-        for task in tasks:
-            self.wfi.set_task_metadata(task.id, metadata)
-            self.wfi.set_task_state(task.id, "COMPLETED")
-            self.assertEqual("COMPLETED", self.wfi.get_task_state(task.id))
-
-        workflow_id = 42
-        self.wfi.reset_workflow(workflow_id)
-
-        # States should be reset, metadata should be deleted
-        for task in tasks:
-            self.assertDictEqual({}, self.wfi.get_task_metadata(task.id))
-            self.assertEqual("WAITING", self.wfi.get_task_state(task.id))
-
-        # Workflow ID should be reset
-        (gdb_workflow, gdb_tasks) = self.wfi.get_workflow()
-        new_workflow_id = gdb_workflow.id
-
-        self.assertNotEqual(new_workflow_id, workflow.id)
-        for task in gdb_tasks:
-            self.assertEqual(task.workflow_id, new_workflow_id)
 
     def test_add_task(self):
         """Test task creation."""
@@ -171,9 +137,8 @@ class TestWorkflowInterface(unittest.TestCase):
             stderr=stderr,
             workflow_id=workflow_id)
 
-        task_state = "WAITING"
 
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         # Task object assertions
         self.assertEqual(task_name, task.name)
@@ -230,9 +195,8 @@ class TestWorkflowInterface(unittest.TestCase):
             stderr=stderr,
             workflow_id=workflow_id)
 
-        task_state = "WAITING"
 
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         # Restart the task, should create a new Task
         new_task = self.wfi.restart_task(task, test_checkpoint_file)
@@ -328,9 +292,7 @@ class TestWorkflowInterface(unittest.TestCase):
             stderr=stderr,
             workflow_id=workflow_id)
 
-        task_state = "WAITING"
-
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         self.assertEqual(task, self.wfi.get_task_by_id(task.id))
 
@@ -443,9 +405,7 @@ class TestWorkflowInterface(unittest.TestCase):
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         # Should be WAITING
         self.assertEqual("WAITING", self.wfi.get_task_state(task.id))
@@ -464,8 +424,8 @@ class TestWorkflowInterface(unittest.TestCase):
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-        self.wfi.add_task(task, task_state)
+
+        self.wfi.add_task(task)
 
         self.wfi.set_task_state(task.id, "RUNNING")
 
@@ -486,8 +446,7 @@ class TestWorkflowInterface(unittest.TestCase):
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
@@ -508,8 +467,7 @@ class TestWorkflowInterface(unittest.TestCase):
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
@@ -535,8 +493,7 @@ class TestWorkflowInterface(unittest.TestCase):
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         self.assertEqual(task.inputs[0], self.wfi.get_task_input(task.id, "test_input"))
 
@@ -553,8 +510,7 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value=None, default="default.txt", source="test_input", prefix=None, position=None, value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         test_input = StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input",
                                prefix=None, position=None, value_from=None)
@@ -574,8 +530,7 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None, value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         self.assertEqual(task.outputs[0], self.wfi.get_task_output(task.id, "test_task/output"))
 
@@ -592,8 +547,7 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None, value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value=None, glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         test_output = StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")
         self.wfi.set_task_output(task.id, "test_task/output", "output.txt")
@@ -612,8 +566,7 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None, value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
             stdout=None, stderr=None, workflow_id=workflow_id)
-        task_state = "WAITING"
-        self.wfi.add_task(task, task_state)
+        self.wfi.add_task(task)
 
         # Workflow not completed
         self.assertFalse(self.wfi.workflow_completed())
@@ -672,9 +625,8 @@ class TestWorkflowInterface(unittest.TestCase):
                 workflow_id=workflow_id)
         ]
 
-        task_state = "WAITING"
         for task in tasks:
-            self.wfi.add_task(task, task_state)
+            self.wfi.add_task(task)
 
         return tasks
 

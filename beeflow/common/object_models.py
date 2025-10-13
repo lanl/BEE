@@ -191,7 +191,7 @@ class Task(BaseModel):
     workflow_id: str
     workdir: Optional[str | Path | os.PathLike] = None
     id: Optional[str] = None
-    state: Optional[str] = ""
+    state: Optional[str] = "WAITING"
     metadata: Optional[dict] = {}
 
     @model_validator(mode="before")

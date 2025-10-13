@@ -159,11 +159,13 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
         workflow_id=WF_ID,
         name='task',
         base_command='',
+        state='RUNNING'
     ), '124': Task(
         id='124',
         workflow_id=WF_ID,
         name='task',
         base_command='',
+        state='WAITING'
     )}
     mockGDB.task_states = {
         '123': 'RUNNING',
@@ -187,6 +189,8 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
     tasks_status = resp.json['tasks_status']
     assert len(tasks_status) == 2
     sorted_status = sorted(tasks_status, key=lambda x: x[0])
+
+    print(sorted_status)
     assert sorted_status[0][0] == '123'
     assert sorted_status[0][1] == 'task'
     assert sorted_status[0][2] == 'RUNNING'

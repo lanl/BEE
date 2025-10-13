@@ -3,13 +3,6 @@ import json
 import re
 import importlib.resources
 from dsi.dsi import DSI
-from beeflow.common.dsi import dsi_sync
-
-"""
-TODO:
-Flux Support
-Save more workflow related info / archive things
-"""
 
 from beeflow.common.paths import workdir
 
@@ -44,8 +37,8 @@ class DSIManager:
     """Manager for the DSI (Data Storage Interface) used in Beeflow."""
     def __init__(self):
         self.dsi = DSI(f'{workdir()}/dsi.db')
-        with importlib.resources.path("beeflow.common.dsi", "schema.json") as schema_path:
-            self.dsi.schema(str(schema_path))
+        schema_path = importlib.resources.files("beeflow.common.dsi").joinpath("schema.json")
+        self.dsi.schema(str(schema_path))
 
 
     def list_of_dict(self, data, secondary_key, secondary_value):
@@ -80,8 +73,8 @@ class DSIManager:
     def save_wf_info(self, wfi):
         """Save workflow information to the DSI."""
         self.dsi = DSI(f'{workdir()}/dsi.db')
-        with importlib.resources.path("beeflow.common.dsi", "schema.json") as schema_path:
-            self.dsi.schema(str(schema_path))
+        schema_path = importlib.resources.files("beeflow.common.dsi").joinpath("schema.json")
+        self.dsi.schema(str(schema_path))
         workflow, tasks = wfi.get_workflow()
         # Create temporary json files for info to store
         workflow_dict = {
@@ -207,13 +200,6 @@ class DSIManager:
         self.store_dict_list(slurm_step_dict_list, "slurm_step")
         self.store_dict_list(flux_job_dict_list, "flux_job")
         self.store_dict_list(lsf_job_dict_list, "lsf_job")
-    
-    def query_files(self, type, query):
-        """
-        Query files from DSI. The type would be either wf_input, wf_output, task_input, task_output
-
-        returns a list of file paths from DSI
-        """
 
 
 
