@@ -349,6 +349,7 @@ class Task(BaseModel):
         positional_inputs = []
         nonpositional_inputs = []
         for input_ in self.inputs:
+            # Skip empty inputs
             if input_.position is None and input_.prefix is None:
                 continue
             if input_.value is None:

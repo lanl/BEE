@@ -43,7 +43,7 @@ class BaseSlurmWorker(Worker):
         return default if value is None else value
 
     def load_config_from(self, task, req_type):
-        """Load a json config of slurm and mpi parameters."""
+        """Load a json config of slurm or mpi parameters."""
         config_input_id = task.get_requirement(req_type, 'load_from_file',
                                                 default=None)
         if not config_input_id:
