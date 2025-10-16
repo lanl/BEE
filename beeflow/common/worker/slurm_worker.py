@@ -167,7 +167,7 @@ class BaseSlurmWorker(Worker):
         task_script = self.write_script(task)
         job_id, job_state,job_info = self.submit_job(task_script)
         return job_id,job_state,job_info
-    
+
     def get_task_metadata(self, job_id):
         """Gets all the relevant fields of a job through sacct"""
         cmd = [
@@ -314,7 +314,7 @@ class SlurmWorker(Worker):
     def query_task(self, job_id):
         """Query job state for the task."""
         return self._inner.query_task(job_id)
-    
+
     def get_task_metadata(self, job_id):
         """Get metadata for a task with job_id (usually a finished one)."""
         return self._inner.get_task_metadata(job_id)

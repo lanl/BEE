@@ -62,7 +62,8 @@ class CwlParser:
         self.steps = []
         self.params = None
 
-    def parse_workflow(self, workflow_id, workflow_name, cwl_path, job=None, workdir=".", wf_path="."):
+    def parse_workflow(self, workflow_id, workflow_name, cwl_path,
+                       job=None, workdir=".", wf_path="."):
         """Parse a CWL Workflow file and load it into the graph database.
 
         Returns an instance of the WorkflowInterface.

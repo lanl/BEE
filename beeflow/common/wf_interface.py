@@ -369,4 +369,3 @@ class WorkflowInterface:
                             except ValueError:
                                 val = None
                         self._gdb_driver.set_task_output(task_id, output.id, val)
-

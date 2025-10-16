@@ -26,10 +26,8 @@ def eval_output(input_pairs, glob):
         for v, s in zip(values, split[1:]):
             eval_string += v + s
         return eval_string
-    else:
-        print("no matches found")
-        return None
-    raise RuntimeError(f'could not parse output expression in glob: {glob}')
+    print("no matches found")
+    return None
 
 
 def eval_input(input_pairs, value_from):

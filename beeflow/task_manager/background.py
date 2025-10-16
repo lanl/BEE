@@ -123,10 +123,11 @@ def update_jobs(db):
                                              task_info=task_info, metadata=job_info)
                     except utils.CheckpointRestartError as err:
                         log.error(f'Checkpoint restart failed for {task.name} ({task.id}): {err}')
-                        db.update_queue.push(task.workflow_id, task.id, 'FAILED', metadata=job_info)
+                        db.update_queue.push(task.workflow_id, task.id, 'FAILED',
+                                             metadata=job_info)
                 else:
-                    db.update_queue.push(task.workflow_id, task.id, new_job_state,\
-                                        task_info=None,metadata=job_info,output=None)
+                    db.update_queue.push(task.workflow_id, task.id, new_job_state,
+                                        task_info=None, metadata=job_info, output=None)
             elif new_job_state in ('BOOT_FAIL', 'NODE_FAIL', 'OUT_OF_MEMORY', 'PREEMPTED'):
                 # Don't update wfm, just resubmit
                 log.info(f'Resubmitting task {task.name}')

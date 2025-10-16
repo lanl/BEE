@@ -87,7 +87,8 @@ def format_start_time(start_time):
     return start_time
 
 
-# Parsing logic inspired by https://github.com/aws-samples/hpc-cost-simulator/blob/main/SlurmLogParser.py
+# Parsing logic inspired by
+# https://github.com/aws-samples/hpc-cost-simulator/blob/main/SlurmLogParser.py
 SACCT_FIELDS = {
     "Account": "str",
     "AdminComment": "str",
@@ -202,7 +203,8 @@ def parse_slurm_fields(sacct: dict):
             if len(parts) == 2:
                 days = int(parts[0])
                 time_parts = parts[1].split(':')
-                seconds = sum(float(x) * 60 ** i for i, x in enumerate(reversed(time_parts))) + days * 86400
+                seconds = sum(float(x) * 60 ** i for i, x in
+                              enumerate(reversed(time_parts))) + days * 86400
             else:
                 time_parts = parts[0].split(':')
                 seconds = sum(float(x) * 60 ** i for i, x in enumerate(reversed(time_parts)))

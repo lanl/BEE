@@ -54,7 +54,7 @@ class SimpleWorker(Worker):
         if return_code == 0:
             return 'COMPLETED'
         return 'FAILED'
-    
+
     def get_task_metadata(self, job_id):
         """Get metadata for a task with job_id (usually a finished one).
 
