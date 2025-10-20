@@ -8,7 +8,6 @@ Capablities include submitting, starting, listing, pausing and cancelling workfl
 # Disable W0511: This allows us to have TODOs in the code
 # Disable R1732: Significant code restructuring required to fix
 # pylint:disable=W0511,R1732
-
 import os
 import sys
 import logging
@@ -23,6 +22,7 @@ import tempfile
 import textwrap
 import time
 import importlib.metadata
+import importlib
 import jsonpickle
 import requests
 import typer
@@ -36,7 +36,6 @@ from beeflow.common import paths
 from beeflow.common.parser import CwlParser
 from beeflow.common.parser.parser import CwlParseError
 from beeflow.common.object_models import generate_workflow_id
-from beeflow.client import core  # pylint: disable=R0401 #WIP
 from beeflow.client import remote_client
 from beeflow.wf_manager.models import (
     CopyWorkflowRequest,
@@ -325,7 +324,7 @@ def get_wf_status(wf_id):
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
-app.add_typer(core.app, name="core")
+app.add_typer(importlib.import_module("beeflow.client.core").app, name="core") # import if used
 app.add_typer(remote_client.app, name="remote")
 app.add_typer(config_driver.app, name="config")
 
@@ -422,6 +421,8 @@ def submit(  # pylint:disable=R0915
         untar_wf_path = unpackage(package_path, untar_path)
         main_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
         yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
+
+        from beeflow.common.parser import CwlParser # pylint: disable=C0415 # Costly import
         parser = CwlParser()
         workflow_id = generate_workflow_id()
         try:
