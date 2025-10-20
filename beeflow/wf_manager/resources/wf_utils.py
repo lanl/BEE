@@ -4,7 +4,8 @@ import os
 import shutil
 import pathlib
 import requests
-from celery import shared_task  # pylint: disable=W0611 # pylint can't find celery imports
+from celery import shared_task
+
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -21,6 +22,7 @@ from beeflow.scheduler.models import (
     ScheduleTasksResponse,
     SchedulerTask,
 )
+
 from beeflow.task_manager.models import SubmitTasksRequest
 from beeflow.common.deps.neo4j_manager import connect_neo4j_driver
 
@@ -102,22 +104,20 @@ def create_wf_status(wf_id):
 
 
 def update_wf_status(wf_id, status_msg):
-    """Update workflow status metadata file."""
-    bee_workdir = get_bee_workdir()
-    workflows_dir = os.path.join(bee_workdir, "workflows", wf_id)
-    status_path = os.path.join(workflows_dir, "bee_wf_status")
-    with open(status_path, "w", encoding="utf8") as status:
-        status.write(status_msg)
+    """Update workflow status"""
+    wfi = get_workflow_interface(wf_id)
+    wfi.set_workflow_state(status_msg)
 
 
-def read_wf_status(wf_id):
+def get_wf_status(wf_id):
     """Read workflow status metadata file."""
-    bee_workdir = get_bee_workdir()
-    workflows_dir = os.path.join(bee_workdir, "workflows", wf_id)
-    status_path = os.path.join(workflows_dir, "bee_wf_status")
-    with open(status_path, "r", encoding="utf8") as status:
-        wf_status = status.readline()
-    return wf_status
+    wfi = get_workflow_interface(wf_id)
+    try:
+        state = wfi.get_workflow_state()
+        return state
+    except AttributeError:
+        log.info(f"Workflow {wf_id} not found in the database.")
+        return None
 
 
 def read_wf_name(wf_id):
@@ -202,7 +202,7 @@ def submit_tasks_tm(wf_id, tasks, allocation):  # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
     for task in tasks:
-        metadata = wfi.get_task_metadata(task)
+        metadata = wfi.get_task_metadata(task.id)
         task.workdir = metadata["workdir"]
     # Serialize task with json
     names = [task.name for task in tasks]
@@ -221,7 +221,7 @@ def submit_tasks_tm(wf_id, tasks, allocation):  # pylint: disable=W0613
     if resp.status_code == 200:
         for task in tasks:
             log.info("change state of %s to SUBMIT", task.name)
-            wfi.set_task_state(task, "SUBMIT")
+            wfi.set_task_state(task.id, "SUBMIT")
     else:
         log.info("Submit task to TM returned bad status: %s", resp.status_code)
 
@@ -252,11 +252,11 @@ def submit_tasks_scheduler(tasks):
         )
     except requests.exceptions.ConnectionError:
         log.error("Unable to connect to scheduler to submit tasks.")
-        return "Unable to connect to scheduler."
+        return "Did not work"
 
     if resp.status_code != 200:
         log.info("Something bad happened %s", resp.status_code)
-        return "Error occured submitting to scheduler"
+        return "Did not work"
     return ScheduleTasksResponse.model_validate(resp.json()).tasks
 
 
@@ -270,32 +270,26 @@ def schedule_submit_tasks(wf_id, tasks):
 
 def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, # pylint: disable=W0613
                    tasks=None):
-    """Initialize Workflow in Separate Process."""
+    """Initialize Workflow and Tasks then start workflow in separate process"""
     wfi = get_workflow_interface(wf_id)
     wfi.initialize_workflow(workflow)
 
     log.info("Setting workflow metadata")
     create_wf_metadata(wf_id, wf_name)
-    db = connect_db(wfm_db, get_db_path())
     for task in tasks:
         task_state = "" if no_start else "WAITING"
         wfi.add_task(task, task_state)
-        metadata = wfi.get_task_metadata(task)
-        if metadata.get('workdir') is None:
-            metadata['workdir'] = task.workdir
-            wfi.set_task_metadata(task, metadata)
-        db.workflows.add_task(task.id, wf_id, task.name, task_state)
+        metadata = wfi.get_task_metadata(task.id)
+        metadata["workdir"] = task.workdir
+        wfi.set_task_metadata(task.id, metadata)
 
     if no_start:
         update_wf_status(wf_id, "No Start")
-        db.workflows.update_workflow_state(wf_id, "No Start")
         log.info("Not starting workflow, as requested")
     else:
-        update_wf_status(wf_id, "Waiting")
-        db.workflows.update_workflow_state(wf_id, "Waiting")
+        update_wf_status(wf_id, "Starting")
         log.info("Starting workflow")
-        db.workflows.update_workflow_state(wf_id, "Running")
-        start_workflow(wf_id)
+        start_workflow.delay(wf_id)
 
 
 def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
@@ -311,26 +305,23 @@ def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     return dot_avail
 
 
+@shared_task
 def start_workflow(wf_id):
     """Attempt to start the workflow, returning True if successful."""
-    db = connect_db(wfm_db, get_db_path())
     wfi = get_workflow_interface(wf_id)
-    state = wfi.get_workflow_state()
-    if state in ("RUNNING", "PAUSED", "COMPLETED"):
+    state = get_wf_status(wf_id)
+    if state not in ("Starting", "No Start"):
         return False
     _, tasks = wfi.get_workflow()
     tasks.reverse()
     for task in tasks:
-        task_state = wfi.get_task_state(task)
+        task_state = wfi.get_task_state(task.id)
         if task_state == "":
-            wfi.set_task_state(task, "WAITING")
-            db.workflows.update_task_state(task.id, wf_id, "WAITING")
+            wfi.set_task_state(task.id, "WAITING")
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     schedule_submit_tasks(wf_id, tasks)
-    wf_id = wfi.workflow_id
     update_wf_status(wf_id, "Running")
-    db.workflows.update_workflow_state(wf_id, "Running")
     return True
 
 
@@ -342,11 +333,9 @@ def copy_task_output(task, wfi):
     task_save_path = pathlib.Path(
         f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
-    task_workdir = wfi.get_task_metadata(task)["workdir"]
-
+    task_workdir = wfi.get_task_metadata(task.id)["workdir"]
     task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
                 f"metadata.txt")
-
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:

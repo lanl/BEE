@@ -67,7 +67,7 @@ class TestWorkflowInterface(unittest.TestCase):
         tasks = self._create_test_tasks(workflow_id)
         self.wfi.execute_workflow()
 
-        self.assertEqual("READY", self.wfi.get_task_state(tasks[0]))
+        self.assertEqual("READY", self.wfi.get_task_state(tasks[0].id))
         self.assertEqual("RUNNING", self.wfi.get_workflow_state())
 
     def test_pause_workflow(self):
@@ -119,17 +119,17 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Set tasks' metadata, set state to COMPLETED
         for task in tasks:
-            self.wfi.set_task_metadata(task, metadata)
-            self.wfi.set_task_state(task, "COMPLETED")
-            self.assertEqual("COMPLETED", self.wfi.get_task_state(task))
+            self.wfi.set_task_metadata(task.id, metadata)
+            self.wfi.set_task_state(task.id, "COMPLETED")
+            self.assertEqual("COMPLETED", self.wfi.get_task_state(task.id))
 
         workflow_id = 42
         self.wfi.reset_workflow(workflow_id)
 
         # States should be reset, metadata should be deleted
         for task in tasks:
-            self.assertDictEqual({}, self.wfi.get_task_metadata(task))
-            self.assertEqual("WAITING", self.wfi.get_task_state(task))
+            self.assertDictEqual({}, self.wfi.get_task_metadata(task.id))
+            self.assertEqual("WAITING", self.wfi.get_task_state(task.id))
 
         # Workflow ID should be reset
         (gdb_workflow, gdb_tasks) = self.wfi.get_workflow()
@@ -243,10 +243,10 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Assert equality of graph database objects
         self.assertEqual(new_task, self.wfi.get_task_by_id(new_task.id))
-        self.assertEqual("RESTARTED", self.wfi.get_task_state(task))
-        self.assertEqual("READY", self.wfi.get_task_state(new_task))
-        self.assertEqual(self.wfi.get_task_metadata(task),
-                         self.wfi.get_task_metadata(new_task))
+        self.assertEqual("RESTARTED", self.wfi.get_task_state(task.id))
+        self.assertEqual("READY", self.wfi.get_task_state(new_task.id))
+        self.assertEqual(self.wfi.get_task_metadata(task.id),
+                         self.wfi.get_task_metadata(new_task.id))
 
         # Check that task command includes checkpoint file
         print(new_task.command)
@@ -262,10 +262,10 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Assert equality of graph database objects
         self.assertEqual(newer_task, self.wfi.get_task_by_id(newer_task.id))
-        self.assertEqual("RESTARTED", self.wfi.get_task_state(new_task))
-        self.assertEqual("READY", self.wfi.get_task_state(newer_task))
-        self.assertEqual(self.wfi.get_task_metadata(new_task),
-                         self.wfi.get_task_metadata(newer_task))
+        self.assertEqual("RESTARTED", self.wfi.get_task_state(new_task.id))
+        self.assertEqual("READY", self.wfi.get_task_state(newer_task.id))
+        self.assertEqual(self.wfi.get_task_metadata(new_task.id),
+                         self.wfi.get_task_metadata(newer_task.id))
 
         # Restart on more time (should return None)
         self.assertIsNone(self.wfi.restart_task(newer_task, test_checkpoint_file))
@@ -284,7 +284,7 @@ class TestWorkflowInterface(unittest.TestCase):
             id=workflow_id))
         tasks = self._create_test_tasks(workflow_id)
         self.wfi.execute_workflow()
-        self.wfi.set_task_output(tasks[0], "prep/prep_output", "prep_output.txt")
+        self.wfi.set_task_output(tasks[0].id, "prep/prep_output", "prep_output.txt")
         ready_tasks = self.wfi.finalize_task(tasks[0])
 
         # Manually set expected task input values for comparison
@@ -410,7 +410,7 @@ class TestWorkflowInterface(unittest.TestCase):
 
         # Set Compute tasks to READY
         for task in tasks[1:4]:
-            self.wfi.set_task_state(task, "READY")
+            self.wfi.set_task_state(task.id, "READY")
 
         self.assertCountEqual(tasks[1:4], self.wfi.get_ready_tasks())
 
@@ -424,7 +424,7 @@ class TestWorkflowInterface(unittest.TestCase):
             id=workflow_id))
         tasks = self._create_test_tasks(workflow_id)
         # Get dependent tasks of Data Prep
-        dependent_tasks = self.wfi.get_dependent_tasks(tasks[0])
+        dependent_tasks = self.wfi.get_dependent_tasks(tasks[0].id)
 
         # Should equal Compute 0, Compute 1, and Compute 2
         self.assertCountEqual(tasks[1:4], dependent_tasks)
@@ -448,7 +448,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.wfi.add_task(task, task_state)
 
         # Should be WAITING
-        self.assertEqual("WAITING", self.wfi.get_task_state(task))
+        self.assertEqual("WAITING", self.wfi.get_task_state(task.id))
 
     def test_set_task_state(self):
         """Test the setting of task state."""
@@ -467,10 +467,10 @@ class TestWorkflowInterface(unittest.TestCase):
         task_state = "WAITING"
         self.wfi.add_task(task, task_state)
 
-        self.wfi.set_task_state(task, "RUNNING")
+        self.wfi.set_task_state(task.id, "RUNNING")
 
         # Should now be RUNNING
-        self.assertEqual("RUNNING", self.wfi.get_task_state(task))
+        self.assertEqual("RUNNING", self.wfi.get_task_state(task.id))
 
     def test_get_task_metadata(self):
         """Test the obtaining of task metadata."""
@@ -491,8 +491,8 @@ class TestWorkflowInterface(unittest.TestCase):
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
-        self.wfi.set_task_metadata(task, metadata)
-        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task))
+        self.wfi.set_task_metadata(task.id, metadata)
+        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task.id))
 
     def test_set_task_metadata(self):
         """Test the setting of task metadata."""
@@ -514,12 +514,12 @@ class TestWorkflowInterface(unittest.TestCase):
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
 
         # Metadata should be empty
-        self.assertDictEqual({}, self.wfi.get_task_metadata(task))
+        self.assertDictEqual({}, self.wfi.get_task_metadata(task.id))
 
-        self.wfi.set_task_metadata(task, metadata)
+        self.wfi.set_task_metadata(task.id, metadata)
 
         # Metadata should now be populated
-        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task))
+        self.assertDictEqual(metadata, self.wfi.get_task_metadata(task.id))
 
     def test_get_task_input(self):
         """Test the obtaining of a task input."""
@@ -538,7 +538,7 @@ class TestWorkflowInterface(unittest.TestCase):
         task_state = "WAITING"
         self.wfi.add_task(task, task_state)
 
-        self.assertEqual(task.inputs[0], self.wfi.get_task_input(task, "test_input"))
+        self.assertEqual(task.inputs[0], self.wfi.get_task_input(task.id, "test_input"))
 
     def test_set_task_input(self):
         """Test the setting of a task input."""
@@ -558,8 +558,8 @@ class TestWorkflowInterface(unittest.TestCase):
 
         test_input = StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input",
                                prefix=None, position=None, value_from=None)
-        self.wfi.set_task_input(task, "test_input", "input.txt")
-        self.assertEqual(test_input, self.wfi.get_task_input(task, "test_input"))
+        self.wfi.set_task_input(task.id, "test_input", "input.txt")
+        self.assertEqual(test_input, self.wfi.get_task_input(task.id, "test_input"))
 
     def test_get_task_output(self):
         """Test the obtaining of a task output."""
@@ -577,7 +577,7 @@ class TestWorkflowInterface(unittest.TestCase):
         task_state = "WAITING"
         self.wfi.add_task(task, task_state)
 
-        self.assertEqual(task.outputs[0], self.wfi.get_task_output(task, "test_task/output"))
+        self.assertEqual(task.outputs[0], self.wfi.get_task_output(task.id, "test_task/output"))
 
     def test_set_task_output(self):
         """Test the setting of a task output."""
@@ -596,8 +596,8 @@ class TestWorkflowInterface(unittest.TestCase):
         self.wfi.add_task(task, task_state)
 
         test_output = StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")
-        self.wfi.set_task_output(task, "test_task/output", "output.txt")
-        self.assertEqual(test_output, self.wfi.get_task_output(task, "test_task/output"))
+        self.wfi.set_task_output(task.id, "test_task/output", "output.txt")
+        self.assertEqual(test_output, self.wfi.get_task_output(task.id, "test_task/output"))
 
     def test_workflow_completed(self):
         """Test determining if a workflow has completed."""
@@ -619,7 +619,7 @@ class TestWorkflowInterface(unittest.TestCase):
         self.assertFalse(self.wfi.workflow_completed())
 
         # Not using finalize_task() to avoid unnecessary queries
-        self.wfi.set_task_state(task, 'COMPLETED')
+        self.wfi.set_task_state(task.id, 'COMPLETED')
 
         # Workflow now completed
         self.assertTrue(self.wfi.workflow_completed())

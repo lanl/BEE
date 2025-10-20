@@ -12,23 +12,21 @@ from beeflow.wf_manager.models import TaskStateUpdateRequest, TaskStateUpdateRes
 from beeflow.wf_manager.resources import wf_utils
 from beeflow.common import log as bee_logging
 
-from beeflow.common.db import wfm_db
-from beeflow.common.db.bdb import connect_db
 from beeflow.common.config_driver import BeeConfig as bc
 
 log = bee_logging.setup(__name__)
 db_path = wf_utils.get_db_path()
 
 
-def archive_workflow(db, wf_id, final_state=None):
+def archive_workflow(wf_id, final_state=None):
     """Archive a workflow after completion."""
     # this is the only way to retrieve wf state after archiving
-    wf_db_state = db.workflows.get_workflow_state(wf_id)
-    if wf_db_state.startswith("Archived"):
+    wf_state = wf_utils.get_wf_status(wf_id)
+    if wf_state.startswith("Archived"):
         # Don't archive a workflow that has already been archived
         log.warning((
             f"Attempted to archive workflow {wf_id} which is already archived; "
-            f"in state {wf_db_state}."
+            f"in state {wf_state}."
         ))
         return
     # Archive Config
@@ -43,7 +41,6 @@ def archive_workflow(db, wf_id, final_state=None):
     wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True)
 
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
-    db.workflows.update_workflow_state(wf_id, wf_state)
     wf_utils.update_wf_status(wf_id, wf_state)
 
     archive_dir = bc.get('DEFAULT', 'bee_archive_dir')
@@ -58,20 +55,19 @@ def archive_workflow(db, wf_id, final_state=None):
         wf_utils.remove_wf_dir(wf_id)
 
 
-def archive_fail_workflow(db, wf_id):
+def archive_fail_workflow(wf_id):
     """Archive and fail a workflow."""
-    archive_workflow(db, wf_id, final_state='Failed')
+    archive_workflow(wf_id, final_state='Failed')
 
 
-def set_dependent_tasks_dep_fail(db, wfi, wf_id, task):
+def set_dependent_tasks_dep_fail(wfi, task):
     """Recursively set all dependent task states of this task to DEP_FAIL."""
     # List of tasks whose states have already been updated
     set_tasks = [task]
     while len(set_tasks) > 0:
-        dep_tasks = wfi.get_dependent_tasks(set_tasks.pop())
+        dep_tasks = wfi.get_dependent_tasks(set_tasks.pop().id)
         for dep_task in dep_tasks:
-            wfi.set_task_state(dep_task, 'DEP_FAIL')
-            db.workflows.update_task_state(dep_task.id, wf_id, 'DEP_FAIL')
+            wfi.set_task_state(dep_task.id, 'DEP_FAIL')
         set_tasks.extend(dep_tasks)
 
 
@@ -85,32 +81,30 @@ class WFUpdate(Resource):
 
     def put(self):
         """Do a batch update of task states from the task manager."""
-        db = connect_db(wfm_db, db_path)
         state_updates = TaskStateUpdateRequest.model_validate(request.json).state_updates
 
         for state_update in state_updates:
-            self.update_task_state(state_update, db)
+            self.update_task_state(state_update)
 
         return TaskStateUpdateResponse(
             msg='Task states updated successfully',
         ).model_dump(), 200
 
-    def handle_metadata(self, state_update, task, wfi):
-        """Handle metadata for a task update. Write metadata to the working
-            directory each time the metadata is updated.
-         """
+    def handle_metadata(self, state_update, task_id, wfi):
+        """Handle metadata for a task update."""
         bee_workdir = wf_utils.get_bee_workdir()
 
         # Get metadata from update if available
         if state_update.metadata is not None:
-            old_metadata = wfi.get_task_metadata(task)
+            old_metadata = wfi.get_task_metadata(task_id)
             new_metadata = wf_utils.flatten_metadata_dict(state_update.metadata)
             clean_metadata = wf_utils.clean_dict(new_metadata)
             old_metadata.update(clean_metadata)
-            wfi.set_task_metadata(task, old_metadata)
+            wfi.set_task_metadata(task_id, old_metadata)
+            task_name = wfi.get_task_by_id(task_id).name
 
             task_workdir = old_metadata['workdir']
-            task_dir = f'{task_workdir}/{task.name}-{task.id[:4]}'
+            task_dir = f'{task_workdir}/{task_name}-{task_id[:4]}'
             metadata_path = os.path.join(task_dir,'metadata.txt')
 
             if os.path.exists(task_dir):
@@ -121,12 +115,12 @@ class WFUpdate(Resource):
 
         # Get output from the task
         if state_update.output is not None:
-            fname = f'{wfi.workflow_id}_{task.id}_{int(time.time())}.json'
+            fname = f'{wfi.workflow_id}_{task_id}_{int(time.time())}.json'
             task_output_path = os.path.join(bee_workdir, fname)
             with open(task_output_path, 'w', encoding='utf8') as fp:
                 json.dump(state_update.output, fp, indent=4)
 
-    def handle_checkpoint_restart(self, state_update, task, wfi, db):
+    def handle_checkpoint_restart(self, state_update, task, wfi):
         """Handle checkpoint restart for a task update.
 
         Returns True if a checkpoint-restart was done, else False (indicating
@@ -137,9 +131,8 @@ class WFUpdate(Resource):
             new_task = wfi.restart_task(task, checkpoint_file)
             if new_task is None:
                 log.info('No more restarts')
-                archive_fail_workflow(db, state_update.wf_id)
+                archive_fail_workflow(state_update.wf_id)
                 return True
-            db.workflows.add_task(new_task.id, state_update.wf_id, new_task.name, "WAITING")
             # Submit the restart task
             tasks = [new_task]
             wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
@@ -147,18 +140,19 @@ class WFUpdate(Resource):
             return True
         return False
 
-    def handle_state_change(self, state_update, task, wfi, db):
+    def handle_state_change(self, state_update, task, wfi):
         """Handle a normal state change for a task."""
-        wf_state = wfi.get_workflow_state()
+        wf_id = wfi.workflow_id
+        wf_state = wf_utils.get_wf_status(wf_id)
         if state_update.job_state == 'COMPLETED':
             for output in task.outputs:
                 if output.glob is not None:
-                    wfi.set_task_output(task, output.id, output.glob)
+                    wfi.set_task_output(task.id, output.id, output.glob)
                 else:
-                    wfi.set_task_output(task, output.id, "temp")
+                    wfi.set_task_output(task.id, output.id, "temp")
             wf_utils.copy_task_output(task, wfi)
             tasks = wfi.finalize_task(task)
-            if tasks and wf_state not in ('PAUSED', 'Cancelled'):
+            if tasks and wf_state not in ('Paused', 'Cancelled'):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
 
         # If the job failed, fail the dependent tasks
@@ -166,29 +160,25 @@ class WFUpdate(Resource):
         if state_update.job_state in [
             'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'TIMEOUT', 'CANCELLED'
         ]:
-            set_dependent_tasks_dep_fail(db, wfi, state_update.wf_id, task)
+            set_dependent_tasks_dep_fail(wfi, task)
             log.info(f"Task {task.name} failed")
 
         if wfi.workflow_completed():
-            wf_id = wfi.workflow_id
             final_state = wfi.get_workflow_final_state()
             log.info(f"Workflow {wf_id} Completed")
-            archive_workflow(db, wf_id, final_state)
+            archive_workflow(wf_id, final_state)
             log.info('Workflow Archived')
         elif wf_state == 'Cancelled' and wfi.cancelled_workflow_completed():
-            wf_id = wfi.workflow_id
             log.info(f"Scheduled tasks for cancelled workflow {wf_id} completed")
-            archive_workflow(db, wf_id, final_state=wf_state)
+            archive_workflow(wf_id, final_state=wf_state)
             log.info('Workflow Archived')
 
-    def update_task_state(self, state_update, db):
+    def update_task_state(self, state_update):
         """Update the state of a single task from the task manager."""
         wfi = wf_utils.get_workflow_interface(state_update.wf_id)
         task = wfi.get_task_by_id(state_update.task_id)
-        wfi.set_task_state(task, state_update.job_state)
-        db.workflows.update_task_state(state_update.task_id, state_update.wf_id,
-                                       state_update.job_state)
+        wfi.set_task_state(state_update.task_id, state_update.job_state)
 
-        self.handle_metadata(state_update, task, wfi)
-        if not self.handle_checkpoint_restart(state_update, task, wfi, db):
-            self.handle_state_change(state_update, task, wfi, db)
+        self.handle_metadata(state_update, state_update.task_id, wfi)
+        if not self.handle_checkpoint_restart(state_update, task, wfi):
+            self.handle_state_change(state_update, task, wfi)

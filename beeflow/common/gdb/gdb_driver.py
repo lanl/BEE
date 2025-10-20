@@ -160,91 +160,91 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_dependent_tasks(self, task):
+    def get_dependent_tasks(self, task_id):
         """Return the dependent tasks of a workflow task in the graph database.
 
-        :param task: the task whose dependents to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose dependents to retrieve
+        :type task_id: str
         :rtype: list of Task
         """
 
     @abstractmethod
-    def get_task_state(self, task):
+    def get_task_state(self, task_id):
         """Return the state of a task in the graph database.
 
-        :param task: the task whose status to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose status to retrieve
+        :type task_id: str
         :rtype: str
         """
 
     @abstractmethod
-    def set_task_state(self, task, state):
+    def set_task_state(self, task_id, state):
         """Set the state of a task in the graph database.
 
-        :param task: the task whose state to set
-        :type task: Task
+        :param task_id: the ID of the task whose state to set
+        :type task_id: str
         :param state: the new state
         :type state: str
         """
 
     @abstractmethod
-    def get_task_metadata(self, task):
+    def get_task_metadata(self, task_id):
         """Return the metadata of a task in the graph database.
 
-        :param task: the task whose metadata to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose metadata to retrieve
+        :type task_id: str
         :rtype: dict
         """
 
     @abstractmethod
-    def set_task_metadata(self, task, metadata):
+    def set_task_metadata(self, task_id, metadata):
         """Set the metadata of a task in the graph database.
 
-        :param task: the task whose metadata to set
-        :type task: Task
+        :param task_id: the ID of the task whose metadata to set
+        :type task_id: str
         :param metadata: the job description metadata
         :type metadata: dict
         """
 
     @abstractmethod
-    def get_task_input(self, task, input_id):
+    def get_task_input(self, task_id, input_id):
         """Get a task input object.
 
-        :param task: the task whose input to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose input to retrieve
+        :type task_id: str
         :param input_id: the ID of the input
         :type input_id: str
         :rtype: StepInput
         """
 
     @abstractmethod
-    def set_task_input(self, task, input_id, value):
+    def set_task_input(self, task_id, input_id, value):
         """Set the value of a task input.
 
-        :param task: the task whose input to set
-        :type task: Task
+        :param task_id: the ID of the task whose input to set
+        :type task_id: str
         :param input_id: the ID of the input
         :type input_id: str
         :param value: str or int or float
         """
 
     @abstractmethod
-    def get_task_output(self, task, output_id):
+    def get_task_output(self, task_id, output_id):
         """Get a task output object.
 
-        :param task: the task whose output to retrieve
-        :type task: Task
+        :param task_id: the ID of the task whose output to retrieve
+        :type task_id: str
         :param output_id: the ID of the output
         :type output_id: str
         :rtype: StepOutput
         """
 
     @abstractmethod
-    def set_task_output(self, task, output_id, value):
+    def set_task_output(self, task_id, output_id, value):
         """Set the value of a task output.
 
-        :param task: the task whose output to set
-        :type task: Task
+        :param task_id: the ID of the task whose output to set
+        :type task_id: str
         :param output_id: the ID of the output
         :type output_id: str
         :param value: the output value to set
@@ -252,11 +252,11 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def set_task_input_type(self, task, input_id, type_):
+    def set_task_input_type(self, task_id, input_id, type_):
         """Set the type of a task input.
 
-        :param task: the task whose input type to set
-        :type task: Task
+        :param task_id: the ID of the task whose input type to set
+        :type task_id: str
         :param input_id: the ID of the input
         :type input_id: str
         :param type_: the input type to set
@@ -264,11 +264,11 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def set_task_output_glob(self, task, output_id, glob):
+    def set_task_output_glob(self, task_id, output_id, glob):
         """Set the glob of a task output.
 
-        :param task: the task whose output glob to set
-        :type task: Task
+        :param task_id: the ID of the task whose output glob to set
+        :type task_id: str
         :param output_id: the ID of the output
         :type output_id: str
         :param glob: the output glob to set
