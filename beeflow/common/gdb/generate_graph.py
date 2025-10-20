@@ -2,9 +2,7 @@
 
 import os
 import shutil
-import networkx as nx
 import graphviz
-
 
 def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     """Generate a PNG of a workflow graph from a GraphML file."""
@@ -21,7 +19,8 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None)
     backup_dag(output_path, dags_dir, short_id)
 
     # Load the GraphML file using NetworkX
-    graph = nx.read_graphml(graphml_path)
+    from networkx import read_graphml # pylint: disable=C0415 # Costly import
+    graph = read_graphml(graphml_path)
 
     # Initialize Graphviz graph
     dot = graphviz.Digraph(comment='Hierarchical Graph')
