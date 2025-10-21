@@ -37,6 +37,7 @@ sudo apt-get install -y \
     jq
 
 # Update the python installation with cffi bindings for flux
+sudo apt-get purge -y python3-cffi || true
 python3 -m pip install "cffi>=1.15" pycparser
 
 # Install flux-security
