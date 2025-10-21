@@ -131,7 +131,6 @@ class CwlParser:
             )
             for output in self.cwl.outputs
         ]
-        print(f"Pat: workdir {workdir}")
         workflow_hints = self.parse_requirements(self.cwl.hints, workdir, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements, workdir)
 
@@ -390,7 +389,6 @@ class CwlParser:
             base_path = os.path.dirname(self.path)
         fname = items[key]
         path = os.path.join(base_path, fname)
-        print(f"Pat: path {path}")
         try:
             with open(path, encoding="utf-8") as fp:
                 items[key] = fp.read()
@@ -437,7 +435,6 @@ class CwlParser:
         :rtype: list of Hint or list of Requirement or None
         """
         reqs = []
-        print(f"Pat: workdir {workdir}")
         if not requirements:
             return reqs
         if as_hints:
