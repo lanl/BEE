@@ -377,12 +377,13 @@ class CwlParser:
             outputs.append(StepOutput(id=out, type=output_type, value=None, glob=glob))
         return outputs
 
-    def _read_requirement_file(self, key, items, stepdir=None):
+    def _read_requirement_file(self, key, items, workdir, stepdir=None):
         """Read in a requirement file and replace it in the parsed items."""
-        # pre and post scripts are relative to step workdir
+        # pre and post scripts are relative to the step workdir
+        # if step workdir is not not absolute then use workdir/stepdir
         if key in {"pre_script", "post_script"}:
             if stepdir is None:
-                base_path = ""
+                base_path = workdir
             else:
                 base_path = stepdir
         else:
@@ -440,8 +441,8 @@ class CwlParser:
         if as_hints:
             # The pre and post scripts are relative to the working directory for the step
             stepdir = next((req["workdir"] for req in requirements if "workdir" in req), None)
-            if stepdir: stepdir = os.path.expanduser(stepdir)
-# I need to add the workdir/stepdir but what if it is an absolute path
+            if stepdir:
+                stepdir = os.path.expanduser(stepdir)
             for req in requirements:
                 items = {}
                 for k, v in req.items():
@@ -452,11 +453,11 @@ class CwlParser:
                             items[k] = str(v)
                 # Load in the dockerfile at parse time
                 if "dockerFile" in items:
-                    self._read_requirement_file("dockerFile", items)
+                    self._read_requirement_file("dockerFile", items, workdir)
                 # Load in pre/post scripts and make sure shell option is defined in cwl file
                 if "pre_script" in items and items["enabled"]:
                     if "shell" in items:
-                        self._read_requirement_file("pre_script", items, stepdir=stepdir)
+                        self._read_requirement_file("pre_script", items, workdir, stepdir=stepdir)
                     else:
                         msg = (
                             "pre script enabled but shell option undefined in cwl file."
@@ -464,12 +465,12 @@ class CwlParser:
                         raise CwlParseError(msg) from None
                 if "post_script" in items and items["enabled"]:
                     if "shell" in items:
-                        self._read_requirement_file("post_script", items, stepdir=stepdir)
+                        self._read_requirement_file("post_script", items, workdir, stepdir=stepdir)
                     else:
                         msg = "post script enabled but shell option undefined in cwl file."
                         raise CwlParseError(msg) from None
                 if "beeflow:bindMounts" in items:
-                    self._read_requirement_file("beeflow:bindMounts", items)
+                    self._read_requirement_file("beeflow:bindMounts", items, workdir)
                 reqs.append(Hint(class_=req["class"], params=items))
         else:
             for req in requirements:
