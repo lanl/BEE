@@ -39,6 +39,9 @@ sudo apt-get install -y \
 # Update the python installation with cffi bindings for flux
 python3 -m pip install "cffi>=1.15" pycparser
 
+# Make sure this uses python3.11 and not the system python
+export PYTHON=/usr/bin/python3.11
+
 # Install flux-security
 git clone --depth 1 -b v${FLUX_SECURITY_VERSION} https://github.com/flux-framework/flux-security.git
 (cd flux-security
@@ -53,7 +56,7 @@ git clone --depth 1 -b v${FLUX_CORE_VERSION} https://github.com/flux-framework/f
 (cd flux-core
  ./autogen.sh
  ./configure --prefix=/usr
- make V=1 || { echo "Flux build failed, showing verbose log:"; make V=1 -C src/bindings/python/_flux; exit 1; }
+ make
  sudo make install
  sudo ldconfig)
 # Install the python API
