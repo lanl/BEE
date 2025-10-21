@@ -37,7 +37,7 @@ sudo apt-get install -y \
     jq
 
 # Update the python installation with cffi bindings for flux
-pip install "cffi>=1.15" pycparser
+python3 -m pip install "cffi>=1.15" pycparser
 
 # Install flux-security
 git clone --depth 1 -b v${FLUX_SECURITY_VERSION} https://github.com/flux-framework/flux-security.git
