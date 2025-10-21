@@ -53,7 +53,7 @@ git clone --depth 1 -b v${FLUX_CORE_VERSION} https://github.com/flux-framework/f
 (cd flux-core
  ./autogen.sh
  ./configure --prefix=/usr
- make
+ make V=1 || { echo "Flux build failed, showing verbose log:"; make V=1 -C src/bindings/python/_flux; exit 1; }
  sudo make install
  sudo ldconfig)
 # Install the python API
