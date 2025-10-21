@@ -39,14 +39,11 @@ sudo apt-get install -y \
 # Update the python installation with cffi bindings for flux
 python3 -m pip install "cffi>=1.15" pycparser
 
-# Make sure this uses python3.11 and not the system python
-export PYTHON=/usr/bin/python3.11
-
 # Install flux-security
 git clone --depth 1 -b v${FLUX_SECURITY_VERSION} https://github.com/flux-framework/flux-security.git
 (cd flux-security
  ./autogen.sh
- ./configure --prefix=/usr
+ PYTHON=/usr/bin/python3.11 ./configure --prefix=/usr
  make
  sudo make install
  sudo ldconfig)
@@ -55,7 +52,7 @@ git clone --depth 1 -b v${FLUX_SECURITY_VERSION} https://github.com/flux-framewo
 git clone --depth 1 -b v${FLUX_CORE_VERSION} https://github.com/flux-framework/flux-core.git
 (cd flux-core
  ./autogen.sh
- ./configure --prefix=/usr
+ PYTHON=/usr/bin/python3.11 ./configure --prefix=/usr
  make
  sudo make install
  sudo ldconfig)
