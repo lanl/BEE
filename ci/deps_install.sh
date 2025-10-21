@@ -21,4 +21,6 @@ tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz
 
 # Install Python3
 sudo apt-get install -y software-properties-common
-sudo apt-get install -y python3 python3-dev python3-venv
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt-get update
+sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
