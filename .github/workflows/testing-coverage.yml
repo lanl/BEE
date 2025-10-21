@@ -26,6 +26,11 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install and Configure
         run: |
           . ./ci/env.sh
@@ -33,11 +38,13 @@ jobs:
           ./ci/batch_scheduler.sh
           ./ci/bee_install.sh
           ./ci/bee_config.sh
+
       - name: Integration Test
         run: |
           . ./ci/env.sh
           ./ci/integration_test.sh
           mv .coverage.integration ".coverage.${{ matrix.bee_worker }}"
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
@@ -56,6 +63,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install and Configure
         run: |
           . ./ci/env.sh
@@ -63,11 +76,13 @@ jobs:
           ./ci/batch_scheduler.sh
           ./ci/bee_install.sh
           ./ci/bee_config.sh
+
       - name: Unit tests
         run: |
           . ./ci/env.sh
           ./ci/unit_tests.sh
           mv .coverage ".coverage.unittests"
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
