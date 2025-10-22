@@ -23,7 +23,6 @@ import textwrap
 import time
 import importlib.metadata
 import importlib
-import importlib
 import jsonpickle
 import requests
 import typer
@@ -323,7 +322,6 @@ def get_wf_status(wf_id):
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
-app.add_typer(importlib.import_module("beeflow.client.core").app, name="core") # import if used
 app.add_typer(importlib.import_module("beeflow.client.core").app, name="core") # import if used
 app.add_typer(remote_client.app, name="remote")
 app.add_typer(config_driver.app, name="config")
