@@ -28,8 +28,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: BEE Install and Build Docs
+        run: |
+          ./ci/docs.sh
+      - name: Upload
+        uses: actions/upload-pages-artifact@v3
         run: ./ci/docs.sh
 
       - name: Upload GitHub Pages artifact
@@ -39,6 +44,7 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
+        uses: actions/deploy-pages@v4
         uses: actions/deploy-pages@v4
 
   # 2. TAGGED DEV RELEASE DEPLOYMENT
