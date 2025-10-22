@@ -412,12 +412,11 @@ def submit(  # pylint:disable=R0915
                 shutil.copy2(yaml_file, tempdir_wf_path)
             package_path = package(tempdir_wf_path, tempdir_path)
         else:
-            orig_cwl_path = main_cwl
-            orig_yaml_path = yaml_file
             package_path = wf_path
-
-        # Untar and parse workflow
-        untar_path = pathlib.Path(tempfile.mkdtemp())
+            untar_path = pathlib.Path(tempfile.mkdtemp())
+            untar_wf_path = unpackage(package_path, untar_path)
+            orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
+            orig_yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
 
         from beeflow.common.parser import CwlParser # pylint: disable=C0415 # Costly import
         parser = CwlParser()
