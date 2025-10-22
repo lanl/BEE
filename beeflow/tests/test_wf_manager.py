@@ -190,7 +190,6 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
     assert len(tasks_status) == 2
     sorted_status = sorted(tasks_status, key=lambda x: x[0])
 
-    print(sorted_status)
     assert sorted_status[0][0] == '123'
     assert sorted_status[0][1] == 'task'
     assert sorted_status[0][2] == 'RUNNING'
