@@ -15,7 +15,7 @@ Additional Poetry documentation:
 
 * https://github.com/sdispater/poetry
 
-Requirement: Python version 3.8 or greater
+Requirement: Python version 3.11 to 3.14
 ------------------------------------------
 
 Installation Using a Python Environment
