@@ -194,7 +194,7 @@ class BaseSlurmWorker(Worker):
             return {"SlurmJob": slurm_job, "SlurmSteps": slurm_steps}
         except subprocess.CalledProcessError as e:
             log.error(f"Error retrieving job metadata for job {job_id}: {e}")
-            return {"SlurmJob": "", "SlurmSteps": ""}
+            return {}
 
 
 
