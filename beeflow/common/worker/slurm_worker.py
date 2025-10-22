@@ -176,21 +176,25 @@ class BaseSlurmWorker(Worker):
             f"--jobs={job_id}",
             "--format=ALL"
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        lines = result.stdout.strip().splitlines()
-        reader = csv.reader(lines, delimiter='|')
-        header = next(reader)
-        rows = [parse_slurm_fields(dict(zip(header, row))) for row in reader]
-        slurm_job = ''
-        slurm_steps = []
-        for r in rows:
-            if r['JobID'] == str(job_id):
-                slurm_job = json.dumps(r)
-            else:
-                slurm_steps.append(json.dumps(r))
-        if not slurm_job:
-            raise WorkerError("No Job Found With That ID")
-        return {"SlurmJob": slurm_job, "SlurmSteps": slurm_steps}
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            lines = result.stdout.strip().splitlines()
+            reader = csv.reader(lines, delimiter='|')
+            header = next(reader)
+            rows = [parse_slurm_fields(dict(zip(header, row))) for row in reader]
+            slurm_job = ''
+            slurm_steps = []
+            for r in rows:
+                if r['JobID'] == str(job_id):
+                    slurm_job = json.dumps(r)
+                else:
+                    slurm_steps.append(json.dumps(r))
+            if not slurm_job:
+                raise WorkerError("No Job Found With That ID")
+            return {"SlurmJob": slurm_job, "SlurmSteps": slurm_steps}
+        except subprocess.CalledProcessError as e:
+            log.error(f"Error retrieving job metadata for job {job_id}: {e}")
+            return {"SlurmJob": "", "SlurmSteps": ""}
 
 
 
