@@ -1,7 +1,8 @@
 """Create and manage CWL files."""
 from dataclasses import dataclass
 from io import StringIO
-from typing import Optional
+from pathlib import Path, PosixPath
+from typing import Optional, Union
 import ruamel.yaml
 
 # Create the global object for ruamel.ymal
@@ -457,7 +458,13 @@ class ScriptRequirement:
 class TaskRequirement:
     """Defines task requirement."""
 
-    workdir: str
+    # Accept either a string or a PosixPath
+    workdir: Union[str, PosixPath] = None
+
+    def __post_init__(self) -> None:
+        """ Convert a Path object to a string."""
+        if isinstance(self.workdir, (Path, PosixPath)):
+            self.workdir = str(self.workdir)
 
     def dump(self):
         """Dump task requirement to a dictionary."""
