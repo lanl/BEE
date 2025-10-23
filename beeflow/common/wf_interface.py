@@ -343,29 +343,31 @@ class WorkflowInterface:
                 if val is not None:
                     self._gdb_driver.set_task_output_glob(task_id, output.id, val)
                     output.glob = val
-                if output.type == "File":
+                if output.type in {"String", "str", "string"}:
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            str_output = f.read()
+                        self._gdb_driver.set_task_output(task_id, output.id, str_output)
+                elif output.type in {"int", "integer", "Integer"}:
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            try:
+                                int_output = int(f.read())
+                            except ValueError:
+                                int_output = None
+                        self._gdb_driver.set_task_output(task_id, output.id, int_output)
+                elif output.type in {"float", "Float", "FLOAT"}:
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            try:
+                                float_output = float(f.read())
+                            except ValueError:
+                                float_output = None
+                        self._gdb_driver.set_task_output(task_id, output.id, float_output)
+                else:
                     self._gdb_driver.set_task_output(task_id, output.id, output.glob)
-                elif output.type == "String":
-                    globs = glob.glob(output.glob)
-                    if len(globs) > 0:
-                        with open(globs[0], 'r', encoding='UTF-8') as f:
-                            val = f.read()
-                        self._gdb_driver.set_task_output(task_id, output.id, val)
-                elif output.type == "int":
-                    globs = glob.glob(output.glob)
-                    if len(globs) > 0:
-                        with open(globs[0], 'r', encoding='UTF-8') as f:
-                            try:
-                                val = int(f.read())
-                            except ValueError:
-                                val = None
-                        self._gdb_driver.set_task_output(task_id, output.id, val)
-                elif output.type == "float":
-                    globs = glob.glob(output.glob)
-                    if len(globs) > 0:
-                        with open(globs[0], 'r', encoding='UTF-8') as f:
-                            try:
-                                val = float(f.read())
-                            except ValueError:
-                                val = None
-                        self._gdb_driver.set_task_output(task_id, output.id, val)
+            else:
+                self._gdb_driver.set_task_output(task_id, output.id, "ready")

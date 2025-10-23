@@ -383,6 +383,7 @@ def submit(  # pylint:disable=R0915
     tarball_path = ""
     workflow = None
     encoded_tarball = None
+    untar_path = None
     tasks = []
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
@@ -427,7 +428,8 @@ def submit(  # pylint:disable=R0915
         )
         with open(package_path, "rb") as f:
             encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
-        shutil.rmtree(untar_path)
+        if untar_path is not None:
+            shutil.rmtree(untar_path)
         if os.path.isdir(wf_path):
             shutil.rmtree(tempdir_path)
     else:
