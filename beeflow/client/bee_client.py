@@ -33,6 +33,8 @@ from beeflow.common import config_driver
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
 from beeflow.common import paths
+from beeflow.common.parser import CwlParser # pylint: disable=C0415 # Costly import
+from beeflow.common.parser.parser import CwlParseError
 from beeflow.common.object_models import generate_workflow_id
 from beeflow.client import remote_client
 from beeflow.wf_manager.models import (
@@ -364,12 +366,9 @@ def submit(  # pylint:disable=R0915
     wf_path = wf_path.resolve()
     workdir = workdir.resolve()
 
-    # Make sure the workdir is an absolute path and exists
+    # Make sure the workdir is an absolute path
     workdir = os.path.expanduser(workdir)
     workdir = os.path.abspath(workdir)
-    if not os.path.exists(workdir):
-        error_exit(f'Workflow working directory "{workdir}" doesn\'t exist')
-
     # Make sure the workdir is not in /var or /var/tmp
     if os.path.commonpath([os.path.realpath("/tmp"), workdir]) == os.path.realpath(
         "/tmp"
@@ -380,6 +379,8 @@ def submit(  # pylint:disable=R0915
     ):
         error_exit('Workflow working directory cannot be in "/var/tmp"')
 
+    # Create workdir if it does not exist
+    os.makedirs(workdir, exist_ok=True)
     tarball_path = ""
     workflow = None
     encoded_tarball = None
@@ -420,12 +421,17 @@ def submit(  # pylint:disable=R0915
         main_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
         yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
 
-        from beeflow.common.parser import CwlParser # pylint: disable=C0415 # Costly import
         parser = CwlParser()
         workflow_id = generate_workflow_id()
-        workflow, tasks = parser.parse_workflow(
-            workflow_id, str(main_cwl_path), job=str(yaml_path), workdir=workdir
-        )
+        try:
+            workflow, tasks = parser.parse_workflow(
+                workflow_id, str(main_cwl_path), job=str(yaml_path), workdir=workdir
+            )
+
+        except CwlParseError as err:
+            print(f"{type(err).__name__}: {err}")
+            return None, []
+
         with open(package_path, "rb") as f:
             encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
         shutil.rmtree(untar_path)
@@ -772,6 +778,7 @@ def reexecute(
     # Make sure the workdir is an absolute path and exists
     workdir = os.path.expanduser(workdir)
     workdir = os.path.abspath(workdir)
+
     if not os.path.exists(workdir):
         error_exit(f'Workflow working directory "{workdir}" doesn\'t exist')
     cwl_path = pathlib.Path(tempfile.mkdtemp())

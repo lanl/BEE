@@ -29,6 +29,6 @@ steps:
     hints:
       beeflow:ScriptRequirement:
         enabled: true
-        pre_script: "pre.sh"
-        post_script: "post.sh"
+        pre_script: "ci/test_workflows/pre-post-script/pre.sh"
+        post_script: "ci/test_workflows/pre-post-script/post.sh"
         shell: "/bin/bash"

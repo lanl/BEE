@@ -18,19 +18,20 @@ Additional Poetry documentation:
 Requirement: Python version 3.11 to 3.14
 ------------------------------------------
 
-Installation Using a Python Environment 
+Installation Using a Python Environment
 ---------------------------------------
 To install Poetry using a python environment, you must first set up the environment using the following
-commands (Please note that the name of the environment is not limited to beedev-env). 
+commands (Please note that the name of the environment is not limited to beedev-env).
 
 Please note the following instructions are intended for the Bash shell. If your default shell is Zsh,
-the instructions may be slightly different.        
+the instructions may be slightly different.
 
 .. code-block::
 
     mkdir beedev-env
     python3 -m venv beedev-env
-    source beedev-env/bin/activate 
+    source beedev-env/bin/activate
+    pip install --upgrade pip
     pip install poetry
 
 You can make sure Poetry is installed by using the following command: ``poetry --version``.
