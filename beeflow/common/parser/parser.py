@@ -389,7 +389,13 @@ class CwlParser:
         else:
             base_path = os.path.dirname(self.path)
         fname = items[key]
-        path = os.path.join(base_path, fname)
+        fpath = Path(fname)
+        if fname.startswith("~"):
+            fpath = fpath.expanduser()
+        if fpath.is_absolute():
+            path = fpath
+        else:
+            path = os.path.join(base_path, fpath)
         try:
             with open(path, encoding="utf-8") as fp:
                 items[key] = fp.read()
