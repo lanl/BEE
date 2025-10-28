@@ -52,8 +52,8 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_script(self):
         """Test parsing of workflow with a YAML input job file."""
-        cwl_wf_file = find("ci/test_workflows/pre-post-script/workflow.cwl") # pylint: disable=C0301
-        cwl_job_yaml = find("ci/test_workflows/pre-post-script/input.yml") # pylint: disable=C0301
+        cwl_wf_file = find("ci/test_workflows/pre-post-script/workflow.cwl")
+        cwl_job_yaml = find("ci/test_workflows/pre-post-script/input.yml")
 
         workflow_id = generate_workflow_id()
 
@@ -66,8 +66,8 @@ class TestParser(unittest.TestCase):
 
     def test_parse_workflow_validate_script(self):
         """Test parsing of workflow and validate pre/post script files."""
-        cwl_wf_file = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_wf.cwl") # pylint: disable=C0301
-        cwl_job_yaml = find("beeflow/data/cwl/bee_workflows/clamr-ffmpeg-validate_script/clamr_job.yml") # pylint: disable=C0301
+        cwl_wf_file = find("ci/test_workflows/pre-post-script-validate/workflow.cwl")
+        cwl_job_yaml = find("ci/test_workflows/pre-post-script-validate/input.yml")
 
         workflow_id = generate_workflow_id()
 
@@ -445,7 +445,6 @@ TASKS_NOJOB_GOLD = [
 def test_parse_requirements_hints(requirements, workdir, exp_reqs):
     """Regression test parse_requirements when as_hints=True."""
     parser = CwlParser()
-    print(f"Pat: workdir {workdir}")
     reqs = parser.parse_requirements(requirements, workdir, as_hints=True)
     assert reqs == exp_reqs
 
