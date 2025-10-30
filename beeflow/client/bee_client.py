@@ -23,6 +23,7 @@ import textwrap
 import time
 import importlib.metadata
 import importlib
+from typing import List, Optional
 import jsonpickle
 import requests
 import typer
@@ -305,6 +306,19 @@ def match_short_id(wf_id):
             long_wf_id = matched_ids[0]
             return long_wf_id
     sys.exit("There are currently no workflows.")
+
+
+def match_short_ids(wf_ids):
+    """Match user-provided short workflow IDs to full workflow IDs."""
+    long_wf_ids = []
+    for wf_id in wf_ids:
+        try:
+            long_wf_id = match_short_id(wf_id)
+            long_wf_ids.append(long_wf_id)
+        except ClientError as err:
+            logging.info(f"Could not match workflow ID {wf_id}: {err}")
+
+    return long_wf_ids
 
 
 def get_wf_status(wf_id):
@@ -712,29 +726,61 @@ def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 
 @app.command()
-def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
+def cancel(
+    wf_ids: Optional[List[str]] = typer.Argument(
+        None,
+        metavar="WF_ID...",
+        callback=match_short_ids,
+        help="Workflow ID(s) to cancel",
+    ),
+    all_: bool = typer.Option(
+        False,
+        "--all",
+        "-a",
+        help="Cancel all running or paused workflows",
+    ),
+):
     """Cancel a paused or running workflow."""
-    long_wf_id = wf_id
-    wf_status = get_wf_status(wf_id)
-    if wf_status in ("Running", "Paused", "No Start"):
-        try:
-            conn = _wfm_conn()
-            resp = conn.delete(
-                _resource(long_wf_id),
-                json=ModifyWorkflowRequest(option="cancel").model_dump(),
-                timeout=60,
-            )
+    if not all_ and not wf_ids:
+        error_exit("Please provide at least one valid "
+                    "workflow ID to cancel or use --all.")
+    if all_ and wf_ids:
+        error_exit("Please provide either workflow IDs to cancel or use --all, "
+        "not both.")
+    if all_:
+        workflow_list = get_wf_list()
+        wf_ids = [
+            wf_info.wf_id
+            for wf_info in workflow_list
+            if wf_info.wf_status in ("Running", "Paused", "No Start")
+        ]
+        if not wf_ids:
+            typer.secho("There are no running or paused workflows to cancel.",
+                        fg=typer.colors.YELLOW)
+            return
+    conn = _wfm_conn()
+    for wf_id in wf_ids:
+        wf_status = get_wf_status(wf_id)
+        if wf_status in ("Running", "Paused", "No Start"):
+            try:
+                conn = _wfm_conn()
+                resp = conn.delete(
+                    _resource(wf_id),
+                    json=ModifyWorkflowRequest(option="cancel").model_dump(),
+                    timeout=10,
+                )
 
-        except requests.exceptions.ConnectionError:
-            error_exit("Could not reach WF Manager.")
-        if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
-            error_exit("WF Manager could not cancel workflow.")
-        typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
-        logging.info(f"Cancel workflow: {resp.text}")
-    elif wf_status == "Intializing":
-        print(f"Workflow is {wf_status}, try cancel later.")
-    else:
-        print(f"Workflow is {wf_status} cannot cancel.")
+            except requests.exceptions.ConnectionError:
+                error_exit("Could not reach WF Manager.")
+            if resp.status_code != requests.codes.accepted: # pylint: disable=no-member
+                print(f'WF Manager could not cancel workflow {_short_id(wf_id)}.')
+            else:
+                typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
+                logging.info(f"Cancel workflow: {resp.text}")
+        elif wf_status == "Intializing":
+            print(f"Workflow is {wf_status}, try cancel later.")
+        else:
+            print(f"Workflow is {wf_status} cannot cancel.")
 
 
 @app.command()
