@@ -335,7 +335,8 @@ def match_short_ids(wf_ids):
             results.append(matches[0])
         elif len(matches) > 1:
             print(
-                f"User provided workflow id {short_id} is ambiguous and matches multiple stored workflow IDs:"
+                f"User provided workflow id {short_id} is ambiguous "
+                "and matches multiple stored workflow IDs:"
             )
             for m in matches:
                 print(f" - {m}")
@@ -380,7 +381,7 @@ def modify_workflow_list(wf_ids, all_, action, valid_statuses):
             typer.secho(f'There are no workflows in {valid_statuses} to {action}',
                         fg=typer.colors.YELLOW)
             return
-    
+
     # If remove, confirm with user first
     if action == "remove":
         workflow_info_list = get_wf_list(filter_ids=wf_ids)
@@ -419,7 +420,7 @@ def modify_workflow_list(wf_ids, all_, action, valid_statuses):
 
             except requests.exceptions.ConnectionError:
                 error_exit("Could not reach WF Manager.")
-            if resp.status_code != requests.codes.accepted: # pylint: disable=no-member
+            if resp.status_code not in (requests.codes.accepted, requests.codes.okay): # pylint: disable=no-member
                 print(f'WF Manager could not {action} workflow {_short_id(wf_id)}.')
             else:
                 typer.secho(f"Workflow {_short_id(wf_id)} {action}ed!", fg=typer.colors.GREEN)
@@ -662,7 +663,7 @@ def package(
 def remove(
     wf_ids: Optional[List[str]] = typer.Argument(
         None,
-        metavar="WF_ID...",
+        metavar="WF_IDS...",
         callback=match_short_ids,
         help="Workflow ID(s) to remove",
     ),
@@ -774,7 +775,7 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 def pause(
     wf_ids: Optional[List[str]] = typer.Argument(
         None,
-        metavar="WF_ID...",
+        metavar="WF_IDS...",
         callback=match_short_ids,
         help="Workflow ID(s) to resume",
     ),
@@ -798,7 +799,7 @@ def pause(
 def resume(
     wf_ids: Optional[List[str]] = typer.Argument(
         None,
-        metavar="WF_ID...",
+        metavar="WF_IDS...",
         callback=match_short_ids,
         help="Workflow ID(s) to resume",
     ),
@@ -822,7 +823,7 @@ def resume(
 def cancel(
     wf_ids: Optional[List[str]] = typer.Argument(
         None,
-        metavar="WF_ID...",
+        metavar="WF_IDS...",
         callback=match_short_ids,
         help="Workflow ID(s) to cancel",
     ),
