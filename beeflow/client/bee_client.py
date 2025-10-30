@@ -395,11 +395,14 @@ def modify_workflow_list(wf_ids, all_, action, valid_statuses):
         confirm += "\nContinue to remove? yes(y)/no(n): " ""
         response = input(confirm)
         if response in ("n", "no"):
-            sys.exit("Workflows not removed.")
+            sys.exit("Workflow(s) not removed.")
         elif response in ("y", "yes"):
             pass
 
-    conn = _wfm_conn()
+    try:
+        conn = _wfm_conn()
+    except requests.exceptions.ConnectionError:
+        error_exit("Could not reach WF Manager.")
     for wf_id in wf_ids:
         wf_status = get_wf_status(wf_id)
         if any(wf_status.startswith(valid_status) for valid_status in valid_statuses):
