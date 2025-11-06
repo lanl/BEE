@@ -395,7 +395,8 @@ def modify_workflow_list(wf_ids, all_, action, valid_statuses):
         confirm += "\nContinue to remove? yes(y)/no(n): " ""
         response = input(confirm)
         if response in ("n", "no"):
-            sys.exit("Workflow(s) not removed.")
+            print("Workflow(s) not removed.")
+            return
         elif response in ("y", "yes"):
             pass
 

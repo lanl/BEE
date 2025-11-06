@@ -630,10 +630,12 @@ def test_package_errors(mocker, tmpdir, isdir, return_code, exception, match):
             "yes",
             202,
             None,
-            SystemExit,
+            None,
             "",
-            """Workflow Status is Cancelled
-Workflow removed!
+            """Workflows to be removed:
+Name\tID\tStatus
+test_wf\t123456\tCancelled
+Workflow 123456 removeed!
 """,
         ),
         (
@@ -641,18 +643,26 @@ Workflow removed!
             "n",
             0,
             None,
-            SystemExit,
+            None,
             "Workflow(s) not removed",
-            "Workflow Status is Archived/Failed\n",
+            """Workflows to be removed:
+Name\tID\tStatus
+test_wf\t123456\tArchived/Failed
+Workflow(s) not removed.
+"""
         ),
         (
             "Paused",
             "y",
             0,
             None,
-            bee_client.ClientError,
-            "WF Manager could not remove workflow",
-            "Workflow Status is Paused\n",
+            None,
+            None,
+            """Workflows to be removed:
+Name\tID\tStatus
+test_wf\t123456\tPaused
+WF Manager could not remove workflow 123456.
+"""
         ),
         (
             "Archived",
@@ -661,18 +671,22 @@ Workflow removed!
             ConnectionError(),
             bee_client.ClientError,
             "Could not reach WF Manager",
-            "Workflow Status is Archived\n",
+            """Workflows to be removed:
+Name\tID\tStatus
+test_wf\t123456\tArchived
+""",
         ),
         (
             "Running",
             "",
             0,
             None,
-            SystemExit,
+            None,
             "",
-            """Workflow Status is Running
-123456 may still be running.
-The workflow must be cancelled before attempting removal.
+            """Workflows to be removed:
+Name\tID\tStatus
+test_wf\t123456\tRunning
+Workflow 123456 is Running cannot remove.
 """,
         ),
     ],
@@ -691,7 +705,7 @@ def test_remove(
     """Regression test remove."""
     mocker.patch("beeflow.client.bee_client.get_wf_status", return_value=wf_status)
     mocker.patch("builtins.input", return_value=input_val)
-    mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=[])
+    mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=[WorkflowInfo(wf_name="test_wf", wf_id="123456", wf_status=wf_status)])
     fake_resp = mocker.Mock()
     fake_resp.status_code = status_code
     fake_resp.text = "fake text"
@@ -702,7 +716,10 @@ def test_remove(
         return_value=mock_conn,
         side_effect=side_effect,
     )
-    with pytest.raises(exception, match=match):
+    if exception:
+        with pytest.raises(exception, match=match):
+            bee_client.remove(["123456"], all_=False)
+    else:
         bee_client.remove(["123456"], all_=False)
     cap = capsys.readouterr()
     assert cap.out == exp_out
