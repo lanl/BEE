@@ -678,7 +678,7 @@ test_wf\t123456\tArchived
         ),
         (
             "Running",
-            "",
+            "y",
             0,
             None,
             None,
