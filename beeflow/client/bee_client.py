@@ -397,8 +397,12 @@ def modify_workflow_list(wf_ids, all_, action, valid_statuses):
         if response in ("n", "no"):
             print("Workflow(s) not removed.")
             return
-        elif response in ("y", "yes"):
+
+        if response in ("y", "yes"):
             pass
+        else:
+            print("Invalid response. Workflow(s) not removed.")
+            return
 
     try:
         conn = _wfm_conn()
