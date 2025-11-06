@@ -557,13 +557,13 @@ files = [
 
 [[package]]
 name = "click"
-version = "8.3.0"
+version = "8.1.7"
 description = "Composable command line interface toolkit"
 optional = false
-python-versions = ">=3.10"
+python-versions = ">=3.7"
 files = [
-    {file = "click-8.3.0-py3-none-any.whl", hash = "sha256:9b9f285302c6e3064f4330c05f05b81945b2a39544279343e6e7c5f27a9baddc"},
-    {file = "click-8.3.0.tar.gz", hash = "sha256:e7b8232224eba16f4ebe410c25ced9f7875cb5f3263ffc93cc3e8da705e229c4"},
+    {file = "click-8.1.7-py3-none-any.whl", hash = "sha256:ae74fb96c20a0277a1d615f1e4d73c8414f5a98db8b799a7931d1582f3390c28"},
+    {file = "click-8.1.7.tar.gz", hash = "sha256:ca9853ad459e787e2192211578cc907e7594e294c7ccc834310722b41b9ca6de"},
 ]
 
 [package.dependencies]
@@ -5307,4 +5307,4 @@ cloud-extras = ["google-api-python-client", "python-heatclient", "python-opensta
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<=3.14"
-content-hash = "10fee93e823fc9205c28f3c289622003dd06ca6c2a0a78808f56f4528cabd6b9"
+content-hash = "8773393c3f342c1261a06692f9aca1c6bfd24aaaf8a172ddcf2be1b839063ee9"
