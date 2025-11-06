@@ -724,6 +724,54 @@ def test_remove(
     cap = capsys.readouterr()
     assert cap.out == exp_out
 
+@pytest.mark.parametrize(
+    "wf_info_list, requested_ids, exp_out_parts, ret_val",
+    [
+        (
+            [
+                WorkflowInfo(wf_name="wf1", wf_id="111112", wf_status="Archived"),
+                WorkflowInfo(wf_name="wf2", wf_id="111111", wf_status="Archived"),
+                WorkflowInfo(wf_name="wf2", wf_id="222222", wf_status="Archived"),
+                WorkflowInfo(wf_name="wf3", wf_id="333333", wf_status="Archived"),
+            ],
+            [
+                "1111",
+                "2222",
+                "3333",
+                "4444"
+            ],
+            ["""User provided workflow id 1111 is ambiguous and matches multiple stored workflow IDs:
+ - 111111
+ - 111112""",
+"""User provided workflow id 4444 did not match any stored workflow ID."""],
+            ["222222", "333333"]
+        )
+    ]
+)
+def test_match_short_ids(
+        mocker,
+        capsys,
+        wf_info_list,
+        requested_ids,
+        exp_out_parts,
+        ret_val
+):
+    mocker.patch("beeflow.client.bee_client.get_wf_list", return_value=wf_info_list)
+    mocker.patch("builtins.input", return_value="yes")
+    mock_conn = mocker.Mock()
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 202
+    mock_conn.delete.return_value = fake_resp
+    mocker.patch(
+        "beeflow.client.bee_client._wfm_conn",
+        return_value=mock_conn,
+    )
+
+    found_ids = bee_client.match_short_ids(requested_ids)
+    assert set(found_ids) == set(ret_val)
+    cap = capsys.readouterr()
+    assert all(exp_out_parts[i] in cap.out for i in range(len(exp_out_parts)))
+
 
 def test_unpackage(tmp_path):
     """Regression test unpackage."""
