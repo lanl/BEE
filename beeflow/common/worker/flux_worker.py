@@ -163,13 +163,12 @@ class FluxWorker(Worker):
     def get_task_metadata(self, job_id):
         """Gets all available fields of a Flux job"""
         # job info in JSON
-        cmd = ["flux", "job", "info", str(job_id), "--json"]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        job_data = json.loads(result.stdout)
+        flux = self.flux.Flux()
+        job_data = self.job.get_job(flux, job_id)
 
         # For steps: Flux does not track steps like Slurm.
         # Only the top-level job exists.
-        flux_job = json.dumps(job_data)
+        flux_job = json.dumps(job_data["job"])
 
         if not job_data:
             raise RuntimeError("No Job Found With That ID")
