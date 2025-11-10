@@ -168,6 +168,7 @@ class FluxWorker(Worker):
 
         # For steps: Flux does not track steps like Slurm.
         # Only the top-level job exists.
+        print(job_data)
         flux_job = json.dumps(job_data["job"])
 
         if not job_data:
