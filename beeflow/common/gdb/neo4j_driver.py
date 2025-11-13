@@ -773,6 +773,11 @@ def _reconstruct_workflow(workflow_record, hints, requirements, inputs, outputs)
     return Workflow(
         name=workflow_record["name"],
         hints=hints,
+        state=workflow_record["state"],
+        workdir=workflow_record["workdir"],
+        main_cwl=workflow_record["main_cwl"],
+        wf_path=workflow_record["wf_path"],
+        yaml=workflow_record["yaml"],
         requirements=requirements,
         inputs=inputs,
         outputs=outputs,
