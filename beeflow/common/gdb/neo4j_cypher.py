@@ -30,6 +30,10 @@ def create_workflow_node(tx, workflow):
                       "SET w.id = $wf_id "
                       "SET w.name = $name "
                       "SET w.state = $state "
+                      "SET w.workdir = $workdir "
+                      "SET w.main_cwl = $main_cwl "
+                      "SET w.wf_path = $wf_path "
+                      "SET w.yaml = $yaml "
                       "SET w.reqs = $reqs "
                       "SET w.hints = $hints "
                       "SET w.restart = FALSE")
@@ -38,7 +42,8 @@ def create_workflow_node(tx, workflow):
     reqs = len(workflow.requirements) > 0
     hints = len(workflow.hints) > 0
     tx.run(workflow_query, wf_id=workflow.id, name=workflow.name, state=workflow.state,
-           reqs=reqs, hints=hints)
+           workdir=workflow.workdir, main_cwl=workflow.main_cwl, wf_path=workflow.wf_path,
+           yaml=workflow.yaml, reqs=reqs, hints=hints)
 
 
 def create_workflow_hint_nodes(tx, workflow):
