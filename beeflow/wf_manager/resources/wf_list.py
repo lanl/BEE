@@ -11,9 +11,10 @@ import jsonpickle
 from flask import request
 from pydantic_core import ValidationError
 from flask_restful import Resource
-from celery import shared_task
 
 from beeflow.common import log as bee_logging
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver
+
 
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
@@ -23,7 +24,6 @@ from beeflow.wf_manager.models import (
     ListWorkflowsResponse,
     SubmitWorkflowRequest,
     SubmitWorkflowResponse,
-    WorkflowInfo,
 )
 from beeflow.wf_manager.resources import wf_utils
 
@@ -60,18 +60,6 @@ def extract_wf(wf_id, filename, encoded_archive_tarball):
     return cwl_dir
 
 
-@shared_task(ignore_result=True)
-def init_workflow(
-    wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, tasks=None
-):
-    """Initialize the workflow in a separate process."""
-    db = connect_db(wfm_db, db_path)
-    wf_utils.connect_neo4j_driver(db.info.get_port("bolt"))
-    wf_utils.setup_workflow(
-        wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow, tasks
-    )
-
-
 db_path = wf_utils.get_db_path()
 
 
@@ -81,21 +69,13 @@ class WFList(Resource):
     def get(self):
         """Return list of workflows to client."""
         db = connect_db(wfm_db, db_path)
-        workflow_list = db.workflows.get_workflows()
-        info = []
-        for workflow in workflow_list:
-            info.append(
-                WorkflowInfo(
-                    wf_id=workflow.workflow_id,
-                    wf_name=workflow.name,
-                    wf_status=workflow.state,
-                )
-            )
+        wf_utils.connect_neo4j_driver(db.info.get_port("bolt"))
+        info = Neo4jDriver().get_all_workflow_info()
+
         return ListWorkflowsResponse(workflow_info_list=info).model_dump(), 200
 
     def post(self):
         """Upload a workflown and start."""
-        db = connect_db(wfm_db, db_path)
         try:
             data = SubmitWorkflowRequest.model_validate(request.json)
         except ValidationError as e:
@@ -110,9 +90,7 @@ class WFList(Resource):
         wf_id = data.workflow.id
         wf_dir = extract_wf(wf_id, data.wf_filename, data.encoded_tarball)
 
-        db.workflows.init_workflow(wf_id, data.wf_name, wf_dir)
-
-        init_workflow.delay(
+        wf_utils.setup_workflow(
             wf_id,
             data.wf_name,
             wf_dir,

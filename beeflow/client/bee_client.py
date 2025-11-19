@@ -8,7 +8,6 @@ Capablities include submitting, starting, listing, pausing and cancelling workfl
 # Disable W0511: This allows us to have TODOs in the code
 # Disable R1732: Significant code restructuring required to fix
 # pylint:disable=W0511,R1732
-
 import os
 import sys
 import logging
@@ -23,6 +22,7 @@ import tempfile
 import textwrap
 import time
 import importlib.metadata
+import importlib
 import jsonpickle
 import requests
 import typer
@@ -33,9 +33,7 @@ from beeflow.common import config_driver
 from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
 from beeflow.common import paths
-from beeflow.common.parser import CwlParser
 from beeflow.common.object_models import generate_workflow_id
-from beeflow.client import core  # pylint: disable=R0401 #WIP
 from beeflow.client import remote_client
 from beeflow.wf_manager.models import (
     CopyWorkflowRequest,
@@ -324,7 +322,7 @@ def get_wf_status(wf_id):
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
-app.add_typer(core.app, name="core")
+app.add_typer(importlib.import_module("beeflow.client.core").app, name="core") # import if used
 app.add_typer(remote_client.app, name="remote")
 app.add_typer(config_driver.app, name="config")
 
@@ -385,6 +383,7 @@ def submit(  # pylint:disable=R0915
     tarball_path = ""
     workflow = None
     encoded_tarball = None
+    untar_path = None
     tasks = []
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
@@ -392,17 +391,17 @@ def submit(  # pylint:disable=R0915
             print(
                 "Detected directory instead of packaged workflow. Packaging Directory..."
             )
-            main_cwl_path = pathlib.Path(main_cwl).resolve()
-            yaml_path = pathlib.Path(yaml_file).resolve()
+            orig_cwl_path = pathlib.Path(main_cwl).resolve()
+            orig_yaml_path = pathlib.Path(yaml_file).resolve()
 
-            if not main_cwl_path.exists():
+            if not orig_cwl_path.exists():
                 error_exit(f"Main CWL file {main_cwl} does not exist")
-            if not yaml_path.exists():
+            if not orig_yaml_path.exists():
                 error_exit(f"YAML file {yaml_file} does not exist")
 
             # Packaging in temp dir, after copying alternate cwl_main or yaml file
-            cwl_indir = is_parent(wf_path, main_cwl_path)
-            yaml_indir = is_parent(wf_path, yaml_path)
+            cwl_indir = is_parent(wf_path, orig_cwl_path)
+            yaml_indir = is_parent(wf_path, orig_yaml_path)
 
             # Always create temp dir for the workflow
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
@@ -415,20 +414,22 @@ def submit(  # pylint:disable=R0915
             package_path = package(tempdir_wf_path, tempdir_path)
         else:
             package_path = wf_path
+            untar_path = pathlib.Path(tempfile.mkdtemp())
+            untar_wf_path = unpackage(package_path, untar_path)
+            orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
+            orig_yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
 
-        # Untar and parse workflow
-        untar_path = pathlib.Path(tempfile.mkdtemp())
-        untar_wf_path = unpackage(package_path, untar_path)
-        main_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
-        yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
+        from beeflow.common.parser import CwlParser # pylint: disable=C0415 # Costly import
         parser = CwlParser()
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(
-            workflow_id, str(main_cwl_path), job=str(yaml_path), workdir=workdir
+            workflow_id, wf_name, str(orig_cwl_path), job=str(orig_yaml_path),
+            workdir=workdir, wf_path=wf_path
         )
         with open(package_path, "rb") as f:
             encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
-        shutil.rmtree(untar_path)
+        if untar_path is not None:
+            shutil.rmtree(untar_path)
         if os.path.isdir(wf_path):
             shutil.rmtree(tempdir_path)
     else:
