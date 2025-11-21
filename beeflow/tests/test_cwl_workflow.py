@@ -12,7 +12,7 @@ from beeflow.common.cwl.workflow import (
     TaskReq,
 )
 from importlib.resources import files
-from pathlib import PosixPath
+from pathlib import Path
 
 expected_folder = files("beeflow.tests.cwl_files")
 
@@ -205,7 +205,7 @@ def test_workflow_checkpoint(tmpdir):
     "workdir_value, description",
     [
         ("cat_workdir", "plain string"),
-        (PosixPath("cat_workdir"), "PosixPath object"),
+        (Path("cat_workdir"), "Path object"),
     ],
     ids=lambda val: f"workdir_as_{type(val).__name__}",
 )
