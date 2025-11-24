@@ -612,13 +612,13 @@ def unpackage(package_path, dest_path):
 def list_workflows():
     """List all workflows."""
     workflow_list = get_wf_list()
+    headers = [typer.style(h, fg=typer.colors.GREEN) for h in ["Name", "ID", "Status"]]
     if workflow_list:
-        typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
-
+        data = []
         for wf_info in workflow_list:
-            typer.echo(
-                f"{wf_info.wf_name}\t{_short_id(wf_info.wf_id)}\t{wf_info.wf_status}"
-            )
+            data.append([wf_info.wf_name, _short_id(wf_info.wf_id), wf_info.wf_status])
+        table = tabulate(data, headers=headers, tablefmt="plain")
+        typer.echo(table)
     else:
         typer.echo("There are currently no workflows.")
 
