@@ -175,7 +175,6 @@ def test_workflow_checkpoint(tmpdir):
             Checkpoint(
                 enabled=True,
                 file_path="checkpoint_output",
-                container_path="checkpoint_output",
                 file_regex="backup[0-9]*.crx",
                 restart_parameters="-R",
                 num_tries=3,
