@@ -395,7 +395,6 @@ class CheckpointRequirement:
     """Represents a beeflow checkpoint requirement."""
 
     file_path: str
-    container_path: str
     file_regex: str
     restart_parameters: str
     num_tries: int
@@ -408,7 +407,6 @@ class CheckpointRequirement:
         checkpoint_dump = {req_name: {}}
         checkpoint_dump[req_name]['enabled'] = self.enabled
         checkpoint_dump[req_name]['file_path'] = self.file_path
-        checkpoint_dump[req_name]['container_path'] = self.container_path
         checkpoint_dump[req_name]['file_regex'] = self.file_regex
         checkpoint_dump[req_name]['restart_parameters'] = self.restart_parameters
         checkpoint_dump[req_name]['add_parameters'] = self.add_parameters

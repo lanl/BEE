@@ -130,7 +130,6 @@ class Checkpoint(CheckpointRequirement):
     def requirement(self):
         """Return a checkpoint requirement object."""
         return CheckpointRequirement(file_path=self.file_path,
-                                     container_path=self.container_path,
                                      file_regex=self.file_regex,
                                      restart_parameters=self.restart_parameters,
                                      add_parameters=self.add_parameters,
