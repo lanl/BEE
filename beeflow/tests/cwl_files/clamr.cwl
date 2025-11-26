@@ -82,7 +82,6 @@ steps:
       beeflow:CheckpointRequirement:
         enabled: true
         file_path: checkpoint_output
-        container_path: checkpoint_output
         file_regex: backup[0-9]*.crx
         restart_parameters: -R
         add_parameters:

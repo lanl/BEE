@@ -416,7 +416,6 @@ TASKS_NOJOB_GOLD = [
                     [
                         ("enabled", True),
                         ("file_path", "checkpoint_output"),
-                        ("container_path", "checkpoint_output"),
                         ("file_regex", "backup[0-9]*.crx"),
                         ("restart_parameters", None),
                         ("num_tries", 3),
@@ -430,7 +429,6 @@ TASKS_NOJOB_GOLD = [
                     params={
                         "enabled": True,
                         "file_path": "checkpoint_output",
-                        "container_path": "checkpoint_output",
                         "file_regex": "backup[0-9]*.crx",
                         "num_tries": 3,
                     },
