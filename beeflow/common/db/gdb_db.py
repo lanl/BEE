@@ -107,3 +107,54 @@ class SQL_GDB:
         for outp in workflow.outputs:
             bdb.run(self.db_file, wf_output_stmt, (outp.id, workflow.id, outp.type, outp.value, outp.source))
 
+    
+    def set_init_task_inputs(self, wf_id: str):
+        """Set initial workflow task inputs from workflow inputs or defaults"""
+        # find all task_inputs of tasks in the workflow
+        # find all workflow_inputs to the workflow
+        # Where workflow input value is not null and the task input source is the workflow input id,
+        # and set the task input value to the workflow input value
+        # one query
+
+        inputs_query = """
+            UPDATE task_input
+            SET value = (
+                SELECT wi.value
+                FROM task AS t
+                JOIN workflow_input AS wi
+                ON wi.workflow_id = t.workflow_id
+                WHERE
+                    t.workflow_id = ?
+                    AND task_input.task_id = t.id
+                    AND task_input.source = wi.id
+                    AND wi.value IS NOT NULL
+            )
+            WHERE EXISTS (
+                SELECT 1
+                FROM task AS t
+                JOIN workflow_input AS wi
+                ON wi.workflow_id = t.workflow_id
+                WHERE
+                    t.workflow_id = ?
+                    AND task_input.task_id = t.id
+                    AND task_input.source = wi.id
+                    AND wi.value IS NOT NULL
+            );"""
+        
+        defaults_query = """
+            UPDATE task_input
+            SET value = default_val
+            WHERE value IS NULL
+            AND default_val IS NOT NULL
+            AND task_id IN (
+                SELECT id FROM task WHERE workflow_id = ?
+            );"""
+
+        
+        bdb.run(self.db_file, inputs_query, (wf_id, wf_id))
+        bdb.run(self.db_file, defaults_query, (wf_id))
+
+    def set_runnable_tasks_to_ready(self, wf_id: str):
+        """Set all tasks with all inputs satisfied to READY state"""
+        
+

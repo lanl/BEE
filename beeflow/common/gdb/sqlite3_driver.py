@@ -37,12 +37,14 @@ class SQLDriver(GraphDatabaseDriver):
         """
         self.db.create_workflow(workflow)
 
-    @abstractmethod
-    def execute_workflow(self):
+
+    def execute_workflow(self, workflow_id):
         """Begin execution of the stored workflow.
 
         Set the initial tasks' states to 'READY'.
         """
+        self.db.set_init_task_inputs(workflow_id)
+        self.db.set_runnable_tasks_to_ready(workflow_id)
 
     @abstractmethod
     def pause_workflow(self):
