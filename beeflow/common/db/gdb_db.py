@@ -45,6 +45,8 @@ class SQL_GDB:
             id TEXT PRIMARY KEY,
             workflow_id TEXT,
             name TEXT,
+            state TEXT,
+            workdir TEXT,
             base_command TEXT,
             stdout TEXT,
             stderr TEXT,
@@ -124,7 +126,7 @@ class SQL_GDB:
                 JOIN workflow_input AS wi
                 ON wi.workflow_id = t.workflow_id
                 WHERE
-                    t.workflow_id = ?
+                    t.workflow_id = :wf_id
                     AND task_input.task_id = t.id
                     AND task_input.source = wi.id
                     AND wi.value IS NOT NULL
@@ -135,7 +137,7 @@ class SQL_GDB:
                 JOIN workflow_input AS wi
                 ON wi.workflow_id = t.workflow_id
                 WHERE
-                    t.workflow_id = ?
+                    t.workflow_id = :wf_id
                     AND task_input.task_id = t.id
                     AND task_input.source = wi.id
                     AND wi.value IS NOT NULL
@@ -147,14 +149,59 @@ class SQL_GDB:
             WHERE value IS NULL
             AND default_val IS NOT NULL
             AND task_id IN (
-                SELECT id FROM task WHERE workflow_id = ?
+                SELECT id FROM task WHERE workflow_id = :wf_id
             );"""
 
         
-        bdb.run(self.db_file, inputs_query, (wf_id, wf_id))
-        bdb.run(self.db_file, defaults_query, (wf_id))
+        bdb.run(self.db_file, inputs_query, {'wf_id': wf_id})
+        bdb.run(self.db_file, defaults_query, {'wf_id': wf_id})
 
     def set_runnable_tasks_to_ready(self, wf_id: str):
         """Set all tasks with all inputs satisfied to READY state"""
-        
+        set_runnable_ready_query = """
+            UPDATE task
+            SET state = 'READY'
+            WHERE workflow_id = :wf_id
+            AND state = 'WAITING'
+            AND NOT EXISTS (
+                SELECT 1
+                FROM task_input AS ti
+                WHERE ti.task_id = task.id
+                    AND ti.value IS NULL
+        );"""
+        bdb.run(self.db_file, set_runnable_ready_query, {'wf_id': wf_id})
 
+    def set_workflow_state(self, wf_id: str, state: str):
+        """Set the state of the workflow."""
+        set_wf_state_query = """
+            UPDATE workflow
+            SET state = :state
+            WHERE id = :wf_id;"""
+        bdb.run(self.db_file, set_wf_state_query, {'wf_id': wf_id, 'state': state})
+
+    def create_task(self, task: Task):
+        """Create a task in the db"""
+        task_stmt = """INSERT INTO task (id, workflow_id, name, state, workdir, base_command, stdout, stderr, reqs, hints, metadata)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+        task_input_stmt = """INSERT INTO task_input (id, task_id, type, value, default_val, source, prefix, position, value_from)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+        task_output_stmt = """INSERT INTO task_output (id, task_id, type, value, glob)
+                            VALUES (?, ?, ?, ?, ?);"""
+
+
+        hints_json = json.dumps((h.model_dump() for h in task.hints))
+        reqs_json = json.dumps((r.model_dump() for r in task.reqs))
+        metadata_json = json.dumps(task.metadata)
+        bdb.run(self.db_file, task_stmt, (task.id, task.workflow_id, task.name, task.state, task.workdir,
+                                      json.dumps(task.base_command), task.stdout, task.stderr,
+                                      reqs_json, hints_json, metadata_json))
+
+
+        for inp in task.inputs:
+            bdb.run(self.db_file, task_input_stmt, (inp.id, task.id, inp.type, inp.value,
+                                                    inp.default_val, inp.source,
+                                                    inp.prefix, inp.position,
+                                                    inp.value_from))
+        for outp in task.outputs:
+            bdb.run(self.db_file, task_output_stmt, (outp.id, task.id, outp.type,
+                                                     outp.value, outp.glob))
