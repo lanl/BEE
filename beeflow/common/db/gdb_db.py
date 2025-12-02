@@ -78,14 +78,32 @@ class SQL_GDB:
             FOREIGN KEY (task_id) REFERENCES task(id) ON DELETE CASCADE
         );"""
 
+        # FROM task depends on TO task
+        task_deps_stmt = """CREATE TABLE IF NOT EXISTS task_dep (
+                depending_task_id TEXT NOT NULL,
+                depends_on_task_id   TEXT NOT NULL,
+                PRIMARY KEY (depending_task_id, depends_on_task_id),
+                FOREIGN KEY (depending_task_id) REFERENCES task(id) ON DELETE CASCADE,
+                FOREIGN KEY (depends_on_task_id)   REFERENCES task(id) ON DELETE CASCADE
+        );"""
+
+        # FROM task restarted from TO task
+        task_rst_stmt = """CREATE TABLE IF NOT EXISTS task_restart (
+                restarting_task_id TEXT NOT NULL,
+                restarted_from_task_id   TEXT NOT NULL,
+                PRIMARY KEY (restarting_task_id, restarted_from_task_id),
+                FOREIGN KEY (restarting_task_id) REFERENCES task(id) ON DELETE CASCADE,
+                FOREIGN KEY (restarted_from_task_id)   REFERENCES task(id) ON DELETE CASCADE
+        );"""
+
         bdb.create_table(self.db_file, wfs_stmt)
         bdb.create_table(self.db_file, wf_inputs_stmt)
         bdb.create_table(self.db_file, wf_outputs_stmt)
         bdb.create_table(self.db_file, tasks_stmt)
         bdb.create_table(self.db_file, task_inputs_stmt)
         bdb.create_table(self.db_file, task_outputs_stmt)
-    
-
+        bdb.create_table(self.db_file, task_deps_stmt)
+        bdb.create_table(self.db_file, task_rst_stmt)
 
     def create_workflow(self, workflow: Workflow):
         """Create a workflow in the db"""
@@ -146,13 +164,21 @@ class SQL_GDB:
         defaults_query = """
             UPDATE task_input
             SET value = default_val
-            WHERE value IS NULL
-            AND default_val IS NOT NULL
-            AND task_id IN (
-                SELECT id FROM task WHERE workflow_id = :wf_id
+            WHERE
+                value IS NULL
+                AND default_val IS NOT NULL
+                AND EXISTS (
+                    SELECT 1
+                    FROM task AS t
+                    JOIN workflow_input AS wi
+                    ON wi.workflow_id = t.workflow_id
+                    WHERE
+                        t.workflow_id = :wf_id
+                        AND task_input.task_id = t.id
+                        AND task_input.source = wi.id
             );"""
 
-        
+
         bdb.run(self.db_file, inputs_query, {'wf_id': wf_id})
         bdb.run(self.db_file, defaults_query, {'wf_id': wf_id})
 
@@ -205,3 +231,77 @@ class SQL_GDB:
         for outp in task.outputs:
             bdb.run(self.db_file, task_output_stmt, (outp.id, task.id, outp.type,
                                                      outp.value, outp.glob))
+    
+    def set_task_state(self, task_id: str, state: str):
+        """Set the state of a task."""
+        set_task_state_query = """
+            UPDATE task
+            SET state = :state
+            WHERE id = :task_id;"""
+        bdb.run(self.db_file, set_task_state_query, {'task_id': task_id, 'state': state})
+
+
+    def add_dependencies(self, task: Task, old_task: Task=None, restarted_task=False):
+        """Add dependencies for a task based on its inputs and outputs."""
+        if restarted_task:
+            set_restarted_wf = """
+                UPDATE workflow
+                SET restart = 1
+                WHERE id = :wf_id;"""
+            delete_dependencies_query = """
+                DELETE FROM task_dep
+                WHERE depends_on_task_id = :depends_on_task_id;"""
+
+            restarted_query = """
+                INSERT INTO task_restart (restarting_task_id, restarted_from_task_id)
+                VALUES (:restarting_task_id, :restarted_from_task_id);"""
+
+            dependency_query = """
+                INSERT OR IGNORE INTO task_dep (depending_task_id, depends_on_task_id)
+                SELECT DISTINCT t.id AS depending_task_id, s.id AS depends_on_task_id
+                FROM task AS s
+                JOIN task_output AS o
+                    ON o.task_id = s.id
+                JOIN task_input AS i
+                    ON i.source = o.id
+                JOIN task AS t
+                    ON t.id = i.task_id
+                WHERE
+                    s.id = :task_id
+                    AND s.workflow_id = t.workflow_id;"""
+            bdb.run(self.db_file, set_restarted_wf, {'wf_id': task.workflow_id})
+            bdb.run(self.db_file, delete_dependencies_query, {'depends_on_task_id': old_task.id})
+            bdb.run(self.db_file, restarted_query, {'restarting_task_id': task.id,
+                                                     'restarted_from_task_id': old_task.id})
+            bdb.run(self.db_file, dependency_query, {'task_id': task.id})
+        else:
+            dependency_query = """
+                INSERT OR IGNORE INTO task_dep (depending_task_id, depends_on_task_id)
+                SELECT DISTINCT s.id AS depending_task_id, t.id AS depends_on_task_id
+                FROM task AS s
+                JOIN task_input AS i
+                ON i.task_id = s.id
+                JOIN task_output AS o
+                ON o.id = i.source
+                JOIN task AS t
+                ON t.id = o.task_id
+                WHERE
+                    s.id = :task_id
+                    AND s.workflow_id = t.workflow_id;"""
+            
+            dependent_query = """
+                INSERT OR IGNORE INTO task_dep (depending_task_id, depends_on_task_id)
+                SELECT DISTINCT t.id AS depending_task_id, s.id AS depends_on_task_id
+                FROM task AS s
+                JOIN task_output AS o
+                ON o.task_id = s.id          -- outputs of s
+                JOIN task_input AS i
+                ON i.source = o.id           -- inputs that consume those outputs
+                JOIN task AS t
+                ON t.id = i.task_id          -- consuming tasks
+                WHERE
+                    s.id = :task_id
+                    AND s.workflow_id = t.workflow_id;"""
+
+            bdb.run(self.db_file, dependency_query, {'task_id': task.id})
+            bdb.run(self.db_file, dependent_query, {'task_id': task.id})
