@@ -45,18 +45,6 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def reset_workflow(self, new_id):
-        """Reset the execution state of a stored workflow.
-
-        Set all task states to 'WAITING'.
-        Change the workflow ID of the Workflow and Task nodes to new_id.
-        Delete all task metadata except for task state.
-
-        :param new_id: the new workflow ID
-        :type new_id: str
-        """
-
-    @abstractmethod
     def load_task(self, task, task_state):
         """Load a task into a stored workflow.
 

@@ -201,9 +201,6 @@ def _resource(component, tag=""):
 def submit_tasks_tm(wf_id, tasks, allocation):  # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
-    for task in tasks:
-        metadata = wfi.get_task_metadata(task.id)
-        task.workdir = metadata["workdir"]
     # Serialize task with json
     names = [task.name for task in tasks]
     log.info("Submitted %s to Task Manager", names)
@@ -277,11 +274,8 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
     log.info("Setting workflow metadata")
     create_wf_metadata(wf_id, wf_name)
     for task in tasks:
-        task_state = "" if no_start else "WAITING"
-        wfi.add_task(task, task_state)
-        metadata = wfi.get_task_metadata(task.id)
-        metadata["workdir"] = task.workdir
-        wfi.set_task_metadata(task.id, metadata)
+        task.state = "" if no_start else "WAITING"
+        wfi.add_task(task)
 
     if no_start:
         update_wf_status(wf_id, "No Start")
@@ -315,8 +309,7 @@ def start_workflow(wf_id):
     _, tasks = wfi.get_workflow()
     tasks.reverse()
     for task in tasks:
-        task_state = wfi.get_task_state(task.id)
-        if task_state == "":
+        if task.state == "":
             wfi.set_task_state(task.id, "WAITING")
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
@@ -325,7 +318,7 @@ def start_workflow(wf_id):
     return True
 
 
-def copy_task_output(task, wfi):
+def copy_task_output(task):
     """Copies stdout, stderr, and metadata information to the task directory in the
         WF archive."""
     bee_workdir = get_bee_workdir()
@@ -333,7 +326,7 @@ def copy_task_output(task, wfi):
     task_save_path = pathlib.Path(
         f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
     )
-    task_workdir = wfi.get_task_metadata(task.id)["workdir"]
+    task_workdir = task.workdir
     task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
                 f"metadata.txt")
     if task.stdout:

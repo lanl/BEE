@@ -90,7 +90,7 @@ class WFUpdate(Resource):
             msg='Task states updated successfully',
         ).model_dump(), 200
 
-    def handle_metadata(self, state_update, task_id, wfi):
+    def handle_metadata(self, state_update, task_id, wfi, task_workdir):
         """Handle metadata for a task update."""
         bee_workdir = wf_utils.get_bee_workdir()
 
@@ -103,7 +103,6 @@ class WFUpdate(Resource):
             wfi.set_task_metadata(task_id, old_metadata)
             task_name = wfi.get_task_by_id(task_id).name
 
-            task_workdir = old_metadata['workdir']
             task_dir = f'{task_workdir}/{task_name}-{task_id[:4]}'
             metadata_path = os.path.join(task_dir,'metadata.txt')
 
@@ -150,7 +149,7 @@ class WFUpdate(Resource):
                     wfi.set_task_output(task.id, output.id, output.glob)
                 else:
                     wfi.set_task_output(task.id, output.id, "temp")
-            wf_utils.copy_task_output(task, wfi)
+            wf_utils.copy_task_output(task)
             tasks = wfi.finalize_task(task)
             if tasks and wf_state not in ('Paused', 'Cancelled'):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
@@ -179,6 +178,6 @@ class WFUpdate(Resource):
         task = wfi.get_task_by_id(state_update.task_id)
         wfi.set_task_state(state_update.task_id, state_update.job_state)
 
-        self.handle_metadata(state_update, state_update.task_id, wfi)
+        self.handle_metadata(state_update, state_update.task_id, wfi, task.workdir)
         if not self.handle_checkpoint_restart(state_update, task, wfi):
             self.handle_state_change(state_update, task, wfi)
