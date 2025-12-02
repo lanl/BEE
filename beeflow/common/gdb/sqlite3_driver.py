@@ -95,14 +95,19 @@ class SQLDriver(GraphDatabaseDriver):
         :param new_task: the new (restarted) task
         :type new_task: Task
         """
+        self.db.create_task(new_task)
+        self.db.set_task_state(new_task.id, 'WAITING')
+        self.db.add_dependencies(new_task, old_task=old_task, restarted_task=True)
 
-    @abstractmethod
+
     def finalize_task(self, task):
         """Set task state to 'COMPLETED' and set inputs from source.
 
         :param task: the task to finalize
         :type task: Task
         """
+        self.db.set_task_state(task.id, 'COMPLETED')
+        self.db.copy_task_outputs(task)
 
     @abstractmethod
     def get_task_by_id(self, task_id):

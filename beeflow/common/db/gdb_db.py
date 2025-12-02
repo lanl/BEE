@@ -294,14 +294,91 @@ class SQL_GDB:
                 SELECT DISTINCT t.id AS depending_task_id, s.id AS depends_on_task_id
                 FROM task AS s
                 JOIN task_output AS o
-                ON o.task_id = s.id          -- outputs of s
+                ON o.task_id = s.id
                 JOIN task_input AS i
-                ON i.source = o.id           -- inputs that consume those outputs
+                ON i.source = o.id
                 JOIN task AS t
-                ON t.id = i.task_id          -- consuming tasks
+                ON t.id = i.task_id
                 WHERE
                     s.id = :task_id
                     AND s.workflow_id = t.workflow_id;"""
 
             bdb.run(self.db_file, dependency_query, {'task_id': task.id})
             bdb.run(self.db_file, dependent_query, {'task_id': task.id})
+
+
+    def copy_task_outputs(self, task: Task):
+        """Use task outputs to set dependent task inputs or workflow outputs
+
+        or set dependent task inputs to default if necessary"""
+
+        task_inputs_query = """
+            UPDATE task_input
+            SET value = (
+                SELECT o.value
+                FROM task_dep AS d
+                JOIN task_output AS o
+                ON o.task_id = d.depends_on_task_id
+                WHERE
+                    d.depends_on_task_id     = :task_id
+                    AND d.depending_task_id = task_input.task_id
+                    AND task_input.source = o.id
+                    AND o.value IS NOT NULL
+                LIMIT 1
+            )
+            WHERE EXISTS (
+                SELECT 1
+                FROM task_dep AS d
+                JOIN task_output AS o
+                ON o.task_id = d.depends_on_task_id
+                WHERE
+                    d.depends_on_task_id      = :task_id
+                    AND d.depending_task_id = task_input.task_id
+                    AND task_input.source = o.id
+                    AND o.value IS NOT NULL
+            );"""
+        
+        defaults_query = """
+            UPDATE task_input
+            SET value = default_val
+            WHERE
+                value IS NULL
+                AND default_val IS NOT NULL
+                AND EXISTS (
+                    SELECT 1
+                    FROM task_dep AS d_down
+                    WHERE
+                        d_down.depending_task_id = task_input.task_id
+                        AND d_down.depends_on_task_id = :task_id
+                )
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM task_dep AS d_up
+                    JOIN task AS pt
+                    ON pt.id = d_up.depends_on_task_id
+                    WHERE
+                        d_up.depending_task_id = task_input.task_id
+                        AND pt.state != 'COMPLETED'
+                );"""
+        
+        workflow_output_query = """
+            UPDATE workflow_output
+            SET value = (
+                SELECT o.value
+                FROM task_output AS o
+                WHERE
+                    o.id = workflow_output.source
+                    AND o.task_id = :task_id
+                LIMIT 1
+            )
+            WHERE EXISTS (
+                SELECT 1
+                FROM task_output AS o
+                WHERE
+                    o.id = workflow_output.source
+                    AND o.task_id = :task_id
+            );"""
+        
+        bdb.run(self.db_file, task_inputs_query, {'task_id': task.id})
+        bdb.run(self.db_file, defaults_query, {'task_id': task.id})
+        bdb.run(self.db_file, workflow_output_query, {'task_id': task.id})
