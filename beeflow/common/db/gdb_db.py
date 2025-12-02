@@ -1,0 +1,109 @@
+"""Graph Database SQL implementation."""
+
+import json
+from beeflow.common.db import bdb
+from beeflow.common.object_models import (Workflow, Task, Requirement, Hint, 
+InputParameter, OutputParameter, StepInput, StepOutput)
+
+class SQL_GDB:
+    def __init__(self, db_file):
+        self.db_file = db_file
+        self._init_tables()
+
+    def _init_tables(self):
+        wfs_stmt = """CREATE TABLE IF NOT EXISTS workflow (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            state TEXT,
+            workdir TEXT,
+            main_cwl TEXT,
+            wf_path TEXT,
+            yaml TEXT,
+            reqs JSON,
+            hints JSON,
+            restart INTEGER DEFAULT 0
+        );"""
+        
+        wf_inputs_stmt = """CREATE TABLE IF NOT EXISTS workflow_input (
+            id TEXT PRIMARY KEY,
+            workflow_id TEXT,
+            type TEXT,
+            value TEXT,
+            FOREIGN KEY (workflow_id) REFERENCES workflow(id) ON DELETE CASCADE
+        );"""
+
+        wf_outputs_stmt = """CREATE TABLE IF NOT EXISTS workflow_output (
+            id TEXT PRIMARY KEY,
+            workflow_id TEXT,
+            type TEXT,
+            value TEXT,
+            source TEXT,
+            FOREIGN KEY (workflow_id) REFERENCES workflow(id) ON DELETE CASCADE
+        );"""
+
+        tasks_stmt = """CREATE TABLE IF NOT EXISTS task (
+            id TEXT PRIMARY KEY,
+            workflow_id TEXT,
+            name TEXT,
+            base_command TEXT,
+            stdout TEXT,
+            stderr TEXT,
+            reqs JSON,
+            hints JSON,
+            metadata JSON,
+            FOREIGN KEY (workflow_id) REFERENCES workflow(id) ON DELETE CASCADE
+        );"""
+
+        task_inputs_stmt = """CREATE TABLE IF NOT EXISTS task_input (
+            id TEXT PRIMARY KEY,
+            task_id TEXT,
+            type TEXT,
+            value TEXT,
+            default_val TEXT,
+            source TEXT,
+            prefix TEXT,
+            position INTEGER,
+            value_from TEXT,
+            FOREIGN KEY (task_id) REFERENCES task(id) ON DELETE CASCADE
+        );"""
+
+        task_outputs_stmt = """CREATE TABLE IF NOT EXISTS task_output (
+            id TEXT PRIMARY KEY,
+            task_id TEXT,
+            type TEXT,
+            value TEXT,
+            glob TEXT,
+            FOREIGN KEY (task_id) REFERENCES task(id) ON DELETE CASCADE
+        );"""
+
+        bdb.create_table(self.db_file, wfs_stmt)
+        bdb.create_table(self.db_file, wf_inputs_stmt)
+        bdb.create_table(self.db_file, wf_outputs_stmt)
+        bdb.create_table(self.db_file, tasks_stmt)
+        bdb.create_table(self.db_file, task_inputs_stmt)
+        bdb.create_table(self.db_file, task_outputs_stmt)
+    
+
+
+    def create_workflow(self, workflow: Workflow):
+        """Create a workflow in the db"""
+        wf_stmt = """INSERT INTO workflow (id, name, state, workdir, main_cwl, wf_path, yaml, reqs, hints, restart)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+        wf_input_stmt = """INSERT INTO workflow_input (id, workflow_id, type, value)
+                           VALUES (?, ?, ?, ?);"""
+        wf_output_stmt = """INSERT INTO workflow_output (id, workflow_id, type, value, source)
+                            VALUES (?, ?, ?, ?, ?);"""
+
+
+        hints_json = json.dumps((h.model_dump() for h in workflow.hints))
+        reqs_json = json.dumps((r.model_dump() for r in workflow.reqs))
+        bdb.run(self.db_file, wf_stmt, (workflow.id, workflow.name, workflow.state, workflow.workdir,
+                                      workflow.main_cwl, workflow.wf_path, workflow.yaml,
+                                      reqs_json, hints_json, 0))
+
+
+        for inp in workflow.inputs:
+            bdb.run(self.db_file, wf_input_stmt, (inp.id, workflow.id, inp.type, inp.value))
+        for outp in workflow.outputs:
+            bdb.run(self.db_file, wf_output_stmt, (outp.id, workflow.id, outp.type, outp.value, outp.source))
+
