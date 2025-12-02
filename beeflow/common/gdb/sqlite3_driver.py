@@ -109,7 +109,7 @@ class SQLDriver(GraphDatabaseDriver):
         self.db.set_task_state(task.id, 'COMPLETED')
         self.db.copy_task_outputs(task)
 
-    @abstractmethod
+
     def get_task_by_id(self, task_id):
         """Return a reconstructed Task object from the graph database by its ID.
 
@@ -117,62 +117,70 @@ class SQLDriver(GraphDatabaseDriver):
         :type task_id: str
         :rtype: Task
         """
+        return self.db.get_task(task_id)
 
-    @abstractmethod
-    def get_workflow_description(self):
+
+    def get_workflow_description(self, workflow_id):
         """Return a reconstructed Workflow object from the graph database.
 
         :rtype: Workflow
         """
+        return self.db.get_workflow(workflow_id)
 
-    @abstractmethod
-    def get_workflow_state(self):
+
+    def get_workflow_state(self, workflow_id):
         """Return the current state of the workflow.
 
         :rtype: str
         """
+        return self.db.get_workflow_state(workflow_id)
 
-    @abstractmethod
-    def set_workflow_state(self, state):
+
+    def set_workflow_state(self, workflow_id, state):
         """Set the state of the workflow.
 
         :param state: the new state of the workflow
         :type state: str
         """
+        self.db.set_workflow_state(workflow_id, state)
 
-    @abstractmethod
-    def get_workflow_tasks(self):
+
+    def get_workflow_tasks(self, workflow_id):
         """Return a list of all workflow tasks from the graph database.
 
         :rtype: list of Task
         """
+        return self.db.get_workflow_tasks(workflow_id)
 
-    @abstractmethod
-    def get_workflow_requirements_and_hints(self):
+
+    def get_workflow_requirements_and_hints(self, workflow_id):
         """Return all workflow requirements and hints from the graph database.
 
         Must return a tuple with the format (requirements, hints)
 
         :rtype: (list of Requirement, list of Hint)
         """
+        return self.db.get_workflow_requirements_and_hints(workflow_id)
 
-    @abstractmethod
-    def get_workflow_inputs_and_outputs(self):
+
+    def get_workflow_inputs_and_outputs(self, workflow_id):
         """Return all workflow inputs and outputs from the graph database.
 
         Returns a tuple of (inputs, outputs).
 
         :rtype: (list of InputParameter, list of OutputParameter)
         """
+        return (self.db.get_workflow_inputs(workflow_id), self.db.get_workflow_outputs(workflow_id))
 
-    @abstractmethod
-    def get_ready_tasks(self):
+
+    def get_ready_tasks(self, workflow_id):
         """Return tasks with state 'READY' from the graph database.
 
         :rtype: list of Task
         """
+        return self.db.get_ready_tasks(workflow_id)
 
-    @abstractmethod
+
     def get_dependent_tasks(self, task_id):
         """Return the dependent tasks of a workflow task in the graph database.
 
@@ -180,8 +188,9 @@ class SQLDriver(GraphDatabaseDriver):
         :type task_id: str
         :rtype: list of Task
         """
+        return self.db.get_dependent_tasks(task_id)
 
-    @abstractmethod
+
     def get_task_state(self, task_id):
         """Return the state of a task in the graph database.
 
@@ -189,8 +198,9 @@ class SQLDriver(GraphDatabaseDriver):
         :type task_id: str
         :rtype: str
         """
+        return self.db.get_task_state(task_id)
 
-    @abstractmethod
+
     def set_task_state(self, task_id, state):
         """Set the state of a task in the graph database.
 
@@ -199,8 +209,9 @@ class SQLDriver(GraphDatabaseDriver):
         :param state: the new state
         :type state: str
         """
+        self.db.set_task_state(task_id, state)
 
-    @abstractmethod
+
     def get_task_metadata(self, task_id):
         """Return the metadata of a task in the graph database.
 
@@ -208,8 +219,9 @@ class SQLDriver(GraphDatabaseDriver):
         :type task_id: str
         :rtype: dict
         """
+        return self.db.get_task_metadata(task_id)
 
-    @abstractmethod
+
     def set_task_metadata(self, task_id, metadata):
         """Set the metadata of a task in the graph database.
 
@@ -218,8 +230,9 @@ class SQLDriver(GraphDatabaseDriver):
         :param metadata: the job description metadata
         :type metadata: dict
         """
+        self.db.set_task_metadata(task_id, metadata)
 
-    @abstractmethod
+
     def get_task_input(self, task_id, input_id):
         """Get a task input object.
 
@@ -229,8 +242,9 @@ class SQLDriver(GraphDatabaseDriver):
         :type input_id: str
         :rtype: StepInput
         """
+        return self.db.get_task_input(task_id, input_id)
 
-    @abstractmethod
+
     def set_task_input(self, task_id, input_id, value):
         """Set the value of a task input.
 
@@ -240,8 +254,9 @@ class SQLDriver(GraphDatabaseDriver):
         :type input_id: str
         :param value: str or int or float
         """
+        self.db.set_task_input(task_id, input_id, value)
 
-    @abstractmethod
+
     def get_task_output(self, task_id, output_id):
         """Get a task output object.
 
@@ -251,8 +266,9 @@ class SQLDriver(GraphDatabaseDriver):
         :type output_id: str
         :rtype: StepOutput
         """
+        return self.db.get_task_output(task_id, output_id)
 
-    @abstractmethod
+
     def set_task_output(self, task_id, output_id, value):
         """Set the value of a task output.
 
@@ -263,8 +279,9 @@ class SQLDriver(GraphDatabaseDriver):
         :param value: the output value to set
         :type value: str or int or float
         """
+        self.db.set_task_output(task_id, output_id, value)
 
-    @abstractmethod
+
     def set_task_input_type(self, task_id, input_id, type_):
         """Set the type of a task input.
 
@@ -275,8 +292,9 @@ class SQLDriver(GraphDatabaseDriver):
         :param type_: the input type to set
         :param type_: str
         """
+        self.db.set_task_input_type(task_id, input_id, type_)
 
-    @abstractmethod
+ 
     def set_task_output_glob(self, task_id, output_id, glob):
         """Set the glob of a task output.
 
@@ -287,6 +305,7 @@ class SQLDriver(GraphDatabaseDriver):
         :param glob: the output glob to set
         :type glob: str
         """
+        self.db.set_task_output_glob(task_id, output_id, glob)
 
     @abstractmethod
     def workflow_completed(self):
@@ -321,3 +340,6 @@ class SQLDriver(GraphDatabaseDriver):
     @abstractmethod
     def export_graphml(self):
         """Export a BEE workflow as a graphml."""
+
+
+def _reconstru
