@@ -4,6 +4,10 @@ import json
 from beeflow.common.db import bdb
 from beeflow.common.object_models import (Workflow, Task, Requirement, Hint, 
 InputParameter, OutputParameter, StepInput, StepOutput)
+from beeflow.wf_manager.models import WorkflowInfo
+
+failed_task_states = ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL', 'TIMEOUT', 'CANCELLED']
+final_task_states = ['COMPLETED', 'RESTARTED'] + failed_task_states
 
 class SQL_GDB:
     def __init__(self, db_file):
@@ -25,20 +29,22 @@ class SQL_GDB:
         );"""
 
         wf_inputs_stmt = """CREATE TABLE IF NOT EXISTS workflow_input (
-            id TEXT PRIMARY KEY,
+            id TEXT,
             workflow_id TEXT,
             type TEXT,
             value TEXT,
-            FOREIGN KEY (workflow_id) REFERENCES workflow(id) ON DELETE CASCADE
+            FOREIGN KEY (workflow_id) REFERENCES workflow(id) ON DELETE CASCADE,
+            PRIMARY KEY (workflow_id , id)
         );"""
 
         wf_outputs_stmt = """CREATE TABLE IF NOT EXISTS workflow_output (
-            id TEXT PRIMARY KEY,
+            id TEXT,ßß
             workflow_id TEXT,
             type TEXT,
             value TEXT,
             source TEXT,
-            FOREIGN KEY (workflow_id) REFERENCES workflow(id) ON DELETE CASCADE
+            FOREIGN KEY (workflow_id) REFERENCES workflow(id) ON DELETE CASCADE,
+            PRIMARY KEY (workflow_id , id)
         );"""
 
         tasks_stmt = """CREATE TABLE IF NOT EXISTS task (
@@ -57,7 +63,7 @@ class SQL_GDB:
         );"""
 
         task_inputs_stmt = """CREATE TABLE IF NOT EXISTS task_input (
-            id TEXT PRIMARY KEY,
+            id TEXT,
             task_id TEXT,
             type TEXT,
             value TEXT,
@@ -66,16 +72,18 @@ class SQL_GDB:
             prefix TEXT,
             position INTEGER,
             value_from TEXT,
-            FOREIGN KEY (task_id) REFERENCES task(id) ON DELETE CASCADE
+            FOREIGN KEY (task_id) REFERENCES task(id) ON DELETE CASCADE,
+            PRIMARY KEY (task_id, id)
         );"""
 
         task_outputs_stmt = """CREATE TABLE IF NOT EXISTS task_output (
-            id TEXT PRIMARY KEY,
+            id TEXT,
             task_id TEXT,
             type TEXT,
             value TEXT,
             glob TEXT,
-            FOREIGN KEY (task_id) REFERENCES task(id) ON DELETE CASCADE
+            FOREIGN KEY (task_id) REFERENCES task(id) ON DELETE CASCADE,
+            PRIMARY KEY (task_id, id)
         );"""
 
         # FROM task depends on TO task
@@ -435,6 +443,20 @@ class SQL_GDB:
         )
         for to in task_outputs] if task_outputs else []
 
+    def get_all_workflow_info(self):
+        """Return a list of all workflows in the db.
+
+        :rtype: list of WorkflowInfo
+        """
+        wf_data = bdb.getall(self.db_file, 'SELECT id, name, state, FROM workflow')
+        wf_info_list = [WorkflowInfo(
+            wf_id=wf[0],
+            wf_name=wf[1],
+            wf_status=wf[2],
+        ) for wf in wf_data] if wf_data else []
+        return wf_info_list
+
+
     def get_workflow(self, wf_id: str) -> Workflow:
         """Return a reconstructed Workflow object from the db by its ID."""
         wf_data = bdb.getone(self.db_file, 'SELECT * FROM workflow WHERE id=?', [wf_id])
@@ -671,4 +693,98 @@ class SQL_GDB:
         bdb.run(self.db_file,
                 'UPDATE task_output SET glob=? WHERE task_id=? AND id=?',
                 [glob, task_id, output_id])
+
+    def final_tasks_completed(self, wf_id: str) -> bool:
+        """Determine if a workflow's final tasks have completed.
+
+        A workflow's final tasks have completed if each of its final tasks has finished or failed.
+
+        :param wf_id: the ID of the workflow to check
+        :type wf_id: str
+        :rtype: bool
+        """
+        placeholders = ','.join('?' for _ in final_task_states)
+        final_tasks_query = f"""
+            SELECT COUNT(*)
+            FROM task
+            WHERE workflow_id = ?
+            AND state NOT IN ({placeholders});
+        """
+
+        params = [wf_id, *final_task_states]
+
+        result = bdb.getone(self.db_file, final_tasks_query, params)
+        return result is not None and result[0] == 0
+
+    def final_tasks_succeeded(self, wf_id: str) -> bool:
+        """Determine if a workflow's final tasks have succeeded.
+
+        A workflow's final tasks have succeeded if each of its final tasks has finished successfully.
+
+        :param wf_id: the ID of the workflow to check
+        :type wf_id: str
+        :rtype: bool
+        """
+        placeholders = ','.join('?' for _ in failed_task_states)
+        final_tasks_query = f"""
+            SELECT COUNT(*)
+            FROM task
+            WHERE workflow_id = ?
+            AND state IN ({placeholders});
+        """
+
+        params = [wf_id, *failed_task_states]
+
+        result = bdb.getone(self.db_file, final_tasks_query, params)
+        return self.final_tasks_completed(wf_id) and result is not None and result[0] == 0
     
+    def final_tasks_failed(self, wf_id: str) -> bool:
+        """Determine if all of a workflow's final tasks have failed.
+
+        :param wf_id: the ID of the workflow to check
+        :type wf_id: str
+        :rtype: bool
+        """
+        placeholders = ','.join('?' for _ in failed_task_states) + ',?'
+        final_tasks_query = f"""
+            SELECT COUNT(*)
+            FROM task
+            WHERE workflow_id = ?
+            AND state NOT IN ({placeholders});
+        """
+
+        params = [wf_id, *failed_task_states, 'RESTARTED']
+
+        result = bdb.getone(self.db_file, final_tasks_query, params)
+        return result is not None and result[0] == 0
+    
+    def cancelled_final_tasks_completed(self, wf_id: str) -> bool:
+        """Determine if a cancelled workflow's final tasks have completed.
+
+        All of the workflow's scheduled tasks are completed if each of the final task nodes
+        are not in states 'PENDING', 'RUNNING', or 'COMPLETING'.
+
+        :param wf_id: the ID of the workflow to check
+        :type wf_id: str
+        :rtype: bool
+        """
+        incomplete_states = ['PENDING', 'RUNNING', 'COMPLETING']
+        placeholders = ','.join('?' for _ in incomplete_states)
+        final_tasks_query = f"""
+            SELECT COUNT(*)
+            FROM task
+            WHERE workflow_id = ?
+            AND state IN ({placeholders});
+        """
+
+        params = [wf_id, *incomplete_states]
+
+        result = bdb.getone(self.db_file, final_tasks_query, params)
+        return result is not None and result[0] == 0
+
+    def remove_workflow(self, wf_id: str):
+        """Remove a workflow and all its associated tasks from the db."""
+        delete_wf_query = """
+            DELETE FROM workflow
+            WHERE id = ?;"""
+        bdb.run(self.db_file, delete_wf_query, [wf_id])

@@ -5,7 +5,7 @@ from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
 failed_task_states = ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL', 'TIMEOUT', 'CANCELLED']
-final_task_states = ['COMPLETED'] + failed_task_states
+final_task_states = ['COMPLETED', 'RESTARTED'] + failed_task_states
 
 def create_bee_node(tx):
     """Create a BEE node in the Neo4j database.

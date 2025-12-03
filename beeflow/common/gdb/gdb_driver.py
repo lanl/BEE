@@ -24,6 +24,13 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def get_all_workflow_info(self):
+        """Return a list of all workflows in the graph database.
+
+        :rtype: list of workflowinfo
+        """
+
+    @abstractmethod
     def execute_workflow(self, workflow_id):
         """Begin execution of the stored workflow.
 

@@ -1,7 +1,7 @@
 import os
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.db import SQL_GDB
+from beeflow.common.db.gdb_db import SQL_GDB
 
 def db_path():
     """Return the SQL GDB database path."""
@@ -118,6 +118,14 @@ class SQLDriver(GraphDatabaseDriver):
         :rtype: Task
         """
         return self.db.get_task(task_id)
+
+
+    def get_all_workflow_info(self):
+        """Return a list of all workflows in the graph database.
+
+        :rtype: list of workflowinfo
+        """
+        return self.db.get_all_workflow_info()
 
 
     def get_workflow_description(self, workflow_id):
@@ -307,24 +315,35 @@ class SQLDriver(GraphDatabaseDriver):
         """
         self.db.set_task_output_glob(task_id, output_id, glob)
 
-    @abstractmethod
-    def workflow_completed(self):
+
+    def workflow_completed(self, workflow_id):
         """Determine if a workflow has completed.
 
         A workflow has completed if each of its final tasks has finished or failed.
 
         :rtype: bool
         """
+        return self.db.final_tasks_completed(workflow_id)
 
-    @abstractmethod
-    def get_workflow_final_state(self):
+
+    def get_workflow_final_state(self, workflow_id):
         """Get the final state of the workflow.
 
         :rtype: Optional[str]
         """
+        final_state = None
+        if self.db.final_tasks_succeeded(workflow_id):
+            final_state = None
+        elif self.db.final_tasks_failed(workflow_id):
+            final_state = 'FAILED'
+        elif self.db.final_tasks_completed(workflow_id):
+            final_state = 'Partial-Fail'
+        else:
+            raise ValueError(f"Workflow with id {workflow_id} has not finished.")
+        return final_state
 
-    @abstractmethod
-    def cancelled_workflow_completed(self):
+
+    def cancelled_workflow_completed(self, workflow_id: str) -> bool:
         """Determine if a cancelled workflow has completed.
 
         A cancelled workflow has completed if each of its final tasks are not
@@ -332,14 +351,13 @@ class SQLDriver(GraphDatabaseDriver):
 
         :rtype: bool
         """
+        return self.db.cancelled_final_tasks_completed(workflow_id)
 
-    @abstractmethod
+
     def close(self):
-        """Close the connection to the graph database."""
+        pass
+        
 
-    @abstractmethod
     def export_graphml(self):
         """Export a BEE workflow as a graphml."""
-
-
-def _reconstru
+        pass
