@@ -34,11 +34,12 @@ def archive_workflow(wf_id, final_state=None):
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
     # Archive Completed DAG
-    graphmls_dir = workflow_dir + "/graphmls"
-    os.makedirs(graphmls_dir, exist_ok=True)
-    dags_dir = workflow_dir + "/dags"
-    os.makedirs(dags_dir, exist_ok=True)
-    wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True)
+    if bc.get('graphdb', 'type').lower() == 'neo4j':
+        graphmls_dir = workflow_dir + "/graphmls"
+        os.makedirs(graphmls_dir, exist_ok=True)
+        dags_dir = workflow_dir + "/dags"
+        os.makedirs(dags_dir, exist_ok=True)
+        wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True)
 
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
     wf_utils.update_wf_status(wf_id, wf_state)

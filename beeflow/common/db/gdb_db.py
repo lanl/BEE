@@ -125,7 +125,7 @@ class SQL_GDB:
 
 
         hints_json = json.dumps([h.model_dump() for h in workflow.hints])
-        reqs_json = json.dumps([r.model_dump() for r in workflow.reqs])
+        reqs_json = json.dumps([r.model_dump() for r in workflow.requirements])
         bdb.run(self.db_file, wf_stmt, (workflow.id, workflow.name, workflow.state,
                                         workflow.workdir, workflow.main_cwl, workflow.wf_path,
                                         workflow.yaml, reqs_json, hints_json, 0))
@@ -223,7 +223,7 @@ class SQL_GDB:
 
 
         hints_json = json.dumps([h.model_dump() for h in task.hints])
-        reqs_json = json.dumps([r.model_dump() for r in task.reqs])
+        reqs_json = json.dumps([r.model_dump() for r in task.requirements])
         metadata_json = json.dumps(task.metadata)
         bdb.run(self.db_file, task_stmt, (task.id, task.workflow_id, task.name, 
                                           task.state, task.workdir,
@@ -233,7 +233,7 @@ class SQL_GDB:
 
         for inp in task.inputs:
             bdb.run(self.db_file, task_input_stmt, (inp.id, task.id, inp.type, inp.value,
-                                                    inp.default_val, inp.source,
+                                                    inp.default, inp.source,
                                                     inp.prefix, inp.position,
                                                     inp.value_from))
         for outp in task.outputs:
@@ -448,7 +448,7 @@ class SQL_GDB:
 
         :rtype: list of WorkflowInfo
         """
-        wf_data = bdb.getall(self.db_file, 'SELECT id, name, state, FROM workflow')
+        wf_data = bdb.getall(self.db_file, 'SELECT id, name, state FROM workflow')
         wf_info_list = [WorkflowInfo(
             wf_id=wf[0],
             wf_name=wf[1],
