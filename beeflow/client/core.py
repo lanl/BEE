@@ -202,6 +202,11 @@ def need_slurmrestd():
             and not bc.get('slurm', 'use_commands'))
 
 
+def need_neo4j():
+    """Check if neo4j is needed."""
+    return bc.get('graphdb', 'type').lower() == 'neo4j'
+
+
 def init_components(remote=False):
     """Initialize the components and component manager."""
     mgr = ComponentManager()
@@ -262,14 +267,15 @@ def init_components(remote=False):
         print('Unpacking Redis image...')
         container_manager.create_image('redis')
 
-    if not container_manager.check_container_dir('neo4j'):
-        print('Unpacking Neo4j image...')
-        container_manager.create_image('neo4j')
+    if need_neo4j():
+        if not container_manager.check_container_dir('neo4j'):
+            print('Unpacking Neo4j image...')
+            container_manager.create_image('neo4j')
 
-    @mgr.component('neo4j-database', ('wf_manager',))
-    def start_neo4j():
-        """Start the neo4j graph database."""
-        return neo4j_manager.start()
+        @mgr.component('neo4j-database', ('wf_manager',))
+        def start_neo4j():
+            """Start the neo4j graph database."""
+            return neo4j_manager.start()
 
     @mgr.component('redis', ())
     def start_redis():
@@ -680,14 +686,17 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
                                          help='directory to store containers in')):
     """Pull required BEE containers and store in outdir."""
     load_check_charliecloud()
-    neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
-    neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
-    build_to_tar('neo4j_image', neo4j_dockerfile, neo4j_path)
+    if need_neo4j():
+        neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
+        neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
+        build_to_tar('neo4j_image', neo4j_dockerfile, neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
 
-    AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path,
-                                     'redis_image': redis_path}}).save()
+    if need_neo4j():
+        AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path}}).save()
+
+    AlterConfig(changes={'DEFAULT': {'redis_image': redis_path}}).save()
 
     dep_dir = container_manager.get_dep_dir()
     if os.path.isdir(dep_dir):
