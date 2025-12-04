@@ -431,7 +431,13 @@ def modify_workflow_list(wf_ids, all_, action, valid_statuses):
             if resp.status_code not in (requests.codes.accepted, requests.codes.okay): # pylint: disable=no-member
                 print(f'WF Manager could not {action} workflow {_short_id(wf_id)}.')
             else:
-                typer.secho(f"Workflow {_short_id(wf_id)} {action}ed!", fg=typer.colors.GREEN)
+                past_tense = {
+                    "pause": "paused",
+                    "resume": "resumed",
+                    "cancel": "cancelled",
+                    "remove": "removed",
+                }
+                typer.secho(f"Workflow {_short_id(wf_id)} {past_tense[action]}!", fg=typer.colors.GREEN)
                 logging.info(f"{action.capitalize()} workflow: {resp.text}")
         else:
             print(f"Workflow {_short_id(wf_id)} is {wf_status} cannot {action}.")

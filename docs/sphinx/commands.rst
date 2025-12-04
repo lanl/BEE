@@ -82,22 +82,22 @@ Arguments:
 ``beeflow pause``: Pause a workflow (Running tasks will finish)
 
 Arguments:
-  WF_ID  [required]
+  WF_IDS  [required] Space separated list of workflow IDs to pause (can be just one).
 
 ``beeflow resume``: Resume a paused workflow.
 
 Arguments:
-  WF_ID  [required]
+  WF_IDS  [required] Space separated list of workflow IDs to resume (can be just one).
 
 ``beeflow cancel``: Cancel a workflow.
 
 Arguments:
-  WF_ID  [required]
+  WF_IDS  [required] Space separated list of workflow IDs to cancel (can be just one).
 
 ``beeflow remove``: Remove cancelled or archived workflow and it's information.
 
 Arguments:
-  WF_ID  [required]
+  WF_IDS  [required] Space separated list of workflow IDs to remove (can be just one).
 
 ``beeflow copy``: Copy an archived workflow.
 
