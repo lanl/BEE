@@ -336,7 +336,7 @@ class SQLDriver(GraphDatabaseDriver):
         if self.db.final_tasks_succeeded(workflow_id):
             final_state = None
         elif self.db.final_tasks_failed(workflow_id):
-            final_state = 'FAILED'
+            final_state = 'Failed'
         elif self.db.final_tasks_completed(workflow_id):
             final_state = 'Partial-Fail'
         else:
