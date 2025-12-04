@@ -74,6 +74,7 @@ class SQLDriver(GraphDatabaseDriver):
         :type task: Task
         """
         self.db.create_task(task)
+        self.db.add_dependencies(task)
 
 
     def initialize_ready_tasks(self, workflow_id):
