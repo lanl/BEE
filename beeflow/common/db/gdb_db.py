@@ -121,7 +121,7 @@ class SQL_GDB:
         bdb.create_table(self.db_file, task_outputs_stmt)
         bdb.create_table(self.db_file, task_deps_stmt)
         bdb.create_table(self.db_file, task_rst_stmt)
-        bdb.run(self.db_file, add_indexes_stmt)
+        bdb.runscript(self.db_file, add_indexes_stmt)
 
     def create_workflow(self, workflow: Workflow):
         """Create a workflow in the db"""
@@ -367,7 +367,7 @@ class SQL_GDB:
                     FROM task_dep AS d_down
                     WHERE
                         d_down.depending_task_id = task_input.task_id
-                        AND d_down.depends_on_task_id = :task_id
+                        AND d_down.depends_on_task_id = ?
                 )
                 AND NOT EXISTS (
                     SELECT 1
@@ -398,7 +398,7 @@ class SQL_GDB:
             );"""
 
         bdb.run(self.db_file, task_inputs_query, {'task_id': task.id})
-        bdb.run(self.db_file, defaults_query, {'task_id': task.id})
+        bdb.run(self.db_file, defaults_query, [task.id, *final_task_states])
         bdb.run(self.db_file, workflow_output_query, {'task_id': task.id})
 
 
@@ -583,7 +583,7 @@ class SQL_GDB:
         """
         metadata = bdb.getone(self.db_file, 'SELECT metadata FROM task WHERE id=?', [task_id])
         return json.loads(metadata[0]) if metadata and metadata[0] else {}
-    
+
     def set_task_metadata(self, task_id: str, metadata: dict):
         """Set the metadata of a task in the db.
 
@@ -729,7 +729,8 @@ class SQL_GDB:
     def final_tasks_succeeded(self, wf_id: str) -> bool:
         """Determine if a workflow's final tasks have succeeded.
 
-        A workflow's final tasks have succeeded if each of its final tasks has finished successfully.
+        A workflow's final tasks have succeeded if each of its final tasks has 
+        finished successfully.
 
         :param wf_id: the ID of the workflow to check
         :type wf_id: str
@@ -747,7 +748,7 @@ class SQL_GDB:
 
         result = bdb.getone(self.db_file, final_tasks_query, params)
         return self.final_tasks_completed(wf_id) and result is not None and result[0] == 0
-    
+
     def final_tasks_failed(self, wf_id: str) -> bool:
         """Determine if all of a workflow's final tasks have failed.
 
@@ -767,7 +768,7 @@ class SQL_GDB:
 
         result = bdb.getone(self.db_file, final_tasks_query, params)
         return result is not None and result[0] == 0
-    
+
     def cancelled_final_tasks_completed(self, wf_id: str) -> bool:
         """Determine if a cancelled workflow's final tasks have completed.
 

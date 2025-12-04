@@ -353,8 +353,8 @@ class SQLDriver(GraphDatabaseDriver):
         :rtype: bool
         """
         return self.db.cancelled_final_tasks_completed(workflow_id)
-    
-    
+
+
     def remove_workflow(self, workflow_id):
         """Remove a workflow from the graph database.
 
@@ -366,7 +366,7 @@ class SQLDriver(GraphDatabaseDriver):
 
     def close(self):
         pass
-        
+
 
     def export_graphml(self, workflow_id):
         """Export a BEE workflow as a graphml."""

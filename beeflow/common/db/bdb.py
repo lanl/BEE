@@ -18,7 +18,7 @@ def create_connection(db_file):
         conn.execute("PRAGMA foreign_keys = ON;")
         return conn
     except Error as error:
-        print(error)
+        print("Error connecting to database: ", error)
     return conn
 
 
@@ -43,7 +43,22 @@ def run(db_file, stmt, params=None):
                 cursor.execute(stmt)
             conn.commit()
         except Error as error:
+            print("Error running: ", stmt)
             print(error)
+
+
+
+def runscript(db_file, script):
+    """Run the sql script on the database. Doesn't return anything."""
+    with create_connection(db_file) as conn:
+        try:
+            cursor = conn.cursor()
+            cursor.executescript(script)
+            conn.commit()
+        except Error as error:
+            print("Error running script")
+            print(error)
+
 
 
 def getone(db_file, stmt, params=None):
@@ -56,7 +71,9 @@ def getone(db_file, stmt, params=None):
             else:
                 cursor.execute(stmt)
             result = cursor.fetchone()
-        except Error:
+        except Error as error:
+            print("Error fetching one: ", stmt)
+            print(error)
             result = None
         return result
 
@@ -71,7 +88,9 @@ def getall(db_file, stmt, params=None):
             else:
                 cursor.execute(stmt)
             result = cursor.fetchall()
-        except Error:
+        except Error as error:
+            print("Error fetching all: ", stmt)
+            print(error)
             result = None
     return result
 

@@ -64,7 +64,7 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def initialize_ready_tasks(self):
+    def initialize_ready_tasks(self, workflow_id):
         """Set runnable tasks to state 'READY'.
 
         Runnable tasks are tasks with all input dependencies fulfilled.
@@ -101,21 +101,21 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_workflow_description(self):
+    def get_workflow_description(self, workflow_id):
         """Return a reconstructed Workflow object from the graph database.
 
         :rtype: Workflow
         """
 
     @abstractmethod
-    def get_workflow_state(self):
+    def get_workflow_state(self, workflow_id):
         """Return the current state of the workflow.
 
         :rtype: str
         """
 
     @abstractmethod
-    def set_workflow_state(self, state):
+    def set_workflow_state(self, workflow_id, state):
         """Set the state of the workflow.
 
         :param state: the new state of the workflow
@@ -123,14 +123,14 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_workflow_tasks(self):
+    def get_workflow_tasks(self, workflow_id):
         """Return a list of all workflow tasks from the graph database.
 
         :rtype: list of Task
         """
 
     @abstractmethod
-    def get_workflow_requirements_and_hints(self):
+    def get_workflow_requirements_and_hints(self, workflow_id):
         """Return all workflow requirements and hints from the graph database.
 
         Must return a tuple with the format (requirements, hints)
@@ -139,7 +139,7 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_workflow_inputs_and_outputs(self):
+    def get_workflow_inputs_and_outputs(self, workflow_id):
         """Return all workflow inputs and outputs from the graph database.
 
         Returns a tuple of (inputs, outputs).
@@ -148,7 +148,7 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_ready_tasks(self):
+    def get_ready_tasks(self, workflow_id):
         """Return tasks with state 'READY' from the graph database.
 
         :rtype: list of Task
@@ -271,7 +271,7 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def workflow_completed(self):
+    def workflow_completed(self, workflow_id):
         """Determine if a workflow has completed.
 
         A workflow has completed if each of its final tasks has finished or failed.
@@ -280,14 +280,14 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
-    def get_workflow_final_state(self):
+    def get_workflow_final_state(self, workflow_id):
         """Get the final state of the workflow.
 
         :rtype: Optional[str]
         """
 
     @abstractmethod
-    def cancelled_workflow_completed(self):
+    def cancelled_workflow_completed(self, workflow_id):
         """Determine if a cancelled workflow has completed.
 
         A cancelled workflow has completed if each of its final tasks are not
@@ -301,5 +301,5 @@ class GraphDatabaseDriver(ABC):
         """Close the connection to the graph database."""
 
     @abstractmethod
-    def export_graphml(self):
+    def export_graphml(self, workflow_id):
         """Export a BEE workflow as a graphml."""
