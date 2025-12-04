@@ -1,6 +1,7 @@
 """Graph Database SQL implementation."""
 
 import json
+from typing import Optional
 from beeflow.common.db import bdb
 from beeflow.common.object_models import (Workflow, Task, Requirement, Hint, 
 InputParameter, OutputParameter, StepInput, StepOutput)
@@ -38,7 +39,7 @@ class SQL_GDB:
         );"""
 
         wf_outputs_stmt = """CREATE TABLE IF NOT EXISTS workflow_output (
-            id TEXT,ßß
+            id TEXT,
             workflow_id TEXT,
             type TEXT,
             value TEXT,
@@ -53,7 +54,7 @@ class SQL_GDB:
             name TEXT,
             state TEXT,
             workdir TEXT,
-            base_command TEXT,
+            base_command JSON,
             stdout TEXT,
             stderr TEXT,
             reqs JSON,
@@ -86,7 +87,6 @@ class SQL_GDB:
             PRIMARY KEY (task_id, id)
         );"""
 
-        # FROM task depends on TO task
         task_deps_stmt = """CREATE TABLE IF NOT EXISTS task_dep (
                 depending_task_id TEXT NOT NULL,
                 depends_on_task_id   TEXT NOT NULL,
@@ -95,7 +95,6 @@ class SQL_GDB:
                 FOREIGN KEY (depends_on_task_id)   REFERENCES task(id) ON DELETE CASCADE
         );"""
 
-        # FROM task restarted from TO task
         task_rst_stmt = """CREATE TABLE IF NOT EXISTS task_restart (
                 restarting_task_id TEXT NOT NULL,
                 restarted_from_task_id   TEXT NOT NULL,
@@ -103,6 +102,16 @@ class SQL_GDB:
                 FOREIGN KEY (restarting_task_id) REFERENCES task(id) ON DELETE CASCADE,
                 FOREIGN KEY (restarted_from_task_id)   REFERENCES task(id) ON DELETE CASCADE
         );"""
+
+        add_indexes_stmt = """CREATE INDEX IF NOT EXISTS idx_task_wf_id ON task(workflow_id);
+                CREATE INDEX IF NOT EXISTS idx_task_wf_state ON task(workflow_id, state);
+
+                CREATE INDEX IF NOT EXISTS idx_task_input_task_id ON task_input(task_id);
+                CREATE INDEX IF NOT EXISTS idx_task_output_task_id ON task_output(task_id);
+
+                CREATE INDEX IF NOT EXISTS idx_task_dep_depends_on ON task_dep(depends_on_task_id);
+                CREATE INDEX IF NOT EXISTS idx_task_dep_depending ON task_dep(depending_task_id);
+        """
 
         bdb.create_table(self.db_file, wfs_stmt)
         bdb.create_table(self.db_file, wf_inputs_stmt)
@@ -112,6 +121,7 @@ class SQL_GDB:
         bdb.create_table(self.db_file, task_outputs_stmt)
         bdb.create_table(self.db_file, task_deps_stmt)
         bdb.create_table(self.db_file, task_rst_stmt)
+        bdb.run(self.db_file, add_indexes_stmt)
 
     def create_workflow(self, workflow: Workflow):
         """Create a workflow in the db"""
@@ -346,7 +356,7 @@ class SQL_GDB:
                     AND o.value IS NOT NULL
             );"""
 
-        defaults_query = """
+        defaults_query = f"""
             UPDATE task_input
             SET value = default_val
             WHERE
@@ -366,7 +376,7 @@ class SQL_GDB:
                     ON pt.id = d_up.depends_on_task_id
                     WHERE
                         d_up.depending_task_id = task_input.task_id
-                        AND pt.state != 'COMPLETED'
+                        AND pt.state NOT IN ({', '.join(['?' for _ in final_task_states])})
                 );"""
 
         workflow_output_query = """
@@ -392,7 +402,7 @@ class SQL_GDB:
         bdb.run(self.db_file, workflow_output_query, {'task_id': task.id})
 
 
-    def get_task(self, task_id: str) -> Task:
+    def get_task(self, task_id: str) -> Optional[Task]:
         """Return a reconstructed Task object from the db by its ID."""
         task_data = bdb.getone(self.db_file, 'SELECT * FROM task WHERE id=?', [task_id])
         if not task_data:
@@ -404,7 +414,7 @@ class SQL_GDB:
             name=task_data[2],
             state=task_data[3],
             workdir=task_data[4],
-            base_command=task_data[5],
+            base_command=json.loads(task_data[5]),
             stdout=task_data[6],
             stderr=task_data[7],
             requirements=[Requirement.model_validate(r) for r in json.loads(task_data[8])],
@@ -457,7 +467,7 @@ class SQL_GDB:
         return wf_info_list
 
 
-    def get_workflow(self, wf_id: str) -> Workflow:
+    def get_workflow(self, wf_id: str) -> Optional[Workflow]:
         """Return a reconstructed Workflow object from the db by its ID."""
         wf_data = bdb.getone(self.db_file, 'SELECT * FROM workflow WHERE id=?', [wf_id])
         if not wf_data:

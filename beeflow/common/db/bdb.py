@@ -15,6 +15,7 @@ def create_connection(db_file):
     conn = None
     try:
         conn = sqlite3.connect(db_file)
+        conn.execute("PRAGMA foreign_keys = ON;")
         return conn
     except Error as error:
         print(error)
