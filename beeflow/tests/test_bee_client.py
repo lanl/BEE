@@ -635,7 +635,7 @@ def test_package_errors(mocker, tmpdir, isdir, return_code, exception, match):
             """Workflows to be removed:
 Name\tID\tStatus
 test_wf\t123456\tCancelled
-Workflow 123456 removeed!
+Workflow 123456 removed!
 """,
         ),
         (
@@ -928,9 +928,9 @@ def test_resume(mocker):
 @pytest.mark.parametrize(
     "wf_status, exp_out",
     [
-        ("Running", "Workflow 123456 canceled!\n"),
-        ("Paused", "Workflow 123456 canceled!\n"),
-        ("No Start", "Workflow 123456 canceled!\n"),
+        ("Running", "Workflow 123456 cancelled!\n"),
+        ("Paused", "Workflow 123456 cancelled!\n"),
+        ("No Start", "Workflow 123456 cancelled!\n"),
         ("Intializing", "Workflow 123456 is Intializing cannot cancel.\n"),
         ("Bad Status", "Workflow 123456 is Bad Status cannot cancel.\n"),
     ],
