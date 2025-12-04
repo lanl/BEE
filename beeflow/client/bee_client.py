@@ -437,7 +437,8 @@ def modify_workflow_list(wf_ids, all_, action, valid_statuses):
                     "cancel": "cancelled",
                     "remove": "removed",
                 }
-                typer.secho(f"Workflow {_short_id(wf_id)} {past_tense[action]}!", fg=typer.colors.GREEN)
+                typer.secho(f"Workflow {_short_id(wf_id)} {past_tense[action]}!",
+                            fg=typer.colors.GREEN)
                 logging.info(f"{action.capitalize()} workflow: {resp.text}")
         else:
             print(f"Workflow {_short_id(wf_id)} is {wf_status} cannot {action}.")
