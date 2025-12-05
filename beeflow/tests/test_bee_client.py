@@ -767,12 +767,12 @@ def test_unpackage_errors(tmp_path, mocker, extension, return_code, exception, m
                 {"wf_name": "test", "wf_id": "a5554c4138294427a9eb0a9f89215cee", "wf_status": "Archived/Failed"},
                 {"wf_name": "test", "wf_id": "e50d8669595a4b05b841bc7b5336c721", "wf_status": "Archived"},
             ]},
-            """Name	ID	Status
-checkpoint_test	acd96a	Archived/Failed
-checkpoint_test	c34e86	Archived/Failed
-checkpoint_test	8df441	Archived
-test	a5554c	Archived/Failed
-test	e50d86	Archived
+            """Name             ID      Status
+checkpoint_test  acd96a  Archived/Failed
+checkpoint_test  c34e86  Archived/Failed
+checkpoint_test  8df441  Archived
+test             a5554c  Archived/Failed
+test             e50d86  Archived
 """,
         ),
         ({"workflow_info_list": []}, "There are currently no workflows.\n"),
