@@ -378,7 +378,7 @@ class Task(BaseModel):
         for input_ in nonpositional_inputs:
             if input_.prefix is not None:
                 command.append(input_.prefix)
-            command.append(str(input_.value))
+                command.append(str(input_.value))
 
         # Append restart parameter and checkpoint file if CheckpointRequirement specified
         for hint in self.hints:

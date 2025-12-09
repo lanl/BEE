@@ -111,8 +111,16 @@ class RunInput(Input):
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
-        inputs_dumps = [{'type': self.input_type},
-                        self.input_binding.dump()]
+        inputs_dumps = [{'type': self.input_type}]
+
+        # Handle case where there is no actual input binding
+        binding_dict = self.input_binding.dump()
+        if "inputBinding" in binding_dict and not binding_dict["inputBinding"]:
+            binding_dict = {}
+
+        if binding_dict:
+            inputs_dumps.append(binding_dict)
+
         inputs_dict = {}
         for dump in inputs_dumps:
             inputs_dict.update(dump)
