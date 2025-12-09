@@ -1,3 +1,5 @@
+"""Graph database driver using SQLite as the backend."""
+
 import os
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.config_driver import BeeConfig as bc
@@ -15,12 +17,13 @@ def connect_db():
 
 
 class SQLDriver(GraphDatabaseDriver):
+    """Graph database driver using SQLite as the backend."""
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(SQLDriver, cls).__new__(cls)
         return cls.instance
-    
+
     def connect(self):
         """Connect to the graph database."""
         if not hasattr(self, 'db'):
@@ -179,7 +182,8 @@ class SQLDriver(GraphDatabaseDriver):
 
         :rtype: (list of InputParameter, list of OutputParameter)
         """
-        return (self.db.get_workflow_inputs(workflow_id), self.db.get_workflow_outputs(workflow_id))
+        return (self.db.get_workflow_inputs(workflow_id),
+                self.db.get_workflow_outputs(workflow_id))
 
 
     def get_ready_tasks(self, workflow_id):
@@ -303,7 +307,7 @@ class SQLDriver(GraphDatabaseDriver):
         """
         self.db.set_task_input_type(task_id, input_id, type_)
 
- 
+
     def set_task_output_glob(self, task_id, output_id, glob):
         """Set the glob of a task output.
 
@@ -365,9 +369,9 @@ class SQLDriver(GraphDatabaseDriver):
 
 
     def close(self):
-        pass
+        """Close the graph database connection."""
 
 
     def export_graphml(self, workflow_id):
         """Export a BEE workflow as a graphml."""
-        pass
+        raise NotImplementedError("GraphML export not implemented for SQLite GDB.")

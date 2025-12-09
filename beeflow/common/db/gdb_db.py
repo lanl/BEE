@@ -1,16 +1,19 @@
 """Graph Database SQL implementation."""
+# pylint:disable=C0103
 
 import json
 from typing import Optional
 from beeflow.common.db import bdb
-from beeflow.common.object_models import (Workflow, Task, Requirement, Hint, 
+from beeflow.common.object_models import (Workflow, Task, Requirement, Hint,
 InputParameter, OutputParameter, StepInput, StepOutput)
 from beeflow.wf_manager.models import WorkflowInfo
 
 failed_task_states = ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL', 'TIMEOUT', 'CANCELLED']
 final_task_states = ['COMPLETED', 'RESTARTED'] + failed_task_states
 
+
 class SQL_GDB:
+    """Graph database implementation using SQLite."""
     def __init__(self, db_file):
         self.db_file = db_file
         self._init_tables()
@@ -235,7 +238,7 @@ class SQL_GDB:
         hints_json = json.dumps([h.model_dump() for h in task.hints])
         reqs_json = json.dumps([r.model_dump() for r in task.requirements])
         metadata_json = json.dumps(task.metadata)
-        bdb.run(self.db_file, task_stmt, (task.id, task.workflow_id, task.name, 
+        bdb.run(self.db_file, task_stmt, (task.id, task.workflow_id, task.name,
                                           task.state, task.workdir,
                                       json.dumps(task.base_command), task.stdout, task.stderr,
                                       reqs_json, hints_json, metadata_json))
@@ -545,8 +548,8 @@ class SQL_GDB:
 
         :rtype: list of Task
         """
-        tasks_data = bdb.getall(self.db_file, 
-                                "SELECT id FROM task WHERE workflow_id=? AND state='READY'", 
+        tasks_data = bdb.getall(self.db_file,
+                                "SELECT id FROM task WHERE workflow_id=? AND state='READY'",
                                 [wf_id])
         tasks = [self.get_task(t[0]) for t in tasks_data] if tasks_data else []
         return tasks
@@ -558,8 +561,8 @@ class SQL_GDB:
         :type task_id: str
         :rtype: list of Task
         """
-        deps_data = bdb.getall(self.db_file, 
-                               "SELECT depending_task_id FROM task_dep WHERE depends_on_task_id=?", 
+        deps_data = bdb.getall(self.db_file,
+                               "SELECT depending_task_id FROM task_dep WHERE depends_on_task_id=?",
                                [task_id])
         deps = [self.get_task(d[0]) for d in deps_data] if deps_data else []
         return deps
