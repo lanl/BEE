@@ -750,7 +750,7 @@ def cancelled_final_tasks_completed(tx, wf_id):
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
     active_states_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           "AND t.state IN ['PENDING', 'RUNNING', 'COMPLETING'] "
+                           "AND t.state IN ['SUBMIT', 'PENDING', 'RUNNING', 'COMPLETING'] "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is in 'PENDING', 'RUNNING', or 'COMPLETING'

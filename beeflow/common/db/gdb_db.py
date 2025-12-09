@@ -782,7 +782,7 @@ class SQL_GDB:
         :type wf_id: str
         :rtype: bool
         """
-        incomplete_states = ['PENDING', 'RUNNING', 'COMPLETING']
+        incomplete_states = ['SUBMIT', 'PENDING', 'RUNNING', 'COMPLETING']
         placeholders = ','.join('?' for _ in incomplete_states)
         final_tasks_query = f"""
             SELECT COUNT(*)
