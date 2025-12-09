@@ -21,13 +21,19 @@ def start(log):
             print('maxmemory 2mb', file=fp)
             print('unixsocket', os.path.join('/mnt', paths.redis_sock_fname()), file=fp)
             print('unixsocketperm 700', file=fp)
+    # cmd = [
+    #     'ch-run',
+    #     f'--bind={paths.redis_root()}:/mnt',
+    #     container_path,
+    #     'redis-server',
+    #     '/mnt/redis.conf',
+    # ]
+
     cmd = [
-        'ch-run',
-        f'--bind={paths.redis_root()}:/mnt',
-        container_path,
         'redis-server',
-        '/mnt/redis.conf',
+        conf_path
     ]
+
     # Ran into a strange "Failed to configure LOCALE for invalid locale name."
     # from Redis, so setting LANG=C. This could have consequences for UTF-8
     # strings.
