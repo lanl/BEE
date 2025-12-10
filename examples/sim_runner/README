@@ -1,0 +1,4 @@
+This workflow simulates supporting codes that run simulations with BEE. 
+In particular, this uses the load_from_config option to run 
+
+To run this workflow, you need to copy the sim_runner file to the workdir.
