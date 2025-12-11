@@ -124,7 +124,7 @@ def test_cancelled_final_tasks_completed(mocker, sql_gdb_instance, count, expect
     wf_id = "WFID"
     result = sql_gdb_instance.cancelled_final_tasks_completed(wf_id)
 
-    incomplete_states = ["PENDING", "RUNNING", "COMPLETING"]
+    incomplete_states = ["SUBMIT", "PENDING", "RUNNING", "COMPLETING"]
     placeholders = ",".join("?" for _ in incomplete_states)
     expected_query = f"""
             SELECT COUNT(*)
