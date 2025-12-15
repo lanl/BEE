@@ -20,7 +20,7 @@ steps:
     hints:
       beeflow:CheckpointRequirement:
         enabled: true
-        file_path: .
+        checkpoint_dir: .
         file_regex: backup[0-9]*.crx
         restart_parameters: -R
         num_tries: 1
