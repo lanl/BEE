@@ -119,23 +119,29 @@ def update_jobs(db):
                         # Process all completed states
                         should_process = True
                     if should_process:
-                        log.info(f'Processing checkpoint/restart for {task.name} in state {new_job_state}')
+                        log.info(f'Processing checkpoint/restart for {task.name} in state '
+                                 f'{new_job_state}')
                         try:
                             # Check sentinel file conditions
-                            should_restart = utils.check_sentinel_restart(task_checkpoint, task.workdir)
+                            should_restart = utils.check_sentinel_restart(task_checkpoint,
+                                                                         task.workdir)
                             if should_restart:
                                 # Harvest latest checkpoint file
-                                checkpoint_file = utils.get_restart_file(task_checkpoint, task.workdir)
+                                checkpoint_file = utils.get_restart_file(task_checkpoint,
+                                                                        task.workdir)
                                 task_info = {'checkpoint_file': checkpoint_file, 'restart': True}
                                 db.update_queue.push(task.workflow_id, task.id, new_job_state,
-                                                    task_info=task_info, metadata=job_info, output=None)
+                                                    task_info=task_info, metadata=job_info,
+                                                    output=None)
                             else:
                                 # Sentinel conditions not met, don't restart
-                                log.info(f'Sentinel conditions not met for {task.name}, not restarting')
+                                log.info(f'Sentinel conditions not met for {task.name}, '
+                                         f'not restarting')
                                 db.update_queue.push(task.workflow_id, task.id, new_job_state,
                                                     task_info=None, metadata=job_info, output=None)
                         except utils.CheckpointRestartError as err:
-                            log.error(f'Checkpoint restart failed for {task.name} ({task.id}): {err}')
+                            log.error(f'Checkpoint restart failed for {task.name} ({task.id}): '
+                                      f'{err}')
                             db.update_queue.push(task.workflow_id, task.id, 'FAILED',
                                                 task_info=None, metadata=job_info, output=None)
                     else:
