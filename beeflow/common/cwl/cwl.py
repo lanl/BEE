@@ -421,7 +421,7 @@ class CheckpointRequirement:
         checkpoint_dump[req_name]['add_parameters'] = self.add_parameters
         checkpoint_dump[req_name]['num_tries'] = self.num_tries
         if self.last_good_restart is not None:
-                    checkpoint_dump[req_name]['last_good_restart'] = self.last_good_restart
+            checkpoint_dump[req_name]['last_good_restart'] = self.last_good_restart
         return checkpoint_dump
 
     def __repr__(self):

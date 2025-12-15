@@ -82,7 +82,7 @@ def update_jobs(db):
     worker = utils.worker_interface()
     # Need to make a copy first
     job_q = list(db.job_queue)
-    for job in job_q:
+    for job in job_q: # pylint: disable=R1702 # (7/5) nested blocks
         id_ = job.id
         task = job.task
         job_id = job.job_id
