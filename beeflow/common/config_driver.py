@@ -269,6 +269,10 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs', prompt=False)
 
+VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
+                 default=True, info='Use the redis container image or spack',
+                 prompt=False)
+
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                  default=NEO4J_IMAGE, info='neo4j container image',
                  input_fn=filepath_completion_input, prompt=True)
@@ -276,6 +280,10 @@ VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  default=REDIS_IMAGE, info='redis container image',
                  input_fn=filepath_completion_input, prompt=True)
+
+VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.dir_,
+                 info='Spack environment path',
+                 input_fn=filepath_completion_input, prompt=False)
 
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int, default=3, prompt=False,
                  info='max number of times beeflow will restart a component on failure')
