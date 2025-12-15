@@ -122,7 +122,7 @@ def check_sentinel_restart(task_checkpoint, task_workdir):
     # - If restart_on_file_exists=False: restart when file DOES NOT exist
     should_restart = (file_exists and restart_on_file_exists) or \
                      (not file_exists and not restart_on_file_exists)
-    log_msg = f'Sentinel check: file_exists={file_exists}, '
+    log_msg = f'Sentinel check: file_exists={file_exists}, ' \
               f'restart_on_file_exists={restart_on_file_exists}, should_restart={should_restart}'
     log.info(log_msg)
     return should_restart

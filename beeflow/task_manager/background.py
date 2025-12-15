@@ -119,8 +119,8 @@ def update_jobs(db):
                         # Process all completed states
                         should_process = True
                     if should_process:
-                        log.info(f'Processing checkpoint/restart for {task.name} in state '
-                                 f'{new_job_state}')
+                        log.info(f'Processing checkpoint/restart for {task.name} '
+                                 f'in state {new_job_state}')
                         try:
                             # Check sentinel file conditions
                             should_restart = utils.check_sentinel_restart(task_checkpoint,
@@ -140,8 +140,8 @@ def update_jobs(db):
                                 db.update_queue.push(task.workflow_id, task.id, new_job_state,
                                                     task_info=None, metadata=job_info, output=None)
                         except utils.CheckpointRestartError as err:
-                            log.error(f'Checkpoint restart failed for {task.name} ({task.id}): '
-                                      f'{err}')
+                            log.error(f'Checkpoint restart failed for '
+                                      f'{task.name} ({task.id}): {err}')
                             db.update_queue.push(task.workflow_id, task.id, 'FAILED',
                                                 task_info=None, metadata=job_info, output=None)
                     else:
