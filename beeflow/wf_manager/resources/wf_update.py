@@ -143,6 +143,9 @@ class WFUpdate(Resource):
     def handle_state_change(self, state_update, task, wfi):
         """Handle a normal state change for a task."""
         wf_id = wfi.workflow_id
+        if state_update.job_state == wfi.get_task_state(task.id):
+            log.info(f"Received duplicate state update for task {task.name}; ignoring.")
+            return
         wf_state = wf_utils.get_wf_status(wf_id)
         if state_update.job_state == 'COMPLETED':
             for output in task.outputs:
