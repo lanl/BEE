@@ -21,7 +21,6 @@ steps:
       beeflow:CheckpointRequirement:
         enabled: true
         file_path: .
-        container_path: .
         file_regex: backup[0-9]*.crx
         restart_parameters: -R
         num_tries: 1
