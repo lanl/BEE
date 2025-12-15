@@ -128,6 +128,19 @@ The values for ``nodes`` and  ``ntasks`` are then passed to the template and
 can be used to request the required resources from the underlying scheduler on
 submission.
 
+Alternately you can load the requirements from a json formatted text.
+file and use the "load_from_file" option::
+
+    beeflow:MPIRequirement:
+      load_from_file: "mpi_conf.json"
+
+Contents of mpi_conf.json::
+
+   {
+     "nodes": 10,
+     "ntasks": 32
+   }
+
 beeflow:CheckpointRequirement
 -----------------------------
 
@@ -251,6 +264,9 @@ setting in bee.conf. Current options supported are:
 * ``reservation`` - reservation to use to launch job.
 * ``timeLimit`` - time limit for the job in the format that Slurm uses currently.
 
+Alternately you can add any of the above requirements to a json formatted text 
+file and use the "load_from_file" option.
+
 An example is shown below::
 
     beeflow:SlurmRequirement:
@@ -258,7 +274,23 @@ An example is shown below::
       account: account12345
       partition: partition-a
       qos: long
-      reservation: reservation-a 
+      reservation: reservation-a
+
+Alternate::
+
+    beeflow:SlurmRequirement:
+       load_from_file: "slurm_conf.json"
+
+Contensts of slurm_conf,json::
+
+    {
+     "timeLimit": "00:00:10",
+     "account": "account12345",
+     "partition": "partition-a",
+     "qos": "long"
+     "reservation": "reservation-a"
+    }
+
 
 beeflow:ScriptRequirement
 -------------------------
