@@ -309,6 +309,39 @@ def workflow_partial_fail(outer_workdir):
                         f'task {task} did not get state COMPLETED as expected: {task_state}')
 
 
+@TEST_RUNNER.add(ignore=True)
+def checkpoint_sentinel_restart(outer_workdir):
+    """Test the sentinel file-based checkpoint restart workflow."""
+    workdir = utils.make_workflow_workdir(outer_workdir)
+    workflow = utils.Workflow('checkpoint-sentinel-restart',
+                              'ci/test_workflows/checkpoint-sentinel-restart',
+                              main_cwl='workflow.cwl', job_file='input.yml',
+                              workdir=workdir, containers=[])
+    yield [workflow]
+    utils.check_completed(workflow)
+    # Check that both test steps completed successfully
+    continue_file_state = workflow.get_task_state_by_name('test_continue_file')
+    utils.ci_assert(continue_file_state == 'COMPLETED',
+                    f'test_continue_file did not complete as expected: {continue_file_state}')
+    done_marker_state = workflow.get_task_state_by_name('test_done_marker')
+    utils.ci_assert(done_marker_state == 'COMPLETED',
+                    f'test_done_marker did not complete as expected: {done_marker_state}')
+    # Check for restart marker files (should have 2 restarts for each test)
+    continue_restart_markers = glob.glob('restart_marker_*.txt',
+                                         root_dir=Path(workdir, 'test_continue_file'))
+    utils.ci_assert(len(continue_restart_markers) == 2,
+                    f'expected 2 restart markers for continue_file test, '
+                    f'found {len(continue_restart_markers)}')
+    done_restart_markers = glob.glob('restart_marker_*.txt',
+                                     root_dir=Path(workdir, 'test_done_marker'))
+    utils.ci_assert(len(done_restart_markers) == 2,
+                    f'expected 2 restart markers for done_marker test, '
+                    f'found {len(done_restart_markers)}')
+    # Check for final output files
+    utils.check_path_exists(Path(workdir, 'test_continue_file', 'final_output.txt'))
+    utils.check_path_exists(Path(workdir, 'test_done_marker', 'final_output.txt'))
+
+
 def test_input_callback(arg):
     """Parse a list of tests separated by commas."""
     return arg.split(',') if arg is not None else None
