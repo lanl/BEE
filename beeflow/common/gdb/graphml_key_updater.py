@@ -9,7 +9,8 @@ from beeflow.common import paths
 
 expected_keys = {"id", "name", "state", "class", "type", "value", "source",
                  "workflow_id", "base_command", "stdout", "stderr", "default",
-                 "prefix", "position", "value_from", "glob", "nodes", "label", "labels"}
+                 "prefix", "position", "value_from", "glob", "nodes", "label", "labels",
+                 "timeLimit"}
 
 default_key_definitions = {
     "id": {"for": "node", "attr.name": "id", "attr.type": "string"},
@@ -28,6 +29,7 @@ default_key_definitions = {
     "position": {"for": "node", "attr.name": "position", "attr.type": "long"},
     "value_from": {"for": "node", "attr.name": "value_from", "attr.type": "string"},
     "glob": {"for": "node", "attr.name": "glob", "attr.type": "string"},
+    "timeLimit": {"for": "node", "attr.name": "timeLimit", "attr.type": "string"}
 }
 # add to default_key_definitions
 default_key_definitions.update({

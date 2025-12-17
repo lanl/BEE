@@ -93,8 +93,8 @@ def main():
         ],
     )
     workflow = Workflow("clamr", [clamr_task, ffmpeg_task])
-    workflow.write_wf(".")
-    workflow.write_yaml(".")
+    workflow.dump_wf(".")
+    workflow.dump_yaml(".")
 
 
 if __name__ == "__main__":
