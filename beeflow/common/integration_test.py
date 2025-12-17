@@ -337,19 +337,23 @@ def checkpoint_sentinel_restart(outer_workdir):
                     f'step_done_marker should be RESTARTED: {initial_done_state}')
     # Check for restart counter files (should show final restart count of 2)
     # The counter file is stored in the checkpoint directory
-    continue_counter_file = Path(workdir, 'checkpoint_output_continue_file', 'restart_count.txt')
+    continue_counter_file = Path(workdir, 'checkpoint_output_continue_file',
+                                  'restart_count.txt')
     utils.check_path_exists(continue_counter_file)
-    with open(continue_counter_file) as f:
+    with open(continue_counter_file, encoding='utf-8') as f:
         continue_restart_count = int(f.read().strip())
     utils.ci_assert(continue_restart_count == 2,
-                    f'expected restart count 2 for continue_file test, found {continue_restart_count}')
+                    f'expected restart count 2 for continue_file test, '
+                    f'found {continue_restart_count}')
 
-    done_counter_file = Path(workdir, 'checkpoint_output_done_marker', 'restart_count.txt')
+    done_counter_file = Path(workdir, 'checkpoint_output_done_marker',
+                              'restart_count.txt')
     utils.check_path_exists(done_counter_file)
-    with open(done_counter_file) as f:
+    with open(done_counter_file, encoding='utf-8') as f:
         done_restart_count = int(f.read().strip())
     utils.ci_assert(done_restart_count == 2,
-                    f'expected restart count 2 for done_marker test, found {done_restart_count}')
+                    f'expected restart count 2 for done_marker test, '
+                    f'found {done_restart_count}')
 
     # Check for final output files
     utils.check_path_exists(Path(workdir, 'final_output.txt'))
