@@ -319,27 +319,40 @@ def checkpoint_sentinel_restart(outer_workdir):
                               workdir=workdir, containers=[])
     yield [workflow]
     utils.check_completed(workflow)
-    # Check that both test steps completed successfully
-    continue_file_state = workflow.get_task_state_by_name('test_continue_file')
+    # Check that both test steps completed successfully after 2 restarts
+    # Note: Task names come from the CWL file names, not workflow step names
+    # The final task names have -2 suffix (initial task + 2 restarts)
+    continue_file_state = workflow.get_task_state_by_name('step_continue_file-2')
     utils.ci_assert(continue_file_state == 'COMPLETED',
-                    f'test_continue_file did not complete as expected: {continue_file_state}')
-    done_marker_state = workflow.get_task_state_by_name('test_done_marker')
+                    f'step_continue_file-2 did not complete as expected: {continue_file_state}')
+    done_marker_state = workflow.get_task_state_by_name('step_done_marker-2')
     utils.ci_assert(done_marker_state == 'COMPLETED',
-                    f'test_done_marker did not complete as expected: {done_marker_state}')
-    # Check for restart marker files (should have 2 restarts for each test)
-    continue_restart_markers = glob.glob('restart_marker_*.txt',
-                                         root_dir=Path(workdir, 'test_continue_file'))
-    utils.ci_assert(len(continue_restart_markers) == 2,
-                    f'expected 2 restart markers for continue_file test, '
-                    f'found {len(continue_restart_markers)}')
-    done_restart_markers = glob.glob('restart_marker_*.txt',
-                                     root_dir=Path(workdir, 'test_done_marker'))
-    utils.ci_assert(len(done_restart_markers) == 2,
-                    f'expected 2 restart markers for done_marker test, '
-                    f'found {len(done_restart_markers)}')
+                    f'step_done_marker-2 did not complete as expected: {done_marker_state}')
+    # Check that initial tasks were restarted
+    initial_continue_state = workflow.get_task_state_by_name('step_continue_file')
+    utils.ci_assert(initial_continue_state == 'RESTARTED',
+                    f'step_continue_file should be RESTARTED: {initial_continue_state}')
+    initial_done_state = workflow.get_task_state_by_name('step_done_marker')
+    utils.ci_assert(initial_done_state == 'RESTARTED',
+                    f'step_done_marker should be RESTARTED: {initial_done_state}')
+    # Check for restart counter files (should show final restart count of 2)
+    # The counter file is stored in the checkpoint directory
+    continue_counter_file = Path(workdir, 'checkpoint_output_continue_file', 'restart_count.txt')
+    utils.check_path_exists(continue_counter_file)
+    with open(continue_counter_file) as f:
+        continue_restart_count = int(f.read().strip())
+    utils.ci_assert(continue_restart_count == 2,
+                    f'expected restart count 2 for continue_file test, found {continue_restart_count}')
+
+    done_counter_file = Path(workdir, 'checkpoint_output_done_marker', 'restart_count.txt')
+    utils.check_path_exists(done_counter_file)
+    with open(done_counter_file) as f:
+        done_restart_count = int(f.read().strip())
+    utils.ci_assert(done_restart_count == 2,
+                    f'expected restart count 2 for done_marker test, found {done_restart_count}')
+
     # Check for final output files
-    utils.check_path_exists(Path(workdir, 'test_continue_file', 'final_output.txt'))
-    utils.check_path_exists(Path(workdir, 'test_done_marker', 'final_output.txt'))
+    utils.check_path_exists(Path(workdir, 'final_output.txt'))
 
 
 def test_input_callback(arg):
