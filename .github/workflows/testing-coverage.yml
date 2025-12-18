@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         bee_worker: [Slurmrestd, SlurmCommands, Flux]
-        gdb_backend: [neo4j, sqlite]
+        gdb_backend: [neo4j, sqlite3]
     env:
       BEE_WORKER: ${{ matrix.bee_worker }}
       GDB_BACKEND: ${{ matrix.gdb_backend }}
