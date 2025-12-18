@@ -64,7 +64,7 @@ def start(log):
             bash_cmd = f'''
                 source "{spack_path}/share/spack/setup-env.sh"
                 spack load {spec}
-                exec {" ".join(cmd)} 
+                exec {" ".join(cmd)}
             '''
             proc = subprocess.Popen(["bash", "-lc", bash_cmd], stdout=log, stderr=log)
         else:
