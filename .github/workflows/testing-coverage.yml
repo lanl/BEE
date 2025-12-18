@@ -40,13 +40,13 @@ jobs:
           . ./ci/env.sh
           ./ci/integration_test.sh
           mv .coverage.integration ".coverage.${{ matrix.bee_worker }}.${{ matrix.gdb_backend }}"
-	  - name: Upload bee error logs
-		if: failure()    # only when the job fails
-		uses: actions/upload-artifact@v4
-		with:
-		  name: bee-error-logs-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}.log
-		  path: bee-error-*.log
-		  if-no-files-found: ignore
+      - name: Upload bee error logs
+        if: failure()    # only when the job fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: bee-error-logs-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}.log
+          path: bee-error-*.log
+          if-no-files-found: ignore
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
