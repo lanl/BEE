@@ -26,7 +26,8 @@ def setup_config(container):
         print('unixsocketperm 700', file=fp)
     return conf_path
 
-
+# Disabling warning because we have several paths to assign proc and return proc
+# pylint: disable=consider-using-with
 def start(log):
     """Start redis."""
     use_containers = bc.get("DEFAULT", "use_redis_container")
@@ -52,7 +53,7 @@ def start(log):
         env['LC_ALL'] = 'C'
         proc = subprocess.Popen(cmd, env=env, stdout=log, stderr=log)
     else:
-        conf_path = setup_config(container=False) 
+        conf_path = setup_config(container=False)
         redis_exists = shutil.which('redis-server')
         cmd = ['redis-server', conf_path]
 
