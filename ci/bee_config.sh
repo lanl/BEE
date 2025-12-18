@@ -11,7 +11,8 @@ Flux)
 esac
 
 mkdir -p $(dirname $BEE_CONFIG)
-cat >> $BEE_CONFIG <<EOF
+GDB_BACKEND="${GDB_BACKEND:-neo4j}"
+cat > $BEE_CONFIG <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
 bee_workdir = $BEE_WORKDIR
@@ -42,6 +43,7 @@ default_qos=
 default_reservation=
 
 [graphdb]
+type = $GDB_BACKEND
 hostname = localhost
 dbpass = password
 gdb_image_mntdir = /tmp

@@ -19,8 +19,10 @@ jobs:
     strategy:
       matrix:
         bee_worker: [Slurmrestd, SlurmCommands, Flux]
+        gdb_backend: [neo4j, sqlite]
     env:
       BEE_WORKER: ${{ matrix.bee_worker }}
+      GDB_BACKEND: ${{ matrix.gdb_backend }}
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
     # available on 20.04
     runs-on: ubuntu-22.04
@@ -37,13 +39,13 @@ jobs:
         run: |
           . ./ci/env.sh
           ./ci/integration_test.sh
-          mv .coverage.integration ".coverage.${{ matrix.bee_worker }}"
+          mv .coverage.integration ".coverage.${{ matrix.bee_worker }}.${{ matrix.gdb_backend }}"
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.bee_worker }}
+          name: coverage-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}
           include-hidden-files: true
-          path: ".coverage.${{ matrix.bee_worker }}"
+          path: ".coverage.${{ matrix.bee_worker }}.${{ matrix.gdb_backend }}"
 
   unit-test:
     if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
@@ -93,22 +95,40 @@ jobs:
           name: coverage-unit-tests
           path: ./
 
-      - name: Get Slurmrestd coverage
+      - name: Get Slurmrestd+neo4j coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-Slurmrestd
+          name: coverage-Slurmrestd-neo4j
           path: ./
-
-      - name: Get SlurmCommands coverage
+      
+      - name: Get Slurmrestd+sqlite coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-SlurmCommands
+          name: coverage-Slurmrestd-sqlite
           path: ./
-
-      - name: Get Flux coverage
+      
+      - name: Get SlurmCommands+neo4j coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-Flux
+          name: coverage-SlurmCommands-neo4j
+          path: ./
+      
+      - name: Get SlurmCommands+sqlite coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-SlurmCommands-sqlite
+          path: ./
+      
+      - name: Get Flux+neo4j coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-Flux-neo4j
+          path: ./
+      
+      - name: Get Flux+sqlite coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-Flux-sqlite
           path: ./
 
       - name: Combine coverage
