@@ -17,6 +17,7 @@ jobs:
     if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
     name: BEE Integration Test
     strategy:
+      fail-fast: false
       matrix:
         bee_worker: [Slurmrestd, SlurmCommands, Flux]
         gdb_backend: [neo4j, sqlite3]
