@@ -101,10 +101,10 @@ jobs:
           name: coverage-Slurmrestd-neo4j
           path: ./
       
-      - name: Get Slurmrestd+sqlite coverage
+      - name: Get Slurmrestd+sqlite3 coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-Slurmrestd-sqlite
+          name: coverage-Slurmrestd-sqlite3
           path: ./
       
       - name: Get SlurmCommands+neo4j coverage
@@ -113,10 +113,10 @@ jobs:
           name: coverage-SlurmCommands-neo4j
           path: ./
       
-      - name: Get SlurmCommands+sqlite coverage
+      - name: Get SlurmCommands+sqlite3 coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-SlurmCommands-sqlite
+          name: coverage-SlurmCommands-sqlite3
           path: ./
       
       - name: Get Flux+neo4j coverage
@@ -125,10 +125,10 @@ jobs:
           name: coverage-Flux-neo4j
           path: ./
       
-      - name: Get Flux+sqlite coverage
+      - name: Get Flux+sqlite3 coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-Flux-sqlite
+          name: coverage-Flux-sqlite3
           path: ./
 
       - name: Combine coverage
