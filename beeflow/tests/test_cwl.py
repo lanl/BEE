@@ -214,13 +214,13 @@ import pytest
                 "outputs": cwl.Outputs([cwl.RunOutput("contents", "stdout")]),
                 "stdout": "cat.txt",
             },
-            "run:\n  class: CommandLineTool\n  baseCommand: cat\n  stdout: cat.txt\n  inputs:\n    input_file:\n      type: File\n      inputBinding: {}\n  outputs:\n    contents:\n      type: stdout\n",
+            "run:\n  class: CommandLineTool\n  baseCommand: cat\n  stdout: cat.txt\n  inputs:\n    input_file:\n      type: File\n  outputs:\n    contents:\n      type: stdout\n",
             {
                 "run": {
                     "class": "CommandLineTool",
                     "baseCommand": "cat",
                     "stdout": "cat.txt",
-                    "inputs": {"input_file": {"type": "File", "inputBinding": {}}},
+                    "inputs": {"input_file": {"type": "File"}},
                     "outputs": {"contents": {"type": "stdout"}},
                 }
             },
@@ -238,14 +238,14 @@ import pytest
                     "cat.txt",
                 ),
             },
-            "step1:\n  run:\n    class: CommandLineTool\n    baseCommand: cat\n    stdout: cat.txt\n    inputs:\n      input_file:\n        type: File\n        inputBinding: {}\n    outputs:\n      contents:\n        type: stdout\n  in:\n    input_file: input_file\n  out: [contents]\n",
+            "step1:\n  run:\n    class: CommandLineTool\n    baseCommand: cat\n    stdout: cat.txt\n    inputs:\n      input_file:\n        type: File\n    outputs:\n      contents:\n        type: stdout\n  in:\n    input_file: input_file\n  out: [contents]\n",
             {
                 "step1": {
                     "run": {
                         "class": "CommandLineTool",
                         "baseCommand": "cat",
                         "stdout": "cat.txt",
-                        "inputs": {"input_file": {"type": "File", "inputBinding": {}}},
+                        "inputs": {"input_file": {"type": "File"}},
                         "outputs": {"contents": {"type": "stdout"}},
                     },
                     "in": {"input_file": "input_file"},
@@ -279,7 +279,6 @@ import pytest
       inputs:
         input_file:
           type: File
-          inputBinding: {}
       outputs:
         contents:
           type: stdout
@@ -295,7 +294,7 @@ import pytest
                             "baseCommand": "cat",
                             "stdout": "cat.txt",
                             "inputs": {
-                                "input_file": {"type": "File", "inputBinding": {}}
+                                "input_file": {"type": "File"}
                             },
                             "outputs": {"contents": {"type": "stdout"}},
                         },
@@ -380,7 +379,6 @@ steps:
       inputs:
         input_file:
           type: File
-          inputBinding: {}
       outputs:
         contents:
           type: stdout

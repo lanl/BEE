@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+import argparse
+import json
+from pathlib import Path
+from mpi4py import MPI
+
+def setup(args):
+    """Setup."""
+    nodes = 2
+    tasks = 4
+
+    config = {
+        "nodes": nodes,
+        "ntasks": tasks
+    }
+
+    Path("conf.json").write_text(json.dumps(config, indent=2), encoding="utf-8")
+
+def run(_args=None):
+    """Run example with mpi4py."""
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    print(f"Hello from rank {rank} out of {size}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="sim_runner")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    # setup subcommand
+    s = sub.add_parser("setup", help="Set up nodes and tasks, input deck is just an argument")
+    s.add_argument("input_deck", help="Path to input deck file")
+    s.set_defaults(func=setup)
+
+    # run subcommand
+    r = sub.add_parser("run", help="Run the example code")
+    r.set_defaults(func=run)
+
+    args = parser.parse_args()
+    args.func(args)

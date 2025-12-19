@@ -1,4 +1,5 @@
 """Create and manage CWL files."""
+import os
 from dataclasses import dataclass
 from io import StringIO
 from typing import Optional
@@ -110,8 +111,16 @@ class RunInput(Input):
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
-        inputs_dumps = [{'type': self.input_type},
-                        self.input_binding.dump()]
+        inputs_dumps = [{'type': self.input_type}]
+
+        # Handle case where there is no actual input binding
+        binding_dict = self.input_binding.dump()
+        if "inputBinding" in binding_dict and not binding_dict["inputBinding"]:
+            binding_dict = {}
+
+        if binding_dict:
+            inputs_dumps.append(binding_dict)
+
         inputs_dict = {}
         for dump in inputs_dumps:
             inputs_dict.update(dump)
@@ -341,6 +350,7 @@ class MPIRequirement:
 
     nodes: int = None
     ntasks: int = None
+    load_from_file: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -349,6 +359,8 @@ class MPIRequirement:
             mpi_dump['beeflow:MPIRequirement']['nodes'] = self.nodes
         if self.ntasks:
             mpi_dump['beeflow:MPIRequirement']['ntasks'] = self.ntasks
+        if self.load_from_file:
+            mpi_dump['beeflow:MPIRequirement']['load_from_file'] = self.load_from_file
         return mpi_dump
 
     def __repr__(self):
@@ -367,6 +379,7 @@ class SlurmRequirement:
     partition: str = None
     qos: str = None
     reservation: str = None
+    load_from_file: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -381,6 +394,8 @@ class SlurmRequirement:
             sched_dump['beeflow:SlurmRequirement']['qos'] = self.qos
         if self.reservation:
             sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
+        if self.load_from_file:
+            sched_dump['beeflow:SlurmRequirement']['load_from_file'] = self.load_from_file
         return sched_dump
 
     def __repr__(self):
@@ -633,6 +648,7 @@ class CWL:
         yaml.dump(cwl_dump, stream)
         wf_contents = stream.getvalue()
         if path:
+            os.makedirs(path, exist_ok=True)
             with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
         return wf_contents
