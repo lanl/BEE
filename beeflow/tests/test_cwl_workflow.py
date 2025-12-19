@@ -174,9 +174,10 @@ def test_workflow_checkpoint(tmpdir):
         hints=[
             Checkpoint(
                 enabled=True,
-                file_path="checkpoint_output",
+                checkpoint_dir="checkpoint_output",
                 file_regex="backup[0-9]*.crx",
                 restart_parameters="-R",
+                restart_on_failure=True,
                 num_tries=3,
             ),
             Slurm(time_limit="00:00:10"),

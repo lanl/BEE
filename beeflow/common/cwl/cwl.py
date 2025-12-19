@@ -409,23 +409,34 @@ class SlurmRequirement:
 class CheckpointRequirement:
     """Represents a beeflow checkpoint requirement."""
 
-    file_path: str
+    checkpoint_dir: str
     file_regex: str
     restart_parameters: str
-    num_tries: int
+    num_tries: Optional[int] = 100
+    sentinel_file_path: Optional[str] = None
+    restart_on_file_exists: Optional[bool] = None
+    restart_on_failure: bool = True
     enabled: bool = True
     add_parameters: Optional[str] = None
+    last_good_restart: Optional[str] = None
 
     def dump(self):
         """Dump beeflow requirement to a dictionary."""
         req_name = 'beeflow:CheckpointRequirement'
         checkpoint_dump = {req_name: {}}
         checkpoint_dump[req_name]['enabled'] = self.enabled
-        checkpoint_dump[req_name]['file_path'] = self.file_path
+        checkpoint_dump[req_name]['checkpoint_dir'] = self.checkpoint_dir
         checkpoint_dump[req_name]['file_regex'] = self.file_regex
+        if self.sentinel_file_path is not None:
+            checkpoint_dump[req_name]['sentinel_file_path'] = self.sentinel_file_path
+        if self.restart_on_file_exists is not None:
+            checkpoint_dump[req_name]['restart_on_file_exists'] = self.restart_on_file_exists
+        checkpoint_dump[req_name]['restart_on_failure'] = self.restart_on_failure
         checkpoint_dump[req_name]['restart_parameters'] = self.restart_parameters
         checkpoint_dump[req_name]['add_parameters'] = self.add_parameters
         checkpoint_dump[req_name]['num_tries'] = self.num_tries
+        if self.last_good_restart is not None:
+            checkpoint_dump[req_name]['last_good_restart'] = self.last_good_restart
         return checkpoint_dump
 
     def __repr__(self):

@@ -150,23 +150,82 @@ simulations, requiring checkpointing and restarting. We implemented the
 includes this requirement and the task stops, such as for a timelimit on the job,
 a subtask will run to continue the simulation using the specified checkpoint
 file.
-An example ``beeflow:CheckpointRequirement`` in BEE is shown below::
+
+Basic Checkpoint/Restart Example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A basic example ``beeflow:CheckpointRequirement`` in BEE is shown below::
 
        beeflow:CheckpointRequirement:
             enabled: true
-            file_path: checkpoint_output
+            checkpoint_dir: checkpoint_output
             file_regex: backup[0-9]*.crx
             restart_parameters: -R
             add_parameters: --additional-options True
             num_tries: 3
 
-For the above example ``file_path`` is the location of the checkpoint_file. The
-``file_regex`` specifies the regular expression for the possible checkpoint
-filenames, the ``restart parameter`` will be added to the run command followed
-by the path to the latest checkpoint file. ``add_parameters`` allows for
-additional parameters that need to be specified; these will be appended to the
-run command after the checkpoint file. ``num_tries`` specifies the maximum
-number of times the task will be restarted.
+For the above example ``checkpoint_dir`` is the directory containing the
+checkpoint files. The ``file_regex`` specifies the regular expression for the
+possible checkpoint filenames. The ``restart_parameter`` will be added to the
+run command followed by the path to the latest checkpoint file. ``add_parameters``
+allows for additional parameters that need to be specified; these will be appended
+to the run command after the checkpoint file. ``num_tries`` specifies the maximum
+number of times the task will be restarted (default: 100, use ``null`` for unlimited).
+
+Sentinel File-Based Restart
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+BEE also supports sentinel file-based checkpoint/restart logic, allowing tasks to
+restart based on the presence or absence of a sentinel file. This is useful when
+your application creates a file to indicate completion or when restart should be
+triggered based on external conditions.
+
+An example using sentinel file logic::
+
+       beeflow:CheckpointRequirement:
+            enabled: true
+            checkpoint_dir: checkpoint_output
+            file_regex: backup[0-9]*.crx
+            restart_parameters: -R
+            num_tries: 3
+            sentinel_file_path: continue.file
+            restart_on_file_exists: true
+            restart_on_failure: false
+
+CheckpointRequirement Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+========================== ===== =========================================================
+Parameter                  Req   Description
+========================== ===== =========================================================
+``enabled``                Yes   Enable/disable checkpointing (true/false)
+
+``checkpoint_dir``         Yes   Directory containing checkpoint files |vspace| |br|
+                                 (relative to task working directory)
+
+``file_regex``             Yes   Regular expression pattern matching checkpoint filenames
+
+``restart_parameters``     Yes   CLI flag for restart (e.g., "-R") that precedes the
+                                 checkpoint file path
+
+``add_parameters``         No    Additional CLI parameters appended after checkpoint file
+
+``num_tries``              No    Maximum restart attempts (default: 100)
+
+``sentinel_file_path``     No    Path to sentinel file (relative to task working directory or absolute). |vspace| |br|
+                                 When specified, restart logic checks this file's existence.
+
+``restart_on_file_exists`` No    If ``true``: restart when sentinel file EXISTS  |vspace| |br|
+                                 If ``false``: restart when sentinel file DOES NOT exist |vspace| |br|
+                                 Only used when ``sentinel_file_path`` is specified
+
+``restart_on_failure``     No    If ``true`` (default): only restart on FAILED/TIMEOUT |vspace| |br|
+                                 If ``false``: also check sentinel for COMPLETED tasks |vspace| |br|
+                                 Only used when ``sentinel_file_path`` is specified
+
+``last_good_restart``      No    Path to store/reference the last good checkpoint |vspace| |br|
+                                 (reserved for future use)
+========================== ===== =========================================================
 
 .. container:: red-block
 

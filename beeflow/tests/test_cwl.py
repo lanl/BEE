@@ -163,18 +163,19 @@ import pytest
         (
             cwl.CheckpointRequirement,
             {
-                "file_path": "checkpoint_output",
+                "checkpoint_dir": "checkpoint_output",
                 "file_regex": "backup[0-9]*.crx",
-                "restart_parameters": "-R",
                 "num_tries": 2,
+                "restart_parameters": "-R",
             },
-            "beeflow:CheckpointRequirement:\n  enabled: true\n  file_path: checkpoint_output\n  file_regex: backup[0-9]*.crx\n  restart_parameters: -R\n  add_parameters:\n  num_tries: 2\n",
+            "beeflow:CheckpointRequirement:\n  enabled: true\n  checkpoint_dir: checkpoint_output\n  file_regex: backup[0-9]*.crx\n  restart_on_failure: true\n  restart_parameters: -R\n  add_parameters:\n  num_tries: 2\n",
             {
                 "beeflow:CheckpointRequirement": {
                     "add_parameters": None,
                     "enabled": True,
-                    "file_path": "checkpoint_output",
+                    "checkpoint_dir": "checkpoint_output",
                     "file_regex": "backup[0-9]*.crx",
+                    "restart_on_failure": True,
                     "restart_parameters": "-R",
                     "num_tries": 2,
                 }
