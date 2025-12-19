@@ -187,8 +187,8 @@ Parameter                  Req   Description
 ========================== ===== =========================================================
 ``enabled``                Yes   Enable/disable checkpointing (true/false)
 
-``checkpoint_dir``         Yes   Directory containing checkpoint files (relative to task
-                                 working directory)
+``checkpoint_dir``         Yes   Directory containing checkpoint files |vspace| |br|
+                                 (relative to task working directory)
 
 ``file_regex``             Yes   Regular expression pattern matching checkpoint filenames
 
@@ -199,19 +199,18 @@ Parameter                  Req   Description
 
 ``num_tries``              No    Maximum restart attempts (default: 100)
 
-``sentinel_file_path``     No    Path to sentinel file to check (relative to task working
-                                 directory or absolute). When specified, restart logic
-                                 checks this file's existence
+``sentinel_file_path``     No    Path to sentinel file (relative to task working directory or absolute). |vspace| |br|
+                                 When specified, restart logic checks this file's existence.
 
-``restart_on_file_exists`` No    If ``true``: restart when sentinel file EXISTS
-                                 If ``false``: restart when sentinel file DOES NOT exist
+``restart_on_file_exists`` No    If ``true``: restart when sentinel file EXISTS  |vspace| |br|
+                                 If ``false``: restart when sentinel file DOES NOT exist |vspace| |br|
                                  Only used when ``sentinel_file_path`` is specified
 
-``restart_on_failure``     No    If ``true`` (default): only restart on FAILED/TIMEOUT
-                                 If ``false``: also check sentinel for COMPLETED tasks
+``restart_on_failure``     No    If ``true`` (default): only restart on FAILED/TIMEOUT |vspace| |br|
+                                 If ``false``: also check sentinel for COMPLETED tasks |vspace| |br|
                                  Only used when ``sentinel_file_path`` is specified
 
-``last_good_restart``      No    Path to store/reference the last good checkpoint
+``last_good_restart``      No    Path to store/reference the last good checkpoint |vspace| |br|
                                  (reserved for future use)
 ========================== ===== =========================================================
 
