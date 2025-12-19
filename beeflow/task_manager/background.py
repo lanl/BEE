@@ -111,7 +111,7 @@ def update_jobs(db):
                 if task_checkpoint:
                     # Check if we should process this state based on restart_on_failure setting
                     should_process = False
-                    restart_on_failure = task_checkpoint["restart_on_failure"]
+                    restart_on_failure = task_checkpoint.get("restart_on_failure", True)
                     if restart_on_failure:
                         # Only process FAILED/TIMEOUT states
                         should_process = new_job_state in ('FAILED', 'TIMEOUT')
