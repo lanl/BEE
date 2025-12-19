@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 
+import time
 from beeflow.common.db import bdb
 
 
@@ -26,9 +27,18 @@ class WorkflowInfo:
         """Return port for the specified component."""
         # Need to add code here to make sure we chose a valid component.
         stmt = f"SELECT {component}_port FROM info"
-        result = bdb.getone(self.db_file, stmt)[0]
-        port = result
-        return port
+        # Retry to get the bolt port retries times
+        retries = 5
+        for attempt in range(1, retries + 1):
+            result = bdb.getone(self.db_file, stmt)
+            if result:
+                port = result[0]
+                return port 
+            if retries > 0:
+                time.sleep(attempt)
+                retries -= 1
+        raise RuntimeError("Port for {component} not found in table after"
+                            "{retries} retries. Waited for retries {retries * (retries + 1) / 2")
 
     def increment_num_workflows(self):
         """Set workflow manager port."""
