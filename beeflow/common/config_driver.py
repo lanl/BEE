@@ -106,6 +106,35 @@ class BeeConfig:
             except FileNotFoundError:
                 print("Configuration file is missing! Generating new config file.")
                 new(USERCONFIG_FILE, interactive=False)
+
+        scheduler = config.get("DEFAULT", "workload_scheduler", fallback="Slurm").strip()
+        if config.has_section("slurm"):
+            use_commands = config.getboolean("slurm","use_commands",fallback=False)
+        else:
+            use_commands = False
+
+        # Determine which sections to remove and which to keep
+        sections_to_remove = []
+        if scheduler == "Flux":
+            sections_to_remove = ["slurm attributes", "slurm command attributes"]
+            if not config.has_section("flux attributes"):
+                config.add_section("flux attributes")
+            config.set("flux attributes", "attributes", "queue,runtime,nodelist")
+        elif scheduler == "Slurm":
+            if use_commands:
+                sections_to_remove = ["slurm attributes", "flux attributes"]
+                if not config.has_section("slurm command attributes"):
+                    config.add_section("slurm command attributes")
+                config.set("slurm command attributes", "attributes", "Partition,RunTime,NodeList")
+            else:
+                sections_to_remove = ["slurm command attributes", "flux attributes"]
+                if not config.has_section("slurm attributes"):
+                    config.add_section("slurm attributes")
+                config.set("slurm attributes", "attributes", "partition,nodes")
+
+        for sec in sections_to_remove:
+            if config.has_section(sec):
+                config.remove_section(sec)
         # remove default keys from the other sections
         cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR)
 
