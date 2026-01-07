@@ -107,34 +107,6 @@ class BeeConfig:
                 print("Configuration file is missing! Generating new config file.")
                 new(USERCONFIG_FILE, interactive=False)
 
-        scheduler = config.get("DEFAULT", "workload_scheduler", fallback="Slurm").strip()
-        if config.has_section("slurm"):
-            use_commands = config.getboolean("slurm","use_commands",fallback=False)
-        else:
-            use_commands = False
-
-        # Determine which sections to remove and which to keep
-        sections_to_remove = []
-        if scheduler == "Flux":
-            sections_to_remove = ["slurm attributes", "slurm command attributes"]
-            if not config.has_section("flux attributes"):
-                config.add_section("flux attributes")
-            config.set("flux attributes", "attributes", "queue,runtime,nodelist")
-        elif scheduler == "Slurm":
-            if use_commands:
-                sections_to_remove = ["slurm attributes", "flux attributes"]
-                if not config.has_section("slurm command attributes"):
-                    config.add_section("slurm command attributes")
-                config.set("slurm command attributes", "attributes", "Partition,RunTime,NodeList")
-            else:
-                sections_to_remove = ["slurm command attributes", "flux attributes"]
-                if not config.has_section("slurm attributes"):
-                    config.add_section("slurm attributes")
-                config.set("slurm attributes", "attributes", "partition,nodes")
-
-        for sec in sections_to_remove:
-            if config.has_section(sec):
-                config.remove_section(sec)
         # remove default keys from the other sections
         cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR)
 
@@ -467,7 +439,6 @@ class ConfigGenerator:
 
     def choose_values(self, interactive=False, flux=False, attributes=False):
         """Choose configuration values based on user input."""
-        print("[DEBUG] choose_values() started")
         dirname = os.path.dirname(self.fname)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
@@ -480,12 +451,13 @@ class ConfigGenerator:
                        'values before running BEE.')
             print()
             print('Please enter values for the following sections and options:')
+
         # Let the user choose values for each required attribute
         for sec_name, section in self.validator.sections:
             # Determine if this section is valid under the current configuration
             if not self.validator.is_section_valid(self.sections, sec_name):
                 continue
-            self.sections[sec_name] = {}
+            self.sections[sec_name]={}
             printed = False
             for opt_name, option in self.validator.options(sec_name):
                 # Print the section name if it hasn't already been printed.
@@ -500,13 +472,15 @@ class ConfigGenerator:
                     this_default = "Flux"
                     option.prompt = False
                 if attributes and not interactive and opt_name == 'attributes':
+                    scheduler = self.sections.get('DEFAULT', {}).get('workload_scheduler')
+                    use_commands = self.sections.get('slurm', {}).get('use_commands', False)
                     print(f'\nAvailable attributes for [{sec_name}]:')
-                    if sec_name == 'slurm attributes':
-                        attr_list = slurm_attr
-                    elif sec_name =='slurm command attributes':
-                        attr_list = slurm_command_attr
-                    else:
+                    if scheduler == 'Slurm':
+                        attr_list = slurm_command_attr if use_commands else slurm_attr
+                    elif scheduler == 'Flux':
                         attr_list = flux_attr
+                    else:
+                        attr_list = []
                     print(attr_list)
                     value = self._input_loop(opt_name, option)
                     validated = option.validate(value)
@@ -690,6 +664,23 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
                                         help='Chooses task attributes to display'
                                         'for "beeflow query"')):
     """Create a new config file."""
+    if attributes and os.path.exists(path):
+        try:
+            existing = AlterConfig(path).config
+            scheduler = existing.get('DEFAULT', {}).get('workload_scheduler')
+            if scheduler is not None:
+                for opt_name, opt in VALIDATOR.options('DEFAULT'):
+                    if opt_name == 'workload_scheduler':
+                        opt.default = scheduler
+            use_commands = existing.get('slurm', {}).get('use_commands')
+            if use_commands is not None:
+                for opt_name, opt in VALIDATOR.options('slurm'):
+                    if opt_name == 'use_commands':
+                        opt.default = use_commands
+
+        except OSError as err:
+            print(f"Failed to read BEE's configuration file: {err}")
+
     if os.path.exists(path):
         if not interactive or check_yes(f'Path "{path}" already exists.\n'
                                         + 'Would you like to save a copy of it?'):
