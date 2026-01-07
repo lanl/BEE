@@ -282,7 +282,7 @@ VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  input_fn=filepath_completion_input, prompt=True)
 
 VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.dir_,
-                 info='Spack environment path',
+                 default='.', info='Spack environment path',
                  input_fn=filepath_completion_input, prompt=False)
 
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int, default=3, prompt=False,
