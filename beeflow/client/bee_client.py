@@ -12,6 +12,7 @@ import os
 import sys
 import logging
 import base64
+import bisect
 import inspect
 import pathlib
 import shutil
@@ -23,6 +24,7 @@ import textwrap
 import time
 import importlib.metadata
 import importlib
+from typing import List, Optional
 import jsonpickle
 import requests
 import typer
@@ -241,7 +243,7 @@ def _resource(tag=""):
     return _url() + str(tag)
 
 
-def get_wf_list():
+def get_wf_list(filter_ids=None):
     """Get the list of all workflows."""
     try:
         conn = _wfm_conn()
@@ -256,7 +258,12 @@ def get_wf_list():
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
         error_exit("WF Manager did not return workflow list")
 
-    return ListWorkflowsResponse.model_validate(resp.json()).workflow_info_list
+    workflow_info_list = ListWorkflowsResponse.model_validate(resp.json()).workflow_info_list
+    if filter_ids:
+        workflow_info_list = [
+            wf_info for wf_info in workflow_info_list if wf_info.wf_id in filter_ids
+        ]
+    return workflow_info_list
 
 
 def check_short_id_collision():
@@ -296,7 +303,7 @@ def match_short_id(wf_id):
                 f"user-provided workflow ID {wf_id} did not match any"
                 "stored workflow ID"
             )
-            error_exit("Provided workflow ID does not match any submitted workflows")
+            error_exit("No matching workflow ID found")
         else:
             logging.info(
                 f"user-provided workflow ID {wf_id} matched stored"
@@ -305,6 +312,39 @@ def match_short_id(wf_id):
             long_wf_id = matched_ids[0]
             return long_wf_id
     sys.exit("There are currently no workflows.")
+
+
+def match_short_ids(wf_ids):
+    """Match user-provided short workflow IDs to full workflow IDs."""
+    workflow_list = get_wf_list()
+    if not workflow_list:
+        raise RuntimeError("There are currently no workflows.")
+    full_ids = sorted(wf_info.wf_id for wf_info in workflow_list)
+    wf_ids = list(set(wf_ids))
+
+    results = []
+    for short_id in wf_ids:
+        # find first full_id >= short_id
+        i = bisect.bisect_left(full_ids, short_id)
+        matches = []
+        # collect contiguous matches that share the prefix
+        while i < len(full_ids) and full_ids[i].startswith(short_id):
+            matches.append(full_ids[i])
+            i += 1
+        if len(matches) == 1:
+            results.append(matches[0])
+        elif len(matches) > 1:
+            print(
+                f"User provided workflow id {short_id} is ambiguous "
+                "and matches multiple stored workflow IDs:"
+            )
+            for m in matches:
+                print(f" - {m}")
+        else:
+            print(
+                f"User provided workflow id {short_id} did not match any stored workflow ID."
+            )
+    return results
 
 
 def get_wf_status(wf_id):
@@ -319,6 +359,89 @@ def get_wf_status(wf_id):
         error_exit("Could not successfully query workflow manager")
 
     return resp.json()["wf_status"]
+
+def modify_workflow_list(wf_ids, all_, action, valid_statuses):
+    """Modify a list of workflows based on action and valid statuses."""
+    if not action in ("pause", "resume", "cancel", "remove"):
+        error_exit(f'Invalid action "{action}" provided to modify_workflow_list')
+
+    if not all_ and not wf_ids:
+        error_exit("Please provide at least one valid "
+                    "workflow ID or use --all.")
+    if all_ and wf_ids:
+        error_exit(f'Please provide either workflow IDs to {action} or use --all, not both')
+    if all_:
+        workflow_list = get_wf_list()
+        wf_ids = [
+            wf_info.wf_id
+            for wf_info in workflow_list
+            if any(wf_info.wf_status.startswith(valid_status) for valid_status in valid_statuses)
+        ]
+        if not wf_ids:
+            typer.secho(f'There are no workflows in {valid_statuses} to {action}',
+                        fg=typer.colors.YELLOW)
+            return
+
+    # If remove, confirm with user first
+    if action == "remove":
+        workflow_info_list = get_wf_list(filter_ids=wf_ids)
+        confirm = "All stored information for the selected workflows will be removed."
+        typer.secho("Workflows to be removed:")
+        typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
+        for wf_info in workflow_info_list:
+            typer.echo(
+                f"{wf_info.wf_name}\t{_short_id(wf_info.wf_id)}\t{wf_info.wf_status}"
+            )
+        confirm += "\nContinue to remove? yes(y)/no(n): " ""
+        response = input(confirm)
+        if response in ("n", "no"):
+            print("Workflow(s) not removed.")
+            return
+
+        if response in ("y", "yes"):
+            pass
+        else:
+            print("Invalid response. Workflow(s) not removed.")
+            return
+
+    try:
+        conn = _wfm_conn()
+    except requests.exceptions.ConnectionError:
+        error_exit("Could not reach WF Manager.")
+    for wf_id in wf_ids:
+        wf_status = get_wf_status(wf_id)
+        if any(wf_status.startswith(valid_status) for valid_status in valid_statuses):
+            try:
+                conn = _wfm_conn()
+                if action in ("pause", "resume"):
+                    resp = conn.patch(
+                        _resource(wf_id),
+                        json=ModifyWorkflowRequest(option=action).model_dump(),
+                        timeout=10,
+                    )
+                else:
+                    resp = conn.delete(
+                        _resource(wf_id),
+                        json=ModifyWorkflowRequest(option=action).model_dump(),
+                        timeout=10,
+                    )
+
+            except requests.exceptions.ConnectionError:
+                error_exit("Could not reach WF Manager.")
+            if resp.status_code not in (requests.codes.accepted, requests.codes.okay): # pylint: disable=no-member
+                print(f'WF Manager could not {action} workflow {_short_id(wf_id)}.')
+            else:
+                past_tense = {
+                    "pause": "paused",
+                    "resume": "resumed",
+                    "cancel": "cancelled",
+                    "remove": "removed",
+                }
+                typer.secho(f"Workflow {_short_id(wf_id)} {past_tense[action]}!",
+                            fg=typer.colors.GREEN)
+                logging.info(f"{action.capitalize()} workflow: {resp.text}")
+        else:
+            print(f"Workflow {_short_id(wf_id)} is {wf_status} cannot {action}.")
 
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, cls=NaturalOrderGroup)
@@ -383,6 +506,7 @@ def submit(  # pylint:disable=R0915
     tarball_path = ""
     workflow = None
     encoded_tarball = None
+    untar_path = None
     tasks = []
     if os.path.exists(wf_path):
         # Check to see if the wf_path is a tarball or a directory. Package if directory
@@ -390,17 +514,17 @@ def submit(  # pylint:disable=R0915
             print(
                 "Detected directory instead of packaged workflow. Packaging Directory..."
             )
-            main_cwl_path = pathlib.Path(main_cwl).resolve()
-            yaml_path = pathlib.Path(yaml_file).resolve()
+            orig_cwl_path = pathlib.Path(main_cwl).resolve()
+            orig_yaml_path = pathlib.Path(yaml_file).resolve()
 
-            if not main_cwl_path.exists():
+            if not orig_cwl_path.exists():
                 error_exit(f"Main CWL file {main_cwl} does not exist")
-            if not yaml_path.exists():
+            if not orig_yaml_path.exists():
                 error_exit(f"YAML file {yaml_file} does not exist")
 
             # Packaging in temp dir, after copying alternate cwl_main or yaml file
-            cwl_indir = is_parent(wf_path, main_cwl_path)
-            yaml_indir = is_parent(wf_path, yaml_path)
+            cwl_indir = is_parent(wf_path, orig_cwl_path)
+            yaml_indir = is_parent(wf_path, orig_yaml_path)
 
             # Always create temp dir for the workflow
             tempdir_path = pathlib.Path(tempfile.mkdtemp())
@@ -413,22 +537,22 @@ def submit(  # pylint:disable=R0915
             package_path = package(tempdir_wf_path, tempdir_path)
         else:
             package_path = wf_path
-
-        # Untar and parse workflow
-        untar_path = pathlib.Path(tempfile.mkdtemp())
-        untar_wf_path = unpackage(package_path, untar_path)
-        main_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
-        yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
+            untar_path = pathlib.Path(tempfile.mkdtemp())
+            untar_wf_path = unpackage(package_path, untar_path)
+            orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
+            orig_yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
 
         from beeflow.common.parser import CwlParser # pylint: disable=C0415 # Costly import
         parser = CwlParser()
         workflow_id = generate_workflow_id()
         workflow, tasks = parser.parse_workflow(
-            workflow_id, str(main_cwl_path), job=str(yaml_path), workdir=workdir
+            workflow_id, wf_name, str(orig_cwl_path), job=str(orig_yaml_path),
+            workdir=workdir, wf_path=wf_path
         )
         with open(package_path, "rb") as f:
             encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
-        shutil.rmtree(untar_path)
+        if untar_path is not None:
+            shutil.rmtree(untar_path)
         if os.path.isdir(wf_path):
             shutil.rmtree(tempdir_path)
     else:
@@ -552,39 +676,27 @@ def package(
 
 
 @app.command()
-def remove(wf_id: str = typer.Argument(..., callback=match_short_id)):
+def remove(
+    wf_ids: Optional[List[str]] = typer.Argument(
+        None,
+        metavar="WF_IDS...",
+        callback=match_short_ids,
+        help="Workflow ID(s) to remove",
+    ),
+    all_: bool = typer.Option(
+        False,
+        "--all",
+        "-a",
+        help="Remove all cancelled, paused or archived workflows",
+    ),
+):
     """Remove cancelled, paused, or archived workflow with a workflow ID."""
-    long_wf_id = wf_id
-
-    wf_status = get_wf_status(wf_id)
-    print(f"Workflow Status is {wf_status}")
-    if wf_status in ("Cancelled", "Paused") or "Archived" in wf_status:
-        verify = (
-            f"All stored information for workflow {_short_id(wf_id)} will be removed."
-        )
-        verify += "\nContinue to remove? yes(y)/no(n): " ""
-        response = input(verify)
-        if response in ("n", "no"):
-            sys.exit("Workflow not removed.")
-        elif response in ("y", "yes"):
-            try:
-                conn = _wfm_conn()
-                resp = conn.delete(
-                    _resource(long_wf_id),
-                    json=ModifyWorkflowRequest(option="remove").model_dump(),
-                    timeout=60,
-                )
-            except requests.exceptions.ConnectionError:
-                error_exit("Could not reach WF Manager.")
-            if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
-                error_exit("WF Manager could not remove workflow.")
-            typer.secho("Workflow removed!", fg=typer.colors.GREEN)
-            logging.info(f"Remove workflow: {resp.text}")
-    else:
-        print(f"{_short_id(wf_id)} may still be running.")
-        print("The workflow must be cancelled before attempting removal.")
-
-    sys.exit()
+    modify_workflow_list(
+        wf_ids,
+        all_,
+        action="remove",
+        valid_statuses=["Cancelled", "Paused", "Archived"],
+    )
 
 
 def unpackage(package_path, dest_path):
@@ -613,12 +725,12 @@ def list_workflows():
     """List all workflows."""
     workflow_list = get_wf_list()
     if workflow_list:
-        typer.secho("Name\tID\tStatus", fg=typer.colors.GREEN)
-
+        headers = [typer.style(h, fg=typer.colors.GREEN) for h in ["Name", "ID", "Status"]]
+        data = []
         for wf_info in workflow_list:
-            typer.echo(
-                f"{wf_info.wf_name}\t{_short_id(wf_info.wf_id)}\t{wf_info.wf_status}"
-            )
+            data.append([wf_info.wf_name, _short_id(wf_info.wf_id), wf_info.wf_status])
+        table = tabulate(data, headers=headers, tablefmt="plain")
+        typer.echo(table)
     else:
         typer.echo("There are currently no workflows.")
 
@@ -676,65 +788,75 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
 
 @app.command()
-def pause(wf_id: str = typer.Argument(..., callback=match_short_id)):
-    """Pause a workflow (Running tasks will finish)."""
-    long_wf_id = wf_id
-    try:
-        conn = _wfm_conn()
-        resp = conn.patch(
-            _resource(long_wf_id),
-            json=ModifyWorkflowRequest(option="pause").model_dump(),
-            timeout=60,
-        )
-    except requests.exceptions.ConnectionError:
-        error_exit("Could not reach WF Manager.")
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit("WF Manager could not pause workflow.")
-    logging.info("Pause workflow:  {resp.text}")
+def pause(
+    wf_ids: Optional[List[str]] = typer.Argument(
+        None,
+        metavar="WF_IDS...",
+        callback=match_short_ids,
+        help="Workflow ID(s) to resume",
+    ),
+    all_: bool = typer.Option(
+        False,
+        "--all",
+        "-a",
+        help="Resume all paused workflows",
+    ),
+):
+    """Pause specified workflows (Running tasks will finish)."""
+    modify_workflow_list(
+        wf_ids,
+        all_,
+        action="pause",
+        valid_statuses=["Running", "Initializing"],
+    )
 
 
 @app.command()
-def resume(wf_id: str = typer.Argument(..., callback=match_short_id)):
-    """Resume a paused workflow."""
-    long_wf_id = wf_id
-    try:
-        conn = _wfm_conn()
-        resp = conn.patch(
-            _resource(long_wf_id),
-            json=ModifyWorkflowRequest(option="resume").model_dump(),
-            timeout=60,
-        )
-    except requests.exceptions.ConnectionError:
-        error_exit("Could not reach WF Manager.")
-    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit("WF Manager could not resume workflow.")
-    logging.info("Resume workflow:  {resp.text}")
+def resume(
+    wf_ids: Optional[List[str]] = typer.Argument(
+        None,
+        metavar="WF_IDS...",
+        callback=match_short_ids,
+        help="Workflow ID(s) to resume",
+    ),
+    all_: bool = typer.Option(
+        False,
+        "--all",
+        "-a",
+        help="Resume all paused workflows",
+    ),
+):
+    """Resume specified paused workflows"""
+    modify_workflow_list(
+        wf_ids,
+        all_,
+        action="resume",
+        valid_statuses=["Paused"],
+    )
 
 
 @app.command()
-def cancel(wf_id: str = typer.Argument(..., callback=match_short_id)):
+def cancel(
+    wf_ids: Optional[List[str]] = typer.Argument(
+        None,
+        metavar="WF_IDS...",
+        callback=match_short_ids,
+        help="Workflow ID(s) to cancel",
+    ),
+    all_: bool = typer.Option(
+        False,
+        "--all",
+        "-a",
+        help="Cancel all running or paused workflows",
+    ),
+):
     """Cancel a paused or running workflow."""
-    long_wf_id = wf_id
-    wf_status = get_wf_status(wf_id)
-    if wf_status in ("Running", "Paused", "No Start"):
-        try:
-            conn = _wfm_conn()
-            resp = conn.delete(
-                _resource(long_wf_id),
-                json=ModifyWorkflowRequest(option="cancel").model_dump(),
-                timeout=60,
-            )
-
-        except requests.exceptions.ConnectionError:
-            error_exit("Could not reach WF Manager.")
-        if resp.status_code != requests.codes.accepted:  # pylint: disable=no-member
-            error_exit("WF Manager could not cancel workflow.")
-        typer.secho("Workflow cancelled!", fg=typer.colors.GREEN)
-        logging.info(f"Cancel workflow: {resp.text}")
-    elif wf_status == "Intializing":
-        print(f"Workflow is {wf_status}, try cancel later.")
-    else:
-        print(f"Workflow is {wf_status} cannot cancel.")
+    modify_workflow_list(
+        wf_ids,
+        all_,
+        action="cancel",
+        valid_statuses=["Running", "Paused", "No Start"],
+    )
 
 
 @app.command()

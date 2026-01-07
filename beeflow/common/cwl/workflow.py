@@ -73,12 +73,13 @@ class Output:
 @dataclass
 class MPI:
     """MPI options."""
-    nodes: int
-    ntasks: int
+    nodes: int = None
+    ntasks: int = None
+    load_from_file: str = None
 
     def requirement(self):
         """Return MPI requirement object."""
-        return MPIRequirement(self.nodes, self.ntasks)
+        return MPIRequirement(self.nodes, self.ntasks, self.load_from_file)
 
 
 @dataclass
@@ -88,7 +89,8 @@ class Slurm(SlurmRequirement):
     def requirement(self):
         """Return a scheduler requirement object."""
         return SlurmRequirement(time_limit=self.time_limit, account=self.account,
-                partition=self.partition, qos=self.qos, reservation=self.reservation)
+                partition=self.partition, qos=self.qos, reservation=self.reservation,
+                          load_from_file=self.load_from_file)
 
 
 @dataclass
@@ -129,12 +131,15 @@ class Checkpoint(CheckpointRequirement):
 
     def requirement(self):
         """Return a checkpoint requirement object."""
-        return CheckpointRequirement(file_path=self.file_path,
-                                     container_path=self.container_path,
+        return CheckpointRequirement(checkpoint_dir=self.checkpoint_dir,
                                      file_regex=self.file_regex,
+                                     sentinel_file_path=self.sentinel_file_path,
+                                     restart_on_file_exists=self.restart_on_file_exists,
+                                     restart_on_failure=self.restart_on_failure,
                                      restart_parameters=self.restart_parameters,
                                      add_parameters=self.add_parameters,
                                      num_tries=self.num_tries,
+                                     last_good_restart=self.last_good_restart,
                                      enabled=self.enabled)
 
 
