@@ -108,7 +108,7 @@ class BeeConfig:
                 new(USERCONFIG_FILE, interactive=False)
 
         # remove default keys from the other sections
-        cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR)
+        cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR,USERCONFIG_FILE)
 
     @classmethod
     def userconfig_path(cls):
@@ -584,7 +584,8 @@ class AlterConfig:
         try:
             with open(self.fname, encoding='utf-8') as fp:
                 config.read_file(fp)
-                self.config = config_utils.filter_and_validate(config, self.validator)
+                self.config = config_utils.filter_and_validate(config,
+                self.validator,USERCONFIG_FILE)
         except FileNotFoundError:
             for section_change in self.changes:
                 for option_change in self.changes[section_change]:

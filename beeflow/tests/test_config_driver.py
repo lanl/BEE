@@ -160,7 +160,18 @@ def test_config_new(mocker, tmpdir, interactive, input_val, expected):
     mocker.patch('beeflow.common.config_driver.ConfigGenerator.choose_values')
     mocker.patch('beeflow.common.config_driver.ConfigGenerator.choose_values.save')
     with tmpdir.as_cwd():
-        with open(filename, 'w', encoding='utf-8'):
-            pass
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(
+                "[DEFAULT]\n"
+                "bee_workdir = .\n"
+                "workload_scheduler = Slurm\n\n"
+                "[task_manager]\n"
+                "container_runtime = Charliecloud\n"
+                "runner_opts = \n\n"
+                "[slurm]\n"
+                "use_commands = False\n\n"
+                "[slurm attributes]\n"
+                "attributes = partition,nodes\n"
+            )
         new("bee.conf", interactive=interactive)
         assert os.path.exists('bee.conf.1') == expected
