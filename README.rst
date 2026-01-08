@@ -82,6 +82,7 @@ Contributors:
 * Kabir Vats - `kabir-vats <https://github.com/kabir-vats>`_
 * Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
 * Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
+* Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
 
 Concept and Design Contributors
 

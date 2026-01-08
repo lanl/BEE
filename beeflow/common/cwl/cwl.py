@@ -2,7 +2,8 @@
 import os
 from dataclasses import dataclass
 from io import StringIO
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 import ruamel.yaml
 
 # Create the global object for ruamel.ymal
@@ -481,7 +482,13 @@ class ScriptRequirement:
 class TaskRequirement:
     """Defines task requirement."""
 
-    workdir: str
+    # Accept either a string or a Path
+    workdir: Union[str, Path]
+
+    def __post_init__(self):
+        """ Convert a Path object to a string."""
+        if isinstance(self.workdir, Path):
+            self.workdir = str(self.workdir)
 
     def dump(self):
         """Dump task requirement to a dictionary."""
