@@ -324,13 +324,20 @@ VALIDATOR.option('job', 'default_reservation', validator=lambda val: val.strip()
                  default='', info='default reservation to run jobs on (leave blank if none)')
 
 def validate_attributes(val):
-    """Ensures the atributes are stored as a comma-separated string in"""
+    """Ensures the atributes are spelled correctly and stored as a comma-separated 
+    string in the config"""
     if isinstance(val, str):
         parts = [p.strip() for p in val.split(',') if p.strip()]
     elif isinstance(val, (list, tuple)):
         parts = [str(v).strip() for v in val if str(v).strip()]
     else:
         raise ValueError("Expected a comma-separated string or list of strings.")
+
+    allowed = set(slurm_command_attr) | set(slurm_attr) | set(flux_attr)
+    for p in parts:
+        if p not in allowed:
+            print()
+            raise ValueError(f'The attribute is spelled incorrectly or not available: {p}\n')
     return ",".join(parts)
 
 slurm_command_attr= [
