@@ -1,3 +1,4 @@
+import pytest
 from beeflow.common.cwl.workflow import (
     Task,
     Input,
@@ -11,6 +12,7 @@ from beeflow.common.cwl.workflow import (
     TaskReq,
 )
 from importlib.resources import files
+from pathlib import Path
 
 expected_folder = files("beeflow.tests.cwl_files")
 
@@ -174,9 +176,10 @@ def test_workflow_checkpoint(tmpdir):
         hints=[
             Checkpoint(
                 enabled=True,
-                file_path="checkpoint_output",
+                checkpoint_dir="checkpoint_output",
                 file_regex="backup[0-9]*.crx",
                 restart_parameters="-R",
+                restart_on_failure=True,
                 num_tries=3,
             ),
             Slurm(time_limit="00:00:10"),
@@ -198,8 +201,15 @@ def test_workflow_checkpoint(tmpdir):
             expected = f2.read()
             assert actual == expected
 
-
-def test_workflow_task_req(tmpdir):
+@pytest.mark.parametrize(
+    "workdir_value, description",
+    [
+        ("cat_workdir", "plain string"),
+        (Path("cat_workdir"), "Path object"),
+    ],
+    ids=lambda val: f"workdir_as_{type(val).__name__}",
+)
+def test_workflow_task_req(tmpdir, workdir_value, description):
     """Regression test of example setting task workdir."""
     expected_wf = expected_folder / "task-req.cwl"
     expected_yaml = expected_folder / "task-req.yml"
@@ -215,7 +225,7 @@ def test_workflow_task_req(tmpdir):
             Output("contents", "stdout"),
             Output("cat_stderr", "stderr", source="cat/cat_stderr"),
         ],
-        hints=[TaskReq(workdir="cat_workdir")],
+        hints=[TaskReq(workdir=workdir_value)],
     )
 
     grep = Task(
@@ -237,8 +247,8 @@ def test_workflow_task_req(tmpdir):
         with open("task-req.cwl", "r") as f1, open(expected_wf, "r") as f2:
             actual = f1.read()
             expected = f2.read()
-            assert actual == expected
+            assert actual == expected, (f"CWL mismatch when workdir is a {description}. ")
         with open("task-req.yml", "r") as f1, open(expected_yaml, "r") as f2:
             actual = f1.read()
             expected = f2.read()
-            assert actual == expected
+            assert actual == expected, (f"YAML mismatch when workdir is a {description}. ")

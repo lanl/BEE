@@ -259,13 +259,6 @@ def init_components(remote=False):
     # Run this before daemonizing in order to avoid slow background start
     # container_path = paths.redis_container()
     # If it exists, we assume that it actually has a valid container
-    # if not os.path.exists(container_path):
-        # print('Unpacking Redis image...')
-        # subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
-        #                       bc.get('DEFAULT', 'redis_image'), container_path])
-    if not container_manager.check_container_dir('redis'):
-        print('Unpacking Redis image...')
-        container_manager.create_image('redis')
 
     if need_neo4j():
         if not container_manager.check_container_dir('neo4j'):
