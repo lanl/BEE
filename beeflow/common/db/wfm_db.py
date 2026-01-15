@@ -33,7 +33,7 @@ class WorkflowInfo:
             result = bdb.getone(self.db_file, stmt)
             if result:
                 port = result[0]
-                return port 
+                return port
             if retries > 0:
                 time.sleep(attempt)
                 retries -= 1

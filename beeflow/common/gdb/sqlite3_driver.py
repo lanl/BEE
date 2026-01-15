@@ -1,7 +1,6 @@
 """Graph database driver using SQLite as the backend."""
 
 import os
-import sqlite3
 from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.db.gdb_db import SQL_GDB
