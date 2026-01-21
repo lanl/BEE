@@ -28,7 +28,8 @@ class WorkflowInfo:
         # Need to add code here to make sure we chose a valid component.
         stmt = f"SELECT {component}_port FROM info"
         # Retry to get the bolt port retries times
-        retries = 5
+        # retries = 5
+        retries = 10
         for attempt in range(1, retries + 1):
             result = bdb.getone(self.db_file, stmt)
             if result:
