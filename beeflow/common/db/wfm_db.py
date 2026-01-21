@@ -39,7 +39,7 @@ class WorkflowInfo:
                 time.sleep(attempt)
                 retries -= 1
         raise RuntimeError(f"Port for {component} not found in table after"
-                            "{retries} retries. Waited for retries {retries * (retries + 1) / 2}")
+                            f"{retries} retries. Waited for retries {retries * (retries + 1) / 2}")
 
     def increment_num_workflows(self):
         """Set workflow manager port."""

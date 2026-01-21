@@ -39,6 +39,10 @@ jobs:
       - name: Integration Test
         run: |
           . ./ci/env.sh
+          echo "LOG_DIR=$LOG_DIR" >> $GITHUB_ENV
+          echo "SLURM_CONF=$SLURM_CONF" >> $GITHUB_ENV
+          echo "BEE_WORKDIR=$BEE_WORKDIR" >> $GITHUB_ENV
+          echo "BEE_CONFIG=$BEE_CONFIG" >> $GITHUB_ENV
           ./ci/integration_test.sh
           mv .coverage.integration ".coverage.${{ matrix.bee_worker }}.${{ matrix.gdb_backend }}"
       - name: Upload bee error logs
@@ -46,7 +50,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bee-error-logs-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}.log
-          path: bee-error-*.log
+          path: |
+            bee-error-*.log
+            $LOG_DIR
+            $SLURM_CONF
+            $BEE_WORKDIR/logs
+            $BEE_WORKDIR/*.db
+            $BEE_CONFIG
           if-no-files-found: ignore
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
