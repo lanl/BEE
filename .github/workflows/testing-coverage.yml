@@ -48,6 +48,7 @@ jobs:
           ./ci/integration_test.sh
           mv .coverage.integration ".coverage.${{ matrix.bee_worker }}.${{ matrix.gdb_backend }}"
       - name: Stash bee error logs
+        if: failure()
         run: |
           mkdir bee-error-logs
           cp bee-error-*.log bee-error-logs
