@@ -56,7 +56,7 @@ def slurm_worker(request):
     bee_workdir = os.path.expanduser(f'/tmp/{uuid.uuid4().hex}.tmp')
     os.mkdir(bee_workdir)
     openapi_version = worker_utils.get_slurmrestd_version()
-    proc = subprocess.Popen(f'slurmrestd -s openapi/{openapi_version} unix:{slurm_socket}',
+    proc = subprocess.Popen(f'slurmrestd -d {openapi_version} -s openapi/slurmctld unix:{slurm_socket}',
                             shell=True)
     time.sleep(1)
     worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',

@@ -40,14 +40,14 @@ def parse_key_val(pair):
 
 def get_slurmrestd_version():
     """Get the newest slurmrestd version."""
-    resp = subprocess.run(["slurmrestd", "-s", "list"], check=True, stderr=subprocess.PIPE,
-                          text=True).stderr
+    resp = subprocess.run(["slurmrestd", "-d", "list"], check=True, stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True).stdout
     resp = resp.split("\n")
     # Confirm slurmrestd format is the same
     # If the slurmrestd list outputs has changed potentially something else has broken
-    if "Possible OpenAPI plugins" not in resp[0]:
+    if "Possible data_parser plugins" not in resp[0]:
         print("Slurmrestd OpenAPI format has changed and things may break")
-    api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"openapi/v\d+\.\d+\.\d+",
+    api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"data_parser/v\d+\.\d+\.\d+",
                                                                          line)]
     # Sort the versions and grab the newest one
     newest_api = sorted(api_versions, key=Version, reverse=True)[0]

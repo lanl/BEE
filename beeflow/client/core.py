@@ -279,7 +279,7 @@ def init_components(remote=False):
             slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
             openapi_version = worker_utils.get_slurmrestd_version()
             print(f"Inferred slurmrestd version: {openapi_version}")
-            slurm_args = f'-s openapi/{openapi_version}'
+            slurm_args = f'-d {openapi_version} -s openapi/slurmctld'
             # The following adds the db plugin we opted not to use for now
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
             slurm_socket = paths.slurm_socket()
