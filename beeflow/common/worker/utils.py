@@ -47,8 +47,8 @@ def get_slurmrestd_version():
     # If the slurmrestd list outputs has changed potentially something else has broken
     if "Possible data_parser plugins" not in resp[0]:
         print("Slurmrestd OpenAPI format has changed and things may break")
-    api_versions = [line.split('/')[1] for line in resp[1:] if re.search(r"data_parser/v\d+\.\d+\.\d+",
-                                                                         line)]
+    api_versions = [line.split('/')[1] for line in resp[1:] if 
+            re.search(r"data_parser/v\d+\.\d+\.\d+", line)]
     # Sort the versions and grab the newest one
     newest_api = sorted(api_versions, key=Version, reverse=True)[0]
     return newest_api
