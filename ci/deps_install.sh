@@ -3,7 +3,7 @@
 set -e
 
 sudo apt-get update
-sudo apt-get install -y slurmctld slurmd slurmrestd munge python3 python3-venv \
+sudo apt-get install -y libhttp-parser-dev libjson-c-dev libjwt-dev munge python3 python3-venv \
     curl build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev \
     libssl-dev libsqlite3-dev libreadline-dev libffi-dev libbz2-dev \
     libmunge-dev \
@@ -16,7 +16,15 @@ curl -O -L https://github.com/hpc/charliecloud/releases/download/v${CHARLIECLOUD
 tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz
 (cd charliecloud-${CHARLIECLOUD_VERSION}
  ./configure --prefix=/usr
- make
+ make -j4
+ sudo make install)
+
+# Install Slurm
+curl -O -L https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2
+tar -xvf slurm-${SLURM_VERSION}.tar.bz2
+(cd slurm-${SLURM_VERSION}
+ ./configure --prefix=/usr
+ make -j4
  sudo make install)
 
 # Install Python3
