@@ -397,6 +397,8 @@ VALIDATOR.option('charliecloud', 'setup', default='', prompt=False,
                  info='extra Charliecloud setup to put in a job script')
 # Graph Database
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
+VALIDATOR.option('graphdb', 'type', default='sqlite3', choices=('neo4j', 'sqlite3'),
+                 info='type of graph database to use', prompt=False)
 VALIDATOR.option('graphdb', 'hostname', default='localhost', prompt=False,
                  info='hostname of database')
 

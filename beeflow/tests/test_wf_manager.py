@@ -159,11 +159,13 @@ def test_workflow_status(client, mocker, setup_teardown_workflow):
         workflow_id=WF_ID,
         name='task',
         base_command='',
+        state='RUNNING'
     ), '124': Task(
         id='124',
         workflow_id=WF_ID,
         name='task',
         base_command='',
+        state='WAITING'
     )}
     mockGDB.task_states = {
         '123': 'RUNNING',

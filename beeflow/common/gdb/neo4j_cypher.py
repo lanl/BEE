@@ -5,7 +5,7 @@ from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
 failed_task_states = ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL', 'TIMEOUT', 'CANCELLED']
-final_task_states = ['COMPLETED'] + failed_task_states
+final_task_states = ['COMPLETED', 'RESTARTED'] + failed_task_states
 
 def create_bee_node(tx):
     """Create a BEE node in the Neo4j database.
@@ -121,14 +121,16 @@ def create_task(tx, task):
                     "SET t.stdout = $stdout "
                     "SET t.stderr = $stderr "
                     "SET t.reqs = $reqs "
-                    "SET t.hints = $hints")
+                    "SET t.hints = $hints "
+                    "SET t.state = $state "
+                    "SET t.workdir = $workdir")
 
     # Unpack requirements, hints dictionaries into flat list
     reqs = len(task.requirements) > 0
     hints = len(task.hints) > 0
     tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
            base_command=task.base_command, stdout=task.stdout, stderr=task.stderr,
-           reqs=reqs, hints=hints)
+           reqs=reqs, hints=hints, state=task.state, workdir=task.workdir)
 
 
 def create_task_hint_nodes(tx, task):
@@ -200,7 +202,7 @@ def create_task_output_nodes(tx, task):
                value=output.value, glob=output.glob)
 
 
-def create_task_metadata_node(tx, task, task_state):
+def create_task_metadata_node(tx, task):
     """Create a task metadata node in the Neo4j database.
 
     The node holds metadata about a task's execution state.
@@ -209,9 +211,10 @@ def create_task_metadata_node(tx, task, task_state):
     :type task: Task
     """
     metadata_query = ("MATCH (t:Task {id: $task_id}) "
-                      "CREATE (m:Metadata {state: $task_state})-[:DESCRIBES]->(t)")
+                      "CREATE (m:Metadata)-[:DESCRIBES]->(t)")
 
-    tx.run(metadata_query, task_id=task.id, task_state=task_state)
+    tx.run(metadata_query, task_id=task.id)
+    set_task_metadata(tx, task.id, task.metadata)
 
 
 def add_dependencies(tx, task, old_task=None, restarted_task=False):
@@ -453,8 +456,7 @@ def get_ready_tasks(tx, wf_id):
     :type workflow_id: str
     :rtype: neo4j.Result
     """
-    get_ready_query = ("MATCH (:Metadata {state: 'READY'})-[:DESCRIBES]->"
-                       "(t:Task {workflow_id: $wf_id}) RETURN t")
+    get_ready_query = "MATCH (t:Task {workflow_id: $wf_id, state: 'READY'}) RETURN t"
 
     return [rec['t'] for rec in tx.run(get_ready_query, wf_id=wf_id)]
 
@@ -478,7 +480,7 @@ def get_task_state(tx, task_id):
     :type task: Task
     :rtype: str
     """
-    state_query = "MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) RETURN m.state"
+    state_query = "MATCH (t:Task {id: $task_id}) RETURN t.state"
 
     return tx.run(state_query, task_id=task_id).single().value()
 
@@ -491,8 +493,7 @@ def set_task_state(tx, task_id, state):
     :param state: the new task state
     :type state: str
     """
-    state_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task {id: $task_id}) "
-                   "SET m.state = $state")
+    state_query = "MATCH (t:Task {id: $task_id}) SET t.state = $state"
 
     tx.run(state_query, task_id=task_id, state=state)
 
@@ -655,12 +656,12 @@ def copy_task_outputs(tx, task):
                          "WHERE i.source = o.id AND o.value IS NOT NULL "
                          "SET i.value = o.value")
     # Set any values to defaults if necessary
-    defaults_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(:Task)<-[:DEPENDS_ON]-"
+    defaults_query = ("MATCH (pt:Task)<-[:DEPENDS_ON]-"
                       "(t:Task)-[:DEPENDS_ON]->(:Task {id: $task_id}) "
-                      "WITH m, t "
+                      "WITH pt, t "
                       "MATCH (t)<-[:INPUT_OF]-(i:Input) "
-                      "WITH i, collect(m) AS mlist "
-                      "WHERE all(m IN mlist WHERE m.state = 'COMPLETED') "
+                      "WITH i, collect(pt) AS ptlist "
+                      "WHERE all(pt IN ptlist WHERE pt.state = 'COMPLETED') "
                       "AND i.value IS NULL AND i.default IS NOT NULL "
                       "SET i.value = i.default")
     workflow_output_query = ("MATCH (:Workflow)<-[:OUTPUT_OF]-(wo:Output) "
@@ -674,61 +675,15 @@ def copy_task_outputs(tx, task):
     tx.run(workflow_output_query, task_id=task.id)
 
 
-def set_running_tasks_to_paused(tx):
-    """Set 'RUNNING' task states to 'PAUSED'."""
-    set_paused_query = ("MATCH (m:Metadata {state: 'RUNNING'})-[:DESCRIBES]->(:Task) "
-                        "SET m.state = 'PAUSED'")
-
-    tx.run(set_paused_query)
-
-
-def set_paused_tasks_to_running(tx):
-    """Set 'PAUSED' task states to 'RUNNING'."""
-    set_running_query = ("MATCH (m:Metadata {state: 'PAUSED'})-[:DESCRIBES]->(:Task) "
-                         "SET m.state = 'RUNNING'")
-
-    tx.run(set_running_query)
-
-
 def set_runnable_tasks_to_ready(tx, wf_id):
     """Set task states to 'READY' if all required inputs have values."""
-    set_runnable_ready_query = ("MATCH (m:Metadata)-[:DESCRIBES]->"
-                                "(t:Task {workflow_id: $wf_id})<-[:INPUT_OF]-(i:Input) "
-                                "WITH m, t, collect(i) AS ilist "
-                                "WHERE m.state = 'WAITING' "
+    set_runnable_ready_query = ("MATCH (t:Task {workflow_id: $wf_id})<-[:INPUT_OF]-(i:Input) "
+                                "WITH t, collect(i) AS ilist "
+                                "WHERE t.state = 'WAITING' "
                                 "AND all(i IN ilist WHERE i.value IS NOT NULL) "
-                                "SET m.state = 'READY'")
+                                "SET t.state = 'READY'")
 
     tx.run(set_runnable_ready_query, wf_id=wf_id)
-
-
-def reset_tasks_metadata(tx, wf_id):
-    """Reset the metadata for each of a workflow's tasks.
-
-    :param wf_id: the workflow's ID
-    :type wf_id: str
-    """
-    reset_metadata_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
-                            "DETACH DELETE m "
-                            "WITH t "
-                            "CREATE (:Metadata {state: 'WAITING'})-[:DESCRIBES]->(t)")
-
-    tx.run(reset_metadata_query, wf_id=wf_id)
-
-
-def reset_workflow_id(tx, old_id, new_id):
-    """Reset the workflow ID of the workflow using uuid4.
-
-    :param old_id: the old workflow ID
-    :type old_id: str
-    :param new_id: the new workflow ID
-    :type new_id: str
-    """
-    reset_workflow_id_query = ("MATCH (w:Workflow {id: $old_id}), (t:Task {workflow_id: $old_id}) "
-                               "SET w.id = $new_id "
-                               "SET t.workflow_id = $new_id")
-
-    tx.run(reset_workflow_id_query, old_id=old_id, new_id=new_id)
 
 
 def final_tasks_completed(tx, wf_id):
@@ -739,9 +694,9 @@ def final_tasks_completed(tx, wf_id):
     :rtype: bool
     """
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
-    not_completed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+    not_completed_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           f"AND NOT m.state IN {final_task_states} "
+                           f"AND NOT t.state IN {final_task_states} "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is not finished
@@ -756,9 +711,9 @@ def final_tasks_succeeded(tx, wf_id):
     :rtype: bool
     """
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
-    not_succeeded_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+    not_succeeded_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           "AND m.state <> 'COMPLETED' "
+                           "AND t.state <> 'COMPLETED' "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task with state not 'COMPLETED'
@@ -773,9 +728,9 @@ def final_tasks_failed(tx, wf_id):
     :rtype: bool
     """
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
-    not_failed_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+    not_failed_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                         f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                        f"AND NOT m.state IN {failed_task_states} "
+                        f"AND NOT t.state IN {failed_task_states} "
                         "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is not failed
@@ -793,9 +748,9 @@ def cancelled_final_tasks_completed(tx, wf_id):
     :rtype: bool
     """
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
-    active_states_query = ("MATCH (m:Metadata)-[:DESCRIBES]->(t:Task {workflow_id: $wf_id}) "
+    active_states_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           "AND m.state IN ['PENDING', 'RUNNING', 'COMPLETING'] "
+                           "AND t.state IN ['SUBMIT', 'PENDING', 'RUNNING', 'COMPLETING'] "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is in 'PENDING', 'RUNNING', or 'COMPLETING'
