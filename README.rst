@@ -50,8 +50,8 @@ BEE Sites
      - ``0.1.10``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
    * - Pre-release
-     - ``0.1.11dev4``
-     - `https://lanl.github.io/BEE/0.1.11dev4/ <https://lanl.github.io/BEE/0.1.11dev4/>`__
+     - ``0.1.11dev5``
+     - `https://lanl.github.io/BEE/0.1.11dev5/ <https://lanl.github.io/BEE/0.1.11dev5/>`__
 
 
 Contact
