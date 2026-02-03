@@ -233,7 +233,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 check_slurm_error(data, f'Failed to query job {job_id}, slurm error.')
                 # For some versions of slurm, the job_state isn't included on failure
                 try:
-                    job_state = data['jobs'][0]['job_state']
+                    job_state = data['jobs'][0]['job_state'][0]
                     job_info = deepcopy(data['jobs'][0])
 
                 except (KeyError, IndexError) as exc:
