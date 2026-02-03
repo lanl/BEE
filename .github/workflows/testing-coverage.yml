@@ -51,12 +51,12 @@ jobs:
         if: failure()   # only when the job fails
         run: |
           mkdir bee-error-logs
-          cp bee-error-*.log bee-error-logs
-          cp -R $LOG_DIR bee-error-logs
-          cp -R $SLURM_CONF bee-error-logs
-          cp -R $BEE_WORKDIR/logs bee-error-logs
-          cp -R $BEE_WORKDIR/*.db bee-error-logs
-          cp -R $BEE_CONFIG bee-error-logs
+          cp bee-error-*.log bee-error-logs || true
+          cp -R $LOG_DIR bee-error-logs || true
+          cp -R $SLURM_CONF bee-error-logs || true
+          cp -R $BEE_WORKDIR/logs bee-error-logs || true
+          cp -R $BEE_WORKDIR/*.db bee-error-logs || true
+          cp -R $BEE_CONFIG bee-error-logs || true
       - name: Upload bee error logs
         if: failure()    # only when the job fails
         uses: actions/upload-artifact@v4
