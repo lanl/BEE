@@ -9,20 +9,26 @@ from beeflow.common.config_driver import BeeConfig as bc
 
 def setup_config(container):
     """Setup the redis config."""
-    data_dir = 'data'
-    os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
     conf_name = 'redis.conf'
     conf_path = os.path.join(paths.redis_root(), conf_name)
+    data_dir = 'data'
+    os.makedirs(os.path.join(paths.redis_root(), data_dir), exist_ok=True)
+
     if container:
         mount_point = '/mnt'
+        redis_socket = os.path.join(mount_point, paths.redis_sock_fname())
+        redis_data = os.path.join(mount_point, data_dir)
     else:
+        redis_socket = paths.redis_socket()
         mount_point = paths.redis_root()
+        redis_data = os.path.join(paths.redis_root(), data_dir)
+
     with open(conf_path, 'w', encoding='utf-8') as fp:
         # Don't listen on TCP
         print('port 0', file=fp)
-        print('dir', os.path.join(mount_point, data_dir), file=fp)
+        print('dir', redis_data, file=fp)
         print('maxmemory 2mb', file=fp)
-        print('unixsocket', os.path.join(mount_point, paths.redis_sock_fname()), file=fp)
+        print('unixsocket', redis_socket, file=fp)
         print('unixsocketperm 700', file=fp)
     return conf_path
 

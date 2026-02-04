@@ -11,9 +11,6 @@ BASE_CONTAINER = 'alpine'
 SIMPLE_DOCKERFILE = """
 # Dummy docker file that really doesn't do much
 FROM alpine
-
-# Install something that has minimal dependencies
-RUN apk update && apk add bzip2
 """
 # Dump the Dockerfile to a path that the later code can reference
 DOCKER_FILE_PATH = os.path.join('/tmp', f'Dockerfile-{uuid.uuid4().hex}')

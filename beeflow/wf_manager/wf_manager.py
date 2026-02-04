@@ -24,7 +24,7 @@ def create_app():
 
     # Initialize celery app
     celery_app = Celery(app.name)
-    redis_socket = os.path.join(paths.redis_root(), paths.redis_sock_fname())
+    redis_socket = paths.redis_socket()
     celery_app.config_from_object({
         'broker_url': f'redis+socket://{redis_socket}',
         'result_backend': f'db+sqlite://{paths.celery_db()}',

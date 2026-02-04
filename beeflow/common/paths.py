@@ -73,6 +73,12 @@ def redis_sock_fname():
     return 'redis.sock'
 
 
+def redis_socket():
+    """Get the redis socket."""
+    # Only used when not using redis in a contianer
+    return os.path.join(redis_root(), redis_sock_fname())
+
+
 def _celery_root():
     """Get the celery root directory (create it if it doesn't exist)."""
     path = os.path.join(workdir(), 'celery')
