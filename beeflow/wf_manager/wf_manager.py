@@ -1,6 +1,5 @@
 """Start up the workflow manager connecting all of the endpoints."""
 
-import os
 from flask import Flask
 from celery import Celery
 from celery import shared_task # pylint: disable=W0611 # pylint can't find celery imports
