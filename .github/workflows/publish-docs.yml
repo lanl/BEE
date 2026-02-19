@@ -30,8 +30,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: BEE Install and Build Docs
-        run: |
-          ./ci/docs.sh
+        run: ./ci/docs.sh
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
