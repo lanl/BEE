@@ -5,7 +5,7 @@ from beeflow.common import log as bee_logging
 
 log = bee_logging.setup(__name__)
 failed_task_states = ['FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'DEP_FAIL', 'TIMEOUT', 'CANCELLED']
-final_task_states = ['COMPLETED'] + failed_task_states
+final_task_states = ['COMPLETED', 'RESTARTED'] + failed_task_states
 
 def create_bee_node(tx):
     """Create a BEE node in the Neo4j database.
@@ -33,7 +33,7 @@ def create_workflow_node(tx, workflow):
                       "SET w.workdir = $workdir "
                       "SET w.main_cwl = $main_cwl "
                       "SET w.wf_path = $wf_path "
-                      "SET w.yaml = $yaml "  
+                      "SET w.yaml = $yaml "
                       "SET w.reqs = $reqs "
                       "SET w.hints = $hints "
                       "SET w.restart = FALSE")
@@ -750,7 +750,7 @@ def cancelled_final_tasks_completed(tx, wf_id):
     restart = "|RESTARTED_FROM" if get_workflow_by_id(tx, wf_id)['restart'] else ""
     active_states_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
                            f"WHERE NOT (t)<-[:DEPENDS_ON{restart}]-(:Task) "
-                           "AND t.state IN ['PENDING', 'RUNNING', 'COMPLETING'] "
+                           "AND t.state IN ['SUBMIT', 'PENDING', 'RUNNING', 'COMPLETING'] "
                            "RETURN t IS NOT NULL LIMIT 1")
 
     # False if at least one task is in 'PENDING', 'RUNNING', or 'COMPLETING'

@@ -9,6 +9,8 @@ from pydantic import BaseModel, model_validator
 
 from beeflow.common.container_path import convert_path
 
+from beeflow.common import log as bee_logging
+log = bee_logging.setup(__name__)
 
 class InputParameter(BaseModel):
     """Pydantic model for InputParameter."""
@@ -95,7 +97,6 @@ class Workflow(BaseModel):
     main_cwl: Optional[str | Path | os.PathLike] = None
     wf_path: Optional[str | Path | os.PathLike] = None
     yaml: Optional[str | Path | os.PathLike] = None
-
 
     def __eq__(self, other):
         """Test the equality of two workflows.
@@ -354,6 +355,9 @@ class Task(BaseModel):
         positional_inputs = []
         nonpositional_inputs = []
         for input_ in self.inputs:
+            # Skip empty inputs
+            if input_.position is None and input_.prefix is None:
+                continue
             if input_.value is None:
                 raise ValueError(
                     (
@@ -380,7 +384,7 @@ class Task(BaseModel):
         for input_ in nonpositional_inputs:
             if input_.prefix is not None:
                 command.append(input_.prefix)
-            command.append(str(input_.value))
+                command.append(str(input_.value))
 
         # Append restart parameter and checkpoint file if CheckpointRequirement specified
         for hint in self.hints:

@@ -415,9 +415,9 @@ TASKS_NOJOB_GOLD = [
                 OrderedDict(
                     [
                         ("enabled", True),
-                        ("file_path", "checkpoint_output"),
-                        ("container_path", "checkpoint_output"),
+                        ("checkpoint_dir", "checkpoint_output"),
                         ("file_regex", "backup[0-9]*.crx"),
+                        ("restart_on_failure", True),
                         ("restart_parameters", None),
                         ("num_tries", 3),
                         ("class", "beeflow:CheckpointRequirement"),
@@ -429,9 +429,9 @@ TASKS_NOJOB_GOLD = [
                     class_="beeflow:CheckpointRequirement",
                     params={
                         "enabled": True,
-                        "file_path": "checkpoint_output",
-                        "container_path": "checkpoint_output",
+                        "checkpoint_dir": "checkpoint_output",
                         "file_regex": "backup[0-9]*.crx",
+                        "restart_on_failure": True,
                         "num_tries": 3,
                     },
                 )

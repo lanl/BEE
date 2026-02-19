@@ -9,7 +9,7 @@ from celery import shared_task
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
-from beeflow.common.gdb import neo4j_driver
+from beeflow.common.gdb import neo4j_driver, sqlite3_driver
 from beeflow.common.gdb.generate_graph import generate_viz
 from beeflow.common.gdb.graphml_key_updater import update_graphml
 from beeflow.common.wf_interface import WorkflowInterface
@@ -141,15 +141,20 @@ def create_wf_namefile(wf_name, wf_id):
 
 def get_workflow_interface(wf_id):
     """Instantiate and return workflow interface object."""
-    db = connect_db(wfm_db, get_db_path())
+
     # Wait for the GDB
 
     # bolt_port = db.info.get_bolt_port()
     # return get_workflow_interface_by_bolt_port(wf_id, bolt_port)
-    driver = neo4j_driver.Neo4jDriver()
-    bolt_port = db.info.get_port("bolt")
-    if bolt_port != -1:
-        connect_neo4j_driver(bolt_port)
+    if bc.get('graphdb','type').lower() == 'sqlite3':
+        driver = sqlite3_driver.SQLDriver()
+        driver.connect()
+    else:
+        db = connect_db(wfm_db, get_db_path())
+        driver = neo4j_driver.Neo4jDriver()
+        bolt_port = db.info.get_port("bolt")
+        if bolt_port != -1:
+            connect_neo4j_driver(bolt_port)
     wfi = WorkflowInterface(wf_id, driver)
     return wfi
 

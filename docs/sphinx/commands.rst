@@ -21,7 +21,7 @@ Options:
 
 ``beeflow core info``: Get information about beeflow, including .beeflow directory location, log location, and version number.
 
-``beeflow core stop``: Stop running beeflow components. Active workflows will be paused. You may continue running paused workflows with the ``beeflow resume <wf_id>`` command. Once you start beeflow components after a stop, you should check the status of workflows, query any running workflows. If they were intializing when a ``beeflow core stop`` was issued, the workflow may be running with tasks stuck in the waiting state. If this occurs and you want the workflow to continue pause and resume the workflow (``beeflow pause <wf_id>``, ``beeflow resume <wf_id>``) or to start over cancel the workflow (``beeflow cancel <wf_id>``) and resubmit it.
+``beeflow core stop``: Stop running beeflow components. Active workflows will be paused. You may continue running paused workflows with the ``beeflow resume <wf_id>`` command. Once you start beeflow components after a stop, you should check the status of workflows, query any running workflows. If they were intializing when a ``beeflow core stop`` was issued, the workflow may be running with tasks stuck in the waiting state. If this occurs and you want the workflow to continue pause and resume the workflow (``beeflow pause <wf_id>``, ``beeflow resume <wf_id>``) or to start over cancel the workflow (``beeflow cancel <wf_id>``) and resubmit it. Please check that it has archived before resubmitting it.
 
 ``beeflow core --version``: Display the version number of BEE.
 
@@ -79,25 +79,29 @@ Arguments:
 Arguments:
   - WF_ID  [required]
 
-``beeflow pause``: Pause a workflow (Running tasks will finish)
+``beeflow pause``: Pause a workflow(s) (Running tasks will finish)
 
 Arguments:
-  WF_ID  [required]
+  - WF_IDS  [required] Space separated list of workflow IDs to pause (can be just one).
+  - -a, - -all to pause all running workflows
 
-``beeflow resume``: Resume a paused workflow.
-
-Arguments:
-  WF_ID  [required]
-
-``beeflow cancel``: Cancel a workflow.
+``beeflow resume``: Resume a paused workflow(s).
 
 Arguments:
-  WF_ID  [required]
+  - WF_IDS  [required] Space separated list of workflow IDs to resume (can be just one).
+  - -a, - -all to resume all paused workflows
 
-``beeflow remove``: Remove cancelled or archived workflow and it's information.
+``beeflow cancel``: Cancel a workflow(s).
 
 Arguments:
-  WF_ID  [required]
+  - WF_IDS  [required] Space separated list of workflow IDs to cancel (can be just one).
+  - -a, - -all to cancel all running or paused workflows
+
+``beeflow remove``: Remove cancelled or archived workflow(s) and associated information.
+
+Arguments:
+  - WF_IDS  [required] Space separated list of workflow IDs to remove (can be just one).
+  - -a, - -all to remove all workflows, will not remove running workflows
 
 ``beeflow copy``: Copy an archived workflow.
 

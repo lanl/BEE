@@ -81,9 +81,9 @@ steps:
     hints:
       beeflow:CheckpointRequirement:
         enabled: true
-        file_path: checkpoint_output
-        container_path: checkpoint_output
+        checkpoint_dir: checkpoint_output
         file_regex: backup[0-9]*.crx
+        restart_on_failure: true
         restart_parameters: -R
         add_parameters:
         num_tries: 3

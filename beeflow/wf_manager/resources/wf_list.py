@@ -14,6 +14,7 @@ from flask_restful import Resource
 
 from beeflow.common import log as bee_logging
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
+from beeflow.common.gdb import sqlite3_driver
 
 
 # from beeflow.common.wf_profiler import WorkflowProfiler
@@ -68,9 +69,15 @@ class WFList(Resource):
 
     def get(self):
         """Return list of workflows to client."""
-        db = connect_db(wfm_db, db_path)
-        wf_utils.connect_neo4j_driver(db.info.get_port("bolt"))
-        info = Neo4jDriver().get_all_workflow_info()
+        gdb = bc.get('graphdb', 'type').lower()
+        if gdb == 'sqlite3':
+            driver = sqlite3_driver.SQLDriver()
+            driver.connect()
+            info = driver.get_all_workflow_info()
+        else:
+            db = connect_db(wfm_db, db_path)
+            wf_utils.connect_neo4j_driver(db.info.get_port("bolt"))
+            info = Neo4jDriver().get_all_workflow_info()
 
         return ListWorkflowsResponse(workflow_info_list=info).model_dump(), 200
 

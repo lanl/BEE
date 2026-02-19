@@ -3,10 +3,6 @@
 
 . ./ci/env.sh
 
-printf "#### SLURM VERSION ####\n"
-srun -V
-printf "#######################\n"
-
 # Determine config of CI host
 export NODE_CONFIG=`slurmd -C | head -n 1`
 
@@ -55,6 +51,10 @@ $NODE_CONFIG
 PartitionName=debug Nodes=ALL Default=YES MaxTime=INFINITE State=UP
 EOF
 
+printf "#### SLURM VERSION ####\n"
+srun -V
+printf "#######################\n"
+
 printf "\n\n"
 printf "#### slurm.conf ####\n"
 cat $SLURM_CONF
@@ -82,5 +82,5 @@ srun --mpi=list
 printf "#######################\n"
 printf "\n"
 printf "#### OPENAPI VERSIONS ####\n"
-slurmrestd -s list
+slurmrestd -d list
 printf "##########################\n"

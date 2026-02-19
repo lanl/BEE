@@ -22,7 +22,13 @@ def test_archive_workflow(tmpdir, mocker, test_function, expected_state):
     )
     mocker.patch(
         "beeflow.common.config_driver.BeeConfig.get",
-        return_value=str(tmpdir / "bee_archive_dir"),
+        side_effect=lambda section, option, *a, **kw: (
+            str(tmpdir / "bee_archive_dir")
+            if (section, option) == ("DEFAULT", "bee_archive_dir")
+            else "neo4j"
+            if (section, option) == ("graphdb", "type")
+            else str(tmpdir / "bee_archive_dir")
+        ),
     )
     mocker.patch("beeflow.common.dsi.dsi_manager.dsi_manager.save_wf_info", return_value=None)
     mock_export_dag = mocker.patch("beeflow.wf_manager.resources.wf_utils.export_dag")

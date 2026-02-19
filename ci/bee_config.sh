@@ -11,7 +11,8 @@ Flux)
 esac
 
 mkdir -p $(dirname $BEE_CONFIG)
-cat >> $BEE_CONFIG <<EOF
+GDB_BACKEND="${GDB_BACKEND:-neo4j}"
+cat > $BEE_CONFIG <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
 bee_workdir = $BEE_WORKDIR
@@ -20,6 +21,8 @@ bee_droppoint = $BEE_WORKDIR/droppoint
 workload_scheduler = $WORKLOAD_SCHEDULER
 neo4j_image = $NEO4J_CONTAINER
 redis_image = $REDIS_CONTAINER
+use_redis_container = True
+spack_path = .
 max_restarts = 2
 delete_completed_workflow_dirs = True
 
@@ -42,6 +45,7 @@ default_qos=
 default_reservation=
 
 [graphdb]
+type = $GDB_BACKEND
 hostname = localhost
 dbpass = password
 gdb_image_mntdir = /tmp

@@ -55,11 +55,11 @@ steps:
     hints:
         beeflow:CheckpointRequirement:
             enabled: true
-            file_path: checkpoint_output
-            container_path: checkpoint_output
+            checkpoint_dir: checkpoint_output
             file_regex: backup[0-9]*.crx 
             restart_parameters: -R
             num_tries: 3
+            restart_on_failure: true
         beeflow:SlurmRequirement:
             timeLimit: 00:00:10
         DockerRequirement:

@@ -167,7 +167,9 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_requirement_nodes, task=task)
             session.write_transaction(tx.create_task_input_nodes, task=task)
             session.write_transaction(tx.create_task_output_nodes, task=task)
-            session.write_transaction(tx.create_task_metadata_node, task=task)
+            session.write_transaction(
+                tx.create_task_metadata_node, task=task
+            )
             session.write_transaction(tx.add_dependencies, task=task)
 
     def initialize_ready_tasks(self, workflow_id):
@@ -197,7 +199,9 @@ class Neo4jDriver(GraphDatabaseDriver):
             session.write_transaction(tx.create_task_requirement_nodes, task=new_task)
             session.write_transaction(tx.create_task_input_nodes, task=new_task)
             session.write_transaction(tx.create_task_output_nodes, task=new_task)
-            session.write_transaction(tx.create_task_metadata_node, task=new_task)
+            session.write_transaction(
+                tx.create_task_metadata_node, task=new_task
+            )
             session.write_transaction(tx.set_task_state, task_id=new_task.id, state="WAITING")
             session.write_transaction(
                 tx.add_dependencies,
@@ -603,7 +607,8 @@ class Neo4jDriver(GraphDatabaseDriver):
             _reconstruct_task_outputs(output_record) for output_record in output_records
         ]
         metadata = [
-            _reconstruct_metadata(metadata_record) for metadata_record in metadata_records
+            _reconstruct_metadata(metadata_record)
+            for metadata_record in metadata_records
         ]
 
         return list(zip(trecords, hints, reqs, inputs, outputs, metadata))

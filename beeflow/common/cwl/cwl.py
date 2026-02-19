@@ -1,7 +1,9 @@
 """Create and manage CWL files."""
+import os
 from dataclasses import dataclass
 from io import StringIO
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 import ruamel.yaml
 
 # Create the global object for ruamel.ymal
@@ -110,8 +112,16 @@ class RunInput(Input):
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
-        inputs_dumps = [{'type': self.input_type},
-                        self.input_binding.dump()]
+        inputs_dumps = [{'type': self.input_type}]
+
+        # Handle case where there is no actual input binding
+        binding_dict = self.input_binding.dump()
+        if "inputBinding" in binding_dict and not binding_dict["inputBinding"]:
+            binding_dict = {}
+
+        if binding_dict:
+            inputs_dumps.append(binding_dict)
+
         inputs_dict = {}
         for dump in inputs_dumps:
             inputs_dict.update(dump)
@@ -341,6 +351,7 @@ class MPIRequirement:
 
     nodes: int = None
     ntasks: int = None
+    load_from_file: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -349,6 +360,8 @@ class MPIRequirement:
             mpi_dump['beeflow:MPIRequirement']['nodes'] = self.nodes
         if self.ntasks:
             mpi_dump['beeflow:MPIRequirement']['ntasks'] = self.ntasks
+        if self.load_from_file:
+            mpi_dump['beeflow:MPIRequirement']['load_from_file'] = self.load_from_file
         return mpi_dump
 
     def __repr__(self):
@@ -367,6 +380,7 @@ class SlurmRequirement:
     partition: str = None
     qos: str = None
     reservation: str = None
+    load_from_file: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -381,6 +395,8 @@ class SlurmRequirement:
             sched_dump['beeflow:SlurmRequirement']['qos'] = self.qos
         if self.reservation:
             sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
+        if self.load_from_file:
+            sched_dump['beeflow:SlurmRequirement']['load_from_file'] = self.load_from_file
         return sched_dump
 
     def __repr__(self):
@@ -394,25 +410,34 @@ class SlurmRequirement:
 class CheckpointRequirement:
     """Represents a beeflow checkpoint requirement."""
 
-    file_path: str
-    container_path: str
+    checkpoint_dir: str
     file_regex: str
     restart_parameters: str
-    num_tries: int
+    num_tries: Optional[int] = 100
+    sentinel_file_path: Optional[str] = None
+    restart_on_file_exists: Optional[bool] = None
+    restart_on_failure: bool = True
     enabled: bool = True
     add_parameters: Optional[str] = None
+    last_good_restart: Optional[str] = None
 
     def dump(self):
         """Dump beeflow requirement to a dictionary."""
         req_name = 'beeflow:CheckpointRequirement'
         checkpoint_dump = {req_name: {}}
         checkpoint_dump[req_name]['enabled'] = self.enabled
-        checkpoint_dump[req_name]['file_path'] = self.file_path
-        checkpoint_dump[req_name]['container_path'] = self.container_path
+        checkpoint_dump[req_name]['checkpoint_dir'] = self.checkpoint_dir
         checkpoint_dump[req_name]['file_regex'] = self.file_regex
+        if self.sentinel_file_path is not None:
+            checkpoint_dump[req_name]['sentinel_file_path'] = self.sentinel_file_path
+        if self.restart_on_file_exists is not None:
+            checkpoint_dump[req_name]['restart_on_file_exists'] = self.restart_on_file_exists
+        checkpoint_dump[req_name]['restart_on_failure'] = self.restart_on_failure
         checkpoint_dump[req_name]['restart_parameters'] = self.restart_parameters
         checkpoint_dump[req_name]['add_parameters'] = self.add_parameters
         checkpoint_dump[req_name]['num_tries'] = self.num_tries
+        if self.last_good_restart is not None:
+            checkpoint_dump[req_name]['last_good_restart'] = self.last_good_restart
         return checkpoint_dump
 
     def __repr__(self):
@@ -457,7 +482,13 @@ class ScriptRequirement:
 class TaskRequirement:
     """Defines task requirement."""
 
-    workdir: str
+    # Accept either a string or a Path
+    workdir: Union[str, Path]
+
+    def __post_init__(self):
+        """ Convert a Path object to a string."""
+        if isinstance(self.workdir, Path):
+            self.workdir = str(self.workdir)
 
     def dump(self):
         """Dump task requirement to a dictionary."""
@@ -635,6 +666,7 @@ class CWL:
         yaml.dump(cwl_dump, stream)
         wf_contents = stream.getvalue()
         if path:
+            os.makedirs(path, exist_ok=True)
             with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
         return wf_contents

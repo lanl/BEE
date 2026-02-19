@@ -135,7 +135,8 @@ class TestWorkflowInterface(unittest.TestCase):
             outputs=outputs,
             stdout=stdout,
             stderr=stderr,
-            workflow_id=workflow_id)
+            workflow_id=workflow_id,
+            state="WAITING")
 
 
         self.wfi.add_task(task)
@@ -169,7 +170,6 @@ class TestWorkflowInterface(unittest.TestCase):
         hints = [Hint(class_="ResourceRequirement", params={"ramMin": 1024}),
                  Hint(class_="NetworkAccess", params={"networkAccess": True}),
                  Hint(class_="beeflow:CheckpointRequirement", params={"file_path": "checkpoint_output",
-                                                                    "container_path": "checkpoint_output",
                                                                     "file_regex": "backup[0-9]*.crx",
                                                                     "restart_parameters": "-R",
                                                                     "num_tries": 2})]
@@ -193,7 +193,8 @@ class TestWorkflowInterface(unittest.TestCase):
             outputs=outputs,
             stdout=stdout,
             stderr=stderr,
-            workflow_id=workflow_id)
+            workflow_id=workflow_id,
+            state="WAITING")
 
 
         self.wfi.add_task(task)
@@ -290,7 +291,10 @@ class TestWorkflowInterface(unittest.TestCase):
             outputs=outputs,
             stdout=stdout,
             stderr=stderr,
-            workflow_id=workflow_id)
+            workflow_id=workflow_id,
+            state="WAITING"
+        )
+
 
         self.wfi.add_task(task)
 
@@ -404,7 +408,8 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None,
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
+
         self.wfi.add_task(task)
 
         # Should be WAITING
@@ -423,8 +428,7 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None,
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
-
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
         self.wfi.add_task(task)
 
         self.wfi.set_task_state(task.id, "RUNNING")
@@ -445,7 +449,7 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None,
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
         self.wfi.add_task(task)
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
@@ -466,7 +470,7 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None,
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
         self.wfi.add_task(task)
         metadata = {"cluster": "fog", "crt": "charliecloud",
                     "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
@@ -492,7 +496,7 @@ class TestWorkflowInterface(unittest.TestCase):
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None,
                        value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
         self.wfi.add_task(task)
 
         self.assertEqual(task.inputs[0], self.wfi.get_task_input(task.id, "test_input"))
@@ -509,7 +513,7 @@ class TestWorkflowInterface(unittest.TestCase):
             name="test_task", base_command="ls", hints=None, requirements=None,
             inputs=[StepInput(id="test_input", type="File", value=None, default="default.txt", source="test_input", prefix=None, position=None, value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
         self.wfi.add_task(task)
 
         test_input = StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input",
@@ -529,7 +533,7 @@ class TestWorkflowInterface(unittest.TestCase):
             name="test_task", base_command="ls", hints=None, requirements=None,
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None, value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
         self.wfi.add_task(task)
 
         self.assertEqual(task.outputs[0], self.wfi.get_task_output(task.id, "test_task/output"))
@@ -546,7 +550,7 @@ class TestWorkflowInterface(unittest.TestCase):
             name="test_task", base_command="ls", hints=None, requirements=None,
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None, value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value=None, glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
         self.wfi.add_task(task)
 
         test_output = StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")
@@ -565,7 +569,7 @@ class TestWorkflowInterface(unittest.TestCase):
             name="test_task", base_command="ls", hints=None, requirements=None,
             inputs=[StepInput(id="test_input", type="File", value="input.txt", default="default.txt", source="test_input", prefix=None, position=None, value_from=None)],
             outputs=[StepOutput(id="test_task/output", type="File", value="output.txt", glob="output.txt")],
-            stdout=None, stderr=None, workflow_id=workflow_id)
+            stdout=None, stderr=None, workflow_id=workflow_id, state="WAITING")
         self.wfi.add_task(task)
 
         # Workflow not completed
@@ -588,7 +592,7 @@ class TestWorkflowInterface(unittest.TestCase):
                 inputs=[StepInput(id="test_input", type="File", value=None, default=None, source="test_input", prefix="-l", position=None, value_from=None)],
                 outputs=[StepOutput(id="prep/prep_output", type="File", value="prep_output.txt", glob="prep_output.txt")],
                 stdout="prep_output.txt", stderr=None,
-                workflow_id=workflow_id),
+                workflow_id=workflow_id, state="WAITING"),
             Task(
                 name="compute0", base_command="touch",
                 hints=[Hint(class_="ResourceRequirement", params={"ramMax": 2048})],
@@ -596,7 +600,7 @@ class TestWorkflowInterface(unittest.TestCase):
                 inputs=[StepInput(id="input_data", type="File", value=None, default=None, source="prep/prep_output", prefix=None, position=None, value_from=None)],
                 outputs=[StepOutput(id="compute0/output", type="File", value="output0.txt", glob="output0.txt")],
                 stdout="output0.txt", stderr=None,
-                workflow_id=workflow_id),
+                workflow_id=workflow_id, state="WAITING"),
             Task(
                 name="compute1", base_command="find",
                 hints=[Hint(class_="ResourceRequirement", params={"ramMax": 2048})],
@@ -604,7 +608,7 @@ class TestWorkflowInterface(unittest.TestCase):
                 inputs=[StepInput(id="input_data", type="File", value=None, default=None, source="prep/prep_output", prefix=None, position=None, value_from=None)],
                 outputs=[StepOutput(id="compute1/output", type="File", value="output1.txt", glob="output1.txt")],
                 stdout="output1.txt", stderr=None,
-                workflow_id=workflow_id),
+                workflow_id=workflow_id, state="WAITING"),
             Task(
                 name="compute2", base_command="grep",
                 hints=[Hint(class_="ResourceRequirement", params={"ramMax": 2048})],
@@ -612,7 +616,7 @@ class TestWorkflowInterface(unittest.TestCase):
                 inputs=[StepInput(id="input_data", type="File", value=None, default=None, source="prep/prep_output", prefix=None, position=None, value_from=None)],
                 outputs=[StepOutput(id="compute2/output", type="File", value="output2.txt", glob="output2.txt")],
                 stdout="output2.txt", stderr=None,
-                workflow_id=workflow_id),
+                workflow_id=workflow_id, state="WAITING"),
             Task(
                 name="visualization", base_command="python",
                 hints=[Hint(class_="ResourceRequirement", params={"ramMax": 2048})],
@@ -622,7 +626,7 @@ class TestWorkflowInterface(unittest.TestCase):
                         StepInput(id="input2", type="File", value=None, default=None, source="compute2/output", prefix="-i", position=3, value_from=None)],
                 outputs=[StepOutput(id="viz/output", type="File", value="viz_output.txt", glob="viz_output.txt")],
                 stdout="viz_output.txt", stderr=None,
-                workflow_id=workflow_id)
+                workflow_id=workflow_id, state="WAITING")
         ]
 
         for task in tasks:
