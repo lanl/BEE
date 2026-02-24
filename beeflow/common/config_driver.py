@@ -367,12 +367,12 @@ flux_attr = [
 VALIDATOR.section('slurm attributes',info='Available task information for the slurm scheduler\n',
         depends_on=('slurm', 'use_commands', 'False'))
 VALIDATOR.option('slurm attributes','attributes',validator=validate_attributes,prompt=False,
-        default='partition,nodes',info='Enter task attributes (comma-separated)')
+        default='partition,nodes,command',info='Enter task attributes (comma-separated)')
 
 VALIDATOR.section('slurm command attributes',info='Available task information for sacct\n',
         depends_on=('slurm', 'use_commands', 'True'))
 VALIDATOR.option('slurm command attributes','attributes',validator=validate_attributes,
-        prompt=False,default='Partition,RunTime,NodeList',
+        prompt=False,default='Partition,RunTime,NodeList,Command',
         info='Enter task attributes (comma-separated)')
 
 VALIDATOR.section('flux attributes', info = 'Available task information for the flux scheduler\n',

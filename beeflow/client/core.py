@@ -54,10 +54,10 @@ def patch_attribute_section():
         use_cmds = config.get('slurm', 'use_commands', fallback='True').strip().lower() == 'true'
         if use_cmds:
             section = 'slurm command attributes'
-            default_attrs = 'Partition,RunTime,NodeList'
+            default_attrs = 'Partition,RunTime,NodeList,Command'
         else:
             section = 'slurm attributes'
-            default_attrs = 'partition,nodes'
+            default_attrs = 'partition,nodes,command'
     else:
         return
 
