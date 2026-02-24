@@ -197,9 +197,10 @@ def open_log(component):
 
 
 def need_slurmrestd():
-    """Check if slurmrestd is needed."""
+    """Check if slurmrestd is needed and that it exists in the current environment."""
+    have_slurmrestd = shutil.which('slurmrestd')
     return (bc.get('DEFAULT', 'workload_scheduler') == 'Slurm'
-            and not bc.get('slurm', 'use_commands'))
+            and not bc.get('slurm', 'use_commands') and have_slurmrestd)
 
 
 def need_neo4j():
