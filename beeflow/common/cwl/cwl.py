@@ -377,6 +377,7 @@ class SlurmRequirement:
 
     account: str = None
     time_limit: str = None
+    signal: str = None
     partition: str = None
     qos: str = None
     reservation: str = None
@@ -395,6 +396,8 @@ class SlurmRequirement:
             sched_dump['beeflow:SlurmRequirement']['qos'] = self.qos
         if self.reservation:
             sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
+        if self.signal:
+            sched_dump['beeflow:SlurmRequirement']['signal'] = self.signal
         if self.load_from_file:
             sched_dump['beeflow:SlurmRequirement']['load_from_file'] = self.load_from_file
         return sched_dump
