@@ -126,7 +126,7 @@ class BaseSlurmWorker(Worker):
         if requirements['reservation']:
             header.append(f'#SBATCH --reservation {requirements["reservation"]}')
         if requirements['signal']:
-            header.append(f'#SBATCH --signal {requirements["signal"]}')
+            header.append(f'#SBATCH --signal={requirements["signal"]}')
         # Return immediately on error
         if requirements["shell"] == "/bin/bash":
             header.append('set -e')
