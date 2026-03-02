@@ -11,7 +11,7 @@ Flux)
 esac
 
 mkdir -p $(dirname $BEE_CONFIG)
-GDB_BACKEND="${GDB_BACKEND:-neo4j}"
+GDB_BACKEND="${GDB_BACKEND:-sqlite3}"
 cat > $BEE_CONFIG <<EOF
 # BEE CONFIGURATION FILE #
 [DEFAULT]
