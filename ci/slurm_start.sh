@@ -83,4 +83,8 @@ printf "#######################\n"
 printf "\n"
 printf "#### OPENAPI VERSIONS ####\n"
 slurmrestd -d list
+printf "#### RUNNING PROCESSES ####\n"
+ps aux
+printf "#### TEST JOB SUBMISSION ####\n"
+salloc echo test
 printf "##########################\n"
