@@ -80,8 +80,10 @@ sleep 1
 printf "**Starting slurmctld**\n"
 slurmctld
 printf "**Starting slurmd**\n"
-slurmd
+slurmd -vv -L slurmd.log
+sleep 3
 sinfo
+cat slurmd.log
 
 printf "#### SUPPORTED MPI ####\n"
 srun --mpi=list
