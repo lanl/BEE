@@ -16,6 +16,7 @@ ProctrackType=proctrack/pgid
 ReturnToService=2
 SlurmctldPort=7777
 SlurmdPort=8989
+CgroupPlugin=disabled
 
 SwitchType=switch/none
 
@@ -75,8 +76,9 @@ sleep 1
 printf "**Starting slurmctld**\n"
 slurmctld
 printf "**Starting slurmd**\n"
-pwd
-which slurmd
+df -h
+cat /proc/mounts
+stat -fc %T /sys/fs/cgroup/
 slurmd -vv -L slurmd.log
 sleep 3
 sinfo
