@@ -81,6 +81,7 @@ printf "**Starting slurmctld**\n"
 slurmctld
 printf "**Starting slurmd**\n"
 slurmd -vv -L slurmd.log
+ls /usr/lib/slurm
 sleep 3
 sinfo
 cat slurmd.log

@@ -3,19 +3,18 @@
 set -e
 
 sudo apt-get update
+sudo apt-get install -y build-essential
 sudo apt-get install -y libhttp-parser-dev libjson-c-dev libjwt-dev munge python3 python3-venv \
     curl build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev sqlite3 \
     libssl-dev libsqlite3-dev libreadline-dev libffi-dev libbz2-dev libmunge-dev libdbus-1-dev \
-    graphviz libgraphviz-dev libyaml-dev # needed for PyYAML 
-
-# Install linux headers
-sudo apt-get install linux-headers-$(uname -r)
+    libpam-dev tcl-dev graphviz libgraphviz-dev libyaml-dev # needed for PyYAML 
 
 # Install most recent Charliecloud
 curl -O -L https://github.com/hpc/charliecloud/releases/download/v${CHARLIECLOUD_VERSION}/charliecloud-${CHARLIECLOUD_VERSION}.tar.gz
 tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz
 (cd charliecloud-${CHARLIECLOUD_VERSION}
  ./configure --prefix=/usr
+ grep -i cgroup config.log
  make -j4
  sudo make install)
 
@@ -23,7 +22,7 @@ tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz
 curl -O -L https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2
 tar -xvf slurm-${SLURM_VERSION}.tar.bz2
 (cd slurm-${SLURM_VERSION}
- ./configure --prefix=/usr
+ ./configure --prefix=/usr --enable-cgroupv2
  make -j4
  sudo make install)
 
