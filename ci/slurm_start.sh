@@ -52,9 +52,9 @@ PartitionName=debug Nodes=ALL Default=YES MaxTime=INFINITE State=UP
 EOF
 
 # Disable cgroup plugin
-cat >> $CGROUP_CONF <<EOF
-CgroupPlugin=disabled
-EOF
+#cat >> $CGROUP_CONF <<EOF
+#CgroupPlugin=disabled
+#EOF
 
 printf "#### SLURM VERSION ####\n"
 srun -V
@@ -80,11 +80,8 @@ sleep 1
 printf "**Starting slurmctld**\n"
 slurmctld
 printf "**Starting slurmd**\n"
-slurmd -vv -L slurmd.log
-ls /usr/lib/slurm
-sleep 3
+slurmd
 sinfo
-cat slurmd.log
 
 printf "#### SUPPORTED MPI ####\n"
 srun --mpi=list
@@ -92,8 +89,4 @@ printf "#######################\n"
 printf "\n"
 printf "#### OPENAPI VERSIONS ####\n"
 slurmrestd -d list
-printf "#### RUNNING PROCESSES ####\n"
-ps aux
-printf "#### TEST JOB SUBMISSION ####\n"
-salloc echo test
 printf "##########################\n"
