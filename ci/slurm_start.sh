@@ -52,9 +52,11 @@ PartitionName=debug Nodes=ALL Default=YES MaxTime=INFINITE State=UP
 EOF
 
 # Disable cgroup plugin
-#cat >> $CGROUP_CONF <<EOF
-#CgroupPlugin=disabled
-#EOF
+# cgroup/v2 plugin: systemd scope for slurmstepd could not be set
+# scope can't be created using runner since systemd is unavailable
+cat >> $CGROUP_CONF <<EOF
+CgroupPlugin=disabled
+EOF
 
 printf "#### SLURM VERSION ####\n"
 srun -V
@@ -80,10 +82,8 @@ sleep 1
 printf "**Starting slurmctld**\n"
 slurmctld
 printf "**Starting slurmd**\n"
-slurmd -vv -L slurmd.log
-sleep 3
+slurmd
 sinfo
-cat slurmd.log
 
 printf "#### SUPPORTED MPI ####\n"
 srun --mpi=list
