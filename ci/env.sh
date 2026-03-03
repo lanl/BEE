@@ -24,6 +24,7 @@ export NEO4J_CONTAINER=$HOME/img/neo4j.tar.gz
 export REDIS_CONTAINER=$HOME/img/redis.tar.gz
 mkdir -p $BEE_WORKDIR
 export SLURM_CONF=~/slurm.conf
+export CGROUP_CONF=~/cgroup.conf
 # Flux variables
 export FLUX_CORE_VERSION=0.51.0
 export FLUX_SECURITY_VERSION=0.9.0

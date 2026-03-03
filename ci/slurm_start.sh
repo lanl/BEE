@@ -16,7 +16,6 @@ ProctrackType=proctrack/pgid
 ReturnToService=2
 SlurmctldPort=7777
 SlurmdPort=8989
-CgroupPlugin=disabled
 
 SwitchType=switch/none
 
@@ -52,6 +51,11 @@ $NODE_CONFIG
 PartitionName=debug Nodes=ALL Default=YES MaxTime=INFINITE State=UP
 EOF
 
+# Disable cgroup plugin
+cat >> $CGROUP_CONF <<EOF
+CgroupPlugin=disabled
+EOF
+
 printf "#### SLURM VERSION ####\n"
 srun -V
 printf "#######################\n"
@@ -76,9 +80,6 @@ sleep 1
 printf "**Starting slurmctld**\n"
 slurmctld
 printf "**Starting slurmd**\n"
-df -h
-cat /proc/mounts
-stat -fc %T /sys/fs/cgroup/
 slurmd -vv -L slurmd.log
 sleep 3
 sinfo
