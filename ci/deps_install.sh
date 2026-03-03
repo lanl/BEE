@@ -14,7 +14,6 @@ curl -O -L https://github.com/hpc/charliecloud/releases/download/v${CHARLIECLOUD
 tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz
 (cd charliecloud-${CHARLIECLOUD_VERSION}
  ./configure --prefix=/usr
- grep -i cgroup config.log
  make -j4
  sudo make install)
 
@@ -23,6 +22,7 @@ curl -O -L https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2
 tar -xvf slurm-${SLURM_VERSION}.tar.bz2
 (cd slurm-${SLURM_VERSION}
  ./configure --prefix=/usr --enable-cgroupv2
+ grep -i cgroup config.log
  make -j4
  sudo make install)
 
