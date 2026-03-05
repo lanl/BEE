@@ -83,6 +83,7 @@ printf "**Starting slurmctld**\n"
 slurmctld
 printf "**Starting slurmd**\n"
 slurmd
+printf "**Check node status**\n"
 sinfo
 
 printf "#### SUPPORTED MPI ####\n"
