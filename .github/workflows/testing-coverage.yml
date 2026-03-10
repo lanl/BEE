@@ -147,6 +147,11 @@ jobs:
           coverage combine
           coverage report --show-missing
 
+      - name: Run test coverage
+        run: |
+          coverage report -m
+          coverage xml
+
       - name: Coverage Badge
         if: github.event_name == 'pull_request'
         run: |
