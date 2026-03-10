@@ -90,14 +90,14 @@ jobs:
   coverage:
     needs: [integration-test, unit-test]
     name: Coverage
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Get unit test coverage
         uses: actions/download-artifact@v4
@@ -149,7 +149,9 @@ jobs:
 
       - name: Coverage Badge
         if: github.event_name == 'pull_request'
-        uses: tj-actions/coverage-badge-py@v2
+        run: |
+          pip install -U genbadge defusedxml
+          genbadge coverage -i coverage.xml -o coverage.svg
 
       - name: Verify Changed Files
         if: github.event_name == 'pull_request'
