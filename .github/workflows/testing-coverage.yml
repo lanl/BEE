@@ -37,7 +37,7 @@ jobs:
           echo "LOG_DIR=$LOG_DIR" >> $GITHUB_ENV
           echo "SLURM_CONF=$SLURM_CONF" >> $GITHUB_ENV
           echo "BEE_WORKDIR=$BEE_WORKDIR" >> $GITHUB_ENV
-          echo "BEE_CONFIG=$BEE_CONFIG" >> $GITHUB_ENV
+          echo "BEE_CONFIG=$BEE_CONFIG" >> $GITHUB_ENV 
           ./ci/deps_install.sh
           ./ci/batch_scheduler.sh
           ./ci/bee_install.sh
