@@ -14,6 +14,7 @@ curl -O -L https://gitlab.com/charliecloud/charliecloud/-/archive/v${CHARLIECLOU
 mkdir charliecloud-${CHARLIECLOUD_VERSION}
 tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz --strip-components=1 -C charliecloud-${CHARLIECLOUD_VERSION}
 (cd charliecloud-${CHARLIECLOUD_VERSION}
+ ./autogen.sh
  ./configure --prefix=/usr
  make -j4
  sudo make install)
@@ -22,7 +23,6 @@ tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz --strip-components=1 -C cha
 curl -O -L https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2
 tar -xvf slurm-${SLURM_VERSION}.tar.bz2
 (cd slurm-${SLURM_VERSION}
- ./autogen.sh
  ./configure --prefix=/usr --enable-cgroupv2
  grep -i cgroup config.log
  make -j4
