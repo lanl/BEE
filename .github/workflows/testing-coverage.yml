@@ -90,7 +90,7 @@ jobs:
   coverage:
     needs: [integration-test, unit-test]
     name: Coverage
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -147,9 +147,16 @@ jobs:
           coverage combine
           coverage report --show-missing
 
+      - name: Run test coverage
+        run: |
+          coverage report -m
+          coverage xml
+
       - name: Coverage Badge
         if: github.event_name == 'pull_request'
-        uses: tj-actions/coverage-badge-py@v2
+        run: |
+          pip install -U genbadge defusedxml
+          genbadge coverage -i coverage.xml -o coverage.svg
 
       - name: Verify Changed Files
         if: github.event_name == 'pull_request'
