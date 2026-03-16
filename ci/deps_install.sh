@@ -9,7 +9,7 @@ sudo apt-get install -y libhttp-parser-dev libjson-c-dev libjwt-dev munge python
     libssl-dev libsqlite3-dev libreadline-dev libffi-dev libbz2-dev libmunge-dev libdbus-1-dev \
     libpam-dev tcl-dev graphviz libgraphviz-dev libyaml-dev # needed for PyYAML 
 
-# Install most recent Charliecloud
+# Install Charliecloud
 curl -O -L https://gitlab.com/charliecloud/charliecloud/-/archive/v${CHARLIECLOUD_VERSION}/charliecloud-${CHARLIECLOUD_VERSION}.tar.gz
 mkdir charliecloud-${CHARLIECLOUD_VERSION}
 tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz --strip-components=1 -C charliecloud-${CHARLIECLOUD_VERSION}
