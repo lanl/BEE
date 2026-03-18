@@ -22,7 +22,7 @@ def get_state_sacct(job_id):
         data = resp.stdout.splitlines()
         header = data[0]
         header = header.split('|')
-        job_id_idx = header.index('JobID')
+        job_id_idx = header.index('JobId')
         rows = [row.split('|') for row in data[1:]]
         job_ids = [row[job_id_idx] for row in rows]
         info = rows[job_ids.index(job_id)]

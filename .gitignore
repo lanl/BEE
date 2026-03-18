@@ -15,6 +15,7 @@ poetry.lock
 .vscode
 .env
 .venv
+.coverage.integration
 docs/sphinx/_build
 src/beeflow/enhanced_client/node_modules
 **/dist
