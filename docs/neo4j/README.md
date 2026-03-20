@@ -10,8 +10,8 @@ problems, or want to add something, hack away and submit a pull request!
 ### Running Neo4j with Docker
 
 It's easy to experiment with Neo4j if you have access to a machine that can run
-Docker. Do it the easy way, on your Mac, with Docker installed, or using the 
-unpriviledged in Charliecloud on a cluster. 
+Docker. Do it the easy way, on your Mac, with Docker installed, or using the
+unprivileged in Charliecloud on a cluster.
 Or, do it the hard way, on Darwin with Al's Packer VM or a Vagrant box with Docker
 provisioned.
 
@@ -32,7 +32,7 @@ with a brand new database, you'll be asked to change the password for the admin
 (`neo4j`) account after getting past the default password prompt (also
 `neo4j`). The browser provides a nice interface for administering the database
 (users, etc.) and experimentation. Interface panes accept textual commands that
-interact with the database. 
+interact with the database.
 
 ![browser interface panes][pane]
 
@@ -72,7 +72,7 @@ directory:
 > docker run --publish=7474:7474 --publish=7687:7687 --name neo4j --volume=$HOME/neo4j/data:/data neo4j
 ```
 
-### Running Neo4j with Charliecloud 
+### Running Neo4j with Charliecloud
 You can run Neo4j on LANL platforms (e.g. fog) using Charlecloud.
 
 #### Building using Docker
@@ -84,11 +84,11 @@ and create a Charliecloud tarball:
 > ch-docker2tar neo4j /var/tmp
 ```
 
-#### Building using Charliecloud ch-grow 
-On a system without Docker, that has Charliecloud installed, you'll need to build 
-Neo4j with Charliecloud's unpriviledged build.  Note: You may need to install 
+#### Building using Charliecloud ch-grow
+On a system without Docker, that has Charliecloud installed, you'll need to build
+Neo4j with Charliecloud's unprivileged build.  Note: You may need to install
 lark-parser in your python environment. The files in the ch-grow-files directory
-(Dockerfile.neo4j, environment, and ch-run-neo4j.sh) need to be in your current 
+(Dockerfile.neo4j, environment, and ch-run-neo4j.sh) need to be in your current
 directory, this should be where you want to place the charliecloud tarball.
 
 ```sh
@@ -379,4 +379,3 @@ Vagrant box with Docker provisioned.
 [graph]:img/graph_pane.png
 [browser]:img/neo4j_browser.png
 [5node]:img/5node.png
-

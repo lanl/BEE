@@ -5,11 +5,10 @@
 
 bee_cfg new
 
-You need to know the path of the Charliecloud image that has depdencies for
+You need to know the path of the Charliecloud image that has dependencies for
 beeflow.
 Summit uses the LSF workload scheduler so when queried for that answer LSF.
 
 ### Fix user config file for summit
 In  ~/.config/beeflow/bee.conf (or wherever your configuration file is)
 you must change <account> to your account and set the time limit to an appropriate time.
-

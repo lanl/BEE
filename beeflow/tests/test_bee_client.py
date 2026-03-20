@@ -931,7 +931,7 @@ def test_resume(mocker):
         ("Running", "Workflow 123456 cancelled!\n"),
         ("Paused", "Workflow 123456 cancelled!\n"),
         ("No Start", "Workflow 123456 cancelled!\n"),
-        ("Intializing", "Workflow 123456 is Intializing cannot cancel.\n"),
+        ("Initializing", "Workflow 123456 is Initializing cannot cancel.\n"),
         ("Bad Status", "Workflow 123456 is Bad Status cannot cancel.\n"),
     ],
 )
@@ -1048,7 +1048,7 @@ def test_simple_req_errors(
         side_effect=side_effect,
     )
     mocker.patch("beeflow.client.bee_client.get_wf_status", return_value=wf_status)
-    
+
     if exception is None:
         function(["123456"], all_=False)
         cap = capsys.readouterr()
