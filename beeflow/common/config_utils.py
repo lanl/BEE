@@ -25,7 +25,7 @@ def filter_and_validate(config, validator,config_path):
         if not config.has_section('flux attributes'):
             config.add_section('flux attributes')
         if not config.get('flux attributes','attributes',fallback='').strip():
-            config.set('flux attributes','attributes','queue,runtime,nodelist')
+            config.set('flux attributes','attributes','id,queue,runtime,nodelist')
     elif scheduler == 'Slurm':
         if use_commands:
             sections_to_remove = ['flux attributes','slurm attributes']
