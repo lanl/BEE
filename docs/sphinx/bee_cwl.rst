@@ -338,7 +338,7 @@ Alternate::
     beeflow:SlurmRequirement:
        load_from_file: "slurm_conf.json"
 
-Contensts of slurm_conf,json::
+Contensts of slurm_conf.json::
 
     {
      "timeLimit": "00:00:10",
