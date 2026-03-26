@@ -81,6 +81,8 @@ class BaseSlurmWorker(Worker):
         reservation = self.get_req(task, 'beeflow:SlurmRequirement', 'reservation', config,
                                    default=self.default_reservation)
 
+        signal = self.get_req(task, 'beeflow:SlurmRequirement', 'signal', config,
+                             default=None)
         shell = self.get_req(task, 'beeflow:ScriptRequirement', 'shell', config,
                              default="/bin/bash")
         scripts_enabled = self.get_req(task, 'beeflow:ScriptRequirement', 'enabled', config,
@@ -96,6 +98,7 @@ class BaseSlurmWorker(Worker):
             'qos': qos,
             'reservation': reservation,
             'shell': shell,
+            'signal': signal,
             'scripts_enabled': scripts_enabled
         }
         return requirements
@@ -122,6 +125,8 @@ class BaseSlurmWorker(Worker):
             header.append(f'#SBATCH --qos {requirements["qos"]}')
         if requirements['reservation']:
             header.append(f'#SBATCH --reservation {requirements["reservation"]}')
+        if requirements['signal']:
+            header.append(f'#SBATCH --signal={requirements["signal"]}')
         # Return immediately on error
         if requirements["shell"] == "/bin/bash":
             header.append('set -e')

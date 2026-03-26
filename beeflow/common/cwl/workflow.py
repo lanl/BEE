@@ -90,6 +90,7 @@ class Slurm(SlurmRequirement):
         """Return a scheduler requirement object."""
         return SlurmRequirement(time_limit=self.time_limit, account=self.account,
                 partition=self.partition, qos=self.qos, reservation=self.reservation,
+                          signal=self.signal,
                           load_from_file=self.load_from_file)
 
 

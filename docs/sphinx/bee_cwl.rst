@@ -200,9 +200,6 @@ Parameter                  Req   Description
 ========================== ===== =========================================================
 ``enabled``                Yes   Enable/disable checkpointing (true/false)
 
-``checkpoint_dir``         Yes   Directory containing checkpoint files |vspace| |br|
-                                 (relative to task working directory)
-
 ``file_regex``             Yes   Regular expression pattern matching checkpoint filenames
 
 ``restart_parameters``     Yes   CLI flag for restart (e.g., "-R") that precedes the
@@ -319,6 +316,7 @@ setting in bee.conf. Current options supported are:
 * ``account`` - account name to run the job with (often used for charging).
 * ``partition`` - partition to launch job on.
 * ``qos`` - quality of service to use.
+* ``signal`` - sends signal to batch shell or all job steps within slurm job
 * ``reservation`` - reservation to use to launch job.
 * ``timeLimit`` - time limit for the job in the format that Slurm uses currently.
 
@@ -331,6 +329,7 @@ An example is shown below::
       timeLimit: 00:00:10
       account: account12345
       partition: partition-a
+      signal: B:SIGUSR1@60
       qos: long
       reservation: reservation-a
 
@@ -339,13 +338,14 @@ Alternate::
     beeflow:SlurmRequirement:
        load_from_file: "slurm_conf.json"
 
-Contensts of slurm_conf,json::
+Contensts of slurm_conf.json::
 
     {
      "timeLimit": "00:00:10",
      "account": "account12345",
      "partition": "partition-a",
-     "qos": "long"
+     "signal": "B:SIGUSR1@60",
+     "qos": "long",
      "reservation": "reservation-a"
     }
 
