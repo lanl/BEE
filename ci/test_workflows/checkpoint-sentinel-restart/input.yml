@@ -1,0 +1,7 @@
+# Input parameters for checkpoint-sentinel-restart test workflow
+
+# Number of iterations the test script will perform
+iterations: 3
+
+# Directory where checkpoint files will be stored
+checkpoint_dir: "checkpoint_output"

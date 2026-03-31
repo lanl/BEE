@@ -3,10 +3,6 @@
 
 . ./ci/env.sh
 
-printf "#### SLURM VERSION ####\n"
-srun -V
-printf "#######################\n"
-
 # Determine config of CI host
 export NODE_CONFIG=`slurmd -C | head -n 1`
 
@@ -55,6 +51,17 @@ $NODE_CONFIG
 PartitionName=debug Nodes=ALL Default=YES MaxTime=INFINITE State=UP
 EOF
 
+# Disable cgroup plugin
+# cgroup/v2 plugin: systemd scope for slurmstepd could not be set
+# scope can't be created using runner since systemd isn't running
+cat >> $CGROUP_CONF <<EOF
+CgroupPlugin=disabled
+EOF
+
+printf "#### SLURM VERSION ####\n"
+srun -V
+printf "#######################\n"
+
 printf "\n\n"
 printf "#### slurm.conf ####\n"
 cat $SLURM_CONF
@@ -76,11 +83,13 @@ printf "**Starting slurmctld**\n"
 slurmctld
 printf "**Starting slurmd**\n"
 slurmd
+printf "**Check node status**\n"
+sinfo
 
 printf "#### SUPPORTED MPI ####\n"
 srun --mpi=list
 printf "#######################\n"
 printf "\n"
 printf "#### OPENAPI VERSIONS ####\n"
-slurmrestd -s list
+slurmrestd -d list
 printf "##########################\n"

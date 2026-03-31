@@ -50,8 +50,8 @@ BEE Sites
      - ``0.1.10``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
    * - Pre-release
-     - ``0.1.11dev4``
-     - `https://lanl.github.io/BEE/0.1.11dev4/ <https://lanl.github.io/BEE/0.1.11dev4/>`__
+     - ``0.1.11dev5``
+     - `https://lanl.github.io/BEE/0.1.11dev5/ <https://lanl.github.io/BEE/0.1.11dev5/>`__
 
 
 Contact
@@ -81,6 +81,8 @@ Contributors:
 * Jacob Tronge - `jtronge <https://github.com/jtronge>`_
 * Kabir Vats - `kabir-vats <https://github.com/kabir-vats>`_
 * Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
+* Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
+* Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
 
 Concept and Design Contributors
 

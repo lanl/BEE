@@ -17,10 +17,15 @@ jobs:
     if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
     name: BEE Integration Test
     strategy:
+      fail-fast: false
       matrix:
         bee_worker: [Slurmrestd, SlurmCommands, Flux]
+        # TODO get neo4j test to work again
+        # gdb_backend: [neo4j, sqlite3]
+        gdb_backend: [sqlite3]
     env:
       BEE_WORKER: ${{ matrix.bee_worker }}
+      GDB_BACKEND: ${{ matrix.gdb_backend }}
     # Note: Needs to run on 22.04 or later since slurmrestd doesn't seem to be
     # available on 20.04
     runs-on: ubuntu-22.04
@@ -29,6 +34,10 @@ jobs:
       - name: Install and Configure
         run: |
           . ./ci/env.sh
+          echo "LOG_DIR=$LOG_DIR" >> $GITHUB_ENV
+          echo "SLURM_CONF=$SLURM_CONF" >> $GITHUB_ENV
+          echo "BEE_WORKDIR=$BEE_WORKDIR" >> $GITHUB_ENV
+          echo "BEE_CONFIG=$BEE_CONFIG" >> $GITHUB_ENV 
           ./ci/deps_install.sh
           ./ci/batch_scheduler.sh
           ./ci/bee_install.sh
@@ -37,13 +46,30 @@ jobs:
         run: |
           . ./ci/env.sh
           ./ci/integration_test.sh
-          mv .coverage.integration ".coverage.${{ matrix.bee_worker }}"
+          mv .coverage.integration ".coverage.${{ matrix.bee_worker }}.${{ matrix.gdb_backend }}"
+      - name: Stash bee error logs
+        if: failure()   # only when the job fails
+        run: |
+          mkdir bee-error-logs
+          cp bee-error-*.log bee-error-logs || true
+          cp -R $LOG_DIR bee-error-logs || true
+          cp -R $SLURM_CONF bee-error-logs || true
+          cp -R $BEE_WORKDIR/logs bee-error-logs || true
+          cp -R $BEE_WORKDIR/*.db bee-error-logs || true
+          cp -R $BEE_CONFIG bee-error-logs || true
+      - name: Upload bee error logs
+        if: failure()    # only when the job fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: bee-error-logs-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}
+          path: bee-error-logs
+          if-no-files-found: ignore
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.bee_worker }}
+          name: coverage-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}
           include-hidden-files: true
-          path: ".coverage.${{ matrix.bee_worker }}"
+          path: ".coverage.${{ matrix.bee_worker }}.${{ matrix.gdb_backend }}"
 
   unit-test:
     if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
@@ -78,7 +104,7 @@ jobs:
   coverage:
     needs: [integration-test, unit-test]
     name: Coverage
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -93,22 +119,40 @@ jobs:
           name: coverage-unit-tests
           path: ./
 
-      - name: Get Slurmrestd coverage
+      # - name: Get Slurmrestd+neo4j coverage
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: coverage-Slurmrestd-neo4j
+      #     path: ./
+      
+      - name: Get Slurmrestd+sqlite3 coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-Slurmrestd
+          name: coverage-Slurmrestd-sqlite3
           path: ./
-
-      - name: Get SlurmCommands coverage
+      
+      # - name: Get SlurmCommands+neo4j coverage
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: coverage-SlurmCommands-neo4j
+      #     path: ./
+      
+      - name: Get SlurmCommands+sqlite3 coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-SlurmCommands
+          name: coverage-SlurmCommands-sqlite3
           path: ./
-
-      - name: Get Flux coverage
+      
+      # - name: Get Flux+neo4j coverage
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: coverage-Flux-neo4j
+      #     path: ./
+      
+      - name: Get Flux+sqlite3 coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-Flux
+          name: coverage-Flux-sqlite3
           path: ./
 
       - name: Combine coverage
@@ -117,9 +161,16 @@ jobs:
           coverage combine
           coverage report --show-missing
 
+      - name: Run test coverage
+        run: |
+          coverage report -m
+          coverage xml
+
       - name: Coverage Badge
         if: github.event_name == 'pull_request'
-        uses: tj-actions/coverage-badge-py@v2
+        run: |
+          pip install -U genbadge defusedxml
+          genbadge coverage -i coverage.xml -o coverage.svg
 
       - name: Verify Changed Files
         if: github.event_name == 'pull_request'

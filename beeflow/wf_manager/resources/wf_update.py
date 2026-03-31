@@ -34,11 +34,12 @@ def archive_workflow(wf_id, final_state=None):
     shutil.copyfile(os.path.expanduser("~") + '/.config/beeflow/bee.conf',
                     workflow_dir + '/' + 'bee.conf')
     # Archive Completed DAG
-    graphmls_dir = workflow_dir + "/graphmls"
-    os.makedirs(graphmls_dir, exist_ok=True)
-    dags_dir = workflow_dir + "/dags"
-    os.makedirs(dags_dir, exist_ok=True)
-    wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True)
+    if bc.get('graphdb', 'type').lower() == 'neo4j':
+        graphmls_dir = workflow_dir + "/graphmls"
+        os.makedirs(graphmls_dir, exist_ok=True)
+        dags_dir = workflow_dir + "/dags"
+        os.makedirs(dags_dir, exist_ok=True)
+        wf_utils.export_dag(wf_id, dags_dir, graphmls_dir, no_dag_dir=True)
 
     wf_state = f'Archived/{final_state}' if final_state is not None else 'Archived'
     wf_utils.update_wf_status(wf_id, wf_state)
@@ -90,7 +91,7 @@ class WFUpdate(Resource):
             msg='Task states updated successfully',
         ).model_dump(), 200
 
-    def handle_metadata(self, state_update, task_id, wfi):
+    def handle_metadata(self, state_update, task_id, wfi, task_workdir):
         """Handle metadata for a task update."""
         bee_workdir = wf_utils.get_bee_workdir()
 
@@ -103,7 +104,6 @@ class WFUpdate(Resource):
             wfi.set_task_metadata(task_id, old_metadata)
             task_name = wfi.get_task_by_id(task_id).name
 
-            task_workdir = old_metadata['workdir']
             task_dir = f'{task_workdir}/{task_name}-{task_id[:4]}'
             metadata_path = os.path.join(task_dir,'metadata.txt')
 
@@ -150,7 +150,7 @@ class WFUpdate(Resource):
                     wfi.set_task_output(task.id, output.id, output.glob)
                 else:
                     wfi.set_task_output(task.id, output.id, "temp")
-            wf_utils.copy_task_output(task, wfi)
+            wf_utils.copy_task_output(task)
             tasks = wfi.finalize_task(task)
             if tasks and wf_state not in ('Paused', 'Cancelled'):
                 wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
@@ -179,6 +179,6 @@ class WFUpdate(Resource):
         task = wfi.get_task_by_id(state_update.task_id)
         wfi.set_task_state(state_update.task_id, state_update.job_state)
 
-        self.handle_metadata(state_update, state_update.task_id, wfi)
+        self.handle_metadata(state_update, state_update.task_id, wfi, task.workdir)
         if not self.handle_checkpoint_restart(state_update, task, wfi):
             self.handle_state_change(state_update, task, wfi)

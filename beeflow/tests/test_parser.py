@@ -43,7 +43,7 @@ class TestParser(unittest.TestCase):
         cwl_wf_file = find("examples/clamr-ffmpeg-build/clamr_wf.cwl")
         cwl_job_yaml = find("examples/clamr-ffmpeg-build/clamr_job.yml")
         workflow_id = generate_workflow_id()
-        workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+        workflow, tasks = self.parser.parse_workflow(workflow_id, "clamr_wf", cwl_wf_file, cwl_job_yaml)
         normalize_globs(tasks)
         self.assertEqual(workflow, WORKFLOW_GOLD)
         self.assertListEqual(tasks, TASKS_GOLD)
@@ -57,7 +57,7 @@ class TestParser(unittest.TestCase):
 
         workflow_id = generate_workflow_id()
 
-        workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+        workflow, tasks = self.parser.parse_workflow(workflow_id, "clamr_wf", cwl_wf_file, cwl_job_yaml)
         normalize_globs(tasks)
         self.assertEqual(workflow, WORKFLOW_GOLD)
         self.assertListEqual(tasks, TASKS_GOLD_SCRIPT)
@@ -72,7 +72,7 @@ class TestParser(unittest.TestCase):
         workflow_id = generate_workflow_id()
 
         with self.assertRaises(Exception) as context:
-            self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+            self.parser.parse_workflow(workflow_id, "clamr_wf", cwl_wf_file, cwl_job_yaml)
 
         self.assertEqual(context.exception.args[0], "No shebang line found in pre_run.sh")
 
@@ -84,7 +84,7 @@ class TestParser(unittest.TestCase):
         workflow_id = generate_workflow_id()
 
         with self.assertRaises(Exception) as context:
-            self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+            self.parser.parse_workflow(workflow_id, "clamr_wf", cwl_wf_file, cwl_job_yaml)
 
         self.assertEqual(
             context.exception.args[0],
@@ -97,7 +97,7 @@ class TestParser(unittest.TestCase):
         cwl_job_json = find("examples/clamr-ffmpeg-build/clamr_job.json")
         workflow_id = generate_workflow_id()
 
-        workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_json)
+        workflow, tasks = self.parser.parse_workflow(workflow_id, "clamr_wf", cwl_wf_file, cwl_job_json)
         normalize_globs(tasks)
         self.assertEqual(workflow, WORKFLOW_GOLD)
         self.assertListEqual(tasks, TASKS_GOLD)
@@ -110,7 +110,7 @@ class TestParser(unittest.TestCase):
         workflow_id = generate_workflow_id()
         # cwl_wf_file = "examples/clamr-ffmpeg-build/clamr_wf.cwl"
 
-        workflow, tasks = self.parser.parse_workflow(workflow_id, cwl_wf_file)
+        workflow, tasks = self.parser.parse_workflow(workflow_id, "cf", cwl_wf_file)
         normalize_globs(tasks)
         self.assertEqual(workflow, WORKFLOW_NOJOB_GOLD)
         self.assertListEqual(tasks, TASKS_NOJOB_GOLD)
@@ -125,7 +125,7 @@ class TestParser(unittest.TestCase):
         workflow_id = generate_workflow_id()
 
         with self.assertRaises(CwlParseError):
-            _, _ = self.parser.parse_workflow(workflow_id, cwl_wf_file, cwl_job_yaml)
+            _, _ = self.parser.parse_workflow(workflow_id, "clamr_wf", cwl_wf_file, cwl_job_yaml)
 
 
 WORKFLOW_GOLD_SCRIPT = Workflow(
@@ -418,9 +418,9 @@ TASKS_NOJOB_GOLD = [
                 OrderedDict(
                     [
                         ("enabled", True),
-                        ("file_path", "checkpoint_output"),
-                        ("container_path", "checkpoint_output"),
+                        ("checkpoint_dir", "checkpoint_output"),
                         ("file_regex", "backup[0-9]*.crx"),
+                        ("restart_on_failure", True),
                         ("restart_parameters", None),
                         ("num_tries", 3),
                         ("class", "beeflow:CheckpointRequirement"),
@@ -432,9 +432,9 @@ TASKS_NOJOB_GOLD = [
                     class_="beeflow:CheckpointRequirement",
                     params={
                         "enabled": True,
-                        "file_path": "checkpoint_output",
-                        "container_path": "checkpoint_output",
+                        "checkpoint_dir": "checkpoint_output",
                         "file_regex": "backup[0-9]*.crx",
+                        "restart_on_failure": True,
                         "num_tries": 3,
                     },
                 )

@@ -106,8 +106,9 @@ class BeeConfig:
             except FileNotFoundError:
                 print("Configuration file is missing! Generating new config file.")
                 new(USERCONFIG_FILE, interactive=False)
+
         # remove default keys from the other sections
-        cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR)
+        cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR,USERCONFIG_FILE)
 
     @classmethod
     def userconfig_path(cls):
@@ -269,6 +270,10 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs', prompt=False)
 
+VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
+                 default=True, info='Use the redis container image or spack',
+                 prompt=False)
+
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                  default=NEO4J_IMAGE, info='neo4j container image',
                  input_fn=filepath_completion_input, prompt=True)
@@ -276,6 +281,10 @@ VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  default=REDIS_IMAGE, info='redis container image',
                  input_fn=filepath_completion_input, prompt=True)
+
+VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.dir_,
+                 default='.', info='Spack environment path',
+                 input_fn=filepath_completion_input, prompt=False)
 
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int, default=3, prompt=False,
                  info='max number of times beeflow will restart a component on failure')
@@ -315,13 +324,20 @@ VALIDATOR.option('job', 'default_reservation', validator=lambda val: val.strip()
                  default='', info='default reservation to run jobs on (leave blank if none)')
 
 def validate_attributes(val):
-    """Ensures the atributes are stored as a comma-separated string in"""
+    """Ensures the atributes are spelled correctly and stored as a comma-separated 
+    string in the config"""
     if isinstance(val, str):
         parts = [p.strip() for p in val.split(',') if p.strip()]
     elif isinstance(val, (list, tuple)):
         parts = [str(v).strip() for v in val if str(v).strip()]
     else:
         raise ValueError("Expected a comma-separated string or list of strings.")
+
+    allowed = set(slurm_command_attr) | set(slurm_attr) | set(flux_attr)
+    for p in parts:
+        if p not in allowed:
+            print()
+            raise ValueError(f'The attribute is spelled incorrectly or not available: {p}\n')
     return ",".join(parts)
 
 slurm_command_attr= [
@@ -351,18 +367,18 @@ flux_attr = [
 VALIDATOR.section('slurm attributes',info='Available task information for the slurm scheduler\n',
         depends_on=('slurm', 'use_commands', 'False'))
 VALIDATOR.option('slurm attributes','attributes',validator=validate_attributes,prompt=False,
-        default='partition,nodes',info='Enter task attributes (comma-separated)')
+        default='job_id,partition,nodes,command',info='Enter task attributes (comma-separated)')
 
 VALIDATOR.section('slurm command attributes',info='Available task information for sacct\n',
         depends_on=('slurm', 'use_commands', 'True'))
 VALIDATOR.option('slurm command attributes','attributes',validator=validate_attributes,
-        prompt=False,default='Partition,RunTime,NodeList',
+        prompt=False,default='JobId,Partition,RunTime,NodeList,Command',
         info='Enter task attributes (comma-separated)')
 
 VALIDATOR.section('flux attributes', info = 'Available task information for the flux scheduler\n',
         depends_on=('DEFAULT', 'workload_scheduler', 'Flux'))
 VALIDATOR.option('flux attributes','attributes',validator=validate_attributes,prompt=False,
-        default='queue,runtime,nodelist',info='Enter task attributes (comma-separated).')
+        default='id,queue,runtime,nodelist',info='Enter task attributes (comma-separated).')
 
 def validate_chrun_opts(opts):
     """Ensure that chrun_opts don't contain options that'll conflict with BEE."""
@@ -381,6 +397,8 @@ VALIDATOR.option('charliecloud', 'setup', default='', prompt=False,
                  info='extra Charliecloud setup to put in a job script')
 # Graph Database
 VALIDATOR.section('graphdb', info='Main graph database configuration section.')
+VALIDATOR.option('graphdb', 'type', default='sqlite3', choices=('neo4j', 'sqlite3'),
+                 info='type of graph database to use', prompt=False)
 VALIDATOR.option('graphdb', 'hostname', default='localhost', prompt=False,
                  info='hostname of database')
 
@@ -438,7 +456,6 @@ class ConfigGenerator:
 
     def choose_values(self, interactive=False, flux=False, attributes=False):
         """Choose configuration values based on user input."""
-        print("[DEBUG] choose_values() started")
         dirname = os.path.dirname(self.fname)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
@@ -451,12 +468,13 @@ class ConfigGenerator:
                        'values before running BEE.')
             print()
             print('Please enter values for the following sections and options:')
+
         # Let the user choose values for each required attribute
         for sec_name, section in self.validator.sections:
             # Determine if this section is valid under the current configuration
             if not self.validator.is_section_valid(self.sections, sec_name):
                 continue
-            self.sections[sec_name] = {}
+            self.sections[sec_name]={}
             printed = False
             for opt_name, option in self.validator.options(sec_name):
                 # Print the section name if it hasn't already been printed.
@@ -471,13 +489,15 @@ class ConfigGenerator:
                     this_default = "Flux"
                     option.prompt = False
                 if attributes and not interactive and opt_name == 'attributes':
+                    scheduler = self.sections.get('DEFAULT', {}).get('workload_scheduler')
+                    use_commands = self.sections.get('slurm', {}).get('use_commands', False)
                     print(f'\nAvailable attributes for [{sec_name}]:')
-                    if sec_name == 'slurm attributes':
-                        attr_list = slurm_attr
-                    elif sec_name =='slurm command attributes':
-                        attr_list = slurm_command_attr
-                    else:
+                    if scheduler == 'Slurm':
+                        attr_list = slurm_command_attr if use_commands else slurm_attr
+                    elif scheduler == 'Flux':
                         attr_list = flux_attr
+                    else:
+                        attr_list = []
                     print(attr_list)
                     value = self._input_loop(opt_name, option)
                     validated = option.validate(value)
@@ -573,7 +593,8 @@ class AlterConfig:
         try:
             with open(self.fname, encoding='utf-8') as fp:
                 config.read_file(fp)
-                self.config = config_utils.filter_and_validate(config, self.validator)
+                self.config = config_utils.filter_and_validate(config,
+                self.validator,USERCONFIG_FILE)
         except FileNotFoundError:
             for section_change in self.changes:
                 for option_change in self.changes[section_change]:
@@ -661,6 +682,23 @@ def new(path: str = typer.Argument(default=USERCONFIG_FILE,
                                         help='Chooses task attributes to display'
                                         'for "beeflow query"')):
     """Create a new config file."""
+    if attributes and os.path.exists(path):
+        try:
+            existing = AlterConfig(path).config
+            scheduler = existing.get('DEFAULT', {}).get('workload_scheduler')
+            if scheduler is not None:
+                for opt_name, opt in VALIDATOR.options('DEFAULT'):
+                    if opt_name == 'workload_scheduler':
+                        opt.default = scheduler
+            use_commands = existing.get('slurm', {}).get('use_commands')
+            if use_commands is not None:
+                for opt_name, opt in VALIDATOR.options('slurm'):
+                    if opt_name == 'use_commands':
+                        opt.default = use_commands
+
+        except OSError as err:
+            print(f"Failed to read BEE's configuration file: {err}")
+
     if os.path.exists(path):
         if not interactive or check_yes(f'Path "{path}" already exists.\n'
                                         + 'Would you like to save a copy of it?'):

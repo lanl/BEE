@@ -25,5 +25,7 @@ likely not work on a local machine.
 ## Integration tests
 
 The integration tests are written as a Python script `integration_test.py`.
-This test can be run locally after you've started BEE with `beeflow`, by just
-launching the script `./ci/integration_test.py`.
+This test can be run locally:  
+> Make sure charliecloud is installed or loaded `module load charliecloud`  
+> Start BEE `beeflow core start`  
+> Launch the script `./ci/integration_test.py`

@@ -49,15 +49,15 @@ def patch_attribute_section():
     sched = config.get('DEFAULT', 'workload_scheduler', fallback='Slurm')
     if sched == 'Flux':
         section = 'flux attributes'
-        default_attrs = 'queue,runtime,nodelist'
+        default_attrs = 'id,queue,runtime,nodelist'
     elif sched == 'Slurm':
         use_cmds = config.get('slurm', 'use_commands', fallback='True').strip().lower() == 'true'
         if use_cmds:
             section = 'slurm command attributes'
-            default_attrs = 'Partition,RunTime,NodeList'
+            default_attrs = 'JobId,Partition,RunTime,NodeList,Command'
         else:
             section = 'slurm attributes'
-            default_attrs = 'partition,nodes'
+            default_attrs = 'job_id,partition,nodes,command'
     else:
         return
 
@@ -197,9 +197,15 @@ def open_log(component):
 
 
 def need_slurmrestd():
-    """Check if slurmrestd is needed."""
+    """Check if slurmrestd is needed and that it exists in the current environment."""
+    have_slurmrestd = shutil.which('slurmrestd')
     return (bc.get('DEFAULT', 'workload_scheduler') == 'Slurm'
-            and not bc.get('slurm', 'use_commands'))
+            and not bc.get('slurm', 'use_commands') and have_slurmrestd)
+
+
+def need_neo4j():
+    """Check if neo4j is needed."""
+    return bc.get('graphdb', 'type').lower() == 'neo4j'
 
 
 def init_components(remote=False):
@@ -254,22 +260,16 @@ def init_components(remote=False):
     # Run this before daemonizing in order to avoid slow background start
     # container_path = paths.redis_container()
     # If it exists, we assume that it actually has a valid container
-    # if not os.path.exists(container_path):
-        # print('Unpacking Redis image...')
-        # subprocess.check_call(['ch-convert', '-i', 'tar', '-o', 'dir',
-        #                       bc.get('DEFAULT', 'redis_image'), container_path])
-    if not container_manager.check_container_dir('redis'):
-        print('Unpacking Redis image...')
-        container_manager.create_image('redis')
 
-    if not container_manager.check_container_dir('neo4j'):
-        print('Unpacking Neo4j image...')
-        container_manager.create_image('neo4j')
+    if need_neo4j():
+        if not container_manager.check_container_dir('neo4j'):
+            print('Unpacking Neo4j image...')
+            container_manager.create_image('neo4j')
 
-    @mgr.component('neo4j-database', ('wf_manager',))
-    def start_neo4j():
-        """Start the neo4j graph database."""
-        return neo4j_manager.start()
+        @mgr.component('neo4j-database', ('wf_manager',))
+        def start_neo4j():
+            """Start the neo4j graph database."""
+            return neo4j_manager.start()
 
     @mgr.component('redis', ())
     def start_redis():
@@ -286,7 +286,7 @@ def init_components(remote=False):
             slurmrestd_log = '/'.join([bee_workdir, 'logs', 'restd.log'])
             openapi_version = worker_utils.get_slurmrestd_version()
             print(f"Inferred slurmrestd version: {openapi_version}")
-            slurm_args = f'-s openapi/{openapi_version}'
+            slurm_args = f'-d {openapi_version} -s openapi/slurmctld'
             # The following adds the db plugin we opted not to use for now
             # slurm_args = f'-s openapi/{openapi_version},openapi/db{openapi_version}'
             slurm_socket = paths.slurm_socket()
@@ -680,14 +680,17 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
                                          help='directory to store containers in')):
     """Pull required BEE containers and store in outdir."""
     load_check_charliecloud()
-    neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
-    neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
-    build_to_tar('neo4j_image', neo4j_dockerfile, neo4j_path)
+    if need_neo4j():
+        neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
+        neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
+        build_to_tar('neo4j_image', neo4j_dockerfile, neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
 
-    AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path,
-                                     'redis_image': redis_path}}).save()
+    if need_neo4j():
+        AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path}}).save()
+
+    AlterConfig(changes={'DEFAULT': {'redis_image': redis_path}}).save()
 
     dep_dir = container_manager.get_dep_dir()
     if os.path.isdir(dep_dir):

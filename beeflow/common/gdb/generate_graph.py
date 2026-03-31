@@ -73,10 +73,14 @@ def add_nodes_to_dot(graph, dot):
 
 def get_node_label_and_color(label, attributes, label_to_color):
     """Return the appropriate node label and color based on node type."""
+    if label == ":Task":
+        task_name = attributes.get('name', label)
+        task_state = attributes.get('state', '')
+
+        return f"{task_name}\n({task_state})", label_to_color.get(label, 'gray')
     label_to_attribute = {
         ":Workflow": "Workflow",
         ":Output": attributes.get('glob', label),
-        ":Metadata": attributes.get('state', label),
         ":Task": attributes.get('name', label),
         ":Input": attributes.get('source', label),
         ":Hint": attributes.get('class', label),

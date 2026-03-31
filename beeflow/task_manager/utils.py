@@ -5,11 +5,14 @@ import re
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.db import tm_db
 from beeflow.common.db import bdb
+from beeflow.common import log as bee_logging
 from beeflow.common import worker
 from beeflow.common import paths
 from beeflow.common.connection import Connection
 from beeflow.common.worker_interface import WorkerInterface
 import beeflow.common.worker.utils as worker_utils
+
+log = bee_logging.setup(__name__)
 
 
 def db_path():
@@ -77,19 +80,19 @@ def get_restart_file(task_checkpoint, task_workdir):
     """Find latest checkpoint file."""
     if 'file_regex' not in task_checkpoint:
         raise CheckpointRestartError('file_regex is required for checkpointing')
-    if 'file_path' not in task_checkpoint:
-        raise CheckpointRestartError('file_path is required for checkpointing')
+    if 'checkpoint_dir' not in task_checkpoint:
+        raise CheckpointRestartError('checkpoint_dir is required for checkpointing')
     file_regex = task_checkpoint['file_regex']
-    file_path = Path(task_workdir, task_checkpoint['file_path'])
+    checkpoint_dir = Path(task_workdir, task_checkpoint['checkpoint_dir'])
     regex = re.compile(file_regex)
     try:
         checkpoint_files = [
-            Path(file_path, fname) for fname in os.listdir(file_path)
+            Path(checkpoint_dir, fname) for fname in os.listdir(checkpoint_dir)
             if regex.match(fname)
         ]
     except FileNotFoundError:
         raise CheckpointRestartError(
-            f'Checkpoint file_path ("{file_path}") not found'
+            f'Checkpoint checkpoint_dir ("{checkpoint_dir}") not found'
         ) from None
     checkpoint_files.sort(key=os.path.getmtime)
     try:
@@ -97,3 +100,29 @@ def get_restart_file(task_checkpoint, task_workdir):
         return str(checkpoint_file)
     except IndexError:
         raise CheckpointRestartError('Missing checkpoint file for task') from None
+
+
+def check_sentinel_restart(task_checkpoint, task_workdir):
+    """Check if sentinel file conditions indicate task should restart."""
+    # If no sentinel_file_path defined, not using sentinel logic - proceed with restart
+    if 'sentinel_file_path' not in task_checkpoint:
+        return True
+    sentinel_file_path = task_checkpoint['sentinel_file_path']
+    restart_on_file_exists = task_checkpoint.get('restart_on_file_exists', True)
+    # Build full path to sentinel file
+    if os.path.isabs(sentinel_file_path):
+        sentinel_path = Path(sentinel_file_path)
+    else:
+        # Resolve relative paths from task working directory
+        sentinel_path = Path(task_workdir, sentinel_file_path)
+    # Check if sentinel file exists
+    file_exists = sentinel_path.exists()
+    # Determine if restart should occur based on sentinel conditions:
+    # - If restart_on_file_exists=True: restart when file EXISTS
+    # - If restart_on_file_exists=False: restart when file DOES NOT exist
+    should_restart = (file_exists and restart_on_file_exists) or \
+                     (not file_exists and not restart_on_file_exists)
+    log_msg = f'Sentinel check: file_exists={file_exists}, ' \
+              f'restart_on_file_exists={restart_on_file_exists}, should_restart={should_restart}'
+    log.info(log_msg)
+    return should_restart

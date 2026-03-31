@@ -1,19 +1,35 @@
-"""Abstract base class for the handling of workflow DAGs."""
+"""Graph database driver using SQLite as the backend."""
 
-from abc import ABC, abstractmethod
-from beeflow.common import log as bee_logging
+import os
+from beeflow.common.gdb.gdb_driver import GraphDatabaseDriver
+from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.db.gdb_db import SQL_GDB
 
-log = bee_logging.setup(__name__)
+def db_path():
+    """Return the SQL GDB database path."""
+    bee_workdir = bc.get('DEFAULT', 'bee_workdir')
+    return os.path.join(bee_workdir, 'gdb_sql.db')
+
+def connect_db():
+    """Connect to the SQL GDB database."""
+    return SQL_GDB(db_path())
 
 
-class GraphDatabaseDriver(ABC):
-    """Driver interface for a generic graph database.
 
-    The driver must implement a __init__ method that creates/connects to
-    the graph database and returns some kind of 'connection' interface object.
-    """
+class SQLDriver(GraphDatabaseDriver):
+    """Graph database driver using SQLite as the backend."""
 
-    @abstractmethod
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(SQLDriver, cls).__new__(cls)
+        return cls.instance
+
+    def connect(self):
+        """Connect to the graph database."""
+        if not hasattr(self, 'db'):
+            self.db = connect_db() # pylint: disable=W0201
+
+
     def initialize_workflow(self, workflow):
         """Begin construction of a workflow in the graph database.
 
@@ -22,36 +38,34 @@ class GraphDatabaseDriver(ABC):
         :param workflow: the workflow description
         :type workflow: Workflow
         """
+        self.db.create_workflow(workflow)
 
-    @abstractmethod
-    def get_all_workflow_info(self):
-        """Return a list of all workflows in the graph database.
 
-        :rtype: list of workflowinfo
-        """
-
-    @abstractmethod
     def execute_workflow(self, workflow_id):
         """Begin execution of the stored workflow.
 
         Set the initial tasks' states to 'READY'.
         """
+        self.db.set_init_task_inputs(workflow_id)
+        self.db.set_runnable_tasks_to_ready(workflow_id)
 
-    @abstractmethod
+
     def pause_workflow(self, workflow_id):
         """Pause execution of a running workflow.
 
         Set workflow from state 'RUNNING' to 'PAUSED'.
         """
+        self.db.set_workflow_state(workflow_id, 'PAUSED')
 
-    @abstractmethod
+
     def resume_workflow(self, workflow_id):
         """Resume execution of a paused workflow.
 
         Set workflow state from 'PAUSED' to 'RUNNING'.
         """
+        self.db.set_workflow_state(workflow_id, 'RUNNING')
 
-    @abstractmethod
+
     def load_task(self, task):
         """Load a task into a stored workflow.
 
@@ -62,15 +76,18 @@ class GraphDatabaseDriver(ABC):
         :param task: a workflow task
         :type task: Task
         """
+        self.db.create_task(task)
+        self.db.add_dependencies(task)
 
-    @abstractmethod
+
     def initialize_ready_tasks(self, workflow_id):
         """Set runnable tasks to state 'READY'.
 
         Runnable tasks are tasks with all input dependencies fulfilled.
         """
+        self.db.set_runnable_tasks_to_ready(workflow_id)
 
-    @abstractmethod
+
     def restart_task(self, old_task, new_task):
         """Restart a failed task.
 
@@ -82,16 +99,21 @@ class GraphDatabaseDriver(ABC):
         :param new_task: the new (restarted) task
         :type new_task: Task
         """
+        self.db.create_task(new_task)
+        self.db.set_task_state(new_task.id, 'WAITING')
+        self.db.add_dependencies(new_task, old_task=old_task, restarted_task=True)
 
-    @abstractmethod
+
     def finalize_task(self, task):
         """Set task state to 'COMPLETED' and set inputs from source.
 
         :param task: the task to finalize
         :type task: Task
         """
+        self.db.set_task_state(task.id, 'COMPLETED')
+        self.db.copy_task_outputs(task)
 
-    @abstractmethod
+
     def get_task_by_id(self, task_id):
         """Return a reconstructed Task object from the graph database by its ID.
 
@@ -99,37 +121,50 @@ class GraphDatabaseDriver(ABC):
         :type task_id: str
         :rtype: Task
         """
+        return self.db.get_task(task_id)
 
-    @abstractmethod
+
+    def get_all_workflow_info(self):
+        """Return a list of all workflows in the graph database.
+
+        :rtype: list of workflowinfo
+        """
+        return self.db.get_all_workflow_info()
+
+
     def get_workflow_description(self, workflow_id):
         """Return a reconstructed Workflow object from the graph database.
 
         :rtype: Workflow
         """
+        return self.db.get_workflow(workflow_id)
 
-    @abstractmethod
+
     def get_workflow_state(self, workflow_id):
         """Return the current state of the workflow.
 
         :rtype: str
         """
+        return self.db.get_workflow_state(workflow_id)
 
-    @abstractmethod
+
     def set_workflow_state(self, workflow_id, state):
         """Set the state of the workflow.
 
         :param state: the new state of the workflow
         :type state: str
         """
+        self.db.set_workflow_state(workflow_id, state)
 
-    @abstractmethod
+
     def get_workflow_tasks(self, workflow_id):
         """Return a list of all workflow tasks from the graph database.
 
         :rtype: list of Task
         """
+        return self.db.get_workflow_tasks(workflow_id)
 
-    @abstractmethod
+
     def get_workflow_requirements_and_hints(self, workflow_id):
         """Return all workflow requirements and hints from the graph database.
 
@@ -137,8 +172,9 @@ class GraphDatabaseDriver(ABC):
 
         :rtype: (list of Requirement, list of Hint)
         """
+        return self.db.get_workflow_requirements_and_hints(workflow_id)
 
-    @abstractmethod
+
     def get_workflow_inputs_and_outputs(self, workflow_id):
         """Return all workflow inputs and outputs from the graph database.
 
@@ -146,15 +182,18 @@ class GraphDatabaseDriver(ABC):
 
         :rtype: (list of InputParameter, list of OutputParameter)
         """
+        return (self.db.get_workflow_inputs(workflow_id),
+                self.db.get_workflow_outputs(workflow_id))
 
-    @abstractmethod
+
     def get_ready_tasks(self, workflow_id):
         """Return tasks with state 'READY' from the graph database.
 
         :rtype: list of Task
         """
+        return self.db.get_ready_tasks(workflow_id)
 
-    @abstractmethod
+
     def get_dependent_tasks(self, task_id):
         """Return the dependent tasks of a workflow task in the graph database.
 
@@ -162,8 +201,9 @@ class GraphDatabaseDriver(ABC):
         :type task_id: str
         :rtype: list of Task
         """
+        return self.db.get_dependent_tasks(task_id)
 
-    @abstractmethod
+
     def get_task_state(self, task_id):
         """Return the state of a task in the graph database.
 
@@ -171,8 +211,9 @@ class GraphDatabaseDriver(ABC):
         :type task_id: str
         :rtype: str
         """
+        return self.db.get_task_state(task_id)
 
-    @abstractmethod
+
     def set_task_state(self, task_id, state):
         """Set the state of a task in the graph database.
 
@@ -181,8 +222,9 @@ class GraphDatabaseDriver(ABC):
         :param state: the new state
         :type state: str
         """
+        self.db.set_task_state(task_id, state)
 
-    @abstractmethod
+
     def get_task_metadata(self, task_id):
         """Return the metadata of a task in the graph database.
 
@@ -190,8 +232,9 @@ class GraphDatabaseDriver(ABC):
         :type task_id: str
         :rtype: dict
         """
+        return self.db.get_task_metadata(task_id)
 
-    @abstractmethod
+
     def set_task_metadata(self, task_id, metadata):
         """Set the metadata of a task in the graph database.
 
@@ -200,8 +243,9 @@ class GraphDatabaseDriver(ABC):
         :param metadata: the job description metadata
         :type metadata: dict
         """
+        self.db.set_task_metadata(task_id, metadata)
 
-    @abstractmethod
+
     def get_task_input(self, task_id, input_id):
         """Get a task input object.
 
@@ -211,8 +255,9 @@ class GraphDatabaseDriver(ABC):
         :type input_id: str
         :rtype: StepInput
         """
+        return self.db.get_task_input(task_id, input_id)
 
-    @abstractmethod
+
     def set_task_input(self, task_id, input_id, value):
         """Set the value of a task input.
 
@@ -222,8 +267,9 @@ class GraphDatabaseDriver(ABC):
         :type input_id: str
         :param value: str or int or float
         """
+        self.db.set_task_input(task_id, input_id, value)
 
-    @abstractmethod
+
     def get_task_output(self, task_id, output_id):
         """Get a task output object.
 
@@ -233,8 +279,9 @@ class GraphDatabaseDriver(ABC):
         :type output_id: str
         :rtype: StepOutput
         """
+        return self.db.get_task_output(task_id, output_id)
 
-    @abstractmethod
+
     def set_task_output(self, task_id, output_id, value):
         """Set the value of a task output.
 
@@ -245,8 +292,9 @@ class GraphDatabaseDriver(ABC):
         :param value: the output value to set
         :type value: str or int or float
         """
+        self.db.set_task_output(task_id, output_id, value)
 
-    @abstractmethod
+
     def set_task_input_type(self, task_id, input_id, type_):
         """Set the type of a task input.
 
@@ -257,8 +305,9 @@ class GraphDatabaseDriver(ABC):
         :param type_: the input type to set
         :param type_: str
         """
+        self.db.set_task_input_type(task_id, input_id, type_)
 
-    @abstractmethod
+
     def set_task_output_glob(self, task_id, output_id, glob):
         """Set the glob of a task output.
 
@@ -269,8 +318,9 @@ class GraphDatabaseDriver(ABC):
         :param glob: the output glob to set
         :type glob: str
         """
+        self.db.set_task_output_glob(task_id, output_id, glob)
 
-    @abstractmethod
+
     def workflow_completed(self, workflow_id):
         """Determine if a workflow has completed.
 
@@ -278,16 +328,27 @@ class GraphDatabaseDriver(ABC):
 
         :rtype: bool
         """
+        return self.db.final_tasks_completed(workflow_id)
 
-    @abstractmethod
+
     def get_workflow_final_state(self, workflow_id):
         """Get the final state of the workflow.
 
         :rtype: Optional[str]
         """
+        final_state = None
+        if self.db.final_tasks_succeeded(workflow_id):
+            final_state = None
+        elif self.db.final_tasks_failed(workflow_id):
+            final_state = 'Failed'
+        elif self.db.final_tasks_completed(workflow_id):
+            final_state = 'Partial-Fail'
+        else:
+            raise ValueError(f"Workflow with id {workflow_id} has not finished.")
+        return final_state
 
-    @abstractmethod
-    def cancelled_workflow_completed(self, workflow_id):
+
+    def cancelled_workflow_completed(self, workflow_id: str) -> bool:
         """Determine if a cancelled workflow has completed.
 
         A cancelled workflow has completed if each of its final tasks are not
@@ -295,11 +356,22 @@ class GraphDatabaseDriver(ABC):
 
         :rtype: bool
         """
+        return self.db.cancelled_final_tasks_completed(workflow_id)
 
-    @abstractmethod
+
+    def remove_workflow(self, workflow_id):
+        """Remove a workflow from the graph database.
+
+        :param workflow_id: the ID of the workflow to remove
+        :type workflow_id: str
+        """
+        self.db.remove_workflow(workflow_id)
+
+
     def close(self):
-        """Close the connection to the graph database."""
+        """Close the graph database connection."""
 
-    @abstractmethod
+
     def export_graphml(self, workflow_id):
         """Export a BEE workflow as a graphml."""
+        raise NotImplementedError("GraphML export not implemented for SQLite GDB.")

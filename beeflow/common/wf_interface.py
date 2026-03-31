@@ -73,7 +73,7 @@ class WorkflowInterface:
         self._workflow_id = workflow_id
         self._gdb_driver.set_workflow_state(self._workflow_id, 'SUBMITTED')
 
-    def add_task(self, task, task_state):
+    def add_task(self, task):
         """Add a new task to a BEE workflow.
 
         :param task: the name of the file to which to redirect stderr
@@ -90,7 +90,7 @@ class WorkflowInterface:
             task.hints = []
 
         # Load the new task into the graph database
-        self._gdb_driver.load_task(task, task_state)
+        self._gdb_driver.load_task(task)
 
     def restart_task(self, task, checkpoint_file):
         """Restart a failed BEE workflow task.
@@ -106,10 +106,14 @@ class WorkflowInterface:
         """
         for hint in task.hints:
             if hint.class_ == "beeflow:CheckpointRequirement":
-                if hint.params["num_tries"] > 0:
-                    hint.params["num_tries"] -= 1
+                num_tries = hint.params.get("num_tries")
+                if num_tries is None or num_tries > 0:
+                    # None = unlimited restarts, don't decrement
+                    if num_tries is not None:
+                        hint.params["num_tries"] -= 1
                     hint.params["bee_checkpoint_file__"] = checkpoint_file
                     break
+                # num_tries == 0, no more restart attempts
                 self.set_task_state(task.id, "FAILED")
                 self.set_workflow_state("FAILED")
                 return None
