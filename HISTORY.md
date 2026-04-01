@@ -124,3 +124,91 @@ Major features include:
  - Fix config issue and revise slurmrestd inference (#950)
  - Add flag to allow beeflow to run on back end node (#947)
 
+0.1.11
+
+Major features include:
+
+CWL support to send signal to slurm jobs.
+Improved attribute information when querying workflows.
+Automatically uses slurm commands when slurmrestd is not available.
+SQLite implementation for the graph database and makes it the default graph data base.
+Eliminates the need for dependent containers to run beeflow, by using a spack environment.  Redis must be in the user's spack environment, and SQLite specified as the graph database (default).
+Allows loading Slurm and MPI CWL requirements from a file.
+Allows user to pause, resume, cancel or remove multiple (or all) workflows with one command, e.g. "pause --all.
+
+Extends the capabilities of checkpointing/restarting including:
+ - Support additional parameters when restarting
+ - Support sentinal file usage to indicate needed restart
+ - Support for restart when job is successful but needs a restart
+
+Improvements to beeflow task information (now in a subdirectory), including batch script, metadata, outputs, and errors.
+Code improvements and organization using Pydantic for Object Models
+An example fire workflow, an AI/ML workflow.
+New CWL option to specify a unique working directory for task.
+Fails dependent tasks for CANCELLED tasks or Timeout, unless checkpoint/restarting is specified.
+
+
+
+ -  Add more data artifacts when CI fails (#1176)
+ -  Add signal to SlurmRequirement(#1186)
+ -  Change default attributes (#1182)
+ -  Bump pyasn1 from 0.6.2 to 0.6.3 (#1183)
+ -  Fix GitHub actions for sqlite3 (#1180) (#1181)
+ -  Update core.py for when slurmrestd isn't available. (#1179)
+ -  Start 0.1.11dev6 after pre-release (#1177)
+ -  (tag: 0.1.11dev5) Pre-release 0.1.11dev5 (#1175)
+ -  Fix Slurmrestd Version Inference (#1168) (#1172)
+ -  Implement Graph Database in SQLITE (#1155)
+ -  Bump protobuf from 5.28.3 to 7.34.0rc1 (#1173)
+ -  Bump pyasn1 from 0.6.1 to 0.6.2 (#1170)
+ -  Bump urllib3 from 2.6.0 to 2.6.3 (#1169)
+ -  Fix Slurm attribute errors when switching between schedulers and choosing new attributes (#1167)
+ -  1092 posixpath task workdirs (#1148)
+ -  Support for spack installed redis-server instead of containerized version (#1157)
+ -  1152 Checkpoint/Restart when job does not fail but still needs a restart (#1160)
+ -  Enable Slurm and MPI Requirement loading from file  for Inputs (#1144)
+ -  Bump urllib3 from 2.2.3 to 2.6.0 (#1156)
+ -  Impact multiple workflows with the same command  (#1146)
+ -  Issue #1045 beeflow list output columns lineup (#1147)
+ -  Remove container_path from Checkpoint Requirements, not used (#1153)
+ -  (test-ci) use user provided wf name instead of cwl file name (#1150)
+ -  Bump h11 from 0.14.0 to 0.16.0 (#1145)
+ -  Fix networkx issue when numpy is also installed (#1142)
+ -  Wf status refactoring (#1105)
+ -  Use Pydantic for Object Models (#1091)
+ -  Update documentation for pre-release 0.1.11dev4 (#1138)
+ -  Start pre-release 0.1.11dev5 (#1137)
+ -  (tag: 0.1.11dev4) Dump CWL and YAML as strings (#1122)
+ -  Issue#1069 document warning overwrite checkpointed outputs (#1134)
+ -  Provide more information when using 'beeflow query' for Flux (#1129)
+ -  Create subdirectories for task scripts, outputs, and errors (#1128)
+ -  Add fire workflow (#1120)
+ -  Pypi site and logos (#1126)
+ -  Start 0.1.11dev4 (#1125)
+ -  (tag: 0.1.11dev3) Build pre-release documentation
+ -  Add action to build documentation for pre-release tags
+ -  (tag: 0d) Update pre-release version to 0.11.dev3 for publishing on PyPi (#1121)
+ -  Make the default value of glob an empty string to it can always be joined with a directory. (#1119)
+ -  Add Proper Wait Monitoring for Neo4j Being Up (#1098)
+ -  Disable builder when no DockerRequirement present (#1057)
+ -  Issue1081/check graphviz avail (#1083)
+ -  Change version for pre-release 0.1.11dev2 (#1084)
+ -  Create subdirectories for task scripts, outputs, and errors #1060 (#1077)
+ -  Adds CWL option to change working directory for task (#1074)
+ -  Relax pylint version (#1080)
+ -  Add additional testing of `bee_client` (#1063)
+ -  Support additional parameters when restarting (#1072)
+ -  Modifies developer guide for poetry installation using a python environment (#1075)
+ -  Fix blank restart_parameters shows None (#1070)
+ -  Change restart name convention to name-1, name-2, etc (#1071)
+ -  Adding tests to improve `bee_client` coverage (#1062)
+ -  Add CheckpointRequirement to Python CWL API (#1059)
+ -  Add some basic regression testing for `beeflow/common/cwl` (#1054)
+ -  (origin/spack-develop) Start pre-release 0.1.11.dev1 (#1056)
+ -  Fix CWL API and Move stdout/stderr (#1052)
+ -  Fail dependent tasks for CANCELLED tasks (#1051)
+ -  Combine unit test and integration test coverage (#1042)
+ -  Fail dependent tasks for TIMEOUT (#1036)
+ -  Add remote cli commands including connection, core-status, droppoint, copy, and submit.
+ -  BUILD_FAIL should cause DEP_FAIL for dependent tasks (#1033)
+ -  Fix document publish (#1032)
