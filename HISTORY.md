@@ -2,8 +2,9 @@
 
 Major features include:
 
-New graph database SQLite implementation (default), increased speed and respsoviness with managing workflows.
-Eliminates the need for dependent containers to run beeflow, by using a spack environment.  Redis must be in the user's spack environment, and SQLite specified as the graph database (default).
+New graph database SQLite implementation (default):
+  - increased responsiveness and speed for managing workflows.
+  - eliminates use of dependent containers when combined with the support for redis in Spack. Redis must be in the user's spack environment, and SQLite specified as the graph database (default).
 CWL support to send signal to slurm jobs.
 Improved attribute information when querying workflows.
 Automatically uses slurm commands when slurmrestd is not available.
