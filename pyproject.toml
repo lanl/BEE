@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "hpc-beeflow"
-version = "0.1.11dev6"
-description = "A software package for containerizing HPC applications and managing job workflows"
+version = "0.1.11"
+description = "Orchestrates complex simulation workflows through coordination, execution, and monitoring, with support for containerized applications."
 
 
 authors = [
