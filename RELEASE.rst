@@ -68,7 +68,7 @@ an update to that same version.
 
 8. After the RELEASE (e.g. 0.1.11) is published:
 
-   Create and PR into develop to include:
+   Create and merge PR into develop to include:
      - change the version in pyproject.toml to be 0.1.12dev (use latest +1)
 
 
