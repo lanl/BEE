@@ -75,4 +75,3 @@ jobs:
           git add .
           git commit -m "Deploy docs for $TAG_NAME"
           git push origin gh-pages
->>>>>>> develop
