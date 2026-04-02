@@ -5,7 +5,7 @@ import jsonpickle
 
 from beeflow.common.db import bdb
 from beeflow.common import log as bee_logging
-from beeflow.common.wf_data import TaskStateUpdate
+from beeflow.wf_manager.models import TaskStateUpdate
 
 log = bee_logging.setup(__name__)
 
@@ -141,10 +141,10 @@ class UpdateQueue:
         state_updates = []
         for result in bdb.getall(self.db_file, stmt):
             wf_id, task_id, job_state, task_info, metadata, output = result
-            state_updates.append(TaskStateUpdate(wf_id, task_id, job_state,
-                                                 jsonpickle.decode(task_info),
-                                                 jsonpickle.decode(metadata),
-                                                 jsonpickle.decode(output)))
+            state_updates.append(TaskStateUpdate(wf_id=wf_id, task_id=task_id, job_state=job_state,
+                                                 task_info=jsonpickle.decode(task_info),
+                                                 metadata=jsonpickle.decode(metadata),
+                                                 output=jsonpickle.decode(output)))
         return state_updates
 
     def clear(self):

@@ -6,6 +6,11 @@
 
 set +e
 
+printf "#### RUNNING PROCESSES ####\n"
+ps aux
+printf "#### TEST JOB SUBMISSION ####\n"
+salloc echo test
+
 # BEE needs to be started here in order to access batch scheduler resources
 case $BEE_WORKER in
 Slurmrestd)

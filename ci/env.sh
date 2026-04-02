@@ -12,6 +12,8 @@ mkdir -p $SLURMD_SPOOL_DIR $SLURM_STATE_SAVE_LOCATION $LOG_DIR
 export SLURMCTLD_LOG=$LOG_DIR/slurmctld.log
 export SLURMD_LOG=$LOG_DIR/slurmd.log
 export SLURM_USER=`whoami`
+export SLURMRESTD_SECURITY=disable_user_check
+export SLURM_VERSION=24.11.7
 export MUNGE_SOCKET=/tmp/munge.sock
 export MUNGE_LOG=/tmp/munge.log
 export MUNGE_PID=/tmp/munge.pid
@@ -22,9 +24,10 @@ export NEO4J_CONTAINER=$HOME/img/neo4j.tar.gz
 export REDIS_CONTAINER=$HOME/img/redis.tar.gz
 mkdir -p $BEE_WORKDIR
 export SLURM_CONF=~/slurm.conf
+export CGROUP_CONF=~/cgroup.conf
 # Flux variables
 export FLUX_CORE_VERSION=0.51.0
 export FLUX_SECURITY_VERSION=0.9.0
 export BEE_CONFIG=$HOME/.config/beeflow/bee.conf
 export OPENAPI_VERSION=v0.0.37
-export CHARLIECLOUD_VERSION=0.36
+export CHARLIECLOUD_VERSION=0.43

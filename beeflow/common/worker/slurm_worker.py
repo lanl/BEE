@@ -3,6 +3,7 @@
 Builds command for submitting batch job.
 """
 
+from copy import deepcopy
 import io
 import subprocess
 import json
@@ -17,7 +18,6 @@ from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
 from beeflow.common.worker.utils import get_state_sacct
 from beeflow.common.worker.utils import parse_key_val
-
 
 log = bee_logging.setup(__name__)
 
@@ -35,39 +35,82 @@ class BaseSlurmWorker(Worker):
         self.default_qos = default_qos
         self.default_reservation = default_reservation
 
+    def get_req(self, task, req_type, key, config, default=None):
+        """Get requierment from config if it exists otherwise get it from requirement."""
+        if config is not None and key in config and config[key] is not None:
+            return config[key]
+        value = task.get_requirement(req_type, key, default=None)
+        return default if value is None else value
+
+    def load_config_from(self, task, req_type):
+        """Load a json config of slurm or mpi parameters."""
+        config_input_id = task.get_requirement(req_type, 'load_from_file',
+                                                default=None)
+        if not config_input_id:
+            return {}
+
+        input_config = next((i for i in task.inputs if i.id == config_input_id), None)
+        if not input_config:
+            return {}
+        with open(input_config.value, "r", encoding="utf-8") as f:
+            return json.load(f) or {}
+
+
     def get_task_requirements(self, task):
         """Get the task requirements."""
+
+        config_mpi = self.load_config_from(task, 'beeflow:MPIRequirement')
+        config_slurm = self.load_config_from(task, 'beeflow:SlurmRequirement')
+        config = {**config_mpi, **config_slurm}
+
+        nodes = self.get_req(task, 'beeflow:MPIRequirement', 'nodes',  config, default=1)
+        ntasks = self.get_req(task, 'beeflow:MPIRequirement', 'ntasks', config, default=nodes)
+        mpi_version = self.get_req(task, 'beeflow:MPIRequirement', 'mpiVersion', config,
+           default='')
+
+        time_limit_raw = self.get_req(
+            task, 'beeflow:SlurmRequirement', 'timeLimit', config, default=self.default_time_limit
+        )
+        time_limit = validation.time_limit(time_limit_raw)
+        account = self.get_req(task, 'beeflow:SlurmRequirement', 'account', config,
+                               default=self.default_account)
+        partition = self.get_req(task, 'beeflow:SlurmRequirement', 'partition', config,
+                                 default=self.default_partition)
+        qos = self.get_req(task, 'beeflow:SlurmRequirement', 'qos', config,
+                           default=self.default_qos)
+        reservation = self.get_req(task, 'beeflow:SlurmRequirement', 'reservation', config,
+                                   default=self.default_reservation)
+
+        signal = self.get_req(task, 'beeflow:SlurmRequirement', 'signal', config,
+                             default=None)
+        shell = self.get_req(task, 'beeflow:ScriptRequirement', 'shell', config,
+                             default="/bin/bash")
+        scripts_enabled = self.get_req(task, 'beeflow:ScriptRequirement', 'enabled', config,
+                                       default=False)
+
         requirements = {
-                'nodes': task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1),
-                'ntasks': task.get_requirement('beeflow:MPIRequirement', 'ntasks',
-                    default=task.get_requirement('beeflow:MPIRequirement', 'nodes', default=1)),
-                # Need to rethink the MPI version parameter
-                'mpi_version': task.get_requirement('beeflow:MPIRequirement', 'mpiVersion',
-                    default=''),
-                'time_limit': validation.time_limit(task.get_requirement(
-                    'beeflow:SlurmRequirement', 'timeLimit', default=self.default_time_limit)),
-                'account': task.get_requirement('beeflow:SlurmRequirement', 'account',
-                    default=self.default_account),
-                'partition': task.get_requirement('beeflow:SlurmRequirement', 'partition',
-                    default=self.default_partition),
-                'qos': task.get_requirement('beeflow:SlurmRequirement', 'qos',
-                    default=self.default_qos),
-                'reservation': task.get_requirement('beeflow:SlurmRequirement', 'reservation',
-                    default=self.default_reservation),
-                'shell': task.get_requirement('beeflow:ScriptRequirement', 'shell',
-                    default="/bin/bash"),
-                'scripts_enabled': task.get_requirement('beeflow:ScriptRequirement', 'enabled',
-                    default=False)
+            'nodes': nodes,
+            'ntasks': ntasks,
+            'mpi_version': mpi_version,
+            'time_limit': time_limit,
+            'account': account,
+            'partition': partition,
+            'qos': qos,
+            'reservation': reservation,
+            'shell': shell,
+            'signal': signal,
+            'scripts_enabled': scripts_enabled
         }
         return requirements
 
-    def build_sbatch_header(self, task, requirements, task_save_path):
+    def build_sbatch_header(self, task, requirements):
         """Build the sbatch header."""
+        stdout_path, stderr_path = self.resolve_stdout_stderr(task)
         header = [
                 f'#!{requirements["shell"]}',
                 f'#SBATCH --job-name={task.name}-{task.id}',
-                f'#SBATCH --output={task_save_path}/{task.name}-{task.id}.out',
-                f'#SBATCH --error={task_save_path}/{task.name}-{task.id}.err',
+                f'#SBATCH --output={stdout_path}',
+                f'#SBATCH --error={stderr_path}',
                 f'#SBATCH -N {requirements["nodes"]}',
                 f'#SBATCH -n {requirements["ntasks"]}',
                 '#SBATCH --open-mode=append',
@@ -82,6 +125,8 @@ class BaseSlurmWorker(Worker):
             header.append(f'#SBATCH --qos {requirements["qos"]}')
         if requirements['reservation']:
             header.append(f'#SBATCH --reservation {requirements["reservation"]}')
+        if requirements['signal']:
+            header.append(f'#SBATCH --signal={requirements["signal"]}')
         # Return immediately on error
         if requirements["shell"] == "/bin/bash":
             header.append('set -e')
@@ -98,19 +143,18 @@ class BaseSlurmWorker(Worker):
     def build_pre_commands(self, crt_res, script, requirements, pre_script=None):
         """Build the pre commands."""
         # Add pre-script commands if available
-        if pre_script:
-            for cmd in pre_script:
-                script.extend(pre_script)
         for cmd in crt_res.pre_commands:
             self.srun(script, cmd, requirements['nodes'])
+        if pre_script:
+            script.extend(pre_script)
         return script
 
-    def build_main_command(self, crt_res, requirements, main_command_srun_args):
+    def build_main_command(self, crt_res, requirements):
         """Build the main command."""
         mpi_arg = f'--mpi={requirements["mpi_version"]}' if requirements['mpi_version'] else ''
-        srun_args = ' '.join(main_command_srun_args)
+        # Removing this since everything is going to the workdir files now
         args = ' '.join(crt_res.main_command.args)
-        return f'srun --nodes={requirements["nodes"]} {mpi_arg} {srun_args} {args}'
+        return f'srun --nodes={requirements["nodes"]} {mpi_arg} {args}'
 
     def build_post_commands(self, crt_res, script, requirements, post_script=None):
         """Build post script commands."""
@@ -123,18 +167,7 @@ class BaseSlurmWorker(Worker):
 
     def build_text(self, task):
         """Build text for task script."""
-        task_save_path = self.task_save_path(task)
         crt_res = self.crt.run_text(task)
-        stdout_param = ['--output', task.stdout]
-        stderr_param = ['--error', task.stderr]
-        if task.stdout and task.stderr:
-            main_command_srun_args = stdout_param + stderr_param
-        elif task.stdout:
-            main_command_srun_args = stdout_param
-        elif task.stderr:
-            main_command_srun_args = stderr_param
-        else:
-            main_command_srun_args = []
 
         # Get task requirements
         requirements = self.get_task_requirements(task)
@@ -147,14 +180,14 @@ class BaseSlurmWorker(Worker):
             post_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
                                       'post_script')).readlines()
         # Build script sections
-        script = self.build_sbatch_header(task, requirements, task_save_path)
+        script = self.build_sbatch_header(task, requirements)
         script.append(crt_res.env_code)
 
         # Pre commands
         script = self.build_pre_commands(crt_res, script, requirements, pre_script)
 
         # Main command
-        script.append(self.build_main_command(crt_res, requirements, main_command_srun_args))
+        script.append(self.build_main_command(crt_res, requirements))
 
         # Post commands
         script = self.build_post_commands(crt_res, script, requirements, post_script)
@@ -162,20 +195,20 @@ class BaseSlurmWorker(Worker):
         return '\n'.join(script)
 
     def submit_job(self, script):
-        """Worker submits job-returns (job_id, job_state)."""
+        """Worker submits job-returns (job_id, job_state,job_info)."""
         res = subprocess.run(['sbatch', '--parsable', script], text=True,  # pylint: disable=W1510
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if res.returncode != 0:
             raise WorkerError(f'Failed to submit job: {res.stderr}')
         job_id = int(res.stdout)
-        job_state = self.query_task(job_id)
-        return job_id, job_state
+        job_state,job_info = self.query_task(job_id)
+        return job_id, job_state,job_info
 
     def submit_task(self, task):
         """Worker builds & submits script."""
         task_script = self.write_script(task)
-        job_id, job_state = self.submit_job(task_script)
-        return job_id, job_state
+        job_id, job_state,job_info = self.submit_job(task_script)
+        return job_id,job_state,job_info
 
 
 class SlurmrestdWorker(BaseSlurmWorker):
@@ -193,9 +226,10 @@ class SlurmrestdWorker(BaseSlurmWorker):
         encoded_path = urllib.parse.quote(self.slurm_socket, safe="")
         # Note: Socket path is encoded, http request is not generally.
         self.slurm_url = f"http+unix://{encoded_path}/slurm/{openapi_version}"
+        self.cli_worker = SlurmCLIWorker(bee_workdir=bee_workdir, **kwargs)
 
-    def query_task(self, job_id):
-        """Worker queries job; returns job_state."""
+    def query_task(self,job_id):
+        """Worker queries job; returns job_state,job_info."""
         try:
             resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
             if resp.status_code == 200:
@@ -204,15 +238,18 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 check_slurm_error(data, f'Failed to query job {job_id}, slurm error.')
                 # For some versions of slurm, the job_state isn't included on failure
                 try:
-                    job_state = data['jobs'][0]['job_state']
+                    job_state = data['jobs'][0]['job_state'][0]
+                    job_info = deepcopy(data['jobs'][0])
+
                 except (KeyError, IndexError) as exc:
                     raise WorkerError(f'Failed to query job {job_id}') from exc
             else:
                 # If slurmrestd does not find job make last attempt with sacct command
-                job_state = get_state_sacct(job_id)
+                job_state,job_info = self.cli_worker.query_task(job_id)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
-        return job_state
+            job_info = {}
+        return job_state,job_info
 
     def cancel_task(self, job_id):
         """Worker cancels job, returns job_state."""
@@ -238,7 +275,7 @@ class SlurmCLIWorker(BaseSlurmWorker):
     """Slurm worker interface that uses the CLI."""
 
     def query_task(self, job_id):
-        """Query job state for the task."""
+        """Query job state and job information for the task."""
         # Use scontrol since it gives a lot of useful info; may want to save info
         try:
             res = subprocess.run(['scontrol', 'show', 'job', str(job_id)],
@@ -246,12 +283,15 @@ class SlurmCLIWorker(BaseSlurmWorker):
         except subprocess.CalledProcessError:
             # If show job cannot find job get state using sacct (not same info)
             job_state = get_state_sacct(job_id)
+            job_info = {}
         else:
             # Output is in a space-separated list of 'key=value' pairs
             pairs = res.stdout.split()
             key_vals = dict(parse_key_val(pair) for pair in pairs)
             job_state = key_vals['JobState']
-        return job_state
+
+            job_info = deepcopy(key_vals)
+        return job_state,job_info
 
     def cancel_task(self, job_id):
         """Cancel task with job_id; returns job_state."""
@@ -260,7 +300,6 @@ class SlurmCLIWorker(BaseSlurmWorker):
         except subprocess.CalledProcessError:
             raise WorkerError(f'Failed to cancel job {job_id}') from None
         return 'CANCELLED'
-
 
 class SlurmWorker(Worker):
     """Main slurm worker class."""

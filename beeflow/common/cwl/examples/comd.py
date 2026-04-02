@@ -30,19 +30,15 @@ def main():
                         # The slurm requirement
                         MPI(nodes=4, ntasks=8),
                         # Example of slurm options
-                        # Slurm(account="standard", time_limit=60, partition="standard",
-                        #      qos="debug", reservation="standard"),
+                        Slurm(account="standard", time_limit=60, partition="standard",
+                              qos="debug", reservation="standard"),
                         Script(pre_script="comd_pre.sh"),
-                        Slurm(time_limit=500),
                         Charliecloud(docker_file="Dockerfile.comd-x86_64",
                                      container_name="comd-mpi")
                      ])
     workflow = Workflow("comd", [comd_task])
-    workflow.write_wf("comd")
-    workflow.write_yaml("comd")
-    # workflow = Workflow("comd", [comd_task])
-    # workflow.write(".")
-
+    workflow.dump_wf("comd")
+    workflow.dump_yaml("comd")
 
 if __name__ == "__main__":
     main()

@@ -53,22 +53,48 @@ class Worker(ABC):
         # Get BEE workdir from config file
         self.workdir = bee_workdir
 
+    def resolve_stdout_stderr(self, task):
+        """Resolves the path to the stderr and stdout in the task workdir."""
+        task_dir = f"{task.workdir}/{task.name}-{task.id[:4]}"
+        os.makedirs(task_dir,exist_ok=True)
+        if task.stdout:
+            stdout_path = f"{task.workdir}/{task.stdout}"
+        else:
+            # If user provide no stdout or stderr name use this as a fallback
+            stdout_path = f"{task.workdir}/{task.name}-{task.id[:4]}/{task.name}-{task.id[:4]}.out"
+        if task.stderr:
+            stderr_path = f"{task.workdir}/{task.stderr}"
+        else:
+            stderr_path = f"{task.workdir}/{task.name}-{task.id[:4]}/{task.name}-{task.id[:4]}.err"
+        return stdout_path, stderr_path
+
+
     def task_save_path(self, task):
         """Return the task save path used for storing submission scripts output logs."""
-        return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id}'
+        return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}'
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
         task_text = self.build_text(task)
-        task_script = f'{self.task_save_path(task)}/{task.name}-{task.id}.sh'
-        with open(task_script, 'w', encoding='UTF-8') as script_f:
-            script_f.write(task_text)
-            script_f.close()
-        return task_script
+        task_archive_dir = self.task_save_path(task)
+        os.makedirs(task_archive_dir,exist_ok=True)
+        task_script_archive = f"{self.task_save_path(task)}"\
+                f"/{task.name}-{task.id[:4]}.sh"
+        task_script_dir = f"{task.workdir}/{task.name}-{task.id[:4]}"
+        os.makedirs(task_script_dir,exist_ok=True)
+        task_script_workdir = f"{task.workdir}/{task.name}-{task.id[:4]}"\
+                f"/{task.name}-{task.id[:4]}.sh"
+
+        with open(task_script_workdir, 'w', encoding="UTF-8") as workdir_script, \
+             open(task_script_archive, 'w', encoding="UTF-8") as archive_script:
+            workdir_script.write(task_text)
+            archive_script.write(task_text)
+        return task_script_workdir
 
     def prepare(self, task):
         """Prepare for the task; create the task save directory, etc."""
         task_save_path = self.task_save_path(task)
+        os.makedirs(task.workdir, exist_ok=True)
         os.makedirs(task_save_path, exist_ok=True)
 
     @abstractmethod

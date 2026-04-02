@@ -1,6 +1,9 @@
 """Create and manage CWL files."""
+import os
 from dataclasses import dataclass
 from io import StringIO
+from pathlib import Path
+from typing import Optional, Union
 import ruamel.yaml
 
 # Create the global object for ruamel.ymal
@@ -72,6 +75,7 @@ class InputBinding:
 
     prefix: str = None
     position: int = None
+    value_from: str = None
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
@@ -80,6 +84,8 @@ class InputBinding:
             binding_yaml['inputBinding']['position'] = self.position
         if self.prefix:
             binding_yaml['inputBinding']['prefix'] = self.prefix
+        if self.value_from:
+            binding_yaml['inputBinding']['valueFrom'] = self.value_from
         return binding_yaml
 
     def __repr__(self):
@@ -106,8 +112,16 @@ class RunInput(Input):
 
     def dump(self):
         """Dump returns dictionary that will be used by pyyaml dump."""
-        inputs_dumps = [{'type': self.input_type},
-                        self.input_binding.dump()]
+        inputs_dumps = [{'type': self.input_type}]
+
+        # Handle case where there is no actual input binding
+        binding_dict = self.input_binding.dump()
+        if "inputBinding" in binding_dict and not binding_dict["inputBinding"]:
+            binding_dict = {}
+
+        if binding_dict:
+            inputs_dumps.append(binding_dict)
+
         inputs_dict = {}
         for dump in inputs_dumps:
             inputs_dict.update(dump)
@@ -321,7 +335,7 @@ class DockerRequirement:
         if self.container_name:
             docker_dump['DockerRequirement']['beeflow:containerName'] = self.container_name
         if self.force_type:
-            docker_dump['DockerRequirement']['beeflow:force=Type'] = self.force_type
+            docker_dump['DockerRequirement']['beeflow:forceType'] = self.force_type
         return docker_dump
 
     def __repr__(self):
@@ -337,6 +351,7 @@ class MPIRequirement:
 
     nodes: int = None
     ntasks: int = None
+    load_from_file: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -345,6 +360,8 @@ class MPIRequirement:
             mpi_dump['beeflow:MPIRequirement']['nodes'] = self.nodes
         if self.ntasks:
             mpi_dump['beeflow:MPIRequirement']['ntasks'] = self.ntasks
+        if self.load_from_file:
+            mpi_dump['beeflow:MPIRequirement']['load_from_file'] = self.load_from_file
         return mpi_dump
 
     def __repr__(self):
@@ -359,10 +376,12 @@ class SlurmRequirement:
     """Represents a beeflow custom MPI requirement."""
 
     account: str = None
-    time_limit: int = None
+    time_limit: str = None
+    signal: str = None
     partition: str = None
     qos: str = None
     reservation: str = None
+    load_from_file: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -370,13 +389,17 @@ class SlurmRequirement:
         if self.account:
             sched_dump['beeflow:SlurmRequirement']['account'] = self.account
         if self.time_limit:
-            sched_dump['beeflow:SlurmRequirement']['time_limit'] = self.time_limit
+            sched_dump['beeflow:SlurmRequirement']['timeLimit'] = self.time_limit
         if self.partition:
             sched_dump['beeflow:SlurmRequirement']['partition'] = self.partition
         if self.qos:
-            sched_dump['beeflow:SlurmRequirement']['qos'] = self.partition
+            sched_dump['beeflow:SlurmRequirement']['qos'] = self.qos
         if self.reservation:
             sched_dump['beeflow:SlurmRequirement']['reservation'] = self.reservation
+        if self.signal:
+            sched_dump['beeflow:SlurmRequirement']['signal'] = self.signal
+        if self.load_from_file:
+            sched_dump['beeflow:SlurmRequirement']['load_from_file'] = self.load_from_file
         return sched_dump
 
     def __repr__(self):
@@ -390,24 +413,35 @@ class SlurmRequirement:
 class CheckpointRequirement:
     """Represents a beeflow checkpoint requirement."""
 
-    file_path: str
-    container_path: str
+    checkpoint_dir: str
     file_regex: str
     restart_parameters: str
-    num_tries: int
+    num_tries: Optional[int] = 100
+    sentinel_file_path: Optional[str] = None
+    restart_on_file_exists: Optional[bool] = None
+    restart_on_failure: bool = True
     enabled: bool = True
+    add_parameters: Optional[str] = None
+    last_good_restart: Optional[str] = None
 
     def dump(self):
         """Dump beeflow requirement to a dictionary."""
         req_name = 'beeflow:CheckpointRequirement'
         checkpoint_dump = {req_name: {}}
         checkpoint_dump[req_name]['enabled'] = self.enabled
-        checkpoint_dump[req_name]['file_path'] = self.file_path
-        checkpoint_dump[req_name]['container_path'] = self.container_path
+        checkpoint_dump[req_name]['checkpoint_dir'] = self.checkpoint_dir
         checkpoint_dump[req_name]['file_regex'] = self.file_regex
+        if self.sentinel_file_path is not None:
+            checkpoint_dump[req_name]['sentinel_file_path'] = self.sentinel_file_path
+        if self.restart_on_file_exists is not None:
+            checkpoint_dump[req_name]['restart_on_file_exists'] = self.restart_on_file_exists
+        checkpoint_dump[req_name]['restart_on_failure'] = self.restart_on_failure
         checkpoint_dump[req_name]['restart_parameters'] = self.restart_parameters
-        checkpoint_dump[req_name]['num_tries'] = self.enabled
-        return req_name
+        checkpoint_dump[req_name]['add_parameters'] = self.add_parameters
+        checkpoint_dump[req_name]['num_tries'] = self.num_tries
+        if self.last_good_restart is not None:
+            checkpoint_dump[req_name]['last_good_restart'] = self.last_good_restart
+        return checkpoint_dump
 
     def __repr__(self):
         """Return CheckpointRequirement as a yaml string."""
@@ -442,6 +476,33 @@ class ScriptRequirement:
 
     def __repr__(self):
         """Return ScriptRequirement as a yaml string."""
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
+
+
+@dataclass
+class TaskRequirement:
+    """Defines task requirement."""
+
+    # Accept either a string or a Path
+    workdir: Union[str, Path]
+
+    def __post_init__(self):
+        """ Convert a Path object to a string."""
+        if isinstance(self.workdir, Path):
+            self.workdir = str(self.workdir)
+
+    def dump(self):
+        """Dump task requirement to a dictionary."""
+        key = 'beeflow:TaskRequirement'
+        this_dump = {key: {}}
+        if self.workdir:
+            this_dump[key]['workdir'] = self.workdir
+        return this_dump
+
+    def __repr__(self):
+        """Return TaskRequirement as a yaml string."""
         stream = StringIO()
         yaml.dump(self.dump(), stream)
         return stream.getvalue()
@@ -594,9 +655,8 @@ class CWL:
         self.steps = steps
 
     def dump_wf(self, path=None):
-        """Dump the workflow. If no path is specified print to stdout."""
+        """Dump the workflow. If no path is specified return cwl file as a string."""
         cwl_dump = ruamel.yaml.comments.CommentedMap()
-        # cwl_dump = {}
         cwl_dump.update(self.header.dump())
         cwl_dump.update(self.header.dump())
         cwl_dump.update(self.inputs.dump())
@@ -609,14 +669,13 @@ class CWL:
         yaml.dump(cwl_dump, stream)
         wf_contents = stream.getvalue()
         if path:
+            os.makedirs(path, exist_ok=True)
             with open(f"{path}/{self.cwl_name}.cwl", "w", encoding="utf-8") as wf_file:
                 print(wf_contents, file=wf_file)
-        else:
-            print(wf_contents)
         return wf_contents
 
     def dump_inputs(self, path=None):
-        """Dump YAML inputs."""
+        """Dump YAML inputs. If no path is specified return yaml file as a string."""
         stream = StringIO()
         yaml.dump(self.inputs.generate_yaml_inputs(), stream)
         yaml_contents = stream.getvalue()
@@ -627,6 +686,4 @@ class CWL:
 
     def __repr__(self):
         """Return CWL file as a string."""
-        stream = StringIO()
-        yaml.dump(self.dump_wf(), stream)
-        return stream.getvalue()
+        return self.dump_wf()

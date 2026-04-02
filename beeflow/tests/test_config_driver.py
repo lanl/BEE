@@ -155,12 +155,32 @@ def test_config_generator_save(mocker, tmpdir, capsys, interactive, input_val, e
                          )
 def test_config_new(mocker, tmpdir, interactive, input_val, expected):
     """Test creation of new config with different settings."""
+    # Setup valid paths for neo4j_image and redis_image
+    img_dir = tmpdir.mkdir("img")
+    neo4j_path = img_dir.join("neo4j.tar.gz")
+    redis_path = img_dir.join("redis.tar.gz")
+    neo4j_path.write("")  # Create empty mock tarball
+    redis_path.write("")  # Create empty mock tarball
+
     filename = 'bee.conf'
     mocker.patch('builtins.input', return_value=input_val)
     mocker.patch('beeflow.common.config_driver.ConfigGenerator.choose_values')
     mocker.patch('beeflow.common.config_driver.ConfigGenerator.choose_values.save')
     with tmpdir.as_cwd():
-        with open(filename, 'w', encoding='utf-8'):
-            pass
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(
+                "[DEFAULT]\n"
+                "bee_workdir = .\n"
+                "workload_scheduler = Slurm\n"
+                f"neo4j_image = {neo4j_path}\n"
+                f"redis_image = {redis_path}\n\n"
+                "[task_manager]\n"
+                "container_runtime = Charliecloud\n"
+                "runner_opts = \n\n"
+                "[slurm]\n"
+                "use_commands = False\n\n"
+                "[slurm attributes]\n"
+                "attributes = partition,nodes\n"
+            )
         new("bee.conf", interactive=interactive)
         assert os.path.exists('bee.conf.1') == expected

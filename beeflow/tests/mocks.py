@@ -1,7 +1,7 @@
 """Mocks for the WFM and TM tests."""
 
 from copy import deepcopy
-from beeflow.common.wf_data import StepInput, StepOutput
+from beeflow.common.object_models import StepInput, StepOutput
 from beeflow.common import expr
 
 
@@ -170,10 +170,10 @@ class MockGDBDriver:
             self.task_metadata[task_id] = {}
             self.task_states[task_id] = 'WAITING'
 
-    def load_task(self, task, task_state):
+    def load_task(self, task):
         """Load a task into a workflow in the graph database."""
         self.tasks[task.id] = task
-        self.task_states[task.id] = task_state
+        self.task_states[task.id] = task.state
         self.task_metadata[task.id] = {}
         self.inputs[task.id] = {}
         self.outputs[task.id] = {}
@@ -190,8 +190,7 @@ class MockGDBDriver:
 
     def restart_task(self, _old_task, new_task):
         """Create a new task from a failed task checkpoint restart enabled."""
-        task_state = "WAITING"
-        self.load_task(new_task, task_state)
+        self.load_task(new_task)
 
     def finalize_task(self, task):
         """Set a task's state to completed."""
@@ -226,53 +225,63 @@ class MockGDBDriver:
         return [task for task_id, task in self.tasks.items()
                 if self.task_states[task_id] == 'READY']
 
-    def get_dependent_tasks(self, task):
+    def get_dependent_tasks(self, task_id):
         """Return the dependents of a task in a workflow."""
         tasks = [dep_task for dep_task_id, dep_task in self.tasks.items()
                  if any(outp_id in [inp.source
                                     for inp in self.inputs[dep_task_id].values()]
-                        for outp_id in self.outputs[task.id])]
+                        for outp_id in self.outputs[task_id])]
         return tasks
 
-    def get_task_state(self, task):
+    def get_task_state(self, task_id):
         """Return the state of a task."""
-        return self.task_states[task.id]
+        return self.task_states[task_id]
 
-    def set_task_state(self, task, state):
+    def set_task_state(self, task_id, state):
         """Set the state of a task."""
-        self.task_states[task.id] = state
+        self.task_states[task_id] = state
 
-    def get_task_metadata(self, task):
+    def get_task_metadata(self, task_id):
         """Return the job description metadata of a task."""
-        return self.task_metadata[task.id]
+        return self.task_metadata[task_id]
 
-    def set_task_metadata(self, task, metadata):
+    def set_task_metadata(self, task_id, metadata):
         """Set the job description metadata of a task."""
-        self.task_metadata[task.id] = metadata
+        self.task_metadata[task_id] = metadata
 
-    def get_task_input(self, task, input_id):
+    def get_task_input(self, task_id, input_id):
         """Get a task input object."""
-        inp = self.inputs[task.id][input_id]
+        inp = self.inputs[task_id][input_id]
         try:
             inp.id # pylint: disable=W0104 #trying to get an AttributeError here
             return inp
         except AttributeError:
-            return StepInput(input_id, 'File', inp,
-                             'default.txt', input_id, None, None, None)
+            return StepInput(id=input_id, type='File', value=inp,
+                             default='default.txt', source=input_id, prefix=None, position=None, value_from=None)
 
-    def set_task_input(self, task, input_id, value):
+    def set_task_input(self, task_id, input_id, value):
         """Set the value of a task input."""
-        self.inputs[task.id][input_id] = value
+        self.inputs[task_id][input_id] = value
 
-    def get_task_output(self, task, output_id):
+    def get_task_output(self, task_id, output_id):
         """Get a task output object."""
-        return self.outputs[task.id][output_id]
+        return self.outputs[task_id][output_id]
 
-    def set_task_output(self, task, output_id, value):
+    def set_task_output(self, task_id, output_id, value):
         """Set the value of a task output."""
-        self.outputs[task.id][output_id] = StepOutput(
-            output_id, 'File', value, value,
+        self.outputs[task_id][output_id] = StepOutput(
+            id=output_id, type='File', value=value, glob=value,
         )
+
+    def remove_workflow(self, workflow_id): # pylint: disable=W0613
+        """Remove a workflow from the graph database."""
+        self.workflow = None
+        self.workflow_state = None
+        self.tasks.clear()
+        self.task_states.clear()
+        self.task_metadata.clear()
+        self.inputs.clear()
+        self.outputs.clear()
 
     def evaluate_expression(self, task, id_, output):
         """Evaluate a task input/output expression."""
@@ -281,17 +290,17 @@ class MockGDBDriver:
             step_outp = self.outputs[task.id][id_]
             val = expr.eval_output(input_pairs, step_outp.glob)
             if val is not None:
-                self.outputs[task.id][id_] = StepOutput(step_outp.id, step_outp.type,
-                                                        step_outp.value, val)
+                self.outputs[task.id][id_] = StepOutput(id=step_outp.id, type=step_outp.type,
+                                                        value=step_outp.value, glob=val)
         else:
             step_inp = self.inputs[task.id][id_]
             val = expr.eval_input(input_pairs, step_inp.value_from)
-            self.inputs[task.id][id_] = StepInput(step_inp.id, 'string', val,
-                                                  step_inp.default,
-                                                  step_inp.source,
-                                                  step_inp.prefix,
-                                                  step_inp.position,
-                                                  step_inp.value_from)
+            self.inputs[task.id][id_] = StepInput(id=step_inp.id, type='string', value=val,
+                                                  default=step_inp.default,
+                                                  source=step_inp.source,
+                                                  prefix=step_inp.prefix,
+                                                  position=step_inp.position,
+                                                  value_from=step_inp.value_from)
 
     def workflow_completed(self, workflow_id): # pylint: disable=W0613
         """Return true if all of a workflow's final tasks have completed, else false."""
@@ -323,11 +332,11 @@ class MockWorkerSubmission:
 
     def submit_task(self, task): # pylint: disable=W0613
         """Return submission."""
-        return 1, 'PENDING'
+        return 1, 'PENDING',{'job_name':'mock-job','start_time':'1969-12-31 17:00:00','time_left':'0:00:00','workdir':''}
 
     def query_task(self, job_id): # pylint: disable=W0613
-        """Return state of task."""
-        return 'RUNNING'
+        """Return state, start time, and remaining time of task."""
+        return 'RUNNING', {'job_name':'mock-job','start_time':'2025-07-03 13:38:22','time_left':'1 day, 23:59:35.874235','workdir':''}
 
     def cancel_task(self, job_id): # pylint: disable=W0613
         """Return cancelled status"""
@@ -339,11 +348,11 @@ class MockWorkerCompletion:
 
     def submit_task(self, task): # pylint: disable=W0613
         """Submit a task."""
-        return 1, 'PENDING'
+        return 1, 'PENDING', {'job_name':'mock-job','start_time':'1969-12-31 17:00:00','time_left':'0:00:00','workdir':''}
 
     def query_task(self, job_id): # pylint: disable=W0613
         """Submit a task."""
-        return 'COMPLETED'
+        return 'COMPLETED', {'job_name':'mock-job','start_time':'2025-07-03 13:38:22','time_left':'1 day, 23:59:35.874235','workdir':''}
 
     def cancel_task(self, job_id): # pylint: disable=W0613
         """Cancel a task."""

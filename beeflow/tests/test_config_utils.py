@@ -22,7 +22,7 @@ class MockValidator:
         return self._called_with
 
 
-def test_filter_and_validate():
+def test_filter_and_validate(tmp_path):
     """Test filtering and validating configuration."""
     # Define the config
     sample_config = {
@@ -30,9 +30,14 @@ def test_filter_and_validate():
         'task_manager': {'container_runtime': 'Charliecloud', 'runner_opts': ''},
         'charliecloud': {'workload_scheduler': 'new_value', 'setup': ''}
     }
+
+    # Write the config to a file
+    temp_file = tmp_path / "test_config.conf"
+    write_config(temp_file, sample_config)
+
     # Run the function
     mocked_validator = MockValidator()
-    result = filter_and_validate(sample_config, mocked_validator)
+    result = filter_and_validate(sample_config, mocked_validator,temp_file)
 
     # Check that the validator was called with the correct filtered config
     expected_filtered_config = {

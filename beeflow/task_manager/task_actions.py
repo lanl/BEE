@@ -1,15 +1,32 @@
-"""Manage actions for tasks coming from the WFM."""
+"""Handle task submission."""
+
 import traceback
-from flask import jsonify, make_response
+from flask import request
 from flask_restful import Resource
+from pydantic import ValidationError
 from beeflow.common import log as bee_logging
 from beeflow.task_manager import utils
+from beeflow.task_manager.models import SubmitTasksRequest, TaskActionResponse
 
 log = bee_logging.setup(__name__)
 
 
 class TaskActions(Resource):
-    """Actions to take for tasks."""
+    """API for task actions."""
+
+    @staticmethod
+    def post():
+        """Receives tasks from WFM."""
+        db = utils.connect_db()
+        try:
+            tasks = SubmitTasksRequest.model_validate(request.json).tasks
+        except ValidationError as err:
+            log.error(f"Invalid request data: {err}")
+            return TaskActionResponse(msg=str(err)), 400
+        for task in tasks:
+            db.submit_queue.push(task)
+            log.info(f"Added {task.name} task to the submit queue")
+        return TaskActionResponse(msg="Tasks submitted successfully").model_dump(), 200
 
     @staticmethod
     def delete():
@@ -24,12 +41,14 @@ class TaskActions(Resource):
             log.info(f"Cancelling {name} with job_id: {job_id}")
             try:
                 job_state = worker.cancel_task(job_id)
-            except Exception as err: # pylint: disable=W0718 # we have to catch everything here
+            except Exception as err:  # pylint: disable=W0718 # we have to catch everything here
                 log.error(err)
                 log.error(traceback.format_exc())
-                job_state = 'ZOMBIE'
+                job_state = "ZOMBIE"
             cancel_msg += f"{name} {task_id} {job_id} {job_state}"
         db.job_queue.clear()
         db.submit_queue.clear()
-        resp = make_response(jsonify(msg=cancel_msg, status='ok'), 200)
-        return resp
+        return (
+            TaskActionResponse(msg=f"Cancelled all tasks: {cancel_msg}").model_dump(),
+            200,
+        )

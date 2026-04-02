@@ -73,7 +73,7 @@ class WorkflowInterface:
         self._workflow_id = workflow_id
         self._gdb_driver.set_workflow_state(self._workflow_id, 'SUBMITTED')
 
-    def add_task(self, task, task_state):
+    def add_task(self, task):
         """Add a new task to a BEE workflow.
 
         :param task: the name of the file to which to redirect stderr
@@ -90,7 +90,7 @@ class WorkflowInterface:
             task.hints = []
 
         # Load the new task into the graph database
-        self._gdb_driver.load_task(task, task_state)
+        self._gdb_driver.load_task(task)
 
     def restart_task(self, task, checkpoint_file):
         """Restart a failed BEE workflow task.
@@ -106,32 +106,36 @@ class WorkflowInterface:
         """
         for hint in task.hints:
             if hint.class_ == "beeflow:CheckpointRequirement":
-                if hint.params["num_tries"] > 0:
-                    hint.params["num_tries"] -= 1
+                num_tries = hint.params.get("num_tries")
+                if num_tries is None or num_tries > 0:
+                    # None = unlimited restarts, don't decrement
+                    if num_tries is not None:
+                        hint.params["num_tries"] -= 1
                     hint.params["bee_checkpoint_file__"] = checkpoint_file
                     break
-                self.set_task_state(task, "FAILED")
+                # num_tries == 0, no more restart attempts
+                self.set_task_state(task.id, "FAILED")
                 self.set_workflow_state("FAILED")
                 return None
         else:
             log.error("invalid task for checkpoint restart")
             raise ValueError("invalid task for checkpoint restart")
 
-        new_task = task.copy(new_id=True)
+        new_task = task.copy(update={"new_id": True})
         # Pattern match on task name
         # Append (1) if not in name already
         # Increment number on each restart
-        match = re.match(r".+\(([0-9]+)\)$", new_task.name)
+        match = re.search(r"-(\d+)$", new_task.name)
         if not match:
-            new_task.name += "(1)"
+            new_task.name += "-1"
         else:
             i = int(match.group(1))
-            new_task.name = re.sub(r"\([0-9]+\)", f"({i + 1})", new_task.name)
-        metadata = self.get_task_metadata(task)
+            new_task.name = re.sub(r"-(\d+)$", f"-{i + 1}", new_task.name)
+        metadata = self.get_task_metadata(task.id)
         self._gdb_driver.restart_task(task, new_task)
-        self.set_task_metadata(new_task, metadata)
-        self.set_task_state(task, "RESTARTED")
-        self.set_task_state(new_task, "READY")
+        self.set_task_metadata(new_task.id, metadata)
+        self.set_task_state(task.id, "RESTARTED")
+        self.set_task_state(new_task.id, "READY")
         return new_task
 
     def finalize_task(self, task):
@@ -169,6 +173,13 @@ class WorkflowInterface:
         tasks = self._gdb_driver.get_workflow_tasks(self._workflow_id)
         return workflow, tasks
 
+    def get_tasks(self):
+        """Get all tasks in the workflow.
+
+        :rtype: list of Task
+        """
+        return self._gdb_driver.get_workflow_tasks(self._workflow_id)
+
     def get_workflow_outputs(self):
         """Get the outputs from a BEE workflow.
 
@@ -200,47 +211,47 @@ class WorkflowInterface:
         """
         return self._gdb_driver.get_ready_tasks(self._workflow_id)
 
-    def get_dependent_tasks(self, task):
+    def get_dependent_tasks(self, task_id):
         """Get the dependents of a task in a BEE workflow.
 
         :param task: the task whose dependents to retrieve
         :type task: Task
         :rtype: list of Task
         """
-        return self._gdb_driver.get_dependent_tasks(task)
+        return self._gdb_driver.get_dependent_tasks(task_id)
 
-    def get_task_state(self, task):
+    def get_task_state(self, task_id):
         """Get the state of the task in a BEE workflow.
 
         :param task: the task whose state to retrieve
         :type task: Task
         :rtype: str
         """
-        return self._gdb_driver.get_task_state(task)
+        return self._gdb_driver.get_task_state(task_id)
 
-    def set_task_state(self, task, state):
+    def set_task_state(self, task_id, state):
         """Set the state of the task in a BEE workflow.
 
         This method should not be used to set a task as completed.
         finalize_task() should instead be used.
 
-        :param task: the task whose state to set
-        :type task: Task
+        :param task_id: the id of task whose state to set
+        :type task_id: str
         :param state: the new state of the task
         :type state: str
         """
-        self._gdb_driver.set_task_state(task, state)
+        self._gdb_driver.set_task_state(task_id, state)
 
-    def get_task_metadata(self, task):
+    def get_task_metadata(self, task_id):
         """Get the job description metadata of a task in a BEE workflow.
 
         :param task: the task whose metadata to retrieve
         :type task: Task
         :rtype: dict
         """
-        return self._gdb_driver.get_task_metadata(task)
+        return self._gdb_driver.get_task_metadata(task_id)
 
-    def set_task_metadata(self, task, metadata):
+    def set_task_metadata(self, task_id, metadata):
         """Set the job description metadata of a task in a BEE workflow.
 
         This method should not be used to update task state.
@@ -251,9 +262,9 @@ class WorkflowInterface:
         :param metadata: the job description metadata
         :type metadata: dict
         """
-        self._gdb_driver.set_task_metadata(task, metadata)
+        self._gdb_driver.set_task_metadata(task_id, metadata)
 
-    def get_task_input(self, task, input_id):
+    def get_task_input(self, task_id, input_id):
         """Get a task input object.
 
         :param task: the task whose input to retrieve
@@ -262,9 +273,9 @@ class WorkflowInterface:
         :type input_id: str
         :rtype: StepInput
         """
-        return self._gdb_driver.get_task_input(task, input_id)
+        return self._gdb_driver.get_task_input(task_id, input_id)
 
-    def set_task_input(self, task, input_id, value):
+    def set_task_input(self, task_id, input_id, value):
         """Set the value of a task input.
 
         :param task: the task whose input to set
@@ -273,9 +284,9 @@ class WorkflowInterface:
         :type input_id: str
         :param value: str or int or float
         """
-        self._gdb_driver.set_task_input(task, input_id, value)
+        self._gdb_driver.set_task_input(task_id, input_id, value)
 
-    def get_task_output(self, task, output_id):
+    def get_task_output(self, task_id, output_id):
         """Get a task output object.
 
         :param task: the task whose output to retrieve
@@ -284,9 +295,9 @@ class WorkflowInterface:
         :type output_id: str
         :rtype: StepOutput
         """
-        return self._gdb_driver.get_task_output(task, output_id)
+        return self._gdb_driver.get_task_output(task_id, output_id)
 
-    def set_task_output(self, task, output_id, value):
+    def set_task_output(self, task_id, output_id, value):
         """Set the value of a task output.
 
         :param task: the task whose output to set
@@ -296,7 +307,7 @@ class WorkflowInterface:
         :param value: the output value to set
         :type value: str or int or float
         """
-        self._gdb_driver.set_task_output(task, output_id, value)
+        self._gdb_driver.set_task_output(task_id, output_id, value)
 
     def workflow_completed(self):
         """Return true if all of a workflow's final tasks have completed, else false.
@@ -318,6 +329,11 @@ class WorkflowInterface:
         :rtype: bool
         """
         return self._gdb_driver.cancelled_workflow_completed(self._workflow_id)
+
+    def remove_workflow(self):
+        """Remove the workflow from the graph database."""
+        self._gdb_driver.remove_workflow(self._workflow_id)
+        self._workflow_id = None
 
     def export_graphml(self):
         """Export a BEE workflow as a graphml."""

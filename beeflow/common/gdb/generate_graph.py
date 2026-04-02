@@ -2,9 +2,7 @@
 
 import os
 import shutil
-import networkx as nx
 import graphviz
-
 
 def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     """Generate a PNG of a workflow graph from a GraphML file."""
@@ -21,7 +19,8 @@ def generate_viz(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None)
     backup_dag(output_path, dags_dir, short_id)
 
     # Load the GraphML file using NetworkX
-    graph = nx.read_graphml(graphml_path)
+    from networkx import read_graphml # pylint: disable=C0415 # Costly import
+    graph = read_graphml(graphml_path)
 
     # Initialize Graphviz graph
     dot = graphviz.Digraph(comment='Hierarchical Graph')
@@ -74,10 +73,14 @@ def add_nodes_to_dot(graph, dot):
 
 def get_node_label_and_color(label, attributes, label_to_color):
     """Return the appropriate node label and color based on node type."""
+    if label == ":Task":
+        task_name = attributes.get('name', label)
+        task_state = attributes.get('state', '')
+
+        return f"{task_name}\n({task_state})", label_to_color.get(label, 'gray')
     label_to_attribute = {
         ":Workflow": "Workflow",
         ":Output": attributes.get('glob', label),
-        ":Metadata": attributes.get('state', label),
         ":Task": attributes.get('name', label),
         ":Input": attributes.get('source', label),
         ":Hint": attributes.get('class', label),

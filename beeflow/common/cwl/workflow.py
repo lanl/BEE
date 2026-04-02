@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from beeflow.common.cwl.cwl import (CWL, CWLInput, CWLInputs, RunInput, Inputs, CWLOutput,
                                     Outputs, Run, RunOutput, Step, Steps, Hints,
                                     InputBinding, MPIRequirement, DockerRequirement,
-                                    ScriptRequirement, SlurmRequirement)
+                                    ScriptRequirement, SlurmRequirement,
+                                    CheckpointRequirement, TaskRequirement)
 
 
 @dataclass
@@ -14,12 +15,13 @@ class Input:
     name: str
     type_: str
     # This is either a value or a source connection
-    value: str
+    value: str = None
     # The prefix or position of the argument
     # This can either be a prefix such as -f or --file
     # Or a position like 2 if the command is "foo <file>"
     prefix: str = None
     position: int = None
+    value_from: str = None
 
     pattern = re.compile(r"^[^/]+/[^/]+$")
 
@@ -35,7 +37,8 @@ class Input:
 
     def run_input(self):
         """Create a RunInput from generic Input."""
-        bindings = {'prefix': self.prefix, 'position': self.position}
+        bindings = {'prefix': self.prefix, 'position': self.position,
+                    'value_from': self.value_from}
         source = {}
         if self.has_source():
             source.update({"source": self.value})
@@ -70,12 +73,13 @@ class Output:
 @dataclass
 class MPI:
     """MPI options."""
-    nodes: int
-    ntasks: int
+    nodes: int = None
+    ntasks: int = None
+    load_from_file: str = None
 
     def requirement(self):
         """Return MPI requirement object."""
-        return MPIRequirement(self.nodes, self.ntasks)
+        return MPIRequirement(self.nodes, self.ntasks, self.load_from_file)
 
 
 @dataclass
@@ -85,7 +89,9 @@ class Slurm(SlurmRequirement):
     def requirement(self):
         """Return a scheduler requirement object."""
         return SlurmRequirement(time_limit=self.time_limit, account=self.account,
-                partition=self.partition, qos=self.qos, reservation=self.reservation)
+                partition=self.partition, qos=self.qos, reservation=self.reservation,
+                          signal=self.signal,
+                          load_from_file=self.load_from_file)
 
 
 @dataclass
@@ -121,6 +127,33 @@ class Script:
 
 
 @dataclass
+class Checkpoint(CheckpointRequirement):
+    """Get Checkpoint Requirements."""
+
+    def requirement(self):
+        """Return a checkpoint requirement object."""
+        return CheckpointRequirement(checkpoint_dir=self.checkpoint_dir,
+                                     file_regex=self.file_regex,
+                                     sentinel_file_path=self.sentinel_file_path,
+                                     restart_on_file_exists=self.restart_on_file_exists,
+                                     restart_on_failure=self.restart_on_failure,
+                                     restart_parameters=self.restart_parameters,
+                                     add_parameters=self.add_parameters,
+                                     num_tries=self.num_tries,
+                                     last_good_restart=self.last_good_restart,
+                                     enabled=self.enabled)
+
+
+@dataclass
+class TaskReq(TaskRequirement):
+    """Get Task Requirements."""
+
+    def requirement(self):
+        """Return a task requirement object."""
+        return TaskRequirement(workdir=self.workdir)
+
+
+@dataclass
 class Task:
     """Represents a task."""
     name: str
@@ -138,7 +171,23 @@ class Workflow:
     def __init__(self, name, tasks):
         self.name = name
         self.tasks = tasks
-        self.generate_cwl()
+
+        # Generate a CWL object from a Workflow object.
+        cwl_inputs = []
+        for task in self.tasks:
+            cwl_inputs.extend([input_.cwl_input()
+                               for input_ in task.inputs if input_.cwl_input() is not None])
+        cwl_inputs = CWLInputs(cwl_inputs)
+
+        cwl_outputs = []
+        for task in self.tasks:
+            cwl_outputs.extend([output_.cwl_output()
+                                for output_ in task.outputs if output_.cwl_output() is not None])
+        cwl_outputs = Outputs(cwl_outputs)
+
+        cwl_steps = Steps([self.generate_step(task) for task in self.tasks])
+        self.cwl = CWL(self.name, cwl_inputs, cwl_outputs, cwl_steps)
+
 
     def generate_step(self, task):
         """Generates a Step object based off a Task object."""
@@ -159,27 +208,14 @@ class Workflow:
             step = Step(step_name, step_run)
         return step
 
-    def generate_cwl(self):
-        """Generate a CWL object from a Workflow object."""
-        cwl_inputs = []
-        for task in self.tasks:
-            cwl_inputs.extend([input_.cwl_input()
-                               for input_ in task.inputs if input_.cwl_input() is not None])
-        cwl_inputs = CWLInputs(cwl_inputs)
-
-        cwl_outputs = []
-        for task in self.tasks:
-            cwl_outputs.extend([output_.cwl_output()
-                                for output_ in task.outputs if output_.cwl_output() is not None])
-        cwl_outputs = Outputs(cwl_outputs)
-
-        cwl_steps = Steps([self.generate_step(task) for task in self.tasks])
-        self.cwl = CWL(self.name, cwl_inputs, cwl_outputs, cwl_steps)
-
-    def write_wf(self, path):
+    def dump_wf(self, path=None):
         """Write the workflow."""
-        self.cwl.dump_wf(path)
+        if not path:
+            return self.cwl.dump_wf()
+        return self.cwl.dump_wf(path)
 
-    def write_yaml(self, path):
+    def dump_yaml(self, path=None):
         """Write the yaml file."""
-        self.cwl.dump_inputs(path)
+        if not path:
+            return self.cwl.dump_inputs()
+        return self.cwl.dump_inputs(path)

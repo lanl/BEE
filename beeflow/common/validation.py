@@ -56,8 +56,10 @@ def bool_(value):
 
 def time_limit(value):
     """Validate a time limit entry."""
-    value = value.strip()
-    if not value:
-        return ''
-    _ = [int(part) for part in value.split(':')]
+    if isinstance(value, str):
+        # Remove any extra whitespace
+        value = value.strip()
+        if not value:
+            return ''
+        _ = [int(part) for part in value.split(':')]
     return value

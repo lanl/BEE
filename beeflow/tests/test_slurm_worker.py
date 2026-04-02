@@ -9,6 +9,7 @@
 import uuid
 import shutil
 import time
+import tempfile
 import subprocess
 import os
 import pytest
@@ -17,7 +18,7 @@ import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.worker.worker import WorkerError
 from beeflow.common.worker.slurm_worker import SlurmWorker
-from beeflow.common.wf_data import Task
+from beeflow.common.object_models import Task
 
 
 # Timeout (seconds) for waiting on tasks
@@ -27,9 +28,9 @@ TIMEOUT = 150
 # since this tests doesn't actually run with slurmrestd
 
 GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
-                 requirements=[], inputs=[], outputs=[], stdout='', stderr='',
+                 requirements=[], inputs=[], outputs=[], stdout='', stderr='', workdir='',
                  workflow_id=uuid.uuid4().hex)
-BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[],
+BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[], workdir='',
                 requirements=[], inputs=[], outputs=[], stdout='', stderr='',
                 workflow_id=uuid.uuid4().hex)
 
@@ -38,13 +39,13 @@ def wait_state(worker_iface, job_id, state):
     """Wait for Slurm to switch the job to another state."""
     time.sleep(1)
     n = 1
-    last_state = worker_iface.query_task(job_id)
+    last_state,_ = worker_iface.query_task(job_id)
     while last_state == state:
         if n >= TIMEOUT:
             raise RuntimeError(f'job timed out, still in state {state}')
         time.sleep(1)
         n += 1
-        last_state = worker_iface.query_task(job_id)
+        last_state,_ = worker_iface.query_task(job_id)
     return last_state
 
 
@@ -55,7 +56,7 @@ def slurm_worker(request):
     bee_workdir = os.path.expanduser(f'/tmp/{uuid.uuid4().hex}.tmp')
     os.mkdir(bee_workdir)
     openapi_version = worker_utils.get_slurmrestd_version()
-    proc = subprocess.Popen(f'slurmrestd -s openapi/{openapi_version} unix:{slurm_socket}',
+    proc = subprocess.Popen(f'slurmrestd -d {openapi_version} -s openapi/slurmctld unix:{slurm_socket}',
                             shell=True)
     time.sleep(1)
     worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
@@ -84,25 +85,31 @@ def slurmrestd_worker_no_daemon():
 
 def test_good_task(slurm_worker):
     """Test submission of a good task."""
-    job_id, last_state = slurm_worker.submit_task(GOOD_TASK)
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
+    job_id, last_state, job_info = slurm_worker.submit_task(GOOD_TASK)
     if last_state == 'PENDING':
         last_state = wait_state(slurm_worker, job_id, 'PENDING')
     if last_state == 'RUNNING':
         last_state = wait_state(slurm_worker, job_id, 'RUNNING')
     if last_state == 'COMPLETING':
         last_state = wait_state(slurm_worker, job_id, 'COMPLETING')
+    shutil.rmtree(temp_workdir)
     assert last_state == 'COMPLETED'
 
 
 def test_bad_task(slurm_worker):
     """Test submission of a bad task."""
-    job_id, last_state = slurm_worker.submit_task(BAD_TASK)
+    temp_workdir = tempfile.mkdtemp()
+    BAD_TASK.workdir = temp_workdir
+    job_id, last_state, job_info = slurm_worker.submit_task(BAD_TASK)
     if last_state == 'PENDING':
         last_state = wait_state(slurm_worker, job_id, 'PENDING')
     if last_state == 'RUNNING':
         last_state = wait_state(slurm_worker, job_id, 'RUNNING')
     if last_state == 'COMPLETING':
         last_state = wait_state(slurm_worker, job_id, 'COMPLETING')
+    shutil.rmtree(temp_workdir)
     assert last_state == 'FAILED'
 
 
@@ -114,15 +121,22 @@ def test_query_bad_job_id(slurm_worker):
 
 def test_cancel_good_job(slurm_worker):
     """Cancel a good job."""
-    job_id, _ = slurm_worker.submit_task(GOOD_TASK)
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
+    job_id, _, _ = slurm_worker.submit_task(GOOD_TASK)
     job_state = slurm_worker.cancel_task(job_id)
+    shutil.rmtree(temp_workdir)
     assert job_state == 'CANCELLED'
 
 
 def test_no_slurmrestd(slurmrestd_worker_no_daemon):
     """Test without running slurmrestd."""
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
     worker = slurmrestd_worker_no_daemon
-    job_id, state = worker.submit_task(GOOD_TASK)
+    job_id, state, _ = worker.submit_task(GOOD_TASK)
+    shutil.rmtree(temp_workdir)
+    job_state, job_info = worker.query_task(job_id)
     assert state == 'NOT_RESPONDING'
-    assert worker.query_task(job_id) == 'NOT_RESPONDING'
+    assert job_state == 'NOT_RESPONDING'
     assert worker.cancel_task(job_id) == 'NOT_RESPONDING'
