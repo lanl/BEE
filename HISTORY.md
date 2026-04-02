@@ -1,28 +1,32 @@
-0.1.11 What's Changed:
+### 0.1.11
 
 Major features include:
 
-New graph database SQLite implementation (now default) and support for redis in spack:
-  - increased responsiveness and speed for managing workflows.
-  - eliminates use of dependent containers when combined with the support for redis in Spack. Redis must be in the user's spack environment, and SQLite specified as the graph database (default).
-
-
-CWL support to send signal to slurm jobs.
-Improved attribute information when querying workflows.
-Automatically uses slurm commands when slurmrestd is not available.
-Allows loading Slurm and MPI CWL requirements from a file.
-Allows user to pause, resume, cancel or remove multiple (or all) workflows with one command, e.g. "pause --all.
+New graph database SQLite implementation (now default) and support for Redis in Spack:
+  - increased responsiveness and speed for managing workflows
+  - eliminates requirement for dependent containers (Redis must be in the user's spack environment and SQLite must be specified as the graph database.)
 
 Extends the capabilities of checkpointing/restarting including:
- - Support additional parameters when restarting
- - Support sentinal file usage to indicate needed restart
+ - Support for additional parameters when restarting
+ - Support for sentinel file to indicate needed restart
  - Support for restart when job is successful
 
-Improvements to beeflow task information (now in a subdirectory), including batch script, metadata, outputs, and errors.
-Code improvements and organization using Pydantic for Object Models
-An example fire workflow, an AI/ML workflow.
-New CWL option to specify a unique working directory for task.
-Fails dependent tasks for Build failures, cancelled tasks or timeout(unless checkpoint/restarting is specified)
+CWL support:
+  - Can specify a signal to be sent to slurm jobs
+  - Can specify a file to load Slurm and MPI requirements from
+  - Can specify a unique working directory for a task
+
+Allows user to pause, resume, cancel or remove multiple (or all) workflows with one command, e.g. "beeflow pause --all".
+
+Improvements were made for beeflow task information (now in a subdirectory), including batch script, metadata, outputs, and errors.
+
+Code improvements and organization were made using Pydantic for object models.
+
+An example AI/ML fire workflow has been included.
+
+Dependent tasks now fail if the parent task has build failures, is cancelled, or times out (unless checkpoint/restarting is specified).
+
+New attributes can be listed when querying workflow status.
 
 Change log:
 
@@ -89,7 +93,7 @@ Change log:
  -  Add remote cli commands including connection, core-status, droppoint, copy, and submit.
  -  BUILD_FAIL should cause DEP_FAIL for dependent tasks (#1033)
 
-0.1.10
+### 0.1.10
 
 Major features include:
 
@@ -132,7 +136,7 @@ Major features include:
  - Fix config issue and revise slurmrestd inference (#950)
  - Add flag to allow beeflow to run on back end node (#947)
 
-0.1.9
+### 0.1.9
 
 Major features include:
    Changing graph database to use one instance of Neo4j
@@ -148,7 +152,7 @@ Major features include:
 - Adds capability to export dag of a workflow before, during and after execution - enhancement verifing workflows prior to submit and visualizing state during run
 - Adds Beeflow connect – A Rest API for BEEflow – capability to start a workflow from Continuous Integration (CI) tests (or on another system by user)
 
-0.1.8
+### 0.1.8
 
 Features: Fixes sphinx version to enable publishing documentation, now includes
           CI for testing documentation builds
@@ -157,7 +161,7 @@ Features: Fixes sphinx version to enable publishing documentation, now includes
 - Add separate action for testing docs
 - Fix beeflow config new error
 
-0.1.7
+### 0.1.7
 
 Major features: adds the capability to include post- and pre-processing scripts to tasks, fixes the Checkpoint/Restart capability, increases logging, and adds some features to the client.
 - Initial task manager resiliency and error handling (#789)
@@ -175,7 +179,7 @@ Major features: adds the capability to include post- and pre-processing scripts 
 - Add testing for Checkpoint/Restart 
 - Adds capability to reset the beeflow files (deletes all artifacts) especially useful for developers.
 
-0.1.6
+### 0.1.6
 Clean up of processes, logs, and directory space
 - Eliminates extraneous Neo4j instances from cancelled/failed tasks
 - Cleans up log entries for query
@@ -186,7 +190,7 @@ Clean up of processes, logs, and directory space
 - Parses CWL after packaging the directory
 - Moves temporary files for unit tests out of $HOME
 
-0.1.5
+### 0.1.5
 - Combined beeflow, beeclient and beecfg commands. All commands now are invoked via beeflow.
 - Fixed an obscure dependency issue between tasks
 - Simplified config file, deleted duplications of bee_workdir
@@ -196,7 +200,7 @@ Clean up of processes, logs, and directory space
   - Allows verification of CWL specification without running the workflow
 - Added support for Flux scheduler
 
-0.1.4
+### 0.1.4
 What's Changed
  - Scheduler options added for time-limit, account and partitions as CWL extensions
  - Fixes for MPI
@@ -209,10 +213,10 @@ What's Changed
  - Allow Absolute/Relative Paths for Main CWL and YAML Files
  - Minimum version of Charliecloud required is now 0.32
 
-0.1.3
+### 0.1.3
     BEE now accepts stdout and stderr CWL specifications to direct those outputs for each task.
 
-0.1.0
+### 0.1.0
     Initial Release of hpc-beeflow published on PYPI
 
 
