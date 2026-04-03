@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hpc-beeflow"
-version = "0.1.11"
+version = "0.1.12dev"
 description = "Orchestrates complex simulation workflows through coordination, execution, and monitoring, with support for containerized applications."
 
 
