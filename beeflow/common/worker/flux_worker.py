@@ -7,6 +7,7 @@
 from copy import deepcopy
 import io
 import os
+import json
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import Worker
 log = bee_logging.setup(__name__)
@@ -157,3 +158,25 @@ class FluxWorker(Worker):
         # track of this with job ID alone)
         # Note: using 'status' here instead of 'state'
         return BEE_STATES[info['status']], job_info
+
+    def get_task_metadata(self, job_id):
+        """Gets all available fields of a Flux job"""
+        # job info in JSON
+        flux = self.flux.Flux()
+        job_data = self.job.get_job(flux, job_id)
+        flattened_job_data = {}
+        for key, value in job_data.items():
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    flattened_job_data[f"{key}_{sub_key}"] = sub_value
+            else:
+                flattened_job_data[key] = value
+
+        # For steps: Flux does not track steps like Slurm.
+        # Only the top-level job exists.
+        flux_job = json.dumps(flattened_job_data)
+
+        if not job_data:
+            raise RuntimeError("No Job Found With That ID")
+
+        return {"FluxJob": flux_job}

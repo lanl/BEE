@@ -165,7 +165,6 @@ def update_jobs(db):
                                     task_info=None,metadata=job_info,output=None)
 
         if job_state in COMPLETED_STATES:
-            # Remove from the job queue. Our job is finished
             db.job_queue.remove_by_id(id_)
 
 
@@ -186,6 +185,6 @@ def process_queues():
         # The workflow manager received the updates, so clear the queue
         db.update_queue.clear()
     else:
-        log.info(resp.json()['error'])
+        log.info(resp)
         # Something bad happened so keep the udpates until the next round
         log.warning("WFM not responding when sending task updates.")

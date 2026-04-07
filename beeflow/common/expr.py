@@ -8,6 +8,8 @@ def eval_output(input_pairs, glob):
     # Find all matches of string pattern $(inputs.foo), capturing value of foo
     expr_pattern = r"\$\(inputs\.(\w+)\)"
     match = re.findall(expr_pattern, glob)
+    print(glob)
+    print(match)
     if match:
         # Split string up to get list of non-matching characters
         split_pattern = r"\$\(inputs\.\w+\)"
@@ -24,7 +26,8 @@ def eval_output(input_pairs, glob):
         for v, s in zip(values, split[1:]):
             eval_string += v + s
         return eval_string
-    raise RuntimeError(f'could not parse output expression in glob: {glob}')
+    print("no matches found")
+    return None
 
 
 def eval_input(input_pairs, value_from):

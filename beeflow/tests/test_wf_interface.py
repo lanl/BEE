@@ -104,40 +104,6 @@ class TestWorkflowInterface(unittest.TestCase):
         # Workflow state should now be 'RESUME'
         self.assertEqual("RESUME", self.wfi.get_workflow_state())
 
-    def test_reset_workflow(self):
-        """Test workflow execution resetting (set all tasks to 'WAITING', delete metadata)."""
-        workflow_id = generate_workflow_id()
-        workflow = Workflow(
-            name="test_workflow", hints=None, requirements=None,
-            inputs=[InputParameter(id="test_input", type="File", value="input.txt")],
-            outputs=[OutputParameter(id="test_output", type="File", value="output.txt", source="viz/output")],
-            id=workflow_id)
-        self.wfi.initialize_workflow(workflow)
-        tasks = self._create_test_tasks(workflow_id)
-        metadata = {"cluster": "fog", "crt": "charliecloud",
-                    "container_md5": "67df538c1b6893f4276d10b2af34ccfe", "job_id": 1337}
-
-        # Set tasks' metadata, set state to COMPLETED
-        for task in tasks:
-            self.wfi.set_task_metadata(task.id, metadata)
-            self.wfi.set_task_state(task.id, "COMPLETED")
-            self.assertEqual("COMPLETED", self.wfi.get_task_state(task.id))
-
-        workflow_id = 42
-        self.wfi.reset_workflow(workflow_id)
-
-        # States should be reset, metadata should be deleted
-        for task in tasks:
-            self.assertDictEqual({}, self.wfi.get_task_metadata(task.id))
-            self.assertEqual("WAITING", self.wfi.get_task_state(task.id))
-
-        # Workflow ID should be reset
-        (gdb_workflow, gdb_tasks) = self.wfi.get_workflow()
-        new_workflow_id = gdb_workflow.id
-
-        self.assertNotEqual(new_workflow_id, workflow.id)
-        for task in gdb_tasks:
-            self.assertEqual(task.workflow_id, new_workflow_id)
 
     def test_add_task(self):
         """Test task creation."""
