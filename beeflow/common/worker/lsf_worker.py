@@ -4,6 +4,7 @@ Builds command for submitting batch job.
 """
 
 import subprocess
+import json
 
 from beeflow.common.worker.worker import Worker
 
@@ -58,3 +59,22 @@ class LSFWorker(Worker):
         subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"
         return job_state
+
+    def get_task_metadata(self, job_id):
+        """Gets all available fields of an LSF job"""
+        # bacct gives accounting after job finishes
+        cmd = ["bacct", "-l", str(job_id)]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+        if not result.stdout.strip():
+            raise RuntimeError("No Job Found With That ID")
+
+        # Parse text output. LSF does not support CSV/JSON directly.
+        # You'll need to parse key:value pairs line by line.
+        job_data = {}
+        for line in result.stdout.splitlines():
+            if ":" in line:
+                key, val = line.split(":", 1)
+                job_data[key.strip()] = val.strip()
+
+        return {"LSFJob": json.dumps(job_data)}
