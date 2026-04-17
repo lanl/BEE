@@ -446,6 +446,9 @@ class CwlParser:
                 # Load in the dockerfile at parse time
                 if "dockerFile" in items:
                     self._read_requirement_file("dockerFile", items)
+                # Load the sbatch if added at parse time. This might not work well?
+                if "sbatch" in items:
+                    self._read_requirement_file("sbatch", items)
                 # Load in pre/post scripts and make sure shell option is defined in cwl file
                 if "pre_script" in items and items["enabled"]:
                     if "shell" in items:
