@@ -27,7 +27,6 @@ def main():
                      #   this output comes from this task
                      outputs=[Output("comd_stdout", "File", source="comd/comd_stdout")],
                      hints=[
-                        Script(pre_script="comd_pre.sh"),
                         # Pass an sbatch script
                         Slurm(sbatch="run.sh"),
                      ])
