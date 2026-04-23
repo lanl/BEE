@@ -181,7 +181,6 @@ class BaseSlurmWorker(Worker):
             sbatch_template = string.Template(sbatch_script)
             changes = {"output":stdout_path, "error":stderr_path}
             sbatch_script = sbatch_template.safe_substitute(changes)
-            #log.info("SBATCH")
             return sbatch_script
         pre_script, post_script = None, None
         if requirements['scripts_enabled']:
