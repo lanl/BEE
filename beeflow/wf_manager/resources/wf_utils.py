@@ -263,9 +263,7 @@ def submit_tasks_scheduler(tasks):
 
 
 def schedule_submit_tasks(wf_id, tasks):
-    """Submit ready tasks directly to the Task Manager."""
-    # Submit ready tasks to the scheduler
-    #allocation = submit_tasks_scheduler(tasks)
+    """Submit ready tasks directly to the TM."""
     submit_tasks_tm(wf_id, tasks)
 
 

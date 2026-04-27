@@ -215,7 +215,6 @@ def init_components(remote=False):
     # Slurmrestd will be started only if we're running with Slurm and
     # slurm::use_commands is not True
 
-    #DELETE: @mgr.component('wf_manager', ('scheduler', 'celery'))
     @mgr.component('wf_manager', ('celery',))
     def start_wfm():
         """Start the WFM."""
@@ -233,14 +232,6 @@ def init_components(remote=False):
         fp = open_log('task_manager')
         return launch_with_gunicorn('beeflow.task_manager.task_manager:create_app()',
                                     paths.tm_socket(), stdout=fp, stderr=fp)
-
-    #@mgr.component('scheduler', ())
-    #def start_scheduler():
-    #    """Start the scheduler."""
-    #    fp = open_log('scheduler')
-    #    # Using a function here because of the funny way that the scheduler's written
-    #    return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
-    #                                paths.sched_socket(), stdout=fp, stderr=fp)
 
     if remote:
         @mgr.component('remote_api', ('wf_manager', 'task_manager'))
@@ -497,7 +488,6 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     # Create the log path if it doesn't exist yet
     path = paths.log_path()
     os.makedirs(path, exist_ok=True)
-    #DELETE: base_components = ['wf_manager', 'task_manager', 'scheduler']
     base_components = ['wf_manager', 'task_manager']
     if foreground:
         try:
