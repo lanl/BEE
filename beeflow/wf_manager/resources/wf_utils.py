@@ -203,7 +203,7 @@ def _resource(component, tag=""):
 
 
 # Submit tasks to the TM
-def submit_tasks_tm(wf_id, tasks, allocation):  # pylint: disable=W0613
+def submit_tasks_tm(wf_id, tasks):  # pylint: disable=W0613
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
     # Serialize task with json
@@ -263,11 +263,10 @@ def submit_tasks_scheduler(tasks):
 
 
 def schedule_submit_tasks(wf_id, tasks):
-    """Schedule and then submit tasks to the TM."""
+    """Submit ready tasks directly to the Task Manager."""
     # Submit ready tasks to the scheduler
-    allocation = submit_tasks_scheduler(tasks)
-    # Submit tasks to TM
-    submit_tasks_tm(wf_id, tasks, allocation)
+    #allocation = submit_tasks_scheduler(tasks)
+    submit_tasks_tm(wf_id, tasks)
 
 
 def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, # pylint: disable=W0613

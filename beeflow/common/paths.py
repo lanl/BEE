@@ -34,7 +34,7 @@ def remote_socket():
     """Get the socket path for the Remote API."""
     return os.path.join(_sockdir(), 'remote.sock')
 
-
+#DELETE
 def sched_socket():
     """Get the scheduler socket."""
     return os.path.join(_sockdir(), 'scheduler.sock')
