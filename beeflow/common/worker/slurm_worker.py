@@ -6,12 +6,12 @@ Builds command for submitting batch job.
 from copy import deepcopy
 import io
 import subprocess
+import string
 import json
 import urllib
 import getpass
 import requests_unixsocket
 import requests
-import string
 
 from beeflow.common import log as bee_logging
 import beeflow.common.worker.utils as worker_utils
