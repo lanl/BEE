@@ -612,7 +612,8 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                 beeflow_running = True
                 bee_client.check_hostname(reset_hn)
                 workflow_list = bee_client.get_wf_list()
-        except (ConnectionResetError, ConnectionRefusedError, cli_connection.BeeflowConnectionError, OSError):
+        except (ConnectionResetError, ConnectionRefusedError,
+                cli_connection.BeeflowConnectionError, OSError):
             # Beeflow socket exists but is not responsive
             pass
 
