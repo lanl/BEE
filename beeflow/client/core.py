@@ -634,9 +634,8 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     if archive:
         print("    Archive flag is set: logs, workflows and containers will be backed up.")
     else:
-        warning = "If you want to save logs, workflows and containers:\n"
-        warning += "   answer no and rerun with --archive flag."
-        warn(warning)
+        warn("     If you want to save logs, workflows and containers:")
+        warn("        answer no and rerun with --archive flag.")
 
     status_msg = "running" if beeflow_running else "not running"
     print(f"\n    Beeflow is currently {status_msg}.")
