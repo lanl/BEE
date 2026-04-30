@@ -17,12 +17,6 @@ from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.db import wfm_db
 from beeflow.common.db.bdb import connect_db
-from beeflow.scheduler.models import (
-    ScheduleTasksRequest,
-    ScheduleTasksResponse,
-    SchedulerTask,
-)
-
 from beeflow.task_manager.models import SubmitTasksRequest
 from beeflow.common.deps.neo4j_manager import connect_neo4j_driver
 
@@ -170,7 +164,6 @@ def tm_url():
 
 # Base URLs for the TM and the Scheduler
 TM_URL = "bee_tm/v1/task/"
-SCHED_URL = "bee_sched/v1/"
 
 
 def _connect_tm():
@@ -178,32 +171,13 @@ def _connect_tm():
     return Connection(paths.tm_socket())
 
 
-def sched_url():
-    """Get Scheduler url."""
-    db = connect_db(wfm_db, get_db_path())
-    scheduler = "bee_sched/v1/"
-    # sched_listen_port = bc.get('scheduler', 'listen_port')
-    sched_listen_port = db.info.get_port("sched")
-    return f"http://127.0.0.1:{sched_listen_port}/{scheduler}"
-
-
-def _connect_scheduler():
-    """Return a connection to the Scheduler."""
-    return Connection(paths.sched_socket())
-
-
-def _resource(component, tag=""):
-    """Access Task Manager or Scheduler."""
-    if component == "tm":
-        return TM_URL + str(tag)
-    if component == "sched":
-        return SCHED_URL + str(tag)
-
-    raise ValueError(f"Invalid component: {component}")
+def _resource(tag=""):
+    """Access Task Manager resources."""
+    return TM_URL + str(tag)
 
 
 # Submit tasks to the TM
-def submit_tasks_tm(wf_id, tasks):  # pylint: disable=W0613
+def submit_tasks_tm(wf_id, tasks):
     """Submit a task to the task manager."""
     wfi = get_workflow_interface(wf_id)
     # Serialize task with json
@@ -212,7 +186,7 @@ def submit_tasks_tm(wf_id, tasks):  # pylint: disable=W0613
     try:
         conn = _connect_tm()
         resp = conn.post(
-            _resource("tm"),
+            _resource(),
             json=SubmitTasksRequest(tasks=tasks).model_dump(),
             timeout=5,
         )
@@ -226,40 +200,6 @@ def submit_tasks_tm(wf_id, tasks):  # pylint: disable=W0613
             wfi.set_task_state(task.id, "SUBMIT")
     else:
         log.info("Submit task to TM returned bad status: %s", resp.status_code)
-
-
-def tasks_to_sched(tasks):
-    """Convert gdb tasks to sched tasks."""
-    sched_tasks = []
-    for task in tasks:
-        sched_task = SchedulerTask(
-            workflow_name="workflow",
-            task_name=task.name,
-            requirements={"max_runtime": 1, "nodes": 1},
-        )
-        sched_tasks.append(sched_task)
-    return sched_tasks
-
-
-def submit_tasks_scheduler(tasks):
-    """Submit a list of tasks to the scheduler."""
-    sched_tasks = tasks_to_sched(tasks)
-    # The workflow name will eventually be added to the wfi workflow object
-    try:
-        conn = _connect_scheduler()
-        resp = conn.put(
-            _resource("sched", "workflows/workflow/jobs"),
-            json=ScheduleTasksRequest(tasks=sched_tasks).model_dump(),
-            timeout=5,
-        )
-    except requests.exceptions.ConnectionError:
-        log.error("Unable to connect to scheduler to submit tasks.")
-        return "Did not work"
-
-    if resp.status_code != 200:
-        log.info("Something bad happened %s", resp.status_code)
-        return "Did not work"
-    return ScheduleTasksResponse.model_validate(resp.json()).tasks
 
 
 def schedule_submit_tasks(wf_id, tasks):

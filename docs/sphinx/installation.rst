@@ -73,7 +73,7 @@ information or help run: ``beeflow config info`` or ``beeflow config --help``.
 Starting up the BEE components:
 -------------------------------
 
-To start the components (scheduler, slurmrestd(SLURM only), workflow manager, and task manager) simply run:
+To start the components (slurmrestd(SLURM only), workflow manager, and task manager) simply run:
 
 .. code-block::
 
@@ -89,7 +89,6 @@ To check the status of the bee components run:
 
     beeflow components:
     redis ... RUNNING
-    scheduler ... RUNNING
     celery ... RUNNING
     slurmrestd ... RUNNING
     wf_manager ... RUNNING

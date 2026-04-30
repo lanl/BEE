@@ -243,7 +243,7 @@ def test_core_status_success(mocker):
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = subprocess.CompletedProcess(
             ["curl", "ssh_target:1234/core/status/"], returncode=0,
-            stdout='{"redis":"RUNNING","scheduler":"RUNNING","celery":"RUNNING",'
+            stdout='{"redis":"RUNNING","celery":"RUNNING",'
             '"slurmrestd":"RUNNING","wf_manager":"RUNNING","task_manager":"RUNNING",'
             '"remote_api":"RUNNING","neo4j-database":"RUNNING"}',
             stderr=""
@@ -252,7 +252,7 @@ def test_core_status_success(mocker):
     result = runner.invoke(app, ["core-status", "ssh_target"])
 
     assert result.exit_code == 0
-    expected_output = '{"redis":"RUNNING","scheduler":"RUNNING","celery":"RUNNING",' \
+    expected_output = '{"redis":"RUNNING","celery":"RUNNING",' \
                       '"slurmrestd":"RUNNING","wf_manager":"RUNNING","task_manager":"RUNNING",' \
                       '"remote_api":"RUNNING","neo4j-database":"RUNNING"}'
     assert expected_output in result.output
