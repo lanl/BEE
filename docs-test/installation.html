@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation Guide &mdash; BEE: Build and Execution Environment  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting Started - Example Workflows" href="examples.html" />
+    <link rel="prev" title="BEE: Build and Execution Environment" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            BEE: Build and Execution Environment
+              <img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.12.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">Installation:</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#creating-configuration-file">Creating Configuration File:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#starting-up-the-bee-components">Starting up the BEE components:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stopping-the-bee-components">Stopping the BEE components:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Getting Started - Example Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bee_cwl.html">Common Workflow Language (CWL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Command Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced_usage.html">Advanced Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="error_logs.html">Information and Error Logs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Developer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Workflow Visualization</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BEE: Build and Execution Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installation Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installation-guide">
+<span id="installation"></span><h1>Installation Guide<a class="headerlink" href="#installation-guide" title="Permalink to this heading"></a></h1>
+<p>This section describes how to install BEE and requirements for installation.</p>
+<section id="requirements">
+<h2>Requirements:<a class="headerlink" href="#requirements" title="Permalink to this heading"></a></h2>
+<ul>
+<li><p><strong>Python version 3.11 to 3.14</strong></p></li>
+<li><dl class="simple">
+<dt><a class="reference external" href="https://hpc.github.io/charliecloud/">Charliecloud</a> <strong>version 0.34 (or greater)</strong></dt><dd><p>Charliecloud is installed on Los Alamos National Laboratory (LANL) clusters and can be invoked via <code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">load</span> <span class="pre">charliecloud</span></code> before running beeflow. If you are on a system that does not have the module, <a class="reference external" href="https://hpc.github.io/charliecloud/">Charliecloud</a> is easily installed in user space and requires no privileges to install. To insure Charliecloud is available in subsequent runs add <code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">load</span> <span class="pre">charliecloud</span></code> (or if you installed it <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">PATH=&lt;path_to_ch-run&gt;:$PATH</span></code>) to your .bashrc (or other appropriate shell initialization file). BEE runs dependencies from a Charliecloud container and uses it to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><strong>Containers</strong>:</dt><dd><p>Two Charliecloud dependency containers are currently required for BEE: one for the Neo4j graph database and another for Redis. The paths to these containers will need to be set in the BEE configuration later, using the <code class="docutils literal notranslate"><span class="pre">neo4j_image</span></code> and the <code class="docutils literal notranslate"><span class="pre">redis_image</span></code> options respectively. BEE only supports Neo4j 5.x. We are currently using the latest version of Redis supplied on Docker Hub (as of 2023).</p>
+<p>For LANL systems, default locations are used and you will not be asked for them.</p>
+<p>For other users, these containers can be pulled from Docker Hub (after following <a class="reference internal" href="#id2">Installation:</a> below) using <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">pull-deps</span></code>, which will download and report the container paths to be set in the config later.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="id2">
+<h2>Installation:<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h2>
+<p>BEE is a PyPI package that can be installed using pip. On an HPC cluster, you may want to set up a miniconda or conda environment or other python environment where you can install beeflow using the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">hpc</span><span class="o">-</span><span class="n">beeflow</span>
+</pre></div>
+</div>
+<p>If you do not already have a python environment, you may be able to use the following example to create one (note: beeflow-env can be any environment name you choose):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">beeflow</span><span class="o">-</span><span class="n">env</span>
+<span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="n">beeflow</span><span class="o">-</span><span class="n">env</span>
+<span class="n">source</span> <span class="n">beeflow</span><span class="o">-</span><span class="n">env</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">hpc</span><span class="o">-</span><span class="n">beeflow</span>
+</pre></div>
+</div>
+<p>You will need to activate the environment with the command <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">beeflow-env/bin/activate</span></code> and type <code class="docutils literal notranslate"><span class="pre">deactivate</span></code> when done.</p>
+<p>An alternative is to use a Poetry environment, but we suggest this only for contributors.
+For more information click on the Developer’s Guide in this documentation.</p>
+<section id="creating-configuration-file">
+<h3>Creating Configuration File:<a class="headerlink" href="#creating-configuration-file" title="Permalink to this heading"></a></h3>
+<p>You will need to setup the bee configuration file that will be located in:</p>
+<blockquote>
+<div><p>Linux:  <code class="docutils literal notranslate"><span class="pre">~/.config/beeflow/bee.conf</span></code></p>
+<p>macOS:  <code class="docutils literal notranslate"><span class="pre">~/Library/Application</span> <span class="pre">Support/beeflow/bee.conf</span></code></p>
+</div></blockquote>
+<p>Using <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">config</span> <span class="pre">new</span></code> will create the configuration file using the default values or you can use the <code class="docutils literal notranslate"><span class="pre">--interactive</span></code> flag to be prompted for the most important settings.</p>
+<p>Following generation of the bee.conf configuration file you can edit the settings using a text editor.</p>
+<p><strong>Caution: The default for container_archive is in the home directory. Some
+systems have small quotas for home directories and containers can be large
+files.</strong></p>
+<p>It is important to ensure the path to the two required Charliecloud containers is correct. There is a setting for the Neo4j container (<code class="docutils literal notranslate"><span class="pre">neo4j_image</span></code>) and the Redis container (<code class="docutils literal notranslate"><span class="pre">redis_image</span></code>). See <a class="reference internal" href="#requirements">Requirements:</a> above for pulling these containers.</p>
+<p>Depending on the system, you may also need to enter the system-specific information, such as account information.</p>
+<p>Options can be left blank if they are unnecessary.</p>
+<p><strong>beeflow config</strong> has other options including a configuration validator. For more
+information or help run: <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">config</span> <span class="pre">info</span></code> or <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">config</span> <span class="pre">--help</span></code>.</p>
+</section>
+<section id="starting-up-the-bee-components">
+<h3>Starting up the BEE components:<a class="headerlink" href="#starting-up-the-bee-components" title="Permalink to this heading"></a></h3>
+<p>To start the components (scheduler, slurmrestd(SLURM only), workflow manager, and task manager) simply run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span> <span class="n">core</span> <span class="n">start</span>
+</pre></div>
+</div>
+<p>To check the status of the bee components run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span> <span class="n">core</span> <span class="n">status</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span> <span class="n">components</span><span class="p">:</span>
+<span class="n">redis</span> <span class="o">...</span> <span class="n">RUNNING</span>
+<span class="n">scheduler</span> <span class="o">...</span> <span class="n">RUNNING</span>
+<span class="n">celery</span> <span class="o">...</span> <span class="n">RUNNING</span>
+<span class="n">slurmrestd</span> <span class="o">...</span> <span class="n">RUNNING</span>
+<span class="n">wf_manager</span> <span class="o">...</span> <span class="n">RUNNING</span>
+<span class="n">task_manager</span> <span class="o">...</span> <span class="n">RUNNING</span>
+</pre></div>
+</div>
+<p>Some HPC systems have multiple front-ends. Run your workflows and components on the same front end.</p>
+</section>
+<section id="stopping-the-bee-components">
+<h3>Stopping the BEE components:<a class="headerlink" href="#stopping-the-bee-components" title="Permalink to this heading"></a></h3>
+<p>If at some point you would like to stop the beeflow components, you should first verify that all workflows are complete (archived). (If there are pending workflows, it is also fine to stop the components because you can restart beeflow later and start pending workflows with the “beeflow start” command).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span> <span class="nb">list</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Name</span>  <span class="n">ID</span>      <span class="n">Status</span>
+<span class="n">clamr</span> <span class="n">d631d3</span>  <span class="n">Archived</span>
+<span class="n">blast</span> <span class="n">a93267</span>  <span class="n">Pending</span>
+</pre></div>
+</div>
+<p>Now stop the components.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span> <span class="n">core</span> <span class="n">stop</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="BEE: Build and Execution Environment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="Getting Started - Example Workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, BEE Development Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

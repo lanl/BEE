@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BEE: Build and Execution Environment &mdash; BEE: Build and Execution Environment  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation Guide" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            BEE: Build and Execution Environment
+              <img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.12.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Getting Started - Example Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bee_cwl.html">Common Workflow Language (CWL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Command Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced_usage.html">Advanced Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="error_logs.html">Information and Error Logs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Developer’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Workflow Visualization</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">BEE: Build and Execution Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">BEE: Build and Execution Environment</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bee-build-and-execution-environment">
+<h1>BEE: Build and Execution Environment<a class="headerlink" href="#bee-build-and-execution-environment" title="Permalink to this heading"></a></h1>
+<p>Coverage in Develop</p>
+<img alt="Coverage Badge for develop" src="https://github.com/lanl/BEE/raw/develop/coverage.svg" /><p>Coverage in Main</p>
+<img alt="Coverage Badge for main" src="https://github.com/lanl/BEE/raw/main/coverage.svg" /><p>BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (<a class="reference external" href="https://www.commonwl.org/">CWL</a>) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or Flux) on the HPC system that tasks are specified to run on.</p>
+<p>BEE workflows can be archived for provenance and reproducibility. BEE can orchestrate workflows with containerized applications or those built locally on a system. However, there are advantages to containerizing an application.</p>
+<p>A container is a package of code (usually binaries) and all of that code’s dependencies (libraries, etc.). Once built, this container can be run on many different platforms.</p>
+<p>Containers provide many benefits:</p>
+<ul class="simple">
+<li><p>Users can choose their own software stack (libraries, compilers, etc.) and not be bound by the currently installed environment on any one machine.</p></li>
+<li><p>Codes can be run portably across numerous platforms–all dependencies will be downloaded and installed at run time.</p></li>
+<li><p>Entire <strong>workflow</strong> environments can be built into one or more containers. A user can include visualization and analysis tools along with the application. They will all work together as the application runs.</p></li>
+<li><p>Provenance and history can be tracked by storing containers in a historical repository. At any time, an older container can be rerun (all of its dependencies are stored with it). Execution is repeatable and interactions between software components can be tracked.</p></li>
+<li><p>Functional testing can be performed on smaller, dissimilar machines–there is no real need to test on the actual HPC platform (performance testing obviously requires target hardware).</p></li>
+</ul>
+<section id="bee-sites">
+<h2>BEE Sites<a class="headerlink" href="#bee-sites" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Github: <a class="reference external" href="https://github.com/lanl/BEE">https://github.com/lanl/BEE</a></p></li>
+<li><p>PyPi: <a class="reference external" href="https://pypi.org/project/hpc-beeflow/">https://pypi.org/project/hpc-beeflow/</a></p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 25%" />
+<col style="width: 55%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Purpose</p></th>
+<th class="head"><p>Git Tag</p></th>
+<th class="head"><p>Documentation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Stable release</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1.11</span></code></p></td>
+<td><p><a class="reference external" href="https://lanl.github.io/BEE/">https://lanl.github.io/BEE/</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Pre-release</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1.12dev0</span></code></p></td>
+<td><p><a class="reference external" href="https://lanl.github.io/BEE/0.1.12dev0/">https://lanl.github.io/BEE/0.1.12dev0/</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="contact">
+<h2>Contact<a class="headerlink" href="#contact" title="Permalink to this heading"></a></h2>
+<p>For bugs and problems report, suggestions and other general questions regarding the BEE project, email questions to <a class="reference external" href="mailto:bee-dev&#37;&#52;&#48;lanl&#46;gov">bee-dev<span>&#64;</span>lanl<span>&#46;</span>gov</a>.</p>
+</section>
+<section id="contributors">
+<h2>Contributors:<a class="headerlink" href="#contributors" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Steven Anaya - <a class="reference external" href="https://github.com/Boogie3D">Boogie3D</a></p></li>
+<li><p>Paul Bryant - <a class="reference external" href="https://github.com/paulbry">paulbry</a></p></li>
+<li><p>Rusty Davis - <a class="reference external" href="https://github.com/rstyd">rstyd</a></p></li>
+<li><p>Jieyang Chen - <a class="reference external" href="https://github.com/JieyangChen7">JieyangChen7</a></p></li>
+<li><p>Krishna Chilleri - <a class="reference external" href="https://github.com/kchilleri">Krishna Chilleri</a></p></li>
+<li><p>Patricia Grubel - <a class="reference external" href="https://github.com/pagrubel">pagrubel</a></p></li>
+<li><p>Qiang Guan - <a class="reference external" href="https://github.com/guanxyz">guanxyz</a></p></li>
+<li><p>Ragini Gupta - <a class="reference external" href="https://github.com/raginigupta6">raginigupta6</a></p></li>
+<li><p>Aaron R Hall - <a class="reference external" href="https://github.com/arhall0">arhall0</a></p></li>
+<li><p>Leah Howell - <a class="reference external" href="https://github.com/Leahh02">Leahh02</a></p></li>
+<li><p>Lilikoi Latimer - <a class="reference external" href="https://github.com/lilikoi-l">lilikoi-l</a></p></li>
+<li><p>Andres Quan - <a class="reference external" href="https://github.com/aquan9">aquan9</a></p></li>
+<li><p>Quincy Wofford - <a class="reference external" href="https://github.com/qwofford">qwofford</a></p></li>
+<li><p>Tim Randles - <a class="reference external" href="https://github.com/trandles-lanl">trandles-lanl</a></p></li>
+<li><p>Jacob Tronge - <a class="reference external" href="https://github.com/jtronge">jtronge</a></p></li>
+<li><p>Kabir Vats - <a class="reference external" href="https://github.com/kabir-vats">kabir-vats</a></p></li>
+<li><p>Sare Beste Zeytun - <a class="reference external" href="https://github.com/sbzeytun">sbzeytun</a></p></li>
+<li><p>Jeff Tamashiro - <a class="reference external" href="https://github.com/jeffreyt">jeffreyt</a></p></li>
+<li><p>Wesley Mason - <a class="reference external" href="https://github.com/wmason-lanl">wmason-lanl</a></p></li>
+</ul>
+<p>Concept and Design Contributors</p>
+<ul class="simple">
+<li><p>James Ahrens</p></li>
+<li><p>Curt Canada</p></li>
+<li><p>Allen McPherson</p></li>
+<li><p>Li-Ta Lo</p></li>
+<li><p>Louis Vernon</p></li>
+</ul>
+</section>
+<section id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Permalink to this heading"></a></h2>
+<p>The BEE project adheres to style guidelines specified in <a class="reference external" href="https://github.com/lanl/BEE/blob/master/setup.cfg">setup.cfg</a>. Before attempting to commit and push changes, please install our pre-commit githooks by running the following command in project root:</p>
+<dl class="simple">
+<dt>If using <cite>git –version</cite> &gt;= 2.9:</dt><dd><p>git config core.hooksPath .githooks</p>
+</dd>
+<dt>Otherwise:</dt><dd><p>cp .githooks/* .git/hooks/</p>
+</dd>
+</dl>
+<p>Using these git hooks will ensure your contributions adhere to style guidelines required for contribution. You will need to repeat these steps for every <cite>BEE</cite> repo you clone.</p>
+</section>
+<section id="release">
+<h2>Release<a class="headerlink" href="#release" title="Permalink to this heading"></a></h2>
+<p>This software has been approved for open source release and has been assigned <strong>BEE C17056</strong>.</p>
+</section>
+<section id="copyright">
+<h2>Copyright<a class="headerlink" href="#copyright" title="Permalink to this heading"></a></h2>
+<p>License can be found <a class="reference external" href="https://github.com/lanl/BEE/blob/master/LICENSE">here</a></p>
+</section>
+<section id="publications">
+<h2>Publications<a class="headerlink" href="#publications" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>An HPC-Container Based Continuous Integration Tool for Detecting Scaling and Performance Issues in HPC Applications, IEEE Transactions on Services Computing, 2024, <a class="reference external" href="https://doi.ieeecomputersociety.org/10.1109/TSC.2023.3337662">DOI: 10.1109/TSC.2023.3337662</a></p></li>
+<li><p>BEE Orchestrator: Running Complex Scientific Workflows on Multiple Systems, HiPC, 2021, <a class="reference external" href="https://doi.org/10.1109/HiPC53243.2021.00052">DOI: 10.1109/HiPC53243.2021.00052</a></p></li>
+<li><p>“BeeSwarm: Enabling Parallel Scaling Performance Measurement in Continuous Integration for HPC Applications”, ASE, 2021, <a class="reference external" href="https://www.computer.org/csdl/proceedings-article/ase/2021/033700b136/1AjTjgnW2pa#:~:text=10.1109/ASE51524.2021.9678805">DOI: 10.1109/ASE51524.2021.9678805</a></p></li>
+<li><p>“BeeFlow: A Workflow Management System for In Situ Processing across HPC and Cloud Systems”, ICDCS, 2018, <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/8416366">DOI: 10.1109/ICDCS.2018.00103</a></p></li>
+<li><p>“Build and execution environment (BEE): an encapsulated environment enabling HPC applications running everywhere”, IEEE BigData, 2018, <a class="reference external" href="https://ieeexplore.ieee.org/document/8622572">DOI: 10.1109/BigData.2018.8622572</a></p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documentation was built Apr 30, 2026, beeflow version 0.1.12.dev0.</p>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#requirements">Requirements:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#id2">Installation:</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Getting Started - Example Workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#simple-multi-step-example-without-container">Simple multi-step example (without container)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#clamr-workflow-examples-containerized-application">CLAMR workflow examples (containerized application)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bee_cwl.html">Common Workflow Language (CWL)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bee_cwl.html#bee-specific-requirements-hints">BEE-Specific Requirements/Hints</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Command Line Interface</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#bee-daemon">BEE Daemon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#submission-and-workflow-commands">Submission and workflow commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html#generating-and-managing-configuration-files">Generating and Managing Configuration Files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="advanced_usage.html">Advanced Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="advanced_usage.html#command-and-job-output">Command and Job Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced_usage.html#multiple-workflows">Multiple Workflows</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="error_logs.html">Information and Error Logs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contribute.html#git-workflow">Git Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contribute.html#style-guide">Style Guide</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Developer’s Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="development.html#poetry-setup-guide">Poetry Setup Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#development-workflow">Development Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#dependency-and-package-management-with-poetry">Dependency and Package Management with Poetry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#running-tests">Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#git-workflow">Git Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Workflow Visualization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html#creating-dags">Creating DAGs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html#example-dag">Example DAG</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-right" title="Installation Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, BEE Development Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
