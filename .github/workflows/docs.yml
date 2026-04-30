@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   docs:
+    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
     name: Build Docs
     runs-on: ubuntu-latest
 
