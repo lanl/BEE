@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Developer’s Guide &mdash; BEE: Build and Execution Environment  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Workflow Visualization" href="visualization.html" />
+    <link rel="prev" title="Contribute" href="contribute.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            BEE: Build and Execution Environment
+              <img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.12.dev0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Getting Started - Example Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bee_cwl.html">Common Workflow Language (CWL)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">Command Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced_usage.html">Advanced Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="error_logs.html">Information and Error Logs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Developer’s Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#poetry-setup-guide">Poetry Setup Guide</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#requirement-python-version-3-11-to-3-14">Requirement: Python version 3.11 to 3.14</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installation-using-a-python-environment">Installation Using a Python Environment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#development-workflow">Development Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#make-changes">1. Make changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#activate-the-virtual-environment-and-install-beeflow">2. Activate the Virtual Environment and Install Beeflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#start-the-bee-components">3. Start the BEE components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#test">4. Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#commit-changes">6. Commit Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#continue-development">7. Continue Development</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dependency-and-package-management-with-poetry">Dependency and Package Management with Poetry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#update-dependencies">Update Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#add-a-new-dependency">Add a New Dependency</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#remove-a-dependency">Remove a Dependency</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-the-package">Build the Package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#check-the-validity-of-pyproject-toml">Check the Validity of pyproject.toml</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#publish-the-package-to-a-remote-repository">Publish the Package to a Remote Repository</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#running-tests">Running Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#some-useful-pytest-options">Some useful pytest options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#integration-tests">Integration tests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#git-workflow">Git Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Workflow Visualization</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">BEE: Build and Execution Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Developer’s Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/development.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="developer-s-guide">
+<h1>Developer’s Guide<a class="headerlink" href="#developer-s-guide" title="Permalink to this heading"></a></h1>
+<section id="poetry-setup-guide">
+<h2>Poetry Setup Guide<a class="headerlink" href="#poetry-setup-guide" title="Permalink to this heading"></a></h2>
+<p>To manage our development environment and configure our project packaging,
+it is most convenient to use Poetry. Poetry uses the <cite>pyproject.toml</cite> and <cite>poetry.lock</cite>
+files to manage our packages/dependencies and make it easy to automatically
+install them to a virtual environment. It also makes it easy to build and
+install our package locally as well as publish it to PyPI, obviating the need
+for a <cite>setup.py</cite> file.</p>
+<p>Additional Poetry documentation:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://poetry.eustace.io/docs/">https://poetry.eustace.io/docs/</a></p></li>
+<li><p><a class="reference external" href="https://github.com/sdispater/poetry">https://github.com/sdispater/poetry</a></p></li>
+</ul>
+<section id="requirement-python-version-3-11-to-3-14">
+<h3>Requirement: Python version 3.11 to 3.14<a class="headerlink" href="#requirement-python-version-3-11-to-3-14" title="Permalink to this heading"></a></h3>
+</section>
+<section id="installation-using-a-python-environment">
+<h3>Installation Using a Python Environment<a class="headerlink" href="#installation-using-a-python-environment" title="Permalink to this heading"></a></h3>
+<p>To install Poetry using a python environment, you must first set up the environment using the following
+commands (Please note that the name of the environment is not limited to beedev-env).</p>
+<p>Please note the following instructions are intended for the Bash shell. If your default shell is Zsh,
+the instructions may be slightly different.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">beedev</span><span class="o">-</span><span class="n">env</span>
+<span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="n">beedev</span><span class="o">-</span><span class="n">env</span>
+<span class="n">source</span> <span class="n">beedev</span><span class="o">-</span><span class="n">env</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">poetry</span>
+</pre></div>
+</div>
+<p>You can make sure Poetry is installed by using the following command: <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">--version</span></code>.</p>
+<p>To activate the python environment and build beeflow:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="n">beedev</span><span class="o">-</span><span class="n">env</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+<span class="n">cd</span> <span class="o">&lt;</span><span class="n">path</span> <span class="n">to</span> <span class="n">BEE</span> <span class="n">repo</span><span class="o">&gt;</span>
+<span class="n">poetry</span> <span class="n">install</span>
+<span class="n">beeflow</span> <span class="o">--</span><span class="n">version</span>
+</pre></div>
+</div>
+<p>If you want to exit the python environment, enter the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">deactivate</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="development-workflow">
+<h2>Development Workflow<a class="headerlink" href="#development-workflow" title="Permalink to this heading"></a></h2>
+<section id="make-changes">
+<h3>1. Make changes<a class="headerlink" href="#make-changes" title="Permalink to this heading"></a></h3>
+<p>To work on a fix or feature, switch to the feature branch in the BEE repo (see <a class="reference internal" href="contribute.html#contribute"><span class="std std-ref">Contribute</span></a>).</p>
+</section>
+<section id="activate-the-virtual-environment-and-install-beeflow">
+<h3>2. Activate the Virtual Environment and Install Beeflow<a class="headerlink" href="#activate-the-virtual-environment-and-install-beeflow" title="Permalink to this heading"></a></h3>
+<p>You can refer to the instructions above or enter the following commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="n">beedev</span><span class="o">-</span><span class="n">env</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+<span class="n">poetry</span> <span class="n">install</span>
+</pre></div>
+</div>
+</section>
+<section id="start-the-bee-components">
+<h3>3. Start the BEE components<a class="headerlink" href="#start-the-bee-components" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">start</span></code></p>
+</section>
+<section id="test">
+<h3>4. Test<a class="headerlink" href="#test" title="Permalink to this heading"></a></h3>
+<p>Attempt to write tests that cover all the new/modified lines on your feature branch. Test files are in the <code class="docutils literal notranslate"><span class="pre">beeflow/tests</span></code> folder and follow the naming convention <code class="docutils literal notranslate"><span class="pre">test_MODULE_NAME.py</span></code>. You may need to create a new file if one doesn’t exist for the module you are working on. Make sure your test function begins with <code class="docutils literal notranslate"><span class="pre">test_</span></code>; <code class="docutils literal notranslate"><span class="pre">test_FUNCTION_NAME</span></code> is a good naming convention.</p>
+<p>Some useful features of <code class="docutils literal notranslate"><span class="pre">pytest</span></code> to write your tests:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.parametrize</span></code>: This allows you to run the same test with slight variations which can be useful to increase line coverage or the robustness of your test. See <a class="reference external" href="https://docs.pytest.org/en/stable/how-to/parametrize.html">How to parametrize fixtures and test functions</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tmp_path</span></code>: Many actions in the codebase create files. Do not let these files be left around at the end of the test. <code class="docutils literal notranslate"><span class="pre">pytest</span></code> provides a temporary directory that will automatically be cleaned up at the end of the test and can be accessed with <code class="docutils literal notranslate"><span class="pre">tmp_path</span></code>. See <a class="reference external" href="https://docs.pytest.org/en/stable/how-to/tmp_path.html">How to use temporary directories and files in tests</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mocker</span></code>: If a function you are testing calls functions that cannot reasonably be called during the test; e.g. <code class="docutils literal notranslate"><span class="pre">input</span></code>, you can tell <code class="docutils literal notranslate"><span class="pre">pytest</span></code> to ignore that function or create a dummy ‘mocked’ function to behave in a way you specify using <code class="docutils literal notranslate"><span class="pre">mocker</span></code>. See <a class="reference external" href="https://pytest-mock.readthedocs.io/en/latest/usage.html">pytest-mock: Usage</a>.</p></li>
+</ul>
+<p>See also <a class="reference internal" href="#running-tests"><span class="std std-ref">Running Tests</span></a></p>
+</section>
+<section id="commit-changes">
+<h3>6. Commit Changes<a class="headerlink" href="#commit-changes" title="Permalink to this heading"></a></h3>
+<p>If you’re done making changes, follow the git workflow specified in <a class="reference internal" href="contribute.html#contribute"><span class="std std-ref">Contribute</span></a>.</p>
+</section>
+<section id="continue-development">
+<h3>7. Continue Development<a class="headerlink" href="#continue-development" title="Permalink to this heading"></a></h3>
+<p>If you want to continue making changes, add them and then pause any running workflows:</p>
+<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">pause</span> <span class="pre">$ID</span></code></p>
+<p>Stop the bee components:</p>
+<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">stop</span></code></p>
+<p>Now you can repeat steps 2 to 5.</p>
+</section>
+</section>
+<section id="dependency-and-package-management-with-poetry">
+<h2>Dependency and Package Management with Poetry<a class="headerlink" href="#dependency-and-package-management-with-poetry" title="Permalink to this heading"></a></h2>
+<section id="update-dependencies">
+<h3>Update Dependencies<a class="headerlink" href="#update-dependencies" title="Permalink to this heading"></a></h3>
+<p>To update the package dependencies and generate a new <cite>poetry.lock</cite> (tracked):</p>
+<p><cite>poetry update</cite></p>
+</section>
+<section id="add-a-new-dependency">
+<h3>Add a New Dependency<a class="headerlink" href="#add-a-new-dependency" title="Permalink to this heading"></a></h3>
+<p>To add a new dependency to <cite>pyproject.toml</cite>:</p>
+<p><cite>poetry add &lt;package&gt;</cite></p>
+</section>
+<section id="remove-a-dependency">
+<h3>Remove a Dependency<a class="headerlink" href="#remove-a-dependency" title="Permalink to this heading"></a></h3>
+<p>To remove a dependency from <cite>pyproject.toml</cite>:</p>
+<p><cite>poetry remove &lt;package&gt;</cite></p>
+</section>
+<section id="build-the-package">
+<h3>Build the Package<a class="headerlink" href="#build-the-package" title="Permalink to this heading"></a></h3>
+<p>To build the package as a tarball and a wheel (by default):</p>
+<p><cite>poetry build</cite></p>
+</section>
+<section id="check-the-validity-of-pyproject-toml">
+<h3>Check the Validity of pyproject.toml<a class="headerlink" href="#check-the-validity-of-pyproject-toml" title="Permalink to this heading"></a></h3>
+<p><cite>poetry check</cite></p>
+</section>
+<section id="publish-the-package-to-a-remote-repository">
+<h3>Publish the Package to a Remote Repository<a class="headerlink" href="#publish-the-package-to-a-remote-repository" title="Permalink to this heading"></a></h3>
+<p><cite>poetry publish</cite></p>
+</section>
+</section>
+<section id="running-tests">
+<span id="id1"></span><h2>Running Tests<a class="headerlink" href="#running-tests" title="Permalink to this heading"></a></h2>
+<p>BEE includes unit and integration tests that can be run on a local system.</p>
+<p>To run the unit tests, make sure to install beeflow with <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">install</span> <span class="pre">-E</span> <span class="pre">cloud_extras</span></code>; the <code class="docutils literal notranslate"><span class="pre">-E</span> <span class="pre">cloud_extras</span></code> option forces Poetry to install extra dependencies required for some of the cloud API tests. After loading a shell with <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">shell</span></code>, you can run the unit tests with <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">beeflow/tests</span></code>.</p>
+<section id="some-useful-pytest-options">
+<h3>Some useful pytest options<a class="headerlink" href="#some-useful-pytest-options" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-k</span> <span class="pre">EXPRESSION</span></code>: Allows you to only run tests that match a keyword expression. This is useful when writing a test case as you can run only that test. You can also run a test file for a specific module when working on an enhancement to quickly ensure the most relevant tests still pass.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--durations</span> <span class="pre">0</span></code>: This will show the durations of all tests run that are &gt;= 0.005s. Since tests run on CI it is best to keep them as fast as possible. A test that takes over 1s is slow in this context.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cov</span> <span class="pre">beeflow</span> <span class="pre">--cov-report</span> <span class="pre">term-missing</span></code>: This will check test line coverage for each file. It is useful to ensure lines being added/modified in a feature branch have test coverage. See <a class="reference external" href="https://pytest-cov.readthedocs.io/en/latest/">pytest-cov’s documentation</a>.</p></li>
+</ul>
+<p>See <a class="reference external" href="https://docs.pytest.org/en/stable/how-to/usage.html">How to invoke pytest</a> for even more options when running <code class="docutils literal notranslate"><span class="pre">pytest</span></code>.</p>
+</section>
+<section id="integration-tests">
+<h3>Integration tests<a class="headerlink" href="#integration-tests" title="Permalink to this heading"></a></h3>
+<p>For the integration tests, you’ll first have to start beeflow with <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">start</span></code> (see <a class="reference internal" href="commands.html#command-line-interface"><span class="std std-ref">Command Line Interface</span></a>). Then, making sure that you have Charliecloud loaded in your environment, you can run <code class="docutils literal notranslate"><span class="pre">./ci/integration_test.py</span></code> to run the tests. This must be done from the root of BEE repository. The integration tests will create a directory <code class="docutils literal notranslate"><span class="pre">~/.beeflow-integration</span></code> to be used for storing temporary files as well as inspecting failure results. The script itself includes a number of options for running extra tests, details of which can be found through <code class="docutils literal notranslate"><span class="pre">--help</span></code> and other command line options. Running the script without any options will run the default test suite. Some tests are disabled by default due to runtime or environment constraints and need to be specified in a comma-separated list with <code class="docutils literal notranslate"><span class="pre">--tests</span></code> (<code class="docutils literal notranslate"><span class="pre">-t</span></code>) to be run. Run the script with just <code class="docutils literal notranslate"><span class="pre">--show-tests</span></code> (<code class="docutils literal notranslate"><span class="pre">-s</span></code>) to see a list of all possible tests.</p>
+</section>
+</section>
+<section id="git-workflow">
+<h2>Git Workflow<a class="headerlink" href="#git-workflow" title="Permalink to this heading"></a></h2>
+<p>See <a class="reference internal" href="contribute.html#contribute"><span class="std std-ref">Contribute</span></a> for more information</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="contribute.html" class="btn btn-neutral float-left" title="Contribute" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="visualization.html" class="btn btn-neutral float-right" title="Workflow Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, BEE Development Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
