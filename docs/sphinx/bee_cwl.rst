@@ -320,8 +320,11 @@ setting in bee.conf. Current options supported are:
 * ``reservation`` - reservation to use to launch job.
 * ``timeLimit`` - time limit for the job in the format that Slurm uses currently.
 
-Alternately you can add any of the above requirements to a json formatted text 
-file and use the "load_from_file" option.
+Alternately you can write any of the above requirements to a json formatted text 
+file and use the ``load_from_file`` option.
+
+As an another alternative BEE can directly run from an sbatch script with 
+the ``sbatch`` option. The sbatch option takes a path to an sbatch script within the workflow directory. 
 
 An example is shown below::
 
@@ -338,7 +341,7 @@ Alternate::
     beeflow:SlurmRequirement:
        load_from_file: "slurm_conf.json"
 
-Contensts of slurm_conf.json::
+Contents of slurm_conf.json::
 
     {
      "timeLimit": "00:00:10",
@@ -349,6 +352,20 @@ Contensts of slurm_conf.json::
      "reservation": "reservation-a"
     }
 
+Alternate:: 
+
+    beeflow:Slurm Requirement:
+        sbatch: "run_sbatch.sh"
+
+
+Contents of run_sbatch.sh::
+#!/bin/bash
+#SBATCH --job-name=test_job        
+#SBATCH --time=00:10:00             
+#SBATCH --nodes=1                 
+#SBATCH --ntasks=1               
+
+echo Testing
 
 beeflow:ScriptRequirement
 -------------------------

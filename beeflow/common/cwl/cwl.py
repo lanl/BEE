@@ -382,6 +382,7 @@ class SlurmRequirement:
     qos: str = None
     reservation: str = None
     load_from_file: str = None
+    sbatch: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -400,6 +401,8 @@ class SlurmRequirement:
             sched_dump['beeflow:SlurmRequirement']['signal'] = self.signal
         if self.load_from_file:
             sched_dump['beeflow:SlurmRequirement']['load_from_file'] = self.load_from_file
+        if self.sbatch:
+            sched_dump['beeflow:SlurmRequirement']['sbatch'] = self.sbatch
         return sched_dump
 
     def __repr__(self):

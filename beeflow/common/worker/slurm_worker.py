@@ -6,6 +6,7 @@ Builds command for submitting batch job.
 from copy import deepcopy
 import io
 import subprocess
+import string
 import json
 import urllib
 import getpass
@@ -172,6 +173,15 @@ class BaseSlurmWorker(Worker):
         # Get task requirements
         requirements = self.get_task_requirements(task)
 
+        sbatch_script = task.get_requirement('beeflow:SlurmRequirement', 'sbatch')
+
+        # If we have an sbatch script defined just return that
+        if sbatch_script:
+            stdout_path, stderr_path = self.resolve_stdout_stderr(task)
+            sbatch_template = string.Template(sbatch_script)
+            changes = {"output":stdout_path, "error":stderr_path}
+            sbatch_script = sbatch_template.safe_substitute(changes)
+            return sbatch_script
         pre_script, post_script = None, None
         if requirements['scripts_enabled']:
             # We use StringIO here to properly break the script up into lines with readlines

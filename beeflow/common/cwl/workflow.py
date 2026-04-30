@@ -91,7 +91,7 @@ class Slurm(SlurmRequirement):
         return SlurmRequirement(time_limit=self.time_limit, account=self.account,
                 partition=self.partition, qos=self.qos, reservation=self.reservation,
                           signal=self.signal,
-                          load_from_file=self.load_from_file)
+                          load_from_file=self.load_from_file, sbatch=self.sbatch)
 
 
 @dataclass

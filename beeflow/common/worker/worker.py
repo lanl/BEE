@@ -75,6 +75,8 @@ class Worker(ABC):
 
     def write_script(self, task):
         """Build task script; returns filename of script."""
+        # If the user has provided an sbatch script this will just return
+        # the contents of that script as a string
         task_text = self.build_text(task)
         task_archive_dir = self.task_save_path(task)
         os.makedirs(task_archive_dir,exist_ok=True)
