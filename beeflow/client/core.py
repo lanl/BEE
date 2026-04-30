@@ -633,6 +633,10 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     warn(f"\n    A reset will remove this directory: {dir_to_delete}\n")
     if archive:
         print("    Archive flag is set: logs, workflows and containers will be backed up.")
+else:
+    warning = "If you want to save logs, workflows and containers,"
+    warning += " answer no and rerun with --archive flag."
+    warn(warning)
 
     status_msg = "running" if beeflow_running else "not running"
     print(f"\n    Beeflow is currently {status_msg}.")
