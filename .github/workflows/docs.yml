@@ -4,16 +4,76 @@ on:
   workflow_dispatch: {}
   push:
     branches: [main, develop]
+    tags:
+      - '*'
   pull_request:
     types: [opened, synchronize, edited, labeled, unlabeled]
     branches: [main, develop]
+  delete:
+
+permissions:
+  contents: write
 
 jobs:
   docs:
-    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
     name: Build Docs
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout latest tag for main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git fetch --tags --force
+          LATEST_TAG="$(git tag --sort=-creatordate | head -n 1)"
+          echo "Latest tag: $LATEST_TAG"
+          git checkout "$LATEST_TAG"
+
       - name: Install BEE and Build Docs
         run: ./ci/docs.sh
+
+      - name: Publish tag docs
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./docs/_build/html
+          destination_dir: ${{ github.ref_name }}
+          keep_files: true
+
+      - name: Publish latest docs to root
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./docs/_build/html
+          destination_dir: .
+          keep_files: true
+
+  cleanup-tag-docs:
+    if: github.event_name == 'delete' && github.event.ref_type == 'tag'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Remove docs for deleted tag
+        run: |
+          TAG="${{ github.event.ref }}"
+          echo "Removing docs for $TAG"
+          rm -rf "$TAG"
+
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          git commit -m "Remove docs for deleted tag ${{ github.event.ref }}" || echo "Nothing to commit"
+          git push origin gh-pages
