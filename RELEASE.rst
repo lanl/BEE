@@ -72,7 +72,9 @@ an update to that same version.
      - change the version in pyproject.toml to be 0.1.12dev (use latest +1)
 
    Consider starting a pre-release tag so documentation is updated
-   and delete previous pre-release tag's
+   and delete previous pre-release tags on PyPi
+   Also, check gh-pages branch for existing copies of documentation, deleted
+   tag versions should be gone.
 
 
 
