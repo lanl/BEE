@@ -71,6 +71,12 @@ an update to that same version.
    Create and merge PR into develop to include:
      - change the version in pyproject.toml to be 0.1.12dev (use latest +1)
 
+   Consider starting a pre-release tag so documentation is updated
+   and delete previous pre-release tags on PyPi
+   Also, check gh-pages branch for existing copies of documentation, deleted
+   tag versions should be gone.
+
+
 
 9. Last but not least, get rid of  exceptions on github. Follow step 2 but uncheck Allow specified actors to bypass for both main and develop, and don't forget save.
 
