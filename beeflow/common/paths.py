@@ -35,11 +35,6 @@ def remote_socket():
     return os.path.join(_sockdir(), 'remote.sock')
 
 
-def sched_socket():
-    """Get the scheduler socket."""
-    return os.path.join(_sockdir(), 'scheduler.sock')
-
-
 def slurm_socket():
     """Get the slurm socket (for slurmrestd)."""
     return os.path.join(_sockdir(), 'slurmrestd.sock')
