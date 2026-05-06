@@ -149,23 +149,6 @@ def test_start_workflow(client, mocker):
     submit_tasks_tm.assert_called()
 
 
-def test_schedule_submit_task_manager(mocker):
-    """Test ready tasks are submitted directly to the Task Manager."""
-    from beeflow.wf_manager.resources import wf_utils
-
-    wf_id = "test-wf"
-    tasks = [mocker.Mock(), mocker.Mock()]
-
-    submit_tasks_tm = mocker.patch(
-        'beeflow.wf_manager.resources.wf_utils.submit_tasks_tm',
-        return_value=None,
-    )
-
-    wf_utils.schedule_submit_tasks(wf_id, tasks)
-
-    submit_tasks_tm.assert_called_once_with(wf_id, tasks)
-
-
 def test_workflow_status(client, mocker, setup_teardown_workflow):
     """Test getting workflow status."""
 

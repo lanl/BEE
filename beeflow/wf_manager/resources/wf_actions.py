@@ -134,7 +134,7 @@ class WFActions(Resource):
             wf_utils.update_wf_status(wf_id, "Running")
             wfi = wf_utils.get_workflow_interface(wf_id)
             tasks = wfi.get_ready_tasks()
-            wf_utils.schedule_submit_tasks(wf_id, tasks)
+            wf_utils.submit_tasks_tm(wf_id, tasks)
 
             log.info(f"Workflow {wf_id} Resumed")
             resp = WorkflowActionResponse(msg="Workflow Resumed").model_dump(), 200

@@ -135,7 +135,7 @@ class WFUpdate(Resource):
                 return True
             # Submit the restart task
             tasks = [new_task]
-            wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
+            wf_utils.submit_tasks_tm(state_update.wf_id, tasks)
             log.info(f'Task {state_update.task_id} restarted')
             return True
         return False
@@ -153,7 +153,7 @@ class WFUpdate(Resource):
             wf_utils.copy_task_output(task)
             tasks = wfi.finalize_task(task)
             if tasks and wf_state not in ('Paused', 'Cancelled'):
-                wf_utils.schedule_submit_tasks(state_update.wf_id, tasks)
+                wf_utils.submit_tasks_tm(state_update.wf_id, tasks)
 
         # If the job failed, fail the dependent tasks
         # TIMEOUT states should only be seen here if they can't restart

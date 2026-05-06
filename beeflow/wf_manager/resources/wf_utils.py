@@ -171,7 +171,7 @@ def _connect_tm():
     return Connection(paths.tm_socket())
 
 
-def _resource(tag=""):
+def _taskmanager(tag=""):
     """Access Task Manager resources."""
     return TM_URL + str(tag)
 
@@ -186,7 +186,7 @@ def submit_tasks_tm(wf_id, tasks):
     try:
         conn = _connect_tm()
         resp = conn.post(
-            _resource(),
+            _taskmanager(),
             json=SubmitTasksRequest(tasks=tasks).model_dump(),
             timeout=5,
         )
@@ -200,11 +200,6 @@ def submit_tasks_tm(wf_id, tasks):
             wfi.set_task_state(task.id, "SUBMIT")
     else:
         log.info("Submit task to TM returned bad status: %s", resp.status_code)
-
-
-def schedule_submit_tasks(wf_id, tasks):
-    """Submit ready tasks directly to the TM."""
-    submit_tasks_tm(wf_id, tasks)
 
 
 def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, # pylint: disable=W0613
@@ -255,7 +250,7 @@ def start_workflow(wf_id):
             wfi.set_task_state(task.id, "WAITING")
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
-    schedule_submit_tasks(wf_id, tasks)
+    submit_tasks_tm(wf_id, tasks)
     update_wf_status(wf_id, "Running")
     return True
 

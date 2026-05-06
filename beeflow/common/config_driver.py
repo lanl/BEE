@@ -263,9 +263,6 @@ VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop poin
 VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
                  default=unique_port(), validator=int, prompt=False)
 
-# Retained for backward compatibility with existing configuration files.
-# The internal BEE scheduler service has been removed; workflow manager
-# now submits ready tasks directly to task manager.
 VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux', 'Simple'),
                  default='Slurm', info='backend workload scheduler to interact with ',
                  prompt=True)
