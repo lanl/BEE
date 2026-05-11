@@ -26,9 +26,13 @@ def connect_db():
     return bdb.connect_db(tm_db, db_path())
 
 
-def worker_interface():
-    """Load the worker interface."""
-    wls = bc.get('DEFAULT', 'workload_scheduler')
+def scheduler_for_task(task):
+    """Return the scheduler/worker name that should run this task."""
+    return bc.get("DEFAULT", "workload_scheduler")
+
+
+def worker_interface_for_scheduler(wls):
+    """Load the worker interface for specific workload scheduler."""
     worker_class = worker.find_worker(wls)
     if worker_class is None:
         raise RuntimeError(f'Workload scheduler {wls}, not supported.\n'
@@ -50,6 +54,11 @@ def worker_interface():
         worker_kwargs['slurm_socket'] = paths.slurm_socket()
         worker_kwargs['openapi_version'] = worker_utils.get_slurmrestd_version
     return WorkerInterface(worker_class, **worker_kwargs)
+
+def worker_interface():
+    """Load the default worker interface."""
+    wls = bc.get("DEFAULT", "workload_scheduler")
+    return worker_interface_for_scheduler(wls)
 
 
 def wfm_url():

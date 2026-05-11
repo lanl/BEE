@@ -68,10 +68,11 @@ def submit_task(db, worker, task):
 
 def submit_jobs(db):
     """Submit all jobs currently in submit queue to the workload scheduler."""
-    worker = utils.worker_interface()
     while db.submit_queue.count() >= 1 and db.job_queue.count() < jobs_limit:
         # Single value dictionary
         task = db.submit_queue.pop()
+        scheduler = utils.scheduler_for_task(task)
+        worker = utils.worker_interface_for_scheduler(scheduler)
         job_state,job_info = submit_task(db, worker, task)
         db.update_queue.push(task.workflow_id, task.id, job_state,\
                              task_info=None, metadata=job_info, output=None)
