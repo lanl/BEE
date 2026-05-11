@@ -32,13 +32,14 @@ class TaskActions(Resource):
     def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
         db = utils.connect_db()
-        worker = utils.worker_interface()
         cancel_msg = ""
         for job in db.job_queue:
             task_id = job.task.id
             job_id = job.job_id
             name = job.task.name
-            log.info(f"Cancelling {name} with job_id: {job_id}")
+            scheduler = job.scheduler or utils.default_scheduler()
+            worker = utils.worker_interface_for_scheduler(scheduler)
+            log.info(f"Cancelling {name} with job_id: {job_id} using scheduler: {scheduler}")
             try:
                 job_state = worker.cancel_task(job_id)
             except Exception as err:  # pylint: disable=W0718 # we have to catch everything here

@@ -26,9 +26,45 @@ def connect_db():
     return bdb.connect_db(tm_db, db_path())
 
 
+def default_scheduler():
+    """Return the configured default workload scheduler."""
+    return bc.get('DEFAULT', 'workload_scheduler')
+
+
 def scheduler_for_task(task):
     """Return the scheduler/worker name that should run this task."""
-    return bc.get("DEFAULT", "workload_scheduler")
+    default_sched = default_scheduler()
+    selected_scheduler = default_sched
+    wl_requirement = task.get_full_requirement('beeflow:WorkloadRequirement')
+    if wl_requirement is not None:
+        mode = wl_requirement.get('mode', 'scheduler')
+        if not isinstance(mode, str):
+            raise RuntimeError(
+                'beeflow:WorkloadRequirement mode must be a string. '
+                'Supported modes are "baremetal" and "scheduler".'
+            )
+        mode = mode.lower()
+        if mode == 'baremetal':
+            selected_scheduler = 'Simple'
+        elif mode == 'scheduler':
+            selected_scheduler = wl_requirement.get('scheduler', default_sched)
+            if not isinstance(selected_scheduler, str):
+                raise RuntimeError(
+                    'beeflow:WorkloadRequirement scheduler must be a string.'
+                )
+        else:
+            raise RuntimeError(
+                f'Unsupported beeflow:WorkloadRequirement mode {mode!r}. '
+                'Supported modes are "baremetal" and "scheduler".'
+            )
+    worker_class = worker.find_worker(selected_scheduler)
+    if worker_class is None:
+        raise RuntimeError(
+            f'Workload scheduler {selected_scheduler}, not supported.\n'
+            + f'Please check {bc.userconfig_path()} and restart TaskManager.'
+        )
+    log.info('Selected scheduler %s for task %s', selected_scheduler, task.id)
+    return selected_scheduler
 
 
 def worker_interface_for_scheduler(wls):
@@ -57,8 +93,7 @@ def worker_interface_for_scheduler(wls):
 
 def worker_interface():
     """Load the default worker interface."""
-    wls = bc.get("DEFAULT", "workload_scheduler")
-    return worker_interface_for_scheduler(wls)
+    return worker_interface_for_scheduler(default_scheduler())
 
 
 def wfm_url():
