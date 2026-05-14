@@ -408,6 +408,31 @@ class SlurmRequirement:
         yaml.dump(self.dump(), stream)
         return stream.getvalue()
 
+@dataclass
+class WorkloadRequirement:
+    """BEE workload requirement for selecting where a task runs."""
+
+    def __init__(self, mode=None, scheduler=None):
+        """Construct a WorkloadRequirement."""
+        self.mode = mode
+        self.scheduler = scheduler
+
+    def dump(self):
+        """Dump workload requirement to a dictionary."""
+        req_name = 'beeflow:WorkloadRequirement'
+        workload_dump = {req_name: {}}
+        if self.mode is not None:
+            workload_dump[req_name]['mode'] = self.mode
+        if self.scheduler is not None:
+            workload_dump[req_name]['scheduler'] = self.scheduler
+        return workload_dump
+
+    def __repr__(self):
+        """Return WorkloadRequirement as a yaml string."""
+        stream = StringIO()
+        yaml.dump(self.dump(), stream)
+        return stream.getvalue()
+
 
 @dataclass
 class CheckpointRequirement:
