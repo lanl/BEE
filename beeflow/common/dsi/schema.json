@@ -1,0 +1,74 @@
+{
+  "workflow": {
+    "primary_key": "id"
+  },
+  "task": {
+    "primary_key": "id",
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "workflow_input": {
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "workflow_output": {
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "task_input": {
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "task_output": {
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "workflow_requirement": {
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "workflow_hint": {
+    "foreign_key": {
+      "workflow_id": ["workflow", "id"]
+    }
+  },
+  "task_requirement": {
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "task_hint": {
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  }, 
+  "slurm_job": {
+    "primary_key": "JobID",
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "slurm_step": {
+    "foreign_key": {
+      "job_id_link": ["slurm_job", "JobID"]
+    }
+  },
+  "flux_job": {
+    "primary_key": "id",
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  },
+  "lsf_job": {
+    "primary_key": "JOBID",
+    "foreign_key": {
+      "task_id": ["task", "id"]
+    }
+  }
+}

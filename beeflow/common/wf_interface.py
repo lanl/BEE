@@ -4,8 +4,10 @@ Delegates its work to a GraphDatabaseInterface instance.
 """
 
 import re
+import glob
 from beeflow.common import log as bee_logging
 from beeflow.common.gdb.neo4j_driver import Neo4jDriver
+from beeflow.common import expr
 
 log = bee_logging.setup(__name__)
 
@@ -66,12 +68,6 @@ class WorkflowInterface:
     def resume_workflow(self):
         """Resume the execution of a paused BEE workflow."""
         self._gdb_driver.resume_workflow(self._workflow_id)
-
-    def reset_workflow(self, workflow_id):
-        """Reset the execution state and ID of a BEE workflow."""
-        self._gdb_driver.reset_workflow(self._workflow_id, workflow_id)
-        self._workflow_id = workflow_id
-        self._gdb_driver.set_workflow_state(self._workflow_id, 'SUBMITTED')
 
     def add_task(self, task):
         """Add a new task to a BEE workflow.
@@ -149,6 +145,7 @@ class WorkflowInterface:
         :type task: Task
         :rtype: list of Task
         """
+        self.evaluate_output_expression(task.id)
         self._gdb_driver.finalize_task(task)
         self._gdb_driver.initialize_ready_tasks(self._workflow_id)
         return self._gdb_driver.get_ready_tasks(self._workflow_id)
@@ -338,3 +335,43 @@ class WorkflowInterface:
     def export_graphml(self):
         """Export a BEE workflow as a graphml."""
         self._gdb_driver.export_graphml(self._workflow_id)
+
+    def evaluate_output_expression(self, task_id):
+        """
+        Evaluate javascript expresssions in workflow output specification"""
+        task = self.get_task_by_id(task_id)
+        input_pairs = {input.id: input.value for input in task.inputs}
+        for output in task.outputs:
+            if output.glob:
+                val = expr.eval_output(input_pairs, output.glob)
+                if val is not None:
+                    self._gdb_driver.set_task_output_glob(task_id, output.id, val)
+                    output.glob = val
+                if output.type in {"String", "str", "string"}:
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            str_output = f.read()
+                        self._gdb_driver.set_task_output(task_id, output.id, str_output)
+                elif output.type in {"int", "integer", "Integer"}:
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            try:
+                                int_output = int(f.read())
+                            except ValueError:
+                                int_output = None
+                        self._gdb_driver.set_task_output(task_id, output.id, int_output)
+                elif output.type in {"float", "Float", "FLOAT"}:
+                    globs = glob.glob(output.glob)
+                    if len(globs) > 0:
+                        with open(globs[0], 'r', encoding='UTF-8') as f:
+                            try:
+                                float_output = float(f.read())
+                            except ValueError:
+                                float_output = None
+                        self._gdb_driver.set_task_output(task_id, output.id, float_output)
+                else:
+                    self._gdb_driver.set_task_output(task_id, output.id, output.glob)
+            else:
+                self._gdb_driver.set_task_output(task_id, output.id, "ready")

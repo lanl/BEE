@@ -131,3 +131,12 @@ class Worker(ABC):
         :type job_id: int
         :rtype: string
         """
+
+    @abstractmethod
+    def get_task_metadata(self, job_id):
+        """Get metadata for a task with job_id (usually a finished one).
+
+        :param job_id: job id to query for metadata.
+        :type job_id: int
+        :rtype: dict
+        """
