@@ -161,6 +161,29 @@ import pytest
             },
         ),
         (
+            cwl.WorkloadRequirement,
+            {'mode': 'baremetal'},
+            "beeflow:WorkloadRequirement:\n  mode: baremetal\n",
+            {'beeflow:WorkloadRequirement': {'mode': 'baremetal'}},
+        ),
+        (
+            cwl.WorkloadRequirement,
+            {'mode': 'scheduler', 'scheduler': 'Flux'},
+            "beeflow:WorkloadRequirement:\n  mode: scheduler\n  scheduler: Flux\n",
+            {
+                'beeflow:WorkloadRequirement': {
+                    'mode': 'scheduler',
+                    'scheduler': 'Flux',
+                },
+            },
+        ),
+        (
+            cwl.Hints,
+            {'hints': [cwl.WorkloadRequirement(mode='baremetal')]},
+            "hints:\n  beeflow:WorkloadRequirement:\n    mode: baremetal\n",
+            {'hints': {'beeflow:WorkloadRequirement': {'mode': 'baremetal'}}},
+        ),
+        (
             cwl.CheckpointRequirement,
             {
                 "checkpoint_dir": "checkpoint_output",

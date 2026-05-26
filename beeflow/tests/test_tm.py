@@ -148,3 +148,22 @@ def test_scheduler_for_task_invalid():
     with pytest.raises(RuntimeError,
                        match='Unsupported beeflow:WorkloadRequirement mode'):
        utils.scheduler_for_task(task)
+
+
+def test_job_queue_stores_scheduler(temp_db):
+    """JobQueue stores selected scheduler for submitted jobs."""
+    task = generate_tasks(1)[0]
+
+    temp_db.job_queue.push(
+        task=task,
+        job_id=123,
+        job_state='RUNNING',
+        scheduler='Simple',
+    )
+    jobs = list(temp_db.job_queue)
+
+    assert len(jobs) == 1
+    assert jobs[0].task == task
+    assert jobs[0].job_id == 123
+    assert jobs[0].job_state == 'RUNNING'
+    assert jobs[0].scheduler == 'Simple'
