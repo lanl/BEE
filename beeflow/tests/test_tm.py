@@ -11,7 +11,8 @@ from mocks import MockWorkerCompletion, MockWorkerSubmission
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.db import tm_db
 import beeflow.task_manager.task_manager as tm
-from beeflow.common.object_models import Task
+from beeflow.common.object_models import Task, Hint
+from beeflow.task_manager import utils
 import beeflow
 
 
@@ -112,3 +113,38 @@ def test_remove_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     status = response.status_code
     assert status == 200
     assert msg.count('CANCELLED') == 3
+
+
+def test_scheduler_for_task_default(mocker):
+    """Tests tasks without WorkloadRequirement use the default scheduler."""
+    task = generate_tasks(1)[0]
+
+    mocker.patch('beeflow.task_manager.utils.default_scheduler',
+                 lambda: 'Slurm')
+    assert utils.scheduler_for_task(task) == 'Slurm'
+
+
+def test_scheduler_for_task_baremetal(mocker):
+    """Tests baremetal WorkloadRequirement uses Simple worker."""
+    task = generate_tasks(1)[0]
+    task.hints.append(Hint(class_='beeflow:WorkloadRequirement',
+                      params={'mode': 'baremetal'}))
+    assert utils.scheduler_for_task(task) == 'Simple'
+
+
+def test_scheduler_for_task_specific_scheduler(mocker):
+    """Tests scheduler mode can select a specific backend."""
+    task = generate_tasks(1)[0]
+    task.hints.append(Hint(class_='beeflow:WorkloadRequirement',
+                      params={'mode': 'scheduler', 'scheduler': 'Flux'}))
+    assert utils.scheduler_for_task(task) == 'Flux'
+
+
+def test_scheduler_for_task_invalid():
+    """Tests invalid WorkloadRequirement modes fail clearly."""
+    task = generate_tasks(1)[0]
+    task.hints.append(Hint(class_='beeflow:WorkloadRequirement',
+                      params={'mode': 'bad-mode'}))
+    with pytest.raises(RuntimeError,
+                       match='Unsupported beeflow:WorkloadRequirement mode'):
+       utils.scheduler_for_task(task)
