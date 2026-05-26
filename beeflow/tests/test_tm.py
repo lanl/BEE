@@ -46,8 +46,8 @@ def temp_db():
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     """Create a workflow and get the ID back."""
-    mocker.patch('beeflow.task_manager.utils.worker_interface',
-                 MockWorkerSubmission)
+    mocker.patch('beeflow.task_manager.utils.worker_interface_for_scheduler',
+                 lambda _scheduler: MockWorkerSubmission())
     mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
     # Generate a task
     tasks = generate_tasks(1)
@@ -56,8 +56,8 @@ def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     response = flask_client.post('/bee_tm/v1/task/',
                                  json=task_request)
 
-    mocker.patch('beeflow.task_manager.utils.worker_interface',
-                 MockWorkerSubmission)
+    mocker.patch('beeflow.task_manager.utils.worker_interface_for_scheduler',
+                 lambda _scheduler: MockWorkerSubmission())
 
     # Patch the connection object for WFM communication
     mocker.patch('beeflow.common.connection.Connection.put', mock_put)
@@ -81,8 +81,8 @@ def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
 def test_completed_task(flask_client, mocker, temp_db): # pylint: disable=W0613,W0621
     """Tests how the task manager processes a completed task."""
     # 42 is the sample task ID
-    mocker.patch('beeflow.task_manager.utils.worker_interface',
-                 MockWorkerCompletion)
+    mocker.patch('beeflow.task_manager.utils.worker_interface_for_scheduler',
+                 lambda _scheduler: MockWorkerCompletion())
     # Patch the connection object for WFM communication
     mocker.patch('beeflow.common.connection.Connection.put', mock_put)
     mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
@@ -102,8 +102,8 @@ def test_remove_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     temp_db.job_queue.push(task=task2, job_id=2, job_state='PENDING')
     temp_db.job_queue.push(task=task3, job_id=3, job_state='PENDING')
 
-    mocker.patch('beeflow.task_manager.utils.worker_interface',
-                 MockWorkerCompletion)
+    mocker.patch('beeflow.task_manager.utils.worker_interface_for_scheduler',
+                 lambda _scheduler: MockWorkerCompletion())
     mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
 
     response = flask_client.delete('/bee_tm/v1/task/')
