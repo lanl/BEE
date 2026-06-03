@@ -325,6 +325,7 @@ file and use the ``load_from_file`` option.
 
 As an another alternative BEE can directly run from an sbatch script with 
 the ``sbatch`` option. The sbatch option takes a path to an sbatch script within the workflow directory. 
+Note: Running directly with an sbatch means pre_script and post_scripts won't function. 
 
 An example is shown below::
 
