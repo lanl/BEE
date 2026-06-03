@@ -23,7 +23,8 @@ class SimpleWorker(Worker):
         """
         self.prepare(task)
         script_path = self.write_script(task)
-        status_dir = os.path.join(self.workdir, 'simple_worker_status', task.workflow_id)
+        # Store status files in workflow directory for automatic cleanup
+        status_dir = os.path.join(self.workdir, 'workflows', task.workflow_id, 'simple_worker_status')
         os.makedirs(status_dir, exist_ok=True)
         process = subprocess.Popen([  # pylint: disable=R1732
             '/bin/sh',
@@ -112,9 +113,12 @@ class SimpleWorker(Worker):
     def _status_paths(self, job_id, workflow_id=None):
         """Return status file paths for a SimpleWorker job."""
         if workflow_id:
-            status_dir = os.path.join(self.workdir, 'simple_worker_status', workflow_id)
+            # Store in workflow directory for automatic cleanup
+            status_dir = os.path.join(self.workdir, 'workflows', workflow_id, 'simple_worker_status')
         else:
-            status_dir = os.path.join(self.workdir, 'simple_worker_status')
+            # Fallback to workflows directory if workflow_id not available
+            # This shouldn't normally happen, but provides graceful degradation
+            status_dir = os.path.join(self.workdir, 'workflows', 'simple_worker_status')
         os.makedirs(status_dir, exist_ok=True)
         return {
             'status_dir': status_dir,
