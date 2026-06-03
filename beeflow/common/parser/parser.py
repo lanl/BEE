@@ -17,28 +17,28 @@ import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException
 
 from beeflow.common.object_models import (
-    Workflow,
-    Task,
-    InputParameter,
-    OutputParameter,
-    StepInput,
-    StepOutput,
-    Hint,
-    Requirement,
-    generate_workflow_id,
-    get_requirement,
-)
+        Workflow,
+        Task,
+        InputParameter,
+        OutputParameter,
+        StepInput,
+        StepOutput,
+        Hint,
+        Requirement,
+        generate_workflow_id,
+        get_requirement,
+        )
 
 # Map CWL types to Python types
 type_map = {
-    "string": str,
-    "int": int,
-    "long": int,
-    "float": float,
-    "double": float,
-    "File": str,
-    "Directory": str,
-}
+        "string": str,
+        "int": int,
+        "long": int,
+        "float": float,
+        "double": float,
+        "File": str,
+        "Directory": str,
+        }
 
 
 class CwlParseError(Exception):
@@ -106,46 +106,46 @@ class CwlParser:
             value = self.params[input_id] if input_id in self.params else input_.default
             if value is None:
                 raise CwlParseError(
-                    f"input {input_id} is missing from workflow job file"
-                )
+                        f"input {input_id} is missing from workflow job file"
+                        )
             if not isinstance(value, type_map[type_]):
                 raise CwlParseError(
-                    "Input/param types do not match: " f"{input_id}/{value}"
-                )
+                        "Input/param types do not match: " f"{input_id}/{value}"
+                        )
             return value
 
         workflow_inputs = [
-            InputParameter(
-                id=_shortname(input_.id),
-                type=input_.type,
-                value=resolve_input(input_, input_.type),
-            )
-            for input_ in self.cwl.inputs
-        ]
+                InputParameter(
+                    id=_shortname(input_.id),
+                    type=input_.type,
+                    value=resolve_input(input_, input_.type),
+                    )
+                for input_ in self.cwl.inputs
+                ]
         workflow_outputs = [
-            OutputParameter(
-                id=_shortname(output.id),
-                type=output.type,
-                value=None,
-                source=_shortname(output.outputSource, True),
-            )
-            for output in self.cwl.outputs
-        ]
+                OutputParameter(
+                    id=_shortname(output.id),
+                    type=output.type,
+                    value=None,
+                    source=_shortname(output.outputSource, True),
+                    )
+                for output in self.cwl.outputs
+                ]
         workflow_hints = self.parse_requirements(self.cwl.hints, as_hints=True)
         workflow_requirements = self.parse_requirements(self.cwl.requirements)
 
         workflow = Workflow(
-            name=workflow_name,
-            hints=workflow_hints,
-            requirements=workflow_requirements,
-            inputs=workflow_inputs,
-            outputs=workflow_outputs,
-            id=workflow_id,
-            workdir=workdir,
-            main_cwl=str(cwl_path),
-            wf_path=str(wf_path),
-            yaml=job,
-        )
+                name=workflow_name,
+                hints=workflow_hints,
+                requirements=workflow_requirements,
+                inputs=workflow_inputs,
+                outputs=workflow_outputs,
+                id=workflow_id,
+                workdir=workdir,
+                main_cwl=str(cwl_path),
+                wf_path=str(wf_path),
+                yaml=job,
+                )
         tasks = [self.parse_step(step, workflow_id, workdir) for step in self.cwl.steps]
 
         return workflow, tasks
@@ -174,8 +174,8 @@ class CwlParser:
             for step_input in step_cwl.inputs:
                 step_shortname = _shortname(step_input.id)
                 step_input.id = step_input.id.replace(
-                    step_shortname, step_shortname.split("/")[-1]
-                )
+                        step_shortname, step_shortname.split("/")[-1]
+                        )
 
         if step_cwl.class_ != "CommandLineTool":
             raise CwlParseError(f"Step {step.id} class must be CommandLineTool")
@@ -188,45 +188,45 @@ class CwlParser:
         step_hints = self.parse_requirements(step.hints, as_hints=True)
         step_hints.extend(self.parse_requirements(step_cwl.hints, as_hints=True))
         step_workdir = resolve_step_workdir(
-            get_requirement(
-                step_requirements,
-                step_hints,
-                "beeflow:TaskRequirement",
-                "workdir",
-                default="",
-            ),
-            workdir,
-        )
+                get_requirement(
+                    step_requirements,
+                    step_hints,
+                    "beeflow:TaskRequirement",
+                    "workdir",
+                    default="",
+                    ),
+                workdir,
+                )
 
         # When using container do not add the path to the output
         # This can be changed when we fix binding for containers
         if any(hint.class_ == "DockerRequirement" for hint in step_hints):
             step_outputs = self.parse_step_outputs(
-                step.out, step_cwl.outputs, step_cwl.stdout, step_cwl.stderr
-            )
+                    step.out, step_cwl.outputs, step_cwl.stdout, step_cwl.stderr
+                    )
         else:
             step_outputs = self.parse_step_outputs(
-                step.out,
-                step_cwl.outputs,
-                step_cwl.stdout,
-                step_cwl.stderr,
-                workdir=step_workdir,
-            )
+                    step.out,
+                    step_cwl.outputs,
+                    step_cwl.stdout,
+                    step_cwl.stderr,
+                    workdir=step_workdir,
+                    )
         step_stdout = step_cwl.stdout
         step_stderr = step_cwl.stderr
 
         return Task(
-            name=step_name,
-            base_command=step_command,
-            hints=step_hints,
-            requirements=step_requirements,
-            inputs=step_inputs,
-            outputs=step_outputs,
-            stdout=step_stdout,
-            stderr=step_stderr,
-            workflow_id=workflow_id,
-            workdir=step_workdir,
-        )
+                name=step_name,
+                base_command=step_command,
+                hints=step_hints,
+                requirements=step_requirements,
+                inputs=step_inputs,
+                outputs=step_outputs,
+                stdout=step_stdout,
+                stderr=step_stderr,
+                workflow_id=workflow_id,
+                workdir=step_workdir,
+                )
 
     def parse_job(self, job):
         """Parse a CWL input job file.
@@ -244,9 +244,9 @@ class CwlParser:
                 self.params = json.load(fp)
         else:
             raise CwlParseError(
-                "Unsupported input job file extension (only .yml "
-                "and .json supported)"
-            )
+                    "Unsupported input job file extension (only .yml "
+                    "and .json supported)"
+                    )
 
         for k, v in self.params.items():
             if not isinstance(k, str):
@@ -265,9 +265,9 @@ class CwlParser:
         :rtype: list of StepInput
         """
         source_map = {
-            _shortname(input_.id).split("/")[-1]: _shortname(input_.source)
-            for input_ in cwl_in
-        }
+                _shortname(input_.id).split("/")[-1]: _shortname(input_.source)
+                for input_ in cwl_in
+                }
 
         inputs = []
         for step_input in step_inputs:
@@ -278,8 +278,8 @@ class CwlParser:
             if _shortname(step_input.id) not in source_map.keys():
                 if isinstance(step_input.type, str) and step_input.default is None:
                     raise CwlParseError(
-                        f"required input {_shortname(step_input.id)} " "not satisfied"
-                    )
+                            f"required input {_shortname(step_input.id)} " "not satisfied"
+                            )
                 continue
 
             if isinstance(step_input.type, str):
@@ -289,30 +289,30 @@ class CwlParser:
 
             if step_input.inputBinding:
                 inputs.append(
-                    StepInput(
-                        id=_shortname(step_input.id),
-                        type=input_type,
-                        value=None,
-                        default=step_input.default,
-                        source=source_map[_shortname(step_input.id)],
-                        prefix=step_input.inputBinding.prefix,
-                        position=step_input.inputBinding.position,
-                        value_from=step_input.inputBinding.valueFrom,
-                    )
-                )
+                        StepInput(
+                            id=_shortname(step_input.id),
+                            type=input_type,
+                            value=None,
+                            default=step_input.default,
+                            source=source_map[_shortname(step_input.id)],
+                            prefix=step_input.inputBinding.prefix,
+                            position=step_input.inputBinding.position,
+                            value_from=step_input.inputBinding.valueFrom,
+                            )
+                        )
             else:
                 inputs.append(
-                    StepInput(
-                        id=_shortname(step_input.id),
-                        type=input_type,
-                        value=None,
-                        default=step_input.default,
-                        source=source_map[_shortname(step_input.id)],
-                        prefix=None,
-                        position=None,
-                        value_from=None,
-                    )
-                )
+                        StepInput(
+                            id=_shortname(step_input.id),
+                            type=input_type,
+                            value=None,
+                            default=step_input.default,
+                            source=source_map[_shortname(step_input.id)],
+                            prefix=None,
+                            position=None,
+                            value_from=None,
+                            )
+                        )
         return inputs
 
     @staticmethod
@@ -336,39 +336,39 @@ class CwlParser:
         short_id = out_short[0].split("/")[0]
         # Inline step outputs already have short_id+"/" prepended
         out_map = {
-            (
-                _shortname(step_output.id)
-                if _shortname(step_output.id).startswith(short_id + "/")
-                else short_id + "/" + _shortname(step_output.id)
-            ): step_output
-            for step_output in step_outputs
-        }
+                (
+                    _shortname(step_output.id)
+                    if _shortname(step_output.id).startswith(short_id + "/")
+                    else short_id + "/" + _shortname(step_output.id)
+                    ): step_output
+                for step_output in step_outputs
+                }
 
         outputs = []
         for out in out_short:
             if out not in out_map.keys():
                 raise CwlParseError(
-                    f"specified step output {out} not produced by CommandLineTool"
-                )
+                        f"specified step output {out} not produced by CommandLineTool"
+                        )
 
             output_type = out_map[out].type
             glob = ""
             if output_type == "stdout":
                 if not stdout:
                     raise CwlParseError(
-                        f"stdout capture required for step output {out} "
-                        "but not specified by CommandLineTool"
-                    )
+                            f"stdout capture required for step output {out} "
+                            "but not specified by CommandLineTool"
+                            )
                 # Fill in glob with value of stdout
                 glob = stdout
             elif output_type == "stderr":
                 if not stderr:
                     raise ValueError(
-                        (
-                            f"stderr capture required for step output {out} "
-                            "but not specified by CommandLineTool"
-                        )
-                    )
+                            (
+                                f"stderr capture required for step output {out} "
+                                "but not specified by CommandLineTool"
+                                )
+                            )
                 # Fill in glob with value of stderr
                 glob = stderr
             else:
@@ -395,6 +395,20 @@ class CwlParser:
         if key in {"pre_script", "post_script"}:
             self._validate_prepost_shell_env(key, items, fname)
 
+    def _resolve_requirement_file(self, key, items):
+        """Resolve a requirement file path relative to the CWL file."""
+        base_path = Path(self.path).parent
+        path = Path(items[key]).expanduser()
+        if not path.is_absolute():
+            path = base_path / path
+        path = path.resolve()
+
+        if not path.exists():
+            msg = f"Could not find a file for {key}: {items[key]}"
+            raise CwlParseError(msg) from None
+
+        items[key] = str(path)
+
     def _validate_prepost_shell_env(self, key, items, fname):
         """Validate defined shell interpreters.
 
@@ -413,8 +427,8 @@ class CwlParser:
         shebang_val = env_decl[0]
         if shell_val != shebang_val:
             msg = (
-                f"CWL file shell {shell_val} does not match {fname} shell {shebang_val}"
-            )
+                    f"CWL file shell {shell_val} does not match {fname} shell {shebang_val}"
+                    )
             raise CwlParseError(msg) from None
         # Remove shebang lines from scripts
         rm_line = env_decl[1:]
@@ -443,20 +457,21 @@ class CwlParser:
                             items[k] = v
                         else:
                             items[k] = str(v)
+
                 # Load in the dockerfile at parse time
                 if "dockerFile" in items:
                     self._read_requirement_file("dockerFile", items)
                 # Load the sbatch if added at parse time. This might not work well?
                 if "sbatch" in items:
-                    self._read_requirement_file("sbatch", items)
+                    self._resolve_requirement_file("sbatch", items)
                 # Load in pre/post scripts and make sure shell option is defined in cwl file
                 if "pre_script" in items and items["enabled"]:
                     if "shell" in items:
                         self._read_requirement_file("pre_script", items)
                     else:
                         msg = (
-                            "pre script enabled but shell option undefined in cwl file."
-                        )
+                                "pre script enabled but shell option undefined in cwl file."
+                                )
                         raise CwlParseError(msg) from None
                 if "post_script" in items and items["enabled"]:
                     if "shell" in items:
@@ -470,16 +485,16 @@ class CwlParser:
         else:
             for req in requirements:
                 reqs.append(
-                    Requirement(
-                        class_=req.class_,
-                        params={
-                            k: str(v)
-                            for k, v in vars(req).items()
-                            if k not in ("extension_fields", "loadingOptions", "class_")
-                            and v is not None
-                        },
-                    )
-                )
+                        Requirement(
+                            class_=req.class_,
+                            params={
+                                k: str(v)
+                                for k, v in vars(req).items()
+                                if k not in ("extension_fields", "loadingOptions", "class_")
+                                and v is not None
+                                },
+                            )
+                        )
         return reqs
 
 
@@ -509,8 +524,8 @@ def parse_args(args=None):
 
     parser.add_argument("wf_file", type=str, help="CWL workflow file")
     parser.add_argument(
-        "-i", "--inputs", type=str, help="Workflow job inputs file", required=False
-    )
+            "-i", "--inputs", type=str, help="Workflow job inputs file", required=False
+            )
 
     return parser.parse_args(args)
 
