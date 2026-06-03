@@ -213,22 +213,21 @@ class BaseSlurmWorker(Worker):
         """Worker builds & submits script."""
         sbatch_script = task.get_requirement('beeflow:SlurmRequirement', 'sbatch')
         if sbatch_script:
-
             task_contents = pathlib.Path(sbatch_script).read_text(encoding="utf-8")
             stdout, stderr = worker_utils.parse_sbatch_output_error(task_contents)
-            gdb = bc.get('graphdb', 'type').lower()
-            if gdb == 'sqlite3':
-                driver = sqlite3_driver.SQLDriver()
-                driver.connect()
-                driver.set_task_stdout(task.id, stdout)
-                driver.set_task_stderr(task.id, stderr)
             task.stdout = stdout
             task.stderr = stderr
             task_script = sbatch_script
         else:
             task_script = self.write_script(task)
+
         job_id, job_state,job_info = self.submit_job(task, task_script)
-        # TODO add code to replace variable job id with actual job id after submission
+        if sbatch_script and bc.get("graphdb", "type").lower() == "sqlite3":
+            # We do this after job submission for sbatch jobs
+            driver = sqlite3_driver.SQLDriver()
+            driver.connect()
+            driver.set_task_stdout(task.id, task.stdout)
+            driver.set_task_stderr(task.id, task.stderr)
         return job_id,job_state,job_info
 
 class SlurmrestdWorker(BaseSlurmWorker):

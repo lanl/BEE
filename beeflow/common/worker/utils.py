@@ -126,4 +126,3 @@ def parse_sbatch_output_error(sbatch_script):
     elif stdout is None and stderr is not None:
         stdout = default_output
     return stdout, stderr
-
