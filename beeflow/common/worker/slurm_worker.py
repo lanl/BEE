@@ -228,7 +228,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
         self.slurm_url = f"http+unix://{encoded_path}/slurm/{openapi_version}"
         self.cli_worker = SlurmCLIWorker(bee_workdir=bee_workdir, **kwargs)
 
-    def query_task(self,job_id):
+    def query_task(self,job_id, job_info=None):
         """Worker queries job; returns job_state,job_info."""
         try:
             resp = self.session.get(f'{self.slurm_url}/job/{job_id}')
@@ -245,13 +245,13 @@ class SlurmrestdWorker(BaseSlurmWorker):
                     raise WorkerError(f'Failed to query job {job_id}') from exc
             else:
                 # If slurmrestd does not find job make last attempt with sacct command
-                job_state,job_info = self.cli_worker.query_task(job_id)
+                job_state, job_info = self.cli_worker.query_task(job_id, job_info=None)
         except requests.exceptions.ConnectionError:
             job_state = "NOT_RESPONDING"
             job_info = {}
         return job_state,job_info
 
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Worker cancels job, returns job_state."""
         try:
             resp = self.session.delete(f'{self.slurm_url}/job/{job_id}')
@@ -274,7 +274,7 @@ class SlurmrestdWorker(BaseSlurmWorker):
 class SlurmCLIWorker(BaseSlurmWorker):
     """Slurm worker interface that uses the CLI."""
 
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):
         """Query job state and job information for the task."""
         # Use scontrol since it gives a lot of useful info; may want to save info
         try:
@@ -293,7 +293,7 @@ class SlurmCLIWorker(BaseSlurmWorker):
             job_info = deepcopy(key_vals)
         return job_state,job_info
 
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Cancel task with job_id; returns job_state."""
         try:
             subprocess.run(['scancel', str(job_id)], text=True, check=True)
@@ -324,11 +324,11 @@ class SlurmWorker(Worker):
         """Worker submits task; returns job_id, job_state."""
         return self._inner.submit_task(task)
 
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Cancel task with job_id; returns job_state."""
         return self._inner.cancel_task(job_id)
 
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):
         """Query job state for the task."""
         return self._inner.query_task(job_id)
 

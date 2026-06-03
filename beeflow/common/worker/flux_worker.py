@@ -136,14 +136,14 @@ class FluxWorker(Worker):
         job_state, job_info = self.query_task(job_id)
         return job_id, job_state, job_info
 
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Cancel task with job_id; returns job_state."""
         log.info(f'Cancelling task with ID: {job_id}')
         flux = self.flux.Flux()
         self.job.cancel(flux, job_id)
         return 'CANCELED'
 
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):
         """Query job state for the task."""
         # TODO: How does Flux handle TIMEOUT? They don't seem to have
         # a state for this

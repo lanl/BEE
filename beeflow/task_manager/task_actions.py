@@ -41,7 +41,9 @@ class TaskActions(Resource):
             worker = utils.worker_interface_for_scheduler(scheduler)
             log.info(f"Cancelling {name} with job_id: {job_id} using scheduler: {scheduler}")
             try:
-                job_state = worker.cancel_task(job_id)
+                # Pass workflow_id via job_info for SimpleWorker
+                job_info = {'workflow_id': job.task.workflow_id}
+                job_state = worker.cancel_task(job_id, job_info=job_info)  # pylint: disable=E1123
             except Exception as err:  # pylint: disable=W0718 # we have to catch everything here
                 log.error(err)
                 log.error(traceback.format_exc())

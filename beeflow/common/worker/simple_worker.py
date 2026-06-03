@@ -23,7 +23,7 @@ class SimpleWorker(Worker):
         """
         self.prepare(task)
         script_path = self.write_script(task)
-        status_dir = os.path.join(self.workdir, 'simple_worker_status')
+        status_dir = os.path.join(self.workdir, 'simple_worker_status', task.workflow_id)
         os.makedirs(status_dir, exist_ok=True)
         process = subprocess.Popen([  # pylint: disable=R1732
             '/bin/sh',
@@ -39,18 +39,23 @@ class SimpleWorker(Worker):
             'pid': job_id,
             'script_path': script_path,
             'status_dir': status_dir,
+            'workflow_id': task.workflow_id,  # Store for later use
         }
         return job_id, 'RUNNING', job_info
 
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Cancel task with job_id; returns job_state.
 
         :param job_id: to be cancelled
         :type job_id: integer
+        :param job_info: optional job metadata containing workflow_id
+        :type job_info: dict
         :rtype: string
         """
         job_id = int(job_id)
-        paths = self._status_paths(job_id)
+        # Try to get workflow_id from job_info if available
+        workflow_id = job_info.get('workflow_id') if job_info else None
+        paths = self._status_paths(job_id, workflow_id=workflow_id)
         os.makedirs(paths['status_dir'], exist_ok=True)
         try:
             os.killpg(job_id, signal.SIGTERM)
@@ -62,40 +67,55 @@ class SimpleWorker(Worker):
             fp.write('cancelled\n')
         return 'CANCELLED'
 
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):
         """Query job state for the task.
 
         :param job_id: job id to query for status.
         :type job_id: int
+        :param job_info: optional job metadata containing workflow_id
+        :type job_info: dict
         :rtype: tuple (string, dict)
         """
         job_id = int(job_id)
-        paths = self._status_paths(job_id)
+        # Try to get workflow_id from job_info if available
+        workflow_id = job_info.get('workflow_id') if job_info else None
+        paths = self._status_paths(job_id, workflow_id=workflow_id)
         job_info = {
             'scheduler': 'Simple',
             'pid': job_id,
             'returncode_path': paths['returncode'],
         }
+        # Check for completion first - avoids race condition
         if os.path.exists(paths['returncode']):
             with open(paths['returncode'], 'r', encoding='UTF-8') as fp:
                 return_code = int(fp.read().strip())
-
             job_info['return_code'] = return_code
-
             if return_code == 0:
                 return 'COMPLETED', job_info
             return 'FAILED', job_info
+        # If no returncode file yet, check if process still exists
         try:
             os.killpg(job_id, 0)
+            return 'RUNNING', job_info
         except ProcessLookupError:
+            # Process died without writing returncode - unexpected failure
+            # Write a returncode file so we don't keep checking
+            os.makedirs(paths['status_dir'], exist_ok=True)
+            with open(paths['returncode'], 'w', encoding='UTF-8') as fp:
+                fp.write('255\n')  # Unknown error
+            job_info['return_code'] = 255
             return 'FAILED', job_info
         except PermissionError:
+            # Process exists but we can't signal it
             return 'RUNNING', job_info
-        return 'RUNNING', job_info
 
-    def _status_paths(self, job_id):
+    def _status_paths(self, job_id, workflow_id=None):
         """Return status file paths for a SimpleWorker job."""
-        status_dir = os.path.join(self.workdir, 'simple_worker_status')
+        if workflow_id:
+            status_dir = os.path.join(self.workdir, 'simple_worker_status', workflow_id)
+        else:
+            status_dir = os.path.join(self.workdir, 'simple_worker_status')
+        os.makedirs(status_dir, exist_ok=True)
         return {
             'status_dir': status_dir,
             'returncode': os.path.join(status_dir, f'{job_id}.returncode'),

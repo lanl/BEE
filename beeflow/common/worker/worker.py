@@ -115,19 +115,23 @@ class Worker(ABC):
         """
 
     @abstractmethod
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Cancel task with job_id; returns job_state.
 
         :param job_id: to be cancelled
         :type job_id: integer
+        :param job_info: optional job metadata (e.g., workflow_id)
+        :type job_info: dict or None
         :rtype: string
         """
 
     @abstractmethod
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):
         """Query job state for the task.
 
         :param job_id: job id to query for status.
         :type job_id: int
-        :rtype: string
+        :param job_info: optional job metadata
+        :type job_info: dict or None
+        :rtype: (string, dict)
         """

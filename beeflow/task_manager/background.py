@@ -97,7 +97,8 @@ def update_jobs(db):  # pylint: disable=R0915
             continue
 
         try:
-            new_job_state,job_info = worker.query_task(job_id)
+            job_info_input = {'workflow_id': task.workflow_id}
+            new_job_state, job_info = worker.query_task(job_id, job_info=job_info_input)  # pylint: disable=E1123
 
         except WorkerError as err:
             log.warning(f'Failed to query job {job_id}: {err}')

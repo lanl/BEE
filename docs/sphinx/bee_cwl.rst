@@ -320,23 +320,27 @@ as ``Slurm`` or ``Flux``.
 Note, this requirement is optional. If not provided, beeflow uses the configured
 default workload scheduler, preserving the usual behavior.
 
-For example::
+**Example 1: Mixed execution workflow**
 
-    hints:
-      beeflow:WorkloadRequirement:
-        mode: baremetal
+A workflow where data download runs locally, processing uses Slurm::
 
-This will run the task locally through the Simple worker..
+    steps:
+      download:
+        run: download.cwl  # Has beeflow:WorkloadRequirement mode: baremetal
+        ...
 
-And::
+      process:
+        run: process.cwl  # Uses default scheduler (Slurm)
+        ...
+
+**Example 2: Force specific scheduler**
+
+Override default scheduler for a specific task::
 
     hints:
       beeflow:WorkloadRequirement:
         mode: scheduler
         scheduler: Flux
-
-This submits the task through the Flux worker. If ``scheduler`` not specified,
-beeflow uses the configured default workload scheduler.
 
 
 beeflow:SlurmRequirement
