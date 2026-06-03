@@ -6,7 +6,6 @@ Builds command for submitting batch job.
 from copy import deepcopy
 import io
 import subprocess
-import string
 import json
 import urllib
 import pathlib
@@ -16,7 +15,6 @@ import requests
 
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.gdb import sqlite3_driver
-from beeflow.wf_manager.resources import wf_utils
 from beeflow.common import log as bee_logging
 import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker.worker import (Worker, WorkerError)
@@ -73,9 +71,8 @@ class BaseSlurmWorker(Worker):
         mpi_version = self.get_req(task, 'beeflow:MPIRequirement', 'mpiVersion', config,
                                    default='')
 
-        time_limit_raw = self.get_req(
-                task, 'beeflow:SlurmRequirement', 'timeLimit', config, default=self.default_time_limit
-                )
+        time_limit_raw = self.get_req(task, 'beeflow:SlurmRequirement',
+                                      'timeLimit', config, default=self.default_time_limit)
         time_limit = validation.time_limit(time_limit_raw)
         account = self.get_req(task, 'beeflow:SlurmRequirement', 'account', config,
                                default=self.default_account)
@@ -231,7 +228,7 @@ class BaseSlurmWorker(Worker):
         else:
             task_script = self.write_script(task)
         job_id, job_state,job_info = self.submit_job(task, task_script)
-        # TODO add code to replace variable job id with actual job id after submission 
+        # TODO add code to replace variable job id with actual job id after submission
         return job_id,job_state,job_info
 
 class SlurmrestdWorker(BaseSlurmWorker):

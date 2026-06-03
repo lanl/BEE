@@ -88,6 +88,7 @@ def format_start_time(start_time):
     return start_time
 
 def resolve_slurm_paths(job_id, task):
+    """Replaces job id placeholder with actual job id."""
     if task.stdout is not None:
         task.stdout = task.stdout.replace("%j", str(job_id))
     if task.stderr is not None:
@@ -100,13 +101,13 @@ def parse_sbatch_output_error(sbatch_script):
     stderr = None
 
     # By default Slurm sets the output to be a file with this format in the working directory.
-    DEFAULT_OUTPUT = "slurm-%j.out"
+    default_output = "slurm-%j.out"
     for line in sbatch_script.splitlines():
         if not line.strip().startswith("#SBATCH"):
             continue
         # Just split on the first #SBATCH in case there's something weird
         args = line.split("#SBATCH", 1)[1]
-        
+
         it = iter(shlex.split(args))
         for token in it:
             if token.startswith("--output="):
@@ -118,11 +119,11 @@ def parse_sbatch_output_error(sbatch_script):
             elif token in ("--error", "-e"):
                 stderr = next(it, None)
     if stdout is None and stderr is None:
-        stdout = DEFAULT_OUTPUT
-        stderr = DEFAULT_OUTPUT
+        stdout = default_output
+        stderr = default_output
     elif stdout is not None and stderr is None:
         stderr = stdout
     elif stdout is None and stderr is not None:
-        stdout = DEFAULT_OUTPUT
+        stdout = default_output
     return stdout, stderr
 
