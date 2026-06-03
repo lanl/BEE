@@ -140,13 +140,13 @@ def test_start_workflow(client, mocker):
     """Test starting a workflow."""
     mocker.patch('beeflow.wf_manager.resources.wf_utils.get_workflow_interface',
                  return_value=MockWFI())
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_scheduler', return_value=None)
+    submit_tasks_tm = mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', return_value=None)
     mocker.patch('beeflow.tests.mocks.MockWFI.get_workflow_state', return_value='No Start')
     resp = client().post(f'/bee_wfm/v1/jobs/{WF_ID}')
     assert resp.status_code == 200
     assert resp.json['msg'] == 'Workflow started successfully'
+    submit_tasks_tm.assert_called()
 
 
 def test_workflow_status(client, mocker, setup_teardown_workflow):
@@ -266,8 +266,7 @@ def test_resume_workflow(client, mocker, setup_teardown_workflow, temp_db):
                  return_value=MockWFI())
     mocker.patch('beeflow.tests.mocks.MockWFI.get_workflow_state',
                  return_value='Paused')
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
-    mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_scheduler', return_value=None)
+    submit_tasks_tm = mocker.patch('beeflow.wf_manager.resources.wf_utils.submit_tasks_tm', return_value=None)
     mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status', return_value=None)
 
     wf_utils.update_wf_status(WF_ID, 'Paused')
@@ -275,3 +274,4 @@ def test_resume_workflow(client, mocker, setup_teardown_workflow, temp_db):
     resp = client().patch(f'/bee_wfm/v1/jobs/{WF_ID}', json=request)
     assert resp.json['msg'] == 'Workflow Resumed'
     assert resp.status_code == 200
+    submit_tasks_tm.assert_called()

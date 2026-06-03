@@ -215,7 +215,7 @@ def init_components(remote=False):
     # Slurmrestd will be started only if we're running with Slurm and
     # slurm::use_commands is not True
 
-    @mgr.component('wf_manager', ('scheduler', 'celery'))
+    @mgr.component('wf_manager', ('celery',))
     def start_wfm():
         """Start the WFM."""
         fp = open_log('wf_manager')
@@ -232,14 +232,6 @@ def init_components(remote=False):
         fp = open_log('task_manager')
         return launch_with_gunicorn('beeflow.task_manager.task_manager:create_app()',
                                     paths.tm_socket(), stdout=fp, stderr=fp)
-
-    @mgr.component('scheduler', ())
-    def start_scheduler():
-        """Start the scheduler."""
-        fp = open_log('scheduler')
-        # Using a function here because of the funny way that the scheduler's written
-        return launch_with_gunicorn('beeflow.scheduler.scheduler:create_app()',
-                                    paths.sched_socket(), stdout=fp, stderr=fp)
 
     if remote:
         @mgr.component('remote_api', ('wf_manager', 'task_manager'))
@@ -496,7 +488,7 @@ def start(foreground: bool = typer.Option(False, '--foreground', '-F',
     # Create the log path if it doesn't exist yet
     path = paths.log_path()
     os.makedirs(path, exist_ok=True)
-    base_components = ['wf_manager', 'task_manager', 'scheduler']
+    base_components = ['wf_manager', 'task_manager']
     if foreground:
         try:
             Beeflow(mgr, base_components).loop()
@@ -598,14 +590,31 @@ def handle_rm_error(err, dir_to_check, wf_list):
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
     """Stop all components and delete the bee_workdir directory."""
-    # Check workflow states; warn if there are active states.
     reset_hn = socket.gethostname()
-    bee_client.check_hostname(reset_hn)
-    workflow_list = bee_client.get_wf_list()
+
+    # Check if beeflow is running
+    sock_path = paths.beeflow_socket()
+    beeflow_running = False
+    workflow_list = []
+
+    if os.path.exists(sock_path):
+        try:
+            resp = cli_connection.send(sock_path, {'type': 'status'})
+            if resp is not None:
+                beeflow_running = True
+                bee_client.check_hostname(reset_hn)
+                workflow_list = bee_client.get_wf_list()
+        except (ConnectionResetError, ConnectionRefusedError,
+                cli_connection.BeeflowConnectionError, OSError):
+            # Beeflow socket exists but is not responsive
+            pass
+
+    # Check workflow states; warn if there are active states.
     active_states = {'Running', 'Paused', 'Initializing', 'Waiting'}
     caution = ""
-    if {item for row in workflow_list for item in row}.intersection(active_states):
-        caution = """
+    if beeflow_running and workflow_list:
+        if {item for row in workflow_list for item in row}.intersection(active_states):
+            caution = """
         **************************************************************
           Caution: There are active workflows! They will be removed!
           Try 'beeflow list' to view them.
@@ -616,9 +625,16 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     warn(f"\n    A reset will remove this directory: {dir_to_delete}\n")
     if archive:
         print("    Archive flag is set: logs, workflows and containers will be backed up.")
+    else:
+        warn("    If you want to save logs, workflows and containers:")
+        warn("      answer no and rerun with --archive flag.")
+
+    status_msg = "running" if beeflow_running else "not running"
+    print(f"\n    Beeflow is currently {status_msg}.")
+
     print("""
     A reset will:
-        Shutdown beeflow and all BEE components.
+        Shutdown beeflow and all BEE components (if running).
         Delete the bee_workdir directory which results in:
             Removing the archive of all workflows.
                 (unless archives is configured elsewhere).
@@ -636,11 +652,14 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             sys.exit()
         elif absolutely_sure in ("y", "yes"):
             # Stop all of the beeflow processes
-            stop("quiet")
-            print("Beeflow is shutting down.")
-            print("Waiting for components to cleanly stop.")
-            # This wait is essential. It takes a minute to shut down.
-            time.sleep(5)
+            if beeflow_running:
+                stop("quiet")
+                print("Beeflow is shutting down.")
+                print("Waiting for components to cleanly stop.")
+                # This wait is essential. It takes a minute to shut down.
+                time.sleep(5)
+            else:
+                print("Beeflow is not running, proceeding to remove bee_workdir.")
 
             # Save the bee_workdir directory if the archive option was set
             if archive:
