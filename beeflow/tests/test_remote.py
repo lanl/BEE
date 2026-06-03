@@ -76,7 +76,6 @@ def test_get_core_status(mocker):
     # Mocked response from the daemon
     mock_response = {
         "components": {
-            "scheduler": "running",
             "wf_manager": "running",
             "task_manager": "running"
         }
@@ -89,7 +88,6 @@ def test_get_core_status(mocker):
 
     assert response.status_code == 200
     assert response.json() == {
-        "scheduler": "running",
         "wf_manager": "running",
         "task_manager": "running"
     }

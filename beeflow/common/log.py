@@ -18,6 +18,6 @@ def setup(name):
     log.setLevel(LEVEL)
     handler = logging.StreamHandler()
     handler.setLevel(logging.DEBUG)
-    handler.setFormatter(logging.Formatter('[%(asctime)s] %(name)s:%(funcName)s(): %(msg)s'))
+    handler.setFormatter(logging.Formatter('[%(asctime)s] %(name)s:%(funcName)s(): %(message)s'))
     log.addHandler(handler)
     return log
