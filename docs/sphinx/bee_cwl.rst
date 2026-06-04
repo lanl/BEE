@@ -361,13 +361,13 @@ Alternate::
 
 Contents of run_sbatch.sh::
 
-#!/bin/bash
-#SBATCH --job-name=test_job        
-#SBATCH --time=00:10:00             
-#SBATCH --nodes=1                 
-#SBATCH --ntasks=1               
+    #!/bin/bash
+    #SBATCH --job-name=test_job
+    #SBATCH --time=00:10:00
+    #SBATCH --nodes=1
+    #SBATCH --ntasks=1
 
-echo Testing
+    echo Testing
 
 beeflow:ScriptRequirement
 -------------------------
