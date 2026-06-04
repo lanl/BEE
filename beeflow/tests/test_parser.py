@@ -414,7 +414,7 @@ expected_sbatch = str(Path("run.sh").resolve())
         (
             [
                 OrderedDict(
-                    [("sbatch", "run.sh"), ("class", "beeflow:SlurmRequirement")]
+                    [("sbatch", find("beeflow/tests/run.sh")), ("class", "beeflow:SlurmRequirement")]
                 )
             ],
             [Hint(class_="beeflow:SlurmRequirement", params={"sbatch": expected_sbatch})],
