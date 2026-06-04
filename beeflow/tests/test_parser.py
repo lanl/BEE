@@ -398,7 +398,7 @@ TASKS_NOJOB_GOLD = [
     )
 ]
 
-expected_sbatch = str(Path("run.sh").resolve())
+expected_sbatch = str(Path(find("beeflow/tests/run.sh")).resolve())
 
 @pytest.mark.parametrize(
     "requirements, exp_reqs",
