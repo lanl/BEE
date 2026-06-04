@@ -398,16 +398,7 @@ TASKS_NOJOB_GOLD = [
     )
 ]
 
-expected_sbatch = """#!/bin/bash
-#SBATCH --job-name=test_job
-#SBATCH --time=00:10:00
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --error=err.txt
-#SBATCH --output=out.txt
-
-echo "Job Running!"
-"""
+expected_sbatch = str(Path("run.sh").resolve())
 
 @pytest.mark.parametrize(
     "requirements, exp_reqs",
