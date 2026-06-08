@@ -163,6 +163,11 @@ def update_jobs(db):
 		# Other state (e.g., PENDING)
                 db.update_queue.push(task.workflow_id, task.id, new_job_state,
                                     task_info=None,metadata=job_info,output=None)
+        
+        elif new_job_state not in COMPLETED_STATES: #BESTE
+            db.update_queue.push(task.workflow_id, task.id, new_job_state,
+                                task_info=None,metadata=job_info,output=None)
+
 
         if job_state in COMPLETED_STATES:
             # Remove from the job queue. Our job is finished

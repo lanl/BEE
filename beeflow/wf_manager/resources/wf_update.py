@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import time
+import yaml # Beste
 
 from flask import request
 from flask_restful import Resource, reqparse
@@ -105,12 +106,14 @@ class WFUpdate(Resource):
             task_name = wfi.get_task_by_id(task_id).name
 
             task_dir = f'{task_workdir}/{task_name}-{task_id[:4]}'
-            metadata_path = os.path.join(task_dir,'metadata.txt')
+            #metadata_path = os.path.join(task_dir,'metadata.txt')
+            metadata_path = os.path.join(task_dir,'metadata.yaml')
 
             if os.path.exists(task_dir):
                 with open(metadata_path,'w',encoding='utf-8') as f:
-                    for key in sorted(old_metadata):
-                        f.write(f'- {key}: {old_metadata[key]}\n')
+                    yaml.dump(old_metadata,f,sort_keys=True)
+                    #for key in sorted(old_metadata):
+                        #f.write(f'- {key}: {old_metadata[key]}\n')
 
 
         # Get output from the task

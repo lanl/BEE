@@ -265,7 +265,7 @@ def copy_task_output(task):
     )
     task_workdir = task.workdir
     task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
-                f"metadata.txt")
+                f"metadata.yaml")
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:
@@ -283,8 +283,9 @@ def copy_task_output(task):
         )
 
         shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
+    #shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
     shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
-    shutil.copy(task_metadata_path, task_save_path / "metadata.txt")
+    shutil.copy(task_metadata_path, task_save_path / "metadata.yaml")
 
 
 def flatten_metadata_dict(metadata_dict,parent_key='',sep='_',seen_keys=None):
