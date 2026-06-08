@@ -282,8 +282,7 @@ def copy_task_output(task):
             f"{task.name}-{task.id[:4]}.err"
         )
 
-        shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
-    #shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
+    shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
     shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
     shutil.copy(task_metadata_path, task_save_path / "metadata.yaml")
 
