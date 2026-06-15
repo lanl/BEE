@@ -1,11 +1,11 @@
 """Utility functions for wf_manager resources."""
 
+from datetime import datetime as dt # BESTE
 import os
 import shutil
 import pathlib
 import requests
 from celery import shared_task
-
 
 from beeflow.common import log as bee_logging
 from beeflow.common.config_driver import BeeConfig as bc
@@ -311,9 +311,10 @@ def flatten_metadata_dict(metadata_dict,parent_key='',sep='_',seen_keys=None):
             flattened_dict[new_key] = v
     return flattened_dict
 
-def clean_dict(metadata_dict):
+def clean_dict(metadata):
     """Removes unnecessary information from the metadata depending on
         the scheduler"""
+    excluded_keys,included_keys = [],[]
     scheduler = bc.get('DEFAULT','workload_scheduler').lower()
     if scheduler == 'slurm' and bc.get('slurm','use_commands'):
         excluded_keys =[
@@ -331,55 +332,56 @@ def clean_dict(metadata_dict):
         "ranks","annotations_user_uri","exception_note","exception_occurred",
         "exception_severity","exception_type","expiration","priority","result"]
     else:
-        excluded_keys = [
-        "billable_tres", "minimum_switches", "exclusive", "system_comment", "het_job_id",
-        "group_name","profile", "tres_per_job", "tasks_per_board_number", 
-        "max_cpus_infinite", "selinux_context","tasks_per_socket_set", "container_id",
-        "sockets_per_node_set", "user_name", "delay_boot_number","admin_comment",
-        "time_minimum_infinite", "tasks_per_tres_infinite", "cluster_features",
-        "deadline", "minimum_tmp_disk_per_node_infinite", "minimum_cpus_per_node_infinite",
-        "licenses","max_cpus_set", "cpu_frequency_minimum_infinite", 
-        "job_resources_allocated_cpus","tasks_per_node_number", "cores_per_socket_infinite",
-        "threads_per_core_set","job_resources_allocated_hosts", "hold",
-        "cpu_frequency_maximum_number", "features","time_minimum_number", "tasks_per_core_set",
-        "show_flags", "tasks_infinite","cpu_frequency_governor_infinite", "tres_req_str",
-        "tasks_per_board_set", "cron", "oversubscribe","node_count_set", "memory_per_cpu_number",
-        "wckey", "exit_code_set", "tasks_per_core_number","batch_flag",
-        "threads_per_core_infinite", "time_limit_set", "array_job_id_infinite","contiguous",
-        "federation_siblings_viable", "batch_features", "restart_cnt","memory_per_node_set",
-        "array_job_id_number", "minimum_cpus_per_node_number","array_task_id_set",
-        "threads_per_core_number", "cpus_per_task_set", "delay_boot_set","time_limit_infinite",
-        "pre_sus_time", "tasks_per_board_infinite", "tres_freq","het_job_id_number",
-        "tres_per_task", "het_job_offset_number", "priority_number", "mail_user",
-        "tasks_per_tres_number", "comment", "array_task_id_infinite",
-        "minimum_tmp_disk_per_node_number","memory_per_tres", "resize_time", "cpus_set",
-        "cores_per_socket_set", "preemptable_time","cpus_per_tres", "federation_siblings_active",
-        "cpu_frequency_maximum_infinite","tasks_per_socket_infinite", "memory_per_node_infinite",
-        "tasks_per_tres_set","sockets_per_node_number", "maximum_switch_wait_time", "power_flags",
-        "mcs_label", "core_spec","tres_bind", "required_nodes", "user_id", "federation_origin",
-        "memory_per_cpu_set","time_limit_number", "flags", "job_resources_allocated_cores",
-        "billable_tres_infinite","delay_boot_infinite", "max_nodes_number", "mail_type",
-        "tasks_per_socket_number","sockets_per_board", "array_max_tasks_set", "array_job_id_set",
-        "tasks_per_node_set", "nice","cpu_frequency_minimum_number", "last_sched_evaluation",
-        "het_job_offset_infinite","tres_per_node", "burst_buffer", "excluded_nodes",
-        "time_minimum_set","cpus_per_task_infinite","prefer", "derived_exit_code_set",
-        "cpu_frequency_minimum_set","job_size_str", "priority_set","state_description",
-        "het_job_id_set", "cpus_infinite","burst_buffer_state", "tres_per_socket",
-        "array_task_string", "max_nodes_infinite","cpu_frequency_governor_set",
-        "cores_per_socket_number", "exit_code_infinite","minimum_cpus_per_node_set","preempt_time",
-        "derived_exit_code_infinite","cpu_frequency_governor_number", "thread_spec", "gres_detail",
-        "memory_per_node_number","cpus_per_task_number","network", "array_max_tasks_number",
-        "resv_name", "cpu_frequency_maximum_set","extra","het_job_id_infinite","state_reason",
-        "node_count_number","max_nodes_set", "het_job_offset_set","reboot", 
-        "minimum_tmp_disk_per_node_set", "tasks_set","max_cpus_number", "cpus_number", "group_id",
-        "tasks_per_core_infinite", "suspend_time", "array_max_tasks_infinite", "association_id",
-        "job_resources_nodes","container","dependency","requeue", "node_count_infinite",
-        "memory_per_cpu_infinite","batch_host", "array_task_id_number","tasks_number",
-        "billable_tres_set","tasks_per_node_infinite","sockets_per_node_infinite",
-        "priority_infinite","array_job_id","shared","derived_exit_code_number",
-        "billable_tres_number","current_working_directory"]
+        included_keys = ["account","accrue_time_number","allocating_node","cluster",
+        "command","eligible_time_number","end_time_number","exit_code_status",
+        "exit_code_return_code_number","failed_node","job_id","job_resources",
+        "job_state","last_sched_evaluation_number","licenses_allocated",
+        "name","nodes","partition","priority_by_partition","qos","scheduled_nodes",
+        "step_id_sluid","step_id_job_id_number","start_time_number","standard_input",
+        "standard_output","standard_error","stdin_expanded","stdout_expanded",
+        "stderr_expanded","submit_time_number","submit_line","suspend_time_number",
+        "tres_alloc_str"]
 
-    for k in list(metadata_dict):
-        if k in excluded_keys or k.startswith(("_","--")):
-            metadata_dict.pop(k,None)
-    return metadata_dict
+    for k in list(metadata):
+        if scheduler == 'slurm' and not bc.get('slurm','use_commands'):
+            if k not in included_keys or k.startswith(("_","--")):
+                metadata.pop(k,None)
+        else:
+            if k in excluded_keys or k.startswith(("_","--")):
+                metadata.pop(k,None)
+
+    match_metadata = helper_clean_dict(metadata,scheduler)
+    cleaned_metadata = standardize_time(match_metadata,scheduler)
+    return cleaned_metadata
+
+def helper_clean_dict(metadata,scheduler):
+    """Ensures the attributes in the config match with what the schedulers return"""
+    if scheduler == 'slurm' and not bc.get('slurm','use_commands'):
+        for k in list(metadata):
+            if k.endswith("_number"):
+                new_key = k.removesuffix("_number")
+                if new_key == "exit_code_return_code":
+                    new_key = "exit_code_number"
+                metadata[new_key] = metadata.pop(k)
+    return metadata
+
+def standardize_time(metadata,scheduler):
+    """Standardize the time attributes across the schedulers"""
+    if scheduler == 'slurm' and not bc.get('slurm','use_commands'):
+        time = {"end_time","start_time","submit_time","suspend_time","eligible_time",
+                "accrue_time","last_sched_evaluation"}
+        for k in list(metadata):
+            if k in time:
+                if metadata[k] == 0:
+                    metadata[k] = 0
+                else:
+                    metadata[k] = dt.fromtimestamp(metadata[k]).strftime('%Y-%m-%d %H:%M:%S')
+    elif scheduler == 'slurm' and bc.get('slurm','use_commands'):
+        time = {"AccrueTime","EligibleTime","EndTime","SubmitTime","StartTime"}
+        for k in list(metadata):
+            if k in time:
+                if metadata[k] == 0 or metadata[k] == 'Unknown':
+                    metadata[k] = 0
+                else:
+                    metadata[k] = dt.fromisoformat(metadata[k]).strftime('%Y-%m-%d %H:%M:%S')
+    return metadata
