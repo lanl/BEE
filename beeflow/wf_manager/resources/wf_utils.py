@@ -1,6 +1,6 @@
 """Utility functions for wf_manager resources."""
 
-from datetime import datetime as dt # BESTE
+from datetime import datetime as dt
 import os
 import shutil
 import pathlib
