@@ -118,11 +118,8 @@ def parse_sbatch_output_error(sbatch_script):
                 stderr = token.split("=", 1)[1]
             elif token in ("--error", "-e"):
                 stderr = next(it, None)
-    if stdout is None and stderr is None:
+    if stdout is None:
         stdout = default_output
-        stderr = default_output
-    elif stdout is not None and stderr is None:
+    if stderr is None:
         stderr = stdout
-    elif stdout is None and stderr is not None:
-        stdout = default_output
     return stdout, stderr
