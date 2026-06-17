@@ -383,6 +383,6 @@ def clean_dict(metadata_dict):
         "billable_tres_number","current_working_directory"]
 
     for k in list(metadata_dict):
-        if k in excluded_keys:
+        if k in excluded_keys or k.startswith(("_","--")):
             metadata_dict.pop(k,None)
     return metadata_dict
