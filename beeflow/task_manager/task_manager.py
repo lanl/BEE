@@ -32,8 +32,8 @@ def create_app():
         scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
         scheduler.add_job(func=process_queues, trigger="interval", max_instances=1,
                           coalesce=True, seconds=bc.get('task_manager', 'background_interval'))
-        scheduler.add_job(func=utils.check_tm_db, trigger="interval", max_instances=1, coalesce=True,
-                          minutes=bc.get('task_manager', 'backup_interval'))
+        scheduler.add_job(func=utils.check_tm_db, trigger="interval", max_instances=1,
+                          coalesce=True, minutes=bc.get('task_manager', 'backup_interval'))
         scheduler.start()
 
         # This kills the scheduler when the process terminates

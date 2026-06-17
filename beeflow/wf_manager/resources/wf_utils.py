@@ -252,6 +252,7 @@ def start_workflow(wf_id):
     tasks = wfi.get_ready_tasks()
     submit_tasks_tm(wf_id, tasks)
     update_wf_status(wf_id, "PENDING")
+    return True
 
 
 def _resolve_output_path(workdir, output_path):

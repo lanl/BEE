@@ -1,7 +1,8 @@
 """Task Manager utility functions."""
 import os
-from pathlib import Path
 import re
+import getpass
+from pathlib import Path
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.db import tm_db
 from beeflow.common.db import bdb
@@ -11,16 +12,13 @@ from beeflow.common import paths
 from beeflow.common.connection import Connection
 from beeflow.common.worker_interface import WorkerInterface
 import beeflow.common.worker.utils as worker_utils
-import getpass
-import pathlib
-import sqlite3
 
 log = bee_logging.setup(__name__)
 
 def db_path():
     """Return the TM backup database path."""
     user = getpass.getuser()
-    db_workdir = pathlib.Path(f"/tmp/{user}/BEE")
+    db_workdir = Path(f"/tmp/{user}/BEE")
     db_workdir.mkdir(exist_ok=True, parents=True)
     return db_workdir / 'tm.db'
 
@@ -28,7 +26,7 @@ def db_path():
 def db_backup_path():
     """Return the TM backup database path."""
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    path = pathlib.Path(bee_workdir) / 'tm_backup.db'
+    path = Path(bee_workdir) / 'tm_backup.db'
     return path
 
 
@@ -57,7 +55,7 @@ def restore_tm_db():
     """Restore task manager databse from backup."""
     db = connect_db()
     backup_db = db_backup_path()
-    db.restore_db(backup_db)
+    db.restore_from_backup(backup_db)
     log.info("Restored task manager database.")
 
 def worker_interface():

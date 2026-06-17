@@ -110,13 +110,14 @@ def get_table_length(db_file, table):
     return rows
 
 
-def backup_db(db_file, backup_db):
+def backup_db(db_file, backup_db_file):
+    """Backup a database to a backup location."""
     with create_connection(db_file) as db_conn:
-        with create_connection(backup_db) as backup_conn:
+        with create_connection(backup_db_file) as backup_conn:
             db_conn.backup(backup_conn, pages=1, progress=None)
 
-def restore_db(backup_db, db_file):
-    with create_connection(backup_db) as backup_conn:
+def restore_db(backup_db_file, db_file):
+    """Restore a database from a backup."""
+    with create_connection(backup_db_file) as backup_conn:
         with create_connection(db_file) as db_conn:
             db_conn.backup(backup_conn, pages=1, progress=None)
-
