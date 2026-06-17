@@ -251,7 +251,7 @@ def start_workflow(wf_id):
     wfi.execute_workflow()
     tasks = wfi.get_ready_tasks()
     submit_tasks_tm(wf_id, tasks)
-    update_wf_status(wf_id, "PENDING")
+    update_wf_status(wf_id, "Running")
     return True
 
 
