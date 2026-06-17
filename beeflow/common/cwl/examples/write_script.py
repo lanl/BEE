@@ -56,9 +56,8 @@ def main():
                outputs=[Output('write_stdout', 'stdout', source='write/write_stdout'),
                         Output('write_stderr', 'stderr', source='write/write_stderr')])
 
-    # Inputs and base command are not used for the following step
+    # Inputs are required for CWL dependency and base command not present since optional 
     sbatch = Task(name="sbatch",
-               base_command="cat",
                stdout="sbatch.out",
                stderr="sbatch.err",
                inputs=[Input('text_file', 'File', "write/write_stdout", position=1)],
