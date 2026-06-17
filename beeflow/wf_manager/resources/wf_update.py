@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import time
+import yaml
 
 from flask import request
 from flask_restful import Resource, reqparse
@@ -105,15 +106,13 @@ class WFUpdate(Resource):
             task_name = wfi.get_task_by_id(task_id).name
 
             task_dir = f'{task_workdir}/{task_name}-{task_id[:4]}'
-            metadata_path = os.path.join(task_dir,'metadata.txt')
+            metadata_path = os.path.join(task_dir,'metadata.yaml')
 
             # Create the metadata directory for sbatch runs
             os.makedirs(task_dir, exist_ok=True)
             if os.path.exists(task_dir):
                 with open(metadata_path,'w',encoding='utf-8') as f:
-                    for key in sorted(old_metadata):
-                        f.write(f'- {key}: {old_metadata[key]}\n')
-
+                    yaml.dump(old_metadata,f,sort_keys=True)
 
         # Get output from the task
         if state_update.output is not None:
