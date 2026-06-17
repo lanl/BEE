@@ -559,6 +559,7 @@ class Run:
         run_dump['run']['stdout'] = self.stdout
         if self.stderr:
             run_dump['run']['stderr'] = self.stderr
+
         run_dump['run'].update(self.inputs.dump())
         run_dump['run'].update(self.outputs.dump())
         return run_dump
@@ -570,11 +571,12 @@ class Run:
         called in the step which holds that run section.
         """
         in_ = {'in': {}}
-        for i in self.inputs.inputs:
-            if i.source:
-                in_['in'][i.input_name] = i.source
-            else:
-                in_['in'][i.input_name] = i.input_name
+        if self.inputs:
+            for i in self.inputs.inputs:
+                if i.source:
+                    in_['in'][i.input_name] = i.source
+                else:
+                    in_['in'][i.input_name] = i.input_name
         return in_
 
     def generate_out(self):
