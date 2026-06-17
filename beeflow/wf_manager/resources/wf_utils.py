@@ -340,7 +340,7 @@ def clean_dict(metadata):
         "step_id_sluid","step_id_job_id_number","start_time_number","standard_input",
         "standard_output","standard_error","stdin_expanded","stdout_expanded",
         "stderr_expanded","submit_time_number","submit_line","suspend_time_number",
-        "tres_alloc_str"]
+        "tres_alloc_str","runtime","priority_number","state_reason","time_limit_number"]
 
     for k in list(metadata):
         if scheduler == 'slurm' and not bc.get('slurm','use_commands'):

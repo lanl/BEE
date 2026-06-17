@@ -352,7 +352,7 @@ slurm_attr = [
         "account","accrue_time","allocating_node","cluster",
         "command","eligible_time","end_time","exit_code_number",
         "failed_node","job_id","job_state","name","nodes",
-        "partition","qos","scheduled_nodes","standard_error",
+        "partition","qos","runtime","scheduled_nodes","standard_error",
         "standard_input","standard_output","start_time",
         "submit_time","tres_alloc_str"
    ]
@@ -367,7 +367,8 @@ flux_attr = [
 VALIDATOR.section('slurm attributes',info='Available task information for the slurm scheduler\n',
         depends_on=('slurm', 'use_commands', 'False'))
 VALIDATOR.option('slurm attributes','attributes',validator=validate_attributes,prompt=False,
-        default='job_id,partition,nodes,command',info='Enter task attributes (comma-separated)')
+        default='job_id,partition,runtime,nodes,command',
+        info='Enter task attributes (comma-separated)')
 
 VALIDATOR.section('slurm command attributes',info='Available task information for sacct\n',
         depends_on=('slurm', 'use_commands', 'True'))
