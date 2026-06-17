@@ -108,3 +108,15 @@ def get_table_length(db_file, table):
     result = getall(db_file, stmt)
     rows = result[0][0]
     return rows
+
+
+def backup_db(db_file, backup_db):
+    with create_connection(db_file) as db_conn:
+        with create_connection(backup_db) as backup_conn:
+            db_conn.backup(backup_conn, pages=1, progress=None)
+
+def restore_db(backup_db, db_file):
+    with create_connection(backup_db) as backup_conn:
+        with create_connection(db_file) as db_conn:
+            db_conn.backup(backup_conn, pages=1, progress=None)
+

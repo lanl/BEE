@@ -174,7 +174,6 @@ class BaseSlurmWorker(Worker):
         # Get task requirements
         requirements = self.get_task_requirements(task)
 
-        # If we have an sbatch script defined just return that
         pre_script, post_script = None, None
         if requirements['scripts_enabled']:
             # We use StringIO here to properly break the script up into lines with readlines

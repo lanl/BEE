@@ -11,6 +11,7 @@ from beeflow.common.api import BeeApi
 from beeflow.task_manager.task_actions import TaskActions
 from beeflow.task_manager.background import process_queues
 from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.task_manager import utils
 
 
 def create_app():
@@ -29,8 +30,10 @@ def create_app():
     # Start the background scheduler and make sure it gets cleaned up
     if "pytest" not in sys.modules:
         scheduler = BackgroundScheduler({'apscheduler.timezone': 'UTC'})
-        scheduler.add_job(func=process_queues, trigger="interval",
-                          seconds=bc.get('task_manager', 'background_interval'))
+        scheduler.add_job(func=process_queues, trigger="interval", max_instances=1,
+                          coalesce=True, seconds=bc.get('task_manager', 'background_interval'))
+        scheduler.add_job(func=utils.check_tm_db, trigger="interval", max_instances=1, coalesce=True,
+                          minutes=bc.get('task_manager', 'backup_interval'))
         scheduler.start()
 
         # This kills the scheduler when the process terminates
