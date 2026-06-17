@@ -67,7 +67,7 @@ class JobQueue:
     def __iter__(self):
         """Create an iterator for going over all elements in the queue."""
         stmt = 'SELECT id, task, job_id, job_state, scheduler FROM job_queue ORDER BY id ASC'
-        result = bdb.getall(self.db_file, stmt)
+        result = bdb.getall(self.db_file, stmt) or []
         for j in result:
             id_ = j[0]
             task = jsonpickle.decode(j[1])
@@ -186,7 +186,16 @@ class TMDB:
 
         bdb.create_table(self.db_file, submit_queue_stmt)
         bdb.create_table(self.db_file, job_queue_stmt)
+        self._ensure_job_queue_scheduler_column()
         bdb.create_table(self.db_file, update_queue_stmt)
+
+    def _ensure_job_queue_scheduler_column(self):
+        """Add scheduler column to job_queue for existing databases."""
+        columns = bdb.getall(self.db_file, 'PRAGMA table_info(job_queue)')
+        column_names = [column[1] for column in columns]
+
+        if 'scheduler' not in column_names:
+            bdb.run(self.db_file, 'ALTER TABLE job_queue ADD COLUMN scheduler TEXT')
 
     @property
     def submit_queue(self):

@@ -73,7 +73,7 @@ def submit_jobs(db):
         task = db.submit_queue.pop()
         scheduler = utils.scheduler_for_task(task)
         worker = utils.worker_interface_for_scheduler(scheduler)
-        log.debug('Submitting task %s with scheduler %s', task.id, scheduler)
+        log.info('Submitting task %s with scheduler %s', task.id, scheduler)
         job_state,job_info = submit_task(db, worker, task, scheduler=scheduler)
         db.update_queue.push(task.workflow_id, task.id, job_state,\
                              task_info=None, metadata=job_info, output=None)
