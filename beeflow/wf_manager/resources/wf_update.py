@@ -143,6 +143,13 @@ class WFUpdate(Resource):
         """Handle a normal state change for a task."""
         wf_id = wfi.workflow_id
         wf_state = wf_utils.get_wf_status(wf_id)
+        if wf_state.startswith("Archived"):
+            # Workflow is already archived; ignore any further task updates
+            log.warning(
+                f"Ignoring state change for task {task.name} of workflow {wf_id} "
+                f"which is already archived; in state {wf_state}."
+            )
+            return
         if state_update.job_state == 'COMPLETED':
             for output in task.outputs:
                 if output.glob is not None:
