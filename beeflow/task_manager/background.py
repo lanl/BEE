@@ -79,8 +79,10 @@ def submit_jobs(db):
                              task_info=None, metadata=job_info, output=None)
 
 
-def update_jobs(db):  # pylint: disable=R0915
+def update_jobs(db):
     """Check and update states of jobs in queue, remove completed jobs."""
+    # pylint: disable=R0915 # (57/50) too many statements
+
     # Need to make a copy first
     job_q = list(db.job_queue)
     for job in job_q: # pylint: disable=R1702 # (7/5) nested blocks
@@ -164,9 +166,14 @@ def update_jobs(db):  # pylint: disable=R0915
                 db.update_queue.push(task.workflow_id, task.id, job_state,
                                     task_info=None,metadata=job_info,output=None)
             else:
-            # Other state (e.g., PENDING)
+		# Other state (e.g., PENDING)
                 db.update_queue.push(task.workflow_id, task.id, new_job_state,
                                     task_info=None,metadata=job_info,output=None)
+
+        # If job still running (not completed, archived, etc) then update wfm
+        elif new_job_state not in COMPLETED_STATES:
+            db.update_queue.push(task.workflow_id, task.id, new_job_state,
+                                task_info=None,metadata=job_info,output=None)
 
         if job_state in COMPLETED_STATES:
             # Remove from the job queue. Our job is finished

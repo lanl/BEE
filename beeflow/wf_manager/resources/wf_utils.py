@@ -265,7 +265,7 @@ def copy_task_output(task):
     )
     task_workdir = task.workdir
     task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
-                f"metadata.txt")
+                f"metadata.yaml")
     if task.stdout:
         stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
     else:
@@ -282,9 +282,9 @@ def copy_task_output(task):
             f"{task.name}-{task.id[:4]}.err"
         )
 
-        shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
+    shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
     shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
-    shutil.copy(task_metadata_path, task_save_path / "metadata.txt")
+    shutil.copy(task_metadata_path, task_save_path / "metadata.yaml")
 
 
 def flatten_metadata_dict(metadata_dict,parent_key='',sep='_',seen_keys=None):
@@ -380,6 +380,6 @@ def clean_dict(metadata_dict):
         "billable_tres_number","current_working_directory"]
 
     for k in list(metadata_dict):
-        if k in excluded_keys:
+        if k in excluded_keys or k.startswith(("_","--")):
             metadata_dict.pop(k,None)
     return metadata_dict
