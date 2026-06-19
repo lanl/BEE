@@ -6,7 +6,8 @@ from beeflow.common.cwl.cwl import (CWL, CWLInput, CWLInputs, RunInput, Inputs, 
                                     Outputs, Run, RunOutput, Step, Steps, Hints,
                                     InputBinding, MPIRequirement, DockerRequirement,
                                     ScriptRequirement, SlurmRequirement,
-                                    CheckpointRequirement, TaskRequirement)
+                                    CheckpointRequirement, TaskRequirement, 
+                                    WorkloadRequirement)
 
 
 @dataclass
@@ -92,6 +93,18 @@ class Slurm(SlurmRequirement):
                 partition=self.partition, qos=self.qos, reservation=self.reservation,
                           signal=self.signal,
                           load_from_file=self.load_from_file)
+
+
+@dataclass
+class Workload:
+   """Get Scheduler Requirements."""
+
+   mode: str = None
+   scheduler: str = None
+
+   def requirement(self):
+      """Return a workload requirement object."""
+      return WorkloadRequirement(mode=self.mode, scheduler=self.scheduler)
 
 
 @dataclass
