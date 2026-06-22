@@ -161,6 +161,18 @@ import pytest
             },
         ),
         (
+            cwl.SlurmRequirement,
+            {
+                "sbatch": "run.sh",
+            },
+            "beeflow:SlurmRequirement:\n  sbatch: run.sh\n",
+            {
+                "beeflow:SlurmRequirement": {
+                    "sbatch": "run.sh",
+                }
+            },
+        ),
+        (
             cwl.CheckpointRequirement,
             {
                 "checkpoint_dir": "checkpoint_output",

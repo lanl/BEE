@@ -213,6 +213,25 @@ class SQLDriver(GraphDatabaseDriver):
         """
         return self.db.get_task_state(task_id)
 
+    def set_task_stdout(self, task_id, stdout):
+        """Set the state of a task's stderr in the graph database.
+
+        :param task_id: the ID of the task whose state to set
+        :type task_id: str
+        :param stdout: the stdout path
+        :type stdout: str
+        """
+        self.db.set_task_stdout(task_id, stdout)
+
+    def set_task_stderr(self, task_id, stderr):
+        """Set the state of a task's stderr in the graph database.
+
+        :param task_id: the ID of the task whose state to set
+        :type task_id: str
+        :param stderr: the stderr path
+        :type stderr: str
+        """
+        self.db.set_task_stderr(task_id, stderr)
 
     def set_task_state(self, task_id, state):
         """Set the state of a task in the graph database.

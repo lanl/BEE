@@ -1,6 +1,6 @@
 """Workflow front end for CWL generator."""
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from beeflow.common.cwl.cwl import (CWL, CWLInput, CWLInputs, RunInput, Inputs, CWLOutput,
                                     Outputs, Run, RunOutput, Step, Steps, Hints,
@@ -91,7 +91,7 @@ class Slurm(SlurmRequirement):
         return SlurmRequirement(time_limit=self.time_limit, account=self.account,
                 partition=self.partition, qos=self.qos, reservation=self.reservation,
                           signal=self.signal,
-                          load_from_file=self.load_from_file)
+                          load_from_file=self.load_from_file, sbatch=self.sbatch)
 
 
 @dataclass
@@ -153,13 +153,14 @@ class TaskReq(TaskRequirement):
         return TaskRequirement(workdir=self.workdir)
 
 
+
 @dataclass
 class Task:
     """Represents a task."""
     name: str
-    base_command: str
-    inputs: list
     outputs: list
+    inputs: list = field(default_factory=list)
+    base_command: str = "true"
     stdout: str = None
     stderr: str = None
     hints: list = None
@@ -175,8 +176,9 @@ class Workflow:
         # Generate a CWL object from a Workflow object.
         cwl_inputs = []
         for task in self.tasks:
-            cwl_inputs.extend([input_.cwl_input()
-                               for input_ in task.inputs if input_.cwl_input() is not None])
+            if task.inputs:
+                cwl_inputs.extend([input_.cwl_input()
+                                   for input_ in task.inputs if input_.cwl_input() is not None])
         cwl_inputs = CWLInputs(cwl_inputs)
 
         cwl_outputs = []

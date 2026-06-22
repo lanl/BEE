@@ -304,6 +304,10 @@ VALIDATOR.option('task_manager', 'runner_opts', default='', prompt=False,
 VALIDATOR.option('task_manager', 'background_interval', default=5,
                  validator=int, prompt=False,
                  info='interval at which the task manager processes queues and updates states')
+VALIDATOR.option('task_manager', 'backup_interval', default=5,
+                 validator=int, prompt=False,
+                 info='interval at which the task manager processes queues and updates states')
+
 
 # Charliecloud (depends on task_manager::container_runtime == Charliecloud)
 VALIDATOR.section('charliecloud', info='Charliecloud configuration section.',
