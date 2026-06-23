@@ -19,8 +19,7 @@ from beeflow.common import log as bee_logging
 import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker.worker import (Worker, WorkerError)
 from beeflow.common import validation
-from beeflow.common.worker.utils import get_state_sacct
-from beeflow.common.worker.utils import parse_key_val
+from beeflow.common.worker.utils import get_state_sacct,parse_key_val,calc_runtime
 
 log = bee_logging.setup(__name__)
 
@@ -258,6 +257,9 @@ class SlurmrestdWorker(BaseSlurmWorker):
                 try:
                     job_state = data['jobs'][0]['job_state'][0]
                     job_info = deepcopy(data['jobs'][0])
+
+                    runtime = calc_runtime(job_state,job_info)
+                    job_info['runtime'] = runtime
 
                 except (KeyError, IndexError) as exc:
                     raise WorkerError(f'Failed to query job {job_id}') from exc
