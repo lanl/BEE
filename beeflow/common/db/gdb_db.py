@@ -628,6 +628,30 @@ class SQL_GDB:
         )
         return task_input
 
+    def set_task_stdout(self, task_id: str, stdout: str):
+        """Set the value of a task's stdout. Only used for jobs with an sbatch.
+
+        :param task_id: the id of the task to set the input for
+        :type task_id: str
+        :param stdout: the path of the stdout file
+        :type stdout: str
+        """
+        bdb.run(self.db_file,
+                'UPDATE task SET stdout=? WHERE id=?',
+                [stdout, task_id])
+
+    def set_task_stderr(self, task_id: str, stderr: str):
+        """Set the value of a task's stderr. Only used for jobs with an sbatch.
+
+        :param task_id: the id of the task to set the input for
+        :type task_id: str
+        :param stderr: the path of the stderr file
+        :type stderr: str
+        """
+        bdb.run(self.db_file,
+                'UPDATE task SET stderr=? WHERE id=?',
+                [stderr, task_id])
+
     def set_task_input(self, task_id: str, input_id: str, value: str):
         """Set the value of a task input.
 

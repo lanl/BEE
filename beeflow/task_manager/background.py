@@ -71,6 +71,7 @@ def submit_jobs(db):
     while db.submit_queue.count() >= 1 and db.job_queue.count() < jobs_limit:
         # Single value dictionary
         task = db.submit_queue.pop()
+        log.info(f"Submitting task {task.workflow_id}")
         scheduler = utils.scheduler_for_task(task)
         worker = utils.worker_interface_for_scheduler(scheduler)
         log.info('Submitting task %s with scheduler %s', task.id, scheduler)
@@ -195,7 +196,9 @@ def process_queues():
     resp = conn.put(utils.wfm_resource_url("update/"), json=state_updates.model_dump())
     if resp.status_code == 200:
         # The workflow manager received the updates, so clear the queue
-        db.update_queue.clear()
+        # ONly clear queue if not empty
+        if db.update_queue.count() > 0:
+            db.update_queue.clear()
     else:
         log.info(resp.json()['error'])
         # Something bad happened so keep the udpates until the next round

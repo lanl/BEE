@@ -382,6 +382,7 @@ class SlurmRequirement:
     qos: str = None
     reservation: str = None
     load_from_file: str = None
+    sbatch: str = None
 
     def dump(self):
         """Dump MPI requirement to dictionary."""
@@ -400,6 +401,8 @@ class SlurmRequirement:
             sched_dump['beeflow:SlurmRequirement']['signal'] = self.signal
         if self.load_from_file:
             sched_dump['beeflow:SlurmRequirement']['load_from_file'] = self.load_from_file
+        if self.sbatch:
+            sched_dump['beeflow:SlurmRequirement']['sbatch'] = self.sbatch
         return sched_dump
 
     def __repr__(self):
@@ -581,6 +584,7 @@ class Run:
         run_dump['run']['stdout'] = self.stdout
         if self.stderr:
             run_dump['run']['stderr'] = self.stderr
+
         run_dump['run'].update(self.inputs.dump())
         run_dump['run'].update(self.outputs.dump())
         return run_dump
@@ -592,11 +596,12 @@ class Run:
         called in the step which holds that run section.
         """
         in_ = {'in': {}}
-        for i in self.inputs.inputs:
-            if i.source:
-                in_['in'][i.input_name] = i.source
-            else:
-                in_['in'][i.input_name] = i.input_name
+        if self.inputs:
+            for i in self.inputs.inputs:
+                if i.source:
+                    in_['in'][i.input_name] = i.source
+                else:
+                    in_['in'][i.input_name] = i.input_name
         return in_
 
     def generate_out(self):

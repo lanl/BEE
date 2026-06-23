@@ -140,3 +140,64 @@ def test_no_slurmrestd(slurmrestd_worker_no_daemon):
     assert state == 'NOT_RESPONDING'
     assert job_state == 'NOT_RESPONDING'
     assert worker.cancel_task(job_id) == 'NOT_RESPONDING'
+
+
+SBATCH_OUT = "/path/to/file/output.txt"
+SBATCH_ERR = "/path/to/file/error.err"
+SBATCH_DEFAULT = "slurm-%j.out"
+
+def make_script(output_directive=None, error_directive=None):
+    script = f"""
+    #!/bin/bash
+{output_directive or ""}
+{error_directive or ""}
+"""
+    return script
+
+@pytest.mark.parametrize(
+    "output_directive, error_directive, expected_stdout, expected_stderr",
+    [
+        pytest.param(None, None, SBATCH_DEFAULT, SBATCH_DEFAULT, id="no-directives"),
+
+        pytest.param(f"#SBATCH --output={SBATCH_OUT}", None, SBATCH_OUT, SBATCH_OUT,
+                     id="output-long-equals"),
+        pytest.param(f"#SBATCH --output {SBATCH_OUT}", None, SBATCH_OUT, SBATCH_OUT,
+                     id="output-long-space"),
+        pytest.param(f"#SBATCH -o {SBATCH_OUT}", None, SBATCH_OUT, SBATCH_OUT,
+                     id="output-short"),
+
+        pytest.param(None, f"#SBATCH --error={SBATCH_ERR}", SBATCH_DEFAULT, SBATCH_ERR,
+                     id="error-long-equals"),
+        pytest.param(None, f"#SBATCH --error {SBATCH_ERR}", SBATCH_DEFAULT, SBATCH_ERR,
+                     id="error-long-space"),
+        pytest.param(None, f"#SBATCH -e {SBATCH_ERR}", SBATCH_DEFAULT, SBATCH_ERR,
+                     id="error-short"),
+
+        pytest.param(f"#SBATCH --output={SBATCH_OUT}", f"#SBATCH --error={SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="both-long-equals"),
+        pytest.param(f"#SBATCH --output {SBATCH_OUT}", f"#SBATCH --error {SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="both-long-space"),
+        pytest.param(f"#SBATCH -o {SBATCH_OUT}", f"#SBATCH -e {SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="both-short"),
+
+        pytest.param(f"#SBATCH -o {SBATCH_OUT}", f"#SBATCH --error={SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="output-short-error-long-equals"),
+        pytest.param(f"#SBATCH --output={SBATCH_OUT}", f"#SBATCH -e {SBATCH_ERR}", 
+                     SBATCH_OUT, SBATCH_ERR, id="output-long-equals-error-short"),
+
+        pytest.param(f"#SBATCH -o {SBATCH_OUT}", f"#SBATCH --error {SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR,id="output-short-error-long-space"),
+        pytest.param(f"#SBATCH --output {SBATCH_OUT}", f"#SBATCH -e {SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="output-long-space--error-short")
+    ]
+)
+def test_parse_output_error(output_directive, error_directive, expected_stdout,
+                            expected_stderr):
+    script = make_script(output_directive, error_directive)
+
+    stdout, stderr = worker_utils.parse_sbatch_output_error(script)
+
+    assert stdout == expected_stdout
+    assert stderr == expected_stderr
+
+

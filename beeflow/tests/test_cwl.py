@@ -161,6 +161,18 @@ import pytest
             },
         ),
         (
+            cwl.SlurmRequirement,
+            {
+                "sbatch": "run.sh",
+            },
+            "beeflow:SlurmRequirement:\n  sbatch: run.sh\n",
+            {
+                "beeflow:SlurmRequirement": {
+                    "sbatch": "run.sh",
+                }
+            },
+        ),
+        (
             cwl.WorkloadRequirement,
             {'mode': 'baremetal'},
             "beeflow:WorkloadRequirement:\n  mode: baremetal\n",

@@ -1,7 +1,8 @@
 """Task Manager utility functions."""
 import os
-from pathlib import Path
 import re
+import getpass
+from pathlib import Path
 from beeflow.common.config_driver import BeeConfig as bc
 from beeflow.common.db import tm_db
 from beeflow.common.db import bdb
@@ -14,11 +15,19 @@ import beeflow.common.worker.utils as worker_utils
 
 log = bee_logging.setup(__name__)
 
-
 def db_path():
-    """Return the TM database path."""
+    """Return the TM backup database path."""
+    user = getpass.getuser()
+    db_workdir = Path(f"/tmp/{user}/BEE")
+    db_workdir.mkdir(exist_ok=True, parents=True)
+    return db_workdir / 'tm.db'
+
+
+def db_backup_path():
+    """Return the TM backup database path."""
     bee_workdir = bc.get('DEFAULT', 'bee_workdir')
-    return os.path.join(bee_workdir, 'tm.db')
+    path = Path(bee_workdir) / 'tm_backup.db'
+    return path
 
 
 def connect_db():
@@ -67,6 +76,30 @@ def scheduler_for_task(task):
     return selected_scheduler
 
 
+def check_tm_db():
+    """Check task manager database and restore if missing."""
+    if db_path().exists():
+        backup_tm_db()
+    else:
+        restore_tm_db()
+
+
+def backup_tm_db():
+    """Backup the task manager database."""
+    db = connect_db()
+    backup_db = db_backup_path()
+    db.backup_db(backup_db)
+    log.info("Backed up task manager database.")
+
+
+def restore_tm_db():
+    """Restore task manager databse from backup."""
+    db = connect_db()
+    backup_db = db_backup_path()
+    db.restore_from_backup(backup_db)
+    log.info("Restored task manager database.")
+
+
 def worker_interface_for_scheduler(wls):
     """Load the worker interface for specific workload scheduler."""
     worker_class = worker.find_worker(wls)
@@ -75,11 +108,11 @@ def worker_interface_for_scheduler(wls):
                            + f'Please check {bc.userconfig_path()} and restart TaskManager.')
     # Get the parameters for the worker classes
     worker_kwargs = {
-        'bee_workdir': bc.get('DEFAULT', 'bee_workdir'),
-        'container_runtime': bc.get('task_manager', 'container_runtime'),
-        # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
-        'runner_opts': bc.get('task_manager', 'runner_opts'),
-    }
+            'bee_workdir': bc.get('DEFAULT', 'bee_workdir'),
+            'container_runtime': bc.get('task_manager', 'container_runtime'),
+            # extra options to be passed to the runner (i.e. srun [RUNNER_OPTS] ... for Slurm)
+            'runner_opts': bc.get('task_manager', 'runner_opts'),
+            }
     # Job defaults
     for default_key in ['default_account', 'default_time_limit', 'default_partition',
                         'default_qos', 'default_reservation']:
@@ -131,13 +164,13 @@ def get_restart_file(task_checkpoint, task_workdir):
     regex = re.compile(file_regex)
     try:
         checkpoint_files = [
-            Path(checkpoint_dir, fname) for fname in os.listdir(checkpoint_dir)
-            if regex.match(fname)
-        ]
+                Path(checkpoint_dir, fname) for fname in os.listdir(checkpoint_dir)
+                if regex.match(fname)
+                ]
     except FileNotFoundError:
         raise CheckpointRestartError(
-            f'Checkpoint checkpoint_dir ("{checkpoint_dir}") not found'
-        ) from None
+                f'Checkpoint checkpoint_dir ("{checkpoint_dir}") not found'
+                ) from None
     checkpoint_files.sort(key=os.path.getmtime)
     try:
         checkpoint_file = checkpoint_files[-1]
@@ -165,8 +198,8 @@ def check_sentinel_restart(task_checkpoint, task_workdir):
     # - If restart_on_file_exists=True: restart when file EXISTS
     # - If restart_on_file_exists=False: restart when file DOES NOT exist
     should_restart = (file_exists and restart_on_file_exists) or \
-                     (not file_exists and not restart_on_file_exists)
+            (not file_exists and not restart_on_file_exists)
     log_msg = f'Sentinel check: file_exists={file_exists}, ' \
-              f'restart_on_file_exists={restart_on_file_exists}, should_restart={should_restart}'
+            f'restart_on_file_exists={restart_on_file_exists}, should_restart={should_restart}'
     log.info(log_msg)
     return should_restart
