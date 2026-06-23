@@ -1,4 +1,8 @@
 """Cloud API tests."""
+
+import pytest
+
+openstack_exists = pytest.importorskip("openstack")
 from beeflow.common.cloud import provider
 
 

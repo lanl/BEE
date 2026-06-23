@@ -2,6 +2,7 @@
 
 from datetime import datetime as dt
 import re
+import shlex
 import subprocess
 from packaging.version import Version
 
@@ -74,3 +75,40 @@ def calc_runtime(job_state,job_info):
     else:
         runtime = '00:00:00'
     return runtime
+
+def resolve_slurm_paths(job_id, task):
+    """Replaces job id placeholder with actual job id."""
+    if task.stdout is not None:
+        task.stdout = task.stdout.replace("%j", str(job_id))
+    if task.stderr is not None:
+        task.stderr = task.stderr.replace("%j", str(job_id))
+
+def parse_sbatch_output_error(sbatch_script):
+    """Parses the stdout and stderr locations from an sbatch script."""
+
+    stdout = None
+    stderr = None
+
+    # By default Slurm sets the output to be a file with this format in the working directory.
+    default_output = "slurm-%j.out"
+    for line in sbatch_script.splitlines():
+        if not line.strip().startswith("#SBATCH"):
+            continue
+        # Just split on the first #SBATCH in case there's something weird
+        args = line.split("#SBATCH", 1)[1]
+
+        it = iter(shlex.split(args))
+        for token in it:
+            if token.startswith("--output="):
+                stdout = token.split("=", 1)[1]
+            elif token in ("--output", "-o"):
+                stdout = next(it, None)
+            elif token.startswith("--error="):
+                stderr = token.split("=", 1)[1]
+            elif token in ("--error", "-e"):
+                stderr = next(it, None)
+    if stdout is None:
+        stdout = default_output
+    if stderr is None:
+        stderr = stdout
+    return stdout, stderr

@@ -398,6 +398,7 @@ TASKS_NOJOB_GOLD = [
     )
 ]
 
+expected_sbatch = str(Path(find("beeflow/tests/run.sh")).resolve())
 
 @pytest.mark.parametrize(
     "requirements, exp_reqs",
@@ -410,6 +411,15 @@ TASKS_NOJOB_GOLD = [
             ],
             [Hint(class_="beeflow:SlurmRequirement", params={"timeLimit": "00:00:10"})],
         ),
+        (
+            [
+                OrderedDict(
+                    [("sbatch", find("beeflow/tests/run.sh")), ("class", "beeflow:SlurmRequirement")]
+                )
+            ],
+            [Hint(class_="beeflow:SlurmRequirement", params={"sbatch": expected_sbatch})],
+        ),
+
         (
             [
                 OrderedDict(
@@ -442,6 +452,7 @@ TASKS_NOJOB_GOLD = [
 def test_parse_requirements_hints(requirements, exp_reqs):
     """Regression test parse_requirements when as_hints=True."""
     parser = CwlParser()
+    parser.path = "."
     reqs = parser.parse_requirements(requirements, as_hints=True)
     assert reqs == exp_reqs
 

@@ -8,10 +8,13 @@ import io
 import subprocess
 import json
 import urllib
+import pathlib
 import getpass
 import requests_unixsocket
 import requests
 
+from beeflow.common.config_driver import BeeConfig as bc
+from beeflow.common.gdb import sqlite3_driver
 from beeflow.common import log as bee_logging
 import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker.worker import (Worker, WorkerError)
@@ -25,7 +28,7 @@ class BaseSlurmWorker(Worker):
     """Base slurm worker code."""
 
     def __init__(self, default_account='', default_time_limit='', default_partition='',
-            default_qos='', default_reservation='', **kwargs):
+                 default_qos='', default_reservation='', **kwargs):
         """Initialize the base slurm worker."""
         super().__init__(**kwargs)
         self.default_account = default_account
@@ -44,7 +47,7 @@ class BaseSlurmWorker(Worker):
     def load_config_from(self, task, req_type):
         """Load a json config of slurm or mpi parameters."""
         config_input_id = task.get_requirement(req_type, 'load_from_file',
-                                                default=None)
+                                               default=None)
         if not config_input_id:
             return {}
 
@@ -65,11 +68,10 @@ class BaseSlurmWorker(Worker):
         nodes = self.get_req(task, 'beeflow:MPIRequirement', 'nodes',  config, default=1)
         ntasks = self.get_req(task, 'beeflow:MPIRequirement', 'ntasks', config, default=nodes)
         mpi_version = self.get_req(task, 'beeflow:MPIRequirement', 'mpiVersion', config,
-           default='')
+                                   default='')
 
-        time_limit_raw = self.get_req(
-            task, 'beeflow:SlurmRequirement', 'timeLimit', config, default=self.default_time_limit
-        )
+        time_limit_raw = self.get_req(task, 'beeflow:SlurmRequirement',
+                                      'timeLimit', config, default=self.default_time_limit)
         time_limit = validation.time_limit(time_limit_raw)
         account = self.get_req(task, 'beeflow:SlurmRequirement', 'account', config,
                                default=self.default_account)
@@ -81,25 +83,25 @@ class BaseSlurmWorker(Worker):
                                    default=self.default_reservation)
 
         signal = self.get_req(task, 'beeflow:SlurmRequirement', 'signal', config,
-                             default=None)
+                              default=None)
         shell = self.get_req(task, 'beeflow:ScriptRequirement', 'shell', config,
                              default="/bin/bash")
         scripts_enabled = self.get_req(task, 'beeflow:ScriptRequirement', 'enabled', config,
                                        default=False)
 
         requirements = {
-            'nodes': nodes,
-            'ntasks': ntasks,
-            'mpi_version': mpi_version,
-            'time_limit': time_limit,
-            'account': account,
-            'partition': partition,
-            'qos': qos,
-            'reservation': reservation,
-            'shell': shell,
-            'signal': signal,
-            'scripts_enabled': scripts_enabled
-        }
+                'nodes': nodes,
+                'ntasks': ntasks,
+                'mpi_version': mpi_version,
+                'time_limit': time_limit,
+                'account': account,
+                'partition': partition,
+                'qos': qos,
+                'reservation': reservation,
+                'shell': shell,
+                'signal': signal,
+                'scripts_enabled': scripts_enabled
+                }
         return requirements
 
     def build_sbatch_header(self, task, requirements):
@@ -113,7 +115,7 @@ class BaseSlurmWorker(Worker):
                 f'#SBATCH -N {requirements["nodes"]}',
                 f'#SBATCH -n {requirements["ntasks"]}',
                 '#SBATCH --open-mode=append',
-        ]
+                ]
         if requirements['time_limit']:
             header.append(f'#SBATCH --time={requirements["time_limit"]}')
         if requirements['account']:
@@ -175,9 +177,9 @@ class BaseSlurmWorker(Worker):
         if requirements['scripts_enabled']:
             # We use StringIO here to properly break the script up into lines with readlines
             pre_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
-                                     'pre_script')).readlines()
+                                                          'pre_script')).readlines()
             post_script = io.StringIO(task.get_requirement('beeflow:ScriptRequirement',
-                                      'post_script')).readlines()
+                                                           'post_script')).readlines()
         # Build script sections
         script = self.build_sbatch_header(task, requirements)
         script.append(crt_res.env_code)
@@ -193,22 +195,38 @@ class BaseSlurmWorker(Worker):
 
         return '\n'.join(script)
 
-    def submit_job(self, script):
+    def submit_job(self, task, script):
         """Worker submits job-returns (job_id, job_state,job_info)."""
-        res = subprocess.run(['sbatch', '--parsable', script], text=True,  # pylint: disable=W1510
+        workdir = task.workdir
+        res = subprocess.run(['sbatch', '--parsable', f"--chdir={workdir}", script], text=True,  # pylint: disable=W1510
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if res.returncode != 0:
             raise WorkerError(f'Failed to submit job: {res.stderr}')
         job_id = int(res.stdout)
+        worker_utils.resolve_slurm_paths(job_id, task)
         job_state,job_info = self.query_task(job_id)
         return job_id, job_state,job_info
 
     def submit_task(self, task):
         """Worker builds & submits script."""
-        task_script = self.write_script(task)
-        job_id, job_state,job_info = self.submit_job(task_script)
-        return job_id,job_state,job_info
+        sbatch_script = task.get_requirement('beeflow:SlurmRequirement', 'sbatch')
+        if sbatch_script:
+            task_contents = pathlib.Path(sbatch_script).read_text(encoding="utf-8")
+            stdout, stderr = worker_utils.parse_sbatch_output_error(task_contents)
+            task.stdout = stdout
+            task.stderr = stderr
+            task_script = sbatch_script
+        else:
+            task_script = self.write_script(task)
 
+        job_id, job_state,job_info = self.submit_job(task, task_script)
+        if sbatch_script and bc.get("graphdb", "type").lower() == "sqlite3":
+            # We do this after job submission for sbatch jobs
+            driver = sqlite3_driver.SQLDriver()
+            driver.connect()
+            driver.set_task_stdout(task.id, task.stdout)
+            driver.set_task_stderr(task.id, task.stderr)
+        return job_id,job_state,job_info
 
 class SlurmrestdWorker(BaseSlurmWorker):
     """Worker class for when slurmrestd is available."""

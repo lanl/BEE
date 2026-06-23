@@ -255,36 +255,40 @@ def start_workflow(wf_id):
     return True
 
 
+def _resolve_output_path(workdir, output_path):
+    output_path = pathlib.Path(output_path)
+
+    if output_path.is_absolute():
+        return output_path
+
+    return pathlib.Path(workdir) / output_path
+
 def copy_task_output(task):
     """Copies stdout, stderr, and metadata information to the task directory in the
         WF archive."""
     bee_workdir = get_bee_workdir()
+    task_name_id = f"{task.name}-{task.id[:4]}"
     # Need to get this from the worker
-    task_save_path = pathlib.Path(
-        f"{bee_workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}"
-    )
-    task_workdir = task.workdir
-    task_metadata_path = pathlib.Path(f"{task_workdir}/{task.name}-{task.id[:4]}/"\
-                f"metadata.yaml")
-    if task.stdout:
-        stdout_path = pathlib.Path(f"{task_workdir}/{task.stdout}")
+    task_save_path = pathlib.Path(bee_workdir) / "workflows" / task.workflow_id / task_name_id
+    task_workdir = pathlib.Path(task.workdir)
+    task_metadata_path = task_workdir / task_name_id / "metadata.txt"
+    if task.stdout is not None:
+        stdout_path = _resolve_output_path(task_workdir, task.stdout)
     else:
-        stdout_path = pathlib.Path(
-            f"{task_workdir}/{task.name}-{task.id[:4]}/"
-            f"{task.name}-{task.id[:4]}.out"
-        )
+        stdout_path = task_workdir / task_name_id / f"{task_name_id}.out"
 
-    if task.stderr:
-        stderr_path = pathlib.Path(f"{task_workdir}/{task.stderr}")
+    if task.stderr is not None:
+        stderr_path = _resolve_output_path(task_workdir, task.stderr)
     else:
-        stderr_path = pathlib.Path(
-            f"{task_workdir}/{task.name}-{task.id[:4]}/"
-            f"{task.name}-{task.id[:4]}.err"
-        )
+        stderr_path = task_workdir / task_name_id / f"{task_name_id}.err"
 
-    shutil.copy(stdout_path, task_save_path / f"{task.name}-{task.id[:4]}.out")
-    shutil.copy(stderr_path, task_save_path / f"{task.name}-{task.id[:4]}.err")
-    shutil.copy(task_metadata_path, task_save_path / "metadata.yaml")
+    shutil.copy(stdout_path, task_save_path / f"{task_name_id}.out")
+    shutil.copy(stderr_path, task_save_path / f"{task_name_id}.err")
+
+    if task_metadata_path.exists():
+        shutil.copy(task_metadata_path, task_save_path / "metadata.txt")
+    else:
+        log.warning("Task metadata file not found: %s", task_metadata_path)
 
 
 def flatten_metadata_dict(metadata_dict,parent_key='',sep='_',seen_keys=None):
