@@ -34,8 +34,9 @@ jobs:
       - name: Cache Dependencies 
         id: cache-deps
         uses: actions/cache@v4
-        path: /usr
-        key: ${{ runner.os }}-${{hashFiles('./ci/env.sh')}}
+        with:
+          path: /usr
+          key: ${{ runner.os }}-${{hashFiles('./ci/env.sh')}}
       - name: Install Dependencies 
         if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         run: |
