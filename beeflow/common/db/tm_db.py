@@ -134,6 +134,12 @@ class UpdateQueue:
                                      'metadata': jsonpickle.encode(metadata),
                                      'output': jsonpickle.encode(output)})
 
+    def count(self):
+        """Count the number of items in the update queue."""
+        stmt = 'SELECT COUNT(*) AS count FROM job_queue'
+        count = bdb.getone(self.db_file, stmt)[0]
+        return count
+
     def updates(self):
         """Get a list of all updates from the update queue."""
         stmt = """SELECT wf_id, task_id, job_state, task_info, metadata, output
@@ -155,10 +161,11 @@ class UpdateQueue:
 class TMDB:
     """Task Manager Database."""
 
-    def __init__(self, db_file):
+    def __init__(self, db_file, backup=False):
         """Construct a new TM database connection."""
-        self.db_file = db_file
-        self._init_tables()
+        if not backup:
+            self.db_file = db_file
+            self._init_tables()
 
     def _init_tables(self):
         """Initialize the workflow tables."""
@@ -184,6 +191,14 @@ class TMDB:
         bdb.create_table(self.db_file, submit_queue_stmt)
         bdb.create_table(self.db_file, job_queue_stmt)
         bdb.create_table(self.db_file, update_queue_stmt)
+
+    def backup_db(self, backup_db):
+        """Backup DB to NFS."""
+        bdb.backup_db(self.db_file, backup_db)
+
+    def restore_from_backup(self, backup_db):
+        """Restore DB from backup DB."""
+        bdb.restore_db(backup_db, self.db_file)
 
     @property
     def submit_queue(self):

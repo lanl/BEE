@@ -141,6 +141,51 @@ def test_workflow_comd(tmpdir):
             expected = f2.read()
             assert actual == expected
 
+def test_workflow_sbatch(tmpdir):
+    """Regression test of sbatch example using the comd workflow."""
+    expected_wf = expected_folder / "comd_sbatch.cwl"
+    expected_yaml = expected_folder / "comd.yml"
+    comd_task = Task(
+        name="comd",
+        base_command="/CoMD/bin/CoMD-mpi -e",
+        stdout="comd.txt",
+        stderr="comd.err",
+        # list of Input objects
+        # The 2s and 40s are the actual value we want these to be
+        # this is how one sets input parameters. Prefix is just the
+        inputs=[
+            Input("i", "int", 2, prefix="-i"),
+            Input("j", "int", 2, prefix="-j"),
+            Input("k", "int", 2, prefix="-k"),
+            Input("x", "int", 40, prefix="-x"),
+            Input("y", "int", 40, prefix="-y"),
+            Input("z", "int", 40, prefix="-z"),
+            Input("pot_dir", "string", "/CoMD/pots", prefix="--potDir"),
+        ],
+        # List of Output objects.
+        # In this case we just have a file that represents stdout.
+        # The important part here is the source field that states
+        #   this output comes from this task
+        outputs=[Output("comd_stdout", "File", source="comd/comd_stdout")],
+        hints=[
+            # The slurm requirement
+            Slurm(sbatch="test_sbatch.sh"),
+        ],
+    )
+    workflow = Workflow("comd", [comd_task])
+    with tmpdir.as_cwd():
+        workflow.dump_wf(".")
+        workflow.dump_yaml(".")
+		# Confirm path is in file
+        with open("comd.cwl", "r") as f1, open(expected_wf, "r") as f2:
+            actual = f1.read()
+            expected = f2.read()
+            assert actual == expected
+        with open("comd.yml", "r") as f1, open(expected_yaml, "r") as f2:
+            actual = f1.read()
+            expected = f2.read()
+            assert actual == expected
+
 
 def test_workflow_checkpoint(tmpdir):
     """Regression test simple workflow with checkpointing."""

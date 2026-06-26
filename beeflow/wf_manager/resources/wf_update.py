@@ -108,6 +108,8 @@ class WFUpdate(Resource):
             task_dir = f'{task_workdir}/{task_name}-{task_id[:4]}'
             metadata_path = os.path.join(task_dir,'metadata.yaml')
 
+            # Create the metadata directory for sbatch runs
+            os.makedirs(task_dir, exist_ok=True)
             if os.path.exists(task_dir):
                 with open(metadata_path,'w',encoding='utf-8') as f:
                     yaml.dump(old_metadata,f,sort_keys=True)
