@@ -326,8 +326,13 @@ A workflow where data download runs locally, processing uses Slurm::
 
     steps:
       download:
-        run: download.cwl  # Has beeflow:WorkloadRequirement mode: baremetal
+        run: download.cwl
         ...
+
+        # Then download.cwl has
+         hints:
+           beeflow:WorkloadRequirement
+             mode: baremetal
 
       process:
         run: process.cwl  # Uses default scheduler (Slurm)
