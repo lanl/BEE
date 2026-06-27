@@ -9,6 +9,7 @@ services is specified using the appropriate flag(s) then ONLY those services
 will be started.
 """
 import os
+import getpass
 import signal
 import subprocess
 import socket
@@ -670,6 +671,13 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
                 handle_rm_error(err, dir_to_delete, workflow_list)
             else:
                 print(f"{dir_to_delete} has been removed.")
+            # Remove temp directory for tm.db
+            tmp_dir = f"/tmp/{getpass.getuser()}/BEE"
+            if Path(tmp_dir).exists():
+                try:
+                    shutil.rmtree(tmp_dir)
+                except OSError as err:
+                    print(f"Could not remvove {tmp_dir}: {err}")
             sys.exit()
         print("Please respond with either the letter (y) or (n).")
 
