@@ -576,19 +576,6 @@ def archive_dir(dir_to_archive):
           f"{backup_dir}")
 
 
-#def handle_rm_error(err, dir_to_check, wf_list):
-#    """Handle IO error caused by either initializing workflows or nfs files."""
-#    # Check if only nfs mounts are causing the problem and ignore
-#    dir_list = os.listdir(dir_to_check)
-#    nfs_list = [x for x in dir_list if x.startswith('.nfs')]
-#    if dir_list and (dir_list != nfs_list):
-#        print(f"Unable to remove {dir_to_check} \n {err.strerror}")
-#        # Often initializing workflows cause a problem
-#        if any('Initializing' in sublist for sublist in wf_list):
-#            warn('Initializing workflows may have prevented removal.\n')
-#            print(f"Try removing {dir_to_check} manually, to complete reset.")
-
-
 @app.command()
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
