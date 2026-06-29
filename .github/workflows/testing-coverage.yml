@@ -35,7 +35,31 @@ jobs:
         id: cache-deps
         uses: actions/cache@v4
         with:
-          path: /usr
+          path: |
+            /usr/bin/ch-fromhost
+            /usr/bin/ch-image
+            /usr/bin/ch-run-oci
+            /usr/bin/ch-test
+            /usr/lib/charliecloud
+            /usr/libexec/charliecloud
+            /usr/lib/slurm
+            /usr/bin/sacct
+            /usr/bin/sacctmgr
+            /usr/bin/salloc
+            /usr/bin/sattach
+            /usr/bin/sbatch
+            /usr/bin/sbcast
+            /usr/bin/scancel
+            /usr/bin/scontrol
+            /usr/bin/scrontab
+            /usr/bin/sdiag
+            /usr/bin/sinfo
+            /usr/bin/squeue
+            /usr/bin/sreport
+            /usr/bin/srun
+            /usr/bin/sshare
+            /usr/bin/sstat
+            /usr/bin/strigger
           key: ${{ runner.os }}-${{hashFiles('./ci/env.sh')}}
       - name: Install Dependencies 
         if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
@@ -97,7 +121,31 @@ jobs:
         id: cache-deps
         uses: actions/cache@v4
         with:
-          path: /usr
+          path: |
+            /usr/bin/ch-fromhost
+            /usr/bin/ch-image
+            /usr/bin/ch-run-oci
+            /usr/bin/ch-test
+            /usr/lib/charliecloud
+            /usr/libexec/charliecloud
+            /usr/lib/slurm
+            /usr/bin/sacct
+            /usr/bin/sacctmgr
+            /usr/bin/salloc
+            /usr/bin/sattach
+            /usr/bin/sbatch
+            /usr/bin/sbcast
+            /usr/bin/scancel
+            /usr/bin/scontrol
+            /usr/bin/scrontab
+            /usr/bin/sdiag
+            /usr/bin/sinfo
+            /usr/bin/squeue
+            /usr/bin/sreport
+            /usr/bin/srun
+            /usr/bin/sshare
+            /usr/bin/sstat
+            /usr/bin/strigger
           key: ${{ runner.os }}-${{ hashFiles('./ci/env.sh') }}
       - name: Install Dependencies
         if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
