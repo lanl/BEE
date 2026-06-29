@@ -729,7 +729,7 @@ def list_workflows():
         data = []
         for wf_info in workflow_list:
             data.append([wf_info.wf_name, _short_id(wf_info.wf_id), wf_info.wf_status])
-        table = tabulate(data, headers=headers, tablefmt="plain")
+        table = tabulate(data, headers=headers, tablefmt="plain", disable_numparse=True)
         typer.echo(table)
     else:
         typer.echo("There are currently no workflows.")
