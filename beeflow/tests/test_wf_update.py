@@ -137,3 +137,34 @@ def test_handle_state_change_completed_wf(
     else:
         mock_log_info.assert_not_called()
         mock_archive_workflow.assert_not_called()
+def test_skip_task_handlers_when_task_does_not_exist(mocker):
+    """Skip task-specific handlers when task does not exist."""
+    state_update = mocker.MagicMock()
+    state_update.wf_id = "WF_ID"
+    state_update.task_id = "NO_TASK_ID"
+    state_update.job_state = "SUBMIT"
+
+    wfi = mocker.MagicMock()
+    wfi.get_task_by_id.return_value = None
+
+    mocker.patch(
+        "beeflow.wf_manager.resources.wf_utils.get_workflow_interface",
+        return_value=wfi,
+    )
+
+    workflow_update = wf_update.WFUpdate()
+    mock_handle_metadata = mocker.patch.object(workflow_update, "handle_metadata")
+    mock_handle_checkpoint_restart = mocker.patch.object(
+        workflow_update, "handle_checkpoint_restart"
+    )
+    mock_handle_state_change = mocker.patch.object(
+        workflow_update, "handle_state_change"
+    )
+
+    workflow_update.update_task_state(state_update)
+
+    wfi.get_task_by_id.assert_called_once_with("NO_TASK_ID")
+    wfi.set_task_state.assert_called_once_with("NO_TASK_ID", "SUBMIT")
+    mock_handle_metadata.assert_not_called()
+    mock_handle_checkpoint_restart.assert_not_called()
+    mock_handle_state_change.assert_not_called()
