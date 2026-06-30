@@ -655,7 +655,8 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             if archive:
                 archive_dir(dir_to_delete)
             core_utils.remove_bee_workdir(dir_to_delete, workflow_list, warn)
-            core_utils.remove_dir(f"/tmp/{getpass.getuser()}/BEE")
+            tm_db_path = f"/tmp/{getpass.getuser()}/BEE"
+            core_utils.remove_dir(tm_db_path)
             sys.exit()
         print("Please respond with either the letter (y) or (n).")
 
