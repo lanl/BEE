@@ -12,7 +12,6 @@ This generator creates directory, write-script, containing:
      write-script.cwl
      write-script.cwl
      batch.sh - contains the commands defined by RUN_SH
-     write-batch.sh - blank file (required by CWL parser)
 
 The workflow specification has two tasks, creating jobs:
     write: copies batch.sh to write-batch.sh
@@ -76,8 +75,6 @@ def main():
          f.write(RUN_SH)
 
    #Create blank file parser is looking for
-    path = Path("write-script/batch_script.sh")
-    path.touch()
 
 if __name__ == "__main__":
     main()
