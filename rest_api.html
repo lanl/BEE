@@ -7,6 +7,7 @@
   <title>BEEflow REST API &mdash; BEE: Build and Execution Environment  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -34,7 +35,7 @@
               <img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.10
+                0.1.12.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -93,6 +94,27 @@ The REST API was created primarily for the purpose of connecting CI resources to
 <dd class="field-even"><p>True</p>
 </dd>
 </dl>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading"></a></h2>
+<p>The following sequence of commands can be used to remotely prepare and submit workflows to the system:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>beeflow remote connection $SSH_TARGET # check the connection to the Beeflow client
+beeflow remote core-status $SSH_TARGET # Check the status of Beeflow and the components
+beeflow remote droppoint $SSH_TARGET # get the drop point location on the remote machine
+beeflow remote copy $USER $SSH_TARGET $PATH # copy path for the workflow to the droppoint
+beeflow remote submit $SSH_TARGET $WF_NAME $TARBALL $MAIN_CWL $YAML # submit the workflow
+</pre></div>
+</div>
+<p>Example of preparing and remotely submitting the cat-grep-tar workflow:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>beeflow remote droppoint $SSH_TARGET
+beeflow package $BEE_PATH/examples/cat-grep-tar .
+beeflow remote copy $USER $SSH_TARGET cat-grep-tar.tgz
+mkdir cat-grep-tar-workdir
+cp $BEE_PATH/examples/cat-grep-tar/lorem.txt cat-grep-tar-workdir
+beeflow remote copy $USER $SSH_TARGET cat-grep-tar-workdir
+beeflow remote submit $SSH_TARGET test_remote cat-grep-tar.tgz workflow.cwl input.yml
+</pre></div>
+</div>
+</section>
 <section id="endpoints">
 <h2>Endpoints<a class="headerlink" href="#endpoints" title="Permalink to this heading"></a></h2>
 <dl class="py function">

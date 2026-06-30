@@ -7,6 +7,7 @@
   <title>Command Line Interface &mdash; BEE: Build and Execution Environment  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -36,7 +37,7 @@
               <img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.10
+                0.1.12.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -111,7 +112,7 @@
 </dl>
 <p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">status</span></code>: Check the status of beeflow and the components.</p>
 <p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">info</span></code>: Get information about beeflow, including .beeflow directory location, log location, and version number.</p>
-<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">stop</span></code>: Stop running beeflow components. Active workflows will be paused. You may continue running paused workflows with the <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">resume</span> <span class="pre">&lt;wf_id&gt;</span></code> command. Once you start beeflow components after a stop, you should check the status of workflows, query any running workflows. If they were intializing when a <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">stop</span></code> was issued, the workflow may be running with tasks stuck in the waiting state. If this occurs and you want the workflow to continue pause and resume the workflow (<code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">pause</span> <span class="pre">&lt;wf_id&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">resume</span> <span class="pre">&lt;wf_id&gt;</span></code>) or to start over cancel the workflow (<code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">cancel</span> <span class="pre">&lt;wf_id&gt;</span></code>) and resubmit it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">stop</span></code>: Stop running beeflow components. Active workflows will be paused. You may continue running paused workflows with the <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">resume</span> <span class="pre">&lt;wf_id&gt;</span></code> command. Once you start beeflow components after a stop, you should check the status of workflows, query any running workflows. If they were intializing when a <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">stop</span></code> was issued, the workflow may be running with tasks stuck in the waiting state. If this occurs and you want the workflow to continue pause and resume the workflow (<code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">pause</span> <span class="pre">&lt;wf_id&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">resume</span> <span class="pre">&lt;wf_id&gt;</span></code>) or to start over cancel the workflow (<code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">cancel</span> <span class="pre">&lt;wf_id&gt;</span></code>) and resubmit it. Please check that it has archived before resubmitting it.</p>
 <p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">--version</span></code>: Display the version number of BEE.</p>
 <p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">core</span> <span class="pre">reset</span></code>: Stop the beeflow daemon and cleanup the bee_workdir directory to start from a fresh install.</p>
 <dl class="simple">
@@ -172,24 +173,36 @@ into the copied WF_PATH directory before packaging and submission.</p>
 </ul>
 </dd>
 </dl>
-<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">pause</span></code>: Pause a workflow (Running tasks will finish)</p>
+<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">pause</span></code>: Pause a workflow(s) (Running tasks will finish)</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>WF_ID  [required]</p>
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p>WF_IDS  [required] Space separated list of workflow IDs to pause (can be just one).</p></li>
+<li><p>-a, - -all to pause all running workflows</p></li>
+</ul>
 </dd>
 </dl>
-<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">resume</span></code>: Resume a paused workflow.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">resume</span></code>: Resume a paused workflow(s).</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>WF_ID  [required]</p>
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p>WF_IDS  [required] Space separated list of workflow IDs to resume (can be just one).</p></li>
+<li><p>-a, - -all to resume all paused workflows</p></li>
+</ul>
 </dd>
 </dl>
-<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">cancel</span></code>: Cancel a workflow.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">cancel</span></code>: Cancel a workflow(s).</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>WF_ID  [required]</p>
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p>WF_IDS  [required] Space separated list of workflow IDs to cancel (can be just one).</p></li>
+<li><p>-a, - -all to cancel all running or paused workflows</p></li>
+</ul>
 </dd>
 </dl>
-<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">remove</span></code>: Remove cancelled or archived workflow and it’s information.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">remove</span></code>: Remove cancelled or archived workflow(s) and associated information.</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>WF_ID  [required]</p>
+<dt>Arguments:</dt><dd><ul class="simple">
+<li><p>WF_IDS  [required] Space separated list of workflow IDs to remove (can be just one).</p></li>
+<li><p>-a, - -all to remove all workflows, will not remove running workflows</p></li>
+</ul>
 </dd>
 </dl>
 <p><code class="docutils literal notranslate"><span class="pre">beeflow</span> <span class="pre">copy</span></code>: Copy an archived workflow.</p>

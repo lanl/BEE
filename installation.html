@@ -7,6 +7,7 @@
   <title>Installation Guide &mdash; BEE: Build and Execution Environment  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -36,7 +37,7 @@
               <img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.10
+                0.1.12.dev1
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -98,7 +99,7 @@
 <section id="requirements">
 <h2>Requirements:<a class="headerlink" href="#requirements" title="Permalink to this heading"></a></h2>
 <ul>
-<li><p><strong>Python version 3.8 (or greater)</strong></p></li>
+<li><p><strong>Python version 3.11 to 3.14</strong></p></li>
 <li><dl class="simple">
 <dt><a class="reference external" href="https://hpc.github.io/charliecloud/">Charliecloud</a> <strong>version 0.34 (or greater)</strong></dt><dd><p>Charliecloud is installed on Los Alamos National Laboratory (LANL) clusters and can be invoked via <code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">load</span> <span class="pre">charliecloud</span></code> before running beeflow. If you are on a system that does not have the module, <a class="reference external" href="https://hpc.github.io/charliecloud/">Charliecloud</a> is easily installed in user space and requires no privileges to install. To insure Charliecloud is available in subsequent runs add <code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">load</span> <span class="pre">charliecloud</span></code> (or if you installed it <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">PATH=&lt;path_to_ch-run&gt;:$PATH</span></code>) to your .bashrc (or other appropriate shell initialization file). BEE runs dependencies from a Charliecloud container and uses it to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.</p>
 </dd>
@@ -149,7 +150,7 @@ information or help run: <code class="docutils literal notranslate"><span class=
 </section>
 <section id="starting-up-the-bee-components">
 <h3>Starting up the BEE components:<a class="headerlink" href="#starting-up-the-bee-components" title="Permalink to this heading"></a></h3>
-<p>To start the components (scheduler, slurmrestd(SLURM only), workflow manager, and task manager) simply run:</p>
+<p>To start the components (slurmrestd(SLURM only), workflow manager, and task manager) simply run:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span> <span class="n">core</span> <span class="n">start</span>
 </pre></div>
 </div>
@@ -159,7 +160,6 @@ information or help run: <code class="docutils literal notranslate"><span class=
 </div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span> <span class="n">components</span><span class="p">:</span>
 <span class="n">redis</span> <span class="o">...</span> <span class="n">RUNNING</span>
-<span class="n">scheduler</span> <span class="o">...</span> <span class="n">RUNNING</span>
 <span class="n">celery</span> <span class="o">...</span> <span class="n">RUNNING</span>
 <span class="n">slurmrestd</span> <span class="o">...</span> <span class="n">RUNNING</span>
 <span class="n">wf_manager</span> <span class="o">...</span> <span class="n">RUNNING</span>
