@@ -36,7 +36,7 @@ def resolve_environment(task):
     """
     build_main(task)
 
-def submit_task(db, worker, task):
+def submit_task(db, worker, task, scheduler=None):
     """Submit (or resubmit) a task."""
     try:
         has_container = task.get_full_requirement('DockerRequirement')
@@ -47,7 +47,7 @@ def submit_task(db, worker, task):
         job_id, job_state,job_info = worker.submit_task(task)
         log.info(f"Job Submitted '{task.name}' job_id: {job_id} job_state: {job_state}")
         # place job in queue to monitor
-        db.job_queue.push(task=task, job_id=job_id, job_state=job_state)
+        db.job_queue.push(task=task, job_id=job_id, job_state=job_state, scheduler=scheduler)
     except ContainerBuildError as err:
         job_info = {}
         job_state = 'BUILD_FAIL'
@@ -68,12 +68,14 @@ def submit_task(db, worker, task):
 
 def submit_jobs(db):
     """Submit all jobs currently in submit queue to the workload scheduler."""
-    worker = utils.worker_interface()
     while db.submit_queue.count() >= 1 and db.job_queue.count() < jobs_limit:
         # Single value dictionary
         task = db.submit_queue.pop()
         log.info(f"Submitting task {task.workflow_id}")
-        job_state,job_info = submit_task(db, worker, task)
+        scheduler = utils.scheduler_for_task(task)
+        worker = utils.worker_interface_for_scheduler(scheduler)
+        log.info('Submitting task %s with scheduler %s', task.id, scheduler)
+        job_state,job_info = submit_task(db, worker, task, scheduler=scheduler)
         db.update_queue.push(task.workflow_id, task.id, job_state,\
                              task_info=None, metadata=job_info, output=None)
 
@@ -82,7 +84,6 @@ def update_jobs(db):
     """Check and update states of jobs in queue, remove completed jobs."""
     # pylint: disable=R0915 # (57/50) too many statements
 
-    worker = utils.worker_interface()
     # Need to make a copy first
     job_q = list(db.job_queue)
     for job in job_q: # pylint: disable=R1702 # (7/5) nested blocks
@@ -90,6 +91,8 @@ def update_jobs(db):
         task = job.task
         job_id = job.job_id
         job_state = job.job_state
+        scheduler = job.scheduler or utils.default_scheduler()
+        worker = utils.worker_interface_for_scheduler(scheduler)
 
         if job_state in COMPLETED_STATES:
             # Completed states don't change. Remove from the job queue and move to the next job.
@@ -97,7 +100,8 @@ def update_jobs(db):
             continue
 
         try:
-            new_job_state,job_info = worker.query_task(job_id)
+            job_info_input = {'workflow_id': task.workflow_id}
+            new_job_state, job_info = worker.query_task(job_id, job_info=job_info_input)  # pylint: disable=E1123
 
         except WorkerError as err:
             log.warning(f'Failed to query job {job_id}: {err}')
@@ -159,7 +163,7 @@ def update_jobs(db):
                 # Don't update wfm, just resubmit
                 log.info(f'Resubmitting task {task.name}')
                 db.job_queue.remove_by_id(id_)
-                job_state,job_info = submit_task(db, worker, task)
+                job_state,job_info = submit_task(db, worker, task, scheduler=scheduler)
                 db.update_queue.push(task.workflow_id, task.id, job_state,
                                     task_info=None,metadata=job_info,output=None)
             else:

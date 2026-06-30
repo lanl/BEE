@@ -141,6 +141,7 @@ Contents of mpi_conf.json::
      "ntasks": 32
    }
 
+
 beeflow:CheckpointRequirement
 -----------------------------
 
@@ -302,6 +303,49 @@ Example pre-script to preserve outputs during Checkpoint/Restarts (bash)
 
      # Restore default globbing behavior
      shopt -u nullglob
+
+
+beeflow:WorkloadRequirement
+----------------------------
+This requirement is designed to specify where an individual task should execute.
+It allows a workflow to run tasks locally through the Simple worker, as well as,
+submit them to a workload manager such as Slurm or Flux.
+
+The supported parameters are:
+
+* ``mode`` - ``baremetal`` or ``scheduler``. If omitted, ``scheduler`` is assumed.
+* ``scheduler`` - Optional scheduler name to use with ``mode`` is ``scheduler``, such
+as ``Slurm`` or ``Flux``.
+
+Note, this requirement is optional. If not provided, beeflow uses the configured
+default workload scheduler, preserving the usual behavior.
+
+**Example 1: Mixed execution workflow**
+
+A workflow where data download runs locally, processing uses Slurm::
+
+    steps:
+      download:
+        run: download.cwl
+        ...
+
+        # Then download.cwl has
+         hints:
+           beeflow:WorkloadRequirement
+             mode: baremetal
+
+      process:
+        run: process.cwl  # Uses default scheduler (Slurm)
+        ...
+
+**Example 2: Force specific scheduler**
+
+Override default scheduler for a specific task::
+
+    hints:
+      beeflow:WorkloadRequirement:
+        mode: scheduler
+        scheduler: Flux
 
 
 beeflow:SlurmRequirement

@@ -62,18 +62,19 @@ class JobQueue:
     def __init__(self, db_file):
         """Construct a job queue handler."""
         self.db_file = db_file
-        self.Job = namedtuple("Task", "id task job_id job_state") # pylint: disable=C0103
+        self.Job = namedtuple("Task", "id task job_id job_state scheduler") # pylint: disable=C0103
 
     def __iter__(self):
         """Create an iterator for going over all elements in the queue."""
-        stmt = 'SELECT id, task, job_id, job_state FROM job_queue ORDER BY id ASC'
-        result = bdb.getall(self.db_file, stmt)
+        stmt = 'SELECT id, task, job_id, job_state, scheduler FROM job_queue ORDER BY id ASC'
+        result = bdb.getall(self.db_file, stmt) or []
         for j in result:
             id_ = j[0]
             task = jsonpickle.decode(j[1])
             job_id = j[2]
             state = j[3]
-            job = self.Job(id_, task, job_id, state)
+            scheduler = j[4]
+            job = self.Job(id_, task, job_id, state, scheduler)
             yield job
 
     def count(self):
@@ -82,22 +83,23 @@ class JobQueue:
         count = bdb.getone(self.db_file, stmt)[0]
         return count
 
-    def push(self, task, job_id, job_state):
+    def push(self, task, job_id, job_state, scheduler=None):
         """Push the job info onto the queue."""
         task_data = jsonpickle.encode(task)
-        stmt = """INSERT INTO job_queue (task, job_id, job_state)
-               VALUES (?, ?, ?)"""
-        bdb.run(self.db_file, stmt, [task_data, job_id, job_state])
+        stmt = """INSERT INTO job_queue (task, job_id, job_state, scheduler)
+               VALUES (?, ?, ?, ?)"""
+        bdb.run(self.db_file, stmt, [task_data, job_id, job_state, scheduler])
 
     def pop(self):
         """Pop the bottom element off the queue."""
-        stmt = 'SELECT id, task, job_id, job_state FROM job_queue ORDER BY id ASC'
+        stmt = 'SELECT id, task, job_id, job_state, scheduler FROM job_queue ORDER BY id ASC'
         result = bdb.getone(self.db_file, stmt)
         id_ = result[0]
         task = jsonpickle.decode(result[1])
         job_id = result[2]
         state = result[3]
-        job = self.Job(id_, task, job_id, state)
+        scheduler = result[4]
+        job = self.Job(id_, task, job_id, state, scheduler)
         bdb.run(self.db_file, 'DELETE FROM job_queue WHERE id=?', [id_])
         return job
 
@@ -177,7 +179,8 @@ class TMDB:
                         id INTEGER PRIMARY KEY ASC,
                         task TEXT,
                         job_id INTEGER,
-                        job_state TEXT)"""
+                        job_state TEXT,
+                        scheduler TEXT)"""
 
         update_queue_stmt = """CREATE TABLE IF NOT EXISTS update_queue(
                         id INTEGER PRIMARY KEY ASC,
@@ -190,7 +193,16 @@ class TMDB:
 
         bdb.create_table(self.db_file, submit_queue_stmt)
         bdb.create_table(self.db_file, job_queue_stmt)
+        self._ensure_job_queue_scheduler_column()
         bdb.create_table(self.db_file, update_queue_stmt)
+
+    def _ensure_job_queue_scheduler_column(self):
+        """Add scheduler column to job_queue for existing databases."""
+        columns = bdb.getall(self.db_file, 'PRAGMA table_info(job_queue)')
+        column_names = [column[1] for column in columns]
+
+        if 'scheduler' not in column_names:
+            bdb.run(self.db_file, 'ALTER TABLE job_queue ADD COLUMN scheduler TEXT')
 
     def backup_db(self, backup_db):
         """Backup DB to NFS."""

@@ -26,7 +26,7 @@ class LSFWorker(Worker):
         # Check for extra runner options
         self.runner_opts = kwargs['runner_opts'] if 'runner_opts' in kwargs else ''
 
-    def query_job(self, job_id):
+    def query_job(self, job_id, job_info=None):  # pylint: disable=W0613
         """Query lsf for job status."""
         job_st = subprocess.check_output(['bjobs', '-aX', str(job_id), '-noheader'],
                                          stderr=subprocess.STDOUT)
@@ -48,12 +48,12 @@ class LSFWorker(Worker):
         job_id, job_state = self.submit_job(task_script)
         return job_id, job_state
 
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):  # pylint: disable=W0613
         """Worker queries job; returns job_state."""
         job_state = self.query_job(job_id)
         return job_state
 
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):  # pylint: disable=W0613
         """Worker cancels job, returns job_state."""
         subprocess.check_output(['bkill', str(job_id)], stderr=subprocess.STDOUT)
         job_state = "CANCELLED"

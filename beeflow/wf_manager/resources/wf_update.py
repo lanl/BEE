@@ -178,6 +178,11 @@ class WFUpdate(Resource):
         """Update the state of a single task from the task manager."""
         wfi = wf_utils.get_workflow_interface(state_update.wf_id)
         task = wfi.get_task_by_id(state_update.task_id)
+
+        if task is None:
+            log.error(f"Task {state_update.task_id} not found in workflow {state_update.wf_id}")
+            return
+
         wfi.set_task_state(state_update.task_id, state_update.job_state)
 
         # Check if task exists, since it may not have been submitted yet

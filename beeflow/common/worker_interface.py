@@ -36,20 +36,24 @@ class WorkerInterface:
         # Then submit it to the worker
         return self._worker.submit_task(task)
 
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Cancel job for task with job_id.
 
         :param job_id: job_id to be cancelled
         :type job_id: integer
+        :param job_info: optional job metadata
+        :type job_info: dict or None
         :rtype: string
         """
-        return self._worker.cancel_task(job_id)
+        return self._worker.cancel_task(job_id, job_info=job_info)
 
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):
         """Query state of job with job_id; returns job_state.
 
         :param job_id: job id to query for status.
         :type job_id: int
-        :rtype: tuple (int, string)
+        :param job_info: optional job metadata
+        :type job_info: dict or None
+        :rtype: tuple (string, dict)
         """
-        return self._worker.query_task(job_id)
+        return self._worker.query_task(job_id, job_info=job_info)

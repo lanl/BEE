@@ -32,15 +32,18 @@ class TaskActions(Resource):
     def delete():
         """Cancel received from WFM to cancel job, update queue to monitor state."""
         db = utils.connect_db()
-        worker = utils.worker_interface()
         cancel_msg = ""
         for job in db.job_queue:
             task_id = job.task.id
             job_id = job.job_id
             name = job.task.name
-            log.info(f"Cancelling {name} with job_id: {job_id}")
+            scheduler = job.scheduler or utils.default_scheduler()
+            worker = utils.worker_interface_for_scheduler(scheduler)
+            log.info(f"Cancelling {name} with job_id: {job_id} using scheduler: {scheduler}")
             try:
-                job_state = worker.cancel_task(job_id)
+                # Pass workflow_id via job_info for SimpleWorker
+                job_info = {'workflow_id': job.task.workflow_id}
+                job_state = worker.cancel_task(job_id, job_info=job_info)  # pylint: disable=E1123
             except Exception as err:  # pylint: disable=W0718 # we have to catch everything here
                 log.error(err)
                 log.error(traceback.format_exc())
