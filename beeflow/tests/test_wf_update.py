@@ -97,6 +97,27 @@ def test_handle_state_change_failed_task(mocker, job_state):
     mock_archive_workflow.assert_not_called()
 
 
+@pytest.mark.parametrize("wf_state", ["Archived", "Archived/Partial-Fail"])
+def test_handle_state_change_archived_wf(mocker, wf_state):
+    """Don't process task updates for an already archived workflow."""
+    state_update = mocker.MagicMock()
+    state_update.job_state = "COMPLETED"
+    task = mocker.MagicMock()
+    task.name = "TestTask"
+    wfi = mocker.MagicMock()
+    wfi.workflow_id = "TESTID"
+    mock_archive_workflow = mocker.patch(
+        "beeflow.wf_manager.resources.wf_update.archive_workflow"
+    )
+    mocker.patch("beeflow.wf_manager.resources.wf_utils.get_wf_status", return_value=wf_state)
+    mock_log_info = mocker.patch("logging.Logger.info")
+    workflow_update = wf_update.WFUpdate()
+    workflow_update.handle_state_change(state_update, task, wfi)
+    mock_archive_workflow.assert_not_called()
+    wfi.finalize_task.assert_not_called()
+    mock_log_info.assert_not_called()
+
+
 @pytest.mark.parametrize(
     "completed, cancelled_completed, wf_state",
     [
