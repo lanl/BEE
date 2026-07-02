@@ -30,43 +30,29 @@ jobs:
     # available on 20.04
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Cache Dependencies 
-        id: cache-deps
-        uses: actions/cache@v4
-        # Test to see if caching actually worked
-        with:
-          path: |
-            /usr/bin/ch-fromhost
-            /usr/bin/ch-image
-            /usr/bin/ch-run-oci
-            /usr/bin/ch-test
-            /usr/lib/charliecloud
-            /usr/libexec/charliecloud
-            /usr/lib/slurm
-            /usr/bin/sacct
-            /usr/bin/sacctmgr
-            /usr/bin/salloc
-            /usr/bin/sattach
-            /usr/bin/sbatch
-            /usr/bin/sbcast
-            /usr/bin/scancel
-            /usr/bin/scontrol
-            /usr/bin/scrontab
-            /usr/bin/sdiag
-            /usr/bin/sinfo
-            /usr/bin/squeue
-            /usr/bin/sreport
-            /usr/bin/srun
-            /usr/bin/sshare
-            /usr/bin/sstat
-            /usr/bin/strigger
-          key: ${{ runner.os }}-${{hashFiles('./ci/env.sh')}}
-      - name: Install Dependencies 
-        if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
+      - uses: actions/checkout@v5
+      - name: Load Versions
         run: |
           . ./ci/env.sh
-          ./ci/deps_install.sh
+          echo "CHARLIECLOUD_VERSION=$CHARLIECLOUD_VERSION" >> $GITHUB_ENV
+          echo "SLURM_VERSION=$SLURM_VERSION" >> $GITHUB_ENV
+      - name: Cache Charliecloud and Slurm Builds
+        id: cache-builds
+        uses: actions/cache@v5
+        with:
+          path: |
+            charliecloud-${CHARLIECLOUD_VERSION}
+            slurm-${SLURM_VERSION}
+          key: ${{ runner.os }}-builds-${{ hashFiles('./ci/env.sh') }}
+      - name: Build and Configure Charliecloud and Slurm 
+        if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
+        run: |
+          . ./ci/env.sh
+          ./ci/deps_build.sh
+      - name: Install Charliecloud and Slurm
+        run: |
+          ./configure --prefix=/usr
+          sudo make install
       - name: Install and Configure
         run: |
           . ./ci/env.sh
@@ -74,6 +60,7 @@ jobs:
           echo "SLURM_CONF=$SLURM_CONF" >> $GITHUB_ENV
           echo "BEE_WORKDIR=$BEE_WORKDIR" >> $GITHUB_ENV
           echo "BEE_CONFIG=$BEE_CONFIG" >> $GITHUB_ENV 
+          ./ci/deps_install.sh
           ./ci/batch_scheduler.sh
           ./ci/bee_install.sh
           ./ci/bee_config.sh
@@ -94,13 +81,13 @@ jobs:
           cp -R $BEE_CONFIG bee-error-logs || true
       - name: Upload bee error logs
         if: failure()    # only when the job fails
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: bee-error-logs-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}
           path: bee-error-logs
           if-no-files-found: ignore
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}
           include-hidden-files: true
@@ -116,46 +103,33 @@ jobs:
     # available on 20.04
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      # Test to see if caching actually worked
-      - name: Cache Dependencies 
-        id: cache-deps
-        uses: actions/cache@v4
-        with:
-          path: |
-            /usr/bin/ch-fromhost
-            /usr/bin/ch-image
-            /usr/bin/ch-run-oci
-            /usr/bin/ch-test
-            /usr/lib/charliecloud
-            /usr/libexec/charliecloud
-            /usr/lib/slurm
-            /usr/bin/sacct
-            /usr/bin/sacctmgr
-            /usr/bin/salloc
-            /usr/bin/sattach
-            /usr/bin/sbatch
-            /usr/bin/sbcast
-            /usr/bin/scancel
-            /usr/bin/scontrol
-            /usr/bin/scrontab
-            /usr/bin/sdiag
-            /usr/bin/sinfo
-            /usr/bin/squeue
-            /usr/bin/sreport
-            /usr/bin/srun
-            /usr/bin/sshare
-            /usr/bin/sstat
-            /usr/bin/strigger
-          key: ${{ runner.os }}-${{ hashFiles('./ci/env.sh') }}
-      - name: Install Dependencies
-        if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
+      - uses: actions/checkout@v5
+      - name: Load Versions
         run: |
           . ./ci/env.sh
-          ./ci/deps_install.sh
+          echo "CHARLIECLOUD_VERSION=$CHARLIECLOUD_VERSION" >> $GITHUB_ENV
+          echo "SLURM_VERSION=$SLURM_VERSION" >> $GITHUB_ENV
+      - name: Cache Charliecloud and Slurm Builds 
+        id: cache-builds
+        uses: actions/cache@v5
+        with:
+          path: |
+            charliecloud-${CHARLIECLOUD_VERSION}
+            slurm-${SLURM_VERSION}
+          key: ${{ runner.os }}-builds-${{ hashFiles('./ci/env.sh') }}
+      - name: Build and Configure Charliecloud and Slurm
+        if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
+        run: |
+          . ./ci/env.sh
+          ./ci/deps_build.sh
+      - name: Install Charliecloud and Slurm 
+        run: |
+          ./configure --prefix=/usr
+          sudo make install
       - name: Install and Configure
         run: |
           . ./ci/env.sh
+          ./ci/deps_install.sh
           ./ci/batch_scheduler.sh
           ./ci/bee_install.sh
           ./ci/bee_config.sh
@@ -165,7 +139,7 @@ jobs:
           ./ci/unit_tests.sh
           mv .coverage ".coverage.unittests"
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-unit-tests
           include-hidden-files: true
@@ -176,7 +150,7 @@ jobs:
     name: Coverage
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -184,43 +158,43 @@ jobs:
           python-version: '3.11'
 
       - name: Get unit test coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: coverage-unit-tests
           path: ./
 
       # - name: Get Slurmrestd+neo4j coverage
-      #   uses: actions/download-artifact@v4
+      #   uses: actions/download-artifact@v6
       #   with:
       #     name: coverage-Slurmrestd-neo4j
       #     path: ./
       
       - name: Get Slurmrestd+sqlite3 coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: coverage-Slurmrestd-sqlite3
           path: ./
       
       # - name: Get SlurmCommands+neo4j coverage
-      #   uses: actions/download-artifact@v4
+      #   uses: actions/download-artifact@v6
       #   with:
       #     name: coverage-SlurmCommands-neo4j
       #     path: ./
       
       - name: Get SlurmCommands+sqlite3 coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: coverage-SlurmCommands-sqlite3
           path: ./
       
       # - name: Get Flux+neo4j coverage
-      #   uses: actions/download-artifact@v4
+      #   uses: actions/download-artifact@v6
       #   with:
       #     name: coverage-Flux-neo4j
       #     path: ./
       
       - name: Get Flux+sqlite3 coverage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: coverage-Flux-sqlite3
           path: ./
