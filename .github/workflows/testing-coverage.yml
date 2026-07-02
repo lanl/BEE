@@ -31,36 +31,37 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
-      - name: Install Dependencies 
-        run: ./ci/deps_install.sh
-      - name: Load Versions
-        run: |
-          . ./ci/env.sh
-          echo "CHARLIECLOUD_VERSION=$CHARLIECLOUD_VERSION" >> $GITHUB_ENV
-          echo "SLURM_VERSION=$SLURM_VERSION" >> $GITHUB_ENV
-      - name: Cache Charliecloud and Slurm Builds
-        id: cache-builds
+      - name: Cache Dependencies 
+        id: cache-deps
         uses: actions/cache@v5
         with:
-          path: |
-            charliecloud-${{ env.CHARLIECLOUD_VERSION }}
-            slurm-${{ env.SLURM_VERSION }}
-          key: ${{ runner.os }}-builds-${{ hashFiles('./ci/env.sh') }}
-      - name: Build and Configure Charliecloud and Slurm 
-        if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
+          path: ${{ github.workspace }}/deps
+          key: ${{ runner.os }}-deps-${{ hashFiles('./ci/env.sh') }}
+      - name: Move Dependencies 
+        if: ${{ steps.cache-deps.outputs.cache-hit == 'true' }}
+        run: sudo cp -r ${{ github.workspace }}/deps/. usr/
+      - name: Install and Move Dependencies 
+        if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
-          ./ci/deps_build.sh
-      - name: Install Charliecloud 
+          ./ci/deps_install.sh
+          sudo cp -r ${{ github.workspace }}/deps/. usr/
+      - name: Install Flux 
+        if: ${{ env.BEE_WORKER == 'Flux' }}
+        id: cache-flux
+        uses: actions/cache@v5
+        with:
+          path: ${{ github.workspace }}/deps
+          key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh') }}
+      - name: Move Flux Dependencies 
+        if: ${{ steps.cache-flux.outputs.cache-hit == 'true' }} && ${{ env.BEE_WORKER == 'Flux' }}
+        run: sudo cp -r ${{ github.workspace }}/deps/. usr/
+      - name: Install and Move Flux Dependencies 
+        if: ${{steps.cache-flux.outputs.cache-hit != 'true' }} && ${{ env.BEE_WORKER == 'Flux' }}
         run: |
-          cd "charliecloud-${CHARLIECLOUD_VERSION}"
-          ./configure --prefix=/usr
-          sudo make install
-      - name: Install Slurm
-        run: |
-          cd "slurm-${SLURM_VERSION}"
-          ./configure --prefix=/usr
-          sudo make install
+          . ./ci/env.sh
+          ./ci/flux_install.sh
+          sudo cp -r ${{ github.workspace }}/deps/. usr/
       - name: Install and Configure
         run: |
           . ./ci/env.sh
@@ -111,36 +112,21 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
-      - name: Install Dependencies 
-        run: ./ci/deps_install.sh
-      - name: Load Versions
-        run: |
-          . ./ci/env.sh
-          echo "CHARLIECLOUD_VERSION=$CHARLIECLOUD_VERSION" >> $GITHUB_ENV
-          echo "SLURM_VERSION=$SLURM_VERSION" >> $GITHUB_ENV
-      - name: Cache Charliecloud and Slurm Builds 
-        id: cache-builds
+      - name: Cache Dependencies 
+        id: cache-deps
         uses: actions/cache@v5
         with:
-          path: |
-            charliecloud-${{ env.CHARLIECLOUD_VERSION }}
-            slurm-${{ env.SLURM_VERSION }}
-          key: ${{ runner.os }}-builds-${{ hashFiles('./ci/env.sh') }}
-      - name: Build and Configure Charliecloud and Slurm
-        if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
+          path: ${{ github.workspace }}/deps
+          key: ${{ runner.os }}-deps-${{ hashFiles('./ci/env.sh') }}
+      - name: Move Dependencies 
+        if: ${{ steps.cache-deps.outputs.cache-hit == 'true' }}
+        run: sudo cp -r ${{ github.workspace }}/deps/. /usr
+      - name: Install and Move Dependencies 
+        if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
-          ./ci/deps_build.sh
-      - name: Install Charliecloud 
-        run: |
-          cd "charliecloud-${CHARLIECLOUD_VERSION}"
-          ./configure --prefix=/usr
-          sudo make install
-      - name: Install Slurm
-        run: |
-          cd "slurm-${SLURM_VERSION}"
-          ./configure --prefix=/usr
-          sudo make install
+          ./ci/deps_install.sh
+          sudo cp -r ${{ github.workspace }}/deps/. /usr
       - name: Install and Configure
         run: |
           . ./ci/env.sh
