@@ -51,8 +51,14 @@ jobs:
         run: |
           . ./ci/env.sh
           ./ci/deps_build.sh
-      - name: Install Charliecloud and Slurm
+      - name: Install Charliecloud 
         run: |
+          cd charliecloud-${CHARLIECLOUD_VERSION}
+          ./configure --prefix=/usr
+          sudo make install
+      - name: Install Slurm
+        run:
+          cd slurm-${SLURM_VERSION}
           ./configure --prefix=/usr
           sudo make install
       - name: Install and Configure
@@ -125,8 +131,14 @@ jobs:
         run: |
           . ./ci/env.sh
           ./ci/deps_build.sh
-      - name: Install Charliecloud and Slurm 
+      - name: Install Charliecloud 
         run: |
+          cd charliecloud-${CHARLIECLOUD_VERSION}
+          ./configure --prefix=/usr
+          sudo make install
+      - name: Install Slurm
+        run: |
+          cd slurm-${SLURM_VERSION}
           ./configure --prefix=/usr
           sudo make install
       - name: Install and Configure
