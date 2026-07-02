@@ -57,7 +57,9 @@ jobs:
           key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh') }}
       - name: Move Flux Dependencies 
         if: steps.cache-flux.outputs.cache-hit == 'true' && env.BEE_WORKER == 'Flux' 
-        run: sudo cp -r ${{ github.workspace }}/deps/. /usr
+        run: |
+          sudo cp -r ${{ github.workspace }}/deps/. /usr
+          sudo ldconfig
       - name: Install and Move Flux Dependencies 
         if: steps.cache-flux.outputs.cache-hit != 'true' && env.BEE_WORKER == 'Flux' 
         run: |
