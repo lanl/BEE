@@ -56,14 +56,20 @@ jobs:
           path: ${{ github.workspace }}/deps
           key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh') }}
       - name: Move Flux Dependencies 
-        if: ${{ steps.cache-flux.outputs.cache-hit == 'true' }} && ${{ env.BEE_WORKER == 'Flux' }}
+        if: steps.cache-flux.outputs.cache-hit == 'true' && env.BEE_WORKER == 'Flux' 
         run: sudo cp -r ${{ github.workspace }}/deps/. /usr
       - name: Install and Move Flux Dependencies 
-        if: ${{steps.cache-flux.outputs.cache-hit != 'true' }} && ${{ env.BEE_WORKER == 'Flux' }}
+        if: steps.cache-flux.outputs.cache-hit != 'true' && env.BEE_WORKER == 'Flux' 
         run: |
           . ./ci/env.sh
           ./ci/flux_install.sh
           sudo cp -r ${{ github.workspace }}/deps/. /usr
+      - name: Install Flux Python Bindings
+        if: env.BEE_WORKER == 'Flux'
+        run: |
+          . ./ci/env.sh
+          python3 -m pip install --user wheel
+          python3 -m pip install --user flux-python==$FLUX_CORE_VERSION
       - name: Install and Configure
         run: |
           . ./ci/env.sh

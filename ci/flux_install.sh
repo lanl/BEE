@@ -57,6 +57,3 @@ git clone --depth 1 -b v${FLUX_CORE_VERSION} https://github.com/flux-framework/f
  make
  sudo make install
  sudo ldconfig)
-# Install the python API
-python3 -m pip install --user wheel
-python3 -m pip install --user flux-python==$FLUX_CORE_VERSION
