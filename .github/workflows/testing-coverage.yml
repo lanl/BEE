@@ -39,13 +39,13 @@ jobs:
           key: ${{ runner.os }}-deps-${{ hashFiles('./ci/env.sh') }}
       - name: Move Dependencies 
         if: ${{ steps.cache-deps.outputs.cache-hit == 'true' }}
-        run: sudo cp -r ${{ github.workspace }}/deps/. usr/
+        run: sudo cp -r ${{ github.workspace }}/deps/. /usr
       - name: Install and Move Dependencies 
         if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
           ./ci/deps_install.sh
-          sudo cp -r ${{ github.workspace }}/deps/. usr/
+          sudo cp -r ${{ github.workspace }}/deps/. /usr
       - name: Install Flux 
         if: ${{ env.BEE_WORKER == 'Flux' }}
         id: cache-flux
@@ -55,13 +55,13 @@ jobs:
           key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh') }}
       - name: Move Flux Dependencies 
         if: ${{ steps.cache-flux.outputs.cache-hit == 'true' }} && ${{ env.BEE_WORKER == 'Flux' }}
-        run: sudo cp -r ${{ github.workspace }}/deps/. usr/
+        run: sudo cp -r ${{ github.workspace }}/deps/. /usr
       - name: Install and Move Flux Dependencies 
         if: ${{steps.cache-flux.outputs.cache-hit != 'true' }} && ${{ env.BEE_WORKER == 'Flux' }}
         run: |
           . ./ci/env.sh
           ./ci/flux_install.sh
-          sudo cp -r ${{ github.workspace }}/deps/. usr/
+          sudo cp -r ${{ github.workspace }}/deps/. /usr
       - name: Install and Configure
         run: |
           . ./ci/env.sh
