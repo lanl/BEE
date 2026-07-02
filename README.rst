@@ -47,11 +47,11 @@ BEE Sites
      - Documentation
 
    * - Stable release
-     - ``0.1.11``
+     - ``0.1.12``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
    * - Pre-release
-     - ``0.1.12dev0``
-     - `https://lanl.github.io/BEE/0.1.12dev1/ <https://lanl.github.io/BEE/0.1.12dev1/>`__
+     - ``0.1.13dev0``
+     - `https://lanl.github.io/BEE/0.1.13dev0/ <https://lanl.github.io/BEE/0.1.13dev0/>`__
 
 
 Contact
