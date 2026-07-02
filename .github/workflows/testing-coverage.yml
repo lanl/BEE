@@ -43,8 +43,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            charliecloud-${CHARLIECLOUD_VERSION}
-            slurm-${SLURM_VERSION}
+            charliecloud-${{ env.CHARLIECLOUD_VERSION }}
+            slurm-${{ env.SLURM_VERSION }}
           key: ${{ runner.os }}-builds-${{ hashFiles('./ci/env.sh') }}
       - name: Build and Configure Charliecloud and Slurm 
         if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
@@ -53,12 +53,12 @@ jobs:
           ./ci/deps_build.sh
       - name: Install Charliecloud 
         run: |
-          cd charliecloud-${CHARLIECLOUD_VERSION}
+          cd "charliecloud-${CHARLIECLOUD_VERSION}"
           ./configure --prefix=/usr
           sudo make install
       - name: Install Slurm
-        run:
-          cd slurm-${SLURM_VERSION}
+        run: |
+          cd "slurm-${SLURM_VERSION}"
           ./configure --prefix=/usr
           sudo make install
       - name: Install and Configure
@@ -123,8 +123,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            charliecloud-${CHARLIECLOUD_VERSION}
-            slurm-${SLURM_VERSION}
+            charliecloud-${{ env.CHARLIECLOUD_VERSION }}
+            slurm-${{ env.SLURM_VERSION }}
           key: ${{ runner.os }}-builds-${{ hashFiles('./ci/env.sh') }}
       - name: Build and Configure Charliecloud and Slurm
         if: ${{ steps.cache-builds.outputs.cache-hit != 'true' }}
@@ -133,12 +133,12 @@ jobs:
           ./ci/deps_build.sh
       - name: Install Charliecloud 
         run: |
-          cd charliecloud-${CHARLIECLOUD_VERSION}
+          cd "charliecloud-${CHARLIECLOUD_VERSION}"
           ./configure --prefix=/usr
           sudo make install
       - name: Install Slurm
         run: |
-          cd slurm-${SLURM_VERSION}
+          cd "slurm-${SLURM_VERSION}"
           ./configure --prefix=/usr
           sudo make install
       - name: Install and Configure
