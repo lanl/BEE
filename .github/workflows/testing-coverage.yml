@@ -31,8 +31,11 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
-      - name: Install Initial Dependencies 
+      - name: Install Initial Dependencies  
         run: ./ci/deps_install.sh
+      - name: Install Flux Dependencies 
+        if: env.BEE_WORKER == 'Flux'
+        run: ./ci/flux_deps.sh
       - name: Cache Dependencies 
         id: cache-deps
         uses: actions/cache@v5
