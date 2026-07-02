@@ -31,6 +31,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
+      - name: Install Initial Dependencies 
+        run: ./ci/deps_install.sh
       - name: Cache Dependencies 
         id: cache-deps
         uses: actions/cache@v5
@@ -44,7 +46,7 @@ jobs:
         if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
-          ./ci/deps_install.sh
+          ./ci/deps_build.sh
           sudo cp -r ${{ github.workspace }}/deps/. /usr
       - name: Install Flux 
         if: ${{ env.BEE_WORKER == 'Flux' }}
@@ -112,6 +114,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
+      - name: Install Initial Dependencies 
+        run: ./ci/deps_install.sh
       - name: Cache Dependencies 
         id: cache-deps
         uses: actions/cache@v5
@@ -125,7 +129,7 @@ jobs:
         if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
-          ./ci/deps_install.sh
+          ./ci/deps_build.sh
           sudo cp -r ${{ github.workspace }}/deps/. /usr
       - name: Install and Configure
         run: |
