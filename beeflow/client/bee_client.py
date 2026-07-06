@@ -736,10 +736,17 @@ def list_workflows():
 
 
 @app.command()
-def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
+def query(wf_id: Optional[str] = typer.Argument(None)):
     """Get the status of a workflow."""
     # wf_id is a tuple with the short version and long version
-    long_wf_id = wf_id
+    if wf_id is None:
+        workflow_list = get_wf_list()
+        if not workflow_list:
+            typer.echo("There are currently no workflows avaliable.")
+            return None, None
+        long_wf_id = workflow_list[-1].wf_id
+    else:
+        long_wf_id = match_short_id(wf_id)
     try:
         conn = _wfm_conn()
         resp = conn.get(_resource(long_wf_id), timeout=60)
