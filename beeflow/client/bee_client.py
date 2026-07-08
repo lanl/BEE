@@ -285,8 +285,10 @@ def check_short_id_collision():
         print("There are currently no jobs.")
 
 
-def match_short_id(wf_id):
+def match_short_id(wf_id: Optional[str]):
     """Match user-provided short workflow ID to full workflow IDs."""
+    if wf_id is None:
+        return None
     matched_ids = []
     workflow_list = get_wf_list()
     if workflow_list:
@@ -736,7 +738,7 @@ def list_workflows():
 
 
 @app.command()
-def query(wf_id: Optional[str] = typer.Argument(None)):
+def query(wf_id: Optional[str] = typer.Argument(None, callback=match_short_id)):
     """Get the status of a workflow."""
     # wf_id is a tuple with the short version and long version
     if wf_id is None:
@@ -746,7 +748,7 @@ def query(wf_id: Optional[str] = typer.Argument(None)):
             return None, None
         long_wf_id = workflow_list[-1].wf_id
     else:
-        long_wf_id = match_short_id(wf_id)
+        long_wf_id = wf_id
     try:
         conn = _wfm_conn()
         resp = conn.get(_resource(long_wf_id), timeout=60)
