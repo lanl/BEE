@@ -7,7 +7,8 @@ Capablities include submitting, starting, listing, pausing and cancelling workfl
 
 # Disable W0511: This allows us to have TODOs in the code
 # Disable R1732: Significant code restructuring required to fix
-# pylint:disable=W0511,R1732
+# Disable C0302: This allows module to exceed maximum number of lines
+# pylint:disable=W0511,R1732,C0302
 import os
 import sys
 import logging
