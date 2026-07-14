@@ -83,6 +83,7 @@ Contributors:
 * Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
 * Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
 * Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
+* Santiago Lopez - `santiag0-3 <https://github.com/santiag0-3>`_
 
 Concept and Design Contributors
 
