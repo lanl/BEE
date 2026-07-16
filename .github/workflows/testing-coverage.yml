@@ -160,43 +160,36 @@ jobs:
           pip install coverage
           coverage combine
           coverage report --show-missing
-
-      - name: Run test coverage
+       
+      - name: Add coverage to job summary
         run: |
-          coverage report -m
-          coverage xml
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          coverage report --show-missing >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          coverage report --fail-under=55
 
       - name: Coverage Badge
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'push'
         run: |
+          coverage xml
           pip install -U genbadge defusedxml
           genbadge coverage -i coverage.xml -o coverage.svg
 
       - name: Verify Changed Files
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'push'
         uses: tj-actions/verify-changed-files@v20
         id: verify-changed-files
         with:
           files: |
             *.svg
 
-      - name: Commit files
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
+      - name: Commit and push coverage badge
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'push'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add coverage.svg
           git commit -m "Updated coverage.svg"
-
-      - name: Fetch latest changes again
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
-        run: |
-          git fetch origin
-          git rebase origin/${{ github.event.pull_request.head.ref }}
-
-      - name: Push changes
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.github_token }}
-          branch: ${{ github.event.pull_request.head.ref }}
+          git push 
