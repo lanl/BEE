@@ -1,5 +1,8 @@
 name: Testing and Coverage
 
+permissions:
+  contents: read
+
 on:
   # For manual exec
   # (https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
@@ -105,6 +108,8 @@ jobs:
     needs: [integration-test, unit-test]
     name: Coverage
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -183,18 +188,18 @@ jobs:
           path: ./coverage.svg
 
       - name: Verify Changed Files
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: tj-actions/verify-changed-files@v20
         id: verify-changed-files
         with:
           files: |
-            *.svg
+            coverage.svg
 
       - name: Commit and push coverage badge
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'push'
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add coverage.svg
           git commit -m "Updated coverage.svg"
-          git push 
+          git push
