@@ -171,11 +171,16 @@ jobs:
           coverage report --fail-under=55
 
       - name: Coverage Badge
-        if: github.event_name == 'push'
         run: |
           coverage xml
           pip install -U genbadge defusedxml
           genbadge coverage -i coverage.xml -o coverage.svg
+
+      - name: Upload coverage badge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badge
+          path: ./coverage.svg
 
       - name: Verify Changed Files
         if: github.event_name == 'push'
