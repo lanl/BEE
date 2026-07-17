@@ -511,7 +511,7 @@ class ConfigGenerator:
                 # Check for a default value
                 if (not interactive or option.prompt is False) and this_default is not None:
                     value = option.validate(this_default)
-                    print(f'Setting option "{opt_name}" to default value "{value}".')
+                    print(f'Setting option (test)"{opt_name}" to default value "{value}".')
                     print()
                     self.sections[sec_name][opt_name] = value
                     continue
