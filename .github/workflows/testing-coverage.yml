@@ -187,6 +187,13 @@ jobs:
           name: coverage-badge
           path: ./coverage.svg
 
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        # used a commit hash because this action doesn't allow the use of version tags
+        uses: py-cov-action/python-coverage-comment-action@5d8df5979747514c914e1c5a12335a7cf9a2745f
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+
       - name: Verify Changed Files
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: tj-actions/verify-changed-files@v20
