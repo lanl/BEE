@@ -194,6 +194,7 @@ jobs:
         with:
           coverageFile: coverage.xml
           token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Code Coverage"
 
       - name: Verify Changed Files
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
