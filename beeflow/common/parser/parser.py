@@ -402,11 +402,6 @@ class CwlParser:
         if not path.is_absolute():
             path = base_path / path
         path = path.resolve()
-
-        if not path.exists():
-            msg = f"Could not find a file for {key}: {items[key]}"
-            raise CwlParseError(msg) from None
-
         items[key] = str(path)
 
     def _validate_prepost_shell_env(self, key, items, fname):

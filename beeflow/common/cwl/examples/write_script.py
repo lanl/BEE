@@ -12,10 +12,9 @@ This generator creates directory, write-script, containing:
      write-script.cwl
      write-script.cwl
      batch.sh - contains the commands defined by RUN_SH
-     write-batch.sh - blank file (required by CWL parser)
 
 The workflow specification has two tasks, creating jobs:
-    write: copies batch.sh to write-batch.sh
+    write: copies batch.sh to write-batch.sh (new file)
     sbatch: runs write-batch.sh
 
 Commands to create and run the workflow (assumes beeflow is running):
@@ -74,10 +73,6 @@ def main():
 
     with open("write-script/batch.sh", "w") as f:
          f.write(RUN_SH)
-
-   #Create blank file parser is looking for
-    path = Path("write-script/batch_script.sh")
-    path.touch()
 
 if __name__ == "__main__":
     main()

@@ -9,6 +9,7 @@ services is specified using the appropriate flag(s) then ONLY those services
 will be started.
 """
 import os
+import getpass
 import signal
 import subprocess
 import socket
@@ -29,7 +30,9 @@ from beeflow.common.config_driver import AlterConfig
 from beeflow.common import cli_connection
 from beeflow.common import paths
 from beeflow.wf_manager.resources import wf_utils
+from beeflow.client import core_utils
 import beeflow.common.worker.utils as worker_utils
+
 
 from beeflow.common.deps import container_manager
 from beeflow.common.deps import neo4j_manager
@@ -573,19 +576,6 @@ def archive_dir(dir_to_archive):
           f"{backup_dir}")
 
 
-def handle_rm_error(err, dir_to_check, wf_list):
-    """Handle IO error caused by either initializing workflows or nfs files."""
-    # Check if only nfs mounts are causing the problem and ignore
-    dir_list = os.listdir(dir_to_check)
-    nfs_list = [x for x in dir_list if x.startswith('.nfs')]
-    if dir_list and (dir_list != nfs_list):
-        print(f"Unable to remove {dir_to_check} \n {err.strerror}")
-        # Often initializing workflows cause a problem
-        if any('Initializing' in sublist for sublist in wf_list):
-            warn('Initializing workflows may have prevented removal.\n')
-            print(f"Try removing {dir_to_check} manually, to complete reset.")
-
-
 @app.command()
 def reset(archive: bool = typer.Option(False, '--archive', '-a',
                                        help='Archive bee_workdir  before removal')):
@@ -636,13 +626,13 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
     A reset will:
         Shutdown beeflow and all BEE components (if running).
         Delete the bee_workdir directory which results in:
-            Removing the archive of all workflows.
+            Removing the archive of all workflows
                 (unless archives is configured elsewhere).
             Removing the archive of workflow containers
                 (unless container_archive is configured elsewhere).
             Reset all databases associated with the beeflow app.
             Removing all beeflow logs.
-    Beeflow configuration files from bee_cfg will not be deleted.
+    Beeflow configuration files will not be deleted.
     """)
     warn(f"{caution}\nAre you sure you want to reset?")
     while absolutely_sure != "y" or absolutely_sure != "n":
@@ -664,12 +654,9 @@ def reset(archive: bool = typer.Option(False, '--archive', '-a',
             # Save the bee_workdir directory if the archive option was set
             if archive:
                 archive_dir(dir_to_delete)
-            try:
-                shutil.rmtree(dir_to_delete)
-            except OSError as err:
-                handle_rm_error(err, dir_to_delete, workflow_list)
-            else:
-                print(f"{dir_to_delete} has been removed.")
+            core_utils.remove_bee_workdir(dir_to_delete, workflow_list, warn)
+            tm_db_path = f"/tmp/{getpass.getuser()}/BEE"
+            core_utils.remove_dir(tm_db_path)
             sys.exit()
         print("Please respond with either the letter (y) or (n).")
 

@@ -69,7 +69,8 @@ an update to that same version.
 8. After the RELEASE (e.g. 0.1.11) is published:
 
    Create and merge PR into develop to include:
-     - change the version in pyproject.toml to be 0.1.12dev (use latest +1)
+     - change the version in pyproject.toml to be 0.1.12dev (use latest +1 so 12)
+     - change the location for the pre-release documentation in README.rst
 
    Consider starting a pre-release tag so documentation is updated
    and delete previous pre-release tags on PyPi
