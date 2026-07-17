@@ -173,7 +173,7 @@ jobs:
           coverage report --show-missing >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-          coverage report --fail-under=55
+          coverage report --fail-under=60
 
       - name: Coverage Badge
         run: |
@@ -193,6 +193,8 @@ jobs:
         uses: py-cov-action/python-coverage-comment-action@5d8df5979747514c914e1c5a12335a7cf9a2745f
         with:
           GITHUB_TOKEN: ${{ github.token }}
+          ANNOTATE_MISSING_LINES: false
+          MINIMUM_GREEN: 60
 
       - name: Verify Changed Files
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
