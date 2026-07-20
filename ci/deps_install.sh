@@ -34,7 +34,7 @@ curl -fL \
 
 mkdir "$SLURM_DIR"
 
-tar -xvf SLURM_ARCHIVE" \
+tar -xzvf "$SLURM_ARCHIVE" \
     --strip-components=1 \
     -C "$SLURM_DIR"
 (
