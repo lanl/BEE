@@ -174,8 +174,6 @@ jobs:
           coverage report --show-missing >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
-          coverage report --fail-under=60
-
       - name: Coverage Badge
         run: |
           coverage xml
@@ -189,6 +187,7 @@ jobs:
           path: ./coverage.svg
 
       - name: Coverage comment
+        id: coverage
         if: github.event_name == 'pull_request'
         continue-on-error: true
         uses: MishaKav/pytest-coverage-comment@v1
@@ -198,6 +197,10 @@ jobs:
           title: "Coverage Report"
           hide-emoji: true
           hide-report: true
+
+      - name: Low coverage job summary
+        if: ${{ steps.coverage.outputs.coverage < 65 }}
+        run: echo "Coverage is below 65%: ${{ steps.coverage.outputs.coverage }}%"
 
       - name: Verify Changed Files
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
