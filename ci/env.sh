@@ -14,6 +14,7 @@ export SLURMD_LOG=$LOG_DIR/slurmd.log
 export SLURM_USER=`whoami`
 export SLURMRESTD_SECURITY=disable_user_check
 export SLURM_VERSION=24.11.7
+export SLURM_TAG="slurm-24-11-7"
 export MUNGE_SOCKET=/tmp/munge.sock
 export MUNGE_LOG=/tmp/munge.log
 export MUNGE_PID=/tmp/munge.pid
