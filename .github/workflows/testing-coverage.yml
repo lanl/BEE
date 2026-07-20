@@ -190,11 +190,14 @@ jobs:
 
       - name: Coverage comment
         if: github.event_name == 'pull_request'
-        uses: orgoro/coverage@v3.2
+        continue-on-error: true
+        uses: MishaKav/pytest-coverage-comment@v1
         with:
-          coverageFile: coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Code Coverage"
+          pytest-xml-coverage-path: coverage.xml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Coverage Report"
+          hide-emoji: true
+          hide-report: true
 
       - name: Verify Changed Files
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
