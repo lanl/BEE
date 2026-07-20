@@ -228,7 +228,7 @@ DEFAULT_SCHED_PORT = 5100 + OFFSET
 
 DEFAULT_NEO4J_IMAGE = join_path('/usr/projects/BEE/neo4j.tar.gz')
 DEFAULT_REDIS_IMAGE = join_path('/usr/projects/BEE/redis.tar.gz')
-DEFAULT_SQLITE3 = join_path('/usr/bin/sqlite3')
+DEFAULT_SQLITE3 = join_path(shutil.which('sqlite3'))
 DEFAULT_SPACK_ENV = join_path(shutil.which("spack"))
 
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
