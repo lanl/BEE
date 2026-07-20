@@ -20,7 +20,13 @@ tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz --strip-components=1 -C cha
  sudo make install)
 
 # Install Slurm
-curl -O -L https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2
+curl -fL \
+  --retry 5 \
+  --retry-delay 15 \
+  --retry-all-errors \
+  --connect-timeout 30 \
+  --max-time 300 \
+  -O  https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2
 tar -xvf slurm-${SLURM_VERSION}.tar.bz2
 (cd slurm-${SLURM_VERSION}
  ./configure --prefix=/usr --enable-cgroupv2
