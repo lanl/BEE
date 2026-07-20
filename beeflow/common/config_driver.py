@@ -226,9 +226,10 @@ DEFAULT_WFM_PORT = 5000 + OFFSET
 DEFAULT_TM_PORT = 5050 + OFFSET
 DEFAULT_SCHED_PORT = 5100 + OFFSET
 
-DEFAULT_NEO4J_IMAGE = join_path('/usr/projects/BEE/beeflow/neo4j.tar.gz')
+DEFAULT_NEO4J_IMAGE = join_path('/usr/projects/BEE/neo4j.tar.gz')
 DEFAULT_REDIS_IMAGE = join_path('/usr/projects/BEE/redis.tar.gz')
 DEFAULT_SQLITE3 = join_path('/usr/bin/sqlite3')
+DEFAULT_SPACK_ENV = join_path(shutil.which("spack"))
 
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 DEFAULT_BEE_ARCHIVE_DIR = join_path(DEFAULT_BEE_WORKDIR, 'archives')
@@ -275,25 +276,31 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs', prompt=False)
 
-VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
-                 default=False, info='Use the redis container image or spack',
-                 prompt=False)
-if NEO4J_IMAGE:
-    VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
-                     default=NEO4J_IMAGE, info='neo4j container image',
-                     input_fn=filepath_completion_input, prompt=True)
-else:
+if SQLITE3:
     VALIDATOR.option('DEFAULT', 'sqlite3', validator=validation.file_,
                      default=SQLITE3, info='sqlite3 graph database',
                      input_fn=filepath_completion_input, prompt=True)
+    
+elif NEO4J_IMAGE:
+    VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
+                     default=NEO4J_IMAGE, info='neo4j container image',
+                     input_fn=filepath_completion_input, prompt=True)
+if DEFAULT_SPACK_ENV:
+    VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.file_,
+                 default=DEFAULT_SPACK_ENV, info='Spack environment path',
+                 input_fn=filepath_completion_input, prompt=True)
 
-VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
+    VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
+                 default=False, info='Use the redis container image or spack',
+                 prompt=False)
+elif REDIS_IMAGE: 
+    VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  default=REDIS_IMAGE, info='redis container image',
                  input_fn=filepath_completion_input, prompt=True)
 
-VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.dir_,
-                 default='.', info='Spack environment path',
-                 input_fn=filepath_completion_input, prompt=False)
+    VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
+                 default=True, info='Use the redis container image or spack',
+                 prompt=False)
 
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int, default=3, prompt=False,
                  info='max number of times beeflow will restart a component on failure')
@@ -496,7 +503,7 @@ class ConfigGenerator:
                     print_wrap(section.info)
                     print()
                     printed = True
-
+                
                 this_default = option.default
                 if flux is True and opt_name == 'workload_scheduler':
                     this_default = "Flux"
@@ -516,11 +523,10 @@ class ConfigGenerator:
                     validated = option.validate(value)
                     self.sections[sec_name][opt_name] = validated
                     continue
-
                 # Check for a default value
                 if (not interactive or option.prompt is False) and this_default is not None:
                     value = option.validate(this_default)
-                    print(f'Setting option (test)"{opt_name}" to default value "{value}".')
+                    print(f'Setting option "{opt_name}" to default value "{value}".')
                     print()
                     self.sections[sec_name][opt_name] = value
                     continue
