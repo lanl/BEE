@@ -202,6 +202,7 @@ jobs:
         if: ${{ steps.coverage.outputs.coverage < 65 }}
         run: |
           echo "<span style='color: red;'>Coverage is below 65%: ${{ steps.coverage.outputs.coverage }}%</span>" >> $GITHUB_STEP_SUMMARY
+          coverage report --fail-under=65
 
       - name: Verify Changed Files
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
