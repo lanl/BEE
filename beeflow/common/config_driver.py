@@ -229,7 +229,7 @@ DEFAULT_SCHED_PORT = 5100 + OFFSET
 DEFAULT_NEO4J_IMAGE = join_path('/usr/projects/BEE/neo4j.tar.gz')
 DEFAULT_REDIS_IMAGE = join_path('/usr/projects/BEE/redis.tar.gz')
 DEFAULT_SQLITE3 = join_path(shutil.which('sqlite3'))
-DEFAULT_SPACK_ENV = join_path(shutil.which("spack"))
+DEFAULT_SPACK_ENV = join_path(shutil.which('spack'))
 
 DEFAULT_BEE_WORKDIR = join_path(HOME_DIR, '.beeflow')
 DEFAULT_BEE_ARCHIVE_DIR = join_path(DEFAULT_BEE_WORKDIR, 'archives')
@@ -237,7 +237,7 @@ DEFAULT_BEE_DROPPOINT = join_path(HOME_DIR, '.beeflow/droppoint')
 USER = getpass.getuser()
 
 # Check for default containers; setting to None value results in querying user for path
-if os.path.isfile(DEFAULT_SQLITE3):
+if DEFAULT_SQLITE3 and os.path.isfile(DEFAULT_SQLITE3):
     SQLITE3 = DEFAULT_SQLITE3
 else:
     SQLITE3 = None
@@ -280,11 +280,13 @@ if SQLITE3:
     VALIDATOR.option('DEFAULT', 'sqlite3', validator=validation.file_,
                      default=SQLITE3, info='sqlite3 graph database',
                      input_fn=filepath_completion_input, prompt=True)
-    
+
 elif NEO4J_IMAGE:
     VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                      default=NEO4J_IMAGE, info='neo4j container image',
                      input_fn=filepath_completion_input, prompt=True)
+else:
+    print("WARNING: No SQLite3 environment and could not pull NEO4J")
 if DEFAULT_SPACK_ENV:
     VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.file_,
                  default=DEFAULT_SPACK_ENV, info='Spack environment path',
@@ -293,7 +295,7 @@ if DEFAULT_SPACK_ENV:
     VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
                  default=False, info='Use the redis container image or spack',
                  prompt=False)
-elif REDIS_IMAGE: 
+elif REDIS_IMAGE:
     VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  default=REDIS_IMAGE, info='redis container image',
                  input_fn=filepath_completion_input, prompt=True)
@@ -301,6 +303,8 @@ elif REDIS_IMAGE:
     VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
                  default=True, info='Use the redis container image or spack',
                  prompt=False)
+else:
+    print("WARNING: No Spack environemnt and could not pull REDIS")
 
 VALIDATOR.option('DEFAULT', 'max_restarts', validator=int, default=3, prompt=False,
                  info='max number of times beeflow will restart a component on failure')
@@ -344,7 +348,7 @@ VALIDATOR.option('job', 'default_reservation', validator=lambda val: val.strip()
                  default='', info='default reservation to run jobs on (leave blank if none)')
 
 def validate_attributes(val):
-    """Ensures the atributes are spelled correctly and stored as a comma-separated 
+    """Ensures the atributes are spelled correctly and stored as a comma-separated
     string in the config"""
     if isinstance(val, str):
         parts = [p.strip() for p in val.split(',') if p.strip()]
@@ -493,6 +497,7 @@ class ConfigGenerator:
         for sec_name, section in self.validator.sections:
             # Determine if this section is valid under the current configuration
             if not self.validator.is_section_valid(self.sections, sec_name):
+                print(f'|||{sec_name}|||')
                 continue
             self.sections[sec_name]={}
             printed = False
@@ -503,7 +508,7 @@ class ConfigGenerator:
                     print_wrap(section.info)
                     print()
                     printed = True
-                
+
                 this_default = option.default
                 if flux is True and opt_name == 'workload_scheduler':
                     this_default = "Flux"
