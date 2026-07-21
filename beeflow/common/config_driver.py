@@ -236,11 +236,15 @@ DEFAULT_BEE_ARCHIVE_DIR = join_path(DEFAULT_BEE_WORKDIR, 'archives')
 DEFAULT_BEE_DROPPOINT = join_path(HOME_DIR, '.beeflow/droppoint')
 USER = getpass.getuser()
 
-# Check for default containers; setting to None value results in querying user for path
+# Check for default containers, spack env and sqlite3; setting to None value results in querying user for path
 if os.path.isfile(DEFAULT_SQLITE3):
     SQLITE3 = DEFAULT_SQLITE3
 else:
     SQLITE3 = None
+if os.path.isfile(DEFAULT_SPACK_ENV):
+    SPACK_ENV = DEFAULT_SPACK_ENV
+else:
+    SPACK_ENV = None
 if os.path.isfile(DEFAULT_NEO4J_IMAGE):
     NEO4J_IMAGE = DEFAULT_NEO4J_IMAGE
 else:
@@ -285,9 +289,9 @@ elif NEO4J_IMAGE:
     VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                      default=NEO4J_IMAGE, info='neo4j container image',
                      input_fn=filepath_completion_input, prompt=True)
-if DEFAULT_SPACK_ENV:
+if SPACK_ENV:
     VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.file_,
-                 default=DEFAULT_SPACK_ENV, info='Spack environment path',
+                 default=SPACK_ENV, info='Spack environment path',
                  input_fn=filepath_completion_input, prompt=True)
 
     VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
