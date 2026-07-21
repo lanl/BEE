@@ -20,13 +20,30 @@ tar -xvf charliecloud-${CHARLIECLOUD_VERSION}.tar.gz --strip-components=1 -C cha
  sudo make install)
 
 # Install Slurm
-curl -O -L https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2
-tar -xvf slurm-${SLURM_VERSION}.tar.bz2
-(cd slurm-${SLURM_VERSION}
+SLURM_ARCHIVE="slurm-${SLURM_VERSION}.tar.gz"
+SLURM_DIR="slurm-${SLURM_VERSION}"
+
+curl -fL \
+  --retry 5 \
+  --retry-delay 15 \
+  --retry-all-errors \
+  --connect-timeout 30 \
+  --max-time 300 \
+  -o "$SLURM_ARCHIVE" \
+  "https://github.com/SchedMD/slurm/archive/refs/tags/${SLURM_TAG}.tar.gz"
+
+mkdir "$SLURM_DIR"
+
+tar -xzvf "$SLURM_ARCHIVE" \
+    --strip-components=1 \
+    -C "$SLURM_DIR"
+(
+ cd "$SLURM_DIR"
  ./configure --prefix=/usr --enable-cgroupv2
  grep -i cgroup config.log
  make -j4
- sudo make install)
+ sudo make install
+)
 
 # Install Python3
 sudo apt-get install -y software-properties-common

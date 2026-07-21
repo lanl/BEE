@@ -1,5 +1,8 @@
 name: Testing and Coverage
 
+permissions:
+  contents: read
+
 on:
   # For manual exec
   # (https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/)
@@ -105,6 +108,9 @@ jobs:
     needs: [integration-test, unit-test]
     name: Coverage
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -160,43 +166,57 @@ jobs:
           pip install coverage
           coverage combine
           coverage report --show-missing
-
-      - name: Run test coverage
+       
+      - name: Add coverage to job summary
         run: |
-          coverage report -m
-          coverage xml
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          coverage report --show-missing >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Coverage Badge
-        if: github.event_name == 'pull_request'
         run: |
+          coverage xml
           pip install -U genbadge defusedxml
           genbadge coverage -i coverage.xml -o coverage.svg
 
-      - name: Verify Changed Files
+      - name: Upload coverage badge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badge
+          path: ./coverage.svg
+
+      - name: Coverage comment
+        id: coverage
         if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: MishaKav/pytest-coverage-comment@v1
+        with:
+          pytest-xml-coverage-path: coverage.xml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Coverage Report"
+          hide-emoji: true
+          hide-report: true
+
+      - name: Low coverage job summary
+        if: ${{ steps.coverage.outputs.coverage < 65 }}
+        run: |
+          echo "<span style='color: red;'>Coverage is below 65%: ${{ steps.coverage.outputs.coverage }}%</span>" >> $GITHUB_STEP_SUMMARY
+          coverage report --fail-under=65
+
+      - name: Verify Changed Files
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: tj-actions/verify-changed-files@v20
         id: verify-changed-files
         with:
           files: |
-            *.svg
+            coverage.svg
 
-      - name: Commit files
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
+      - name: Commit and push coverage badge
+        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add coverage.svg
           git commit -m "Updated coverage.svg"
-
-      - name: Fetch latest changes again
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
-        run: |
-          git fetch origin
-          git rebase origin/${{ github.event.pull_request.head.ref }}
-
-      - name: Push changes
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.github_token }}
-          branch: ${{ github.event.pull_request.head.ref }}
+          git push
