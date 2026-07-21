@@ -241,6 +241,10 @@ if DEFAULT_SQLITE3 and os.path.isfile(DEFAULT_SQLITE3):
     SQLITE3 = DEFAULT_SQLITE3
 else:
     SQLITE3 = None
+if os.path.isfile(DEFAULT_SPACK_ENV):
+    SPACK_ENV = DEFAULT_SPACK_ENV
+else:
+    SPACK_ENV = None
 if os.path.isfile(DEFAULT_NEO4J_IMAGE):
     NEO4J_IMAGE = DEFAULT_NEO4J_IMAGE
 else:
@@ -289,7 +293,7 @@ else:
     print("WARNING: No SQLite3 environment and could not pull NEO4J")
 if DEFAULT_SPACK_ENV:
     VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.file_,
-                 default=DEFAULT_SPACK_ENV, info='Spack environment path',
+                 default=SPACK_ENV, info='Spack environment path',
                  input_fn=filepath_completion_input, prompt=True)
 
     VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
