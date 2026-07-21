@@ -269,7 +269,7 @@ VALIDATOR.option('DEFAULT', 'bee_archive_dir', info='directory to store workflow
 VALIDATOR.option('DEFAULT', 'bee_droppoint', info='BEE remote workflow drop point',
                  default=DEFAULT_BEE_DROPPOINT, validator=validation.make_dir,
                  prompt=False)
-
+#delete me later
 VALIDATOR.option('DEFAULT', 'remote_api_port', info='BEE remote REST API port',
                  default=unique_port(), validator=int, prompt=False)
 
