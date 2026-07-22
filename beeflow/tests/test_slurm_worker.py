@@ -1,0 +1,203 @@
+"""Tests of the Slurm worker."""
+
+# Disable R1732: This is not what we need to do with the Popen of slurmrestd above;
+#                 using a with statement doesn't kill the process immediately but just
+#                 waits for it to complete and slurmrestd never will unless we kill it.
+# Disable W0621: Redefinition of names is required for pytest
+# pylint:disable=R1732,W0621
+
+import uuid
+import shutil
+import time
+import tempfile
+import subprocess
+import os
+import pytest
+
+import beeflow.common.worker.utils as worker_utils
+from beeflow.common.worker_interface import WorkerInterface
+from beeflow.common.worker.worker import WorkerError
+from beeflow.common.worker.slurm_worker import SlurmWorker
+from beeflow.common.object_models import Task
+
+
+# Timeout (seconds) for waiting on tasks
+TIMEOUT = 150
+# Extra slurmrestd arguments. This may be something to take on the command line
+# Open API version just needs to be some arbitrary version
+# since this tests doesn't actually run with slurmrestd
+
+GOOD_TASK = Task(name='good-task', base_command=['sleep', '3'], hints=[],
+                 requirements=[], inputs=[], outputs=[], stdout='', stderr='', workdir='',
+                 workflow_id=uuid.uuid4().hex)
+BAD_TASK = Task(name='bad-task', base_command=['/this/is/not/a/command'], hints=[], workdir='',
+                requirements=[], inputs=[], outputs=[], stdout='', stderr='',
+                workflow_id=uuid.uuid4().hex)
+
+
+def wait_state(worker_iface, job_id, state):
+    """Wait for Slurm to switch the job to another state."""
+    time.sleep(1)
+    n = 1
+    last_state,_ = worker_iface.query_task(job_id)
+    while last_state == state:
+        if n >= TIMEOUT:
+            raise RuntimeError(f'job timed out, still in state {state}')
+        time.sleep(1)
+        n += 1
+        last_state,_ = worker_iface.query_task(job_id)
+    return last_state
+
+
+@pytest.fixture(params=[True, False], ids=['slurm-commands', 'slurmrestd'])
+def slurm_worker(request):
+    """Slurm worker fixture."""
+    slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
+    bee_workdir = os.path.expanduser(f'/tmp/{uuid.uuid4().hex}.tmp')
+    os.mkdir(bee_workdir)
+    openapi_version = worker_utils.get_slurmrestd_version()
+    proc = subprocess.Popen(f'slurmrestd -d {openapi_version} -s openapi/slurmctld unix:{slurm_socket}',
+                            shell=True)
+    time.sleep(1)
+    worker_iface = WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
+                                   slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                                   openapi_version=openapi_version,
+                                   use_commands=request.param)
+    yield worker_iface
+    time.sleep(1)
+    proc.kill()
+    shutil.rmtree(bee_workdir)
+
+
+@pytest.fixture
+def slurmrestd_worker_no_daemon():
+    """Fixture that creates the worker interface but not slurmrestd."""
+    slurm_socket = f'/tmp/{uuid.uuid4().hex}.sock'
+    bee_workdir = os.path.expanduser(f'/tmp/{uuid.uuid4().hex}.tmp')
+    os.mkdir(bee_workdir)
+    openapi_version = worker_utils.get_slurmrestd_version()
+    yield WorkerInterface(worker=SlurmWorker, container_runtime='Charliecloud',
+                          slurm_socket=slurm_socket, bee_workdir=bee_workdir,
+                          openapi_version=openapi_version,
+                          use_commands=False)
+    shutil.rmtree(bee_workdir)
+
+
+def test_good_task(slurm_worker):
+    """Test submission of a good task."""
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
+    job_id, last_state, job_info = slurm_worker.submit_task(GOOD_TASK)
+    if last_state == 'PENDING':
+        last_state = wait_state(slurm_worker, job_id, 'PENDING')
+    if last_state == 'RUNNING':
+        last_state = wait_state(slurm_worker, job_id, 'RUNNING')
+    if last_state == 'COMPLETING':
+        last_state = wait_state(slurm_worker, job_id, 'COMPLETING')
+    shutil.rmtree(temp_workdir)
+    assert last_state == 'COMPLETED'
+
+
+def test_bad_task(slurm_worker):
+    """Test submission of a bad task."""
+    temp_workdir = tempfile.mkdtemp()
+    BAD_TASK.workdir = temp_workdir
+    job_id, last_state, job_info = slurm_worker.submit_task(BAD_TASK)
+    if last_state == 'PENDING':
+        last_state = wait_state(slurm_worker, job_id, 'PENDING')
+    if last_state == 'RUNNING':
+        last_state = wait_state(slurm_worker, job_id, 'RUNNING')
+    if last_state == 'COMPLETING':
+        last_state = wait_state(slurm_worker, job_id, 'COMPLETING')
+    shutil.rmtree(temp_workdir)
+    assert last_state == 'FAILED'
+
+
+def test_query_bad_job_id(slurm_worker):
+    """Test querying a bad job ID."""
+    with pytest.raises(WorkerError):
+        slurm_worker.query_task(888)
+
+
+def test_cancel_good_job(slurm_worker):
+    """Cancel a good job."""
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
+    job_id, _, _ = slurm_worker.submit_task(GOOD_TASK)
+    job_state = slurm_worker.cancel_task(job_id)
+    shutil.rmtree(temp_workdir)
+    assert job_state == 'CANCELLED'
+
+
+def test_no_slurmrestd(slurmrestd_worker_no_daemon):
+    """Test without running slurmrestd."""
+    temp_workdir = tempfile.mkdtemp()
+    GOOD_TASK.workdir = temp_workdir
+    worker = slurmrestd_worker_no_daemon
+    job_id, state, _ = worker.submit_task(GOOD_TASK)
+    shutil.rmtree(temp_workdir)
+    job_state, job_info = worker.query_task(job_id)
+    assert state == 'NOT_RESPONDING'
+    assert job_state == 'NOT_RESPONDING'
+    assert worker.cancel_task(job_id) == 'NOT_RESPONDING'
+
+
+SBATCH_OUT = "/path/to/file/output.txt"
+SBATCH_ERR = "/path/to/file/error.err"
+SBATCH_DEFAULT = "slurm-%j.out"
+
+def make_script(output_directive=None, error_directive=None):
+    script = f"""
+    #!/bin/bash
+{output_directive or ""}
+{error_directive or ""}
+"""
+    return script
+
+@pytest.mark.parametrize(
+    "output_directive, error_directive, expected_stdout, expected_stderr",
+    [
+        pytest.param(None, None, SBATCH_DEFAULT, SBATCH_DEFAULT, id="no-directives"),
+
+        pytest.param(f"#SBATCH --output={SBATCH_OUT}", None, SBATCH_OUT, SBATCH_OUT,
+                     id="output-long-equals"),
+        pytest.param(f"#SBATCH --output {SBATCH_OUT}", None, SBATCH_OUT, SBATCH_OUT,
+                     id="output-long-space"),
+        pytest.param(f"#SBATCH -o {SBATCH_OUT}", None, SBATCH_OUT, SBATCH_OUT,
+                     id="output-short"),
+
+        pytest.param(None, f"#SBATCH --error={SBATCH_ERR}", SBATCH_DEFAULT, SBATCH_ERR,
+                     id="error-long-equals"),
+        pytest.param(None, f"#SBATCH --error {SBATCH_ERR}", SBATCH_DEFAULT, SBATCH_ERR,
+                     id="error-long-space"),
+        pytest.param(None, f"#SBATCH -e {SBATCH_ERR}", SBATCH_DEFAULT, SBATCH_ERR,
+                     id="error-short"),
+
+        pytest.param(f"#SBATCH --output={SBATCH_OUT}", f"#SBATCH --error={SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="both-long-equals"),
+        pytest.param(f"#SBATCH --output {SBATCH_OUT}", f"#SBATCH --error {SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="both-long-space"),
+        pytest.param(f"#SBATCH -o {SBATCH_OUT}", f"#SBATCH -e {SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="both-short"),
+
+        pytest.param(f"#SBATCH -o {SBATCH_OUT}", f"#SBATCH --error={SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="output-short-error-long-equals"),
+        pytest.param(f"#SBATCH --output={SBATCH_OUT}", f"#SBATCH -e {SBATCH_ERR}", 
+                     SBATCH_OUT, SBATCH_ERR, id="output-long-equals-error-short"),
+
+        pytest.param(f"#SBATCH -o {SBATCH_OUT}", f"#SBATCH --error {SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR,id="output-short-error-long-space"),
+        pytest.param(f"#SBATCH --output {SBATCH_OUT}", f"#SBATCH -e {SBATCH_ERR}",
+                     SBATCH_OUT, SBATCH_ERR, id="output-long-space--error-short")
+    ]
+)
+def test_parse_output_error(output_directive, error_directive, expected_stdout,
+                            expected_stderr):
+    script = make_script(output_directive, error_directive)
+
+    stdout, stderr = worker_utils.parse_sbatch_output_error(script)
+
+    assert stdout == expected_stdout
+    assert stderr == expected_stderr
+
+

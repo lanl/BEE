@@ -1,0 +1,170 @@
+"""Tests for wf_update module."""
+
+import os
+import pytest
+from beeflow.wf_manager.resources import wf_update
+
+
+@pytest.mark.parametrize(
+    "test_function, expected_state",
+    [
+        (wf_update.archive_workflow, "Archived"),
+        (wf_update.archive_fail_workflow, "Archived/Failed"),
+    ],
+)
+def test_archive_workflow(tmpdir, mocker, test_function, expected_state):
+    """Regression test archive_workflow."""
+    workdir = str(tmpdir / "workdir")
+    mocker.patch("beeflow.wf_manager.resources.wf_utils.get_wf_status", return_value="Running")
+    mocker.patch("os.path.expanduser", return_value=str(tmpdir))
+    mocker.patch(
+        "beeflow.wf_manager.resources.wf_utils.get_workflow_dir", return_value=workdir
+    )
+    mocker.patch(
+        "beeflow.common.config_driver.BeeConfig.get",
+        side_effect=lambda section, option, *a, **kw: (
+            str(tmpdir / "bee_archive_dir")
+            if (section, option) == ("DEFAULT", "bee_archive_dir")
+            else "neo4j"
+            if (section, option) == ("graphdb", "type")
+            else str(tmpdir / "bee_archive_dir")
+        ),
+    )
+    mock_export_dag = mocker.patch("beeflow.wf_manager.resources.wf_utils.export_dag")
+    mock_update_wf_status = mocker.patch(
+        "beeflow.wf_manager.resources.wf_utils.update_wf_status"
+    )
+    mock_remove_wf_dir = mocker.patch(
+        "beeflow.wf_manager.resources.wf_utils.remove_wf_dir"
+    )
+    mock_log = mocker.patch("logging.Logger.info")
+    with tmpdir.as_cwd():
+        # set up dummy folders for archiving process
+        os.makedirs(".config/beeflow")
+        os.makedirs("workdir")
+        os.makedirs("bee_archive_dir/workflows")
+        with open(".config/beeflow/bee.conf", "w", encoding="utf-8"):
+            pass
+        test_function("wf_id_test")
+        assert os.path.exists("bee_archive_dir/wf_id_test.tgz")
+        mock_export_dag.assert_called_once_with(
+            "wf_id_test",
+            workdir + "/dags",
+            workdir + "/graphmls",
+            no_dag_dir=True
+        )
+        mock_update_wf_status.assert_called_once_with("wf_id_test", expected_state)
+        mock_remove_wf_dir.assert_called_once_with("wf_id_test")
+        mock_log.assert_called_once_with("Removing Workflow Directory")
+
+
+@pytest.mark.parametrize("wf_state", ["Archived", "Archived/Failed"])
+def test_archive_archived_wf(mocker, wf_state):
+    """Don't archive workflow that is already archived."""
+    mocker.patch("beeflow.wf_manager.resources.wf_utils.get_wf_status", return_value=wf_state)
+    mock_log_warning = mocker.patch("logging.Logger.warning")
+    wf_update.archive_workflow("id")
+    mock_log_warning.assert_called_once_with(
+        (
+            "Attempted to archive workflow id which is already archived; "
+            f"in state {wf_state}."
+        )
+    )
+
+
+@pytest.mark.parametrize("job_state", ["FAILED", "SUBMIT_FAIL", 'BUILD_FAIL'])
+def test_handle_state_change_failed_task(mocker, job_state):
+    """Regression test task failure."""
+    state_update = mocker.MagicMock()
+    state_update.job_state = job_state
+    task = mocker.MagicMock()
+    task.name = "TestTask"
+    wfi = mocker.MagicMock()
+    wfi.workflow_completed.return_value = False
+    wfi.cancelled_workflow_completed.return_value = False
+    mock_archive_workflow = mocker.patch(
+        "beeflow.wf_manager.resources.wf_update.archive_workflow"
+    )
+    mocker.patch("beeflow.wf_manager.resources.wf_utils.get_wf_status", return_value="Running")
+    mock_log_info = mocker.patch("logging.Logger.info")
+    mock_set_dependent_tasks_dep_fail = mocker.patch(
+        "beeflow.wf_manager.resources.wf_update.set_dependent_tasks_dep_fail"
+    )
+    workflow_update = wf_update.WFUpdate()
+    workflow_update.handle_state_change(state_update, task, wfi)
+    mock_log_info.assert_any_call("Task TestTask failed")
+    mock_set_dependent_tasks_dep_fail.assert_called_once()
+    mock_archive_workflow.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "completed, cancelled_completed, wf_state",
+    [
+        (True, False, ""),
+        (False, True, "Cancelled"),
+        (False, False, "Cancelled"),
+        (False, True, ""),
+    ],
+)
+def test_handle_state_change_completed_wf(
+    mocker, completed, cancelled_completed, wf_state
+):
+    """Regression test when workflow is complete."""
+    state_update = mocker.MagicMock()
+    task = mocker.MagicMock()
+    wfi = mocker.MagicMock()
+    wfi.workflow_completed.return_value = completed
+    wfi.cancelled_workflow_completed.return_value = cancelled_completed
+    wfi.workflow_id = "TESTID"
+    mock_archive_workflow = mocker.patch(
+        "beeflow.wf_manager.resources.wf_update.archive_workflow"
+    )
+    mocker.patch("beeflow.wf_manager.resources.wf_utils.get_wf_status", return_value=wf_state)
+    mock_log_info = mocker.patch("logging.Logger.info")
+    workflow_update = wf_update.WFUpdate()
+    workflow_update.handle_state_change(state_update, task, wfi)
+    print(mock_log_info.mock_calls)
+    if completed:
+        mock_log_info.assert_any_call("Workflow TESTID Completed")
+        mock_log_info.assert_any_call("Workflow Archived")
+        mock_archive_workflow.assert_called_once()
+    elif cancelled_completed and wf_state == "Cancelled":
+        mock_log_info.assert_any_call(
+            "Scheduled tasks for cancelled workflow TESTID completed"
+        )
+        mock_log_info.assert_any_call("Workflow Archived")
+        mock_archive_workflow.assert_called_once()
+    else:
+        mock_log_info.assert_not_called()
+        mock_archive_workflow.assert_not_called()
+def test_skip_task_handlers_when_task_does_not_exist(mocker):
+    """Skip task-specific handlers when task does not exist."""
+    state_update = mocker.MagicMock()
+    state_update.wf_id = "WF_ID"
+    state_update.task_id = "NO_TASK_ID"
+    state_update.job_state = "SUBMIT"
+
+    wfi = mocker.MagicMock()
+    wfi.get_task_by_id.return_value = None
+
+    mocker.patch(
+        "beeflow.wf_manager.resources.wf_utils.get_workflow_interface",
+        return_value=wfi,
+    )
+
+    workflow_update = wf_update.WFUpdate()
+    mock_handle_metadata = mocker.patch.object(workflow_update, "handle_metadata")
+    mock_handle_checkpoint_restart = mocker.patch.object(
+        workflow_update, "handle_checkpoint_restart"
+    )
+    mock_handle_state_change = mocker.patch.object(
+        workflow_update, "handle_state_change"
+    )
+
+    workflow_update.update_task_state(state_update)
+
+    wfi.get_task_by_id.assert_called_once_with("NO_TASK_ID")
+    wfi.set_task_state.assert_called_once_with("NO_TASK_ID", "SUBMIT")
+    mock_handle_metadata.assert_not_called()
+    mock_handle_checkpoint_restart.assert_not_called()
+    mock_handle_state_change.assert_not_called()

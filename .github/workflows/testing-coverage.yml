@@ -196,6 +196,7 @@ jobs:
           title: "Coverage Report"
           hide-emoji: true
           hide-report: true
+          create-new-comment: true
 
       - name: Extract coverage number
         id: coverage-num
