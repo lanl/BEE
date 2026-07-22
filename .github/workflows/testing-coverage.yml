@@ -197,6 +197,7 @@ jobs:
           title: "Coverage Report"
           hide-emoji: true
           hide-report: true
+          create-new-comment: true
 
       - name: Low coverage job summary
         run: |
