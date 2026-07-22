@@ -188,7 +188,6 @@ jobs:
 
       - name: Coverage comment
         id: coverage
-        if: github.event_name == 'pull_request'
         continue-on-error: true
         uses: MishaKav/pytest-coverage-comment@v1
         with:
