@@ -197,11 +197,17 @@ jobs:
           hide-emoji: true
           hide-report: true
 
-      - name: Low coverage job summary
-        if: ${{ steps.coverage.outputs.coverage < 65 }}
+      - name: Extract coverage number
+        id: coverage-num
         run: |
-          echo "::error::Coverage is below 65%: ${{ steps.coverage.outputs.coverage }}%"
-          echo "## Coverage is below 65%: ${{ steps.coverage.outputs.coverage }}%" >> $GITHUB_STEP_SUMMARY
+          COV="${{ steps.coverage.outputs.coverage }}"
+          echo "value=${COV%\%}" >> $GITHUB_OUTPUT
+
+      - name: Low coverage job summary
+        if: ${{ steps.coverage-num.outputs.value < 65 }}
+        run: |
+          echo "::error::Coverage is below 65%: ${{ steps.coverage-num.outputs.value }}%"
+          echo "## Coverage is below 65%: ${{ steps.coverage-num.outputs.value }}%" >> $GITHUB_STEP_SUMMARY
           coverage report --fail-under=65
 
       - name: Verify Changed Files
