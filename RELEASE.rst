@@ -21,7 +21,7 @@ README.rst has the correct tags and URL's.
     and don't forget to save the setting
 3. Make sure documentation will be published upon push to main.
    See: .github/workflows/docs.yml
-4. Checkout develop and pull for latest version then
+4. Before performing this step ensure the newest coverage.svg file has been pushed by the bot. Then checkout develop and pull for latest version then
    checkout main, pull  and merge develop into main. Verify documentation was published. And re-sync develop. **This procedure assumes you have exceptions and should probably be rewritten to include pull requests.**
 
 .. code-block:: bash
@@ -69,7 +69,8 @@ an update to that same version.
 8. After the RELEASE (e.g. 0.1.11) is published:
 
    Create and merge PR into develop to include:
-     - change the version in pyproject.toml to be 0.1.12dev (use latest +1)
+     - change the version in pyproject.toml to be 0.1.12dev (use latest +1 so 12)
+     - change the location for the pre-release documentation in README.rst
 
    Consider starting a pre-release tag so documentation is updated
    and delete previous pre-release tags on PyPi
