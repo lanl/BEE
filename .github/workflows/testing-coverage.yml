@@ -225,8 +225,6 @@ jobs:
     name: Build Docs
     runs-on: ubuntu-latest
     permissions:
-        contents: write
-    permissions:
       contents: write
 
     steps:
