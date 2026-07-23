@@ -5,6 +5,9 @@ on:
     workflows: [Testing and Coverage]
     types:
       - completed
+    branches:
+      - main
+      - develop
   workflow_dispatch: {}
   push:
     tags:
