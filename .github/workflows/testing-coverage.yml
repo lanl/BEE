@@ -197,26 +197,24 @@ jobs:
           title: "Coverage Report"
           hide-emoji: true
           hide-report: true
+          create-new-comment: true
 
       - name: Low coverage job summary
-        if: ${{ steps.coverage.outputs.coverage < 65 }}
         run: |
-          echo "<span style='color: red;'>Coverage is below 65%: ${{ steps.coverage.outputs.coverage }}%</span>" >> $GITHUB_STEP_SUMMARY
           coverage report --fail-under=65
 
-      - name: Verify Changed Files
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: tj-actions/verify-changed-files@v20
-        id: verify-changed-files
-        with:
-          files: |
-            coverage.svg
-
-      - name: Commit and push coverage badge
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      - name: Prepare coverage badge for GitHub Pages
+        if: github.event_name == 'push'
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add coverage.svg
-          git commit -m "Updated coverage.svg"
-          git push
+          mkdir -p badge-publish
+          cp coverage.svg badge-publish/coverage.svg
+
+      - name: Publish coverage badge
+        if: github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./badge-publish
+          destination_dir: badges/${{ github.ref_name }}
+          keep_files: true

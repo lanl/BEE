@@ -3,12 +3,12 @@ BEE: Build and Execution Environment
 
 Coverage in Develop
 
-.. image:: https://github.com/lanl/BEE/raw/develop/coverage.svg
+.. image:: https://lanl.github.io/BEE/badges/develop/coverage.svg
    :alt: Coverage Badge for develop
 
 Coverage in Main
 
-.. image:: https://github.com/lanl/BEE/raw/main/coverage.svg
+.. image:: https://lanl.github.io/BEE/badges/main/coverage.svg
    :alt: Coverage Badge for main
 
 BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (`CWL <https://www.commonwl.org/>`_) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or Flux) on the HPC system that tasks are specified to run on.
