@@ -241,12 +241,12 @@ jobs:
       - name: Install BEE and Build Docs
         run: ./ci/docs.sh
 
-     - name: Publish latest docs to root
-       if: github.ref == 'refs/heads/main'
-       uses: peaceiris/actions-gh-pages@v4
-       with:
-         github_token: ${{ secrets.GITHUB_TOKEN }}
-         publish_branch: gh-pages
-         publish_dir: ./docs/sphinx/_build/html
-         destination_dir: .
-         keep_files: true
+      - name: Publish latest docs to root
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./docs/sphinx/_build/html
+          destination_dir: .
+          keep_files: true
