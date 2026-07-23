@@ -1,14 +1,14 @@
 name: Build Docs
 
 on:
+  workflow_run:
+    workflows: [Testing and Coverage]
+    types:
+      - completed
   workflow_dispatch: {}
   push:
-    branches: [main, develop]
     tags:
       - '*'
-  pull_request:
-    types: [opened, synchronize, edited, labeled, unlabeled]
-    branches: [main, develop]
   delete:
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   docs:
-    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'delete' || github.event.workflow_run.conclusion == 'success' }}
     name: Build Docs
     runs-on: ubuntu-latest
 
