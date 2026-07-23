@@ -1,4 +1,4 @@
-name: Testing and Coverage
+name: Testing, Coverage, and Build Docs
 
 permissions:
   contents: read
@@ -217,4 +217,38 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./badge-publish
           destination_dir: badges/${{ github.ref_name }}
+          keep_files: true
+
+  build-and-publish-docs:
+    if: ${{ always() }}
+    needs: [coverage]
+    name: Build Docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name : Checkout latest tag for main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git fetch --tags --force
+          LATEST_TAG="$(git tag --sort=-creatordate | head -n 1)"
+          echo "Latest tag: $LATEST_TAG"
+          git checkout "$LATEST_TAG"
+
+      - name: Install BEE and Build Docs
+        run: ./ci/docs.sh
+
+      - name: Publish latest docs to root
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./docs/sphinx/_build/html
+          destination_dir: .
           keep_files: true
