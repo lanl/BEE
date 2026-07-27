@@ -178,7 +178,8 @@ jobs:
         if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
-          ./ci/deps_build.sh
+          ./ci/charliecloud_install.sh
+          ./ci/slurm_install.sh
 
       - name: Save Slurm and Charliecloud Installs
         if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
