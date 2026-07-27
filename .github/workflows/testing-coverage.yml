@@ -1,4 +1,7 @@
-name: Testing and Coverage
+name: Testing, Coverage, and Build Docs
+
+permissions:
+  contents: read
 
 on:
   # For manual exec
@@ -31,50 +34,79 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
+
       - name: Install Initial Dependencies  
         run: ./ci/deps_install.sh
+
       - name: Install Flux Dependencies 
         if: env.BEE_WORKER == 'Flux'
         run: ./ci/flux_deps.sh
-      - name: Cache Dependencies 
-        id: cache-deps
-        uses: actions/cache@v5
+
+      - name: Restore Slurm and Charliecloud Installs 
+        id: cache-installs-restore
+        uses: actions/cache/restore@v5
         with:
-          path: ${{ github.workspace }}/deps
-          key: ${{ runner.os }}-deps-${{ hashFiles('./ci/env.sh') }}
-      - name: Move Dependencies 
-        if: ${{ steps.cache-deps.outputs.cache-hit == 'true' }}
-        run: sudo cp -r ${{ github.workspace }}/deps/. /usr
-      - name: Install and Move Dependencies 
-        if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
+          path: |
+            ${{ github.workspace }}/charliecloud
+            ${{ github.workspace }}/slurm
+          key: ${{ runner.os }}-installs-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh','./ci/slurm_install.sh') }} 
+
+      - name: Build Slurm and Charliecloud for Save
+        if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
-          ./ci/deps_build.sh
-          sudo cp -r ${{ github.workspace }}/deps/. /usr
-      - name: Install Flux 
-        if: ${{ env.BEE_WORKER == 'Flux' }}
-        id: cache-flux
-        uses: actions/cache@v5
+          ./ci/charliecloud_install.sh
+          ./ci/slurm_install.sh
+
+      - name: Save Slurm and Charliecloud Installs
+        if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
         with:
-          path: ${{ github.workspace }}/deps
-          key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh') }}
-      - name: Move Flux Dependencies 
-        if: steps.cache-flux.outputs.cache-hit == 'true' && env.BEE_WORKER == 'Flux' 
+          path: |
+            ${{ github.workspace }}/charliecloud
+            ${{ github.workspace }}/slurm
+          key: ${{ steps.cache-installs-restore.outputs.cache-primary-key }}
+
+      - name: Move Slurm and Charliecloud Installs
         run: |
-          sudo cp -r ${{ github.workspace }}/deps/. /usr
-          sudo ldconfig
-      - name: Install and Move Flux Dependencies 
-        if: steps.cache-flux.outputs.cache-hit != 'true' && env.BEE_WORKER == 'Flux' 
+          sudo cp -r ${{ github.workspace }}/charliecloud/. /usr
+          sudo cp -r ${{ github.workspace }}/slurm/. /usr
+
+      - name: Restore Flux Install
+        if: ${{ env.BEE_WORKER == 'Flux' }}
+        id: cache-flux-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ github.workspace }}/flux
+          key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh','./ci/flux.sh') }} 
+
+      - name: Build Flux Install for Save
+        if: steps.cache-flux-restore.outputs.cache-hit != 'true' && env.BEE_WORKER == 'Flux'
         run: |
           . ./ci/env.sh
           ./ci/flux_install.sh
-          sudo cp -r ${{ github.workspace }}/deps/. /usr
+
+      - name: Save Flux Install
+        if: steps.cache-flux-restore.outputs.cache-hit != 'true' && env.BEE_WORKER == 'Flux' 
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ github.workspace }}/flux
+          key: ${{ steps.cache-flux-restore.outputs.cache-primary-key }}
+
+      - name: Move Flux Install 
+        run: |
+          sudo cp -f ${{ github.workspace }}/flux/. /usr
+          if [[ "${{ steps.cache-flux-restore.outputs.cache-hit }}" == "true" ]]; then
+            sudo ldconfig
+          fi 
+
       - name: Install Flux Python Bindings
         if: env.BEE_WORKER == 'Flux'
         run: |
           . ./ci/env.sh
           python3 -m pip install --user wheel
           python3 -m pip install --user flux-python==$FLUX_CORE_VERSION
+
       - name: Install and Configure
         run: |
           . ./ci/env.sh
@@ -85,11 +117,13 @@ jobs:
           ./ci/batch_scheduler.sh
           ./ci/bee_install.sh
           ./ci/bee_config.sh
+
       - name: Integration Test
         run: |
           . ./ci/env.sh
           ./ci/integration_test.sh
           mv .coverage.integration ".coverage.${{ matrix.bee_worker }}.${{ matrix.gdb_backend }}"
+
       - name: Stash bee error logs
         if: failure()   # only when the job fails
         run: |
@@ -100,6 +134,7 @@ jobs:
           cp -R $BEE_WORKDIR/logs bee-error-logs || true
           cp -R $BEE_WORKDIR/*.db bee-error-logs || true
           cp -R $BEE_CONFIG bee-error-logs || true
+
       - name: Upload bee error logs
         if: failure()    # only when the job fails
         uses: actions/upload-artifact@v5
@@ -107,6 +142,7 @@ jobs:
           name: bee-error-logs-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}
           path: bee-error-logs
           if-no-files-found: ignore
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v5
         with:
@@ -125,34 +161,52 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
+
       - name: Install Initial Dependencies 
         run: ./ci/deps_install.sh
-      - name: Cache Dependencies 
-        id: cache-deps
-        uses: actions/cache@v5
+
+      - name: Restore Slurm and Charliecloud Installs
+        id: cache-installs-restore
+        uses: actions/cache/restore@v5
         with:
-          path: ${{ github.workspace }}/deps
-          key: ${{ runner.os }}-deps-${{ hashFiles('./ci/env.sh') }}
-      - name: Move Dependencies 
-        if: ${{ steps.cache-deps.outputs.cache-hit == 'true' }}
-        run: sudo cp -r ${{ github.workspace }}/deps/. /usr
-      - name: Install and Move Dependencies 
-        if: ${{ steps.cache-deps.outputs.cache-hit != 'true' }}
+          path: |
+            ${{ github.workspace }}/charliecloud
+            ${{ github.workspace }}/slurm
+          key: ${{ runner.os }}-installs-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh','./ci/slurm_install.sh') }}
+
+      - name: Build Slurm and Charliecloud for Save
+        if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
           ./ci/deps_build.sh
-          sudo cp -r ${{ github.workspace }}/deps/. /usr
+
+      - name: Save Slurm and Charliecloud Installs
+        if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            ${{ github.workspace }}/charliecloud
+            ${{ github.workspace }}/slurm
+          key: ${{ steps.cache-installs-restore.outputs.cache-primary-key }}
+
+      - name: Move Slurm and Charliecloud Installs
+        run: |
+          sudo cp -r ${{ github.workspace }}/charliecloud/. /usr
+          sudo cp -r ${{ github.workspace }}/slurm/. /usr
+
       - name: Install and Configure
         run: |
           . ./ci/env.sh
           ./ci/batch_scheduler.sh
           ./ci/bee_install.sh
           ./ci/bee_config.sh
+
       - name: Unit tests
         run: |
           . ./ci/env.sh
           ./ci/unit_tests.sh
           mv .coverage ".coverage.unittests"
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v5
         with:
@@ -164,6 +218,9 @@ jobs:
     needs: [integration-test, unit-test]
     name: Coverage
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v5
 
@@ -219,43 +276,89 @@ jobs:
           pip install coverage
           coverage combine
           coverage report --show-missing
-
-      - name: Run test coverage
+       
+      - name: Add coverage to job summary
         run: |
-          coverage report -m
-          coverage xml
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          coverage report --show-missing >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Coverage Badge
-        if: github.event_name == 'pull_request'
         run: |
+          coverage xml
           pip install -U genbadge defusedxml
           genbadge coverage -i coverage.xml -o coverage.svg
 
-      - name: Verify Changed Files
+      - name: Upload coverage badge artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badge
+          path: ./coverage.svg
+
+      - name: Coverage comment
+        id: coverage
         if: github.event_name == 'pull_request'
-        uses: tj-actions/verify-changed-files@v20
-        id: verify-changed-files
+        continue-on-error: true
+        uses: MishaKav/pytest-coverage-comment@v1
         with:
-          files: |
-            *.svg
+          pytest-xml-coverage-path: coverage.xml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Coverage Report"
+          hide-emoji: true
+          hide-report: true
+          create-new-comment: true
 
-      - name: Commit files
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
+      - name: Low coverage job summary
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add coverage.svg
-          git commit -m "Updated coverage.svg"
+          coverage report --fail-under=65
 
-      - name: Fetch latest changes again
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
+      - name: Prepare coverage badge for GitHub Pages
+        if: github.event_name == 'push'
         run: |
-          git fetch origin
-          git rebase origin/${{ github.event.pull_request.head.ref }}
+          mkdir -p badge-publish
+          cp coverage.svg badge-publish/coverage.svg
 
-      - name: Push changes
-        if: steps.verify-changed-files.outputs.files_changed == 'true' && github.actor != 'github-actions[bot]' && github.event_name == 'pull_request'
-        uses: ad-m/github-push-action@master
+      - name: Publish coverage badge
+        if: github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.github_token }}
-          branch: ${{ github.event.pull_request.head.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./badge-publish
+          destination_dir: badges/${{ github.ref_name }}
+          keep_files: true
+
+  build-and-publish-docs:
+    if: ${{ always() }}
+    needs: [coverage]
+    name: Build Docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name : Checkout latest tag for main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git fetch --tags --force
+          LATEST_TAG="$(git tag --sort=-creatordate | head -n 1)"
+          echo "Latest tag: $LATEST_TAG"
+          git checkout "$LATEST_TAG"
+
+      - name: Install BEE and Build Docs
+        run: ./ci/docs.sh
+
+      - name: Publish latest docs to root
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./docs/sphinx/_build/html
+          destination_dir: .
+          keep_files: true
