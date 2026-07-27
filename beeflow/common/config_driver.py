@@ -3,6 +3,7 @@
 from configparser import ConfigParser
 import getpass
 import os
+import sys
 import platform
 import random
 import shutil
@@ -222,7 +223,14 @@ def check_redis_in_spackenv()->bool:
         if result and "redis" in result.stdout:
             return True
 
-        print("Reids is not installed on the active spack encironment.")
+        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+            return False
+
+        if result is False and not os.path.isfile(DEFAULT_REDIS_IMAGE):
+            print("Reids is not installed on the active spack environment.")
+            print("Please check documentation here: ")
+            sys.exit(1)
+
         return False
     except subprocess.CalledProcessError as e:
         if "No matching packages found" in e.stderr or e.returncode != 0:
@@ -242,8 +250,12 @@ def check_sqlite3_installed()->bool:
         if sqlite3:
             return True
 
+        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+            return False
+
         print("Sqlite3 is not installed")
-        return False
+        print("Check documentation here: ")
+        sys.exit(1)
     except ImportError:
         print("Error: sqlite3 module is not avaliable in this python environment.")
         return False
