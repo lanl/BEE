@@ -7,6 +7,8 @@ import platform
 import random
 import shutil
 import textwrap
+import subprocess
+import importlib
 import typer
 
 from beeflow.common.config_validator import ConfigValidator
@@ -210,6 +212,31 @@ def unique_port():
     port = ((uid%(16000-7777))+7777)
     return port
 
+def check_redis_in_spackenv()->bool:
+    try:
+        result = subprocess.run(['spack', 'find', 'redis'],
+                capture_output = True,
+                text = True,
+                check=True)
+
+    except subprosess.CalledProcessorError as e:
+        if "No matching packages found" in e.stderr or e.returncode != 0:
+            print("Redis is not installed on the actice spack environment.")
+        else:
+            print(f'An error occured: {e.stderr}')
+
+    except FileNotFoundError:
+        print("Error: the 'spack' command-line tool was not found in your current path")
+
+    return True
+
+def check_sqlite3_installed()->bool:
+    try:
+        sqlite3 = importlib.import_module('sqlite3')
+        return True
+    except ImportError:
+        print("Error: sqlite3 module is not avaliable in this python environment.")
+        return False
 
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
@@ -270,17 +297,25 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs', prompt=False)
 
-VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
-                 default=True, info='Use the redis container image or spack',
-                 prompt=False)
+CHECK_SQLITE3 = check_sqlite3_installed()
+if CHECK_SQLITE3 is False:
+    VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
+                     default=NEO4J_IMAGE, info='neo4j container image',
+                     input_fn=filepath_completion_input, prompt=True)
 
-VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
-                 default=NEO4J_IMAGE, info='neo4j container image',
-                 input_fn=filepath_completion_input, prompt=True)
+CHECK_REDIS = check_redis_in_spackenv()
+if CHECK_REDIS is False:
+    VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
+                     default=True, info='Use the redis container image or spack',
+                     prompt=False)
 
-VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
-                 default=REDIS_IMAGE, info='redis container image',
-                 input_fn=filepath_completion_input, prompt=True)
+    VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
+                     default=REDIS_IMAGE, info='redis container image',
+                     input_fn=filepath_completion_input, prompt=True)
+else:
+    VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
+                     default=False, info='Use the redis container image or spack',
+                     prompt=False)
 
 VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.dir_,
                  default='.', info='Spack environment path',
