@@ -96,7 +96,7 @@ jobs:
       - name: Move Flux Install 
         if: ${{ env.BEE_WORKER == 'Flux' }}
         run: |
-          sudo cp -f ${{ github.workspace }}/flux/. /usr
+          sudo cp -r ${{ github.workspace }}/flux/. /usr
           if [[ "${{ steps.cache-flux-restore.outputs.cache-hit }}" == "true" ]]; then
             sudo ldconfig
           fi 
