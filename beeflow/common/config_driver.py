@@ -213,27 +213,37 @@ def unique_port():
     return port
 
 def check_redis_in_spackenv()->bool:
+    """Check for redis in spack environment."""
     try:
         result = subprocess.run(['spack', 'find', 'redis'],
                 capture_output = True,
                 text = True,
                 check=True)
+        if result and "redis" in result.stdout:
+            return True
 
-    except subprosess.CalledProcessorError as e:
+        print("Reids is not installed on the active spack encironment.")
+        return False
+    except subprocess.CalledProcessError as e:
         if "No matching packages found" in e.stderr or e.returncode != 0:
-            print("Redis is not installed on the actice spack environment.")
+            print("Redis is not installed on the active spack environment.")
         else:
             print(f'An error occured: {e.stderr}')
+        return False
 
     except FileNotFoundError:
         print("Error: the 'spack' command-line tool was not found in your current path")
-
-    return True
+        return False
 
 def check_sqlite3_installed()->bool:
+    """Check if sqlite3 is installed"""
     try:
         sqlite3 = importlib.import_module('sqlite3')
-        return True
+        if sqlite3:
+            return True
+
+        print("Sqlite3 is not installed")
+        return False
     except ImportError:
         print("Error: sqlite3 module is not avaliable in this python environment.")
         return False
