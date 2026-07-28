@@ -688,7 +688,7 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
     """Pull required BEE containers and store in outdir."""
     if cd.check_sqlite3_installed() and cd.check_redis_in_spackenv():
         print("Redis and sqlite3 already active, run 'beeflow config new'")
-        return 
+        return
     load_check_charliecloud()
     if need_neo4j():
         neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
