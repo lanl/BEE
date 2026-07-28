@@ -1,5 +1,9 @@
 name: Build Tag Docs
 
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
 on:
   push:
     tags:
