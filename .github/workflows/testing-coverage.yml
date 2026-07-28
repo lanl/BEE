@@ -42,35 +42,53 @@ jobs:
         if: env.BEE_WORKER == 'Flux'
         run: ./ci/flux_deps.sh
 
-      - name: Restore Slurm and Charliecloud Installs 
-        id: cache-installs-restore
+      - name: Restore Slurm Install
+        if: env.BEE_WORKER == 'Slurmrestd' || env.BEE_WORKER == 'SlurmCommands'
+        id: cache-slurm-restore
         uses: actions/cache/restore@v5
         with:
-          path: |
-            ${{ github.workspace }}/charliecloud
-            ${{ github.workspace }}/slurm
-          key: ${{ runner.os }}-installs-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh','./ci/slurm_install.sh') }} 
+          path: ${{ github.workspace }}/slurm
+          key: ${{ runner.os }}-slurm-${{ hashFiles('./ci/env.sh','./ci/slurm_install.sh') }} 
 
-      - name: Build Slurm and Charliecloud for Save
-        if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
+      - name: Restore Charliecloud Install
+        id: cache-charliecloud-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ github.workspace }}/charliecloud
+          key: ${{ runner.os }}-charliecloud-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh') }}
+
+      - name: Build Slurm for Save
+        if: steps.cache-slurm-restore.outputs.cache-hit != 'true' && (env.BEE_WORKER == 'Slurmrestd' || env.BEE_WORKER == 'SlurmCommands')
+        run: |
+          . ./ci/env.sh
+          ./ci/slurm_install.sh
+
+      - name: Build Charliecloud for Save
+        if: steps.cache-charliecloud-restore.outputs.cache-hit != 'true'
         run: |
           . ./ci/env.sh
           ./ci/charliecloud_install.sh
-          ./ci/slurm_install.sh
 
-      - name: Save Slurm and Charliecloud Installs
-        if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
+      - name: Save Slurm Install
+        if: steps.cache-slurm-restore.outputs.cache-hit != 'true' && (env.BEE_WORKER == 'Slurmrestd' || env.BEE_WORKER == 'SlurmCommands')
         uses: actions/cache/save@v5
         with:
-          path: |
-            ${{ github.workspace }}/charliecloud
-            ${{ github.workspace }}/slurm
-          key: ${{ steps.cache-installs-restore.outputs.cache-primary-key }}
+          path: ${{ github.workspace }}/slurm
+          key: ${{ steps.cache-slurm-restore.outputs.cache-primary-key }}
+
+      - name: Save Charliecloud Install
+        if: steps.cache-charliecloud-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ github.workspace }}/charliecloud
+          key: ${{ steps.cache-charliecloud-restore.outputs.cache-primary-key }}
 
       - name: Move Slurm and Charliecloud Installs
         run: |
           sudo cp -r ${{ github.workspace }}/charliecloud/. /usr
-          sudo cp -r ${{ github.workspace }}/slurm/. /usr
+          if [[ "${{ env.BEE_WORKER }}" == "Slurmrestd" || "${{ env.BEE_WORKER }}" == "SlurmCommands" ]]; then
+            sudo cp -r ${{ github.workspace }}/slurm/. /usr
+          fi
 
       - name: Restore Flux Install
         if: ${{ env.BEE_WORKER == 'Flux' }}
@@ -78,7 +96,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/flux
-          key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh','./ci/flux.sh') }} 
+          key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh','./ci/flux_install.sh') }} 
 
       - name: Build Flux Install for Save
         if: steps.cache-flux-restore.outputs.cache-hit != 'true' && env.BEE_WORKER == 'Flux'
@@ -108,6 +126,26 @@ jobs:
           python3 -m pip install --user wheel
           python3 -m pip install --user flux-python==$FLUX_CORE_VERSION
 
+      - name: Restore Virtual Environment
+        id: cache-venv-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ./venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Build Virtual Environment
+        if: steps.cache-venv-restore.outputs.cache-hit != 'true'
+        run: |
+          . ./ci/env.sh
+          ./ci/bee_install.sh
+
+      - name: Save Virtual Environment
+        if: steps.cache-venv-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ./venv
+          key: ${{ steps.cache-venv-restore.outputs.cache-primary-key }}
+
       - name: Install and Configure
         run: |
           . ./ci/env.sh
@@ -116,7 +154,7 @@ jobs:
           echo "BEE_WORKDIR=$BEE_WORKDIR" >> $GITHUB_ENV
           echo "BEE_CONFIG=$BEE_CONFIG" >> $GITHUB_ENV 
           ./ci/batch_scheduler.sh
-          ./ci/bee_install.sh
+          ./ci/bee_setup.sh
           ./ci/bee_config.sh
 
       - name: Integration Test
@@ -138,14 +176,14 @@ jobs:
 
       - name: Upload bee error logs
         if: failure()    # only when the job fails
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: bee-error-logs-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}
           path: bee-error-logs
           if-no-files-found: ignore
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-${{ matrix.bee_worker }}-${{ matrix.gdb_backend }}
           include-hidden-files: true
@@ -166,41 +204,76 @@ jobs:
       - name: Install Initial Dependencies 
         run: ./ci/deps_install.sh
 
-      - name: Restore Slurm and Charliecloud Installs
-        id: cache-installs-restore
+      - name: Restore Slurm Install
+        id: cache-slurm-restore
         uses: actions/cache/restore@v5
         with:
-          path: |
-            ${{ github.workspace }}/charliecloud
-            ${{ github.workspace }}/slurm
-          key: ${{ runner.os }}-installs-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh','./ci/slurm_install.sh') }}
+          path: ${{ github.workspace }}/slurm
+          key: ${{ runner.os }}-slurm-${{ hashFiles('./ci/env.sh','./ci/slurm_install.sh') }}
 
-      - name: Build Slurm and Charliecloud for Save
-        if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
+      - name: Restore Charliecloud Install
+        id: cache-charliecloud-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ github.workspace }}/charliecloud
+          key: ${{ runner.os }}-charliecloud-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh') }}
+
+      - name: Build Slurm for Save
+        if: ${{ steps.cache-slurm-restore.outputs.cache-hit != 'true' }}
+        run: |
+          . ./ci/env.sh
+          ./ci/slurm_install.sh
+
+      - name: Build Charliecloud for Save
+        if: ${{ steps.cache-charliecloud-restore.outputs.cache-hit != 'true' }}
         run: |
           . ./ci/env.sh
           ./ci/charliecloud_install.sh
-          ./ci/slurm_install.sh
 
-      - name: Save Slurm and Charliecloud Installs
-        if: ${{ steps.cache-installs-restore.outputs.cache-hit != 'true' }}
+      - name: Save Slurm Install
+        if: ${{ steps.cache-slurm-restore.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v5
         with:
-          path: |
-            ${{ github.workspace }}/charliecloud
-            ${{ github.workspace }}/slurm
-          key: ${{ steps.cache-installs-restore.outputs.cache-primary-key }}
+          path: ${{ github.workspace }}/slurm
+          key: ${{ steps.cache-slurm-restore.outputs.cache-primary-key }}
+
+      - name: Save Charliecloud Install
+        if: ${{ steps.cache-charliecloud-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ github.workspace }}/charliecloud
+          key: ${{ steps.cache-charliecloud-restore.outputs.cache-primary-key }}
 
       - name: Move Slurm and Charliecloud Installs
         run: |
           sudo cp -r ${{ github.workspace }}/charliecloud/. /usr
           sudo cp -r ${{ github.workspace }}/slurm/. /usr
 
+      - name: Restore Virtual Environment
+        id: cache-venv-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ./venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Build Virtual Environment
+        if: ${{ steps.cache-venv-restore.outputs.cache-hit != 'true' }}
+        run: |
+          . ./ci/env.sh
+          ./ci/bee_install.sh
+
+      - name: Save Virtual Environment
+        if: ${{ steps.cache-venv-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: ./venv
+          key: ${{ steps.cache-venv-restore.outputs.cache-primary-key }}
+
       - name: Install and Configure
         run: |
           . ./ci/env.sh
           ./ci/batch_scheduler.sh
-          ./ci/bee_install.sh
+          ./ci/bee_setup.sh
           ./ci/bee_config.sh
 
       - name: Unit tests
@@ -210,7 +283,7 @@ jobs:
           mv .coverage ".coverage.unittests"
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-unit-tests
           include-hidden-files: true
@@ -232,43 +305,43 @@ jobs:
           python-version: '3.11'
 
       - name: Get unit test coverage
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: coverage-unit-tests
           path: ./
 
       # - name: Get Slurmrestd+neo4j coverage
-      #   uses: actions/download-artifact@v6
+      #   uses: actions/download-artifact@v7
       #   with:
       #     name: coverage-Slurmrestd-neo4j
       #     path: ./
       
       - name: Get Slurmrestd+sqlite3 coverage
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: coverage-Slurmrestd-sqlite3
           path: ./
       
       # - name: Get SlurmCommands+neo4j coverage
-      #   uses: actions/download-artifact@v6
+      #   uses: actions/download-artifact@v7
       #   with:
       #     name: coverage-SlurmCommands-neo4j
       #     path: ./
       
       - name: Get SlurmCommands+sqlite3 coverage
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: coverage-SlurmCommands-sqlite3
           path: ./
       
       # - name: Get Flux+neo4j coverage
-      #   uses: actions/download-artifact@v6
+      #   uses: actions/download-artifact@v7
       #   with:
       #     name: coverage-Flux-neo4j
       #     path: ./
       
       - name: Get Flux+sqlite3 coverage
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: coverage-Flux-sqlite3
           path: ./
@@ -293,7 +366,7 @@ jobs:
           genbadge coverage -i coverage.xml -o coverage.svg
 
       - name: Upload coverage badge artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-badge
           path: ./coverage.svg
@@ -340,7 +413,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
