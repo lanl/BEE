@@ -91,7 +91,7 @@ jobs:
           fi
 
       - name: Restore Flux Install
-        if: ${{ env.BEE_WORKER == 'Flux' }}
+        if: env.BEE_WORKER == 'Flux'
         id: cache-flux-restore
         uses: actions/cache/restore@v5
         with:
@@ -112,7 +112,7 @@ jobs:
           key: ${{ steps.cache-flux-restore.outputs.cache-primary-key }}
 
       - name: Move Flux Install 
-        if: ${{ env.BEE_WORKER == 'Flux' }}
+        if: env.BEE_WORKER == 'Flux'
         run: |
           sudo cp -r ${{ github.workspace }}/flux/. /usr
           if [[ "${{ steps.cache-flux-restore.outputs.cache-hit }}" == "true" ]]; then
@@ -126,24 +126,31 @@ jobs:
           python3 -m pip install --user wheel
           python3 -m pip install --user flux-python==$FLUX_CORE_VERSION
 
-      - name: Restore Virtual Environment
+      - name: Restore Containers and Virtual Environment
         id: cache-venv-restore
         uses: actions/cache/restore@v5
         with:
-          path: ./venv
-          key: ${{ runner.os }}-venv-${{ hashFiles('poetry.lock') }}
+          path: |
+            ./venv
+            /home/runner/img/neo4j.tar.gz
+            /home/runner/img/redis.tar.gz
+          key: ${{ runner.os }}-venv-${{ hashFiles('poetry.lock','./ci/env.sh','./ci/bee_install.sh','./ci/bee_setup.sh') }}
 
-      - name: Build Virtual Environment
+      - name: Build Containers and Virtual Environment
         if: steps.cache-venv-restore.outputs.cache-hit != 'true'
         run: |
           . ./ci/env.sh
+          ./ci/bee_setup.sh
           ./ci/bee_install.sh
 
-      - name: Save Virtual Environment
+      - name: Save Containers and Virtual Environment
         if: steps.cache-venv-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
-          path: ./venv
+          path: |
+            ./venv
+            /home/runner/img/neo4j.tar.gz
+            /home/runner/img/redis.tar.gz
           key: ${{ steps.cache-venv-restore.outputs.cache-primary-key }}
 
       - name: Install and Configure
@@ -154,7 +161,6 @@ jobs:
           echo "BEE_WORKDIR=$BEE_WORKDIR" >> $GITHUB_ENV
           echo "BEE_CONFIG=$BEE_CONFIG" >> $GITHUB_ENV 
           ./ci/batch_scheduler.sh
-          ./ci/bee_setup.sh
           ./ci/bee_config.sh
 
       - name: Integration Test
@@ -219,26 +225,26 @@ jobs:
           key: ${{ runner.os }}-charliecloud-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh') }}
 
       - name: Build Slurm for Save
-        if: ${{ steps.cache-slurm-restore.outputs.cache-hit != 'true' }}
+        if: steps.cache-slurm-restore.outputs.cache-hit != 'true'
         run: |
           . ./ci/env.sh
           ./ci/slurm_install.sh
 
       - name: Build Charliecloud for Save
-        if: ${{ steps.cache-charliecloud-restore.outputs.cache-hit != 'true' }}
+        if: steps.cache-charliecloud-restore.outputs.cache-hit != 'true'
         run: |
           . ./ci/env.sh
           ./ci/charliecloud_install.sh
 
       - name: Save Slurm Install
-        if: ${{ steps.cache-slurm-restore.outputs.cache-hit != 'true' }}
+        if: steps.cache-slurm-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
           path: ${{ github.workspace }}/slurm
           key: ${{ steps.cache-slurm-restore.outputs.cache-primary-key }}
 
       - name: Save Charliecloud Install
-        if: ${{ steps.cache-charliecloud-restore.outputs.cache-hit != 'true' }}
+        if: steps.cache-charliecloud-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
           path: ${{ github.workspace }}/charliecloud
@@ -249,31 +255,37 @@ jobs:
           sudo cp -r ${{ github.workspace }}/charliecloud/. /usr
           sudo cp -r ${{ github.workspace }}/slurm/. /usr
 
-      - name: Restore Virtual Environment
+      - name: Restore Containers and Virtual Environment
         id: cache-venv-restore
         uses: actions/cache/restore@v5
         with:
-          path: ./venv
-          key: ${{ runner.os }}-venv-${{ hashFiles('poetry.lock') }}
+          path: |
+            ./venv
+            /home/runner/img/neo4j.tar.gz
+            /home/runner/img/redis.tar.gz
+          key: ${{ runner.os }}-venv-${{ hashFiles('poetry.lock','./ci/env.sh','./ci/bee_install.sh','./ci/bee_setup.sh') }}
 
-      - name: Build Virtual Environment
-        if: ${{ steps.cache-venv-restore.outputs.cache-hit != 'true' }}
+      - name: Build Containers and Virtual Environment
+        if: steps.cache-venv-restore.outputs.cache-hit != 'true'
         run: |
           . ./ci/env.sh
+          ./ci/bee_setup.sh
           ./ci/bee_install.sh
 
-      - name: Save Virtual Environment
-        if: ${{ steps.cache-venv-restore.outputs.cache-hit != 'true' }}
+      - name: Save Containers and Virtual Environment
+        if: steps.cache-venv-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
-          path: ./venv
+          path: |
+            ./venv
+            /home/runner/img/neo4j.tar.gz
+            /home/runner/img/redis.tar.gz
           key: ${{ steps.cache-venv-restore.outputs.cache-primary-key }}
 
       - name: Install and Configure
         run: |
           . ./ci/env.sh
           ./ci/batch_scheduler.sh
-          ./ci/bee_setup.sh
           ./ci/bee_config.sh
 
       - name: Unit tests
@@ -300,7 +312,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
