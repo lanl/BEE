@@ -228,7 +228,7 @@ def check_redis_in_spackenv()->bool:
 
         if result is False and not os.path.isfile(DEFAULT_REDIS_IMAGE):
             print("Reids is not installed on the active spack environment.")
-            print("Please check documentation here: ")
+            print("Please check documentation here: https://lanl.github.io/BEE/installation.html")
             sys.exit(1)
 
         return False
@@ -254,7 +254,7 @@ def check_sqlite3_installed()->bool:
             return False
 
         print("Sqlite3 is not installed")
-        print("Check documentation here: ")
+        print("Check documentation here: https://lanl.github.io/BEE/installation.html")
         sys.exit(1)
     except ImportError:
         print("Error: sqlite3 module is not avaliable in this python environment.")
