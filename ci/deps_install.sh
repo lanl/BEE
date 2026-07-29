@@ -2,8 +2,13 @@
 # Install all dependencies for BEE
 set -e
 
+# MUNGE refuses to start if /etc is not owned by root.
+sudo chown root:root /etc
+sudo chmod 755 /etc
+
 sudo apt-get update
 sudo apt-get install -y build-essential
+
 sudo apt-get install -y libhttp-parser-dev libjson-c-dev libjwt-dev munge python3 python3-venv \
     curl build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev sqlite3 \
     libssl-dev libsqlite3-dev libreadline-dev libffi-dev libbz2-dev libmunge-dev libdbus-1-dev \
