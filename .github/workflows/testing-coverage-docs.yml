@@ -327,31 +327,31 @@ jobs:
       #   with:
       #     name: coverage-Slurmrestd-neo4j
       #     path: ./
-      
+
       - name: Get Slurmrestd+sqlite3 coverage
         uses: actions/download-artifact@v7
         with:
           name: coverage-Slurmrestd-sqlite3
           path: ./
-      
+
       # - name: Get SlurmCommands+neo4j coverage
       #   uses: actions/download-artifact@v7
       #   with:
       #     name: coverage-SlurmCommands-neo4j
       #     path: ./
-      
+
       - name: Get SlurmCommands+sqlite3 coverage
         uses: actions/download-artifact@v7
         with:
           name: coverage-SlurmCommands-sqlite3
           path: ./
-      
+
       # - name: Get Flux+neo4j coverage
       #   uses: actions/download-artifact@v7
       #   with:
       #     name: coverage-Flux-neo4j
       #     path: ./
-      
+
       - name: Get Flux+sqlite3 coverage
         uses: actions/download-artifact@v7
         with:
@@ -363,7 +363,7 @@ jobs:
           pip install coverage
           coverage combine
           coverage report --show-missing
-       
+
       - name: Add coverage to job summary
         run: |
           echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
@@ -424,16 +424,32 @@ jobs:
     permissions:
       contents: write
 
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
+
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name : Checkout latest tag for main
+      - name: Checkout latest release tag
         if: github.ref == 'refs/heads/main'
         run: |
           git fetch --tags --force
-          LATEST_TAG="$(git tag --sort=-creatordate | head -n 1)"
+
+          # Consider only tags of the form X.Y.Z (e.g. 0.1.13)
+          LATEST_TAG="$(
+            git tag --sort=-version:refname |
+            grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' |
+            head -n 1 || true
+          )"
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No valid release tag found."
+            exit 1
+          fi
+
           echo "Latest tag: $LATEST_TAG"
           git checkout "$LATEST_TAG"
 
