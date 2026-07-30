@@ -1,3 +1,38 @@
+### 0.1.12
+
+Major features include:
+
+Enable beeflow to run a task directly from a provided sbatch script
+  - Allows workflow to create a batch script from one task and run it from another
+  - Allows workflow to use any batch script to run as a job for a task
+
+Enables beeflow core reset when beeflow is not running (use with caution)
+
+Fixes to metadata and now in yaml format
+
+Publishes documentation for any tag
+   - Allows team members to temporarily publish documentation for a tag
+   - Upon deletion of a tag, the documentation is also deleted (temporary documetation builds)
+
+Removes BEE Scheduler component and associated daemon
+
+Changelog:
+
+- Remove check for sbatch file existing at parse time (#1234)
+- Fixes missing task object (#1231)
+- Enable BEE to Run a Workflow Directly from a Provided Sbatch (#1206)
+- Update metadata correctly when querying and save metadata as yaml #1192 (#1222)
+- (tag: 0.1.12dev1) Start pre-release 0.1.12dev1 (#1219)
+- Bump urllib3 from 2.6.3 to 2.7.0 (#1217)
+- Bump mistune from 3.0.2 to 3.2.1 (#1216)
+- Add documentation builds for tags (#1212)
+- Bypass REST interface for BEE scheduler (#1209)
+- Add new documentation for pre-release (#1215)
+- (tag: 0.1.12dev0) Enable beeflow core reset when beeflow is not running (#1141) (#1210)
+- Setting click manually to fix crash in package version (#1211)
+- Bump lxml from 5.3.0 to 6.1.0 (#1208)
+
+
 ### 0.1.11
 
 Major features include:

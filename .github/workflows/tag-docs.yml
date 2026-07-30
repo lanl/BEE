@@ -1,0 +1,59 @@
+name: Build Tag Docs
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+on:
+  push:
+    tags:
+      - '*'
+  delete:
+
+permissions:
+  contents: write
+
+jobs:
+  tag-docs:
+    if: startsWith(github.ref, 'refs/tags/')
+    name: Build and Publish Tag Docs 
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build tag docs
+        run: ./ci/docs.sh
+
+      - name: Publish tag docs
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./docs/sphinx/_build/html
+          destination_dir: ${{ github.ref_name }}
+          keep_files: true
+
+  cleanup-tag-docs:
+    if: github.event_name == 'delete' && github.event.ref_type == 'tag'
+    name: Clean-Up Tag Docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+
+      - name: Remove docs for deleted tag
+        run: |
+          TAG="${{ github.event.ref }}"
+          echo "Removing docs for $TAG"
+          rm -rf "$TAG"
+
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          git commit -m "Remove docs for deleted tag ${{ github.event.ref }}" || echo "Nothing to commit"
+          git push origin gh-pages

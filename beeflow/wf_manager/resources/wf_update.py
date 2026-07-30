@@ -180,6 +180,9 @@ class WFUpdate(Resource):
         task = wfi.get_task_by_id(state_update.task_id)
         wfi.set_task_state(state_update.task_id, state_update.job_state)
 
-        self.handle_metadata(state_update, state_update.task_id, wfi, task.workdir)
-        if not self.handle_checkpoint_restart(state_update, task, wfi):
-            self.handle_state_change(state_update, task, wfi)
+        # Check if task exists, since it may not have been submitted yet
+        if task:
+            self.handle_metadata(state_update, state_update.task_id, wfi, task.workdir)
+
+            if not self.handle_checkpoint_restart(state_update, task, wfi):
+                self.handle_state_change(state_update, task, wfi)
