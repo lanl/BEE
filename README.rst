@@ -83,6 +83,7 @@ Contributors:
 * Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
 * Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
 * Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
+* Sai Asish Y - `SAY-5 <https://github.com/SAY-5>`_
 
 Concept and Design Contributors
 
