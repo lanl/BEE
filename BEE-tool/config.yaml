@@ -1,0 +1,9 @@
+mcp_servers:
+  filesystem:
+    transport: stdio
+    command: python
+    args: 
+      - /vast/home/szeytun/old-home/szeytun/BEE/BEE-tool/MCP/bee_server.py
+    env: 
+      API_KEY: ${OPENAI_API_KEY}
+      API_BASE: ${OPENAI_API_BASE}  
