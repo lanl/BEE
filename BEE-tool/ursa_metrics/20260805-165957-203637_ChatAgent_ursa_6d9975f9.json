@@ -1,0 +1,3364 @@
+{
+  "context": {
+    "agent": "ChatAgent",
+    "thread_id": "ursa",
+    "run_id": "6d9975f953414969a6367f695b18243c",
+    "started_at": "2026-08-05T22:58:58.609040+00:00",
+    "ended_at": "2026-08-05T22:59:57.198534+00:00"
+  },
+  "tables": {
+    "runnable": [
+      {
+        "name": "graph:ChatAgent",
+        "count": 1,
+        "total_s": 58.56683754711412,
+        "avg_ms": 58566.83754711412,
+        "max_ms": 58566.83754711412
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "count": 22,
+        "total_s": 29.10728465183638,
+        "avg_ms": 1323.05839326529,
+        "max_ms": 5638.327781809494
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "count": 20,
+        "total_s": 26.155352540081367,
+        "avg_ms": 1307.7676270040683,
+        "max_ms": 7820.068035973236
+      },
+      {
+        "name": "runnable",
+        "count": 19,
+        "total_s": 5.0197355449199677e-05,
+        "avg_ms": 0.002641966076273667,
+        "max_ms": 0.008634990081191063
+      }
+    ],
+    "tool": [
+      {
+        "name": "run_command",
+        "count": 6,
+        "total_s": 29.30463436478749,
+        "avg_ms": 4884.105727464582,
+        "max_ms": 7755.621832096949
+      },
+      {
+        "name": "download_file_tool",
+        "count": 2,
+        "total_s": 0.3670213120058179,
+        "avg_ms": 183.51065600290895,
+        "max_ms": 210.01922409050167
+      },
+      {
+        "name": "read_file",
+        "count": 1,
+        "total_s": 0.007021181983873248,
+        "avg_ms": 7.021181983873248,
+        "max_ms": 7.021181983873248
+      }
+    ],
+    "llm": [
+      {
+        "name": "llm:gpt-oss-120b",
+        "count": 25,
+        "total_s": 55.176928443601355,
+        "avg_ms": 2207.077137744054,
+        "max_ms": 7815.870974911377
+      }
+    ]
+  },
+  "totals": {
+    "graph_total_s": 58.56683754711412,
+    "llm_total_s": 55.176928443601355,
+    "tool_total_s": 29.67867685877718,
+    "unattributed_s": 0.0
+  },
+  "llm_events": [
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 2302.3829751182348,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 44,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:1df10539-e0d6-a59f-4df7-561ae0261912",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:1df10539-e0d6-a59f-4df7-561ae0261912",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 257,
+            "prompt_tokens": 17744,
+            "total_tokens": 18001,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-8fe2857325cdf673"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 257,
+          "prompt_tokens": 17744,
+          "total_tokens": 18001,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 257,
+              "prompt_tokens": 17744,
+              "total_tokens": 18001,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-8fe2857325cdf673",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 17744,
+            "output_tokens": 257,
+            "total_tokens": 18001,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 17744,
+          "output_tokens": 257,
+          "total_tokens": 18001,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 17744,
+          "completion_tokens": 257,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970738.6905334,
+      "t_end": 1785970740.9929166
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1933.6383391637355,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 46,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:fc2ff6cd-950b-0a1a-718e-d6316e815c36",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:fc2ff6cd-950b-0a1a-718e-d6316e815c36",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 208,
+            "prompt_tokens": 17825,
+            "total_tokens": 18033,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-81ee9e159cdceb1b"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 208,
+          "prompt_tokens": 17825,
+          "total_tokens": 18033,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 208,
+              "prompt_tokens": 17825,
+              "total_tokens": 18033,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-81ee9e159cdceb1b",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 17825,
+            "output_tokens": 208,
+            "total_tokens": 18033,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 17825,
+          "output_tokens": 208,
+          "total_tokens": 18033,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 17825,
+          "completion_tokens": 208,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970741.1636593,
+      "t_end": 1785970743.0972977
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 724.8474890366197,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 48,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:a27820d8-971e-fc2d-ced9-06940488a64e",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:a27820d8-971e-fc2d-ced9-06940488a64e",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 60,
+            "prompt_tokens": 17886,
+            "total_tokens": 17946,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-8400546e18ecdca4"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 60,
+          "prompt_tokens": 17886,
+          "total_tokens": 17946,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 60,
+              "prompt_tokens": 17886,
+              "total_tokens": 17946,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-8400546e18ecdca4",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 17886,
+            "output_tokens": 60,
+            "total_tokens": 17946,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 17886,
+          "output_tokens": 60,
+          "total_tokens": 17946,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 17886,
+          "completion_tokens": 60,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970743.3198478,
+      "t_end": 1785970744.0446959
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 3811.9079840835184,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 50,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:0411d2e0-0b25-1693-e67a-44204427008e",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:0411d2e0-0b25-1693-e67a-44204427008e",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 844,
+            "prompt_tokens": 2559,
+            "total_tokens": 3403,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-bd74ab63a1c65623"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 844,
+          "prompt_tokens": 2559,
+          "total_tokens": 3403,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 844,
+              "prompt_tokens": 2559,
+              "total_tokens": 3403,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-bd74ab63a1c65623",
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 2559,
+            "output_tokens": 844,
+            "total_tokens": 3403,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 2559,
+          "output_tokens": 844,
+          "total_tokens": 3403,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 2559,
+          "completion_tokens": 844,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970746.3710036,
+      "t_end": 1785970750.1829116
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1413.7488810811192,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 50,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:0411d2e0-0b25-1693-e67a-44204427008e",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:0411d2e0-0b25-1693-e67a-44204427008e",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 98,
+            "prompt_tokens": 17145,
+            "total_tokens": 17243,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-889a747f5f2e7465"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 98,
+          "prompt_tokens": 17145,
+          "total_tokens": 17243,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 98,
+              "prompt_tokens": 17145,
+              "total_tokens": 17243,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-889a747f5f2e7465",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 17145,
+            "output_tokens": 98,
+            "total_tokens": 17243,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 17145,
+          "output_tokens": 98,
+          "total_tokens": 17243,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 17145,
+          "completion_tokens": 98,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970750.1843615,
+      "t_end": 1785970751.5981104
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 3367.069280007854,
+      "ok": false,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 51,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:cafd5949-aa7d-2530-ae0e-086065ebcfc5",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:cafd5949-aa7d-2530-ae0e-086065ebcfc5",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "error": "1 validation error for SafetyAssessment\n  Invalid JSON: expected value at line 1 column 1 [type=json_invalid, input_value='**Short answer:** Yes{  ...nd is safe to run.\"   }', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+      },
+      "t_start": 1785970751.6195843,
+      "t_end": 1785970754.986654
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 3406.0200739186257,
+      "ok": true,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 51,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:cafd5949-aa7d-2530-ae0e-086065ebcfc5",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:cafd5949-aa7d-2530-ae0e-086065ebcfc5",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 647,
+            "prompt_tokens": 262,
+            "total_tokens": 909,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-a980c1c78ba8db6b"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 647,
+          "prompt_tokens": 262,
+          "total_tokens": 909,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 647,
+              "prompt_tokens": 262,
+              "total_tokens": 909,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-a980c1c78ba8db6b",
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 262,
+            "output_tokens": 647,
+            "total_tokens": 909,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 262,
+          "output_tokens": 647,
+          "total_tokens": 909,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 262,
+          "completion_tokens": 647,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970754.9891458,
+      "t_end": 1785970758.3951662
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 939.3483558669686,
+      "ok": true,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 51,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:cafd5949-aa7d-2530-ae0e-086065ebcfc5",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:cafd5949-aa7d-2530-ae0e-086065ebcfc5",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 134,
+            "prompt_tokens": 378,
+            "total_tokens": 512,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-b83dc461927dfa22"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 134,
+          "prompt_tokens": 378,
+          "total_tokens": 512,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 134,
+              "prompt_tokens": 378,
+              "total_tokens": 512,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-b83dc461927dfa22",
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 378,
+            "output_tokens": 134,
+            "total_tokens": 512,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 378,
+          "output_tokens": 134,
+          "total_tokens": 512,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 378,
+          "completion_tokens": 134,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970758.3981051,
+      "t_end": 1785970759.3374538
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1724.856274900958,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 52,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:0effa417-59bf-6a21-49c7-16da17fe1a08",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:0effa417-59bf-6a21-49c7-16da17fe1a08",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 76,
+            "prompt_tokens": 19944,
+            "total_tokens": 20020,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-a235a7fb1f0fb3b4"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 76,
+          "prompt_tokens": 19944,
+          "total_tokens": 20020,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 76,
+              "prompt_tokens": 19944,
+              "total_tokens": 20020,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-a235a7fb1f0fb3b4",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 19944,
+            "output_tokens": 76,
+            "total_tokens": 20020,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 19944,
+          "output_tokens": 76,
+          "total_tokens": 20020,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 19944,
+          "completion_tokens": 76,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970759.5698142,
+      "t_end": 1785970761.2946706
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1788.8230350799859,
+      "ok": false,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 53,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:d1ad4bdc-a139-06f1-152e-d6f092bb3f5d",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:d1ad4bdc-a139-06f1-152e-d6f092bb3f5d",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "error": "1 validation error for SafetyAssessment\n  Invalid JSON: expected value at line 1 column 1 [type=json_invalid, input_value='###{  \\n  \"is_safe\": tru...d is safe to run.\"  \\n}', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+      },
+      "t_start": 1785970761.3186946,
+      "t_end": 1785970763.1075184
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1372.7627999614924,
+      "ok": true,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 53,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:d1ad4bdc-a139-06f1-152e-d6f092bb3f5d",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:d1ad4bdc-a139-06f1-152e-d6f092bb3f5d",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 327,
+            "prompt_tokens": 262,
+            "total_tokens": 589,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-8f9d1156ac681289"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 327,
+          "prompt_tokens": 262,
+          "total_tokens": 589,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 327,
+              "prompt_tokens": 262,
+              "total_tokens": 589,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-8f9d1156ac681289",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 262,
+            "output_tokens": 327,
+            "total_tokens": 589,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 262,
+          "output_tokens": 327,
+          "total_tokens": 589,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 262,
+          "completion_tokens": 327,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970763.110275,
+      "t_end": 1785970764.4830377
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1079.4853980187327,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 54,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:cc222b77-7499-3007-4d77-8dd3fe0d3112",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:cc222b77-7499-3007-4d77-8dd3fe0d3112",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 83,
+            "prompt_tokens": 21347,
+            "total_tokens": 21430,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-bc4659d8a9e07ddb"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 83,
+          "prompt_tokens": 21347,
+          "total_tokens": 21430,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 83,
+              "prompt_tokens": 21347,
+              "total_tokens": 21430,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-bc4659d8a9e07ddb",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 21347,
+            "output_tokens": 83,
+            "total_tokens": 21430,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 21347,
+          "output_tokens": 83,
+          "total_tokens": 21430,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 21347,
+          "completion_tokens": 83,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970764.5327806,
+      "t_end": 1785970765.612266
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1572.4435180891305,
+      "ok": false,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 55,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:d577f7ed-f08b-0677-984a-4d79f44bc1e3",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:d577f7ed-f08b-0677-984a-4d79f44bc1e3",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "error": "1 validation error for SafetyAssessment\n  Invalid JSON: expected value at line 1 column 1 [type=json_invalid, input_value='**Short answer:** Yes{ \\...orm network actions.\" }', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+      },
+      "t_start": 1785970765.634191,
+      "t_end": 1785970767.2066352
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 2588.8170949183404,
+      "ok": true,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 55,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:d577f7ed-f08b-0677-984a-4d79f44bc1e3",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:d577f7ed-f08b-0677-984a-4d79f44bc1e3",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 562,
+            "prompt_tokens": 262,
+            "total_tokens": 824,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-8376f3c05b9a7f70"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 562,
+          "prompt_tokens": 262,
+          "total_tokens": 824,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 562,
+              "prompt_tokens": 262,
+              "total_tokens": 824,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-8376f3c05b9a7f70",
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 262,
+            "output_tokens": 562,
+            "total_tokens": 824,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 262,
+          "output_tokens": 562,
+          "total_tokens": 824,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 262,
+          "completion_tokens": 562,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970767.209583,
+      "t_end": 1785970769.7984
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 704.9783561378717,
+      "ok": false,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 55,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:d577f7ed-f08b-0677-984a-4d79f44bc1e3",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:d577f7ed-f08b-0677-984a-4d79f44bc1e3",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "error": "1 validation error for SafetyAssessment\n  Invalid JSON: expected `:` at line 2 column 16 [type=json_invalid, input_value='{\\n  \"is_safe{   \"is_saf... it is safe to run.\"\\n}', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+      },
+      "t_start": 1785970769.8015652,
+      "t_end": 1785970770.506544
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1074.8851420357823,
+      "ok": true,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 55,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:d577f7ed-f08b-0677-984a-4d79f44bc1e3",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:d577f7ed-f08b-0677-984a-4d79f44bc1e3",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 170,
+            "prompt_tokens": 444,
+            "total_tokens": 614,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-88783fc303e9596c"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 170,
+          "prompt_tokens": 444,
+          "total_tokens": 614,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 170,
+              "prompt_tokens": 444,
+              "total_tokens": 614,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-88783fc303e9596c",
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 444,
+            "output_tokens": 170,
+            "total_tokens": 614,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 444,
+          "output_tokens": 170,
+          "total_tokens": 614,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 444,
+          "completion_tokens": 170,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970770.5089326,
+      "t_end": 1785970771.5838177
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 2727.834144141525,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 56,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:9fb591bb-703e-e3a1-e167-1f09907827f0",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:9fb591bb-703e-e3a1-e167-1f09907827f0",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 166,
+            "prompt_tokens": 21433,
+            "total_tokens": 21599,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-95fd7e2ed5e44470"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 166,
+          "prompt_tokens": 21433,
+          "total_tokens": 21599,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 166,
+              "prompt_tokens": 21433,
+              "total_tokens": 21599,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-95fd7e2ed5e44470",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 21433,
+            "output_tokens": 166,
+            "total_tokens": 21599,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 21433,
+          "output_tokens": 166,
+          "total_tokens": 21599,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 21433,
+          "completion_tokens": 166,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970771.5929985,
+      "t_end": 1785970774.3208325
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 5635.804346995428,
+      "ok": true,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 57,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:0400a8a2-1f93-90cd-c6cb-e539b12f540a",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:0400a8a2-1f93-90cd-c6cb-e539b12f540a",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 1146,
+            "prompt_tokens": 195,
+            "total_tokens": 1341,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-befb56d1cbdd3456"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 1146,
+          "prompt_tokens": 195,
+          "total_tokens": 1341,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 1146,
+              "prompt_tokens": 195,
+              "total_tokens": 1341,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-befb56d1cbdd3456",
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 195,
+            "output_tokens": 1146,
+            "total_tokens": 1341,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 195,
+          "output_tokens": 1146,
+          "total_tokens": 1341,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 195,
+          "completion_tokens": 1146,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970774.3395731,
+      "t_end": 1785970779.9753776
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1259.4114320818335,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 58,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:ae25b992-2517-98b6-3f5d-c461bc59ba06",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:ae25b992-2517-98b6-3f5d-c461bc59ba06",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 125,
+            "prompt_tokens": 22091,
+            "total_tokens": 22216,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-961a8cb864e24c85"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 125,
+          "prompt_tokens": 22091,
+          "total_tokens": 22216,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 125,
+              "prompt_tokens": 22091,
+              "total_tokens": 22216,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-961a8cb864e24c85",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 22091,
+            "output_tokens": 125,
+            "total_tokens": 22216,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 22091,
+          "output_tokens": 125,
+          "total_tokens": 22216,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 22091,
+          "completion_tokens": 125,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970780.00875,
+      "t_end": 1785970781.2681613
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 2424.0250950679183,
+      "ok": false,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 59,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:51239883-39bd-6bd1-4144-c052820554a3",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:51239883-39bd-6bd1-4144-c052820554a3",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "error": "1 validation error for SafetyAssessment\n  Invalid JSON: expected value at line 1 column 1 [type=json_invalid, input_value='**Short answer:**  \\nYes... or execute code.\"  \\t}', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+      },
+      "t_start": 1785970781.2856903,
+      "t_end": 1785970783.7097168
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1279.7542219050229,
+      "ok": true,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 59,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:51239883-39bd-6bd1-4144-c052820554a3",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:51239883-39bd-6bd1-4144-c052820554a3",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 204,
+            "prompt_tokens": 262,
+            "total_tokens": 466,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-a67cc8da72b91cb9"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 204,
+          "prompt_tokens": 262,
+          "total_tokens": 466,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 204,
+              "prompt_tokens": 262,
+              "total_tokens": 466,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-a67cc8da72b91cb9",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 262,
+            "output_tokens": 204,
+            "total_tokens": 466,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 262,
+          "output_tokens": 204,
+          "total_tokens": 466,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 262,
+          "completion_tokens": 204,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970783.7140782,
+      "t_end": 1785970784.9938323
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1303.6317969672382,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 60,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:c7f07264-178e-32dc-7390-621581f190bb",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:c7f07264-178e-32dc-7390-621581f190bb",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 128,
+            "prompt_tokens": 23453,
+            "total_tokens": 23581,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-97d94e0a9c2d132b"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 128,
+          "prompt_tokens": 23453,
+          "total_tokens": 23581,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 128,
+              "prompt_tokens": 23453,
+              "total_tokens": 23581,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-97d94e0a9c2d132b",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 23453,
+            "output_tokens": 128,
+            "total_tokens": 23581,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 23453,
+          "output_tokens": 128,
+          "total_tokens": 23581,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 23453,
+          "completion_tokens": 128,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970785.0691102,
+      "t_end": 1785970786.372742
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1655.613373965025,
+      "ok": false,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 61,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:d331f4f8-7f08-ee42-d3e2-a473232bdf42",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:d331f4f8-7f08-ee42-d3e2-a473232bdf42",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "error": "1 validation error for SafetyAssessment\n  Invalid JSON: expected value at line 1 column 1 [type=json_invalid, input_value='**Short answer:**\\u202f{...de from the file.\"  \\n}', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+      },
+      "t_start": 1785970786.390789,
+      "t_end": 1785970788.0464034
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 1268.9680601470172,
+      "ok": true,
+      "tags": [
+        "seq:step:1",
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "tool_node"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 61,
+        "langgraph_node": "tool_node",
+        "langgraph_triggers": [
+          "branch:to:tool_node"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "tool_node"
+        ],
+        "langgraph_checkpoint_ns": "tool_node:d331f4f8-7f08-ee42-d3e2-a473232bdf42",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "tool_node:d331f4f8-7f08-ee42-d3e2-a473232bdf42",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 308,
+            "prompt_tokens": 263,
+            "total_tokens": 571,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-96c2dcf49d813670"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 308,
+          "prompt_tokens": 263,
+          "total_tokens": 571,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 308,
+              "prompt_tokens": 263,
+              "total_tokens": 571,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-96c2dcf49d813670",
+            "finish_reason": "tool_calls",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 263,
+            "output_tokens": 308,
+            "total_tokens": 571,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 263,
+          "output_tokens": 308,
+          "total_tokens": 571,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 263,
+          "completion_tokens": 308,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970788.0489533,
+      "t_end": 1785970789.3179212
+    },
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 7815.870974911377,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "6d9975f953414969a6367f695b18243c",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 62,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:5ebb3cdb-90e6-45e3-53f7-cc6cc7a39727",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:5ebb3cdb-90e6-45e3-53f7-cc6cc7a39727",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.4.9",
+          "langchain": "1.3.13",
+          "langchain-openai": "1.3.5"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 1881,
+            "prompt_tokens": 24013,
+            "total_tokens": 25894,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-bb7c3e26f1eb0d08"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 1881,
+          "prompt_tokens": 24013,
+          "total_tokens": 25894,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 1881,
+              "prompt_tokens": 24013,
+              "total_tokens": 25894,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-bb7c3e26f1eb0d08",
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 24013,
+            "output_tokens": 1881,
+            "total_tokens": 25894,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 24013,
+          "output_tokens": 1881,
+          "total_tokens": 25894,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 24013,
+          "completion_tokens": 1881,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1785970789.3481097,
+      "t_end": 1785970797.1639807
+    }
+  ],
+  "raw_snapshot": {
+    "runnable": {
+      "_starts": {},
+      "agg": {
+        "records": [
+          [
+            "node:chat_agent:respond",
+            2308.5795079823583,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.1029010638594627,
+            true
+          ],
+          [
+            "runnable",
+            0.0025872141122817993,
+            true
+          ],
+          [
+            "runnable",
+            0.003832858055830002,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1939.1743559390306,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            0.9982050396502018,
+            true
+          ],
+          [
+            "runnable",
+            0.0025739427655935287,
+            true
+          ],
+          [
+            "runnable",
+            0.0034261029213666916,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            730.2067340351641,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            0.9543648920953274,
+            true
+          ],
+          [
+            "runnable",
+            0.0011960510164499283,
+            true
+          ],
+          [
+            "runnable",
+            0.008634990081191063,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            5231.97873798199,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.1015201453119516,
+            true
+          ],
+          [
+            "runnable",
+            0.002002110704779625,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            3367.865320062265,
+            false
+          ],
+          [
+            "node:chat_agent:tool_node",
+            0.43976400047540665,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            3407.9489938449115,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            0.8010051678866148,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            941.4150819648057,
+            true
+          ],
+          [
+            "runnable",
+            0.002908986061811447,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1728.2884099986404,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.0424060747027397,
+            true
+          ],
+          [
+            "runnable",
+            0.0018940772861242294,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            1789.5392491482198,
+            false
+          ],
+          [
+            "node:chat_agent:tool_node",
+            0.4700319841504097,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            1375.1178288366646,
+            true
+          ],
+          [
+            "runnable",
+            0.0021830201148986816,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1083.1277929246426,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.156556885689497,
+            true
+          ],
+          [
+            "runnable",
+            0.002059154212474823,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            1573.2106261420995,
+            false
+          ],
+          [
+            "node:chat_agent:tool_node",
+            0.5096741952002048,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            2591.261997120455,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            705.7538258377463,
+            false
+          ],
+          [
+            "node:chat_agent:tool_node",
+            0.5564880557358265,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            1077.0044189412147,
+            true
+          ],
+          [
+            "runnable",
+            0.002542976289987564,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            2731.7063519731164,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.1851000599563122,
+            true
+          ],
+          [
+            "runnable",
+            0.0019818544387817383,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            0.6824929732829332,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            5638.327781809494,
+            true
+          ],
+          [
+            "runnable",
+            0.0019129365682601929,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1263.3787160739303,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.086547039449215,
+            true
+          ],
+          [
+            "runnable",
+            0.0015979167073965073,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            2424.8218589928,
+            false
+          ],
+          [
+            "node:chat_agent:tool_node",
+            0.5536589305847883,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            1282.9422468785197,
+            true
+          ],
+          [
+            "runnable",
+            0.002255896106362343,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1307.972019072622,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.138746039941907,
+            true
+          ],
+          [
+            "runnable",
+            0.002663116902112961,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            1656.3998400233686,
+            false
+          ],
+          [
+            "node:chat_agent:tool_node",
+            0.494436826556921,
+            true
+          ],
+          [
+            "node:chat_agent:tool_node",
+            1271.1680300999433,
+            true
+          ],
+          [
+            "runnable",
+            0.002077082172036171,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            7820.068035973236,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.1055308859795332,
+            true
+          ],
+          [
+            "runnable",
+            0.0018670689314603806,
+            true
+          ],
+          [
+            "graph:ChatAgent",
+            58566.83754711412,
+            true
+          ]
+        ],
+        "_lock": "<unlocked _thread.lock object at 0x154da8a0d6c0>"
+      },
+      "buckets": [
+        [
+          "graph:ChatAgent",
+          1,
+          58.56683754711412,
+          58566.83754711412,
+          58566.83754711412
+        ],
+        [
+          "node:chat_agent:tool_node",
+          22,
+          29.10728465183638,
+          1323.05839326529,
+          5638.327781809494
+        ],
+        [
+          "node:chat_agent:respond",
+          20,
+          26.155352540081367,
+          1307.7676270040683,
+          7820.068035973236
+        ],
+        [
+          "runnable",
+          19,
+          5.0197355449199677e-05,
+          0.002641966076273667,
+          0.008634990081191063
+        ]
+      ]
+    },
+    "tool": {
+      "_starts": {},
+      "agg": {
+        "records": [
+          [
+            "download_file_tool",
+            157.00208791531622,
+            true
+          ],
+          [
+            "download_file_tool",
+            210.01922409050167,
+            true
+          ],
+          [
+            "read_file",
+            7.021181983873248,
+            true
+          ],
+          [
+            "run_command",
+            7755.621832096949,
+            true
+          ],
+          [
+            "run_command",
+            3204.9488208722323,
+            true
+          ],
+          [
+            "run_command",
+            5968.09560386464,
+            true
+          ],
+          [
+            "run_command",
+            5672.557214042172,
+            true
+          ],
+          [
+            "run_command",
+            3743.739388883114,
+            true
+          ],
+          [
+            "run_command",
+            2959.671505028382,
+            true
+          ]
+        ],
+        "_lock": "<unlocked _thread.lock object at 0x154da8a0c2c0>"
+      },
+      "buckets": [
+        [
+          "run_command",
+          6,
+          29.30463436478749,
+          4884.105727464582,
+          7755.621832096949
+        ],
+        [
+          "download_file_tool",
+          2,
+          0.3670213120058179,
+          183.51065600290895,
+          210.01922409050167
+        ],
+        [
+          "read_file",
+          1,
+          0.007021181983873248,
+          7.021181983873248,
+          7.021181983873248
+        ]
+      ]
+    },
+    "llm": {
+      "_starts": {},
+      "agg": {
+        "records": [
+          [
+            "llm:gpt-oss-120b",
+            2302.3829751182348,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1933.6383391637355,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            724.8474890366197,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            3811.9079840835184,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1413.7488810811192,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            3367.069280007854,
+            false
+          ],
+          [
+            "llm:gpt-oss-120b",
+            3406.0200739186257,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            939.3483558669686,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1724.856274900958,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1788.8230350799859,
+            false
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1372.7627999614924,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1079.4853980187327,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1572.4435180891305,
+            false
+          ],
+          [
+            "llm:gpt-oss-120b",
+            2588.8170949183404,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            704.9783561378717,
+            false
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1074.8851420357823,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            2727.834144141525,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            5635.804346995428,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1259.4114320818335,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            2424.0250950679183,
+            false
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1279.7542219050229,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1303.6317969672382,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1655.613373965025,
+            false
+          ],
+          [
+            "llm:gpt-oss-120b",
+            1268.9680601470172,
+            true
+          ],
+          [
+            "llm:gpt-oss-120b",
+            7815.870974911377,
+            true
+          ]
+        ],
+        "_lock": "<unlocked _thread.lock object at 0x154da8a0d800>"
+      },
+      "buckets": [
+        [
+          "llm:gpt-oss-120b",
+          25,
+          55.176928443601355,
+          2207.077137744054,
+          7815.870974911377
+        ]
+      ]
+    }
+  },
+  "raw_records": {
+    "runnable": [
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 2308.5795079823583,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.1029010638594627,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0025872141122817993,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.003832858055830002,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1939.1743559390306,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 0.9982050396502018,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0025739427655935287,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0034261029213666916,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 730.2067340351641,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 0.9543648920953274,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0011960510164499283,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.008634990081191063,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 5231.97873798199,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.1015201453119516,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.002002110704779625,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 3367.865320062265,
+        "ok": false
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 0.43976400047540665,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 3407.9489938449115,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 0.8010051678866148,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 941.4150819648057,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.002908986061811447,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1728.2884099986404,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.0424060747027397,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0018940772861242294,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 1789.5392491482198,
+        "ok": false
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 0.4700319841504097,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 1375.1178288366646,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0021830201148986816,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1083.1277929246426,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.156556885689497,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.002059154212474823,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 1573.2106261420995,
+        "ok": false
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 0.5096741952002048,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 2591.261997120455,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 705.7538258377463,
+        "ok": false
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 0.5564880557358265,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 1077.0044189412147,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.002542976289987564,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 2731.7063519731164,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.1851000599563122,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0019818544387817383,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 0.6824929732829332,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 5638.327781809494,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0019129365682601929,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1263.3787160739303,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.086547039449215,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0015979167073965073,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 2424.8218589928,
+        "ok": false
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 0.5536589305847883,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 1282.9422468785197,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.002255896106362343,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1307.972019072622,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.138746039941907,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.002663116902112961,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 1656.3998400233686,
+        "ok": false
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 0.494436826556921,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:tool_node",
+        "ms": 1271.1680300999433,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.002077082172036171,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 7820.068035973236,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.1055308859795332,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.0018670689314603806,
+        "ok": true
+      },
+      {
+        "name": "graph:ChatAgent",
+        "ms": 58566.83754711412,
+        "ok": true
+      }
+    ],
+    "tool": [
+      {
+        "name": "download_file_tool",
+        "ms": 157.00208791531622,
+        "ok": true
+      },
+      {
+        "name": "download_file_tool",
+        "ms": 210.01922409050167,
+        "ok": true
+      },
+      {
+        "name": "read_file",
+        "ms": 7.021181983873248,
+        "ok": true
+      },
+      {
+        "name": "run_command",
+        "ms": 7755.621832096949,
+        "ok": true
+      },
+      {
+        "name": "run_command",
+        "ms": 3204.9488208722323,
+        "ok": true
+      },
+      {
+        "name": "run_command",
+        "ms": 5968.09560386464,
+        "ok": true
+      },
+      {
+        "name": "run_command",
+        "ms": 5672.557214042172,
+        "ok": true
+      },
+      {
+        "name": "run_command",
+        "ms": 3743.739388883114,
+        "ok": true
+      },
+      {
+        "name": "run_command",
+        "ms": 2959.671505028382,
+        "ok": true
+      }
+    ],
+    "llm": [
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 2302.3829751182348,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1933.6383391637355,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 724.8474890366197,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 3811.9079840835184,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1413.7488810811192,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 3367.069280007854,
+        "ok": false
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 3406.0200739186257,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 939.3483558669686,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1724.856274900958,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1788.8230350799859,
+        "ok": false
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1372.7627999614924,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1079.4853980187327,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1572.4435180891305,
+        "ok": false
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 2588.8170949183404,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 704.9783561378717,
+        "ok": false
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1074.8851420357823,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 2727.834144141525,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 5635.804346995428,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1259.4114320818335,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 2424.0250950679183,
+        "ok": false
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1279.7542219050229,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1303.6317969672382,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1655.613373965025,
+        "ok": false
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 1268.9680601470172,
+        "ok": true
+      },
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 7815.870974911377,
+        "ok": true
+      }
+    ]
+  },
+  "costs": {
+    "total_usd": 0.0,
+    "by_model_usd": {},
+    "event_sources": {
+      "provider": 0,
+      "computed": 0,
+      "no_usage": 6,
+      "no_pricing": 19
+    },
+    "registry_note": "Edit pricing via DEFAULT_REGISTRY, pricing.json, or overrides."
+  }
+}

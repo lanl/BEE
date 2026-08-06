@@ -1,0 +1,280 @@
+{
+  "context": {
+    "agent": "ChatAgent",
+    "thread_id": "ursa",
+    "run_id": "8f6a9d575fa14a02afd76263c88b69e2",
+    "started_at": "2026-08-06T16:10:38.827209+00:00",
+    "ended_at": "2026-08-06T16:10:43.956833+00:00"
+  },
+  "tables": {
+    "runnable": [
+      {
+        "name": "graph:ChatAgent",
+        "count": 1,
+        "total_s": 5.1085243239067495,
+        "avg_ms": 5108.5243239067495,
+        "max_ms": 5108.5243239067495
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "count": 2,
+        "total_s": 5.055323375854641,
+        "avg_ms": 2527.6616879273206,
+        "max_ms": 5053.845142945647
+      },
+      {
+        "name": "runnable",
+        "count": 1,
+        "total_s": 2.621905878186226e-06,
+        "avg_ms": 0.002621905878186226,
+        "max_ms": 0.002621905878186226
+      }
+    ],
+    "tool": [],
+    "llm": [
+      {
+        "name": "llm:gpt-oss-120b",
+        "count": 1,
+        "total_s": 5.044736718991771,
+        "avg_ms": 5044.736718991771,
+        "max_ms": 5044.736718991771
+      }
+    ]
+  },
+  "totals": {
+    "graph_total_s": 5.1085243239067495,
+    "llm_total_s": 5.044736718991771,
+    "tool_total_s": 0,
+    "unattributed_s": 0.06378760491497815
+  },
+  "llm_events": [
+    {
+      "name": "llm:gpt-oss-120b",
+      "ms": 5044.736718991771,
+      "ok": true,
+      "tags": [
+        "ChatAgent",
+        "chat_agent",
+        "graph",
+        "respond"
+      ],
+      "metadata": {
+        "thread_id": "ursa",
+        "telemetry_run_id": "8f6a9d575fa14a02afd76263c88b69e2",
+        "model": "gpt-oss-120b",
+        "ls_integration": "langchain_chat_model",
+        "langgraph_step": 112,
+        "langgraph_node": "respond",
+        "langgraph_triggers": [
+          "branch:to:respond"
+        ],
+        "langgraph_path": [
+          "__pregel_pull",
+          "respond"
+        ],
+        "langgraph_checkpoint_ns": "respond:449731f5-74f4-a0b7-94ec-46ad14f5e549",
+        "ursa_ns": "chat_agent",
+        "ursa_agent": "ChatAgent",
+        "checkpoint_ns": "respond:449731f5-74f4-a0b7-94ec-46ad14f5e549",
+        "ls_provider": "openai",
+        "ls_model_name": "gpt-oss-120b",
+        "ls_model_type": "chat",
+        "ls_temperature": null,
+        "lc_versions": {
+          "langchain-core": "1.5.3",
+          "langchain": "1.3.14",
+          "langchain-openai": "1.4.1"
+        }
+      },
+      "metrics": {
+        "llm_output": {
+          "token_usage": {
+            "completion_tokens": 1764,
+            "prompt_tokens": 48283,
+            "total_tokens": 50047,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          },
+          "model_provider": "openai",
+          "model_name": "gpt-oss-120b",
+          "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+          "id": "chatcmpl-bfc37c8fda18fad3"
+        },
+        "llm_output_token_usage": {
+          "completion_tokens": 1764,
+          "prompt_tokens": 48283,
+          "total_tokens": 50047,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": null
+        },
+        "response_metadata": [
+          {
+            "token_usage": {
+              "completion_tokens": 1764,
+              "prompt_tokens": 48283,
+              "total_tokens": 50047,
+              "completion_tokens_details": null,
+              "prompt_tokens_details": null
+            },
+            "model_provider": "openai",
+            "model_name": "gpt-oss-120b",
+            "system_fingerprint": "vllm-0.21.0-tp2-19b31b22",
+            "id": "chatcmpl-bfc37c8fda18fad3",
+            "finish_reason": "stop",
+            "logprobs": null
+          }
+        ],
+        "usage_metadata": [
+          {
+            "input_tokens": 48283,
+            "output_tokens": 1764,
+            "total_tokens": 50047,
+            "input_token_details": {},
+            "output_token_details": {}
+          }
+        ],
+        "usage_source": "usage_metadata",
+        "usage_rollup": {
+          "input_tokens": 48283,
+          "output_tokens": 1764,
+          "total_tokens": 50047,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "total_cost": 0.0,
+          "prompt_tokens": 48283,
+          "completion_tokens": 1764,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0
+        }
+      },
+      "t_start": 1786032638.8736873,
+      "t_end": 1786032643.9184241
+    }
+  ],
+  "raw_snapshot": {
+    "runnable": {
+      "_starts": {},
+      "agg": {
+        "records": [
+          [
+            "node:chat_agent:respond",
+            5053.845142945647,
+            true
+          ],
+          [
+            "node:chat_agent:respond",
+            1.4782329089939594,
+            true
+          ],
+          [
+            "runnable",
+            0.002621905878186226,
+            true
+          ],
+          [
+            "graph:ChatAgent",
+            5108.5243239067495,
+            true
+          ]
+        ],
+        "_lock": "<unlocked _thread.lock object at 0x15153dbdd000>"
+      },
+      "buckets": [
+        [
+          "graph:ChatAgent",
+          1,
+          5.1085243239067495,
+          5108.5243239067495,
+          5108.5243239067495
+        ],
+        [
+          "node:chat_agent:respond",
+          2,
+          5.055323375854641,
+          2527.6616879273206,
+          5053.845142945647
+        ],
+        [
+          "runnable",
+          1,
+          2.621905878186226e-06,
+          0.002621905878186226,
+          0.002621905878186226
+        ]
+      ]
+    },
+    "tool": {
+      "_starts": {},
+      "agg": {
+        "records": [],
+        "_lock": "<unlocked _thread.lock object at 0x15153dbdcc40>"
+      },
+      "buckets": []
+    },
+    "llm": {
+      "_starts": {},
+      "agg": {
+        "records": [
+          [
+            "llm:gpt-oss-120b",
+            5044.736718991771,
+            true
+          ]
+        ],
+        "_lock": "<unlocked _thread.lock object at 0x15153dbdf7c0>"
+      },
+      "buckets": [
+        [
+          "llm:gpt-oss-120b",
+          1,
+          5.044736718991771,
+          5044.736718991771,
+          5044.736718991771
+        ]
+      ]
+    }
+  },
+  "raw_records": {
+    "runnable": [
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 5053.845142945647,
+        "ok": true
+      },
+      {
+        "name": "node:chat_agent:respond",
+        "ms": 1.4782329089939594,
+        "ok": true
+      },
+      {
+        "name": "runnable",
+        "ms": 0.002621905878186226,
+        "ok": true
+      },
+      {
+        "name": "graph:ChatAgent",
+        "ms": 5108.5243239067495,
+        "ok": true
+      }
+    ],
+    "tool": [],
+    "llm": [
+      {
+        "name": "llm:gpt-oss-120b",
+        "ms": 5044.736718991771,
+        "ok": true
+      }
+    ]
+  },
+  "costs": {
+    "total_usd": 0.0,
+    "by_model_usd": {},
+    "event_sources": {
+      "provider": 0,
+      "computed": 0,
+      "no_usage": 0,
+      "no_pricing": 1
+    },
+    "registry_note": "Edit pricing via DEFAULT_REGISTRY, pricing.json, or overrides."
+  }
+}
