@@ -222,26 +222,25 @@ def check_redis_in_spackenv()->bool:
                 check=True)
         if result and "redis" in result.stdout:
             return True
-
-        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-            return False
-
-        if result is False and not os.path.isfile(DEFAULT_REDIS_IMAGE):
-            print("Reids is not installed on the active spack environment.")
-            print("Please check documentation here: https://lanl.github.io/BEE/installation.html")
-            sys.exit(1)
-
         return False
+
     except subprocess.CalledProcessError as e:
         if "No matching packages found" in e.stderr or e.returncode != 0:
             print("Redis is not installed on the active spack environment.")
         else:
             print(f'An error occured: {e.stderr}')
-        return False
+
+        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+            return False
+
+        sys.exit()
 
     except FileNotFoundError:
+        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+            return False
         print("Error: the 'spack' command-line tool was not found in your current path")
-        return False
+
+        sys.exit()
 
 def check_sqlite3_installed()->bool:
     """Check if sqlite3 is installed"""
@@ -249,16 +248,14 @@ def check_sqlite3_installed()->bool:
         sqlite3 = importlib.import_module('sqlite3')
         if sqlite3:
             return True
-
+        return False
+    except ImportError:
         if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
             return False
 
         print("Sqlite3 is not installed")
         print("Check documentation here: https://lanl.github.io/BEE/installation.html")
-        sys.exit(1)
-    except ImportError:
-        print("Error: sqlite3 module is not avaliable in this python environment.")
-        return False
+        sys.exit()
 
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
