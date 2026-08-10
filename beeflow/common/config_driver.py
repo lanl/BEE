@@ -216,13 +216,10 @@ def unique_port():
 def check_redis_in_spackenv()->bool:
     """Check for redis in spack environment."""
     try:
-        result = subprocess.run(['spack', 'find', 'redis'],
+        subprocess.run(['spack', 'find', 'redis'],
                 capture_output = True,
                 text = True,
                 check=True)
-        if result and "redis" in result.stdout:
-            return True
-        return False
 
     except subprocess.CalledProcessError as e:
         if "No matching packages found" in e.stderr or e.returncode != 0:
@@ -230,25 +227,23 @@ def check_redis_in_spackenv()->bool:
         else:
             print(f'An error occured: {e.stderr}')
 
-        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-            return False
+#        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+#            return False
 
         sys.exit()
 
     except FileNotFoundError:
-        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-            return False
+#        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+#            return False
         print("Error: the 'spack' command-line tool was not found in your current path")
 
         sys.exit()
 
+    return True
 def check_sqlite3_installed()->bool:
     """Check if sqlite3 is installed"""
     try:
-        sqlite3 = importlib.import_module('sqlite3')
-        if sqlite3:
-            return True
-        return False
+        importlib.import_module('sqlite3')
     except ImportError:
         if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
             return False
@@ -256,6 +251,8 @@ def check_sqlite3_installed()->bool:
         print("Sqlite3 is not installed")
         print("Check documentation here: https://lanl.github.io/BEE/installation.html")
         sys.exit()
+    
+    return True
 
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
