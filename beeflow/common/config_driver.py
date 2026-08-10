@@ -245,13 +245,13 @@ def check_sqlite3_installed()->bool:
     try:
         importlib.import_module('sqlite3')
     except ImportError:
-        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-            return False
+#        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+#            return False
 
         print("Sqlite3 is not installed")
         print("Check documentation here: https://lanl.github.io/BEE/installation.html")
         sys.exit()
-    
+
     return True
 
 # Below is the definition of all bee config options, defaults and requirements.
