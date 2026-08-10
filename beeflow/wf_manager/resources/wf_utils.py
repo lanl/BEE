@@ -222,6 +222,13 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
         log.info("Starting workflow")
         start_workflow.delay(wf_id)
 
+def restart_workflow(wf_id):
+    """Restart a failed workflow."""
+    wfi = get_workflow_interface(wf_id)
+    wfi.reset_failed_workflow(wf_id)
+    update_wf_status(wf_id, "Starting")
+    log.info("Reset failed worflow tasks.")
+
 
 def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
     """Export the DAG of the workflow."""

@@ -103,6 +103,12 @@ class SQLDriver(GraphDatabaseDriver):
         self.db.set_task_state(new_task.id, 'WAITING')
         self.db.add_dependencies(new_task, old_task=old_task, restarted_task=True)
 
+    def reset_failed_tasks(self, workflow_id):
+        """Set failed tasks to 'WAITING'. 
+
+        Used after resubmiting a wokrflow. 
+        """
+        self.db.reset_failed_tasks(workflow_id)
 
     def finalize_task(self, task):
         """Set task state to 'COMPLETED' and set inputs from source.
@@ -139,6 +145,12 @@ class SQLDriver(GraphDatabaseDriver):
         """
         return self.db.get_workflow(workflow_id)
 
+    def get_workflow_workdir(self, workflow_id):
+        """Return the workdir for the specified workflow. 
+
+        :rtype: str 
+        """
+        
 
     def get_workflow_state(self, workflow_id):
         """Return the current state of the workflow.
@@ -281,7 +293,7 @@ class SQLDriver(GraphDatabaseDriver):
         """Set the value of a task input.
 
         :param task_id: the ID of the task whose input to set
-        :type task_id: str
+        :type task_id: stsr
         :param input_id: the ID of the input
         :type input_id: str
         :param value: str or int or float

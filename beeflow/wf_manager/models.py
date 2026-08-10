@@ -30,14 +30,14 @@ class SubmitWorkflowResponse(BaseModel):
     status: str
     wf_id: Optional[str] = None
 
-class CopyWorkflowRequest(BaseModel):
+class ResubmitWorkflowRequest(BaseModel):
     """Request model for copying a workflow."""
     wf_id: str
 
-class CopyWorkflowResponse(BaseModel):
+class ResubmitWorkflowResponse(BaseModel):
     """Response model for workflow copy."""
-    archive_file_pickle: str
-    archive_filename: str
+    msg: str
+    status: str
 
 class TaskStateUpdate(BaseModel):
     """Information about a task state update."""

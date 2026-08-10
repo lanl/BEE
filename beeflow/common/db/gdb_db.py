@@ -261,6 +261,16 @@ class SQL_GDB:
             WHERE id = :task_id;"""
         bdb.run(self.db_file, set_task_state_query, {'task_id': task_id, 'state': state})
 
+    def reset_failed_tasks(self, workflow_id: str):
+        """Reset failed tasks."""
+        placeholders = ", ".join("?" for _ in failed_task_states)
+        query = f"""
+            UPDATE task
+            SET state = 'WAITING'
+            WHERE workflow_id = :workflow_id
+              AND state IN ({placeholders});
+        """
+        bdb.run(self.db_file, query, [workflow_id, *failed_task_states])
 
     def add_dependencies(self, task: Task, old_task: Task=None, restarted_task=False):
         """Add dependencies for a task based on its inputs and outputs."""

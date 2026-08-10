@@ -38,8 +38,8 @@ from beeflow.common import paths
 from beeflow.common.object_models import generate_workflow_id
 from beeflow.client import remote_client
 from beeflow.wf_manager.models import (
-    CopyWorkflowRequest,
-    CopyWorkflowResponse,
+    ResubmitWorkflowRequest,
+    ResubmitWorkflowResponse,
     ListWorkflowsResponse,
     SubmitWorkflowRequest,
     ModifyWorkflowRequest,
@@ -456,15 +456,15 @@ def submit(  # pylint:disable=R0915
         ..., help="the workflow name"
     ),
     wf_path: pathlib.Path = typer.Argument(
-        ..., help="path to the workflow .tgz or dir"
+        None, help="path to the workflow .tgz or dir"
     ),
     main_cwl: str = typer.Argument(
-        ...,
+        None,
         help="filename of main CWL (if using CWL tarball), "
         + "path of main CWL (if using CWL directory)",
     ),
     yaml_file: str = typer.Argument(
-        ...,
+        None,
         help="filename of yaml file (if using CWL tarball), "
         + "path of yaml file (if using CWL directory)",
     ),
@@ -476,7 +476,7 @@ def submit(  # pylint:disable=R0915
         False, "--no-start", "-n", help="do not start the workflow"
     ),
 ):
-    """Submit a new workflow."""
+    """Submit a new workflow or resubmit a failed workflow."""
 
     def is_parent(parent, path):
         """Return true if the path is a child of the other path."""
@@ -860,23 +860,19 @@ def cancel(
 
 
 @app.command()
-def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
-    """Copy an archived workflow."""
+def resubmit(wf_id: str = typer.Argument(..., callback=match_short_id)):
+    """Resubmit a failed archived workflow."""
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
         resp = conn.patch(
-            _url(), json=CopyWorkflowRequest(wf_id=long_wf_id).model_dump(), timeout=60
+            _url(), json=ResubmitWorkflowRequest(wf_id=long_wf_id).model_dump(), timeout=60
         )
     except requests.exceptions.ConnectionError:
         error_exit("Could not reach WF Manager.")
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit("WF Manager could not copy workflow.")
-    archive_info = CopyWorkflowResponse.model_validate(resp.json())
-    archive_file = jsonpickle.decode(archive_info.archive_file_pickle)
-    archive_filename = archive_info.archive_filename
-    logging.info(f"Copy workflow: {resp.text}")
-    return archive_file, archive_filename
+        error_exit("WF Manager could not resubmit workflow.")
+    logging.info(f"Resubmit workflow: {resp.text}")
 
 
 @app.command()

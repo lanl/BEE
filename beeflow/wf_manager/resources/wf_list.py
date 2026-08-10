@@ -1,6 +1,6 @@
 """The workflow list module.
 
-This contains endpoints forsubmitting, starting, and reexecuting workflows.
+This module contains endpoints for submitting, starting, and reexecuting workflows.
 """
 
 import base64
@@ -20,11 +20,11 @@ from beeflow.common.gdb import sqlite3_driver
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
 from beeflow.wf_manager.models import (
-    CopyWorkflowRequest,
-    CopyWorkflowResponse,
     ListWorkflowsResponse,
     SubmitWorkflowRequest,
     SubmitWorkflowResponse,
+    ResubmitWorkflowRequest,
+    ResubmitWorkflowResponse,
 )
 from beeflow.wf_manager.resources import wf_utils
 
@@ -82,7 +82,7 @@ class WFList(Resource):
         return ListWorkflowsResponse(workflow_info_list=info).model_dump(), 200
 
     def post(self):
-        """Upload a workflown and start."""
+        """Upload a workflow and start."""
         try:
             data = SubmitWorkflowRequest.model_validate(request.json)
         except ValidationError as e:
@@ -115,16 +115,16 @@ class WFList(Resource):
         )
 
     def patch(self):
-        """Copy workflow archive."""
-        wf_id = CopyWorkflowRequest.model_validate(request.json).wf_id
-        archive_dir = bc.get("DEFAULT", "bee_archive_dir")
-        archive_path = os.path.join(archive_dir, wf_id + ".tgz")
-        with open(archive_path, "rb") as archive:
-            archive_file = jsonpickle.encode(archive.read())
-        archive_filename = os.path.basename(archive_path)
-        return (
-            CopyWorkflowResponse(
-                archive_file_pickle=archive_file, archive_filename=archive_filename
-            ).model_dump(),
-            200,
-        )
+        """Resubmit failed workflow."""
+        try:
+            data = ResubmitWorkflowRequest.model_validate(request.json)
+        except ValidationError as e:
+            log.error(f"Error parsing request data: {e}")
+            return (
+                ResubmitWorkflowResponse(
+                    msg="Invalid request data", status="error", wf_id=None
+                ).model_dump(),
+                400,
+            )
+        wf_id = data.wf_id
+        wf_utils.restart_workflow(wf_id)
