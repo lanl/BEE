@@ -6,7 +6,7 @@ Slurmrestd|SlurmCommands)
     ./ci/slurm_start.sh
     ;;
 Flux)
-    ./ci/flux_install.sh
+    #./ci/flux_install.sh
     ;;
 *)
     printf "ERROR: Invalid worker type '%s'\n" "$BEE_WORKER"

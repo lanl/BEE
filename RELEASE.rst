@@ -21,7 +21,8 @@ README.rst has the correct tags and URL's.
     and don't forget to save the setting
 3. Make sure documentation will be published upon push to main.
    See: .github/workflows/docs.yml
-4. Before performing this step ensure the newest coverage.svg file has been pushed by the bot. Then checkout develop and pull for latest version then
+   * The newest coverage.svg should now be on gh-pages at https://lanl.github.io/BEE/badges/develop/coverage.svg . 
+4. Checkout develop and pull for latest version then
    checkout main, pull  and merge develop into main. Verify documentation was published. And re-sync develop. **This procedure assumes you have exceptions and should probably be rewritten to include pull requests.**
 
 .. code-block:: bash
