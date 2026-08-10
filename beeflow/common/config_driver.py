@@ -230,16 +230,17 @@ def check_redis_in_spackenv()->bool:
         if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
             return False
 
-        sys.exit()
+        sys.exit(1)
 
     except FileNotFoundError:
         if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
             return False
         print("Error: the 'spack' command-line tool was not found in your current path")
 
-        sys.exit()
+        sys.exit(1)
 
     return True
+
 def check_sqlite3_installed()->bool:
     """Check if sqlite3 is installed"""
     try:
@@ -250,7 +251,7 @@ def check_sqlite3_installed()->bool:
 
         print("Sqlite3 is not installed")
         print("Check documentation here: https://lanl.github.io/BEE/installation.html")
-        sys.exit()
+        sys.exit(1)
 
     return True
 
