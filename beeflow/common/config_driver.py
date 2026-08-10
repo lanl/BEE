@@ -215,11 +215,15 @@ def unique_port():
 
 def check_redis_in_spackenv()->bool:
     """Check for redis in spack environment."""
+    if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+        return False
     try:
         subprocess.run(['spack', 'find', 'redis'],
                 capture_output = True,
                 text = True,
                 check=True)
+
+        return True
 
     except subprocess.CalledProcessError as e:
         if "No matching packages found" in e.stderr or e.returncode != 0:
@@ -227,33 +231,24 @@ def check_redis_in_spackenv()->bool:
         else:
             print(f'An error occured: {e.stderr}')
 
-        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-            return False
-
         sys.exit(1)
 
     except FileNotFoundError:
-        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-            return False
         print("Error: the 'spack' command-line tool was not found in your current path")
 
         sys.exit(1)
 
-    return True
-
 def check_sqlite3_installed()->bool:
     """Check if sqlite3 is installed"""
+    if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+        return False
     try:
         importlib.import_module('sqlite3')
+        return True
     except ImportError:
-        if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-            return False
-
         print("Sqlite3 is not installed")
         print("Check documentation here: https://lanl.github.io/BEE/installation.html")
         sys.exit(1)
-
-    return True
 
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
