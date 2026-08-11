@@ -15,4 +15,4 @@ curl -L https://install.python-poetry.org/ > install-poetry.sh
 chmod +x install-poetry.sh
 ./install-poetry.sh
 # Do a poetry install, making sure that all extras are added
-poetry install -E cloud_extras || exit 1
+poetry install || exit 1
