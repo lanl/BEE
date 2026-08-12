@@ -287,6 +287,7 @@ def check_for_spack_and_redis_image()->bool:
         return False
     if check_redis_in_spackenv() is False and REDIS_IMAGE is None:
         sys.exit(1)
+    return True
 
 check_for_spack_and_redis_image()
 
