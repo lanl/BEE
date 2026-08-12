@@ -202,6 +202,11 @@ class BaseSlurmWorker(Worker):
         res = subprocess.run(['sbatch', '--parsable', f"--chdir={workdir}", script], text=True,  # pylint: disable=W1510
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if res.returncode != 0:
+            # Slurm never starts the job on a submit failure, so it never writes
+            # the task's .err file. Record the reason there ourselves so there's
+            # a persistent record in the workflow directory.
+            _stdout_path, stderr_path = self.resolve_stdout_stderr(task)
+            worker_utils.write_submit_failure(stderr_path, res.stderr)
             raise WorkerError(f'Failed to submit job: {res.stderr}')
         job_id = int(res.stdout)
         worker_utils.resolve_slurm_paths(job_id, task)
