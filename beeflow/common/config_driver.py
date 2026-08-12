@@ -213,42 +213,15 @@ def unique_port():
     port = ((uid%(16000-7777))+7777)
     return port
 
-def check_redis_in_spackenv()->bool:
-    """Check for redis in spack environment."""
-    if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-        return False
-    try:
-        subprocess.run(['spack', 'find', 'redis'],
-                capture_output = True,
-                text = True,
-                check=True)
-
-        return True
-
-    except subprocess.CalledProcessError as e:
-        if "No matching packages found" in e.stderr or e.returncode != 0:
-            print("Redis is not installed on the active spack environment.")
-        else:
-            print(f'An error occured: {e.stderr}')
-
-        sys.exit(1)
-
-    except FileNotFoundError:
-        print("Error: the 'spack' command-line tool was not found in your current path")
-
-        sys.exit(1)
-
 def check_sqlite3_installed()->bool:
     """Check if sqlite3 is installed"""
-    if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
-        return False
     try:
         importlib.import_module('sqlite3')
         return True
     except ImportError:
         print("Sqlite3 is not installed")
         print("Check documentation here: https://lanl.github.io/BEE/installation.html")
-        sys.exit(1)
+        return False
 
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
@@ -282,6 +255,40 @@ if os.path.isfile(DEFAULT_REDIS_IMAGE):
     REDIS_IMAGE = DEFAULT_REDIS_IMAGE
 else:
     REDIS_IMAGE = None
+
+def check_redis_in_spackenv()->bool:
+    """Check for redis in spack environment."""
+    try:
+        subprocess.run(['spack', 'find', 'redis'],
+                capture_output = True,
+                text = True,
+                check=True)
+
+        return True
+
+    except subprocess.CalledProcessError as e:
+        if "No matching packages found" in e.stderr or e.returncode != 0:
+            print("Redis is not installed on the active spack environment.")
+        else:
+            print(f'An error occured: {e.stderr}')
+
+        return False
+
+    except FileNotFoundError:
+        if REDIS_IMAGE is not None:
+            return True
+        print("Error: the 'spack' command-line tool was not found in your current path")
+
+        return False
+
+def check_for_spack_and_redis_image()->bool:
+    """Function to exit the program if there is no redis via spack or container"""
+    if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+        return False
+    if check_redis_in_spackenv() is False and REDIS_IMAGE is None:
+        sys.exit(1)
+
+check_for_spack_and_redis_image()
 
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
