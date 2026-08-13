@@ -10,7 +10,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       BRANCH: refs/pull/${{ github.event.pull-request.number }}/merge
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
