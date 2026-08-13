@@ -275,9 +275,8 @@ def check_redis_in_spackenv()->bool:
         return False
 
     except FileNotFoundError:
-        if REDIS_IMAGE is not None:
-            return True
-        print("Error: the 'spack' command-line tool was not found in your current path")
+        if REDIS_IMAGE is None:
+            print("Error: the 'spack' command-line tool was not found in your current path")
 
         return False
 
