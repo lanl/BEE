@@ -277,6 +277,7 @@ def check_redis_in_spackenv()->bool:
     except FileNotFoundError:
         if REDIS_IMAGE is None:
             print("Error: the 'spack' command-line tool was not found in your current path")
+            print("Please look look at the installation guide at: https://lanl.github.io/BEE/")
 
         return False
 
