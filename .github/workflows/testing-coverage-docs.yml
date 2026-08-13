@@ -48,14 +48,14 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/slurm
-          key: ${{ runner.os }}-${{ github.ref_name }}-slurm-${{ hashFiles('./ci/env.sh','./ci/slurm_install.sh') }} 
+          key: ${{ runner.os }}-slurm-${{ hashFiles('./ci/env.sh','./ci/slurm_install.sh') }} 
 
       - name: Restore Charliecloud Install
         id: cache-charliecloud-restore
         uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/charliecloud
-          key: ${{ runner.os }}-${{ github.ref_name }}-charliecloud-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh') }}
+          key: ${{ runner.os }}-charliecloud-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh') }}
 
       - name: Build Slurm for Save
         if: steps.cache-slurm-restore.outputs.cache-hit != 'true' && (env.BEE_WORKER == 'Slurmrestd' || env.BEE_WORKER == 'SlurmCommands')
@@ -96,7 +96,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/flux
-          key: ${{ runner.os }}-${{ github.ref_name }}-flux-${{ hashFiles('./ci/env.sh','./ci/flux_install.sh') }} 
+          key: ${{ runner.os }}-flux-${{ hashFiles('./ci/env.sh','./ci/flux_install.sh') }} 
 
       - name: Build Flux Install for Save
         if: steps.cache-flux-restore.outputs.cache-hit != 'true' && env.BEE_WORKER == 'Flux'
@@ -134,7 +134,7 @@ jobs:
             ./venv
             /home/runner/img/neo4j.tar.gz
             /home/runner/img/redis.tar.gz
-          key: ${{ runner.os }}-${{ github.ref_name }}-venv-${{ hashFiles('poetry.lock','./ci/env.sh','./ci/bee_install.sh','./ci/bee_setup.sh') }}
+          key: ${{ runner.os }}-venv-${{ hashFiles('poetry.lock','./ci/env.sh','./ci/bee_install.sh','./ci/bee_setup.sh') }}
 
       - name: Build Containers and Virtual Environment
         if: steps.cache-venv-restore.outputs.cache-hit != 'true'
@@ -215,14 +215,14 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/slurm
-          key: ${{ runner.os }}-${{ github.ref_name }}-slurm-${{ hashFiles('./ci/env.sh','./ci/slurm_install.sh') }}
+          key: ${{ runner.os }}-slurm-${{ hashFiles('./ci/env.sh','./ci/slurm_install.sh') }}
 
       - name: Restore Charliecloud Install
         id: cache-charliecloud-restore
         uses: actions/cache/restore@v5
         with:
           path: ${{ github.workspace }}/charliecloud
-          key: ${{ runner.os }}-${{ github.ref_name }}-charliecloud-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh') }}
+          key: ${{ runner.os }}-charliecloud-${{ hashFiles('./ci/env.sh','./ci/charliecloud_install.sh') }}
 
       - name: Build Slurm for Save
         if: steps.cache-slurm-restore.outputs.cache-hit != 'true'
@@ -263,7 +263,7 @@ jobs:
             ./venv
             /home/runner/img/neo4j.tar.gz
             /home/runner/img/redis.tar.gz
-          key: ${{ runner.os }}-${{ github.ref_name }}-venv-${{ hashFiles('poetry.lock','./ci/env.sh','./ci/bee_install.sh','./ci/bee_setup.sh') }}
+          key: ${{ runner.os }}-venv-${{ hashFiles('poetry.lock','./ci/env.sh','./ci/bee_install.sh','./ci/bee_setup.sh') }}
 
       - name: Build Containers and Virtual Environment
         if: steps.cache-venv-restore.outputs.cache-hit != 'true'
