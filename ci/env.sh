@@ -2,7 +2,6 @@
 # Set up environment
 export PYTHON=python3
 export HOSTNAME=`$PYTHON -c 'import socket; print(socket.gethostname())'`
-# Add redis later
 # Everything is in /tmp for right now
 export SLURMCTLD_PID=/tmp/slurmctld.pid
 export SLURMD_PID=/tmp/slurmd.pid

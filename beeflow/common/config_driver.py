@@ -337,6 +337,10 @@ else:
                      default=False, info='Use the redis container image or spack',
                      prompt=False)
 
+    VALIDATOR.option('DEFAULT', 'redis_image', validator=str,
+                     default='', info='redis container image (disabled for Spack)',
+                     prompt=False)
+
 VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.dir_,
                  default='.', info='Spack environment path',
                  input_fn=filepath_completion_input, prompt=False)
