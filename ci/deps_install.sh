@@ -19,3 +19,12 @@ sudo apt-get install -y python3.11 python3.11-venv python3.11-dev
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 sudo update-alternatives --set python3 /usr/bin/python3.11
 
+# Install Spack and redis
+SPACK_DIR="${SPACK_DIR:-$GITHUB_WORKSPACE/spack}"
+if [ ! -d "$SPACK_DIR" ]; then
+    git clone --depth=2 https://github.com/spack/spack.git "$SPACK_DIR"
+fi
+. "$SPACK_DIR/share/spack/setup-env.sh"
+spack env create beeflow
+spack env activate beeflow
+spack install --add redis
