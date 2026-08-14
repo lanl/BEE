@@ -26,4 +26,4 @@ if [ ! -d "$SPACK_DIR" ]; then
 fi
 
 "$SPACK_DIR/bin/spack" env create beeflow
-"$SPACK_DIR/bin/spack" --env beeflow install redis
+"$SPACK_DIR/bin/spack" --env beeflow install --add redis
