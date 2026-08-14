@@ -24,6 +24,7 @@ SPACK_DIR="${SPACK_DIR:-$GITHUB_WORKSPACE/spack}"
 if [ ! -d "$SPACK_DIR" ]; then
     git clone --depth=2 https://github.com/spack/spack.git "$SPACK_DIR"
 fi
+export SPACK_DUR="$SPACK_DIR"
 . "$SPACK_DIR/share/spack/setup-env.sh"
 spack env create beeflow
 spack env activate beeflow
