@@ -37,6 +37,11 @@ jobs:
 
       - name: Install Initial Dependencies  
         run: ./ci/deps_install.sh
+      
+      - name: Transition Spack into Environment
+        run: |
+          echo "$GITHUB_WORKSPACE/spack/bin" >> $GITHUB_PATH
+          echo "SPACK_ROOT=$GITHUB_WORKSPACE/spack" >> $GITHUB_ENV
 
       - name: Install Flux Dependencies 
         if: env.BEE_WORKER == 'Flux'
