@@ -1,25 +1,18 @@
 Developer's Guide
 #################
-Poetry Setup Guide
-==================
-To manage our development environment and configure our project packaging,
-it is most convenient to use Poetry. Poetry uses the `pyproject.toml` and `poetry.lock`
-files to manage our packages/dependencies and make it easy to automatically
-install them to a virtual environment. It also makes it easy to build and
-install our package locally as well as publish it to PyPI, obviating the need
-for a `setup.py` file.
-
-Additional Poetry documentation:
-
-* https://poetry.eustace.io/docs/
-
-* https://github.com/sdispater/poetry
 
 Requirement: Python version 3.11 to 3.14
 ------------------------------------------
 
 Installation Using a Python Environment 
----------------------------------------
+--------------------------------------- 
+To manage our development environment and configure project packaging, we use 
+Poetry, which utilizes the `pyproject.toml` and `poetry.lock` files. This makes it easy to 
+install our packages/dependencies to a virtual environment, build and install our package 
+locally, and publish it to PyPI, obviating the need for a `setup.py` file. We advise against
+using `poetry env activate` or `poetry shell`, and instead reccomend using Poetry only for
+dependency installation.
+
 To install Poetry using a python environment, you must first set up the environment using the following
 commands (Please note that the name of the environment is not limited to beedev-env). 
 
