@@ -18,7 +18,7 @@ cloud systems. Workflows are specified in the [Common Workflow Language
 
 ## Repository Layout
 
-```
+```text
 beeflow/                 Main Python package
   client/                CLI entry point (bee_client.py), core.py, remote_client.py
   common/                Shared code: config, CWL parser, graph db (gdb), workers,
@@ -37,15 +37,62 @@ examples/                Example workflows
 ## Environment & Tooling
 
 - **Python:** `>=3.11,<=3.14`
-- **Dependency/venv manager:** [Poetry](https://python-poetry.org/)
+- **Dependency/package manager:** [Poetry](https://python-poetry.org/)
 - **CLI command:** `beeflow` (maps to `beeflow.client.bee_client:main`)
 
-Install for development:
+For development, use a Python virtual environment and use Poetry for dependency
+installation and project packaging. The docs advise against using
+`poetry env activate` or `poetry shell`, and instead recommend using Poetry
+only for dependency installation.
+
+Example setup:
 
 ```sh
+mkdir beedev-env
+python3 -m venv beedev-env
+source beedev-env/bin/activate
+pip install poetry
+cd <path to BEE repo>
 poetry install
-poetry shell        # activate the environment
+beeflow --version
 ```
+
+To leave the environment:
+
+```sh
+deactivate
+```
+
+## Installation Notes
+
+Runtime installation for users is typically via pip:
+
+```sh
+pip install hpc-beeflow
+```
+
+BEE has the following installation/runtime requirements documented in
+`docs/sphinx/installation.rst`:
+
+- Python 3.11 to 3.14
+- Charliecloud 0.34 or greater
+- Two Charliecloud dependency containers: Neo4j 5.x and Redis
+- Config file location:
+  - Linux: `~/.config/beeflow/bee.conf`
+  - macOS: `~/Library/Application Support/beeflow/bee.conf`
+
+Useful operational commands:
+
+```sh
+beeflow config new
+beeflow core pull-deps
+beeflow core start
+beeflow core status
+beeflow core stop
+```
+
+Some HPC systems have multiple front-ends; run workflows and BEE components on
+the same front end.
 
 ## Testing
 
@@ -55,20 +102,40 @@ Unit tests use **pytest** and live in `beeflow/tests/`.
 # Run the full unit test suite
 pytest beeflow/tests/
 
-# Run with coverage (matches CI)
-pytest --cov=beeflow beeflow/tests/
+# Run with coverage details
+pytest --cov=beeflow --cov-report term-missing beeflow/tests/
 
 # Run a single test file
 pytest beeflow/tests/test_wf_manager.py
 ```
 
-CI wraps these in `ci/unit_tests.sh`. Integration tests are driven by
-`ci/integration_test.py` / `ci/integration_test.sh` and require Slurm/Flux and
-container runtimes, so they are not typically run locally.
+Helpful pytest features called out in the developer docs:
+
+- `@pytest.mark.parametrize`
+- `tmp_path`
+- `mocker`
+- `-k EXPRESSION`
+- `--durations 0`
+
+Attempt to write tests that cover all new/modified lines. Test files should be
+named `test_MODULE_NAME.py`, and test functions should begin with `test_`.
+
+Integration tests can be run locally, but they require BEE components to be
+started first. The developer docs also call out that Charliecloud must be
+loaded in the environment before running them:
+
+```sh
+beeflow core start
+./ci/integration_test.py
+```
+
+The integration test runner supports options such as `--help`, `--show-tests`,
+and `--tests` for selecting additional disabled-by-default tests.
 
 ## Code Style & Linting
 
-The project enforces style with **pylint**, configured in `setup.cfg`:
+BEE follows Python style rules configured in `setup.cfg` and enforced with
+**pylint**.
 
 - Max line length: **99**
 - See `setup.cfg` `[pylint]` for allowed `good-names` and disabled checks.
@@ -82,26 +149,45 @@ pylint --rcfile=setup.cfg beeflow
 
 ### Pre-commit hooks
 
-A `pre-commit` config (`.pre-commit-config.yaml`) runs pylint on staged Python
-files. Install the git hooks after cloning:
+The contributor docs now instruct developers to install hooks with:
 
 ```sh
-# git >= 2.9
-git config core.hooksPath .githooks
-# otherwise
-cp .githooks/* .git/hooks/
+pre-commit install
+```
+
+Notes:
+
+- The Python environment must have BEE dependencies installed so hooks can run.
+- To skip the pylint hook for one commit:
+
+```sh
+SKIP=pylint git commit -m "message"
 ```
 
 ## Documentation
 
-Docs are built with Sphinx (see `docs/README.md`):
+Docs are built with Sphinx.
 
 ```sh
-poetry shell
 cd docs/sphinx
 make html
-open _build/html/index.html
 ```
+
+## Git Workflow
+
+BEE has two lifetime branches: `develop` and `main`.
+
+- Create fix/feature branches from `develop`.
+- Branches should address an open issue and follow the format
+  `issue#/title` (example: `issue857/mpi-integration-test`).
+- Open pull requests from feature/issue branches into `develop`.
+- Open a work-in-progress PR labeled `WIP`.
+- Before requesting approval, merge `develop` into your branch and resolve any
+  conflicts.
+- Remove the `WIP` label when the PR is ready for final review.
+- GitHub CI tests must pass before merging into `develop`.
+- Releases are merged from `develop` into `main` by the team lead, and changes
+  must also pass overnight tests before merging into `main`.
 
 ## Guidelines for Agents
 
@@ -109,7 +195,10 @@ open _build/html/index.html
 - Only use dependencies already declared in `pyproject.toml`. If a new dependency
   is truly needed, add it via Poetry and explain why.
 - Add or update pytest tests in `beeflow/tests/` for behavior changes, and run
-  `pytest beeflow/tests/` plus `pylint --rcfile=setup.cfg beeflow` before finishing.
+  relevant tests plus `pylint --rcfile=setup.cfg beeflow` before finishing.
 - Prefer small, focused changes; do not reformat unrelated code.
-- The default working branch is `develop`; open PRs against it.
+- Use the documented Git workflow: branch from `develop`, follow the
+  `issue#/title` naming convention, and target PRs to `develop`.
 - Update relevant docs (`docs/`, module `README.md` files) when behavior changes.
+- If work requires running BEE services or integration tests, use the documented
+  lifecycle commands such as `beeflow core start` and `beeflow core stop`.
