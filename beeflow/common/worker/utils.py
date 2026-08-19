@@ -63,14 +63,18 @@ def format_runtime(runtime):
 def calc_runtime(job_state,job_info):
     """Calculate the runtime of a task when using slurmrestd."""
     start_time = job_info['start_time']['number']
+    log.info(f"Start time: {start_time}")
     end_time = job_info['end_time']['number']
+    log.info(f"End time: {end_time}")
 
     cur_time = dt.now()
     cur_unix_time = int(cur_time.timestamp())
 
+    job_states = ['COMPLETED','CANCELLED','FAILED','PAUSED']
+
     if job_state == 'RUNNING' and start_time:
         runtime = format_runtime(cur_unix_time - start_time)
-    elif job_state == 'COMPLETED' and start_time and end_time:
+    elif job_state in job_states and start_time and end_time:
         runtime = format_runtime(end_time - start_time)
     else:
         runtime = '00:00:00'
