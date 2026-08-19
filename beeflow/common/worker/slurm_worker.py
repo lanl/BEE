@@ -217,6 +217,7 @@ class BaseSlurmWorker(Worker):
             task.stdout = stdout
             task.stderr = stderr
             task_script = sbatch_script
+            self.save_script(task,task_script)
         else:
             task_script = self.write_script(task)
 
