@@ -40,9 +40,9 @@ jobs:
       
       - name: Transition Spack into Environment
         run: |
+          echo "$GITHUB_WORKSPACE/spack/bin" >> $GITHUB_PATH
           echo "SPACK_ROOT=$GITHUB_WORKSPACE/spack" >> $GITHUB_ENV
           eval $(spack env activate beeflow)
-          echo "$GITHUB_WORKSPACE/spack/bin" >> $GITHUB_PATH
           reds-server &
 
       - name: Install Flux Dependencies 
