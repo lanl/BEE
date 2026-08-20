@@ -70,11 +70,9 @@ def calc_runtime(job_state,job_info):
     cur_time = dt.now()
     cur_unix_time = int(cur_time.timestamp())
 
-    job_states = ['COMPLETED','CANCELLED','FAILED','PAUSED']
-
     if job_state == 'RUNNING' and start_time:
         runtime = format_runtime(cur_unix_time - start_time)
-    elif job_state in job_states and start_time and end_time:
+    elif start_time and end_time:
         runtime = format_runtime(end_time - start_time)
     else:
         runtime = '00:00:00'
