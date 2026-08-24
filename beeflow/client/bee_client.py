@@ -7,7 +7,8 @@ Capablities include submitting, starting, listing, pausing and cancelling workfl
 
 # Disable W0511: This allows us to have TODOs in the code
 # Disable R1732: Significant code restructuring required to fix
-# pylint:disable=W0511,R1732
+# Disable C0302: This allows module to exceed maximum number of lines
+# pylint:disable=W0511,R1732,C0302
 import os
 import sys
 import logging
@@ -285,8 +286,10 @@ def check_short_id_collision():
         print("There are currently no jobs.")
 
 
-def match_short_id(wf_id):
+def match_short_id(wf_id: Optional[str]):
     """Match user-provided short workflow ID to full workflow IDs."""
+    if wf_id is None:
+        return None
     matched_ids = []
     workflow_list = get_wf_list()
     if workflow_list:
@@ -736,10 +739,17 @@ def list_workflows():
 
 
 @app.command()
-def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
+def query(wf_id: Optional[str] = typer.Argument(None, callback=match_short_id)):
     """Get the status of a workflow."""
     # wf_id is a tuple with the short version and long version
-    long_wf_id = wf_id
+    if wf_id is None:
+        workflow_list = get_wf_list()
+        if not workflow_list:
+            typer.echo("There are currently no workflows avaliable.")
+            return None, None
+        long_wf_id = workflow_list[-1].wf_id
+    else:
+        long_wf_id = wf_id
     try:
         conn = _wfm_conn()
         resp = conn.get(_resource(long_wf_id), timeout=60)
@@ -753,7 +763,11 @@ def query(wf_id: str = typer.Argument(..., callback=match_short_id)):
 
     tasks_status = status.tasks_status
     wf_status = status.wf_status
-    typer.echo(wf_status)
+    if wf_id is None:
+        last_workflow = workflow_list[-1]
+        typer.echo(f'{last_workflow.wf_name} {_short_id(last_workflow.wf_id)}  {wf_status}')
+    else:
+        typer.echo(wf_status)
 
     scheduler = config_driver.BeeConfig.get('DEFAULT','workload_scheduler').lower()
     if scheduler == 'slurm' and config_driver.BeeConfig.get('slurm','use_commands'):
