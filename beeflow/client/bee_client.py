@@ -723,20 +723,13 @@ def unpackage(package_path, dest_path):
     return pathlib.Path(dest_path / wf_dir)
 
 
-@app.command("list")
-def list_workflows():
-    """List all workflows."""
+def find_workflow(wf_id: str):
+    """Helper function to find a workflow given a wf_id"""
     workflow_list = get_wf_list()
-    if workflow_list:
-        headers = [typer.style(h, fg=typer.colors.GREEN) for h in ["Name", "ID", "Status"]]
-        data = []
-        for wf_info in workflow_list:
-            data.append([wf_info.wf_name, _short_id(wf_info.wf_id), wf_info.wf_status])
-        table = tabulate(data, headers=headers, tablefmt="plain", disable_numparse=True)
-        typer.echo(table)
-    else:
-        typer.echo("There are currently no workflows.")
-
+    for workflow in workflow_list:
+        if wf_id == workflow.wf_id:
+            return workflow
+    return None
 
 @app.command()
 def query(wf_id: Optional[str] = typer.Argument(None, callback=match_short_id)):
@@ -763,7 +756,11 @@ def query(wf_id: Optional[str] = typer.Argument(None, callback=match_short_id)):
 
     tasks_status = status.tasks_status
     wf_status = status.wf_status
-    typer.echo(wf_status)
+    if wf_id is None:
+        last_workflow = workflow_list[-1]
+        typer.echo(f'{last_workflow.wf_name} {_short_id(last_workflow.wf_id)}  {wf_status}')
+    else:
+        typer.echo(wf_status)
 
     scheduler = config_driver.BeeConfig.get('DEFAULT','workload_scheduler').lower()
     if scheduler == 'slurm' and config_driver.BeeConfig.get('slurm','use_commands'):
