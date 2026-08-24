@@ -723,13 +723,20 @@ def unpackage(package_path, dest_path):
     return pathlib.Path(dest_path / wf_dir)
 
 
-def find_workflow(wf_id: str):
-    """Helper function to find a workflow given a wf_id"""
+@app.command("list")
+def list_workflows():
+    """List all workflows."""
     workflow_list = get_wf_list()
-    for workflow in workflow_list:
-        if wf_id == workflow.wf_id:
-            return workflow
-    return None
+    if workflow_list:
+        headers = [typer.style(h, fg=typer.colors.GREEN) for h in ["Name", "ID", "Status"]]
+        data = []
+        for wf_info in workflow_list:
+            data.append([wf_info.wf_name, _short_id(wf_info.wf_id), wf_info.wf_status])
+        table = tabulate(data, headers=headers, tablefmt="plain", disable_numparse=True)
+        typer.echo(table)
+    else:
+        typer.echo("There are currently no workflows.")
+
 
 @app.command()
 def query(wf_id: Optional[str] = typer.Argument(None, callback=match_short_id)):
