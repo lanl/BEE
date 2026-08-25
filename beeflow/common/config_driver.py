@@ -268,7 +268,11 @@ def check_redis_in_spackenv()->bool:
 
     except subprocess.CalledProcessError as e:
         if "No matching packages found" in e.stderr or e.returncode != 0:
-            print("Redis is not installed on the active spack environment.")
+            typer.secho(
+                "Redis is not installed on the active spack environment.",
+                 fg=typer.colors.YELLOW
+            )
+            print("Using Redis container.")
         else:
             print(f'An error occured: {e.stderr}')
 
@@ -276,8 +280,11 @@ def check_redis_in_spackenv()->bool:
 
     except FileNotFoundError:
         if REDIS_IMAGE is None:
-            print("Error: the 'spack' command-line tool was not found in your current path")
-            print("Please look look at the installation guide at: https://lanl.github.io/BEE/")
+            typer.secho(
+                "Error: the 'spack' command-line tool was not found in your current path",
+                fg=typer.colors.RED
+            )
+            print("Please look at the installation guide at: https://lanl.github.io/BEE/")
 
         return False
 
