@@ -14,7 +14,7 @@ Requirements:
 
     To set up Redis, first follow these Spack Instructions:
 
-    1. Run ``git clone --depth=2 https://github.com/spack/spack.git``.
+    1. Run ``git clone --depth=2 --branch=releases/latest https://github.com/spack/spack.git``.
     2. Source the setup file and add ``. spack/share/spack/setup-env.sh`` to your ``.bashrc`` file.
     3. Create the environment ``spack env create beeflow``.
     4. Activate your environment ``spack env activate beeflow`` (add command to ``.bashrc``).
