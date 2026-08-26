@@ -11,7 +11,8 @@ from mocks import MockWorkerCompletion, MockWorkerSubmission
 from beeflow.common.db.bdb import connect_db
 from beeflow.common.db import tm_db
 import beeflow.task_manager.task_manager as tm
-from beeflow.common.object_models import Task
+from beeflow.common.object_models import Task, Hint
+from beeflow.task_manager import utils
 import beeflow
 
 
@@ -46,8 +47,8 @@ def temp_db():
 @pytest.mark.usefixtures('flask_client', 'mocker')
 def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     """Create a workflow and get the ID back."""
-    mocker.patch('beeflow.task_manager.utils.worker_interface',
-                 MockWorkerSubmission)
+    mocker.patch('beeflow.task_manager.utils.worker_interface_for_scheduler',
+                 lambda _scheduler: MockWorkerSubmission())
     mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
     # Generate a task
     tasks = generate_tasks(1)
@@ -56,8 +57,8 @@ def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     response = flask_client.post('/bee_tm/v1/task/',
                                  json=task_request)
 
-    mocker.patch('beeflow.task_manager.utils.worker_interface',
-                 MockWorkerSubmission)
+    mocker.patch('beeflow.task_manager.utils.worker_interface_for_scheduler',
+                 lambda _scheduler: MockWorkerSubmission())
 
     # Patch the connection object for WFM communication
     mocker.patch('beeflow.common.connection.Connection.put', mock_put)
@@ -81,8 +82,8 @@ def test_submit_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
 def test_completed_task(flask_client, mocker, temp_db): # pylint: disable=W0613,W0621
     """Tests how the task manager processes a completed task."""
     # 42 is the sample task ID
-    mocker.patch('beeflow.task_manager.utils.worker_interface',
-                 MockWorkerCompletion)
+    mocker.patch('beeflow.task_manager.utils.worker_interface_for_scheduler',
+                 lambda _scheduler: MockWorkerCompletion())
     # Patch the connection object for WFM communication
     mocker.patch('beeflow.common.connection.Connection.put', mock_put)
     mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
@@ -102,8 +103,8 @@ def test_remove_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     temp_db.job_queue.push(task=task2, job_id=2, job_state='PENDING')
     temp_db.job_queue.push(task=task3, job_id=3, job_state='PENDING')
 
-    mocker.patch('beeflow.task_manager.utils.worker_interface',
-                 MockWorkerCompletion)
+    mocker.patch('beeflow.task_manager.utils.worker_interface_for_scheduler',
+                 lambda _scheduler: MockWorkerCompletion())
     mocker.patch('beeflow.task_manager.utils.db_path', lambda: temp_db.db_file)
 
     response = flask_client.delete('/bee_tm/v1/task/')
@@ -112,3 +113,57 @@ def test_remove_task(flask_client, mocker, temp_db):  # pylint: disable=W0621
     status = response.status_code
     assert status == 200
     assert msg.count('CANCELLED') == 3
+
+
+def test_scheduler_for_task_default(mocker):
+    """Tests tasks without WorkloadRequirement use the default scheduler."""
+    task = generate_tasks(1)[0]
+
+    mocker.patch('beeflow.task_manager.utils.default_scheduler',
+                 lambda: 'Slurm')
+    assert utils.scheduler_for_task(task) == 'Slurm'
+
+
+def test_scheduler_for_task_baremetal(mocker):
+    """Tests baremetal WorkloadRequirement uses Simple worker."""
+    task = generate_tasks(1)[0]
+    task.hints.append(Hint(class_='beeflow:WorkloadRequirement',
+                      params={'mode': 'baremetal'}))
+    assert utils.scheduler_for_task(task) == 'Simple'
+
+
+def test_scheduler_for_task_specific_scheduler(mocker):
+    """Tests scheduler mode can select a specific backend."""
+    task = generate_tasks(1)[0]
+    task.hints.append(Hint(class_='beeflow:WorkloadRequirement',
+                      params={'mode': 'scheduler', 'scheduler': 'Flux'}))
+    assert utils.scheduler_for_task(task) == 'Flux'
+
+
+def test_scheduler_for_task_invalid():
+    """Tests invalid WorkloadRequirement modes fail clearly."""
+    task = generate_tasks(1)[0]
+    task.hints.append(Hint(class_='beeflow:WorkloadRequirement',
+                      params={'mode': 'bad-mode'}))
+    with pytest.raises(RuntimeError,
+                       match='Unsupported beeflow:WorkloadRequirement mode'):
+       utils.scheduler_for_task(task)
+
+
+def test_job_queue_stores_scheduler(temp_db):
+    """JobQueue stores selected scheduler for submitted jobs."""
+    task = generate_tasks(1)[0]
+
+    temp_db.job_queue.push(
+        task=task,
+        job_id=123,
+        job_state='RUNNING',
+        scheduler='Simple',
+    )
+    jobs = list(temp_db.job_queue)
+
+    assert len(jobs) == 1
+    assert jobs[0].task == task
+    assert jobs[0].job_id == 123
+    assert jobs[0].job_state == 'RUNNING'
+    assert jobs[0].scheduler == 'Simple'

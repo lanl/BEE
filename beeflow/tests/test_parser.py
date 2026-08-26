@@ -470,5 +470,82 @@ def test_resolve_step_workdir(step_workdir, workdir, exp_resolved_workdir):
     assert resolved_workdir == exp_resolved_workdir
 
 
+@pytest.mark.parametrize(
+    "requirements, error_msg",
+    [
+        (
+            # mode is not a string
+            [OrderedDict([("mode", 123), ("class", "beeflow:WorkloadRequirement")])],
+            "beeflow:WorkloadRequirement mode must be a string",
+        ),
+        (
+            # mode is not a valid value
+            [OrderedDict([("mode", "invalid"), ("class", "beeflow:WorkloadRequirement")])],
+            "Unsupported beeflow:WorkloadRequirement mode 'invalid'",
+        ),
+        (
+            # scheduler is not a string
+            [
+                OrderedDict(
+                    [
+                        ("mode", "scheduler"),
+                        ("scheduler", 456),
+                        ("class", "beeflow:WorkloadRequirement"),
+                    ]
+                )
+            ],
+            "beeflow:WorkloadRequirement scheduler must be a string",
+        ),
+    ],
+)
+def test_validate_workload_requirement_invalid(requirements, error_msg):
+    """Test that invalid beeflow:WorkloadRequirement raises CwlParseError during parse."""
+    parser = CwlParser()
+    parser.path = "."
+    with pytest.raises(CwlParseError, match=error_msg):
+        parser.parse_requirements(requirements, as_hints=True)
+
+
+@pytest.mark.parametrize(
+    "requirements, exp_reqs",
+    [
+        (
+            # Valid baremetal mode
+            [OrderedDict([("mode", "baremetal"), ("class", "beeflow:WorkloadRequirement")])],
+            [Hint(class_="beeflow:WorkloadRequirement", params={"mode": "baremetal"})],
+        ),
+        (
+            # Valid scheduler mode with scheduler specified
+            [
+                OrderedDict(
+                    [
+                        ("mode", "scheduler"),
+                        ("scheduler", "Slurm"),
+                        ("class", "beeflow:WorkloadRequirement"),
+                    ]
+                )
+            ],
+            [
+                Hint(
+                    class_="beeflow:WorkloadRequirement",
+                    params={"mode": "scheduler", "scheduler": "Slurm"},
+                )
+            ],
+        ),
+        (
+            # Valid baremetal mode (case insensitive)
+            [OrderedDict([("mode", "BAREMETAL"), ("class", "beeflow:WorkloadRequirement")])],
+            [Hint(class_="beeflow:WorkloadRequirement", params={"mode": "BAREMETAL"})],
+        ),
+    ],
+)
+def test_validate_workload_requirement_valid(requirements, exp_reqs):
+    """Test that valid beeflow:WorkloadRequirement passes validation."""
+    parser = CwlParser()
+    parser.path = "."
+    reqs = parser.parse_requirements(requirements, as_hints=True)
+    assert reqs == exp_reqs
+
+
 if __name__ == '__main__':
     unittest.main()

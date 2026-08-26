@@ -164,7 +164,7 @@ def test_skip_task_handlers_when_task_does_not_exist(mocker):
     workflow_update.update_task_state(state_update)
 
     wfi.get_task_by_id.assert_called_once_with("NO_TASK_ID")
-    wfi.set_task_state.assert_called_once_with("NO_TASK_ID", "SUBMIT")
+    wfi.set_task_state.assert_not_called()
     mock_handle_metadata.assert_not_called()
     mock_handle_checkpoint_restart.assert_not_called()
     mock_handle_state_change.assert_not_called()
