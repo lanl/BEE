@@ -141,8 +141,8 @@ support Docker, but it does support <a class="reference external" href="https://
 for <a class="reference external" href="https://apptainer.org/">Singularity</a>.</p>
 <p>An example <code class="docutils literal notranslate"><span class="pre">DockerRequirement</span></code> in BEE is shown below:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">DockerRequirement</span><span class="p">:</span>
-    <span class="n">dockerFile</span><span class="p">:</span> <span class="s2">&quot;dockerfile-name&quot;</span>
-    <span class="n">beeflow</span><span class="p">:</span><span class="n">containerName</span><span class="p">:</span> <span class="s2">&quot;some-container&quot;</span>
+    <span class="n">dockerFile</span><span class="p">:</span> <span class="s2">"dockerfile-name"</span>
+    <span class="n">beeflow</span><span class="p">:</span><span class="n">containerName</span><span class="p">:</span> <span class="s2">"some-container"</span>
 </pre></div>
 </div>
 <p>This example includes two suboptions, a <code class="docutils literal notranslate"><span class="pre">dockerFile</span></code> option that specifies
@@ -221,13 +221,13 @@ submission.</p>
 <p>Alternately you can load the requirements from a json formatted text.
 file and use the “load_from_file” option:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span><span class="p">:</span><span class="n">MPIRequirement</span><span class="p">:</span>
-  <span class="n">load_from_file</span><span class="p">:</span> <span class="s2">&quot;mpi_conf.json&quot;</span>
+  <span class="n">load_from_file</span><span class="p">:</span> <span class="s2">"mpi_conf.json"</span>
 </pre></div>
 </div>
 <p>Contents of mpi_conf.json:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-  <span class="s2">&quot;nodes&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
-  <span class="s2">&quot;ntasks&quot;</span><span class="p">:</span> <span class="mi">32</span>
+  <span class="s2">"nodes"</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+  <span class="s2">"ntasks"</span><span class="p">:</span> <span class="mi">32</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -345,7 +345,7 @@ the examples below (shown for both tcsh and bash):</p>
 </dd>
 </dl>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span># Cleanup output files from previous job
-# Make outputs folder if it doesn&#39;t already exist
+# Make outputs folder if it doesn't already exist
 if (! -d outputs ) then
    mkdir outputs
 endif
@@ -358,8 +358,8 @@ set nonomatch
 
 # Move output files
 foreach ext ($output_ext)
-    set pattern=&quot;*$ext&quot;
-    set timestamp=`date &quot;+%Y%m%d%H%M%S&quot;`
+    set pattern="*$ext"
+    set timestamp=`date "+%Y%m%d%H%M%S"`
 
     # Make list of files with extension, continuing if none exist
     set files=($pattern)
@@ -369,7 +369,7 @@ foreach ext ($output_ext)
 
     # Loop through files, moving to outputs
     foreach file ($files)
-        cp $file &quot;outputs/$file.$timestamp&quot;
+        cp $file "outputs/$file.$timestamp"
     end
 end
 
@@ -384,7 +384,7 @@ unset nonomatch
 
 # Cleanup output files from previous job
 
-# Make outputs folder if it doesn&#39;t already exist
+# Make outputs folder if it doesn't already exist
 mkdir -p outputs
 
 # Set list of file extensions to move
@@ -394,17 +394,17 @@ output_ext=(.example .extensions .here)
 shopt -s nullglob
 
 # Move output files
-for ext in &quot;${output_ext[@]}&quot;; do
-    pattern=&quot;*${ext}&quot;
-    timestamp=$(date &quot;+%Y%m%d%H%M%S&quot;)
+for ext in "${output_ext[@]}"; do
+    pattern="*${ext}"
+    timestamp=$(date "+%Y%m%d%H%M%S")
 
     # Make list of files with extension, continue if none exist
     files=($pattern)
     ((${#files[@]} == 0)) &amp;&amp; continue
 
     # Loop through files, copying to outputs with timestamp
-    for file in &quot;${files[@]}&quot;; do
-        cp -- &quot;$file&quot; &quot;outputs/$file.$timestamp&quot;
+    for file in "${files[@]}"; do
+        cp -- "$file" "outputs/$file.$timestamp"
     done
 done
 
@@ -446,23 +446,23 @@ Note: Running directly with an sbatch means pre_script and post_scripts won’t 
 </div>
 <p>Alternate:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span><span class="p">:</span><span class="n">SlurmRequirement</span><span class="p">:</span>
-   <span class="n">load_from_file</span><span class="p">:</span> <span class="s2">&quot;slurm_conf.json&quot;</span>
+   <span class="n">load_from_file</span><span class="p">:</span> <span class="s2">"slurm_conf.json"</span>
 </pre></div>
 </div>
 <p>Contents of slurm_conf.json:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
- <span class="s2">&quot;timeLimit&quot;</span><span class="p">:</span> <span class="s2">&quot;00:00:10&quot;</span><span class="p">,</span>
- <span class="s2">&quot;account&quot;</span><span class="p">:</span> <span class="s2">&quot;account12345&quot;</span><span class="p">,</span>
- <span class="s2">&quot;partition&quot;</span><span class="p">:</span> <span class="s2">&quot;partition-a&quot;</span><span class="p">,</span>
- <span class="s2">&quot;signal&quot;</span><span class="p">:</span> <span class="s2">&quot;B:SIGUSR1@60&quot;</span><span class="p">,</span>
- <span class="s2">&quot;qos&quot;</span><span class="p">:</span> <span class="s2">&quot;long&quot;</span><span class="p">,</span>
- <span class="s2">&quot;reservation&quot;</span><span class="p">:</span> <span class="s2">&quot;reservation-a&quot;</span>
+ <span class="s2">"timeLimit"</span><span class="p">:</span> <span class="s2">"00:00:10"</span><span class="p">,</span>
+ <span class="s2">"account"</span><span class="p">:</span> <span class="s2">"account12345"</span><span class="p">,</span>
+ <span class="s2">"partition"</span><span class="p">:</span> <span class="s2">"partition-a"</span><span class="p">,</span>
+ <span class="s2">"signal"</span><span class="p">:</span> <span class="s2">"B:SIGUSR1@60"</span><span class="p">,</span>
+ <span class="s2">"qos"</span><span class="p">:</span> <span class="s2">"long"</span><span class="p">,</span>
+ <span class="s2">"reservation"</span><span class="p">:</span> <span class="s2">"reservation-a"</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <p>Alternate:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">beeflow</span><span class="p">:</span><span class="n">Slurm</span> <span class="n">Requirement</span><span class="p">:</span>
-    <span class="n">sbatch</span><span class="p">:</span> <span class="s2">&quot;run_sbatch.sh&quot;</span>
+    <span class="n">sbatch</span><span class="p">:</span> <span class="s2">"run_sbatch.sh"</span>
 </pre></div>
 </div>
 <p>Contents of run_sbatch.sh:</p>
