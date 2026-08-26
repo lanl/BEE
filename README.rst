@@ -47,7 +47,7 @@ BEE Sites
      - Documentation
 
    * - Stable release
-     - ``0.1.12``
+     - ``0.1.13``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
    * - Pre-release
      - ``0.1.13dev1``
