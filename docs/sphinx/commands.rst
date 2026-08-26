@@ -77,7 +77,7 @@ Arguments:
 ``beeflow query``: Get the status of a workflow.
 
 Arguments:
-  - WF_ID  [required]
+  - WF_ID  [optional]
 
 ``beeflow pause``: Pause a workflow(s) (Running tasks will finish)
 

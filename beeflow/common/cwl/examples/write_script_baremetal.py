@@ -1,16 +1,17 @@
 """
-write_script.py
+write_script_baremetal.py
 
 CWL generator to provide a specification to run a BEE workflow:
 
 Purpose of the Workflow:
      Test the Slurm Requirement to accept a batch script written
-     during the workflow and run it by subsequent task.
+     during the workflow and run it by subsequent task. The first step is run 
+     on the front-end, thus "baremetal".
 
-This generator creates directory, write-script, containing:
+This generator creates directory, write-baremetal, containing:
 
-     write-script.cwl
-     write-script.yml
+     write-baremetal.cwl
+     write-baremetal.yml
      batch.sh - contains the commands defined by RUN_SH
 
 The workflow specification has two tasks, creating jobs:
@@ -18,14 +19,14 @@ The workflow specification has two tasks, creating jobs:
     sbatch: runs write-batch.sh
 
 Commands to create and run the workflow (assumes beeflow is running):
-    python write_script.py
-    cd write-script
-    beeflow submit <wf-name> ./ ./write-script.cwl ./write-script.yml .
+    python write_script_baremetal.py
+    cd write-baremetal
+    beeflow submit <wf-name> ./ ./write-baremetal.cwl ./write-baremetal.yml .
 
 """
 
 from pathlib import Path
-from beeflow.common.cwl.workflow import Task, Input, Output, Workflow, Slurm
+from beeflow.common.cwl.workflow import Task, Input, Output, Workflow, Slurm, Workload
 
 RUN_SH = """#!/bin/bash
 #SBATCH --job-name=write_batch
@@ -46,16 +47,17 @@ def main():
     """Two step 1. Write a script. 2. Sumbit that script."""
 #
 
-    # This step reads in batch.sh and writes it to batch_script.sh
+    # This step reads in batch.sh and writes it to batch_script.sh on the front-end
     write = Task(name="write",
                base_command="cat",
                stdout="batch_script.sh",
                stderr="write.err",
                inputs=[Input('input_file', 'File', "batch.sh", position=1)],
                outputs=[Output('write_stdout', 'stdout', source='write/write_stdout'),
-                        Output('write_stderr', 'stderr', source='write/write_stderr')])
+                        Output('write_stderr', 'stderr', source='write/write_stderr')],
+               hints=[Workload(mode="baremetal")])
 
-    # Inputs are required for CWL dependency and base command not present since optional 
+    # Inputs are required for CWL dependency and base command not present since optional
     sbatch = Task(name="sbatch",
                stdout="sbatch.out",
                stderr="sbatch.err",
@@ -66,12 +68,12 @@ def main():
                     Slurm(sbatch="batch_script.sh")])
 
 
-    workflow = Workflow("write-script", [write, sbatch])
-    #workflow = Workflow("write-script", [write])
-    workflow.dump_wf("write-script")
-    workflow.dump_yaml("write-script")
+    workflow = Workflow("write-baremetal", [write, sbatch])
+    #workflow = Workflow("write-baremetal", [write])
+    workflow.dump_wf("write-baremetal")
+    workflow.dump_yaml("write-baremetal")
 
-    with open("write-script/batch.sh", "w") as f:
+    with open("write-baremetal/batch.sh", "w") as f:
          f.write(RUN_SH)
 
 if __name__ == "__main__":

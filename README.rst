@@ -3,12 +3,12 @@ BEE: Build and Execution Environment
 
 Coverage in Develop
 
-.. image:: https://github.com/lanl/BEE/raw/develop/coverage.svg
+.. image:: https://lanl.github.io/BEE/badges/develop/coverage.svg
    :alt: Coverage Badge for develop
 
 Coverage in Main
 
-.. image:: https://github.com/lanl/BEE/raw/main/coverage.svg
+.. image:: https://lanl.github.io/BEE/badges/main/coverage.svg
    :alt: Coverage Badge for main
 
 BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (`CWL <https://www.commonwl.org/>`_) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or Flux) on the HPC system that tasks are specified to run on.
@@ -47,11 +47,11 @@ BEE Sites
      - Documentation
 
    * - Stable release
-     - ``0.1.12``
+     - ``0.1.13``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
    * - Pre-release
-     - ``0.1.12dev0``
-     - `https://lanl.github.io/BEE/0.1.12dev1/ <https://lanl.github.io/BEE/0.1.12dev1/>`__
+     - ``0.1.13dev1``
+     - `https://lanl.github.io/BEE/0.1.13dev1/ <https://lanl.github.io/BEE/0.1.13dev1/>`__
 
 
 Contact
@@ -83,6 +83,7 @@ Contributors:
 * Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
 * Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
 * Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
+* Santiago Lopez - `santiag0-3 <https://github.com/santiag0-3>`_
 
 Concept and Design Contributors
 

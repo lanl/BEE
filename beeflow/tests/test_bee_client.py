@@ -462,6 +462,12 @@ def test_match_short_id(mocker, id_list, wf_id, exp_long_wf_id):
     assert long_wf_id == exp_long_wf_id
 
 
+def test_match_short_id_without_wf_id():
+    """Test that wf_id returns none if no parameter is passed in"""
+    long_wf_id = bee_client.match_short_id(None)
+    assert long_wf_id == None
+
+
 @pytest.mark.parametrize(
     "id_list, wf_id, exception, match",
     [
@@ -894,6 +900,42 @@ def test_query(mocker, capsys, wf_status, exp_out):
     cap = capsys.readouterr()
     assert cap.out == exp_out
 
+
+@pytest.mark.parametrize(
+    "wf_status, exp_out",
+    [
+        (
+            "Running",
+            """Running
+task_name    task_state
+-----------  ------------
+cat          RUNNING
+grep         PENDING
+""",
+        ),
+        (
+            "No Start",
+            """No Start
+cat
+grep
+""",
+        ),
+    ],
+)
+def test_query_without_wf_id(mocker, capsys, wf_status, exp_out):
+    """Test that query returns lated workflow if no wf_id is provided"""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 200
+    fake_resp.json.return_value = {
+        "tasks_status": [("", "cat", "RUNNING", {}), ("", "grep", "PENDING", {})],
+        "wf_status": wf_status, "msg": "Workflow status retrieved successfully"
+    }
+    mock_conn = mocker.Mock()
+    mock_conn.get.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    bee_client.query()
+    cap = capsys.readouterr()
+    assert cap.out == exp_out
 
 def test_pause(mocker):
     """Regression test pause."""
