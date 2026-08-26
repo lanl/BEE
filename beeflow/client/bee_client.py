@@ -505,7 +505,6 @@ def submit(  # pylint:disable=R0915
         "/var/tmp"
     ):
         error_exit('Workflow working directory cannot be in "/var/tmp"')
-
     tarball_path = ""
     workflow = None
     encoded_tarball = None
@@ -545,13 +544,16 @@ def submit(  # pylint:disable=R0915
             orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
             orig_yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
 
-        from beeflow.common.parser import CwlParser # pylint: disable=C0415 # Costly import
+        from beeflow.common.parser import CwlParser, CwlParseError # pylint: disable=C0415
         parser = CwlParser()
         workflow_id = generate_workflow_id()
-        workflow, tasks = parser.parse_workflow(
-            workflow_id, wf_name, str(orig_cwl_path), job=str(orig_yaml_path),
-            workdir=workdir, wf_path=wf_path
-        )
+        try:
+            workflow, tasks = parser.parse_workflow(
+                workflow_id, wf_name, str(orig_cwl_path), job=str(orig_yaml_path),
+                workdir=workdir, wf_path=wf_path
+            )
+        except CwlParseError as e:
+            error_exit(str(e))  # Show user-friendly error, no traceback
         with open(package_path, "rb") as f:
             encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
         if untar_path is not None:
