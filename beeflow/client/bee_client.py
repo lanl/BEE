@@ -902,6 +902,7 @@ def reexecute(
     workdir: pathlib.Path = typer.Argument(
         ..., help="working directory for workflow containing input + output files"
     ),
+    no_start: bool = typer.Option(False, "--no-start", "-n", help="do not start workflow"),
 ):
     """Reexecute an archived workflow."""
     if not os.path.exists(wf_path):
@@ -935,7 +936,7 @@ def reexecute(
         yaml_file = cwl_path / pathlib.Path(archive_cmd["yaml"]).name
 
         return submit(
-            wf_name, pathlib.Path(cwl_path), main_cwl, yaml_file, pathlib.Path(workdir)
+            wf_name, pathlib.Path(cwl_path), main_cwl, yaml_file, pathlib.Path(workdir), no_start
         )
 
 
