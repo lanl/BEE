@@ -77,8 +77,9 @@ The examples below use ``0.x.x`` as the release version.
 6. On GitHub, create a release from the release commit on ``main``. Create a
    tag whose version matches ``pyproject.toml`` exactly, and publish the GitHub
    release.
-   After github actions have run, verify the doucmentaion:
-       | https://lanl.github.io/BEE/
+
+   After github actions have run, verify the documentation:
+   | https://lanl.github.io/BEE/
 
 7. Check out the tagged release and build the distributions::
 
