@@ -47,10 +47,10 @@ The examples below use ``0.x.x`` as the release version.
      expanding every merged branch into its individual commits. Use the output
      to summarize the user-visible changes in ``HISTORY.md``; do not copy the
      commit messages without reviewing and organizing them.
-* Add the release notes to ``HISTORY.md``.
-* Check and commit changes to pyproject.toml, README.rst History.md
-* Build the documentation and review the generated output.
-* Run the applicable tests.
+   * Add the release notes to ``HISTORY.md``.
+   * Check and commit changes to pyproject.toml, README.rst History.md
+   * Build the documentation and review the generated output.
+   * Run the applicable tests.
 
 3. Push the branch and create a pull request into ``develop``::
 
