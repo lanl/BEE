@@ -10,6 +10,7 @@ from beeflow.common.cwl.workflow import (
     Script,
     Checkpoint,
     TaskReq,
+    Workload,
 )
 from importlib.resources import files
 from pathlib import Path
@@ -297,3 +298,82 @@ def test_workflow_task_req(tmpdir, workdir_value, description):
             actual = f1.read()
             expected = f2.read()
             assert actual == expected, (f"YAML mismatch when workdir is a {description}. ")
+
+
+def test_workflow_local(tmpdir):
+    """Regression test of local cat-grep-tar-baremetal example."""
+    expected_wf = expected_folder / "cat-grep-tar-baremetal.cwl"
+    expected_yaml = expected_folder / "cat-grep-tar-baremetal.yml"
+
+    cat = Task(
+        name="cat",
+        base_command="cat",
+        stdout="cat.txt",
+        stderr="cat.err",
+        inputs=[Input("input_file", "File", "lorem.txt", position=1)],
+        outputs=[
+            Output("contents", "stdout"),
+            Output("cat_stderr", "stderr", source="cat/cat_stderr"),
+        ],
+        hints=[Workload(mode="baremetal")],
+    )
+
+    grep0 = Task(
+        name="grep0",
+        base_command="grep",
+        stdout="occur0.txt",
+        inputs=[
+            Input("word0", "string", "Vivamus", position=1),
+            Input("text_file", "File", "cat/contents", position=2),
+        ],
+        outputs=[Output("occur", "stdout")],
+        hints=[Workload(mode="baremetal")],
+    )
+
+    grep1 = Task(
+        name="grep1",
+        base_command="grep",
+        stdout="occur1.txt",
+        inputs=[
+            Input("word1", "string", "pulvinar", position=1),
+            Input("text_file", "File", "cat/contents", position=2),
+        ],
+        outputs=[Output("occur", "stdout")],
+        hints=[Workload(mode="baremetal")],
+    )
+
+    tar = Task(
+        name="tar",
+        base_command="tar",
+        stdout="occur1.txt",
+        inputs=[
+            Input("tarball_fname", "string", "out.tgz", position=1, prefix="-cf"),
+            Input("file0", "File", "grep0/occur", position=2),
+            Input("file1", "File", "grep1/occur", position=3),
+        ],
+        outputs=[
+            Output(
+                "tarball",
+                "File",
+                glob="$(inputs.tarball_fname)",
+                source="tar/tarball",
+            )
+        ],
+        hints=[Workload(mode="baremetal")],
+    )
+
+    workflow = Workflow("cat-grep-tar-baremetal", [cat, grep0, grep1, tar])
+
+    with tmpdir.as_cwd():
+        workflow.dump_wf(".")
+        workflow.dump_yaml(".")
+
+        with open("cat-grep-tar-baremetal.cwl", "r") as f1, open(expected_wf, "r") as f2:
+            actual = f1.read()
+            expected = f2.read()
+            assert actual == expected
+
+        with open("cat-grep-tar-baremetal.yml", "r") as f1, open(expected_yaml, "r") as f2:
+            actual = f1.read()
+            expected = f2.read()
+            assert actual.rstrip() == expected.rstrip()

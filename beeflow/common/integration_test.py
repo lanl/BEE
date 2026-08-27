@@ -359,13 +359,13 @@ def checkpoint_sentinel_restart(outer_workdir):
     utils.check_path_exists(Path(workdir, 'final_output.txt'))
 
 
-def test_input_callback(arg):
+def parse_test_input(arg):
     """Parse a list of tests separated by commas."""
     return arg.split(',') if arg is not None else None
 
 
 def main(tests = typer.Option(None, '--tests', '-t',
-                              callback=test_input_callback,
+                              callback=parse_test_input,
                               help='tests run as comma-separated string'),
          show_tests: bool = typer.Option(False, '--show-tests', '-s',
                                          help='show a list of all tests'),

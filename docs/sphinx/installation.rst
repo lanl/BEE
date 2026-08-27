@@ -54,7 +54,8 @@ If you do not already have a python environment, you may be able to use the foll
 You will need to activate the environment with the command ``source beeflow-env/bin/activate`` and type ``deactivate`` when done.
 
 
-An alternative is to use a Poetry environment, but we suggest this only for contributors.
+An alternative is to install Poetry in your python environment and use it 
+to manage BEE's dependencies, but we suggest this only for contributors.
 For more information click on the Developer's Guide in this documentation.
 
 Creating Configuration File:

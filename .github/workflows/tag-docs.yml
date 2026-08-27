@@ -16,7 +16,7 @@ permissions:
 jobs:
   tag-docs:
     if: startsWith(github.ref, 'refs/tags/')
-    name: Build and Publish Tag Docs 
+    name: Build and Publish Tag Docs
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +32,26 @@ jobs:
           publish_branch: gh-pages
           publish_dir: ./docs/sphinx/_build/html
           destination_dir: ${{ github.ref_name }}
+          keep_files: true
+
+      - name: Check for final release tag
+        id: final_release
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_final=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_final=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish final release docs to root
+        if: steps.final_release.outputs.is_final == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./docs/sphinx/_build/html
+          destination_dir: .
           keep_files: true
 
   cleanup-tag-docs:

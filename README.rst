@@ -47,11 +47,11 @@ BEE Sites
      - Documentation
 
    * - Stable release
-     - ``0.1.12``
+     - ``0.1.14``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
    * - Pre-release
-     - ``0.1.13dev1``
-     - `https://lanl.github.io/BEE/0.1.13dev1/ <https://lanl.github.io/BEE/0.1.13dev1/>`__
+     - ``0.1.14dev1``
+     - `https://lanl.github.io/BEE/0.1.14dev1/ <https://lanl.github.io/BEE/0.1.14dev1/>`__
 
 
 Contact
@@ -83,6 +83,7 @@ Contributors:
 * Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
 * Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
 * Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
+* Santiago Lopez - `santiag0-3 <https://github.com/santiag0-3>`_
 
 Concept and Design Contributors
 
