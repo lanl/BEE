@@ -79,7 +79,7 @@ The examples below use ``0.x.x`` as the release version.
    release.
 
    After github actions have run, verify the documentation:
-   | https://lanl.github.io/BEE/
+       | https://lanl.github.io/BEE/
 
 7. Check out the tagged release and build the distributions::
 
