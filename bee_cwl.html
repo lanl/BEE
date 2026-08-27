@@ -37,7 +37,7 @@
               <img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.12
+                0.1.13
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -61,6 +61,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#checkpointrequirement-parameters">CheckpointRequirement Parameters</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#beeflow-workloadrequirement">beeflow:WorkloadRequirement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#beeflow-slurmrequirement">beeflow:SlurmRequirement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#beeflow-scriptrequirement">beeflow:ScriptRequirement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#beeflow-taskrequirement">beeflow:TaskRequirement</a></li>
@@ -413,6 +414,45 @@ shopt -u nullglob
 </pre></div>
 </div>
 </section>
+</section>
+<section id="beeflow-workloadrequirement">
+<h3>beeflow:WorkloadRequirement<a class="headerlink" href="#beeflow-workloadrequirement" title="Permalink to this heading"></a></h3>
+<p>This requirement is designed to specify where an individual task should execute.
+It allows a workflow to run tasks locally through the Simple worker, as well as,
+submit them to a workload manager such as Slurm or Flux.</p>
+<p>The supported parameters are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mode</span></code> - <code class="docutils literal notranslate"><span class="pre">baremetal</span></code> or <code class="docutils literal notranslate"><span class="pre">scheduler</span></code>. If omitted, <code class="docutils literal notranslate"><span class="pre">scheduler</span></code> is assumed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scheduler</span></code> - Optional scheduler name to use with <code class="docutils literal notranslate"><span class="pre">mode</span></code> is <code class="docutils literal notranslate"><span class="pre">scheduler</span></code>, such</p></li>
+</ul>
+<p>as <code class="docutils literal notranslate"><span class="pre">Slurm</span></code> or <code class="docutils literal notranslate"><span class="pre">Flux</span></code>.</p>
+<p>Note, this requirement is optional. If not provided, beeflow uses the configured
+default workload scheduler, preserving the usual behavior.</p>
+<p><strong>Example 1: Mixed execution workflow</strong></p>
+<p>A workflow where data download runs locally, processing uses Slurm:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">steps</span><span class="p">:</span>
+  <span class="n">download</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">:</span> <span class="n">download</span><span class="o">.</span><span class="n">cwl</span>
+    <span class="o">...</span>
+
+    <span class="c1"># Then download.cwl has</span>
+     <span class="n">hints</span><span class="p">:</span>
+       <span class="n">beeflow</span><span class="p">:</span><span class="n">WorkloadRequirement</span>
+         <span class="n">mode</span><span class="p">:</span> <span class="n">baremetal</span>
+
+  <span class="n">process</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">:</span> <span class="n">process</span><span class="o">.</span><span class="n">cwl</span>  <span class="c1"># Uses default scheduler (Slurm)</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p><strong>Example 2: Force specific scheduler</strong></p>
+<p>Override default scheduler for a specific task:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">hints</span><span class="p">:</span>
+  <span class="n">beeflow</span><span class="p">:</span><span class="n">WorkloadRequirement</span><span class="p">:</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="n">scheduler</span>
+    <span class="n">scheduler</span><span class="p">:</span> <span class="n">Flux</span>
+</pre></div>
+</div>
 </section>
 <section id="beeflow-slurmrequirement">
 <h3>beeflow:SlurmRequirement<a class="headerlink" href="#beeflow-slurmrequirement" title="Permalink to this heading"></a></h3>

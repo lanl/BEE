@@ -36,7 +36,7 @@
               <img src="_static/BEEGrey.jpg" class="logo" alt="Logo"/>
           </a>
               <div class="version">
-                0.1.12
+                0.1.13
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -86,8 +86,8 @@
   <section id="bee-build-and-execution-environment">
 <h1>BEE: Build and Execution Environment<a class="headerlink" href="#bee-build-and-execution-environment" title="Permalink to this heading"></a></h1>
 <p>Coverage in Develop</p>
-<img alt="Coverage Badge for develop" src="https://github.com/lanl/BEE/raw/develop/coverage.svg" /><p>Coverage in Main</p>
-<img alt="Coverage Badge for main" src="https://github.com/lanl/BEE/raw/main/coverage.svg" /><p>BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (<a class="reference external" href="https://www.commonwl.org/">CWL</a>) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or Flux) on the HPC system that tasks are specified to run on.</p>
+<img alt="Coverage Badge for develop" src="https://lanl.github.io/BEE/badges/develop/coverage.svg" /><p>Coverage in Main</p>
+<img alt="Coverage Badge for main" src="https://lanl.github.io/BEE/badges/main/coverage.svg" /><p>BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (<a class="reference external" href="https://www.commonwl.org/">CWL</a>) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or Flux) on the HPC system that tasks are specified to run on.</p>
 <p>BEE workflows can be archived for provenance and reproducibility. BEE can orchestrate workflows with containerized applications or those built locally on a system. However, there are advantages to containerizing an application.</p>
 <p>A container is a package of code (usually binaries) and all of that code’s dependencies (libraries, etc.). Once built, this container can be run on many different platforms.</p>
 <p>Containers provide many benefits:</p>
@@ -118,12 +118,12 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Stable release</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">0.1.12</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1.13</span></code></p></td>
 <td><p><a class="reference external" href="https://lanl.github.io/BEE/">https://lanl.github.io/BEE/</a></p></td>
 </tr>
 <tr class="row-odd"><td><p>Pre-release</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">0.1.12dev0</span></code></p></td>
-<td><p><a class="reference external" href="https://lanl.github.io/BEE/0.1.12dev1/">https://lanl.github.io/BEE/0.1.12dev1/</a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1.13dev1</span></code></p></td>
+<td><p><a class="reference external" href="https://lanl.github.io/BEE/0.1.13dev1/">https://lanl.github.io/BEE/0.1.13dev1/</a></p></td>
 </tr>
 </tbody>
 </table>
@@ -154,6 +154,7 @@
 <li><p>Sare Beste Zeytun - <a class="reference external" href="https://github.com/sbzeytun">sbzeytun</a></p></li>
 <li><p>Jeff Tamashiro - <a class="reference external" href="https://github.com/jeffreyt">jeffreyt</a></p></li>
 <li><p>Wesley Mason - <a class="reference external" href="https://github.com/wmason-lanl">wmason-lanl</a></p></li>
+<li><p>Santiago Lopez - <a class="reference external" href="https://github.com/santiag0-3">santiag0-3</a></p></li>
 </ul>
 <p>Concept and Design Contributors</p>
 <ul class="simple">
@@ -194,7 +195,7 @@
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documentation was built Aug 26, 2026, beeflow version 0.1.12.</p>
+<p>This documentation was built Aug 27, 2026, beeflow version 0.1.13.</p>
 </div>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
@@ -231,11 +232,22 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Developer’s Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="development.html#poetry-setup-guide">Poetry Setup Guide</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development.html#development-workflow">Development Workflow</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development.html#dependency-and-package-management-with-poetry">Dependency and Package Management with Poetry</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development.html#running-tests">Running Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development.html#git-workflow">Git Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#requirement-python-version-3-11-to-3-14">Requirement: Python version 3.11 to 3.14</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#installation-using-a-python-environment">Installation Using a Python Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#make-changes">1. Make changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#activate-the-virtual-environment-and-install-beeflow">2. Activate the Virtual Environment and Install Beeflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#start-the-bee-components">3. Start the BEE components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#test">4. Test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#commit-changes">6. Commit Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#continue-development">7. Continue Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#update-dependencies">Update Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#add-a-new-dependency">Add a New Dependency</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#remove-a-dependency">Remove a Dependency</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#build-the-package">Build the Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#check-the-validity-of-pyproject-toml">Check the Validity of pyproject.toml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#publish-the-package-to-a-remote-repository">Publish the Package to a Remote Repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#some-useful-pytest-options">Some useful pytest options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="development.html#integration-tests">Integration tests</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="visualization.html">Workflow Visualization</a><ul>
