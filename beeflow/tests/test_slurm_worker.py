@@ -17,7 +17,7 @@ import pytest
 import beeflow.common.worker.utils as worker_utils
 from beeflow.common.worker_interface import WorkerInterface
 from beeflow.common.worker.worker import WorkerError
-from beeflow.common.worker.slurm_worker import SlurmWorker
+from beeflow.common.worker.slurm_worker import SlurmWorker, SlurmCLIWorker
 from beeflow.common.object_models import Task
 
 
@@ -201,3 +201,51 @@ def test_parse_output_error(output_directive, error_directive, expected_stdout,
     assert stderr == expected_stderr
 
 
+def test_write_submit_failure_creates_record(tmp_path):
+    """A submit failure reason is written to the task's stderr path."""
+    stderr_path = tmp_path / "task.err"
+
+    worker_utils.write_submit_failure(str(stderr_path),
+                                      "sbatch: error: invalid partition specified")
+
+    contents = stderr_path.read_text(encoding="utf-8")
+    assert "Slurm job submission failed" in contents
+    assert "invalid partition specified" in contents
+
+
+def test_write_submit_failure_appends(tmp_path):
+    """Recording a submit failure appends rather than truncating."""
+    stderr_path = tmp_path / "task.err"
+    stderr_path.write_text("previous output\n", encoding="utf-8")
+
+    worker_utils.write_submit_failure(str(stderr_path), "boom")
+
+    contents = stderr_path.read_text(encoding="utf-8")
+    assert contents.startswith("previous output")
+    assert "boom" in contents
+
+
+def test_submit_job_records_failure(tmp_path, monkeypatch):
+    """A failed sbatch submission records the reason in the task's stderr file."""
+    # Bypass the config-heavy worker __init__; submit_job only needs
+    # resolve_stdout_stderr, which depends solely on the task.
+    worker = SlurmCLIWorker.__new__(SlurmCLIWorker)
+    task = Task(name='submit-fail', base_command=['true'], hints=[], requirements=[],
+                inputs=[], outputs=[], stdout='', stderr='', workdir=str(tmp_path),
+                workflow_id=uuid.uuid4().hex)
+
+    class FailedRun:
+        """Stand-in for a failed subprocess.run result."""
+
+        returncode = 1
+        stdout = ''
+        stderr = 'sbatch: error: invalid partition specified'
+
+    monkeypatch.setattr(subprocess, 'run', lambda *args, **kwargs: FailedRun())
+
+    with pytest.raises(WorkerError):
+        worker.submit_job(task, 'dummy_script.sh')
+
+    _stdout_path, stderr_path = worker.resolve_stdout_stderr(task)
+    with open(stderr_path, encoding="utf-8") as err_file:
+        assert 'invalid partition specified' in err_file.read()
