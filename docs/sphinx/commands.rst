@@ -97,6 +97,35 @@ Arguments:
   - WF_IDS  [required] Space separated list of workflow IDs to cancel (can be just one).
   - -a, - -all to cancel all running or paused workflows
 
+``beeflow retry``: Retry a failed workflow. This command resets all failed tasks 
+(FAILED, SUBMIT_FAIL, BUILD_FAIL, DEP_FAIL, TIMEOUT, CANCELLED) back to WAITING 
+state and restarts workflow execution from the failed tasks. The workflow must be 
+in FAILED state to be retried. Tasks that completed successfully before the failure 
+are not re-run; their outputs are reused.
+
+Arguments:
+  - WF_ID  [required] The workflow ID to retry
+
+Example::
+
+    # Submit a workflow
+    beeflow submit my-workflow /path/to/workflow workflow.cwl input.yml /path/to/workdir
+    
+    # If workflow fails
+    beeflow query <wf_id>
+    # Output: Status: Archived/Failed
+    
+    # Fix the underlying issue (e.g., missing input files, configuration, etc.)
+    # Then retry the workflow
+    beeflow retry <wf_id>
+    
+    # Monitor progress
+    beeflow query <wf_id>
+    # Output: Status: Running -> Archived (on success)
+
+Note: Only workflows in FAILED state can be retried. If you need to re-run a 
+completed workflow with different inputs, use ``beeflow reexecute`` instead.
+
 ``beeflow remove``: Remove cancelled or archived workflow(s) and associated information.
 
 Arguments:

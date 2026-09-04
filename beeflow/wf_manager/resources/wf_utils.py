@@ -210,9 +210,10 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
 
     log.info("Setting workflow metadata")
     create_wf_metadata(wf_id, wf_name)
-    for task in tasks:
-        task.state = "" if no_start else "WAITING"
-        wfi.add_task(task)
+    if tasks is not None:
+        for task in tasks:
+            task.state = "" if no_start else "WAITING"
+            wfi.add_task(task)
 
     if no_start:
         update_wf_status(wf_id, "No Start")
@@ -221,6 +222,19 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
         update_wf_status(wf_id, "Starting")
         log.info("Starting workflow")
         start_workflow.delay(wf_id)
+
+def retry_failed_workflow(wf_id):
+    """Retry a failed workflow."""
+    wfi = get_workflow_interface(wf_id)
+    state = wfi.get_workflow_state()
+    if state != "FAILED":
+        raise ValueError(
+            f"Workflow {wf_id} cannot be retried from state {state}"
+        )
+    wfi.reset_failed_workflow(wf_id)
+    update_wf_status(wf_id, "Starting")
+    log.info("Reset failed workflow tasks.")
+    start_workflow.delay(wf_id)
 
 
 def export_dag(wf_id, output_dir, graphmls_dir, no_dag_dir, workflow_dir=None):
