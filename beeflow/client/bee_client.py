@@ -38,8 +38,7 @@ from beeflow.common import paths
 from beeflow.common.object_models import generate_workflow_id
 from beeflow.client import remote_client
 from beeflow.wf_manager.models import (
-    ResubmitWorkflowRequest,
-    ResubmitWorkflowResponse,
+    RetryWorkflowRequest,
     ListWorkflowsResponse,
     SubmitWorkflowRequest,
     ModifyWorkflowRequest,
@@ -860,19 +859,43 @@ def cancel(
 
 
 @app.command()
-def resubmit(wf_id: str = typer.Argument(..., callback=match_short_id)):
-    """Resubmit a failed archived workflow."""
+def retry(wf_id: str = typer.Argument(..., callback=match_short_id)):
+    """Retry a failed workflow."""
     long_wf_id = wf_id
     try:
         conn = _wfm_conn()
         resp = conn.patch(
-            _url(), json=ResubmitWorkflowRequest(wf_id=long_wf_id).model_dump(), timeout=60
+            _url(), json=RetryWorkflowRequest(wf_id=long_wf_id).model_dump(), timeout=60
         )
     except requests.exceptions.ConnectionError:
         error_exit("Could not reach WF Manager.")
     if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
-        error_exit("WF Manager could not resubmit workflow.")
-    logging.info(f"Resubmit workflow: {resp.text}")
+        error_exit("WF Manager could not retry workflow.")
+    logging.info(f"Retry workflow: {resp.text}")
+
+
+def retry_workflow(wf_id):
+    """Retry a failed workflow (helper for testing).
+    
+    This is a programmatic interface to the retry functionality,
+    used primarily by integration tests.
+    
+    :param wf_id: the workflow ID
+    :type wf_id: str
+    :returns: the workflow ID
+    :rtype: str
+    :raises ClientError: if retry fails
+    """
+    try:
+        conn = _wfm_conn()
+        resp = conn.patch(
+            _url(), json=RetryWorkflowRequest(wf_id=wf_id).model_dump(), timeout=60
+        )
+    except requests.exceptions.ConnectionError as error:
+        raise ClientError("Could not reach WF Manager.") from error
+    if resp.status_code != requests.codes.okay:  # pylint: disable=no-member
+        raise ClientError(f"WF Manager could not retry workflow: {resp.text}")
+    return wf_id
 
 
 @app.command()

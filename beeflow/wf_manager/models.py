@@ -30,12 +30,12 @@ class SubmitWorkflowResponse(BaseModel):
     status: str
     wf_id: Optional[str] = None
 
-class ResubmitWorkflowRequest(BaseModel):
-    """Request model for copying a workflow."""
+class RetryWorkflowRequest(BaseModel):
+    """Request model for retrying a failed workflow."""
     wf_id: str
 
-class ResubmitWorkflowResponse(BaseModel):
-    """Response model for workflow copy."""
+class RetryWorkflowResponse(BaseModel):
+    """Response model for workflow retry."""
     msg: str
     status: str
 

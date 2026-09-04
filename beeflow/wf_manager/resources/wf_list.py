@@ -6,7 +6,6 @@ This module contains endpoints for submitting, starting, and reexecuting workflo
 import base64
 import os
 import subprocess
-import jsonpickle
 
 from flask import request
 from pydantic_core import ValidationError
@@ -23,8 +22,8 @@ from beeflow.wf_manager.models import (
     ListWorkflowsResponse,
     SubmitWorkflowRequest,
     SubmitWorkflowResponse,
-    ResubmitWorkflowRequest,
-    ResubmitWorkflowResponse,
+    RetryWorkflowRequest,
+    RetryWorkflowResponse,
 )
 from beeflow.wf_manager.resources import wf_utils
 
@@ -91,7 +90,7 @@ class WFList(Resource):
                 SubmitWorkflowResponse(
                     msg="Invalid request data", status="error", wf_id=None
                 ).model_dump(),
-                400,
+                400
             )
 
         wf_id = data.workflow.id
@@ -111,20 +110,38 @@ class WFList(Resource):
             SubmitWorkflowResponse(
                 msg="Workflow uploaded", status="ok", wf_id=wf_id
             ).model_dump(),
-            201,
+            201
         )
 
     def patch(self):
-        """Resubmit failed workflow."""
+        """Retry failed workflow."""
         try:
-            data = ResubmitWorkflowRequest.model_validate(request.json)
+            data = RetryWorkflowRequest.model_validate(request.json)
         except ValidationError as e:
             log.error(f"Error parsing request data: {e}")
             return (
-                ResubmitWorkflowResponse(
-                    msg="Invalid request data", status="error", wf_id=None
+                RetryWorkflowResponse(
+                    msg="Invalid request data",
+                    status="error"
                 ).model_dump(),
                 400,
             )
         wf_id = data.wf_id
-        wf_utils.restart_workflow(wf_id)
+        try:
+            wf_utils.retry_failed_workflow(wf_id)
+            return (
+                RetryWorkflowResponse(
+                    msg="Workflow retried successfully",
+                    status="ok"
+                ).model_dump(),
+                200
+            )
+        except ValueError as e:
+            log.error(f"Cannot retry workflow that isn't FAILED: {e}")
+            return (
+                RetryWorkflowResponse(
+                    msg=f"Cannot retry workflow: {e}",
+                    status="error"
+                ).model_dump(),
+                409
+            )
