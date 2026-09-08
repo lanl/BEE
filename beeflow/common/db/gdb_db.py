@@ -529,6 +529,11 @@ class SQL_GDB:
         state = bdb.getone(self.db_file, 'SELECT state FROM workflow WHERE id=?', [wf_id])
         return state[0] if state else None
 
+    def get_workflow_workdir(self, wf_id: str) -> str:
+        """Return the workdir for the specified workflow."""
+        workdir = bdb.getone(self.db_file, 'SELECT workdir FROM workflow WHERE id=?', [wf_id])
+        return workdir[0] if workdir else None
+
     def get_workflow_requirements_and_hints(self, wf_id: str):
         """Return all workflow requirements and hints from the db.
 
