@@ -160,11 +160,11 @@ class WFUpdate(Resource):
         # TIMEOUT states should only be seen here if they can't restart
         if state_update.job_state in [
             'FAILED', 'SUBMIT_FAIL', 'BUILD_FAIL', 'TIMEOUT', 'CANCELLED'
-        ]:
+        ] and not wfi.workflow_completed():
             set_dependent_tasks_dep_fail(wfi, task)
             log.info(f"Task {task.name} failed")
 
-        if wfi.workflow_completed():
+        if wfi.workflow_completed() and not wf_utils.get_wf_status(wf_id).startswith("Archived"):
             final_state = wfi.get_workflow_final_state()
             log.info(f"Workflow {wf_id} Completed")
             archive_workflow(wf_id, final_state)
