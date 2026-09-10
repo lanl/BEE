@@ -63,9 +63,7 @@ def format_runtime(runtime):
 def calc_runtime(job_state,job_info):
     """Calculate the runtime of a task when using slurmrestd."""
     start_time = job_info['start_time']['number']
-    log.info(f"Start time: {start_time}")
     end_time = job_info['end_time']['number']
-    log.info(f"End time: {end_time}")
 
     cur_time = dt.now()
     cur_unix_time = int(cur_time.timestamp())

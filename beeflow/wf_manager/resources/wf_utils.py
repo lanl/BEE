@@ -271,7 +271,7 @@ def copy_task_output(task):
     # Need to get this from the worker
     task_save_path = pathlib.Path(bee_workdir) / "workflows" / task.workflow_id / task_name_id
     task_workdir = pathlib.Path(task.workdir)
-    task_metadata_path = task_workdir / task_name_id / "metadata.txt"
+    task_metadata_path = task_workdir / task_name_id / "metadata.yaml"
     if task.stdout is not None:
         stdout_path = _resolve_output_path(task_workdir, task.stdout)
     else:
@@ -286,7 +286,7 @@ def copy_task_output(task):
     shutil.copy(stderr_path, task_save_path / f"{task_name_id}.err")
 
     if task_metadata_path.exists():
-        shutil.copy(task_metadata_path, task_save_path / "metadata.txt")
+        shutil.copy(task_metadata_path, task_save_path / "metadata.yaml")
     else:
         log.warning("Task metadata file not found: %s", task_metadata_path)
 
