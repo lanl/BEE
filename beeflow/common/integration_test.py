@@ -318,7 +318,7 @@ def workflow_retry(outer_workdir):
     verifying that the workflow completes successfully.
     """
     workdir = utils.make_workflow_workdir(outer_workdir)
-    
+
     # Submit workflow (will fail due to missing none.txt)
     workflow = utils.Workflow('partial-fail-retry',
                               'ci/test_workflows/partial-fail',
@@ -326,12 +326,12 @@ def workflow_retry(outer_workdir):
                               job_file='input.yml',
                               workdir=workdir,
                               containers=[])
-    
+
     yield [workflow]
-    
+
     # Verify workflow failed
     utils.check_workflow_partial_fail(workflow)
-    
+
     # Verify expected task states before retry
     cat_state = workflow.get_task_state_by_name('cat')
     utils.ci_assert(cat_state == 'FAILED',
@@ -339,7 +339,7 @@ def workflow_retry(outer_workdir):
     grep1_state = workflow.get_task_state_by_name('grep1')
     utils.ci_assert(grep1_state == 'DEP_FAIL',
                     f'grep1 task should be DEP_FAIL, got: {grep1_state}')
-    
+
     # Verify successful tasks remain completed
     printf_state = workflow.get_task_state_by_name('printf')
     utils.ci_assert(printf_state == 'COMPLETED',
@@ -347,25 +347,24 @@ def workflow_retry(outer_workdir):
     grep0_state = workflow.get_task_state_by_name('grep0')
     utils.ci_assert(grep0_state == 'COMPLETED',
                     f'grep0 task should be COMPLETED, got: {grep0_state}')
-    
+
     # Create the missing file to make retry succeed
-    from pathlib import Path
     missing_file = Path(workdir, 'none.txt')
-    missing_file.write_text('Vivamus test content\n')
-    
+    with open(missing_file, 'w', encoding='utf-8') as f:
+        f.write('Vivamus test content\n')
+
     # Retry the workflow
-    from beeflow.client import bee_client
+    from beeflow.client import bee_client  # pylint: disable=import-outside-toplevel
     bee_client.retry_workflow(workflow.wf_id)
-    
+
     # Wait for workflow to complete
-    import time
     start = time.time()
     while workflow.running and (time.time() - start) < utils.TIMEOUT:
         time.sleep(2)
-    
+
     # Verify workflow completed successfully this time
     utils.check_completed(workflow)
-    
+
     # Verify previously failed tasks were reset and completed
     cat_state_after = workflow.get_task_state_by_name('cat')
     utils.ci_assert(cat_state_after == 'COMPLETED',
@@ -373,11 +372,11 @@ def workflow_retry(outer_workdir):
     grep1_state_after = workflow.get_task_state_by_name('grep1')
     utils.ci_assert(grep1_state_after == 'COMPLETED',
                     f'grep1 task should be COMPLETED after retry, got: {grep1_state_after}')
-    
+
     # Verify outputs were created
     utils.check_path_exists(Path(workdir, 'occur0.txt'))
     utils.check_path_exists(Path(workdir, 'occur1.txt'))
-    
+
     # Verify output file from cat task
     utils.check_path_exists(Path(workdir, 'cat.txt'))
 

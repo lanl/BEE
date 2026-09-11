@@ -25,7 +25,6 @@ import time
 import importlib.metadata
 import importlib
 from typing import List, Optional
-import jsonpickle
 import requests
 import typer
 import yaml

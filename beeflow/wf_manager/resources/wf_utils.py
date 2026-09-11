@@ -227,15 +227,16 @@ def retry_failed_workflow(wf_id):
     """Retry a failed workflow."""
     wfi = get_workflow_interface(wf_id)
     state = wfi.get_workflow_state()
-    
-    # Check if workflow is in a failed state (can be FAILED, Archived/Failed, or Archived/Partial-Fail)
+
+    # Check if workflow is in a failed state
+    # (can be FAILED, Archived/Failed, or Archived/Partial-Fail)
     archived_failed = state.startswith("Archived/") and "Fail" in state
-    
+
     if not (state == "FAILED" or archived_failed):
         raise ValueError(
             f"Workflow {wf_id} cannot be retried from state {state}"
         )
-    
+
     wfi.reset_failed_workflow(wf_id)
     update_wf_status(wf_id, "Starting")
     log.info("Reset failed workflow tasks.")
