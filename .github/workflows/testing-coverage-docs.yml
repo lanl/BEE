@@ -383,18 +383,28 @@ jobs:
           name: coverage-badge
           path: ./coverage.svg
 
-      - name: Coverage comment
-        id: coverage
+      - name: Get precise coverage
+        id: precise_coverage
         if: github.event_name == 'pull_request'
-        continue-on-error: true
-        uses: MishaKav/pytest-coverage-comment@v1
+        shell: bash
+        run: |
+          COVERAGE=$(python - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse("coverage.xml").getroot()
+          rate = float(root.attrib["line-rate"]) * 100
+          print(f"{rate:.2f}")
+          PY
+          )
+          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Coverage comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          pytest-xml-coverage-path: coverage.xml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Coverage Report"
-          hide-emoji: true
-          hide-report: true
-          create-new-comment: true
+          message: |
+            ## Coverage Report
+
+            Coverage: **${{ steps.precise_coverage.outputs.coverage }}%**
 
       - name: Low coverage job summary
         run: |
