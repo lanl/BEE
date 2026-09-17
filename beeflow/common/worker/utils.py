@@ -33,6 +33,24 @@ def get_state_sacct(job_id):
         raise WorkerError(f'sacct query failed for job {job_id}') from exc
 
 
+def write_submit_failure(stderr_path, message):
+    """Record a job submission failure to the task's stderr file.
+
+    Slurm only creates the task's .err file once a job starts running, so on a
+    submit failure there is otherwise no record in the workflow directory of
+    what went wrong. This writes the failure reason to the same path the task's
+    stderr would have used, where the user would naturally look for it.
+
+    Best-effort: a failure to write here must not mask the original submit
+    error, so any OSError is logged rather than raised.
+    """
+    try:
+        with open(stderr_path, 'a', encoding='utf-8') as err_file:
+            err_file.write(f'Slurm job submission failed:\n{message}\n')
+    except OSError as exc:
+        log.warning(f'Could not record submit failure to {stderr_path}: {exc}')
+
+
 def parse_key_val(pair):
     """Parse the key-value pair separated by '='."""
     i = pair.find('=')
