@@ -398,9 +398,13 @@ jobs:
           echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
 
       - name: Coverage comment
-        if: github.event_name == 'pull_request'
+        if: >
+          github.event_name == 'pull_request' &&
+          (github.event.action == 'opened' ||
+           github.event.action == 'synchronize')
         uses: marocchino/sticky-pull-request-comment@v2
         with:
+          header: coverage-${{ github.event.pull_request.head.sha }}
           message: |
             ## Coverage Report
 
