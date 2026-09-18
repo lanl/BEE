@@ -4,7 +4,6 @@ import pytest
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
 from beeflow.common.object_models import Task, Requirement
 
-
 @pytest.mark.parametrize(
     "use_container, pre_commands_exp, main_command_exp, post_commands_exp",
     [

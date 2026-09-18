@@ -10,7 +10,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    types: [opened, synchronize, edited, labeled, unlabeled]
+    types: [opened, synchronize, labeled, unlabeled]
     branches: [main, develop]
 
 env: {}
@@ -366,7 +366,7 @@ jobs:
 
       - name: Add coverage to job summary
         run: |
-          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "## Coverage Report " >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           coverage report --show-missing >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -383,18 +383,32 @@ jobs:
           name: coverage-badge
           path: ./coverage.svg
 
-      - name: Coverage comment
-        id: coverage
+      - name: Get precise coverage
+        id: precise_coverage
         if: github.event_name == 'pull_request'
-        continue-on-error: true
-        uses: MishaKav/pytest-coverage-comment@v1
+        shell: bash
+        run: |
+          COVERAGE=$(python - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse("coverage.xml").getroot()
+          rate = float(root.attrib["line-rate"]) * 100
+          print(f"{rate:.2f}")
+          PY
+          )
+          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Coverage comment
+        if: >
+          github.event_name == 'pull_request' &&
+          (github.event.action == 'opened' ||
+           github.event.action == 'synchronize')
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          pytest-xml-coverage-path: coverage.xml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Coverage Report"
-          hide-emoji: true
-          hide-report: true
-          create-new-comment: true
+          header: coverage-${{ github.event.pull_request.head.sha }}
+          message: |
+            ## Coverage Report
+
+            Coverage: **${{ steps.precise_coverage.outputs.coverage }}%**
 
       - name: Low coverage job summary
         run: |
