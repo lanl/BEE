@@ -84,6 +84,17 @@ class GraphDatabaseDriver(ABC):
         """
 
     @abstractmethod
+    def reset_failed_tasks(self, workflow_id):
+        """Restart a failed task.
+
+        Create a Task node for new_task with state 'RESTARTED' and an edge
+        to indicate that it is the child of the Task node of old_task.
+
+        :rtype: Workflow
+        """
+
+
+    @abstractmethod
     def finalize_task(self, task):
         """Set task state to 'COMPLETED' and set inputs from source.
 
