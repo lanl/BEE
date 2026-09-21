@@ -7,7 +7,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    types: [opened, synchronize, edited, labeled, unlabeled]
+    types: [opened, synchronize, labeled, unlabeled]
     branches: [main, develop]
 
 jobs:
