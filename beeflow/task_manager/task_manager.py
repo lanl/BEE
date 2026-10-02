@@ -25,7 +25,7 @@ def create_app():
     @app.route('/status')
     def get_status():
         """Report the current status of the Task Manager."""
-        return make_response(jsonify(stauts='up'), 200)
+        return make_response(jsonify(status='up'), 200)
 
     # Start the background scheduler and make sure it gets cleaned up
     if "pytest" not in sys.modules:
