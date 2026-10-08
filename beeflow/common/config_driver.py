@@ -3,10 +3,13 @@
 from configparser import ConfigParser
 import getpass
 import os
+import sys
 import platform
 import random
 import shutil
 import textwrap
+import subprocess
+import importlib
 import typer
 
 from beeflow.common.config_validator import ConfigValidator
@@ -210,6 +213,15 @@ def unique_port():
     port = ((uid%(16000-7777))+7777)
     return port
 
+def check_sqlite3_installed()->bool:
+    """Check if sqlite3 is installed"""
+    try:
+        importlib.import_module('sqlite3')
+        return True
+    except ImportError:
+        print("Sqlite3 is not installed")
+        print("Check documentation here: https://lanl.github.io/BEE/installation.html")
+        return False
 
 # Below is the definition of all bee config options, defaults and requirements.
 # This will be used to validate config files on loading them in the BeeConfig
@@ -244,6 +256,48 @@ if os.path.isfile(DEFAULT_REDIS_IMAGE):
 else:
     REDIS_IMAGE = None
 
+def check_redis_in_spackenv()->bool:
+    """Check for redis in spack environment."""
+    try:
+        subprocess.run(['spack', 'find', 'redis'],
+                capture_output = True,
+                text = True,
+                check=True)
+
+        return True
+
+    except subprocess.CalledProcessError as e:
+        if "No matching packages found" in e.stderr or e.returncode != 0:
+            typer.secho(
+                "Redis is not installed on the active spack environment.",
+                 fg=typer.colors.YELLOW
+            )
+            print("Using Redis container.")
+        else:
+            print(f'An error occured: {e.stderr}')
+
+        return False
+
+    except FileNotFoundError:
+        if REDIS_IMAGE is None:
+            typer.secho(
+                "Error: the 'spack' command-line tool was not found in your current path",
+                fg=typer.colors.RED
+            )
+            print("Please look at the installation guide at: https://lanl.github.io/BEE/")
+
+        return False
+
+def check_for_spack_and_redis_image()->bool:
+    """Function to exit the program if there is no redis via spack or container"""
+    if 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ:
+        return False
+    if check_redis_in_spackenv() is False and REDIS_IMAGE is None:
+        sys.exit(1)
+    return True
+
+check_for_spack_and_redis_image()
+
 # Create the validator
 VALIDATOR = ConfigValidator('BEE configuration file and validation information.')
 VALIDATOR.section('DEFAULT', info='Default bee.conf configuration section.')
@@ -270,17 +324,29 @@ VALIDATOR.option('DEFAULT', 'workload_scheduler', choices=('Slurm', 'LSF', 'Flux
 VALIDATOR.option('DEFAULT', 'delete_completed_workflow_dirs', validator=validation.bool_,
                  default=True, info='delete workflow directory for completed jobs', prompt=False)
 
-VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
-                 default=True, info='Use the redis container image or spack',
-                 prompt=False)
+CHECK_SQLITE3 = check_sqlite3_installed()
+if CHECK_SQLITE3 is False:
+    VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
+                     default=NEO4J_IMAGE, info='neo4j container image',
+                     input_fn=filepath_completion_input, prompt=True)
 
-VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
-                 default=NEO4J_IMAGE, info='neo4j container image',
-                 input_fn=filepath_completion_input, prompt=True)
+CHECK_REDIS = check_redis_in_spackenv()
+if CHECK_REDIS is False:
+    VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
+                     default=True, info='Use the redis container image or spack',
+                     prompt=False)
 
-VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
-                 default=REDIS_IMAGE, info='redis container image',
-                 input_fn=filepath_completion_input, prompt=True)
+    VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
+                     default=REDIS_IMAGE, info='redis container image',
+                     input_fn=filepath_completion_input, prompt=True)
+else:
+    VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
+                     default=False, info='Use the redis container image or spack',
+                     prompt=False)
+
+    VALIDATOR.option('DEFAULT', 'redis_image', validator=str,
+                     default='', info='redis container image (disabled for Spack)',
+                     prompt=False)
 
 VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.dir_,
                  default='.', info='Spack environment path',
