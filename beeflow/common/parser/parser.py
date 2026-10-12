@@ -1,13 +1,22 @@
-"""CWL workflow description parser.
+"""Workflow description parsers.
 
-Parses the contents of a CWL file and generates the graph representation of parsed workflows and
-tools in the graph database. This parser supports a subset of the CWL v1.0 standard. It is
-inspired by the CWL parser written by the CWL parser written by the SABER team at John Hopkins
-University (see SABER project at https://github.com/aplbrain/saber).
+Contains two parsers:
+
+* CwlParser: parses the contents of a CWL file and generates the graph
+  representation of parsed workflows and tools in the graph database. This
+  parser supports a subset of the CWL v1.0 standard. It is inspired by the
+  CWL parser written by the SABER team at John Hopkins University (see SABER
+  project at https://github.com/aplbrain/saber).
+
+* BeeParser: converts a BEE python workflow specification (built with the
+  python workflow description API in beeflow.common.cwl.workflow) directly
+  into the Workflow and Task objects consumed by the WorkflowInterface, without
+  generating or parsing any CWL.
 """
 
 import sys
 import argparse
+import importlib.util
 import json
 import os
 import traceback
@@ -16,6 +25,7 @@ import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException
 
+from beeflow.common.cwl.workflow import Workflow as WorkflowSpec
 from beeflow.common.object_models import (
         Workflow,
         Task,
@@ -236,23 +246,7 @@ class CwlParser:
         :param job: the path of the input job file (YAML or JSON)
         :type job: str
         """
-        if job.endswith(".yml") or job.endswith(".yaml"):
-            with open(job, encoding="utf-8") as fp:
-                self.params = yaml.full_load(fp)
-        elif job.endswith(".json"):
-            with open(job, encoding="utf-8") as fp:
-                self.params = json.load(fp)
-        else:
-            raise CwlParseError(
-                    "Unsupported input job file extension (only .yml "
-                    "and .json supported)"
-                    )
-
-        for k, v in self.params.items():
-            if not isinstance(k, str):
-                raise CwlParseError(f"Invalid input job key: {str(k)}")
-            if not isinstance(v, (str, int, float)):
-                raise CwlParseError(f"Invalid input job parameter type: {type(v)}")
+        self.params = load_job_inputs(job)
 
     @staticmethod
     def parse_step_inputs(cwl_in, step_inputs):
@@ -393,7 +387,7 @@ class CwlParser:
             msg = f"Could not find a file for {key}: {fname}"
             raise CwlParseError(msg) from None
         if key in {"pre_script", "post_script"}:
-            self._validate_prepost_shell_env(key, items, fname)
+            validate_prepost_shell_env(key, items, fname)
 
     def _resolve_requirement_file(self, key, items):
         """Resolve a requirement file path relative to the CWL file."""
@@ -403,67 +397,6 @@ class CwlParser:
             path = base_path / path
         path = path.resolve()
         items[key] = str(path)
-
-    def _validate_prepost_shell_env(self, key, items, fname):
-        """Validate defined shell interpreters.
-
-        :param fname: name of pre/post script file
-        :type fname: str
-        """
-        env_decl = items[key].splitlines()
-        # Need to remove whitespaces/newlines from list
-        env_decl = [x for x in env_decl if x.strip()]
-        # Check for shebang line in pre/post scripts
-        if not env_decl[0].startswith("#!"):
-            msg = f"No shebang line found in {fname}"
-            raise CwlParseError(msg) from None
-        # Now check for matching shell and shebang line values
-        shell_val = "#!" + items["shell"]
-        shebang_val = env_decl[0]
-        if shell_val != shebang_val:
-            msg = (
-                    f"CWL file shell {shell_val} does not match {fname} shell {shebang_val}"
-                    )
-            raise CwlParseError(msg) from None
-        # Remove shebang lines from scripts
-        rm_line = env_decl[1:]
-        # List to string format
-        rm_line = "\n".join(rm_line)
-        items.update({key: rm_line})
-
-    def _validate_workload_requirement(self, req_class, items):
-        """Validate beeflow:WorkloadRequirement fields.
-
-        :param req_class: the requirement class name
-        :type req_class: str
-        :param items: the requirement parameters
-        :type items: dict
-        """
-        if req_class != 'beeflow:WorkloadRequirement':
-            return
-
-        # Validate mode field if present
-        if 'mode' in items:
-            mode = items['mode']
-            if not isinstance(mode, str):
-                raise CwlParseError(
-                    'beeflow:WorkloadRequirement mode must be a string. '
-                    'Supported modes are "baremetal" and "scheduler".'
-                )
-            mode_lower = mode.lower()
-            if mode_lower not in ('baremetal', 'scheduler'):
-                raise CwlParseError(
-                    f'Unsupported beeflow:WorkloadRequirement mode {mode!r}. '
-                    'Supported modes are "baremetal" and "scheduler".'
-                )
-
-        # Validate scheduler field if present
-        if 'scheduler' in items:
-            scheduler = items['scheduler']
-            if not isinstance(scheduler, str):
-                raise CwlParseError(
-                    'beeflow:WorkloadRequirement scheduler must be a string.'
-                )
 
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
@@ -511,7 +444,7 @@ class CwlParser:
                 if "beeflow:bindMounts" in items:
                     self._read_requirement_file("beeflow:bindMounts", items)
                 # Validate beeflow:WorkloadRequirement fields
-                self._validate_workload_requirement(req["class"], items)
+                validate_workload_requirement(req["class"], items)
                 reqs.append(Hint(class_=req["class"], params=items))
         else:
             for req in requirements:
@@ -522,7 +455,7 @@ class CwlParser:
                     and v is not None
                 }
                 # Validate beeflow:WorkloadRequirement fields
-                self._validate_workload_requirement(req.class_, params)
+                validate_workload_requirement(req.class_, params)
                 reqs.append(
                         Requirement(
                             class_=req.class_,
@@ -530,6 +463,464 @@ class CwlParser:
                             )
                         )
         return reqs
+
+
+def load_job_inputs(job, error_cls=CwlParseError):
+    """Load input job parameters from a YAML or JSON file.
+
+    :param job: the path of the input job file (YAML or JSON)
+    :type job: str
+    :param error_cls: the exception class used to report parse errors
+    :type error_cls: Exception
+    :rtype: dict
+    """
+    if job.endswith(".yml") or job.endswith(".yaml"):
+        with open(job, encoding="utf-8") as fp:
+            params = yaml.full_load(fp)
+    elif job.endswith(".json"):
+        with open(job, encoding="utf-8") as fp:
+            params = json.load(fp)
+    else:
+        raise error_cls(
+                "Unsupported input job file extension (only .yml "
+                "and .json supported)"
+                )
+
+    for k, v in params.items():
+        if not isinstance(k, str):
+            raise error_cls(f"Invalid input job key: {str(k)}")
+        if not isinstance(v, (str, int, float)):
+            raise error_cls(f"Invalid input job parameter type: {type(v)}")
+    return params
+
+
+def validate_prepost_shell_env(key, items, fname, error_cls=CwlParseError):
+    """Validate defined shell interpreters.
+
+    :param key: the requirement parameter name (pre_script or post_script)
+    :type key: str
+    :param items: the requirement parameters
+    :type items: dict
+    :param fname: name of pre/post script file
+    :type fname: str
+    :param error_cls: the exception class used to report parse errors
+    :type error_cls: Exception
+    """
+    env_decl = items[key].splitlines()
+    # Need to remove whitespaces/newlines from list
+    env_decl = [x for x in env_decl if x.strip()]
+    # Check for shebang line in pre/post scripts
+    if not env_decl[0].startswith("#!"):
+        msg = f"No shebang line found in {fname}"
+        raise error_cls(msg) from None
+    # Now check for matching shell and shebang line values
+    shell_val = "#!" + items["shell"]
+    shebang_val = env_decl[0]
+    if shell_val != shebang_val:
+        msg = (
+                f"CWL file shell {shell_val} does not match {fname} shell {shebang_val}"
+                )
+        raise error_cls(msg) from None
+    # Remove shebang lines from scripts
+    rm_line = env_decl[1:]
+    # List to string format
+    rm_line = "\n".join(rm_line)
+    items.update({key: rm_line})
+
+
+def validate_workload_requirement(req_class, items, error_cls=CwlParseError):
+    """Validate beeflow:WorkloadRequirement fields.
+
+    :param req_class: the requirement class name
+    :type req_class: str
+    :param items: the requirement parameters
+    :type items: dict
+    :param error_cls: the exception class used to report parse errors
+    :type error_cls: Exception
+    """
+    if req_class != 'beeflow:WorkloadRequirement':
+        return
+
+    # Validate mode field if present
+    if 'mode' in items:
+        mode = items['mode']
+        if not isinstance(mode, str):
+            raise error_cls(
+                'beeflow:WorkloadRequirement mode must be a string. '
+                'Supported modes are "baremetal" and "scheduler".'
+            )
+        mode_lower = mode.lower()
+        if mode_lower not in ('baremetal', 'scheduler'):
+            raise error_cls(
+                f'Unsupported beeflow:WorkloadRequirement mode {mode!r}. '
+                'Supported modes are "baremetal" and "scheduler".'
+            )
+
+    # Validate scheduler field if present
+    if 'scheduler' in items:
+        scheduler = items['scheduler']
+        if not isinstance(scheduler, str):
+            raise error_cls(
+                'beeflow:WorkloadRequirement scheduler must be a string.'
+            )
+
+
+class BeeParseError(Exception):
+    """Python workflow specification parser error class."""
+
+    def __init__(self, *args):
+        """Create a python specification parser error."""
+        self.args = args
+
+
+def _find_workflow_spec(module, path):
+    """Find the Workflow object defined by a python workflow module.
+
+    The module can either assign a Workflow object to a module-level
+    'workflow' variable, return one from a main() or build() function, or
+    define exactly one Workflow object.
+
+    :param module: the loaded python workflow module
+    :type module: module
+    :param path: the path of the workflow specification file
+    :type path: str
+    :rtype: WorkflowSpec
+    """
+    workflow = getattr(module, "workflow", None)
+    if isinstance(workflow, WorkflowSpec):
+        return workflow
+    for func_name in ("build", "main"):
+        func = getattr(module, func_name, None)
+        if callable(func):
+            result = func()
+            if isinstance(result, WorkflowSpec):
+                return result
+            workflow = getattr(module, "workflow", None)
+            if isinstance(workflow, WorkflowSpec):
+                return workflow
+    workflows = [obj for obj in vars(module).values() if isinstance(obj, WorkflowSpec)]
+    if len(workflows) == 1:
+        return workflows[0]
+    raise BeeParseError(
+            f"{path} does not define a workflow: assign a Workflow object to a "
+            "module-level 'workflow' variable or return one from main()"
+            )
+
+
+class BeeParser:
+    """Class for parsing BEE python workflow specifications.
+
+    Converts a Workflow object built with the python workflow description API
+    (beeflow.common.cwl.workflow) directly into the Workflow and Task objects
+    consumed by the WorkflowInterface. No CWL is generated or parsed.
+    """
+
+    def __init__(self):
+        """Initialize the python workflow specification parser."""
+        self.spec = None
+        self.path = None
+        self.params = {}
+
+    def parse_workflow(self, workflow_id, workflow_name, spec, job=None,
+                       workdir=".", wf_path="."):
+        """Parse a python workflow specification into WF_Interface objects.
+
+        Returns a tuple of the Workflow and the list of Task objects that can
+        be loaded into the WorkflowInterface.
+
+        :param workflow_id: the workflow ID
+        :type workflow_id: str
+        :param workflow_name: the workflow name (defaults to the spec name)
+        :type workflow_name: str
+        :param spec: the Workflow object or path to a .py workflow specification
+        :type spec: WorkflowSpec or str or pathlib.Path
+        :param job: the input job file (YAML or JSON)
+        :type job: str
+        :param workdir: the workflow working directory
+        :type workdir: str
+        :param wf_path: the workflow directory or archive path
+        :type wf_path: str
+        :rtype: (Workflow, list of Task)
+        """
+        self.spec, self.path = self._load_spec(spec)
+        self.params = load_job_inputs(job, BeeParseError) if job else {}
+
+        tasks = [self.parse_task(task, workflow_id, workdir) for task in self.spec.tasks]
+        workflow = Workflow(
+                name=workflow_name or self.spec.name,
+                hints=[],
+                requirements=[],
+                inputs=self.workflow_inputs(self.spec.tasks),
+                outputs=self.workflow_outputs(self.spec.tasks),
+                id=workflow_id,
+                workdir=workdir,
+                main_cwl=self.path,
+                wf_path=str(wf_path),
+                yaml=job,
+                )
+        return workflow, tasks
+
+    @staticmethod
+    def _load_spec(spec):
+        """Load the workflow specification from a Workflow object or .py file.
+
+        :param spec: the Workflow object or path to a .py workflow specification
+        :type spec: WorkflowSpec or str or pathlib.Path
+        :rtype: (WorkflowSpec, str or None)
+        """
+        if isinstance(spec, WorkflowSpec):
+            return spec, None
+        path = Path(spec)
+        if not path.is_file():
+            raise BeeParseError(f"workflow specification {spec} not found")
+        module_spec = importlib.util.spec_from_file_location(f"bee_{path.stem}", path)
+        module = importlib.util.module_from_spec(module_spec)
+        try:
+            module_spec.loader.exec_module(module)
+        except Exception as err:  # pylint: disable=W0718
+            raise BeeParseError(
+                    f"error executing workflow specification {path}: {err}"
+                    ) from None
+        return _find_workflow_spec(module, str(path)), str(path.resolve())
+
+    def parse_task(self, task, workflow_id, workdir):
+        """Convert a python API Task into a Task object for the WF_Interface.
+
+        :param task: the python API task
+        :type task: Task
+        :param workflow_id: the workflow ID
+        :type workflow_id: str
+        :param workdir: the workflow working directory
+        :type workdir: str
+        :rtype: Task
+        """
+        hints, task_workdir = self.parse_task_hints(task.hints)
+        step_workdir = resolve_step_workdir(task_workdir, workdir)
+        # When using a container do not add the path to the output
+        # This can be changed when we fix binding for containers
+        use_container = any(hint.class_ == "DockerRequirement" for hint in hints)
+        return Task(
+                name=task.name,
+                base_command=task.base_command,
+                hints=hints,
+                requirements=[],
+                inputs=self.parse_task_inputs(task),
+                outputs=self.parse_task_outputs(
+                    task, workdir=None if use_container else step_workdir
+                    ),
+                stdout=task.stdout,
+                stderr=task.stderr,
+                workflow_id=workflow_id,
+                workdir=step_workdir,
+                )
+
+    @staticmethod
+    def parse_task_inputs(task):
+        """Convert python API task inputs into StepInput objects.
+
+        Inputs with a literal value reference a workflow input of the same
+        name; the graph database fills in the value at execution time. Inputs
+        with a source value (task/output) depend on another task's output.
+
+        :param task: the python API task
+        :type task: Task
+        :rtype: list of StepInput
+        """
+        inputs = []
+        for input_ in task.inputs:
+            if input_.has_source():
+                source = input_.value
+                default = None
+            else:
+                source = input_.name
+                default = input_.value
+            inputs.append(
+                    StepInput(
+                        id=input_.name,
+                        type=input_.type_,
+                        value=None,
+                        default=default,
+                        source=source,
+                        prefix=input_.prefix,
+                        position=input_.position,
+                        value_from=input_.value_from,
+                        )
+                    )
+        return inputs
+
+    @staticmethod
+    def parse_task_outputs(task, workdir=None):
+        """Convert python API task outputs into StepOutput objects.
+
+        :param task: the python API task
+        :type task: Task
+        :param workdir: resolve relative globs against this workdir (None to skip)
+        :type workdir: str
+        :rtype: list of StepOutput
+        """
+        outputs = []
+        for output in task.outputs:
+            glob = output.glob
+            if output.run_type == "stdout":
+                glob = task.stdout
+            elif output.run_type == "stderr":
+                glob = task.stderr
+            if workdir is not None and glob:
+                glob = os.path.abspath(os.path.join(workdir, glob))
+            outputs.append(
+                    StepOutput(
+                        id=f"{task.name}/{output.name}",
+                        type=output.run_type,
+                        value=None,
+                        glob=glob,
+                        )
+                    )
+        return outputs
+
+    def parse_task_hints(self, hints):
+        """Convert python API hints into Hint objects.
+
+        Each python API hint provides a requirement() method that returns a
+        requirement object whose dump() method returns the requirement class
+        name and parameters used by the rest of BEE.
+
+        :param hints: the python API hints
+        :type hints: list
+        :rtype: (list of Hint, str)
+        """
+        parsed = []
+        task_workdir = ""
+        for hint in hints or []:
+            (class_, params), = hint.requirement().dump().items()
+            params = {
+                    key: value if isinstance(value, (int, float)) else str(value)
+                    for key, value in params.items()
+                    if value is not None
+                    }
+            self._resolve_hint_files(params)
+            validate_workload_requirement(class_, params, BeeParseError)
+            parsed.append(Hint(class_=class_, params=params))
+            if class_ == "beeflow:TaskRequirement":
+                task_workdir = params.get("workdir", "")
+        return parsed, task_workdir
+
+    def _hint_base_path(self):
+        """Return the base path used to resolve hint file parameters."""
+        return Path(self.path).parent if self.path else Path.cwd()
+
+    def _read_hint_file(self, key, params):
+        """Read in a hint file (relative to the spec) and store its contents."""
+        fname = params[key]
+        path = self._hint_base_path() / fname
+        try:
+            params[key] = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            raise BeeParseError(
+                    f"Could not find a file for {key}: {fname}"
+                    ) from None
+        if key in {"pre_script", "post_script"}:
+            validate_prepost_shell_env(key, params, fname, BeeParseError)
+
+    def _resolve_hint_files(self, params):
+        """Read or resolve file-based hint parameters.
+
+        :param params: the requirement parameters
+        :type params: dict
+        """
+        # Load the Dockerfile at parse time
+        if "dockerFile" in params:
+            self._read_hint_file("dockerFile", params)
+        # Load the sbatch file at parse time
+        if "sbatch" in params:
+            params["sbatch"] = str(
+                    (self._hint_base_path() / params["sbatch"]).resolve()
+                    )
+        # Load pre/post scripts and make sure the shell option is defined
+        if "pre_script" in params and params["enabled"]:
+            if "shell" not in params:
+                raise BeeParseError(
+                        "pre script enabled but shell option undefined in workflow spec."
+                        )
+            self._read_hint_file("pre_script", params)
+        if "post_script" in params and params["enabled"]:
+            if "shell" not in params:
+                raise BeeParseError(
+                        "post script enabled but shell option undefined in workflow spec."
+                        )
+            self._read_hint_file("post_script", params)
+        if "beeflow:bindMounts" in params:
+            self._read_hint_file("beeflow:bindMounts", params)
+
+    def workflow_inputs(self, tasks):
+        """Derive workflow inputs from the literal-valued task inputs.
+
+        The job file, when given, overrides the literal value specified in the
+        workflow specification.
+
+        :param tasks: the python API tasks
+        :type tasks: list of Task
+        :rtype: list of InputParameter
+        """
+        inputs = []
+        seen = {}
+        for task in tasks:
+            for input_ in task.inputs:
+                if input_.has_source():
+                    continue
+                if input_.name in seen:
+                    if seen[input_.name] != input_.type_:
+                        raise BeeParseError(
+                                f"conflicting types for workflow input "
+                                f"{input_.name}: {seen[input_.name]} and {input_.type_}"
+                                )
+                    continue
+                value = self.params.get(input_.name, input_.value)
+                if value is None:
+                    raise BeeParseError(
+                            f"input {input_.name} is missing from the workflow spec "
+                            "and job file"
+                            )
+                expected_type = type_map.get(input_.type_)
+                if expected_type is not None and not isinstance(value, expected_type):
+                    raise BeeParseError(
+                            "Input/param types do not match: " f"{input_.name}/{value}"
+                            )
+                seen[input_.name] = input_.type_
+                inputs.append(
+                        InputParameter(id=input_.name, type=input_.type_, value=value)
+                        )
+        return inputs
+
+    @staticmethod
+    def workflow_outputs(tasks):
+        """Derive workflow outputs from the sourced task outputs.
+
+        Task outputs with a source (task/output) are exposed as workflow
+        outputs, mirroring the source field of the python API Output class.
+
+        :param tasks: the python API tasks
+        :type tasks: list of Task
+        :rtype: list of OutputParameter
+        """
+        outputs = []
+        for task in tasks:
+            for output in task.outputs:
+                if not output.source:
+                    continue
+                # stdout/stderr outputs are exposed as files
+                output_type = (
+                        "File" if output.run_type in ("stdout", "stderr")
+                        else output.run_type
+                        )
+                outputs.append(
+                        OutputParameter(
+                            id=output.name,
+                            type=output_type,
+                            value=None,
+                            source=output.source,
+                            )
+                        )
+        return outputs
 
 
 def _shortname(uri, output_source=False):
@@ -556,7 +947,9 @@ def parse_args(args=None):
         args = sys.argv[1:]
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
 
-    parser.add_argument("wf_file", type=str, help="CWL workflow file")
+    parser.add_argument(
+            "wf_file", type=str, help="CWL workflow file or BEE python workflow specification"
+            )
     parser.add_argument(
             "-i", "--inputs", type=str, help="Workflow job inputs file", required=False
             )
@@ -577,11 +970,20 @@ def resolve_step_workdir(step_workdir, workdir):
 
 
 def main():
-    """Run the parser on a CWL Workflow and job file directly."""
+    """Run the parser on a CWL or python Workflow and job file directly."""
     wf_id = generate_workflow_id()
-    parser = CwlParser()
     args = parse_args()
-    workflow, tasks = parser.parse_workflow(wf_id, args.wf_file, args.inputs)
+    if args.wf_file.endswith(".py"):
+        parser = BeeParser()
+        # None lets the parser fall back to the name from the specification
+        workflow, tasks = parser.parse_workflow(
+                wf_id, None, args.wf_file, job=args.inputs
+                )
+    else:
+        parser = CwlParser()
+        workflow, tasks = parser.parse_workflow(
+            wf_id, Path(args.wf_file).stem, args.wf_file, job=args.inputs
+        )
     print("Parsed workflow:")
     print(workflow)
 

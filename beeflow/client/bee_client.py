@@ -544,15 +544,27 @@ def submit(  # pylint:disable=R0915
             orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
             orig_yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
 
-        from beeflow.common.parser import CwlParser, CwlParseError # pylint: disable=C0415
-        parser = CwlParser()
+        # BEE python workflow specifications (.py files) use the python parser;
+        # anything else is parsed as CWL.
+        from beeflow.common.parser import (  # pylint: disable=C0415
+            BeeParseError,
+            BeeParser,
+            CwlParseError,
+            CwlParser,
+        )
+        if str(orig_cwl_path).endswith(".py"):
+            parser = BeeParser()
+            parse_error = BeeParseError
+        else:
+            parser = CwlParser()
+            parse_error = CwlParseError
         workflow_id = generate_workflow_id()
         try:
             workflow, tasks = parser.parse_workflow(
                 workflow_id, wf_name, str(orig_cwl_path), job=str(orig_yaml_path),
                 workdir=workdir, wf_path=wf_path
             )
-        except CwlParseError as e:
+        except parse_error as e:
             error_exit(str(e))  # Show user-friendly error, no traceback
         with open(package_path, "rb") as f:
             encoded_tarball = base64.b64encode(f.read()).decode("utf-8")

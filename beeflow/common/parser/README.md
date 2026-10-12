@@ -10,6 +10,55 @@ Also included is a sample CWL parser that also uses
 for now), parses it into python objects, and loads the Neo4j databse
 with a workflow using the BEE workflow interface.
 
+## Using the BEE Python Workflow Parser
+
+`BeeParser` converts a workflow written with the BEE python workflow
+description API (`beeflow.common.cwl.workflow`) directly into the `Workflow`
+and `Task` objects consumed by the `WorkflowInterface`. No CWL is generated or
+parsed. This is the first step of the pivot away from CWL (see issue #1194).
+
+A workflow specification is a python module that assigns a `Workflow` object
+(containing `Task` objects) to a module-level `workflow` variable, or returns
+one from a `main()` or `build()` function. See
+`examples/cat-grep-tar/workflow.py` for a complete example.
+
+To use as a script:
+
+```sh
+python3 -m beeflow.common.parser.parser workflow.py [-i job_inputs]
+```
+
+where `workflow.py` is the python workflow specification and `job_inputs` is
+an optional YAML or JSON file providing job parameter inputs.
+
+To use as an imported module:
+
+```py
+from beeflow.common.parser import BeeParser
+
+parser = BeeParser()
+# spec can be a Workflow object or the path of a .py specification file
+workflow, tasks = parser.parse_workflow(workflow_id, workflow_name, spec)
+```
+
+The resulting objects can be loaded into the workflow interface:
+
+```py
+from beeflow.common.wf_interface import WorkflowInterface
+
+wfi = WorkflowInterface(workflow.id)
+wfi.initialize_workflow(workflow)
+for task in tasks:
+    wfi.add_task(task)
+```
+
+`beeflow submit` also accepts a python specification in place of the main
+CWL file, e.g.:
+
+```sh
+beeflow submit cat-grep-tar . workflow.py input.yml <workdir>
+```
+
 ## Using the CWL Parser
 
 `parser.py` will allow the parsing of a generic CWL workflow with basic support and no JavaScript
