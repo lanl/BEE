@@ -361,8 +361,8 @@ def check_dependencies(backend=False):
         try:
             import flux  # pylint: disable=W0611,C0415 # don't need to check whether flux api is actually installed
         except ModuleNotFoundError:
-            warn('Failed to import flux Python API. Please make sure you can '
-                 'use flux in your environment.')
+            warn('Failed to import flux Python API. Please consult the BEE documentation '
+                 'to ensure your environment is configured correctly.')
             sys.exit(1)
 
 
