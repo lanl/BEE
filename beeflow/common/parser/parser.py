@@ -9,10 +9,13 @@ Contains two parsers:
   project at https://github.com/aplbrain/saber).
 
 * BeeParser: converts a BEE python workflow specification (built with the
-  python workflow description API in beeflow.common.cwl.workflow) directly
-  into the Workflow and Task objects consumed by the WorkflowInterface, without
-  generating or parsing any CWL.
+  python workflow description API in beeflow.common.cwl.workflow or the new
+  beeflow.common.workflow_api) directly into the Workflow and Task objects
+  consumed by the WorkflowInterface, without generating or parsing any CWL.
 """
+
+# This module holds both the CWL parser and the python API parser
+# pylint: disable=too-many-lines
 
 import sys
 import argparse
@@ -25,6 +28,7 @@ import yaml
 import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException
 
+from beeflow.common import workflow_api
 from beeflow.common.cwl.workflow import Workflow as WorkflowSpec
 from beeflow.common.object_models import (
         Workflow,
@@ -565,6 +569,18 @@ def validate_workload_requirement(req_class, items, error_cls=CwlParseError):
             )
 
 
+def bee_value_type(value):
+    """Return the BEE type name for a python API param/input value.
+
+    :param value: a static value or an OutputRef
+    :type value: str or int or float or workflow_api.OutputRef
+    :rtype: str
+    """
+    if isinstance(value, workflow_api.OutputRef):
+        return "File"
+    return {str: "string", int: "int", float: "float"}.get(type(value), "string")
+
+
 class BeeParseError(Exception):
     """Python workflow specification parser error class."""
 
@@ -587,18 +603,21 @@ def _find_workflow_spec(module, path):
     :rtype: WorkflowSpec
     """
     workflow = getattr(module, "workflow", None)
-    if isinstance(workflow, WorkflowSpec):
+    if isinstance(workflow, (WorkflowSpec, workflow_api.Workflow)):
         return workflow
     for func_name in ("build", "main"):
         func = getattr(module, func_name, None)
         if callable(func):
             result = func()
-            if isinstance(result, WorkflowSpec):
+            if isinstance(result, (WorkflowSpec, workflow_api.Workflow)):
                 return result
             workflow = getattr(module, "workflow", None)
-            if isinstance(workflow, WorkflowSpec):
+            if isinstance(workflow, (WorkflowSpec, workflow_api.Workflow)):
                 return workflow
-    workflows = [obj for obj in vars(module).values() if isinstance(obj, WorkflowSpec)]
+    workflows = [
+            obj for obj in vars(module).values()
+            if isinstance(obj, (WorkflowSpec, workflow_api.Workflow))
+            ]
     if len(workflows) == 1:
         return workflows[0]
     raise BeeParseError(
@@ -645,6 +664,9 @@ class BeeParser:
         self.spec, self.path = self._load_spec(spec)
         self.params = load_job_inputs(job, BeeParseError) if job else {}
 
+        if isinstance(self.spec, workflow_api.Workflow):
+            return self._parse_bee_spec(workflow_id, workflow_name, job, workdir, wf_path)
+
         tasks = [self.parse_task(task, workflow_id, workdir) for task in self.spec.tasks]
         workflow = Workflow(
                 name=workflow_name or self.spec.name,
@@ -665,10 +687,10 @@ class BeeParser:
         """Load the workflow specification from a Workflow object or .py file.
 
         :param spec: the Workflow object or path to a .py workflow specification
-        :type spec: WorkflowSpec or str or pathlib.Path
-        :rtype: (WorkflowSpec, str or None)
+        :type spec: WorkflowSpec or workflow_api.Workflow or str or pathlib.Path
+        :rtype: (Workflow, str or None)
         """
-        if isinstance(spec, WorkflowSpec):
+        if isinstance(spec, (WorkflowSpec, workflow_api.Workflow)):
             return spec, None
         path = Path(spec)
         if not path.is_file():
@@ -682,6 +704,261 @@ class BeeParser:
                     f"error executing workflow specification {path}: {err}"
                     ) from None
         return _find_workflow_spec(module, str(path)), str(path.resolve())
+
+    def _parse_bee_spec(self, workflow_id, workflow_name, job, workdir, wf_path):
+        """Convert a workflow_api.Workflow into WF_Interface objects.
+
+        :rtype: (Workflow, list of Task)
+        """
+        self._validate_bee_spec(self.spec)
+        tasks = [
+                self._parse_bee_task(task, workflow_id, workdir)
+                for task in self.spec.tasks
+                ]
+        workflow = Workflow(
+                name=workflow_name or self.spec.name,
+                hints=[],
+                requirements=[],
+                inputs=self._bee_workflow_inputs(self.spec.tasks),
+                outputs=self._bee_workflow_outputs(self.spec.tasks),
+                id=workflow_id,
+                workdir=workdir,
+                main_cwl=self.path,
+                wf_path=str(wf_path),
+                yaml=job,
+                )
+        return workflow, tasks
+
+    def _validate_bee_spec(self, spec):
+        """Validate a workflow_api.Workflow specification.
+
+        :param spec: the python API workflow specification
+        :type spec: workflow_api.Workflow
+        """
+        if not spec.tasks:
+            raise BeeParseError(f"workflow {spec.name} does not define any tasks")
+        by_name = {task.name: task for task in spec.tasks}
+        if len(by_name) != len(spec.tasks):
+            raise BeeParseError("workflow task names must be unique")
+
+        for task in spec.tasks:
+            commands = task.command_list()
+            if not commands or any(
+                    not isinstance(command, str) or not command.strip()
+                    for command in commands
+                    ):
+                raise BeeParseError(
+                        f"task {task.name} must define a non-empty command string"
+                        )
+            if len(commands) > 1:
+                raise BeeParseError(
+                        f"task {task.name}: multiple commands are not yet "
+                        "supported by the python workflow API"
+                        )
+
+            declared = task.declared_values()
+            for name, value in declared.items():
+                if isinstance(value, workflow_api.OutputRef):
+                    producer = by_name.get(value.task_name)
+                    if producer is None:
+                        raise BeeParseError(
+                                f"task {task.name} input {name!r} references "
+                                f"unknown task {value.task_name!r}"
+                                )
+                    if value.output_name not in producer.outputs:
+                        raise BeeParseError(
+                                f"task {task.name} input {name!r} references "
+                                f"missing output {value.id!r}"
+                                )
+                elif not isinstance(value, (str, int, float)):
+                    raise BeeParseError(
+                            f"task {task.name} input {name!r} has unsupported "
+                            f"type {type(value)}"
+                            )
+
+            for placeholder in task.placeholders():
+                if placeholder not in declared:
+                    raise BeeParseError(
+                            f"task {task.name} command references "
+                            f"{{{placeholder}}} but no matching param or input "
+                            "is declared"
+                            )
+
+            for dep in task.depends_on or []:
+                if dep is not by_name.get(dep.name):
+                    raise BeeParseError(
+                            f"task {task.name} depends on a task "
+                            f"{dep.name!r} that is not part of the workflow"
+                            )
+                # Phase 1: dependencies must be implied by data flow, since
+                # the graph database infers edges from output references
+                if not any(
+                        isinstance(value, workflow_api.OutputRef)
+                        and value.task_name == dep.name
+                        for value in declared.values()
+                        ):
+                    raise BeeParseError(
+                            f"task {task.name} depends on {dep.name!r} without "
+                            "sharing any data; explicit non-data dependencies "
+                            "are not yet supported"
+                            )
+
+    def _parse_bee_task(self, task, workflow_id, workdir):
+        """Convert a workflow_api.Task into a Task object for the WF_Interface.
+
+        :rtype: Task
+        """
+        command, step_inputs = self._bee_command_and_inputs(task)
+        step_outputs = [
+                StepOutput(
+                    id=f"{task.name}/{name}",
+                    type="File",
+                    value=None,
+                    glob=os.path.abspath(os.path.join(workdir, glob)) if glob else glob,
+                    )
+                for name, glob in task.outputs.items()
+                ]
+        return Task(
+                name=task.name,
+                base_command=command,
+                hints=self._bee_task_hints(task),
+                requirements=[],
+                inputs=step_inputs,
+                outputs=step_outputs,
+                stdout=task.stdout,
+                stderr=task.stderr,
+                workflow_id=workflow_id,
+                workdir=workdir,
+                )
+
+    @staticmethod
+    def _bee_command_and_inputs(task):
+        """Expand a python API task into a command and its StepInputs.
+
+        The {name} placeholders are left in the command tokens; the Task
+        command property fills them in from the input values at execution
+        time (object_models.Task.command).
+
+        :rtype: (list of str, list of StepInput)
+        """
+        command = task.command_list()[0].split()
+        inputs = []
+        for name, value in task.declared_values().items():
+            if isinstance(value, workflow_api.OutputRef):
+                source = value.id
+                default = None
+            else:
+                source = name
+                default = value
+            inputs.append(
+                    StepInput(
+                        id=name,
+                        type=bee_value_type(value),
+                        value=None,
+                        default=default,
+                        source=source,
+                        prefix=None,
+                        position=None,
+                        value_from=None,
+                        )
+                    )
+        return command, inputs
+
+    def _bee_task_hints(self, task):
+        """Convert python API resources and scripts into Hint objects.
+
+        :rtype: list of Hint
+        """
+        hints = []
+        mpi_params = {}
+        slurm_params = {}
+        resources = task.resources
+        if resources is not None:
+            mpi_params = {
+                    key: value
+                    for key, value in (
+                        ("nodes", resources.nodes),
+                        ("ntasks", resources.ntasks),
+                        ("tasks_per_node", resources.tasks_per_node),
+                        )
+                    if value is not None
+                    }
+            if resources.walltime is not None:
+                slurm_params["timeLimit"] = resources.walltime
+        for key, value in (task.scheduler_options or {}).items():
+            if value is not None:
+                slurm_params[key] = value
+        if mpi_params:
+            hints.append(Hint(class_="beeflow:MPIRequirement", params=mpi_params))
+        if slurm_params:
+            hints.append(Hint(class_="beeflow:SlurmRequirement", params=slurm_params))
+        if task.pre_script is not None or task.post_script is not None:
+            script_params = {"enabled": True, "shell": "/bin/bash"}
+            if task.pre_script is not None:
+                script_params["pre_script"] = task.pre_script
+            if task.post_script is not None:
+                script_params["post_script"] = task.post_script
+            # Read the script files (relative to the spec) and validate the
+            # shebang lines against the shell
+            self._resolve_hint_files(script_params)
+            hints.append(
+                    Hint(class_="beeflow:ScriptRequirement", params=script_params)
+                    )
+        return hints
+
+    def _bee_workflow_inputs(self, tasks):
+        """Derive workflow inputs from the python API task params and inputs.
+
+        A name becomes a workflow input when every task declaring it agrees
+        on the value; names declared with conflicting values stay task-local.
+        The job file, when given, overrides the workflow input value.
+
+        :rtype: list of InputParameter
+        """
+        declared = {}
+        for task in tasks:
+            for name, value in task.declared_values().items():
+                if isinstance(value, workflow_api.OutputRef):
+                    continue
+                entry = (bee_value_type(value), value)
+                if declared.get(name, entry) != entry:
+                    # Conflicting declarations: keep the value task-local
+                    declared[name] = None
+                    continue
+                declared.setdefault(name, entry)
+        inputs = []
+        for name, entry in declared.items():
+            if entry is None:
+                continue
+            type_, value = entry
+            value = self.params.get(name, value)
+            expected_type = type_map.get(type_)
+            if expected_type is not None and not isinstance(value, expected_type):
+                raise BeeParseError(
+                        "Input/param types do not match: " f"{name}/{value}"
+                        )
+            inputs.append(InputParameter(id=name, type=type_, value=value))
+        return inputs
+
+    @staticmethod
+    def _bee_workflow_outputs(tasks):
+        """Derive workflow outputs from the python API task outputs.
+
+        :rtype: list of OutputParameter
+        """
+        outputs = []
+        for task in tasks:
+            for name in task.outputs:
+                output_id = f"{task.name}/{name}"
+                outputs.append(
+                        OutputParameter(
+                            id=output_id,
+                            type="File",
+                            value=None,
+                            source=output_id,
+                            )
+                        )
+        return outputs
 
     def parse_task(self, task, workflow_id, workdir):
         """Convert a python API Task into a Task object for the WF_Interface.

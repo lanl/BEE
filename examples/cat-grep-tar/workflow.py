@@ -1,10 +1,10 @@
-"""Cat-grep-tar workflow written with the BEE python workflow description API.
+"""Cat-grep-tar workflow written with the new BEE python workflow API.
 
-This example shows the new (post-CWL) way of describing a BEE workflow: build
-a Workflow object with the classes from beeflow.common.cwl.workflow and hand it
-to the BeeParser, which converts it directly into the Workflow and Task objects
-loaded into the graph database by the WorkflowInterface. No CWL is generated or
-parsed.
+This example shows the CWL-free way of describing a BEE workflow: build a
+Workflow object with the classes from beeflow.common.workflow_api and hand it
+to the BeeParser, which converts it directly into the Workflow and Task
+objects loaded into the graph database by the WorkflowInterface. No CWL is
+generated or parsed.
 
 Run it directly to see the parsed result:
 
@@ -14,66 +14,57 @@ Submit it to a running BEE instance with:
 
     beeflow submit cat-grep-tar . workflow.py input.yml <workdir>
 """
-from beeflow.common.cwl.workflow import Task, Input, Output, Workflow
+from beeflow.common.workflow_api import Workflow, Resources
 
-# 'cat' copies the input file to stdout (captured in cat.txt)
-cat = Task(
+workflow = Workflow(
+    name="cat-grep-tar",
+    description="Cat an input file, grep it two ways, and tar the results",
+)
+
+# {name} placeholders in a command are filled in at execution time from the
+# task's params and inputs. 'cat' copies the input file to cat.txt.
+cat = workflow.add_task(
     name="cat",
-    base_command="cat",
+    commands=["cat {input_file}"],
+    inputs={"input_file": "lorem.txt"},
     stdout="cat.txt",
     stderr="cat.err",
-    # Position is where the argument appears in the argument list,
-    # so this task runs: cat lorem.txt
-    inputs=[Input("input_file", "File", "lorem.txt", position=1)],
-    outputs=[
-        # 'contents' captures the stdout file and feeds the grep tasks
-        Output("contents", "stdout"),
-        # A source makes an output visible as a workflow output
-        Output("cat_stderr", "stderr", source="cat/cat_stderr"),
-    ],
+    # outputs map output names to the files they collect
+    outputs={"contents": "cat.txt", "cat_stderr": "cat.err"},
 )
 
-# 'grep0' searches the cat output for 'Vivamus'
-grep0 = Task(
+# task.output("name") creates a dependency on another task
+grep0 = workflow.add_task(
     name="grep0",
-    base_command="grep",
+    commands=["grep {word0} {text_file}"],
+    params={"word0": "Vivamus"},
+    inputs={"text_file": cat.output("contents")},
     stdout="occur0.txt",
-    inputs=[
-        Input("word0", "string", "Vivamus", position=1),
-        # An Input value of the form "task/output" depends on another task
-        Input("text_file", "File", "cat/contents", position=2),
-    ],
-    outputs=[Output("occur", "stdout")],
+    outputs={"occur": "occur0.txt"},
 )
 
-# 'grep1' searches the cat output for 'pulvinar'
-grep1 = Task(
+grep1 = workflow.add_task(
     name="grep1",
-    base_command="grep",
+    commands=["grep {word1} {text_file}"],
+    params={"word1": "pulvinar"},
+    inputs={"text_file": cat.output("contents")},
     stdout="occur1.txt",
-    inputs=[
-        Input("word1", "string", "pulvinar", position=1),
-        Input("text_file", "File", "cat/contents", position=2),
-    ],
-    outputs=[Output("occur", "stdout")],
+    outputs={"occur": "occur1.txt"},
 )
 
-# 'tar' bundles both grep outputs into a tarball
-tar = Task(
+tar = workflow.add_task(
     name="tar",
-    base_command="tar",
-    stdout="tar.out",
-    inputs=[
-        Input("tarball_fname", "string", "out.tgz", position=1, prefix="-cf"),
-        Input("file0", "File", "grep0/occur", position=2),
-        Input("file1", "File", "grep1/occur", position=3),
-    ],
-    outputs=[
-        Output("tarball", "File", glob="out.tgz", source="tar/tarball")
-    ],
+    commands=["tar -cf {tarball_fname} {file0} {file1}"],
+    inputs={
+        "tarball_fname": "out.tgz",
+        "file0": grep0.output("occur"),
+        "file1": grep1.output("occur"),
+    },
+    # resources and scheduler_options replace the old MPI/Slurm hints
+    resources=Resources(nodes=1, ntasks=1, walltime="01:00:00"),
+    scheduler_options={"account": "standard", "partition": "standard"},
+    outputs={"tarball": "out.tgz"},
 )
-
-workflow = Workflow("cat-grep-tar", [cat, grep0, grep1, tar])
 
 
 if __name__ == "__main__":
@@ -92,8 +83,14 @@ if __name__ == "__main__":
         print(f"  {output.id} ({output.type}) from {output.source}")
     print("Parsed tasks:")
     for task in tasks:
-        print(f"  {task.name}: {task.base_command}")
+        # Fill in the placeholder values so the full command can be shown
         for input_ in task.inputs:
-            print(f"    input {input_.id} from {input_.source}")
+            if input_.value is None:
+                # Sourced inputs are filled in at runtime by BEE
+                input_.value = (
+                    input_.default if input_.default is not None
+                    else f"<{input_.source}>"
+                )
+        print(f"  {task.name}: {' '.join(task.command)}")
         for output in task.outputs:
             print(f"    output {output.id} (glob: {output.glob})")

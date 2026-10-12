@@ -12,8 +12,8 @@ with a workflow using the BEE workflow interface.
 
 ## Using the BEE Python Workflow Parser
 
-See `docs/new-python-api.md` for a full walkthrough of the new python API,
-including setup, usage, and testing instructions.
+See `docs/cwl-migration-plan.md` for the migration plan and a full walkthrough
+of the new python API, including setup, usage, and testing instructions.
 
 `BeeParser` converts a workflow written with the BEE python workflow
 description API (`beeflow.common.cwl.workflow`) directly into the `Workflow`
