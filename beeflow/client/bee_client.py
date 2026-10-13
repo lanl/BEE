@@ -83,6 +83,11 @@ def db_path():
     bee_workdir = config_driver.BeeConfig.get("DEFAULT", "bee_workdir")
     return os.path.join(bee_workdir, "client.db")
 
+def archive_path():
+    """Return the archive directory path."""
+    archive_dir = config_driver.BeeConfig.get("DEFAULT","bee_archive_dir")
+    return archive_dir
+
 
 def setup_hostname(start_hn):
     """Set up front end name when beeflow core start is returned."""
@@ -898,13 +903,19 @@ def copy(wf_id: str = typer.Argument(..., callback=match_short_id)):
 @app.command()
 def reexecute(
     wf_name: str = typer.Argument(..., help="The workflow name"),
-    wf_path: pathlib.Path = typer.Argument(..., help="Path to the workflow archive"),
+    wf_id: str = typer.Argument(..., help="The workflow id", callback=match_short_id),
     workdir: pathlib.Path = typer.Argument(
         ..., help="working directory for workflow containing input + output files"
     ),
     no_start: bool = typer.Option(False, "--no-start", "-n", help="do not start workflow"),
 ):
     """Reexecute an archived workflow."""
+    if wf_id is None:
+        error_exit(f"Workflow ID {wf_id} cannot be found")
+
+    archive_dir = archive_path()
+    wf_path = os.path.join(archive_dir, f"{wf_id}.tgz")
+
     if not os.path.exists(wf_path):
         error_exit(f"Workflow tarball {wf_path} cannot be found")
 
@@ -914,7 +925,7 @@ def reexecute(
     if not os.path.exists(workdir):
         error_exit(f'Workflow working directory "{workdir}" doesn\'t exist')
     cwl_path = pathlib.Path(tempfile.mkdtemp())
-    archive_id = str(wf_path.stem)
+    archive_id = wf_id
     with tarfile.open(wf_path) as archive:
         archive_cmd = yaml.load(
             archive.extractfile(
