@@ -62,11 +62,27 @@ Following generation of the bee.conf configuration file you can edit the setting
 systems have small quotas for home directories and containers can be large
 files.**
 
-It is important to ensure the path to the two required Charliecloud containers is correct. There is a setting for the Neo4j container (``neo4j_image``) and the Redis container (``redis_image``). See `Requirements:`_ above for pulling these containers.
+BEE runs the Neo4j and Redis services in Charliecloud containers, and the
+configuration contains a setting for each: the Neo4j container
+(``neo4j_image``) and the Redis container (``redis_image``). The easiest way
+to fetch the images is:
+
+.. code-block::
+
+    beeflow core pull-deps -o ~/.beeflow/images
+
+``beeflow core pull-deps`` downloads (or builds) the container images and
+records their paths in the configuration file, creating the configuration
+file first if none exists yet. It is therefore not necessary to set
+``neo4j_image`` and ``redis_image`` when running ``beeflow config new``; both
+can be left unset until ``beeflow core pull-deps`` runs (a warning is
+printed). The ``neo4j_image`` setting is only needed when the graph database
+type is set to ``neo4j`` (the ``graphdb`` section of the configuration); with
+the default ``sqlite3`` graph database, no Neo4j container is used. You can
+also set the paths manually; see `Requirements:`_ above for pulling these
+containers by hand.
 
 Depending on the system, you may also need to enter the system-specific information, such as account information.
-
-Options can be left blank if they are unnecessary.
 
 **beeflow config** has other options including a configuration validator. For more
 information or help run: ``beeflow config info`` or ``beeflow config --help``.
