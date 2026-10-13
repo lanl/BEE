@@ -306,18 +306,29 @@ def version_str(version):
 def load_check_charliecloud():
     """Load the charliecloud module if it exists and check the version."""
     if not shutil.which('ch-run'):
+        # Try loading the Charliecloud environment module, if the HPC
+        # environment module system is available
         lmod = os.environ.get('MODULESHOME')
-        sys.path.insert(0, lmod + '/init')
-        from env_modules_python import module # pylint: disable=C0415 # No need to import at top
-        module("load", "charliecloud")
+        if lmod is not None:
+            sys.path.insert(0, os.path.join(lmod, 'init'))
+            try:
+                from env_modules_python import module # pylint: disable=C0415 # No need to import at top
+                module("load", "charliecloud")
+            except Exception as err: # pylint: disable=W0718
+                warn(f'Failed to load the charliecloud environment module: {err}')
         # Try loading the Charliecloud module then test again
         if not shutil.which('ch-run'):
             warn('Charliecloud is not loaded. Please ensure that it is accessible'
                  ' on your path.\nIf it\'s not installed on your system, please refer'
                  ' to: \n https://hpc.github.io/charliecloud/install.html')
             sys.exit(1)
-    cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
-                           check=True)
+    try:
+        cproc = subprocess.run(['ch-run', '-V'], capture_output=True, text=True,
+                               check=True)
+    except (subprocess.CalledProcessError, OSError) as err:
+        warn(f'ch-run failed to run; the Charliecloud installation appears to be'
+             f' broken ({err})')
+        sys.exit(1)
     version = cproc.stdout if cproc.stdout else cproc.stderr
     version = version.strip()
     if 'pre' in version:
@@ -686,14 +697,18 @@ def pull_deps(outdir: str = typer.Option('.', '--outdir', '-o',
                                          help='directory to store containers in')):
     """Pull required BEE containers and store in outdir."""
     load_check_charliecloud()
-    if need_neo4j():
+    os.makedirs(outdir, exist_ok=True)
+    # With no config file at all, pull-deps bootstraps one below, and the
+    # default graph database (sqlite3) needs no Neo4j image
+    neo4j_needed = os.path.isfile(bc.userconfig_path()) and need_neo4j()
+    if neo4j_needed:
         neo4j_path = os.path.join(os.path.realpath(outdir), 'neo4j.tar.gz')
         neo4j_dockerfile = str(Path(REPO_PATH, "beeflow/data/dockerfiles/Dockerfile.neo4j"))
         build_to_tar('neo4j_image', neo4j_dockerfile, neo4j_path)
     redis_path = os.path.join(os.path.realpath(outdir), 'redis.tar.gz')
     pull_to_tar('redis', redis_path)
 
-    if need_neo4j():
+    if neo4j_needed:
         AlterConfig(changes={'DEFAULT': {'neo4j_image': neo4j_path}}).save()
 
     AlterConfig(changes={'DEFAULT': {'redis_image': redis_path}}).save()

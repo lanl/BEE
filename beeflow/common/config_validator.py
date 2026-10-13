@@ -58,6 +58,11 @@ class ConfigValidator:
                     log.warning(f"option {sec_name}::{opt_name} is not a valid option")
                     continue
                 option = self._options[key]
+                if not self._option_is_valid(conf, option):
+                    # Option doesn't apply in this config context; keep the
+                    # value as-is without validating it
+                    new_conf[sec_name][opt_name] = section[opt_name]
+                    continue
                 try:
                     new_conf[sec_name][opt_name] = option.validate(section[opt_name])
                 except ValueError as err:
@@ -71,9 +76,24 @@ class ConfigValidator:
             if not self._validate_section(conf, self._sections[sec_name].depends_on):
                 # Skip invalid sections
                 continue
+            option = self._options[key]
+            if not self._option_is_valid(conf, option):
+                # Option doesn't apply in this config context, so it is not
+                # required
+                continue
             if sec_name not in conf or opt_name not in conf[sec_name]:
-                default = self._options[key].default
+                default = option.default
                 if default is None:
+                    if option.optional:
+                        # Optional options may be left unset; use an empty
+                        # value so that code using the option can report a
+                        # clear error at use time
+                        log.warning(f'option {sec_name}::{opt_name} is not set,'
+                                    ' leaving it empty')
+                        if sec_name not in new_conf:
+                            new_conf[sec_name] = {}
+                        new_conf[sec_name][opt_name] = ''
+                        continue
                     errors.append(
                         f'option {sec_name}::{opt_name} is required but has not been set'
                     )
@@ -104,6 +124,41 @@ class ConfigValidator:
         """
         depends_on = self._sections[sec_name].depends_on
         return self._validate_section(cur_conf, depends_on)
+
+    def _effective_value(self, conf, sec_name, opt_name):
+        """Return the effective value of an option (config value or default).
+
+        conf may be a partial config (sections accumulated so far), so missing
+        options fall back to the option default, if there is one.
+        """
+        if sec_name in conf and opt_name in conf[sec_name]:
+            return str(conf[sec_name][opt_name])
+        key = (sec_name, opt_name)
+        default = self._options[key].default if key in self._options else None
+        return None if default is None else str(default)
+
+    def _option_is_valid(self, conf, option):
+        """Determine whether the option applies in this context (depends_on).
+
+        conf may be a partial config; options missing from it are resolved
+        with their defaults.
+        """
+        depends_on = option.depends_on
+        if depends_on is None:
+            return True
+        actual = self._effective_value(conf, depends_on[0], depends_on[1])
+        if actual is None:
+            return False
+        expected = str(depends_on[2])
+        return actual.strip().lower() == expected.strip().lower()
+
+    def option_is_valid(self, conf, sec_name, opt_name):
+        """Determine if the option is valid given the (partial) config conf.
+
+        sec_name::opt_name is assumed to be the name of a valid option, and
+        conf may be a partial config (sections accumulated so far).
+        """
+        return self._option_is_valid(conf, self._options[(sec_name, opt_name)])
 
     def section(self, sec_name, info, depends_on=None):
         """Define a configuration section."""
@@ -163,7 +218,7 @@ class ConfigOption:
     """Config option/validation class."""
 
     def __init__(self, info, validator=str, choices=None, default=None, input_fn=None,
-                 prompt=False):
+                 prompt=False, depends_on=None, optional=False):
         """Construct the config option class."""
         self.info = info
         self.choices = choices
@@ -173,6 +228,12 @@ class ConfigOption:
         self.input_fn = input_fn
         self._validator = validator
         self.prompt = prompt
+        # (sec_name, key, value): the option is only required/validated when
+        # the given config option has the given value
+        self.depends_on = depends_on
+        # Optional options may be left unset (an empty value is used instead
+        # of an error, with a warning)
+        self.optional = optional
 
     def validate(self, value):
         """Validate the value and return it."""

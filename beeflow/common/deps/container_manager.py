@@ -61,13 +61,18 @@ def create_image(dep_name):
     # Can throw an exception that needs to be handled by the caller
     check_container_runtime()
 
-    image = bc.get('DEFAULT', dep_name + '_image')
-
     # Check for BEE dependency container directory:
     container_dir_exists = check_container_dir(dep_name)
     if container_dir_exists:
         print(f"Already have {dep_name} container")
         return
+
+    image = bc.get('DEFAULT', dep_name + '_image')
+    if not image or not os.path.isfile(image):
+        raise RuntimeError(
+            f'container image for {dep_name} is not configured; run'
+            ' "beeflow core pull-deps" to fetch the BEE dependency images'
+        )
 
     make_dep_dir()
     container_dir = get_container_dir(dep_name)
