@@ -138,7 +138,7 @@ class UpdateQueue:
 
     def count(self):
         """Count the number of items in the update queue."""
-        stmt = 'SELECT COUNT(*) AS count FROM job_queue'
+        stmt = 'SELECT COUNT(*) AS count FROM update_queue'
         count = bdb.getone(self.db_file, stmt)[0]
         return count
 

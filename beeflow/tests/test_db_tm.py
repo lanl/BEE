@@ -188,3 +188,9 @@ def test_update_queue_order(temp_db):
 
     db.update_queue.clear()
     assert db.update_queue.updates() == []
+
+def test_update_queue_count(temp_db):
+    """Ensure the counts of the update queue are returned correctly"""
+    db = temp_db
+    db.update_queue.push('wf-id','task-id','FAILED')
+    assert db.update_queue.count() == 1
