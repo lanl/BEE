@@ -73,12 +73,13 @@ sequence of commands:
     cd $WORKDIR_PATH
     cp $BEE_PATH/examples/cat-grep-tar/lorem.txt .
     beeflow package $BEE_PATH/examples/cat-grep-tar . # Tars up the workflow
-    beeflow submit $NAME ./cat-grep-tar.tgz workflow.cwl input.yml $WORKDIR_PATH # Now submit the workflow
+    beeflow submit ./cat-grep-tar.tgz --name $NAME --workdir $WORKDIR_PATH --main-cwl workflow.cwl --job input.yml # Now submit the workflow
 
 This first command packages the workflow into a tarball, which makes it easy to
-pass everything over to the Workflow Manager and finally submits the workflow,
-specifying a name, the tarball path, the location of the CWL file, the yaml
-file and finally the workflow path containing lorem.txt. If you copy and paste
+pass everything over to the Workflow Manager and finally submits the workflow
+from the tarball, giving it a name and the workflow directory containing
+lorem.txt; the main CWL file and the yaml job file are given explicitly (both
+would also be auto-detected inside the tarball). If you copy and paste
 make sure to change $NAME to a name of your choice, $BEE_PATH to the path of the
 BEE repo, and $WORKDIR_PATH to the proper path that was created earlier. The
 submit command should have produced a short ID of 6-7 characters.
@@ -91,7 +92,7 @@ the directory for the example by:
     cd $WORKDIR_PATH
     cp -r $BEE_PATH/examples/cat-grep-tar . #Copy example directory
     cp cat-grep-tar/lorem.txt .
-    beeflow submit $NAME cat-grep-tar cat-grep-tar/workflow.cwl cat-grep-tar/input.yml $WORKDIR_PATH # Submits the workflow
+    beeflow submit cat-grep-tar --name $NAME --workdir $WORKDIR_PATH --main-cwl cat-grep-tar/workflow.cwl --job cat-grep-tar/input.yml # Submits the workflow
 
 This will automatically do the packaging and create an archive in the
 background to be submitted.
@@ -173,7 +174,7 @@ package it for you.
 
     cd $WORKDIR_PATH
     cp -r $BEE_PATH/examples/clamr-ffmpeg-build .
-    beeflow submit clamr-example clamr-ffmpeg-build clamr-ffmpeg-build/clamr_wf.cwl clamr-ffmpeg-build/clamr_job.yml $WORKDIR_PATH
+    beeflow submit clamr-ffmpeg-build --name clamr-example --workdir $WORKDIR_PATH --main-cwl clamr-ffmpeg-build/clamr_wf.cwl --job clamr-ffmpeg-build/clamr_job.yml
 
 Output:
 

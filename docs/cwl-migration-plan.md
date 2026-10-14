@@ -20,7 +20,7 @@ the remaining phases are exploratory designs.
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 1 | New python API (`workflow_api.py`), `BeeParser` conversion, runtime `{placeholder}` command substitution, `beeflow submit` accepting `.py` specs | This branch |
+| 1 | New python API (`workflow_api.py`), `BeeParser` conversion, runtime `{placeholder}` command substitution, simplified `beeflow submit` (workflow path only) | This branch |
 | 2 | Explicit `depends_on` dependencies that don't share data (graph database dependency edges); task workdirs and containers in the new API | Not started |
 | 3 | YAML front end describing the same schema (see the YAML slides in `docs/todo/`) | Not started |
 | 4 | Remove CWL: delete `cwl.py`/`dump_wf`, the CWL parser path, and CWL-specific pydantic fields; update examples, CI, and docs (issues #1197-#1205) | Not started |
@@ -146,16 +146,20 @@ word: Curabitur
 
 ### Submitting a job to BEE
 
-`beeflow submit` accepts a python specification in place of the main CWL
-file. With BEE core running (`beeflow core start`):
+`beeflow submit` now takes the python specification directly and derives
+everything else from it: the workflow name, the working directory, and the
+job inputs. With BEE core running (`beeflow core start`):
 
 ```sh
-beeflow submit cat-grep-tar . workflow.py input.yml <workdir>
+beeflow submit examples/cat-grep-tar/workflow.py
 beeflow query <wf_id>
 ```
 
-where `input.yml` supplies the workflow input values, for example
-`examples/cat-grep-tar/input.yml`:
+The working directory is created automatically under
+`~/.beeflow/workflows/<name>` (or `./bee-workflows/<name>` when `~/.beeflow`
+does not exist), and the workflow input values come from the specification
+itself. A job input file can still be supplied to override the spec values
+with `--job`, for example `examples/cat-grep-tar/input.yml`:
 
 ```yaml
 input_file: lorem.txt
@@ -164,8 +168,12 @@ word1: pulvinar
 tarball_fname: out.tgz
 ```
 
-As with CWL workflows, `<workdir>` must already exist and cannot be in `/tmp`
-or `/var/tmp`.
+The remaining options (`--name`, `--workdir`, `--main-cwl`, and
+`--no-start`) override the derived defaults; as before, the working directory
+cannot be in `/tmp` or `/var/tmp`. The old multi-argument form
+(`beeflow submit WF_NAME WF_PATH MAIN_CWL YAML WORKDIR`) was removed in
+favor of the single-path form; a compatibility shim can be added back if
+existing scripts need it.
 
 ## Testing it
 

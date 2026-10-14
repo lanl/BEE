@@ -453,50 +453,160 @@ app.add_typer(remote_client.app, name="remote")
 app.add_typer(config_driver.app, name="config")
 
 
-@app.command()
-def submit(  # pylint:disable=R0915
-    wf_name: str = typer.Argument(
-        ..., help="the workflow name"
-    ),
-    wf_path: pathlib.Path = typer.Argument(
-        ..., help="path to the workflow .tgz or dir"
-    ),
-    main_cwl: str = typer.Argument(
-        ...,
-        help="filename of main CWL (if using CWL tarball), "
-        + "path of main CWL (if using CWL directory)",
-    ),
-    yaml_file: str = typer.Argument(
-        ...,
-        help="filename of yaml file (if using CWL tarball), "
-        + "path of yaml file (if using CWL directory)",
-    ),
-    workdir: pathlib.Path = typer.Argument(
-        ...,
-        help="working directory for workflow containing input + output files",
-    ),
-    no_start: bool = typer.Option(
-        False, "--no-start", "-n", help="do not start the workflow"
-    ),
-):
-    """Submit a new workflow."""
+def _is_parent(parent, path):
+    """Return true if the path is a child of the other path."""
+    parent = os.path.abspath(parent)
+    path = os.path.abspath(path)
+    return os.path.commonpath([parent]) == os.path.commonpath([parent, path])
 
-    def is_parent(parent, path):
-        """Return true if the path is a child of the other path."""
-        parent = os.path.abspath(parent)
-        path = os.path.abspath(path)
-        return os.path.commonpath([parent]) == os.path.commonpath([parent, path])
 
-    wf_path = wf_path.resolve()
-    workdir = workdir.resolve()
+def _dir_files(wf_dir, suffixes):
+    """Return the sorted names of files in wf_dir with the given suffixes."""
+    return sorted(
+        path.name
+        for path in pathlib.Path(wf_dir).iterdir()
+        if path.is_file() and path.suffix in suffixes
+    )
 
-    # Make sure the workdir is an absolute path and exists
-    workdir = os.path.expanduser(workdir)
-    workdir = os.path.abspath(workdir)
-    if not os.path.exists(workdir):
-        error_exit(f'Workflow working directory "{workdir}" doesn\'t exist')
 
-    # Make sure the workdir is not in /var or /var/tmp
+def _detect_main_cwl(wf_dir):
+    """Auto-detect the main workflow file in a directory.
+
+    Python specifications are preferred over CWL files. Exits with an error
+    when there is no candidate or more than one candidate.
+    """
+    for suffixes in ((".py",), (".cwl",)):
+        candidates = _dir_files(wf_dir, suffixes)
+        if len(candidates) == 1:
+            return candidates[0]
+        if len(candidates) > 1:
+            error_exit(
+                f"Multiple workflow files found in {wf_dir}: "
+                f"{', '.join(candidates)}; specify the main one with --main-cwl"
+            )
+    error_exit(
+        f"No workflow file (.py or .cwl) found in {wf_dir}; "
+        "specify the main one with --main-cwl"
+    )
+
+
+def _detect_job(wf_dir):
+    """Auto-detect the job input file in a directory, if there is one."""
+    candidates = _dir_files(wf_dir, (".yml", ".yaml", ".json"))
+    if len(candidates) > 1:
+        error_exit(
+            f"Multiple job input files found in {wf_dir}: "
+            f"{', '.join(candidates)}; specify one with --job"
+        )
+    return candidates[0] if candidates else None
+
+
+def _package_workflow(workflow, name, main_cwl, job):
+    """Package the workflow and determine its main and job input files.
+
+    Returns a tuple (package_path, orig_cwl_path, orig_yaml_path,
+    tempdir_path), where orig_yaml_path is None when no job input file
+    applies.
+    """
+    tempdir_path = pathlib.Path(tempfile.mkdtemp())
+    orig_yaml_path = None
+
+    if workflow.is_file() and workflow.suffix == ".py":
+        # Package just the python specification; the spec itself defines the
+        # workflow inputs, so no job input file is needed
+        spec_dir = tempdir_path / name
+        spec_dir.mkdir()
+        shutil.copy2(workflow, spec_dir / workflow.name)
+        orig_cwl_path = spec_dir / workflow.name
+        if job is not None:
+            orig_yaml_path = pathlib.Path(job).expanduser().resolve()
+            if not orig_yaml_path.exists():
+                error_exit(f"Job input file {job} does not exist")
+            shutil.copy2(orig_yaml_path, spec_dir)
+        package_path = package(spec_dir, tempdir_path)
+    elif workflow.is_dir():
+        # Auto-detect the main workflow and job input files when not given
+        if main_cwl is None:
+            main_cwl = str(workflow / _detect_main_cwl(workflow))
+        if job is None:
+            detected = _detect_job(workflow)
+            job = str(workflow / detected) if detected is not None else None
+
+        orig_cwl_path = pathlib.Path(main_cwl).expanduser().resolve()
+        if not orig_cwl_path.exists():
+            error_exit(f"Main CWL file {main_cwl} does not exist")
+        if job is not None:
+            orig_yaml_path = pathlib.Path(job).expanduser().resolve()
+            if not orig_yaml_path.exists():
+                error_exit(f"Job input file {job} does not exist")
+
+        # Package the directory, copying in any files that live outside of it
+        tempdir_wf_path = tempdir_path / name
+        shutil.copytree(workflow, tempdir_wf_path)
+        if not _is_parent(workflow, orig_cwl_path):
+            shutil.copy2(orig_cwl_path, tempdir_wf_path)
+        if orig_yaml_path is not None and not _is_parent(workflow, orig_yaml_path):
+            shutil.copy2(orig_yaml_path, tempdir_wf_path)
+        package_path = package(tempdir_wf_path, tempdir_path)
+    elif workflow.suffix == ".tgz":
+        # Unpackage and auto-detect the main workflow and job input files
+        package_path = workflow
+        untar_path = tempdir_path / "unpacked"
+        untar_path.mkdir()
+        untar_wf_path = unpackage(package_path, untar_path)
+        if main_cwl is None:
+            main_cwl = _detect_main_cwl(untar_wf_path)
+        orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
+        if not orig_cwl_path.exists():
+            error_exit(f"Main CWL file {main_cwl} does not exist")
+        detected = _detect_job(untar_wf_path) if job is None else job
+        if detected is not None:
+            orig_yaml_path = untar_wf_path / pathlib.Path(detected).name
+            if not orig_yaml_path.exists():
+                error_exit(f"Job input file {detected} does not exist")
+    else:
+        error_exit(
+            f'Unsupported workflow path "{workflow}"; expected a .py '
+            "specification, a directory, or a .tgz package"
+        )
+
+    return package_path, orig_cwl_path, orig_yaml_path, tempdir_path
+
+
+def _parse_workflow(name, workflow, orig_cwl_path, orig_yaml_path, workdir):
+    """Parse the workflow and return the workflow and task objects."""
+    # BEE python workflow specifications (.py files) use the python parser;
+    # anything else is parsed as CWL.
+    from beeflow.common.parser import (  # pylint: disable=C0415
+        BeeParseError,
+        BeeParser,
+        CwlParseError,
+        CwlParser,
+    )
+
+    if str(orig_cwl_path).endswith(".py"):
+        parser = BeeParser()
+        parse_error = BeeParseError
+    else:
+        parser = CwlParser()
+        parse_error = CwlParseError
+    workflow_id = generate_workflow_id()
+    try:
+        workflow_obj, tasks = parser.parse_workflow(
+            workflow_id,
+            name,
+            str(orig_cwl_path),
+            job=str(orig_yaml_path) if orig_yaml_path is not None else None,
+            workdir=workdir,
+            wf_path=str(workflow),
+        )
+    except parse_error as error:
+        error_exit(str(error))  # Show user-friendly error, no traceback
+    return workflow_obj, tasks
+
+
+def _check_workdir(workdir):
+    """Exit with an error if the workdir is in /tmp or /var/tmp."""
     if os.path.commonpath([os.path.realpath("/tmp"), workdir]) == os.path.realpath(
         "/tmp"
     ):
@@ -505,83 +615,79 @@ def submit(  # pylint:disable=R0915
         "/var/tmp"
     ):
         error_exit('Workflow working directory cannot be in "/var/tmp"')
-    tarball_path = ""
-    workflow = None
-    encoded_tarball = None
-    untar_path = None
-    tasks = []
-    if os.path.exists(wf_path):
-        # Check to see if the wf_path is a tarball or a directory. Package if directory
-        if os.path.isdir(wf_path):
-            print(
-                "Detected directory instead of packaged workflow. Packaging Directory..."
-            )
-            orig_cwl_path = pathlib.Path(main_cwl).resolve()
-            orig_yaml_path = pathlib.Path(yaml_file).resolve()
 
-            if not orig_cwl_path.exists():
-                error_exit(f"Main CWL file {main_cwl} does not exist")
-            if not orig_yaml_path.exists():
-                error_exit(f"YAML file {yaml_file} does not exist")
 
-            # Packaging in temp dir, after copying alternate cwl_main or yaml file
-            cwl_indir = is_parent(wf_path, orig_cwl_path)
-            yaml_indir = is_parent(wf_path, orig_yaml_path)
+@app.command()
+def submit(
+    workflow: pathlib.Path = typer.Argument(
+        ...,
+        help="path to the workflow: a .py specification, a directory, or a .tgz package",
+    ),
+    name: Optional[str] = typer.Option(
+        None, "--name", "-N", help="workflow name (default: derived from the path)"
+    ),
+    workdir: Optional[pathlib.Path] = typer.Option(
+        None,
+        "--workdir",
+        "-w",
+        help="working directory for workflow input and output files "
+        "(default: ~/.beeflow/workflows/<name> if ~/.beeflow exists, "
+        "otherwise ./bee-workflows/<name>; created if missing)",
+    ),
+    main_cwl: Optional[str] = typer.Option(
+        None, "--main-cwl", help="main workflow file (default: auto-detected)"
+    ),
+    job: Optional[str] = typer.Option(
+        None, "--job", "-j", help="job input file (default: auto-detected)"
+    ),
+    no_start: bool = typer.Option(
+        False, "--no-start", "-n", help="do not start the workflow"
+    ),
+):
+    """Submit a new workflow.
 
-            # Always create temp dir for the workflow
-            tempdir_path = pathlib.Path(tempfile.mkdtemp())
-            tempdir_wf_path = pathlib.Path(tempdir_path / wf_name)
-            shutil.copytree(wf_path, tempdir_wf_path, dirs_exist_ok=False)
-            if not cwl_indir:
-                shutil.copy2(main_cwl, tempdir_wf_path)
-            if not yaml_indir:
-                shutil.copy2(yaml_file, tempdir_wf_path)
-            package_path = package(tempdir_wf_path, tempdir_path)
+    The workflow path may be a python (.py) workflow specification, a
+    workflow directory, or a .tgz package (created with `beeflow package`).
+    For python specifications nothing else is required: the name, working
+    directory, and job inputs are derived from the specification as needed.
+    """
+    workflow = workflow.expanduser().resolve()
+    if not workflow.exists():
+        error_exit(f'Workflow path "{workflow}" cannot be found')
+
+    # Derive the workflow name from the path unless one was given
+    if name is None:
+        name = workflow.stem if workflow.is_file() else workflow.name
+
+    # Choose the working directory unless one was given, and create it
+    if workdir is None:
+        bee_workdir = pathlib.Path(os.path.expanduser("~/.beeflow"))
+        if bee_workdir.is_dir():
+            workdir = bee_workdir / "workflows" / name
         else:
-            package_path = wf_path
-            untar_path = pathlib.Path(tempfile.mkdtemp())
-            untar_wf_path = unpackage(package_path, untar_path)
-            orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
-            orig_yaml_path = untar_wf_path / pathlib.Path(yaml_file).name
+            workdir = pathlib.Path.cwd() / "bee-workflows" / name
+    workdir = os.path.abspath(os.path.expanduser(workdir))
 
-        # BEE python workflow specifications (.py files) use the python parser;
-        # anything else is parsed as CWL.
-        from beeflow.common.parser import (  # pylint: disable=C0415
-            BeeParseError,
-            BeeParser,
-            CwlParseError,
-            CwlParser,
-        )
-        if str(orig_cwl_path).endswith(".py"):
-            parser = BeeParser()
-            parse_error = BeeParseError
-        else:
-            parser = CwlParser()
-            parse_error = CwlParseError
-        workflow_id = generate_workflow_id()
-        try:
-            workflow, tasks = parser.parse_workflow(
-                workflow_id, wf_name, str(orig_cwl_path), job=str(orig_yaml_path),
-                workdir=workdir, wf_path=wf_path
-            )
-        except parse_error as e:
-            error_exit(str(e))  # Show user-friendly error, no traceback
-        with open(package_path, "rb") as f:
-            encoded_tarball = base64.b64encode(f.read()).decode("utf-8")
-        if untar_path is not None:
-            shutil.rmtree(untar_path)
-        if os.path.isdir(wf_path):
-            shutil.rmtree(tempdir_path)
-    else:
-        error_exit(f"Workflow tarball {wf_path} cannot be found")
+    # Make sure the workdir is not in /tmp or /var/tmp
+    _check_workdir(workdir)
+    os.makedirs(workdir, exist_ok=True)
 
-    # TODO: Can all of this information be sent as a file?
+    package_path, orig_cwl_path, orig_yaml_path, tempdir_path = _package_workflow(
+        workflow, name, main_cwl, job
+    )
+    workflow_obj, tasks = _parse_workflow(
+        name, workflow, orig_cwl_path, orig_yaml_path, workdir
+    )
+    with open(package_path, "rb") as package_file:
+        encoded_tarball = base64.b64encode(package_file.read()).decode("utf-8")
+    shutil.rmtree(tempdir_path, ignore_errors=True)
+
     payload = SubmitWorkflowRequest(
-        wf_name=wf_name,
-        wf_filename=os.path.basename(wf_path),
+        wf_name=name,
+        wf_filename=os.path.basename(package_path),
         wf_workdir=workdir,
         no_start=no_start,
-        workflow=workflow,
+        workflow=workflow_obj,
         tasks=tasks,
         encoded_tarball=encoded_tarball,
     )
@@ -596,7 +702,7 @@ def submit(  # pylint:disable=R0915
         if resp.status_code == 400:
             data = resp.json()
             error_exit(data["msg"])
-        error_exit(f"Submit for {wf_name} failed. Please check the WF Manager.")
+        error_exit(f"Submit for {name} failed. Please check the WF Manager.")
 
     check_short_id_collision()
     if "wf_id" not in resp.json():
@@ -606,21 +712,17 @@ def submit(  # pylint:disable=R0915
         "Workflow submitted! Your workflow id is " f"{_short_id(wf_id)}.",
         fg=typer.colors.GREEN,
     )
-    logging.info("Sumit workflow:  {resp.text}")
-
-    # Cleanup code
-    if tarball_path:
-        os.remove(tarball_path)
+    logging.info("Submit workflow: {resp.text}")
 
     # Store provided arguments in text file for future reference
     wf_dir = wf_utils.get_workflow_dir(wf_id)
     sub_wf_dir = wf_dir + "/submit_command_args.yaml"
 
     cmd = {
-        "wf_name": wf_name,
-        "wf_path": str(wf_path),
-        "main_cwl": main_cwl,
-        "yaml": yaml_file,
+        "wf_name": name,
+        "wf_path": str(workflow),
+        "main_cwl": orig_cwl_path.name,
+        "yaml": orig_yaml_path.name if orig_yaml_path is not None else "",
         "workdir": workdir,
         "wf_id": wf_id,
     }
@@ -945,10 +1047,18 @@ def reexecute(
         archive.extractall(path=cwl_path, members=cwl_files)
 
         main_cwl = cwl_path / pathlib.Path(archive_cmd["main_cwl"]).name
-        yaml_file = cwl_path / pathlib.Path(archive_cmd["yaml"]).name
+        # Older (and python) workflow archives may not have a job input file
+        job = None
+        if archive_cmd.get("yaml"):
+            job = str(cwl_path / pathlib.Path(archive_cmd["yaml"]).name)
 
         return submit(
-            wf_name, pathlib.Path(cwl_path), main_cwl, yaml_file, pathlib.Path(workdir), no_start
+            pathlib.Path(cwl_path),
+            name=wf_name,
+            workdir=pathlib.Path(workdir),
+            main_cwl=str(main_cwl),
+            job=job,
+            no_start=no_start,
         )
 
 

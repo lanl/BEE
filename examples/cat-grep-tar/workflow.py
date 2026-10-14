@@ -12,7 +12,7 @@ Run it directly to see the parsed result:
 
 Submit it to a running BEE instance with:
 
-    beeflow submit cat-grep-tar . workflow.py input.yml <workdir>
+    beeflow submit workflow.py
 """
 from beeflow.common.workflow_api import Workflow, Resources
 
