@@ -910,9 +910,6 @@ def reexecute(
     no_start: bool = typer.Option(False, "--no-start", "-n", help="do not start workflow"),
 ):
     """Reexecute an archived workflow."""
-    if wf_id is None:
-        error_exit(f"Workflow ID {wf_id} cannot be found")
-
     archive_dir = archive_path()
     wf_path = os.path.join(archive_dir, f"{wf_id}.tgz")
 
