@@ -74,23 +74,24 @@ Contributors:
 * Ragini Gupta - `raginigupta6 <https://github.com/raginigupta6>`_
 * Aaron R Hall - `arhall0 <https://github.com/arhall0>`_
 * Leah Howell - `Leahh02 <https://github.com/Leahh02>`_
+* Santiago Lopez - `santiag0-3 <https://github.com/santiag0-3>`_
 * Lilikoi Latimer - `lilikoi-l <https://github.com/lilikoi-l>`_
+* Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
+* Howard Pritchard - `hppritcha <https://github.com/hppritcha>`_
 * Andres Quan - `aquan9 <https://github.com/aquan9>`_
-* Quincy Wofford - `qwofford <https://github.com/qwofford>`_
 * Tim Randles - `trandles-lanl <https://github.com/trandles-lanl>`_
+* Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
 * Jacob Tronge - `jtronge <https://github.com/jtronge>`_
 * Kabir Vats - `kabir-vats <https://github.com/kabir-vats>`_
+* Quincy Wofford - `qwofford <https://github.com/qwofford>`_
 * Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
-* Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
-* Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
-* Santiago Lopez - `santiag0-3 <https://github.com/santiag0-3>`_
 
 Concept and Design Contributors
 
 * James Ahrens
 * Curt Canada 
-* Allen McPherson
 * Li-Ta Lo
+* Allen McPherson
 * Louis Vernon
 
 
