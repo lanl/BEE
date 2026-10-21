@@ -195,6 +195,10 @@ class Task(BaseModel):
     id: Optional[str] = None
     state: Optional[str] = "WAITING"
     metadata: Optional[dict] = {}
+    # Names of tasks in the same workflow this task must run after, even when
+    # no data is shared between them (stored by name so dependency edges can
+    # be remapped when a task is restarted with a new id)
+    depends_on: Optional[list[str]] = []
 
     @model_validator(mode="before")
     def generate_id_if_missing(cls, data):  # pylint: disable=E0213
@@ -232,6 +236,7 @@ class Task(BaseModel):
             workflow_id=self.workflow_id,
             id=task_id,
             workdir=self.workdir,
+            depends_on=copy_method(self.depends_on),
         )
 
         # Apply any updates if provided

@@ -808,6 +808,7 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs, metadat
         id=task_record["id"],
         state=task_record["state"],
         workdir=task_record["workdir"],
+        depends_on=task_record["depends_on"] if "depends_on" in task_record else [],
     )
 
 

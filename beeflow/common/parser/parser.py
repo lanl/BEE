@@ -626,6 +626,56 @@ def _find_workflow_spec(module, path):
             )
 
 
+def find_dependency_cycle(tasks):
+    """Find a dependency cycle among python API workflow tasks, if one exists.
+
+    Dependencies come from both explicit depends_on references and input
+    references to other tasks' outputs, so cycles formed by either kind of
+    edge are reported. Task names are assumed unique; references to tasks
+    that are not part of the workflow are ignored here and reported by the
+    caller's membership validation.
+
+    :param tasks: the workflow tasks
+    :type tasks: list of workflow_api.Task
+    :rtype: list of str or None
+    """
+    names = {task.name for task in tasks}
+    graph = {}
+    for task in tasks:
+        deps = {dep.name for dep in task.depends_on or []}
+        deps.update(
+            value.task_name
+            for value in task.declared_values().values()
+            if isinstance(value, workflow_api.OutputRef)
+        )
+        graph[task.name] = deps & names
+
+    # Depth-first search marking: 0 unvisited, 1 on the current path, 2 done
+    color = {name: 0 for name in graph}
+
+    def visit(name, path):
+        """Follow dependencies from name, returning the cycle path if found."""
+        color[name] = 1
+        path.append(name)
+        for dep in sorted(graph[name]):
+            if color[dep] == 1:
+                return path[path.index(dep):] + [dep]
+            if color[dep] == 0:
+                found = visit(dep, path)
+                if found:
+                    return found
+        path.pop()
+        color[name] = 2
+        return None
+
+    for root in sorted(graph):
+        if color[root] == 0:
+            found = visit(root, [])
+            if found:
+                return found
+    return None
+
+
 class BeeParser:
     """Class for parsing BEE python workflow specifications.
 
@@ -790,18 +840,12 @@ class BeeParser:
                             f"task {task.name} depends on a task "
                             f"{dep.name!r} that is not part of the workflow"
                             )
-                # Phase 1: dependencies must be implied by data flow, since
-                # the graph database infers edges from output references
-                if not any(
-                        isinstance(value, workflow_api.OutputRef)
-                        and value.task_name == dep.name
-                        for value in declared.values()
-                        ):
-                    raise BeeParseError(
-                            f"task {task.name} depends on {dep.name!r} without "
-                            "sharing any data; explicit non-data dependencies "
-                            "are not yet supported"
-                            )
+
+        cycle = find_dependency_cycle(spec.tasks)
+        if cycle:
+            raise BeeParseError(
+                    "dependency cycle detected: " + " -> ".join(cycle)
+                    )
 
     def _parse_bee_task(self, task, workflow_id, workdir):
         """Convert a workflow_api.Task into a Task object for the WF_Interface.
@@ -829,6 +873,7 @@ class BeeParser:
                 stderr=task.stderr,
                 workflow_id=workflow_id,
                 workdir=workdir,
+                depends_on=[dep.name for dep in (task.depends_on or [])],
                 )
 
     @staticmethod

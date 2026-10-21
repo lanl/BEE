@@ -63,6 +63,7 @@ class SQL_GDB:
             reqs JSON,
             hints JSON,
             metadata JSON,
+            depends_on TEXT NOT NULL DEFAULT '[]',
             FOREIGN KEY (workflow_id) REFERENCES workflow(id) ON DELETE CASCADE
         );"""
 
@@ -93,6 +94,9 @@ class SQL_GDB:
         task_deps_stmt = """CREATE TABLE IF NOT EXISTS task_dep (
                 depending_task_id TEXT NOT NULL,
                 depends_on_task_id   TEXT NOT NULL,
+                -- 1 for explicit (non-data) depends_on edges, 0 for edges
+                -- inferred from data flow
+                explicit INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (depending_task_id, depends_on_task_id),
                 FOREIGN KEY (depending_task_id) REFERENCES task(id) ON DELETE CASCADE,
                 FOREIGN KEY (depends_on_task_id)   REFERENCES task(id) ON DELETE CASCADE
@@ -125,6 +129,27 @@ class SQL_GDB:
         bdb.create_table(self.db_file, task_deps_stmt)
         bdb.create_table(self.db_file, task_rst_stmt)
         bdb.runscript(self.db_file, add_indexes_stmt)
+        self._ensure_columns()
+
+    def _ensure_columns(self):
+        """Add columns introduced after the tables were first created.
+
+        Databases created by older BEE versions lack the depends_on and
+        explicit columns; ALTER TABLE appends them, which keeps the column
+        order of SELECT * identical to freshly created databases.
+        """
+        migrations = (
+            ("task", "depends_on",
+             "ALTER TABLE task ADD COLUMN depends_on TEXT NOT NULL DEFAULT '[]'"),
+            ("task_dep", "explicit",
+             "ALTER TABLE task_dep ADD COLUMN explicit INTEGER NOT NULL DEFAULT 0"),
+        )
+        for table, column, stmt in migrations:
+            if not bdb.table_exists(self.db_file, table):
+                continue
+            columns = bdb.getall(self.db_file, f"PRAGMA table_info({table})")
+            if not any(row[1] == column for row in columns):
+                bdb.run(self.db_file, stmt)
 
     def create_workflow(self, workflow: Workflow):
         """Create a workflow in the db"""
@@ -201,8 +226,15 @@ class SQL_GDB:
         bdb.run(self.db_file, defaults_query, {'wf_id': wf_id})
 
     def set_runnable_tasks_to_ready(self, wf_id: str):
-        """Set all tasks with all inputs satisfied to READY state"""
-        set_runnable_ready_query = """
+        """Set all runnable tasks to READY state.
+
+        A task is runnable when all of its inputs have values and none of its
+        explicit (non-data) dependencies are still incomplete. Explicit
+        dependencies release once the dependency reaches any final state;
+        failed dependencies are handled separately by DEP_FAIL propagation.
+        """
+        final_states = ", ".join(f"'{state}'" for state in final_task_states)
+        set_runnable_ready_query = f"""
             UPDATE task
             SET state = 'READY'
             WHERE workflow_id = :wf_id
@@ -212,7 +244,15 @@ class SQL_GDB:
                 FROM task_input AS ti
                 WHERE ti.task_id = task.id
                     AND ti.value IS NULL
-        );"""
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM task_dep AS d
+                JOIN task AS dep ON dep.id = d.depends_on_task_id
+                WHERE d.depending_task_id = task.id
+                    AND d.explicit = 1
+                    AND dep.state NOT IN ({final_states})
+            );"""
         bdb.run(self.db_file, set_runnable_ready_query, {'wf_id': wf_id})
 
     def set_workflow_state(self, wf_id: str, state: str):
@@ -226,8 +266,8 @@ class SQL_GDB:
     def create_task(self, task: Task):
         """Create a task in the db"""
         task_stmt = """INSERT INTO task (id, workflow_id, name, state, workdir, base_command,
-                    stdout, stderr, reqs, hints, metadata)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+                    stdout, stderr, reqs, hints, metadata, depends_on)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
         task_input_stmt = """INSERT INTO task_input (id, task_id, type, value, default_val, source,
                     prefix, position, value_from)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);"""
@@ -241,7 +281,8 @@ class SQL_GDB:
         bdb.run(self.db_file, task_stmt, (task.id, task.workflow_id, task.name,
                                           task.state, task.workdir,
                                       json.dumps(task.base_command), task.stdout, task.stderr,
-                                      reqs_json, hints_json, metadata_json))
+                                      reqs_json, hints_json, metadata_json,
+                                      json.dumps(task.depends_on or [])))
 
 
         for inp in task.inputs:
@@ -326,6 +367,46 @@ class SQL_GDB:
 
             bdb.run(self.db_file, dependency_query, {'task_id': task.id})
             bdb.run(self.db_file, dependent_query, {'task_id': task.id})
+
+        self._add_explicit_dependencies(task)
+
+    def _add_explicit_dependencies(self, task: Task):
+        """Add explicit (non-data) depends_on edges for a task.
+
+        Explicit dependencies are recorded by task name and resolved to task
+        IDs here. Both directions relative to load order are written: edges
+        from this task to dependencies that are already loaded, and edges from
+        already-loaded tasks that depend on this task. Whichever task loads
+        second writes the edge, so task order within the workflow does not
+        matter (task_dep rows reference task rows by a foreign key).
+
+        :param task: the task whose explicit dependencies to record
+        :type task: Task
+        """
+        upsert = """
+            INSERT INTO task_dep (depending_task_id, depends_on_task_id, explicit)
+            VALUES (:depending, :depends_on, 1)
+            ON CONFLICT(depending_task_id, depends_on_task_id)
+            DO UPDATE SET explicit = 1;"""
+        rows = bdb.getall(
+            self.db_file,
+            'SELECT id, name, depends_on FROM task WHERE workflow_id=?',
+            [task.workflow_id],
+        )
+        if not rows:
+            return
+        loaded = {row[1]: row[0] for row in rows}
+        # Edges from this task to its dependencies that are already loaded
+        for dep_name in task.depends_on or []:
+            dep_id = loaded.get(dep_name)
+            if dep_id is not None and dep_id != task.id:
+                bdb.run(self.db_file, upsert,
+                        {'depending': task.id, 'depends_on': dep_id})
+        # Edges from already-loaded tasks that depend on this task
+        for row_id, _, deps_json in rows:
+            if row_id != task.id and task.name in json.loads(deps_json or "[]"):
+                bdb.run(self.db_file, upsert,
+                        {'depending': row_id, 'depends_on': task.id})
 
 
     def copy_task_outputs(self, task: Task):
@@ -423,6 +504,8 @@ class SQL_GDB:
             requirements=[Requirement.model_validate(r) for r in json.loads(task_data[8])],
             hints=[Hint.model_validate(h) for h in json.loads(task_data[9])],
             metadata=json.loads(task_data[10]),
+            # depends_on is the last column of the task table (see _ensure_columns)
+            depends_on=json.loads(task_data[11] or "[]"),
             inputs=self.get_task_inputs(task_data[0]),
             outputs=self.get_task_outputs(task_data[0])
             )

@@ -97,6 +97,11 @@ class Task:
     same value in every task become workflow inputs (overridable through the
     job file); names declared with conflicting values stay task-local.
 
+    depends_on lists other tasks of the workflow (the Task objects returned
+    by add_task) that must reach a final state before this task starts, even
+    when no data is passed between them; output() references already imply
+    such a dependency.
+
     outputs maps output names to the files they collect. pre_script and
     post_script name script files (with a shebang line matching the shell)
     run before/after the command.

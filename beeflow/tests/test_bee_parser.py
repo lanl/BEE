@@ -496,7 +496,7 @@ def test_bee_api_undeclared_placeholder():
 
 
 def test_bee_api_dependson_without_data():
-    """Test that a non-data depends_on dependency raises an error."""
+    """Test that a non-data depends_on dependency is accepted and recorded."""
     workflow = workflow_api.Workflow("deps")
     setup = workflow.add_task(name="setup", commands=["echo setup"], outputs={})
     workflow.add_task(
@@ -505,8 +505,82 @@ def test_bee_api_dependson_without_data():
         outputs={},
         depends_on=[setup],
     )
-    with pytest.raises(BeeParseError, match="without sharing any data"):
-        BeeParser().parse_workflow("bee123", "deps", workflow)
+    _, tasks = BeeParser().parse_workflow("bee123", "deps", workflow)
+    by_name = {task.name: task for task in tasks}
+    assert by_name["run"].depends_on == ["setup"]
+    assert by_name["setup"].depends_on == []
+
+
+def test_bee_api_dependson_unknown_task():
+    """Test that a depends_on reference outside the workflow errors."""
+    workflow = workflow_api.Workflow("unknown-dep")
+    outsider = workflow_api.Task(name="outsider", commands=["echo x"], outputs={})
+    workflow.add_task(
+        name="inner", commands=["echo y"], outputs={}, depends_on=[outsider]
+    )
+    with pytest.raises(BeeParseError, match="not part of the workflow"):
+        BeeParser().parse_workflow("bee123", "unknown-dep", workflow)
+
+
+def test_bee_api_explicit_dependency_cycle():
+    """Test that a cycle of explicit depends_on references errors."""
+    workflow = workflow_api.Workflow("cycle")
+    first = workflow.add_task(name="first", commands=["echo first"], outputs={})
+    second = workflow.add_task(
+        name="second", commands=["echo second"], outputs={}, depends_on=[first]
+    )
+    first.depends_on = [second]
+    with pytest.raises(
+        BeeParseError, match="dependency cycle detected: first -> second -> first"
+    ):
+        BeeParser().parse_workflow("bee123", "cycle", workflow)
+
+
+def test_bee_api_data_dependency_cycle():
+    """Test that a cycle of output references errors."""
+    workflow = workflow_api.Workflow("data-cycle")
+    alpha = workflow.add_task(
+        name="alpha", commands=["echo a"], outputs={"out": "a.txt"}
+    )
+    workflow.add_task(
+        name="beta",
+        commands=["echo b"],
+        inputs={"prev": alpha.output("out")},
+        outputs={"out": "b.txt"},
+    )
+    # alpha consumes beta's output as well, closing the loop
+    alpha.inputs = {"prev": workflow.tasks[1].output("out")}
+    with pytest.raises(BeeParseError, match="dependency cycle"):
+        BeeParser().parse_workflow("bee123", "data-cycle", workflow)
+
+
+def test_bee_api_mixed_dependency_cycle():
+    """Test that a cycle mixing data flow and explicit edges errors."""
+    workflow = workflow_api.Workflow("mixed-cycle")
+    producer = workflow.add_task(
+        name="producer", commands=["echo p"], outputs={"out": "p.txt"}
+    )
+    consumer = workflow.add_task(
+        name="consumer",
+        commands=["echo c"],
+        inputs={"upstream": producer.output("out")},
+        outputs={},
+    )
+    # producer waits explicitly for consumer while consumer uses its data
+    producer.depends_on = [consumer]
+    with pytest.raises(BeeParseError, match="dependency cycle"):
+        BeeParser().parse_workflow("bee123", "mixed-cycle", workflow)
+
+
+def test_bee_api_self_dependency_cycle():
+    """Test that a task consuming its own output errors as a cycle."""
+    workflow = workflow_api.Workflow("self-cycle")
+    task = workflow.add_task(
+        name="selfish", commands=["echo hi"], outputs={"out": "s.txt"}
+    )
+    task.inputs = {"loop": task.output("out")}
+    with pytest.raises(BeeParseError, match="dependency cycle"):
+        BeeParser().parse_workflow("bee123", "self-cycle", workflow)
 
 
 def test_bee_api_add_task_and_output_refs():

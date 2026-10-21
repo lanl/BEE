@@ -615,6 +615,43 @@ class TestWorkflowInterface(unittest.TestCase):
         # Workflow now completed
         self.assertTrue(self.wfi.workflow_completed())
 
+    def test_explicit_dependency_readiness(self):
+        """Test that a task with an explicit depends_on waits for it."""
+        workflow_id = generate_workflow_id()
+        self.wfi.initialize_workflow(Workflow(name="test_workflow", id=workflow_id))
+        first = Task(name="first", base_command=["echo", "first"],
+                     workflow_id=workflow_id, state="WAITING")
+        second = Task(name="second", base_command=["echo", "second"],
+                      workflow_id=workflow_id, state="WAITING",
+                      depends_on=["first"])
+        self.wfi.add_task(first)
+        self.wfi.add_task(second)
+
+        self.wfi.execute_workflow()
+
+        # Only the dependency itself becomes ready
+        self.assertEqual("READY", self.wfi.get_task_state(first.id))
+        self.assertEqual("WAITING", self.wfi.get_task_state(second.id))
+
+        # Finalizing the dependency releases the dependent task
+        self.wfi.finalize_task(first)
+        self.assertEqual("READY", self.wfi.get_task_state(second.id))
+
+    def test_get_dependent_tasks_includes_explicit(self):
+        """Test that get_dependent_tasks returns explicit dependents."""
+        workflow_id = generate_workflow_id()
+        self.wfi.initialize_workflow(Workflow(name="test_workflow", id=workflow_id))
+        first = Task(name="first", base_command=["echo", "first"],
+                     workflow_id=workflow_id, state="WAITING")
+        second = Task(name="second", base_command=["echo", "second"],
+                      workflow_id=workflow_id, state="WAITING",
+                      depends_on=["first"])
+        self.wfi.add_task(first)
+        self.wfi.add_task(second)
+
+        dependents = self.wfi.get_dependent_tasks(first.id)
+        self.assertIn(second.id, [task.id for task in dependents])
+
     def _create_test_tasks(self, workflow_id):
         """Create test tasks to reduce redundancy."""
         # Remember that add_task uploads the task to the database as well as returns a Task
