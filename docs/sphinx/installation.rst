@@ -50,7 +50,7 @@ If you are using Flux, replace the second-line in the example above with:
 To check your environment is configured correctly for Flux, run
 the following command:
 
-``python -c 'from flux import job; print("Flux bindings found")``
+``python -c "from flux import job; print('Flux bindings found')"``
 
 
 An alternative is to install Poetry in your python environment and use it 
