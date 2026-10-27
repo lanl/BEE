@@ -359,7 +359,7 @@ def check_dependencies(backend=False):
     # Check for the flux API
     if bc.get('DEFAULT', 'workload_scheduler') == 'Flux':
         try:
-            import flux  # pylint: disable=W0611,C0415 # don't need to check whether flux api is actually installed
+            from flux import job # pylint: disable=W0611,C0415 # don't need to check whether flux api is actually installed
         except ModuleNotFoundError:
             warn('Failed to import flux Python API. Please consult the BEE documentation '
                  'to ensure your environment is configured correctly.')
