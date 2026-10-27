@@ -37,19 +37,25 @@ If you do not already have a python environment, you may be able to use the foll
     mkdir beeflow-env
     python3 -m venv beeflow-env
     source beeflow-env/bin/activate
+    pip install --upgrade pip
     pip install hpc-beeflow
 
-You will need to activate the environment with the command ``source beeflow-env/bin/activate`` and type ``deactivate`` when done.
+You will need to activate the environment with the command
+``source beeflow-env/bin/activate`` and type ``deactivate`` when done.
+
+If you are using Flux, replace the second-line in the example above with:
+
+``python3 -m venv --system-site-packages beeflow-env``
+
+To check your environment is configured correctly for Flux, run
+the following command:
+
+``python -c "from flux import job; print('Flux bindings found')"``
 
 
 An alternative is to install Poetry in your python environment and use it 
 to manage BEE's dependencies, but we suggest this only for contributors.
 For more information click on the Developer's Guide in this documentation.
-
-If you are using Flux, replace the second-line in the example above with
-``python3.12 -m venv --system-site-packages beeflow-env`` when creating
-your environment. To make sure your environment is configured correctly, run
-the following command: ``python -c 'from flux import job; print("Flux bindings found")``.
 
 Creating Configuration File:
 ----------------------------
