@@ -152,6 +152,9 @@ class FluxWorker(Worker):
         info = self.job.get_job(flux, job_id)
         job_info = deepcopy(info)
 
+        encoded_id = self.job.JobID.encode(job_info['id'],encoding='f58')
+        job_info['id'] = encoded_id
+
         # TODO: May need to check for return codes other than 0 if
         # specified by the task (although I'm not sure how we can keep
         # track of this with job ID alone)
