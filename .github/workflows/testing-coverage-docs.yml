@@ -37,6 +37,30 @@ jobs:
 
       - name: Install Initial Dependencies  
         run: ./ci/deps_install.sh
+      
+      - name: Transition Spack into Environment
+        run: |
+          SPACK_DIR="${SPACK_DIR:-$GITHUB_WORKSPACE/spack}"
+          if [ ! -d "$SPACK_DIR" ]; then
+               echo "Cloning Spack..."
+               git clone --depth=2 --branch=releases/latest https://github.com/spack/spack.git "$SPACK_DIR"
+          fi
+
+          . "$SPACK_DIR/share/spack/setup-env.sh"
+
+          spack env create beeflow || true
+          spack env activate beeflow
+
+          spack install --add redis --no-check-signature
+
+          echo "Starting background Redis daemon..."
+          redis-server --daemonize yes
+
+          echo "$SPACK_DIR/bin" >> $GITHUB_PATH
+          echo "SPACK_ROOT=$SPACK_DIR" >> $GITHUB_ENV
+    
+          REDIS_BIN_DIR=$(spack location -i redis)/bin
+          echo "$REDIS_BIN_DIR" >> $GITHUB_PATH
 
       - name: Install Flux Dependencies 
         if: env.BEE_WORKER == 'Flux'
