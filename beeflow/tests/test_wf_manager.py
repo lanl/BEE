@@ -114,6 +114,51 @@ def test_submit_workflow(client, mocker, teardown_workflow, temp_db):
     assert resp.json['msg'] == 'Workflow uploaded'
 
 
+def test_retry_workflow(client, mocker, teardown_workflow, temp_db):
+    """Tests retrying a failed workflow."""
+    # Mock the workflow interface to return FAILED state
+    mock_wfi = mocker.patch(
+        'beeflow.wf_manager.resources.wf_utils.get_workflow_interface'
+    )
+    mock_wfi.return_value.get_workflow_state.return_value = 'FAILED'
+    
+    # Mock the other functions called
+    mocker.patch('beeflow.wf_manager.resources.wf_utils.update_wf_status')
+    start_workflow = mocker.patch(
+        'beeflow.wf_manager.resources.wf_utils.start_workflow'
+    )
+    
+    resp = client().patch(
+        "/bee_wfm/v1/jobs/",
+        json={"wf_id": WF_ID},
+    )
+    
+    assert resp.status_code == 200
+    assert resp.json["msg"] == "Workflow retried successfully"
+    assert resp.json["status"] == "ok"
+    
+    # Verify start_workflow was called
+    start_workflow.delay.assert_called_once_with(WF_ID)
+
+
+def test_retry_non_failed_workflow(client, mocker, teardown_workflow, temp_db):
+    """Test that retrying a non-FAILED workflow returns error."""
+    # Mock workflow interface to return non-FAILED state
+    mock_wfi = mocker.patch(
+        'beeflow.wf_manager.resources.wf_utils.get_workflow_interface'
+    )
+    mock_wfi.return_value.get_workflow_state.return_value = 'Running'
+    
+    resp = client().patch(
+        "/bee_wfm/v1/jobs/",
+        json={"wf_id": WF_ID},
+    )
+    
+    assert resp.status_code == 409
+    assert resp.json["status"] == "error"
+    assert "cannot" in resp.json["msg"].lower() or "retry" in resp.json["msg"].lower()
+
+
 class MockDBWorkflowHandle:
     """Mock DB workflow handle."""
 
