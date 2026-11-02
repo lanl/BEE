@@ -58,7 +58,7 @@ def format_runtime(runtime):
     """Format the runtime in a human-readable way."""
     minutes, seconds = divmod(runtime, 60)
     hours, minutes = divmod(minutes, 60)
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return f"{hours:02.0f}:{minutes:02.0f}:{seconds:02.0f}"
 
 def calc_runtime(job_state,job_info):
     """Calculate the runtime of a task when using slurmrestd."""

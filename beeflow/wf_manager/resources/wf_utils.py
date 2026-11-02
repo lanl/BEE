@@ -388,4 +388,12 @@ def standardize_time(metadata,scheduler):
                     metadata[k] = 0
                 else:
                     metadata[k] = dt.fromisoformat(metadata[k]).strftime('%Y-%m-%d %H:%M:%S')
+    elif scheduler == 'flux':
+        time = {"t_run","t_inactive","t_submit"}
+        for k in list(metadata):
+            if k in time:
+                if metadata[k] == 0.0:
+                    metadata[k] = 0
+                else:
+                    metadata[k] = dt.fromtimestamp(metadata[k]).strftime('%Y-%m-%d %H:%M:%S')
     return metadata

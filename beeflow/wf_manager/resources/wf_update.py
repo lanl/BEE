@@ -112,7 +112,7 @@ class WFUpdate(Resource):
             os.makedirs(task_dir, exist_ok=True)
             if os.path.exists(task_dir):
                 with open(metadata_path,'w',encoding='utf-8') as f:
-                    yaml.dump(old_metadata,f,sort_keys=True)
+                    yaml.safe_dump(old_metadata,f,sort_keys=True,allow_unicode=True)
 
         # Get output from the task
         if state_update.output is not None:
