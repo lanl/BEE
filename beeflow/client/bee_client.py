@@ -886,14 +886,18 @@ def query(wf_id: Optional[str] = typer.Argument(None, callback=match_short_id)):
         typer.echo(wf_status)
 
     scheduler = config_driver.BeeConfig.get('DEFAULT','workload_scheduler').lower()
-    if scheduler == 'slurm' and config_driver.BeeConfig.get('slurm','use_commands'):
-        section = 'slurm command attributes'
+    if scheduler == 'slurm':
+        if config_driver.BeeConfig.get('slurm','use_commands'):
+            section = 'slurm command attributes'
+        else:
+            section = 'slurm attributes'
     elif scheduler == 'flux':
         section = 'flux attributes'
     else:
-        section= 'slurm attributes'
+        # Simple and LSF do not define scheduler-specific query attributes.
+        section = None
 
-    attrs = config_driver.BeeConfig.get(section, 'attributes')
+    attrs = config_driver.BeeConfig.get(section, 'attributes') if section else []
     logging.info(attrs)
     if isinstance(attrs,str):
         attrs = [attr.strip() for attr in attrs.split(',') if attr.strip()]

@@ -904,6 +904,33 @@ def test_query(mocker, capsys, wf_status, exp_out):
     assert cap.out == exp_out
 
 
+def test_query_with_simple_scheduler(mocker, capsys):
+    """Simple queries display task states without looking up Slurm attributes."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 200
+    fake_resp.json.return_value = {
+        "tasks_status": [("", "write-check", "COMPLETED", {})],
+        "wf_status": "Completed",
+        "msg": "Workflow status retrieved successfully",
+    }
+    mock_conn = mocker.Mock()
+    mock_conn.get.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    config_get = mocker.patch(
+        "beeflow.common.config_driver.BeeConfig.get", return_value="Simple"
+    )
+
+    bee_client.query("workflow-id")
+
+    assert capsys.readouterr().out == (
+        "Completed\n"
+        "task_name    task_state\n"
+        "-----------  ------------\n"
+        "write-check  COMPLETED\n"
+    )
+    config_get.assert_called_once_with("DEFAULT", "workload_scheduler")
+
+
 @pytest.mark.parametrize(
     "wf_status, exp_out",
     [
