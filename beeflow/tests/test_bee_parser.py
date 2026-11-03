@@ -1,5 +1,6 @@
 """Tests for the BEE python workflow specification parser (BeeParser)."""
 
+import os
 import textwrap
 
 import pytest
@@ -581,6 +582,98 @@ def test_bee_api_self_dependency_cycle():
     task.inputs = {"loop": task.output("out")}
     with pytest.raises(BeeParseError, match="dependency cycle"):
         BeeParser().parse_workflow("bee123", "self-cycle", workflow)
+
+
+def test_bee_api_task_workdir(tmp_path):
+    """Test that a task workdir resolves under the workflow workdir."""
+    workflow = workflow_api.Workflow("workdirs")
+    workflow.add_task(
+        name="sub",
+        commands=["echo hi"],
+        outputs={"out": "o.txt"},
+        workdir="sub",
+    )
+    workflow.add_task(name="base", commands=["echo hi"], outputs={})
+    _, tasks = BeeParser().parse_workflow(
+        "bee123", "workdirs", workflow, workdir=str(tmp_path)
+    )
+    by_name = {task.name: task for task in tasks}
+
+    expected_dir = str((tmp_path / "sub").resolve())
+    assert by_name["sub"].workdir == expected_dir
+    # Output globs resolve inside the task workdir, not the workflow workdir
+    assert by_name["sub"].outputs[0].glob == os.path.abspath(
+        os.path.join(expected_dir, "o.txt")
+    )
+    # No workdir means the workflow workdir itself
+    assert by_name["base"].workdir == str(tmp_path)
+
+
+def test_bee_api_workdir_invalid():
+    """Test that a non-path workdir errors."""
+    workflow = workflow_api.Workflow("wd-bad")
+    workflow.add_task(name="run", commands=["echo hi"], outputs={}, workdir=42)
+    with pytest.raises(BeeParseError, match="workdir must be"):
+        BeeParser().parse_workflow("bee123", "wd-bad", workflow)
+
+
+def test_bee_api_container_hint():
+    """Test that a plain string container becomes a dockerPull hint."""
+    workflow = workflow_api.Workflow("ctr")
+    workflow.add_task(
+        name="run", commands=["echo hi"], outputs={}, container="debian:12"
+    )
+    _, tasks = BeeParser().parse_workflow("bee123", "ctr", workflow)
+    task = tasks[0]
+
+    assert task.requirements == []
+    assert [hint.class_ for hint in task.hints] == ["DockerRequirement"]
+    assert task.hints[0].params == {"dockerPull": "debian:12"}
+
+
+def test_bee_api_container_required():
+    """Test that Container(required=True) becomes a requirement."""
+    workflow = workflow_api.Workflow("ctr-req")
+    workflow.add_task(
+        name="run",
+        commands=["echo hi"],
+        outputs={},
+        container=workflow_api.Container(image="debian:12", required=True),
+    )
+    _, tasks = BeeParser().parse_workflow("bee123", "ctr-req", workflow)
+    task = tasks[0]
+
+    assert [req.class_ for req in task.requirements] == ["DockerRequirement"]
+    assert all(hint.class_ != "DockerRequirement" for hint in task.hints)
+
+
+def test_bee_api_container_local_image_and_mounts():
+    """Test that a local image file runs in place with bind mounts."""
+    workflow = workflow_api.Workflow("ctr-local")
+    workflow.add_task(
+        name="run",
+        commands=["echo hi"],
+        outputs={},
+        container=workflow_api.Container(
+            image="/data/img.sqfs", bind_mounts={"/host/data": "/data"}
+        ),
+    )
+    _, tasks = BeeParser().parse_workflow("bee123", "ctr-local", workflow)
+    params = tasks[0].hints[0].params
+
+    assert params["beeflow:useContainer"] == "/data/img.sqfs"
+    assert "dockerPull" not in params
+    assert params["beeflow:bindMounts"] == "/host/data: /data"
+
+
+def test_bee_api_container_invalid():
+    """Test that an invalid container specification errors."""
+    workflow = workflow_api.Workflow("ctr-bad")
+    workflow.add_task(
+        name="run", commands=["echo hi"], outputs={}, container=42
+    )
+    with pytest.raises(BeeParseError, match="container must be"):
+        BeeParser().parse_workflow("bee123", "ctr-bad", workflow)
 
 
 def test_bee_api_add_task_and_output_refs():

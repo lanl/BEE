@@ -84,6 +84,23 @@ class OutputRef:
 
 
 @dataclass
+class Container:
+    """Container image settings for a task.
+
+    image names a container image: either a registry reference to pull and
+    build (for example "debian:12"), or the path of a local image file
+    (.tar, .tar.gz, .sqfs, ...), which is used in place. bind_mounts maps
+    host paths to paths inside the container. required makes the container
+    mandatory: the task fails if the container cannot be provided, instead
+    of falling back to the default environment when it can't.
+    """
+
+    image: str
+    bind_mounts: dict = field(default_factory=dict)
+    required: bool = False
+
+
+@dataclass
 class Task:
     """Represents a task in the new python workflow API.
 
@@ -102,6 +119,14 @@ class Task:
     when no data is passed between them; output() references already imply
     such a dependency.
 
+    workdir sets the task's working directory, relative to the workflow
+    workdir unless absolute. The directory is created when the task is
+    submitted; files produced by the command and relative file paths in the
+    command are resolved inside it.
+
+    container runs the task in a container image: a plain string or a
+    Container (see the Container dataclass for bind mounts and required).
+
     outputs maps output names to the files they collect. pre_script and
     post_script name script files (with a shebang line matching the shell)
     run before/after the command.
@@ -119,6 +144,8 @@ class Task:
     post_script: str = None
     stdout: str = None
     stderr: str = None
+    workdir: str = None
+    container: object = None
 
     def output(self, name):
         """Return a reference to one of this task's outputs.

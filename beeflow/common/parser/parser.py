@@ -834,6 +834,25 @@ class BeeParser:
                             "is declared"
                             )
 
+            if task.container is not None:
+                if isinstance(task.container, workflow_api.Container):
+                    image = task.container.image
+                elif isinstance(task.container, str):
+                    image = task.container
+                else:
+                    image = None
+                if not isinstance(image, str) or not image.strip():
+                    raise BeeParseError(
+                            f"task {task.name} container must be a non-empty "
+                            "image string or a Container"
+                            )
+            if task.workdir is not None and not isinstance(
+                    task.workdir, (str, os.PathLike)
+                    ):
+                raise BeeParseError(
+                        f"task {task.name} workdir must be a string or path"
+                        )
+
             for dep in task.depends_on or []:
                 if dep is not by_name.get(dep.name):
                     raise BeeParseError(
@@ -852,29 +871,83 @@ class BeeParser:
 
         :rtype: Task
         """
+        task_workdir = resolve_step_workdir(task.workdir, workdir)
         command, step_inputs = self._bee_command_and_inputs(task)
         step_outputs = [
                 StepOutput(
                     id=f"{task.name}/{name}",
                     type="File",
                     value=None,
-                    glob=os.path.abspath(os.path.join(workdir, glob)) if glob else glob,
+                    glob=os.path.abspath(os.path.join(task_workdir, glob)) if glob else glob,
                     )
                 for name, glob in task.outputs.items()
                 ]
+        hints = self._bee_task_hints(task)
+        requirements = []
+        container = self._bee_container(task)
+        if container is not None:
+            container_params, required = container
+            if required:
+                requirements.append(
+                        Requirement(class_="DockerRequirement", params=container_params)
+                        )
+            else:
+                hints.append(Hint(class_="DockerRequirement", params=container_params))
         return Task(
                 name=task.name,
                 base_command=command,
-                hints=self._bee_task_hints(task),
-                requirements=[],
+                hints=hints,
+                requirements=requirements,
                 inputs=step_inputs,
                 outputs=step_outputs,
                 stdout=task.stdout,
                 stderr=task.stderr,
                 workflow_id=workflow_id,
-                workdir=workdir,
+                workdir=task_workdir,
                 depends_on=[dep.name for dep in (task.depends_on or [])],
                 )
+
+    @staticmethod
+    def _bee_container(task):
+        """Convert a python API container into DockerRequirement parameters.
+
+        A registry reference becomes a dockerPull entry that the build phase
+        pulls; a local image file is used in place with beeflow:useContainer.
+        A plain string container, or Container(required=False), becomes a
+        hint (the task falls back to the default environment when the
+        container cannot be provided), while Container(required=True) becomes
+        a requirement, which fails the task instead.
+
+        :rtype: (dict, bool) or None
+        """
+        container = task.container
+        if container is None:
+            return None
+        if isinstance(container, str):
+            image, mounts, required = container, {}, False
+        else:
+            image, mounts, required = (
+                    container.image,
+                    container.bind_mounts or {},
+                    container.required,
+                    )
+        expanded = os.path.expanduser(image)
+        local_image = (
+                os.path.isfile(expanded)
+                or image.startswith(("/", "./", "../", "~"))
+                or image.endswith((".tar", ".tar.gz", ".tgz", ".sqfs",
+                                   ".squash", ".squashfs"))
+                )
+        params = {}
+        if local_image:
+            params["beeflow:useContainer"] = expanded
+        else:
+            params["dockerPull"] = image
+        if mounts:
+            params["beeflow:bindMounts"] = "\n".join(
+                    f"{host}: {target}" for host, target in mounts.items()
+                    )
+        return params, required
 
     @staticmethod
     def _bee_command_and_inputs(task):
@@ -1281,7 +1354,7 @@ def parse_args(args=None):
 
 def resolve_step_workdir(step_workdir, workdir):
     """Resolve step workdir relative to workflow workdir."""
-    if not step_workdir or step_workdir.strip() == "":
+    if step_workdir is None or str(step_workdir).strip() == "":
         return workdir
     # should be redundant
     workdir = Path(workdir).expanduser().resolve()

@@ -68,3 +68,44 @@ def test_run_text_use_container(
     assert pre_commands == pre_commands_exp
     assert main_command == main_command_exp
     assert post_commands == post_commands_exp
+
+
+def test_run_text_keeps_user_bind_mounts(mocker, tmpdir):
+    """Test that user beeflow:bindMounts survive when the task has a workdir."""
+    tmpdir_str = str(tmpdir)
+    mocker.patch("beeflow.common.config_driver.BeeConfig.get", return_value="env")
+    mocker.patch(
+        "beeflow.common.config_driver.BeeConfig.resolve_path", return_value=tmpdir_str
+    )
+    mocker.patch("os.getenv", return_value=str(tmpdir))
+    requirements = [
+        Requirement(
+            class_="DockerRequirement",
+            params={
+                "beeflow:containerName": None,
+                "beeflow:bindMounts": "/host/data: /data",
+                "beeflow:copyContainer": None,
+                "dockerPull": None,
+                "beeflow:useContainer": "cont.sqfs",
+            },
+        )
+    ]
+    task = Task(
+        name="",
+        base_command="",
+        hints=[],
+        requirements=requirements,
+        inputs=[],
+        outputs=[],
+        stdout="",
+        stderr="",
+        workflow_id="",
+        workdir=tmpdir_str,
+    )
+    driver = crt_driver()
+    res = driver.run_text(task)
+
+    main_command = " ".join(res.main_command.args)
+    # The user's mount is kept alongside the default $HOME mapping
+    assert "-b /host/data:/data" in main_command
+    assert main_command.count("-b") == 2
