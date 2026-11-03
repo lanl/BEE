@@ -104,9 +104,10 @@ class Container:
 class Task:
     """Represents a task in the new python workflow API.
 
-    commands is a single command string (a list with one entry is also
-    accepted) in which {name} placeholders are replaced at execution time by
-    the values of the task's params and inputs.
+    commands is one or more command strings. Multiple commands run in order
+    and the next command runs only if the previous command succeeds
+    (equivalent to joining them with ``&&``). A {name} placeholder in any
+    command is replaced at execution time by the corresponding param or input.
 
     params holds task-local values used to fill {name} placeholders. inputs
     holds task inputs: a static value, or the result of another task's

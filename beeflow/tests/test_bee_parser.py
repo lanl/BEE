@@ -415,6 +415,23 @@ def test_bee_api_command_placeholders_filled(tmp_path):
         _ = grep0.command
 
 
+def test_bee_api_multiple_commands_and_placeholders():
+    """Multiple command strings become nested argv lists and chain with &&."""
+    workflow = workflow_api.Workflow("multi-command")
+    workflow.add_task(
+        name="run",
+        commands=["echo {message}", "echo finished"],
+        params={"message": "hello world"},
+        outputs={},
+    )
+    _, tasks = BeeParser().parse_workflow("bee123", "multi-command", workflow)
+    task = tasks[0]
+
+    assert task.base_command == [["echo", "{message}"], ["echo", "finished"]]
+    task.inputs[0].value = "hello world"
+    assert task.command == ["/bin/sh", "-c", "'echo hello world && echo finished'"]
+
+
 def test_bee_api_resources_and_scripts(tmp_path, monkeypatch):
     """Test resources, scheduler options, and pre/post scripts as hints."""
     (tmp_path / "run_pre.sh").write_text("#!/bin/bash\necho start\n")

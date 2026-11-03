@@ -1,4 +1,5 @@
 """Charliecloud driver tests."""
+import subprocess
 import pathlib
 import pytest
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
@@ -109,3 +110,21 @@ def test_run_text_keeps_user_bind_mounts(mocker, tmpdir):
     # The user's mount is kept alongside the default $HOME mapping
     assert "-b /host/data:/data" in main_command
     assert main_command.count("-b") == 2
+
+
+def test_run_text_chains_multiple_commands():
+    """The worker command text chains commands and preserves failure status."""
+    task = Task(
+        name="multi",
+        base_command=[["echo", "ran-first"], ["false"]],
+        hints=[],
+        requirements=[],
+        inputs=[],
+        outputs=[],
+        workflow_id="wf",
+    )
+    command = " ".join(crt_driver().run_text(task).main_command.args)
+
+    result = subprocess.run(command, shell=True, capture_output=True, check=False)
+    assert result.returncode != 0
+    assert result.stdout == b"ran-first\n"

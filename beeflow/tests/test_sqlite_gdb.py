@@ -352,6 +352,23 @@ def test_task_roundtrip_preserves_depends_on(real_gdb):
     assert loaded.depends_on == ["setup"]
 
 
+def test_task_roundtrip_preserves_multiple_base_commands(real_gdb):
+    """Nested base_command lists survive sqlite JSON serialization."""
+    workflow = _init_workflow(real_gdb)
+    task = Task(
+        name="multi",
+        base_command=[["echo", "first"], ["echo", "second"]],
+        workflow_id=workflow.id,
+        inputs=[],
+        outputs=[],
+    )
+    real_gdb.create_task(task)
+    real_gdb.add_dependencies(task)
+
+    loaded = real_gdb.get_task(task.id)
+    assert loaded.base_command == [["echo", "first"], ["echo", "second"]]
+
+
 def test_ensure_columns_migrates_old_schema(tmp_path):
     """Databases created before phase 2 gain the new columns."""
     db_file = str(tmp_path / "old.db")

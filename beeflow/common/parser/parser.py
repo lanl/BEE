@@ -800,12 +800,6 @@ class BeeParser:
                 raise BeeParseError(
                         f"task {task.name} must define a non-empty command string"
                         )
-            if len(commands) > 1:
-                raise BeeParseError(
-                        f"task {task.name}: multiple commands are not yet "
-                        "supported by the python workflow API"
-                        )
-
             declared = task.declared_values()
             for name, value in declared.items():
                 if isinstance(value, workflow_api.OutputRef):
@@ -957,9 +951,13 @@ class BeeParser:
         command property fills them in from the input values at execution
         time (object_models.Task.command).
 
-        :rtype: (list of str, list of StepInput)
+        :rtype: (list of str or list of list of str, list of StepInput)
         """
-        command = task.command_list()[0].split()
+        command_list = task.command_list()
+        if len(command_list) > 1:
+            command = [entry.split() for entry in command_list]
+        else:
+            command = command_list[0].split()
         inputs = []
         for name, value in task.declared_values().items():
             if isinstance(value, workflow_api.OutputRef):
