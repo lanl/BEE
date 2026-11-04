@@ -2,9 +2,22 @@
 
 import os
 import pytest
+from beeflow.common import config_driver
 from beeflow.common.config_driver import AlterConfig, ConfigGenerator, new
 from beeflow.common.config_validator import ConfigValidator
 
+
+def test_check_redis_in_spackenv(mocker):
+    """Test that check_redis_in_spackenv function returns True"""
+    mocker.patch('beeflow.common.config_driver.check_redis_in_spackenv', return_value=True)
+    test_instilation = config_driver.check_redis_in_spackenv()
+    assert test_instilation is True
+
+def test_check_sqlite3_installed(mocker):
+    """Test that check_sqlite3_installed function returns True"""
+    mocker.patch('beeflow.common.config_driver.check_sqlite3_installed', return_value=True)
+    test_instilation = config_driver.check_sqlite3_installed()
+    assert test_instilation is True
 
 # AlterConfig tests
 def test_initialization_without_changes(mocker):

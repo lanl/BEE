@@ -20,6 +20,7 @@ bee_droppoint = $BEE_WORKDIR/droppoint
 workload_scheduler = $WORKLOAD_SCHEDULER
 neo4j_image = $NEO4J_CONTAINER
 redis_image = $REDIS_CONTAINER
+use_redis_container = False
 max_restarts = 2
 delete_completed_workflow_dirs = True
 

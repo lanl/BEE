@@ -10,12 +10,24 @@ Requirements:
 
 * **Python version 3.11 to 3.14**
 
+* **Redis on a Spack Environemnt**
+
+    To set up Redis, first follow these Spack Instructions:
+
+    1. Run ``git clone --depth=2 --branch=releases/latest https://github.com/spack/spack.git``.
+    2. Source the setup file and add ``. spack/share/spack/setup-env.sh`` to your ``.bashrc`` file.
+    3. Create the environment ``spack env create beeflow``.
+    4. Activate your environment ``spack env activate beeflow`` (add command to ``.bashrc``).
+    5. Finally, install Redis ``spack install --add redis``.
+
+    More detailed Spack instructions can be found in the `Spack Environment Basics <https://spack.readthedocs.io/en/latest/environments_basics.html>`_.
+
 * `Charliecloud <https://hpc.github.io/charliecloud/>`_ **version 0.34 (or greater)**
     Charliecloud is installed on Los Alamos National Laboratory (LANL) clusters and can be invoked via ``module load charliecloud`` before running beeflow. If you are on a system that does not have the module, `Charliecloud <https://hpc.github.io/charliecloud/>`_ is easily installed in user space and requires no privileges to install. To insure Charliecloud is available in subsequent runs add ``module load charliecloud`` (or if you installed it ``export PATH=<path_to_ch-run>:$PATH``) to your .bashrc (or other appropriate shell initialization file). BEE runs dependencies from a Charliecloud container and uses it to run the graph database neo4j and other dependencies. The default container runtime for containerized applications in BEE is Charliecloud.
 
 
 * **Containers**:
-    Two Charliecloud dependency containers are currently required for BEE: one for the Neo4j graph database and another for Redis. The paths to these containers will need to be set in the BEE configuration later, using the ``neo4j_image`` and the ``redis_image`` options respectively. BEE only supports Neo4j 5.x. We are currently using the latest version of Redis supplied on Docker Hub (as of 2023).
+    Two Charliecloud dependency containers are currently optional for BEE: one for the Neo4j graph database and another for Redis. The paths to these containers will need to be set in the BEE configuration later, using the ``neo4j_image`` and the ``redis_image`` options respectively. BEE only supports Neo4j 5.x. We are currently using the latest version of Redis supplied on Docker Hub (as of 2023).
 
     For LANL systems, default locations are used and you will not be asked for them.
 
