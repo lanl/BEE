@@ -1,0 +1,158 @@
+#!/bin/bash
+# Automatic BEEFlow proxy script - routes commands to the host where BEEFlow is running
+
+set -e  # Exit on error (except where explicitly handled)
+
+# SSH options used for all connections
+SSH_OPTS="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+SSH_TEST_OPTS="$SSH_OPTS -o BatchMode=yes -o ConnectTimeout=5"
+
+#------------------------------------------------------------------------------
+# Helper Functions
+#------------------------------------------------------------------------------
+
+# Get the BEEFlow working directory from configuration
+get_bee_workdir() {
+    python3 -c "from beeflow.common.config_driver import BeeConfig as bc; print(bc.get('DEFAULT', 'bee_workdir'))" 2>/dev/null
+}
+
+# Get the hostname where BEEFlow was started from the client database
+get_bee_host() {
+    local client_db="$1"
+    python3 -c "
+import sqlite3
+try:
+    conn = sqlite3.connect('${client_db}')
+    result = conn.execute('SELECT hostname FROM info;').fetchone()
+    if result:
+        print(result[0])
+except Exception:
+    pass
+" 2>/dev/null
+}
+
+# Resolve hostname to IP address (workaround for hostname/IP mismatch on some clusters)
+resolve_host_ip() {
+    local hostname="$1"
+    # Extract domain from current host's FQDN
+    local current_fqdn=$(hostname -f 2>/dev/null)
+    local domain="${current_fqdn#*.}"
+
+    # Check if we got a valid domain (domain != fqdn means a dot was found)
+    if [ -n "$domain" ] && [ "$domain" != "$current_fqdn" ]; then
+        dig "${hostname}.${domain}" +short 2>/dev/null | head -n1
+    fi
+}
+
+# Detect which cluster we're running on
+get_cluster_name() {
+    sacctmgr -n show cluster format=Cluster 2>/dev/null | head -n1 | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]'
+}
+
+# Test SSH authentication to a remote host
+test_ssh_auth() {
+    local host="$1"
+    ssh $SSH_TEST_OPTS "$host" "exit 0" 2>/dev/null
+}
+
+# Handle Kerberos ticket refresh
+handle_auth_failure() {
+    local bee_host="$1"
+    local bee_ip="$2"
+
+    echo "Error: SSH authentication to $bee_host failed." >&2
+
+    # Try to automatically refresh ticket with reticket if available
+    if command -v reticket >/dev/null 2>&1; then
+        echo "Attempting to refresh Kerberos ticket with reticket..." >&2
+        if reticket; then
+            echo "Ticket refreshed successfully. Retrying SSH connection..." >&2
+            if test_ssh_auth "$bee_ip"; then
+                return 0  # Success
+            else
+                echo "Error: SSH authentication still failed after ticket refresh." >&2
+                exit 1
+            fi
+        else
+            echo "Error: reticket failed." >&2
+            exit 1
+        fi
+    else
+        echo "Please refresh your authentication credentials and try again." >&2
+        exit 1
+    fi
+}
+
+# Execute beeflow command on remote host via SSH
+proxy_to_remote() {
+    local bee_host="$1"
+    local bee_ip="$2"
+    shift 2
+
+    echo "BEEFlow running on $bee_host, proxying command..." >&2
+    exec ssh $SSH_OPTS -t "$bee_ip" "export PATH=${PATH} && cd '$(pwd)' && beeflow $*"
+}
+
+#------------------------------------------------------------------------------
+# Main Logic
+#------------------------------------------------------------------------------
+
+# Get BEEFlow working directory
+bee_workdir=$(get_bee_workdir)
+if [ -z "$bee_workdir" ]; then
+    echo "Error: BEEFlow configuration not found." >&2
+    echo "Please ensure the BEE environment is loaded and beeflow is configured." >&2
+    echo "Try running: beeflow config new" >&2
+    exit 1
+fi
+
+# Check if BEEFlow has been started (client.db exists)
+client_db="$bee_workdir/client.db"
+if [ ! -f "$client_db" ]; then
+    echo "Error: BEEFlow has not been started yet (no client.db found)" >&2
+    exit 1
+fi
+
+# Get the host where BEEFlow was started
+bee_host=$(get_bee_host "$client_db")
+if [ -z "$bee_host" ]; then
+    # No hostname in database, run locally
+    exec beeflow "$@"
+fi
+
+# Normalize hostname (extract short hostname by removing domain)
+# Extract domain by removing everything up to the first dot
+domain="${bee_host#*.}"
+# Check if we got a valid domain (domain != bee_host means a dot was found)
+if [ "$domain" != "$bee_host" ]; then
+    bee_host="${bee_host%%.*}"  # Keep only the short hostname
+fi
+current_host=$(hostname -s)
+
+# If we're on the same host, run locally
+if [ "$bee_host" = "$current_host" ]; then
+    exec beeflow "$@"
+fi
+
+# Resolve IP address for SSH connection
+bee_ip=$(resolve_host_ip "$bee_host")
+if [ -z "$bee_ip" ]; then
+    echo "Warning: Could not resolve IP for $bee_host, using hostname with domain" >&2
+    # Try to reconstruct FQDN using current host's domain
+    current_fqdn=$(hostname -f 2>/dev/null)
+    domain="${current_fqdn#*.}"
+    # Check if we got a valid domain (domain != fqdn means a dot was found)
+    if [ -n "$domain" ] && [ "$domain" != "$current_fqdn" ]; then
+        bee_ip="${bee_host}.${domain}"
+    else
+        bee_ip="$bee_host"
+    fi
+fi
+
+# Test SSH authentication and handle failures
+if ! test_ssh_auth "$bee_ip"; then
+    handle_auth_failure "$bee_host" "$bee_ip"
+fi
+
+# Proxy the command to the remote host
+proxy_to_remote "$bee_host" "$bee_ip" "$@"
