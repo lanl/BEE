@@ -56,6 +56,7 @@ def get_slurmrestd_version():
 
 def format_runtime(runtime):
     """Format the runtime in a human-readable way."""
+    runtime = int(runtime)
     minutes, seconds = divmod(runtime, 60)
     hours, minutes = divmod(minutes, 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
