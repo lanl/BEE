@@ -1026,7 +1026,7 @@ def test_cancel(mocker, capsys, wf_status, exp_out):
             "Could not reach WF Manager",
         ),
         (
-            bee_client.copy,
+            bee_client.retry,
             200,
             "Running",
             ConnectionError(),
@@ -1066,12 +1066,12 @@ def test_cancel(mocker, capsys, wf_status, exp_out):
             "WF Manager could not cancel workflow 123456.\n",
         ),
         (
-            bee_client.copy,
+            bee_client.retry,
             500,
             "Running",
             None,
             bee_client.ClientError,
-            "WF Manager could not copy workflow",
+            "WF Manager could not retry workflow",
         ),
     ],
 )
