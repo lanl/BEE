@@ -9,6 +9,7 @@ import io
 import os
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import Worker
+from beeflow.common.worker.utils import format_runtime
 log = bee_logging.setup(__name__)
 
 # Map from flux states to BEE statuses
@@ -151,6 +152,10 @@ class FluxWorker(Worker):
         flux = self.flux.Flux()
         info = self.job.get_job(flux, job_id)
         job_info = deepcopy(info)
+
+        encoded_id = self.job.JobID.encode(job_info['id'],encoding='f58')
+        job_info['id'] = encoded_id
+        job_info['runtime'] = format_runtime(job_info['runtime'])
 
         # TODO: May need to check for return codes other than 0 if
         # specified by the task (although I'm not sure how we can keep
