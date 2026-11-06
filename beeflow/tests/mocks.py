@@ -1,6 +1,7 @@
 """Mocks for the WFM and TM tests."""
 
 from copy import deepcopy
+from beeflow.common.db.gdb_db import final_task_states
 from beeflow.common.object_models import StepInput, StepOutput
 from beeflow.common import expr
 
@@ -143,8 +144,15 @@ class MockGDBDriver:
         sources = [inp.source for inp in self.inputs[task_id].values()]
         task_deps = [task_id for task_id in self.tasks
                      if any(source in self.outputs[task_id] for source in sources)]
-        return all(self.task_states[task_dep_id] == 'COMPLETED'
-                   for task_dep_id in task_deps)
+        if not all(self.task_states[task_dep_id] == 'COMPLETED'
+                   for task_dep_id in task_deps):
+            return False
+        # Explicit (non-data) dependencies must reach a final state
+        depends_on = self.tasks[task_id].depends_on or []
+        explicit_deps = [dep.id for dep in self.tasks.values()
+                         if dep.name in depends_on and dep.id != task_id]
+        return all(self.task_states[dep_id] in final_task_states
+                   for dep_id in explicit_deps)
 
     def execute_workflow(self, workflow_id): # pylint: disable=W0613 # not using param in mock
         """Begin execution of the loaded workflow."""
@@ -231,6 +239,14 @@ class MockGDBDriver:
                  if any(outp_id in [inp.source
                                     for inp in self.inputs[dep_task_id].values()]
                         for outp_id in self.outputs[task_id])]
+        # Also include tasks that depend on this one explicitly (depends_on)
+        name = self.tasks[task_id].name
+        known = {dep_task.id for dep_task in tasks}
+        tasks.extend(
+            dep_task for dep_task in self.tasks.values()
+            if dep_task.id not in known and dep_task.id != task_id
+            and name in (dep_task.depends_on or [])
+        )
         return tasks
 
     def get_task_state(self, task_id):

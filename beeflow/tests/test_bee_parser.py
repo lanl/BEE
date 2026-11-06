@@ -1,5 +1,6 @@
 """Tests for the BEE python workflow specification parser (BeeParser)."""
 
+import os
 import textwrap
 
 import pytest
@@ -414,6 +415,23 @@ def test_bee_api_command_placeholders_filled(tmp_path):
         _ = grep0.command
 
 
+def test_bee_api_multiple_commands_and_placeholders():
+    """Multiple command strings become nested argv lists and chain with &&."""
+    workflow = workflow_api.Workflow("multi-command")
+    workflow.add_task(
+        name="run",
+        commands=["echo {message}", "echo finished"],
+        params={"message": "hello world"},
+        outputs={},
+    )
+    _, tasks = BeeParser().parse_workflow("bee123", "multi-command", workflow)
+    task = tasks[0]
+
+    assert task.base_command == [["echo", "{message}"], ["echo", "finished"]]
+    task.inputs[0].value = "hello world"
+    assert task.command == ["/bin/sh", "-c", "'echo hello world && echo finished'"]
+
+
 def test_bee_api_resources_and_scripts(tmp_path, monkeypatch):
     """Test resources, scheduler options, and pre/post scripts as hints."""
     (tmp_path / "run_pre.sh").write_text("#!/bin/bash\necho start\n")
@@ -496,7 +514,7 @@ def test_bee_api_undeclared_placeholder():
 
 
 def test_bee_api_dependson_without_data():
-    """Test that a non-data depends_on dependency raises an error."""
+    """Test that a non-data depends_on dependency is accepted and recorded."""
     workflow = workflow_api.Workflow("deps")
     setup = workflow.add_task(name="setup", commands=["echo setup"], outputs={})
     workflow.add_task(
@@ -505,8 +523,174 @@ def test_bee_api_dependson_without_data():
         outputs={},
         depends_on=[setup],
     )
-    with pytest.raises(BeeParseError, match="without sharing any data"):
-        BeeParser().parse_workflow("bee123", "deps", workflow)
+    _, tasks = BeeParser().parse_workflow("bee123", "deps", workflow)
+    by_name = {task.name: task for task in tasks}
+    assert by_name["run"].depends_on == ["setup"]
+    assert by_name["setup"].depends_on == []
+
+
+def test_bee_api_dependson_unknown_task():
+    """Test that a depends_on reference outside the workflow errors."""
+    workflow = workflow_api.Workflow("unknown-dep")
+    outsider = workflow_api.Task(name="outsider", commands=["echo x"], outputs={})
+    workflow.add_task(
+        name="inner", commands=["echo y"], outputs={}, depends_on=[outsider]
+    )
+    with pytest.raises(BeeParseError, match="not part of the workflow"):
+        BeeParser().parse_workflow("bee123", "unknown-dep", workflow)
+
+
+def test_bee_api_explicit_dependency_cycle():
+    """Test that a cycle of explicit depends_on references errors."""
+    workflow = workflow_api.Workflow("cycle")
+    first = workflow.add_task(name="first", commands=["echo first"], outputs={})
+    second = workflow.add_task(
+        name="second", commands=["echo second"], outputs={}, depends_on=[first]
+    )
+    first.depends_on = [second]
+    with pytest.raises(
+        BeeParseError, match="dependency cycle detected: first -> second -> first"
+    ):
+        BeeParser().parse_workflow("bee123", "cycle", workflow)
+
+
+def test_bee_api_data_dependency_cycle():
+    """Test that a cycle of output references errors."""
+    workflow = workflow_api.Workflow("data-cycle")
+    alpha = workflow.add_task(
+        name="alpha", commands=["echo a"], outputs={"out": "a.txt"}
+    )
+    workflow.add_task(
+        name="beta",
+        commands=["echo b"],
+        inputs={"prev": alpha.output("out")},
+        outputs={"out": "b.txt"},
+    )
+    # alpha consumes beta's output as well, closing the loop
+    alpha.inputs = {"prev": workflow.tasks[1].output("out")}
+    with pytest.raises(BeeParseError, match="dependency cycle"):
+        BeeParser().parse_workflow("bee123", "data-cycle", workflow)
+
+
+def test_bee_api_mixed_dependency_cycle():
+    """Test that a cycle mixing data flow and explicit edges errors."""
+    workflow = workflow_api.Workflow("mixed-cycle")
+    producer = workflow.add_task(
+        name="producer", commands=["echo p"], outputs={"out": "p.txt"}
+    )
+    consumer = workflow.add_task(
+        name="consumer",
+        commands=["echo c"],
+        inputs={"upstream": producer.output("out")},
+        outputs={},
+    )
+    # producer waits explicitly for consumer while consumer uses its data
+    producer.depends_on = [consumer]
+    with pytest.raises(BeeParseError, match="dependency cycle"):
+        BeeParser().parse_workflow("bee123", "mixed-cycle", workflow)
+
+
+def test_bee_api_self_dependency_cycle():
+    """Test that a task consuming its own output errors as a cycle."""
+    workflow = workflow_api.Workflow("self-cycle")
+    task = workflow.add_task(
+        name="selfish", commands=["echo hi"], outputs={"out": "s.txt"}
+    )
+    task.inputs = {"loop": task.output("out")}
+    with pytest.raises(BeeParseError, match="dependency cycle"):
+        BeeParser().parse_workflow("bee123", "self-cycle", workflow)
+
+
+def test_bee_api_task_workdir(tmp_path):
+    """Test that a task workdir resolves under the workflow workdir."""
+    workflow = workflow_api.Workflow("workdirs")
+    workflow.add_task(
+        name="sub",
+        commands=["echo hi"],
+        outputs={"out": "o.txt"},
+        workdir="sub",
+    )
+    workflow.add_task(name="base", commands=["echo hi"], outputs={})
+    _, tasks = BeeParser().parse_workflow(
+        "bee123", "workdirs", workflow, workdir=str(tmp_path)
+    )
+    by_name = {task.name: task for task in tasks}
+
+    expected_dir = str((tmp_path / "sub").resolve())
+    assert by_name["sub"].workdir == expected_dir
+    # Output globs resolve inside the task workdir, not the workflow workdir
+    assert by_name["sub"].outputs[0].glob == os.path.abspath(
+        os.path.join(expected_dir, "o.txt")
+    )
+    # No workdir means the workflow workdir itself
+    assert by_name["base"].workdir == str(tmp_path)
+
+
+def test_bee_api_workdir_invalid():
+    """Test that a non-path workdir errors."""
+    workflow = workflow_api.Workflow("wd-bad")
+    workflow.add_task(name="run", commands=["echo hi"], outputs={}, workdir=42)
+    with pytest.raises(BeeParseError, match="workdir must be"):
+        BeeParser().parse_workflow("bee123", "wd-bad", workflow)
+
+
+def test_bee_api_container_hint():
+    """Test that a plain string container becomes a dockerPull hint."""
+    workflow = workflow_api.Workflow("ctr")
+    workflow.add_task(
+        name="run", commands=["echo hi"], outputs={}, container="debian:12"
+    )
+    _, tasks = BeeParser().parse_workflow("bee123", "ctr", workflow)
+    task = tasks[0]
+
+    assert task.requirements == []
+    assert [hint.class_ for hint in task.hints] == ["DockerRequirement"]
+    assert task.hints[0].params == {"dockerPull": "debian:12"}
+
+
+def test_bee_api_container_required():
+    """Test that Container(required=True) becomes a requirement."""
+    workflow = workflow_api.Workflow("ctr-req")
+    workflow.add_task(
+        name="run",
+        commands=["echo hi"],
+        outputs={},
+        container=workflow_api.Container(image="debian:12", required=True),
+    )
+    _, tasks = BeeParser().parse_workflow("bee123", "ctr-req", workflow)
+    task = tasks[0]
+
+    assert [req.class_ for req in task.requirements] == ["DockerRequirement"]
+    assert all(hint.class_ != "DockerRequirement" for hint in task.hints)
+
+
+def test_bee_api_container_local_image_and_mounts():
+    """Test that a local image file runs in place with bind mounts."""
+    workflow = workflow_api.Workflow("ctr-local")
+    workflow.add_task(
+        name="run",
+        commands=["echo hi"],
+        outputs={},
+        container=workflow_api.Container(
+            image="/data/img.sqfs", bind_mounts={"/host/data": "/data"}
+        ),
+    )
+    _, tasks = BeeParser().parse_workflow("bee123", "ctr-local", workflow)
+    params = tasks[0].hints[0].params
+
+    assert params["beeflow:useContainer"] == "/data/img.sqfs"
+    assert "dockerPull" not in params
+    assert params["beeflow:bindMounts"] == "/host/data: /data"
+
+
+def test_bee_api_container_invalid():
+    """Test that an invalid container specification errors."""
+    workflow = workflow_api.Workflow("ctr-bad")
+    workflow.add_task(
+        name="run", commands=["echo hi"], outputs={}, container=42
+    )
+    with pytest.raises(BeeParseError, match="container must be"):
+        BeeParser().parse_workflow("bee123", "ctr-bad", workflow)
 
 
 def test_bee_api_add_task_and_output_refs():
