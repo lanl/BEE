@@ -607,6 +607,7 @@ def _parse_workflow(name, workflow, orig_cwl_path, orig_yaml_path, workdir):
 
 def _check_workdir(workdir):
     """Exit with an error if the workdir is in /tmp or /var/tmp."""
+    workdir = os.path.realpath(workdir)
     if os.path.commonpath([os.path.realpath("/tmp"), workdir]) == os.path.realpath(
         "/tmp"
     ):

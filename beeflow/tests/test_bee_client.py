@@ -1251,6 +1251,27 @@ def test_submit_rejects_tmp_workdir(tmp_path, mocker, monkeypatch):
         )
 
 
+@pytest.mark.parametrize("workdir", ["/tmp", "/tmp/bee-workflow", "/var/tmp/bee-workflow"])
+def test_check_workdir_rejects_temporary_paths(workdir):
+    """Reject temporary paths, including symlinked macOS /tmp and /var/tmp."""
+    with pytest.raises(bee_client.ClientError, match="cannot be in"):
+        bee_client._check_workdir(workdir)
+
+
+def test_check_workdir_rejects_symlink_to_tmp(tmp_path):
+    """Resolve an arbitrary symlink before checking temporary directory ancestry."""
+    link = tmp_path / "temporary-link"
+    link.symlink_to("/tmp", target_is_directory=True)
+    with pytest.raises(bee_client.ClientError, match="cannot be in"):
+        bee_client._check_workdir(link / "workflow")
+
+
+@pytest.mark.parametrize("workdir", ["/opt/bee/workflows", "/tmp-other/workflow"])
+def test_check_workdir_allows_non_temporary_paths(workdir):
+    """Compare path components rather than rejecting a shared string prefix."""
+    bee_client._check_workdir(workdir)
+
+
 def test_submit_dir_autodetects_cwl(tmp_path, mocker, monkeypatch):
     """Test that submitting a directory auto-detects the main CWL file."""
     conn = _mock_submit_backend(mocker, tmp_path)

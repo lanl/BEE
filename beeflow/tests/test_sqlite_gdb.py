@@ -1,5 +1,6 @@
 """Tests for sql_gdb module."""
 
+import os
 import sqlite3
 from unittest.mock import call
 import json
@@ -8,6 +9,9 @@ import pytest
 
 from beeflow.common.db import bdb, gdb_db
 from beeflow.common.object_models import StepInput, StepOutput, Task, Workflow
+from beeflow.common import workflow_api
+from beeflow.common.parser import BeeParser
+from beeflow.common.worker.simple_worker import SimpleWorker
 
 
 @pytest.fixture
@@ -367,6 +371,42 @@ def test_task_roundtrip_preserves_multiple_base_commands(real_gdb):
 
     loaded = real_gdb.get_task(task.id)
     assert loaded.base_command == [["echo", "first"], ["echo", "second"]]
+
+
+def test_parsed_dependencies_execute_in_order(real_gdb, tmp_path):
+    """Parser, sqlite round-trip, readiness and worker agree on task ordering."""
+    spec = workflow_api.Workflow("ordered")
+    setup = spec.add_task(
+        name="setup", commands=["printf setup > ordering.txt", "true"], outputs={},
+    )
+    spec.add_task(
+        name="run", depends_on=[setup], workdir="downstream",
+        commands=["test -f ../ordering.txt", "printf done > result.txt"],
+        outputs={"result": "result.txt"},
+    )
+    workflow, tasks = BeeParser().parse_workflow(
+        "ordered-wf", "ordered", spec, workdir=str(tmp_path),
+    )
+    real_gdb.create_workflow(workflow)
+    # Reverse loading also exercises the explicit-edge catch-up path.
+    for task in reversed(tasks):
+        real_gdb.create_task(task)
+        real_gdb.add_dependencies(task)
+    worker = SimpleWorker(bee_workdir=str(tmp_path / "bee"),
+                          container_runtime="Charliecloud")
+    real_gdb.set_runnable_tasks_to_ready(workflow.id)
+    assert real_gdb.get_task_state(tasks[1].id) == "WAITING"
+    for task in tasks:
+        loaded = real_gdb.get_task(task.id)
+        assert loaded.state == "READY"
+        job_id, _, job_info = worker.submit_task(loaded)
+        os.waitpid(job_id, 0)
+        state, _ = worker.query_task(job_id, job_info=job_info)
+        assert state == "COMPLETED"
+        real_gdb.set_task_state(task.id, state)
+        real_gdb.set_runnable_tasks_to_ready(workflow.id)
+    assert (tmp_path / "downstream" / "result.txt").read_text() == "done"
+    assert tasks[1].outputs[0].glob == str(tmp_path / "downstream" / "result.txt")
 
 
 def test_ensure_columns_migrates_old_schema(tmp_path):

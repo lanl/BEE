@@ -3,7 +3,7 @@ import subprocess
 import pathlib
 import pytest
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
-from beeflow.common.object_models import Task, Requirement
+from beeflow.common.object_models import Hint, Task, Requirement
 
 @pytest.mark.parametrize(
     "use_container, pre_commands_exp, main_command_exp, post_commands_exp",
@@ -128,3 +128,21 @@ def test_run_text_chains_multiple_commands():
     result = subprocess.run(command, shell=True, capture_output=True, check=False)
     assert result.returncode != 0
     assert result.stdout == b"ran-first\n"
+
+
+def test_multiple_commands_append_checkpoint_to_last_command():
+    """Checkpoint arguments apply to the last command without mutating the spec."""
+    commands = [["true"], ["printf", "'%s\\n'"]]
+    task = Task(
+        name="checkpoint", base_command=commands, workflow_id="wf",
+        hints=[Hint(class_="beeflow:CheckpointRequirement", params={
+            "bee_checkpoint_file__": "/checkpoints/state.dat",
+            "restart_parameters": "--restart",
+            "add_parameters": "--resume",
+        })],
+    )
+    result = subprocess.run(" ".join(task.command), shell=True,
+                            capture_output=True, check=False)
+    assert result.returncode == 0
+    assert result.stdout == b"--restart\n/checkpoints/state.dat\n--resume\n"
+    assert task.base_command == commands

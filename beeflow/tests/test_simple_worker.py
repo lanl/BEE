@@ -62,7 +62,8 @@ def test_simple_worker_marks_failed_second_command(tmp_path):
     bee_workdir = tmp_path / "bee-workdir"
     task = Task(
         name="multi-command-failure",
-        base_command=[["echo", "first-command-ran"], ["false"]],
+        base_command=[["echo", "first-command-ran"], ["false"],
+                      ["touch", "must-not-run"]],
         hints=[],
         requirements=[],
         inputs=[],
@@ -82,6 +83,7 @@ def test_simple_worker_marks_failed_second_command(tmp_path):
     state, _ = worker.query_task(job_id, job_info=job_info)
 
     assert state == "FAILED"
+    assert not (task_workdir / "must-not-run").exists()
 
 
 def count_processes_in_group(pgid):

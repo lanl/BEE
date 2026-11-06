@@ -203,14 +203,39 @@ confirm the CWL path is unaffected):
 pytest beeflow/tests/test_bee_parser.py beeflow/tests/test_parser.py
 ```
 
+Live Neo4j regression checks are opt-in. They use a separate, disposable
+authentication-disabled Neo4j 5 instance and roll back all test writes. For
+example, with Docker available:
+
+```sh
+docker run -d --name bee-phase2-neo4j-check \
+  -p 127.0.0.1:17687:7687 -e NEO4J_AUTH=none neo4j:5-community
+# Wait for Neo4j to finish starting before running the tests.
+BEE_TEST_NEO4J_URI=bolt://127.0.0.1:17687 \
+  pytest beeflow/tests/test_phase2_neo4j.py -q
+docker stop bee-phase2-neo4j-check
+docker rm -v bee-phase2-neo4j-check
+```
+
+Without `BEE_TEST_NEO4J_URI`, these tests are skipped. The checks cover tasks
+with no input nodes, explicit-edge gating in either load order, terminal-state
+release, restart edge remapping, and command storage. Neo4j cannot store nested
+lists as node properties, so multi-command tasks use a JSON string property;
+legacy string and flat-list command properties remain readable unchanged.
+
+The local worker tests exercise ordered execution through the Python parser,
+SQLite storage and SimpleWorker, task workdirs, failed-command short-circuiting,
+and checkpoint argument placement. These do not replace live scheduler and
+container-image execution on a supported Linux environment.
+
 ## Status and limitations
 
 Phases 1 and 2 are implemented on this branch. Remaining migration work:
 
 - The new API is currently a Python front end; a YAML front end is phase 3.
-- Explicit dependency readiness and task execution with containers/workdirs
-  should be live-tested with the supported graph database and scheduler
-  environments.
+- Explicit dependency readiness has live Neo4j regression coverage and local
+  SQLite/worker coverage. Full service orchestration, scheduler execution and
+  task execution inside container images still need Linux/HPC validation.
 - Workflow-level (rather than task-level) hints/requirements and additional
   metadata (author, tags) are deferred to later discussions.
 - The `Workflow`/`Task` pydantic models still carry CWL fields such as

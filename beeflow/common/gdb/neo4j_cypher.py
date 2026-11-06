@@ -1,5 +1,6 @@
 """Neo4j/Cypher transaction functions used by the Neo4jDriver class."""
 
+import json
 from re import fullmatch
 from beeflow.common import log as bee_logging
 
@@ -118,6 +119,7 @@ def create_task(tx, task):
                     "SET t.workflow_id = $workflow_id "
                     "SET t.name = $name "
                     "SET t.base_command = $base_command "
+                    "SET t.base_command_json = $base_command_json "
                     "SET t.stdout = $stdout "
                     "SET t.stderr = $stderr "
                     "SET t.reqs = $reqs "
@@ -129,8 +131,15 @@ def create_task(tx, task):
     # Unpack requirements, hints dictionaries into flat list
     reqs = len(task.requirements) > 0
     hints = len(task.hints) > 0
+    # Neo4j properties cannot contain nested collections. Keep legacy command
+    # properties unchanged and encode only multi-command lists as JSON.
+    nested = isinstance(task.base_command, list) and any(
+        isinstance(part, list) for part in task.base_command
+    )
     tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
-           base_command=task.base_command, stdout=task.stdout, stderr=task.stderr,
+           base_command=None if nested else task.base_command,
+           base_command_json=json.dumps(task.base_command) if nested else None,
+           stdout=task.stdout, stderr=task.stderr,
            reqs=reqs, hints=hints, state=task.state, workdir=task.workdir,
            depends_on=task.depends_on or [])
 
@@ -703,7 +712,8 @@ def set_runnable_tasks_to_ready(tx, wf_id):
     A task is also held back while any explicit (non-data) dependency edge
     points to a task that has not reached a final state.
     """
-    set_runnable_ready_query = (f"MATCH (t:Task {{workflow_id: $wf_id}})<-[:INPUT_OF]-(i:Input) "
+    set_runnable_ready_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
+                                "OPTIONAL MATCH (t)<-[:INPUT_OF]-(i:Input) "
                                 "WITH t, collect(i) AS ilist "
                                 "WHERE t.state = 'WAITING' "
                                 "AND all(i IN ilist WHERE i.value IS NOT NULL) "
