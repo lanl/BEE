@@ -4,6 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 from copy import deepcopy
 import os
+import re
 from typing import Any, Optional
 from pydantic import BaseModel, model_validator
 
@@ -385,6 +386,25 @@ class Task(BaseModel):
             if input_.prefix is not None:
                 command.append(input_.prefix)
                 command.append(str(input_.value))
+
+        # Fill in any {input_id} placeholders (new python API commands), e.g.
+        # "grep {word} {text_file}" with word and text_file as task inputs
+        if any("{" in token for token in command):
+            input_values = {
+                input_.id: input_.value for input_ in self.inputs
+                if input_.value is not None
+            }
+            for pos, token in enumerate(command):
+                for ref in re.findall(r"\{(\w+)\}", token):
+                    if ref not in input_values:
+                        raise ValueError(
+                            (
+                                "trying to construct command for task with missing "
+                                f"placeholder value (id: {ref})"
+                            )
+                        )
+                    token = token.replace("{" + ref + "}", str(input_values[ref]))
+                command[pos] = token
 
         # Append restart parameter and checkpoint file if CheckpointRequirement specified
         for hint in self.hints:
