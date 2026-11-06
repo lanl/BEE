@@ -107,7 +107,7 @@ Arguments:
 
 Arguments:
   - WF_NAME, The workflow name [required]
-  - WF_PATH, Path to the workflow tarball in the archive directory [required]
+  - WF_ID  [required]
   - WORKDIR, working directory for workflow containing inputs + outputs [required]
   - ``--no-start``, don't start the workflow immediately, to start the workflow use ``beeflow start``.
 
