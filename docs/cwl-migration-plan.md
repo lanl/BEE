@@ -15,13 +15,13 @@ the `Workflow` and `Task` objects loaded into the graph database by the
 
 ## Migration plan
 
-The work is split into four phases. Phase 1 is implemented on this branch;
-the remaining phases are exploratory designs.
+The work is split into four phases. Phases 1 and 2 are implemented on this
+branch; the remaining phases are exploratory designs.
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 1 | New python API (`workflow_api.py`), `BeeParser` conversion, runtime `{placeholder}` command substitution, simplified `beeflow submit` (workflow path only) | This branch |
-| 2 | Explicit `depends_on` dependencies that don't share data (graph database dependency edges); task workdirs and containers in the new API | Not started |
+| 1 | New python API (`workflow_api.py`), `BeeParser` conversion, runtime `{placeholder}` command substitution, simplified `beeflow submit` (workflow path only) | Complete |
+| 2 | Explicit `depends_on` dependencies that don't share data (graph database dependency edges); task workdirs and containers; multiple commands per task | Implemented on this branch; validation in progress |
 | 3 | YAML front end describing the same schema (see the YAML slides in `docs/todo/`) | Not started |
 | 4 | Remove CWL: delete `cwl.py`/`dump_wf`, the CWL parser path, and CWL-specific pydantic fields; update examples, CI, and docs (issues #1197-#1205) | Not started |
 
@@ -85,7 +85,9 @@ Key points:
 
 - **Commands and placeholders**: a `{name}` placeholder in a command is
   replaced at execution time by the value of the task's param or input of
-  that name.
+  that name. A task may provide multiple command strings; BEE runs them in
+  order using `&&`, so a command runs only when the preceding command
+  succeeds.
 - **`params` vs `inputs`**: `params` holds task-local values; `inputs` holds
   task inputs, which can be static values or `task.output("name")` references
   (which create dependencies automatically). A name declared with the same
@@ -93,9 +95,12 @@ Key points:
   job file — while names declared with conflicting values stay task-local.
 - **Outputs** collect the named files; every task output is exposed as a
   workflow output as well.
-- **`depends_on`** may be used to document dependencies; in this first phase
-  each dependency must also be implied by an input/output reference, since
-  the graph database still infers edges from data flow.
+- **`depends_on`** declares tasks that must reach a final state before this
+  task becomes ready, even when no data is shared. Output references also
+  create data-flow dependencies automatically.
+- **Workdirs and containers**: `workdir=` selects a task working directory
+  relative to the workflow workdir. `container=` accepts an image string or
+  a `Container` with bind mounts and an optional hard requirement.
 - **Scripts**: `pre_script`/`post_script` name script files (whose shebang
   line must match `/bin/bash`) that run before/after the command.
 
@@ -198,18 +203,39 @@ confirm the CWL path is unaffected):
 pytest beeflow/tests/test_bee_parser.py beeflow/tests/test_parser.py
 ```
 
+Live Neo4j regression checks are opt-in. They use a separate, disposable
+authentication-disabled Neo4j 5 instance and roll back all test writes. For
+example, with Docker available:
+
+```sh
+docker run -d --name bee-phase2-neo4j-check \
+  -p 127.0.0.1:17687:7687 -e NEO4J_AUTH=none neo4j:5-community
+# Wait for Neo4j to finish starting before running the tests.
+BEE_TEST_NEO4J_URI=bolt://127.0.0.1:17687 \
+  pytest beeflow/tests/test_phase2_neo4j.py -q
+docker stop bee-phase2-neo4j-check
+docker rm -v bee-phase2-neo4j-check
+```
+
+Without `BEE_TEST_NEO4J_URI`, these tests are skipped. The checks cover tasks
+with no input nodes, explicit-edge gating in either load order, terminal-state
+release, restart edge remapping, and command storage. Neo4j cannot store nested
+lists as node properties, so multi-command tasks use a JSON string property;
+legacy string and flat-list command properties remain readable unchanged.
+
+The local worker tests exercise ordered execution through the Python parser,
+SQLite storage and SimpleWorker, task workdirs, failed-command short-circuiting,
+and checkpoint argument placement. These do not replace live scheduler and
+container-image execution on a supported Linux environment.
+
 ## Status and limitations
 
-Phase 1 of the migration is complete on this branch, with the following
-known limitations:
+Phases 1 and 2 are implemented on this branch. Remaining migration work:
 
-- Each task supports a **single command**; multiple commands per task (as in
-  the design sketches) are not yet supported.
-- `depends_on` entries must be implied by data flow (an input referencing
-  `task.output(...)`); non-data dependencies are rejected with a clear error
-  until phase 2 adds graph database support for explicit dependency edges.
-- Containers (Charliecloud/Docker) and per-task workdirs have no equivalent
-  in the new API yet; those remain available through the old API's hints.
+- The new API is currently a Python front end; a YAML front end is phase 3.
+- Explicit dependency readiness has live Neo4j regression coverage and local
+  SQLite/worker coverage. Full service orchestration, scheduler execution and
+  task execution inside container images still need Linux/HPC validation.
 - Workflow-level (rather than task-level) hints/requirements and additional
   metadata (author, tags) are deferred to later discussions.
 - The `Workflow`/`Task` pydantic models still carry CWL fields such as
