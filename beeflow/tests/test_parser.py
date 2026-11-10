@@ -178,7 +178,7 @@ TASKS_GOLD_SCRIPT = [
     Task(
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), # pylint: disable=C0301
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': "# Dockerfile.clamr-ffmpeg\n\n\nFROM debian:12\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin \\\n            libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick \\\n            libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git /CLAMR\n\n# Remove sys/sysctl.h from modern Linux systems; is not needed here.\nRUN sed -i '/sys\\/sysctl\\.h/d' /CLAMR/memstats/memstats.c\n\nRUN cd /CLAMR && cmake . && make clamr_cpuonly\n", 'beeflow:containerName': 'clamr-ffmpeg'}), # pylint: disable=C0301
                Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"', 'post_script': 'echo "After run"', 'shell': '/bin/bash'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
@@ -209,7 +209,7 @@ TASKS_GOLD_SCRIPT = [
     Task(
         name='ffmpeg',
         base_command='ffmpeg -y',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': "# Dockerfile.clamr-ffmpeg\n\n\nFROM debian:12\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin \\\n            libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick \\\n            libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git /CLAMR\n\n# Remove sys/sysctl.h from modern Linux systems; is not needed here.\nRUN sed -i '/sys\\/sysctl\\.h/d' /CLAMR/memstats/memstats.c\n\nRUN cd /CLAMR && cmake . && make clamr_cpuonly\n", 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='ffmpeg_input', type='Directory', value=None, default=None,
                           source='clamr/outdir', prefix='-i', position=2,
@@ -240,7 +240,7 @@ TASKS_GOLD_VALIDATE_SCRIPT = [
     Task(
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'}), # pylint: disable=C0301
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': "# Dockerfile.clamr-ffmpeg\n\n\nFROM debian:12\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin \\\n            libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick \\\n            libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git /CLAMR\n\n# Remove sys/sysctl.h from modern Linux systems; is not needed here.\nRUN sed -i '/sys\\/sysctl\\.h/d' /CLAMR/memstats/memstats.c\n\nRUN cd /CLAMR && cmake . && make clamr_cpuonly\n", 'beeflow:containerName': 'clamr-ffmpeg'}), # pylint: disable=C0301
                Hint(class_='beeflow:ScriptRequirement', params={'enabled': True, 'pre_script': 'echo "Before run"\n', 'post_script': 'echo "After run"\n'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
@@ -270,7 +270,7 @@ TASKS_GOLD_VALIDATE_SCRIPT = [
     Task(
         name='ffmpeg',
         base_command='ffmpeg -y',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': "# Dockerfile.clamr-ffmpeg\n\n\nFROM debian:12\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin \\\n            libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick \\\n            libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git /CLAMR\n\n# Remove sys/sysctl.h from modern Linux systems; is not needed here.\nRUN sed -i '/sys\\/sysctl\\.h/d' /CLAMR/memstats/memstats.c\n\nRUN cd /CLAMR && cmake . && make clamr_cpuonly\n", 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='ffmpeg_input', type='Directory', value=None, default=None,
                           source='clamr/outdir', prefix='-i', position=2,
@@ -299,7 +299,8 @@ TASKS_GOLD = [
     Task(
         name='clamr',
         base_command='/CLAMR/clamr_cpuonly',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': "# Dockerfile.clamr-ffmpeg\n\n\nFROM debian:12\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin \\\n            libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick \\\n            libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git /CLAMR\n\n# Remove sys/sysctl.h from modern Linux systems; is not needed here.\nRUN sed -i '/sys\\/sysctl\\.h/d' /CLAMR/memstats/memstats.c\n\nRUN cd /CLAMR && cmake . && make clamr_cpuonly\n", 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
+
         requirements=[],
         inputs=[StepInput(id='graphic_steps', type='int', value=None, default=None,
                           source='steps_between_graphics', prefix='-g', position=None,
@@ -329,7 +330,7 @@ TASKS_GOLD = [
     Task(
         name='ffmpeg',
         base_command='ffmpeg -y',
-        hints=[Hint(class_='DockerRequirement', params={'dockerFile': '# Dockerfile.clamr-ffmpeg\n# Developed on Chicoma @lanl\n# Patricia Grubel <pagrubel@lanl.gov>\n\nFROM debian:11\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git\nRUN cd CLAMR && cmake . && make clamr_cpuonly\n', 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
+        hints=[Hint(class_='DockerRequirement', params={'dockerFile': "# Dockerfile.clamr-ffmpeg\n\n\nFROM debian:12\n\n\nRUN apt-get update && \\\n    apt-get install -y wget gnupg git cmake ffmpeg g++ make openmpi-bin \\\n            libopenmpi-dev libpng-dev libpng16-16 libpng-tools imagemagick \\\n            libmagickwand-6.q16-6 libmagickwand-6.q16-dev\n\nRUN git clone https://github.com/lanl/CLAMR.git /CLAMR\n\n# Remove sys/sysctl.h from modern Linux systems; is not needed here.\nRUN sed -i '/sys\\/sysctl\\.h/d' /CLAMR/memstats/memstats.c\n\nRUN cd /CLAMR && cmake . && make clamr_cpuonly\n", 'beeflow:containerName': 'clamr-ffmpeg'})], # pylint: disable=C0301
         requirements=[],
         inputs=[StepInput(id='ffmpeg_input', type='Directory', value=None, default=None,
                           source='clamr/outdir', prefix='-i', position=2,
