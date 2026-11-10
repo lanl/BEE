@@ -1,9 +1,12 @@
 import os
+import base64
+import tarfile
 import pytest
 import jsonpickle
 import logging
 from beeflow.client import bee_client
 from beeflow.common.db import client_db
+from beeflow.common.object_models import Workflow
 from requests.exceptions import ConnectionError
 from pathlib import Path
 import subprocess
@@ -1101,3 +1104,176 @@ def test_simple_req_errors(
                 function(["123456"], all_=False)
             else:
                 function("123456")
+
+
+# Submit command tests
+def _mock_submit_backend(mocker, tmp_path):
+    """Mock the WF Manager backend for submit tests."""
+    conn = mocker.patch("beeflow.client.bee_client._wfm_conn").return_value
+    resp = mocker.MagicMock()
+    resp.status_code = 201
+    resp.json.return_value = {"wf_id": "0123456789abcdef"}
+    conn.post.return_value = resp
+    mocker.patch("beeflow.client.bee_client.check_short_id_collision")
+    wf_dir = tmp_path / "wfdir"
+    wf_dir.mkdir(exist_ok=True)
+    mocker.patch(
+        "beeflow.wf_manager.resources.wf_utils.get_workflow_dir",
+        return_value=str(wf_dir),
+    )
+    return conn
+
+
+def _mock_bee_parser(mocker):
+    """Mock the BeeParser so no real workflow spec is needed."""
+    workflow_obj = Workflow(name="test", id=bee_client.generate_workflow_id())
+    mocker.patch(
+        "beeflow.common.parser.BeeParser.parse_workflow",
+        return_value=(workflow_obj, []),
+    )
+    return workflow_obj
+
+
+def test_submit_py_spec_defaults(tmp_path, mocker, monkeypatch):
+    """Test that a .py spec submits with only the workflow path."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    _mock_bee_parser(mocker)
+    # The real workdir guard rejects pytest's tmp_path-based home directory
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (tmp_path / ".beeflow").mkdir()
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "workflow.py"
+    spec.write_text("# minimal spec", encoding="utf-8")
+
+    # Pass the typer options explicitly since typer.Option objects are truthy
+    wf_id = bee_client.submit(
+        spec, name=None, workdir=None, main_cwl=None, job=None, no_start=False
+    )
+
+    assert wf_id == "0123456789abcdef"
+    payload = conn.post.call_args.kwargs["json"]
+    assert payload["wf_name"] == "workflow"
+    # The default workdir lives under ~/.beeflow and is created on demand
+    workdir = tmp_path / ".beeflow" / "workflows" / "workflow"
+    assert payload["wf_workdir"] == str(workdir)
+    assert workdir.is_dir()
+    assert payload["wf_filename"] == "workflow.tgz"
+    # The tarball sent to the WF Manager contains just the specification
+    tar_path = tmp_path / "sent.tgz"
+    tar_path.write_bytes(base64.b64decode(payload["encoded_tarball"]))
+    with tarfile.open(tar_path) as archive:
+        assert "workflow/workflow.py" in archive.getnames()
+    # The submit arguments were recorded for reexecute
+    assert (tmp_path / "wfdir" / "submit_command_args.yaml").is_file()
+
+
+def test_submit_workdir_fallback_without_beeflow_dir(tmp_path, mocker, monkeypatch):
+    """Test that the workdir falls back to ./bee-workflows when needed."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    _mock_bee_parser(mocker)
+    # The real workdir guard rejects pytest's tmp_path-based home directory
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    monkeypatch.setenv("HOME", str(tmp_path))  # no ~/.beeflow here
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "myworkflow.py"
+    spec.write_text("# minimal spec", encoding="utf-8")
+
+    bee_client.submit(
+        spec, name=None, workdir=None, main_cwl=None, job=None, no_start=False
+    )
+
+    payload = conn.post.call_args.kwargs["json"]
+    assert payload["wf_workdir"] == str(tmp_path / "bee-workflows" / "myworkflow")
+
+
+def test_submit_explicit_name_and_no_start(tmp_path, mocker, monkeypatch):
+    """Test the --name and --no-start options."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    _mock_bee_parser(mocker)
+    # The real workdir guard rejects pytest's tmp_path-based home directory
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (tmp_path / ".beeflow").mkdir()
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "workflow.py"
+    spec.write_text("# minimal spec", encoding="utf-8")
+
+    bee_client.submit(
+        spec, name="custom-name", workdir=None, main_cwl=None, job=None, no_start=True
+    )
+
+    payload = conn.post.call_args.kwargs["json"]
+    assert payload["wf_name"] == "custom-name"
+    assert payload["no_start"] is True
+    assert (tmp_path / ".beeflow" / "workflows" / "custom-name").is_dir()
+
+
+def test_submit_rejects_tmp_workdir(tmp_path, mocker, monkeypatch):
+    """Test that a workdir in /tmp is rejected."""
+    _mock_submit_backend(mocker, tmp_path)
+    _mock_bee_parser(mocker)
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "workflow.py"
+    spec.write_text("# minimal spec", encoding="utf-8")
+
+    with pytest.raises(bee_client.ClientError, match="cannot be in"):
+        bee_client.submit(
+            spec, name=None, workdir=Path("/tmp/some-dir"), main_cwl=None,
+            job=None, no_start=False
+        )
+
+
+def test_submit_dir_autodetects_cwl(tmp_path, mocker, monkeypatch):
+    """Test that submitting a directory auto-detects the main CWL file."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    workflow_obj = Workflow(name="test", id=bee_client.generate_workflow_id())
+    parse_mock = mocker.patch(
+        "beeflow.common.parser.CwlParser.parse_workflow",
+        return_value=(workflow_obj, []),
+    )
+    # The real workdir guard rejects pytest's tmp_path-based home directory
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (tmp_path / ".beeflow").mkdir()
+    monkeypatch.chdir(tmp_path)
+    wf_dir = tmp_path / "mycwlwf"
+    wf_dir.mkdir()
+    (wf_dir / "main.cwl").write_text("# cwl", encoding="utf-8")
+
+    bee_client.submit(
+        wf_dir, name=None, workdir=None, main_cwl=None, job=None, no_start=False
+    )
+
+    payload = conn.post.call_args.kwargs["json"]
+    assert payload["wf_name"] == "mycwlwf"
+    # Parsed with the CWL parser and no job input file
+    assert str(parse_mock.call_args.args[2]).endswith("main.cwl")
+    assert parse_mock.call_args.kwargs["job"] is None
+
+
+def test_detect_main_cwl_multiple_errors(tmp_path):
+    """Test that multiple workflow files give a clear error."""
+    (tmp_path / "workflow.py").write_text("# one", encoding="utf-8")
+    (tmp_path / "other.py").write_text("# two", encoding="utf-8")
+    with pytest.raises(bee_client.ClientError, match="--main-cwl"):
+        bee_client._detect_main_cwl(tmp_path)  # pylint: disable=W0212
+
+
+def test_detect_main_cwl_missing_errors(tmp_path):
+    """Test that a missing workflow file gives a clear error."""
+    with pytest.raises(bee_client.ClientError, match="--main-cwl"):
+        bee_client._detect_main_cwl(tmp_path)  # pylint: disable=W0212
+
+
+def test_detect_job_none(tmp_path):
+    """Test that job detection returns None when there is no job file."""
+    assert bee_client._detect_job(tmp_path) is None  # pylint: disable=W0212
+
+
+def test_detect_job_multiple_errors(tmp_path):
+    """Test that multiple job input files give a clear error."""
+    (tmp_path / "input.yml").write_text("# one", encoding="utf-8")
+    (tmp_path / "other.yaml").write_text("# two", encoding="utf-8")
+    with pytest.raises(bee_client.ClientError, match="--job"):
+        bee_client._detect_job(tmp_path)  # pylint: disable=W0212

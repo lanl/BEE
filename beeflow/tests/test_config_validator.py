@@ -139,3 +139,68 @@ def test_option_default():
 
     assert validator.validate({}) == {'abc': {'test': 1}}
     assert validator.validate({'abc': {'test': 3}}) == {'abc': {'test': 3}}
+
+
+def test_option_depends_on():
+    """Test the depends_on relation for options in a config."""
+    validator = ConfigValidator(description='option depends on relation test')
+    validator.section('main', info='main section')
+    validator.option('main', 'mode', choices=('basic', 'advanced'), default='basic',
+                     info='mode option')
+    # Option 'special' is only required when mode == 'advanced'
+    validator.option('main', 'special', info='only required in advanced mode',
+                     depends_on=('main', 'mode', 'advanced'))
+
+    # mode is basic (the default), so the dependent option is not required
+    assert validator.validate({}) == {'main': {'mode': 'basic'}}
+    assert (validator.validate({'main': {'mode': 'basic', 'special': 'value'}})
+            == {'main': {'mode': 'basic', 'special': 'value'}})
+    # mode is advanced, so the dependent option is required
+    with pytest.raises(ConfigError):
+        validator.validate({'main': {'mode': 'advanced'}})
+    assert (validator.validate({'main': {'mode': 'advanced', 'special': 'value'}})
+            == {'main': {'mode': 'advanced', 'special': 'value'}})
+
+
+def test_option_depends_on_skips_validation():
+    """Test that values for options that don't apply are kept unvalidated."""
+    validator = ConfigValidator(description='option depends on validation test')
+    validator.section('main', info='main section')
+    validator.option('main', 'mode', choices=('basic', 'advanced'), default='basic',
+                     info='mode option')
+    validator.option('main', 'special', validator=int, info='an int option',
+                     depends_on=('main', 'mode', 'advanced'))
+
+    # The invalid value is kept as a raw string because the option doesn't
+    # apply in this config context
+    assert (validator.validate({'main': {'mode': 'basic', 'special': 'not-an-int'}})
+            == {'main': {'mode': 'basic', 'special': 'not-an-int'}})
+
+
+def test_option_is_valid():
+    """Test the option_is_valid() method, including with partial configs."""
+    validator = ConfigValidator(description='option validity test')
+    validator.section('main', info='main section')
+    validator.option('main', 'mode', choices=('basic', 'advanced'), default='basic',
+                     info='mode option')
+    validator.option('main', 'special', info='a dependent option',
+                     depends_on=('main', 'mode', 'advanced'))
+
+    # The dependent option doesn't apply with the default mode, even in a
+    # partial config where mode has not been set yet
+    assert not validator.option_is_valid({}, 'main', 'special')
+    assert validator.option_is_valid({}, 'main', 'mode')
+    assert validator.option_is_valid({'main': {'mode': 'advanced'}}, 'main', 'special')
+
+
+def test_optional_option():
+    """Test that optional options may be left unset."""
+    validator = ConfigValidator(description='optional option test')
+    validator.section('main', info='main section')
+    validator.option('main', 'image', info='optional container image', optional=True)
+
+    # An unset optional option becomes an empty value rather than an error
+    assert validator.validate({}) == {'main': {'image': ''}}
+    # A set optional option is still validated
+    assert (validator.validate({'main': {'image': '/path/to/image'}})
+            == {'main': {'image': '/path/to/image'}})
