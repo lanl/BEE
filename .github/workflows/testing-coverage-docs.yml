@@ -314,7 +314,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.14.4'
 
       - name: Get unit test coverage
         uses: actions/download-artifact@v7

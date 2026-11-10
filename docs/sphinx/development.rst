@@ -1,7 +1,7 @@
 Developer's Guide
 #################
 
-Requirement: Python version 3.11 to 3.14
+Requirement: Python version 3.11 to 3.15
 ------------------------------------------
 
 Installation Using a Python Environment 
