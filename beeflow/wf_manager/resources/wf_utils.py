@@ -3,6 +3,7 @@
 import os
 import shutil
 import pathlib
+import subprocess
 import requests
 from celery import shared_task
 
@@ -223,6 +224,21 @@ def setup_workflow(wf_id, wf_name, wf_dir, wf_workdir, no_start, workflow=None, 
         log.info("Starting workflow")
         start_workflow.delay(wf_id)
 
+def restore_wf_dir_from_archive(wf_id):
+    """Restore a removed workflow directory from its archive (needed for retry)."""
+    wf_dir = get_workflow_dir(wf_id)
+    if os.path.exists(wf_dir):
+        return
+    archive_path = os.path.join(bc.get("DEFAULT", "bee_archive_dir"), f"{wf_id}.tgz")
+    if not os.path.exists(archive_path):
+        log.warning(f"No archive found for workflow {wf_id}; cannot restore workflow directory.")
+        return
+    workflows_dir = get_workflows_dir()
+    os.makedirs(workflows_dir, exist_ok=True)
+    subprocess.run(["tar", "-xzf", archive_path, "-C", workflows_dir], check=True)
+    log.info(f"Restored workflow directory for {wf_id} from {archive_path}")
+
+
 def retry_failed_workflow(wf_id):
     """Retry a failed workflow."""
     wfi = get_workflow_interface(wf_id)
@@ -237,6 +253,7 @@ def retry_failed_workflow(wf_id):
             f"Workflow {wf_id} cannot be retried from state {state}"
         )
 
+    restore_wf_dir_from_archive(wf_id)
     wfi.reset_failed_workflow(wf_id)
     update_wf_status(wf_id, "Starting")
     log.info("Reset failed workflow tasks.")
