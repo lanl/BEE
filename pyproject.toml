@@ -45,8 +45,8 @@ beeflow = "beeflow.client.bee_client:main"
 
 [tool.poetry.dependencies]
 
-# Python version (>=3.11, <=3.14)
-python = ">=3.11,<=3.14"
+# Python version
+python = ">=3.11,<=3.15"
 
 # Package dependencies
 Flask = { version = ">=2,<4" }
