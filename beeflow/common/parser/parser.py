@@ -29,6 +29,7 @@ import cwl_utils.parser.cwl_v1_2 as cwl_parser
 from schema_salad.exceptions import ValidationException
 
 from beeflow.common import workflow_api
+from beeflow.common.parser.yaml_workflow import load_yaml_workflow
 from beeflow.common.cwl.workflow import Workflow as WorkflowSpec
 from beeflow.common.object_models import (
         Workflow,
@@ -677,10 +678,11 @@ def find_dependency_cycle(tasks):
 
 
 class BeeParser:
-    """Class for parsing BEE python workflow specifications.
+    """Class for parsing BEE Python and YAML workflow specifications.
 
-    Converts a Workflow object built with the python workflow description API
-    (beeflow.common.cwl.workflow) directly into the Workflow and Task objects
+    Converts YAML or a Workflow object built with the Python workflow API
+    (beeflow.common.workflow_api, or legacy beeflow.common.cwl.workflow) into the
+    Workflow and Task objects
     consumed by the WorkflowInterface. No CWL is generated or parsed.
     """
 
@@ -692,7 +694,7 @@ class BeeParser:
 
     def parse_workflow(self, workflow_id, workflow_name, spec, job=None,
                        workdir=".", wf_path="."):
-        """Parse a python workflow specification into WF_Interface objects.
+        """Parse a Python/YAML workflow specification into WF_Interface objects.
 
         Returns a tuple of the Workflow and the list of Task objects that can
         be loaded into the WorkflowInterface.
@@ -701,7 +703,7 @@ class BeeParser:
         :type workflow_id: str
         :param workflow_name: the workflow name (defaults to the spec name)
         :type workflow_name: str
-        :param spec: the Workflow object or path to a .py workflow specification
+        :param spec: a Workflow object or .py/.yaml/.yml specification path
         :type spec: WorkflowSpec or str or pathlib.Path
         :param job: the input job file (YAML or JSON)
         :type job: str
@@ -734,9 +736,9 @@ class BeeParser:
 
     @staticmethod
     def _load_spec(spec):
-        """Load the workflow specification from a Workflow object or .py file.
+        """Load a Workflow object or a Python/YAML specification file.
 
-        :param spec: the Workflow object or path to a .py workflow specification
+        :param spec: a Workflow object or .py/.yaml/.yml specification path
         :type spec: WorkflowSpec or workflow_api.Workflow or str or pathlib.Path
         :rtype: (Workflow, str or None)
         """
@@ -745,6 +747,13 @@ class BeeParser:
         path = Path(spec)
         if not path.is_file():
             raise BeeParseError(f"workflow specification {spec} not found")
+        if path.suffix.lower() in (".yaml", ".yml"):
+            try:
+                return load_yaml_workflow(path), str(path.resolve())
+            except workflow_api.WorkflowAPIError as error:
+                raise BeeParseError(f"{path}: {error}") from None
+        if path.suffix != ".py":
+            raise BeeParseError(f"unsupported BEE specification extension: {path.suffix}")
         module_spec = importlib.util.spec_from_file_location(f"bee_{path.stem}", path)
         module = importlib.util.module_from_spec(module_spec)
         try:
@@ -1341,7 +1350,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
 
     parser.add_argument(
-            "wf_file", type=str, help="CWL workflow file or BEE python workflow specification"
+            "wf_file", type=str, help="CWL workflow file or BEE Python/YAML specification"
             )
     parser.add_argument(
             "-i", "--inputs", type=str, help="Workflow job inputs file", required=False
@@ -1363,10 +1372,10 @@ def resolve_step_workdir(step_workdir, workdir):
 
 
 def main():
-    """Run the parser on a CWL or python Workflow and job file directly."""
+    """Run the parser on a CWL, Python or YAML workflow and optional job file."""
     wf_id = generate_workflow_id()
     args = parse_args()
-    if args.wf_file.endswith(".py"):
+    if Path(args.wf_file).suffix.lower() in (".py", ".yaml", ".yml"):
         parser = BeeParser()
         # None lets the parser fall back to the name from the specification
         workflow, tasks = parser.parse_workflow(

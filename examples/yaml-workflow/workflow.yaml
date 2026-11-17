@@ -1,0 +1,27 @@
+# A self-contained workflow: no input dataset or job-input file is required.
+# With BEE core running: beeflow submit examples/yaml-workflow/workflow.yaml
+bee_version: 1
+description: Produce a message and copy it through a data dependency
+
+tasks:
+  message:
+    commands: echo {message}
+    params:
+      message: Hello from BEE
+    stdout: message.txt
+    outputs:
+      contents: message.txt
+
+  copy:
+    commands: cat {text_file}
+    inputs:
+      text_file: {from: message/contents}
+    stdout: copied.txt
+    outputs:
+      contents: copied.txt
+
+  finish:
+    depends_on: [copy]
+    commands:
+      - echo Copy completed
+      - echo Workflow completed

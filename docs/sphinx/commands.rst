@@ -43,7 +43,8 @@ This section shows what commands you can use to submit and interact with your wo
 
 ``beeflow submit``: Submit a new workflow. By default this will also start
 jobs immediately (unless passed the ``--no-start`` option). The workflow path may be a
-python (.py) workflow specification, a workflow directory, or a .tgz package (created
+Python (.py) or YAML (.yaml/.yml) workflow specification, a workflow directory,
+or a .tgz package (created
 with ``beeflow package``). The workflow name, main workflow file, job input file, and
 working directory are all derived automatically when not given. If the main workflow
 or job input files are not contained immediately inside of a workflow directory, then
@@ -51,12 +52,18 @@ the WF_PATH directory will be copied into a temporary directory and the missing 
 will then be copied into the copied WF_PATH directory before packaging and submission.
 
 Arguments:
-  - WORKFLOW, Path to the workflow: a .py specification, a directory, or a .tgz package  [required]
+  - WORKFLOW, Path to a .py/.yaml/.yml specification, directory, or .tgz package [required]
   - ``--name``, -N, workflow name (default: derived from the path)
   - ``--workdir``, -w, working directory for workflow input and output files (default: ~/.beeflow/workflows/<name> if ~/.beeflow exists, otherwise ./bee-workflows/<name>; created if missing)
   - ``--main-cwl``, main workflow file (default: auto-detected)
   - ``--job``, -j, job input file (default: auto-detected)
   - ``--no-start``, -n, don't start the workflow immediately
+
+See :doc:`workflow_spec` for the Python/YAML authoring guide and field reference.
+A single specification file is sufficient; ``--job`` is optional. Directory
+discovery distinguishes YAML workflows by ``bee_version`` and excludes them
+from job-input detection. Multiple Python/YAML workflow candidates require an
+explicit ``--main-cwl`` selection.
 
 ``beeflow start``: Start a workflow in the ``No Start`` state.
 (For workflows submitted or reexecuted with the --no-start flag.)
@@ -135,6 +142,5 @@ You can use the ``beeflow config`` sub-command to configure BEE for your workflo
 ``beeflow config new``: Create a new config file.
 
 ``beeflow config show``: Show the contents of current bee.conf.
-
 
 

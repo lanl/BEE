@@ -77,6 +77,9 @@ Some useful features of ``pytest`` to write your tests:
 
 See also :ref:`running-tests`
 
+For Python/YAML parser regression checks and a reproducible live BEE service-stack
+smoke test, see :doc:`workflow_testing`.
+
 6. Commit Changes
 -----------------
 

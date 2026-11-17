@@ -1,8 +1,8 @@
 # CWL Migration Plan
 
 This document describes the plan for pivoting BEE away from CWL toward a
-purely python-based workflow description API, and how to use and test the new
-API on this branch. The motivation and design sketches come from the
+Python workflow description API with an equivalent YAML front end, and how to
+use and test the new API on this branch. The motivation and design sketches come from the
 migration documents in `docs/todo/` and are tracked in
 [issue #1194](https://github.com/lanl/BEE/issues/1194).
 
@@ -15,18 +15,52 @@ the `Workflow` and `Task` objects loaded into the graph database by the
 
 ## Migration plan
 
-The work is split into four phases. Phases 1 and 2 are implemented on this
-branch; the remaining phases are exploratory designs.
+The work is split into four phases. Phases 1–3 are implemented on this branch;
+phase 4 remains a separate migration effort.
 
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 1 | New python API (`workflow_api.py`), `BeeParser` conversion, runtime `{placeholder}` command substitution, simplified `beeflow submit` (workflow path only) | Complete |
 | 2 | Explicit `depends_on` dependencies that don't share data (graph database dependency edges); task workdirs and containers; multiple commands per task | Implemented on this branch; validation in progress |
-| 3 | YAML front end describing the same schema (see the YAML slides in `docs/todo/`) | Not started |
+| 3 | Versioned YAML front end translating to the Python API; single-file/directory/archive submission, examples and authoring reference | Implemented on this branch; local validation in progress |
 | 4 | Remove CWL: delete `cwl.py`/`dump_wf`, the CWL parser path, and CWL-specific pydantic fields; update examples, CI, and docs (issues #1197-#1205) | Not started |
 
 The CWL parser and the older `beeflow.common.cwl.workflow` API continue to
 work unchanged, so both can be compared while the pivot progresses.
+
+## YAML front end and authoring reference
+
+See [`docs/sphinx/workflow_spec.rst`](sphinx/workflow_spec.rst) for the complete
+Python/YAML tutorial, field reference, path rules and submission options.
+The [testing guide](sphinx/workflow_testing.rst) covers parser/regression tests
+and reproducible live BEE submission using an isolated Linux Docker instance.
+YAML is an alternative to a Python specification, not an extra required file:
+
+```sh
+beeflow submit examples/yaml-workflow/workflow.yaml
+python -m beeflow.common.parser examples/yaml-workflow/workflow.yaml
+```
+
+One workflow file is sufficient when its external resources are accessible;
+a separate `--job` override file is optional. A minimal YAML workflow is:
+
+```yaml
+bee_version: 1
+tasks:
+  hello:
+    commands: echo Hello from BEE
+```
+
+Tasks are named mapping entries. Output references use `{from: task/output}`;
+`depends_on` lists task names. The loader resolves forward references and builds
+Python API objects, then delegates to the same semantic validation/conversion
+as Python workflows. Duplicate keys, unknown fields and unsupported versions
+are errors. Safe loading never executes Python tags.
+
+Directory/archive discovery identifies YAML workflows by `bee_version`, excludes
+them from job-input candidates, and reports ambiguous Python/YAML selections.
+The existing `--main-cwl` option can explicitly select the main file during
+migration. Python/YAML workflow candidates are preferred over legacy CWL files.
 
 ## Development environment setup
 
@@ -137,7 +171,7 @@ for task in tasks:
 Parse a specification and print the resulting workflow and tasks:
 
 ```sh
-python3 -m beeflow.common.parser.parser workflow.py [-i job.yaml]
+python3 -m beeflow.common.parser workflow.py [-i job.yaml]
 ```
 
 The optional job file (YAML or JSON) provides workflow input values that
@@ -193,7 +227,7 @@ Parse the same example from its file with the job file:
 
 ```sh
 cd examples/cat-grep-tar
-python3 -m beeflow.common.parser.parser workflow.py -i input.yml
+python3 -m beeflow.common.parser workflow.py -i input.yml
 ```
 
 Run the unit tests for the new parser (and the existing CWL parser, to
@@ -230,9 +264,10 @@ container-image execution on a supported Linux environment.
 
 ## Status and limitations
 
-Phases 1 and 2 are implemented on this branch. Remaining migration work:
+Phases 1–3 are implemented on this branch. Remaining migration work:
 
-- The new API is currently a Python front end; a YAML front end is phase 3.
+- YAML front-end integration needs review and supported-environment validation;
+  it does not change runtime execution semantics.
 - Explicit dependency readiness has live Neo4j regression coverage and local
   SQLite/worker coverage. Full service orchestration, scheduler execution and
   task execution inside container images still need Linux/HPC validation.

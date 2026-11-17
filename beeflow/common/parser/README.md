@@ -10,13 +10,14 @@ Also included is a sample CWL parser that also uses
 for now), parses it into python objects, and loads the Neo4j databse
 with a workflow using the BEE workflow interface.
 
-## Using the BEE Python Workflow Parser
+## Using the BEE Python/YAML Workflow Parser
 
 See `docs/cwl-migration-plan.md` for the migration plan and a full walkthrough
-of the new python API, including setup, usage, and testing instructions.
+of the new API. `docs/sphinx/workflow_spec.rst` provides the Python/YAML
+authoring guide and field reference.
 
-`BeeParser` converts a workflow written with the BEE python workflow
-description API (`beeflow.common.cwl.workflow`) directly into the `Workflow`
+`BeeParser` converts a workflow written with the BEE Python workflow
+description API (`beeflow.common.workflow_api`) or its YAML front end into the `Workflow`
 and `Task` objects consumed by the `WorkflowInterface`. No CWL is generated or
 parsed. This is the first step of the pivot away from CWL (see issue #1194).
 
@@ -28,11 +29,15 @@ one from a `main()` or `build()` function. See
 To use as a script:
 
 ```sh
-python3 -m beeflow.common.parser.parser workflow.py [-i job_inputs]
+python3 -m beeflow.common.parser workflow.py [-i job_inputs]
+python3 -m beeflow.common.parser workflow.yaml [-i job_inputs]
 ```
 
-where `workflow.py` is the python workflow specification and `job_inputs` is
-an optional YAML or JSON file providing job parameter inputs.
+where the workflow file is a Python or YAML specification and `job_inputs` is
+an optional YAML or JSON file providing job parameter inputs. This command
+parses and prints the models; it does not execute tasks. Use the package entry
+point above rather than `-m beeflow.common.parser.parser`, which can produce
+a runpy warning because the package already imports that module.
 
 To use as an imported module:
 
@@ -40,7 +45,7 @@ To use as an imported module:
 from beeflow.common.parser import BeeParser
 
 parser = BeeParser()
-# spec can be a Workflow object or the path of a .py specification file
+# spec can be a Workflow object or a .py/.yaml/.yml specification path
 workflow, tasks = parser.parse_workflow(workflow_id, workflow_name, spec)
 ```
 
@@ -55,11 +60,13 @@ for task in tasks:
     wfi.add_task(task)
 ```
 
-`beeflow submit` also accepts a python specification in place of the main
-CWL file, e.g.:
+With BEE services running, submit either workflow format directly:
 
 ```sh
-beeflow submit cat-grep-tar . workflow.py input.yml <workdir>
+beeflow submit workflow.py
+beeflow submit workflow.yaml
+# Optional overrides:
+beeflow submit workflow.yaml --job job.yaml --workdir <workdir>
 ```
 
 ## Using the CWL Parser
@@ -134,4 +141,3 @@ etc.).
 ## References
 
 - [`cwl-utils` repository](https://github.com/common-workflow-language/cwl-utils)
-
