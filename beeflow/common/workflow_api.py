@@ -11,6 +11,9 @@ outputs of other tasks. The BeeParser (beeflow.common.parser.BeeParser)
 converts these objects directly into the Workflow and Task objects loaded
 into the graph database by the WorkflowInterface.
 
+An equivalent, versioned YAML front end is supported by the same parser. See
+docs/sphinx/workflow_spec.rst for the Python/YAML authoring guide and reference.
+
 Example:
     from beeflow.common.workflow_api import Workflow
 

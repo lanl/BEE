@@ -1161,6 +1161,107 @@ def _mock_bee_parser(mocker):
     return workflow_obj
 
 
+@pytest.mark.parametrize("mode", ["file", "directory", "archive"])
+@pytest.mark.parametrize("with_job", [False, True])
+def test_submit_yaml_workflow(tmp_path, mocker, mode, with_job):
+    """YAML workflows submit alone or with overrides through each packaging path."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    source = tmp_path / "source"
+    source.mkdir()
+    spec = source / "workflow.yaml"
+    spec.write_text(
+        "bee_version: 1\ntasks:\n  run:\n    commands: echo {message}\n"
+        "    params: {message: original}\n", encoding="utf-8",
+    )
+    job = source / "job.yml"
+    if with_job:
+        job.write_text("message: override\n", encoding="utf-8")
+    explicit_job = str(job) if mode == "file" and with_job else None
+    if mode == "archive":
+        workflow_path = tmp_path / "source.tgz"
+        with tarfile.open(workflow_path, "w:gz") as archive:
+            archive.add(source, arcname="source")
+    else:
+        workflow_path = spec if mode == "file" else source
+    bee_client.submit(workflow_path, name=None, workdir=tmp_path / "work",
+                      main_cwl=None, job=explicit_job, no_start=True)
+    payload = conn.post.call_args.kwargs["json"]
+    assert payload["tasks"][0]["base_command"] == ["echo", "{message}"]
+    assert payload["workflow"]["inputs"][0]["value"] == (
+        "override" if with_job else "original"
+    )
+    assert (Path(payload["workflow"]["yaml"]).name if with_job
+            else payload["workflow"]["yaml"]) == ("job.yml" if with_job else None)
+    sent = tmp_path / "sent.tgz"
+    sent.write_bytes(base64.b64decode(payload["encoded_tarball"]))
+    with tarfile.open(sent) as archive:
+        assert any(name.endswith("/workflow.yaml") for name in archive.getnames())
+
+
+def test_yaml_detection_ambiguity_and_job_exclusion(tmp_path):
+    """Workflow YAML is not job input, and Python/YAML ambiguity is explicit."""
+    (tmp_path / "workflow.yaml").write_text("bee_version: 1\ntasks: {}\n", encoding="utf-8")
+    assert bee_client._detect_main_cwl(tmp_path) == "workflow.yaml"
+    assert bee_client._detect_job(tmp_path) is None
+    (tmp_path / "job.yml").write_text("message: hi\n", encoding="utf-8")
+    assert bee_client._detect_job(tmp_path) == "job.yml"
+    (tmp_path / "workflow.py").write_text("# alternative spec", encoding="utf-8")
+    with pytest.raises(bee_client.ClientError, match="Multiple workflow files"):
+        bee_client._detect_main_cwl(tmp_path)
+
+
+def test_yaml_detection_preserves_unsupported_version(tmp_path):
+    """Bad workflow versions must reach schema validation, not become job inputs."""
+    (tmp_path / "workflow.yml").write_text("bee_version: 99\n", encoding="utf-8")
+    assert bee_client._detect_main_cwl(tmp_path) == "workflow.yml"
+    assert bee_client._detect_job(tmp_path) is None
+
+
+def test_submit_yaml_reports_parser_error(tmp_path, mocker):
+    """Schema errors become normal client errors before any backend request."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    spec = tmp_path / "workflow.yaml"
+    spec.write_text("bee_version: 2\n", encoding="utf-8")
+    with pytest.raises(bee_client.ClientError, match="bee_version"):
+        bee_client.submit(spec, name=None, workdir=tmp_path / "work", main_cwl=None,
+                          job=None, no_start=True)
+    conn.post.assert_not_called()
+
+
+def test_submit_explicit_yaml_selection(tmp_path, mocker):
+    """Explicit main-file selection resolves mixed Python/YAML directory ambiguity."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "workflow.py").write_text("raise RuntimeError('not selected')\n", encoding="utf-8")
+    spec = source / "workflow.yml"
+    spec.write_text("bee_version: 1\ntasks: {run: {commands: echo}}\n", encoding="utf-8")
+    bee_client.submit(source, name=None, workdir=tmp_path / "work", main_cwl=str(spec),
+                      job=None, no_start=True)
+    assert conn.post.call_args.kwargs["json"]["tasks"][0]["name"] == "run"
+
+
+def test_yaml_workflow_cannot_be_job_file(tmp_path):
+    """An explicitly supplied workflow cannot be mistaken for value overrides."""
+    spec = tmp_path / "workflow.yaml"
+    spec.write_text("bee_version: 1\ntasks: {run: {commands: echo}}\n", encoding="utf-8")
+    other = tmp_path / "other.yaml"
+    other.write_text(spec.read_text(), encoding="utf-8")
+    with pytest.raises(bee_client.ClientError, match="cannot be used as a job"):
+        bee_client._package_workflow(spec, "workflow", None, str(other))
+
+
+def test_spec_job_filename_collision(tmp_path):
+    """Packaging must not overwrite a spec with an identically named override file."""
+    spec = tmp_path / "workflow.yaml"
+    spec.write_text("bee_version: 1\ntasks: {run: {commands: echo}}\n", encoding="utf-8")
+    with pytest.raises(bee_client.ClientError, match="different filenames"):
+        bee_client._package_workflow(spec, "workflow", None, str(spec))
+
+
 def test_submit_py_spec_defaults(tmp_path, mocker, monkeypatch):
     """Test that a .py spec submits with only the workflow path."""
     conn = _mock_submit_backend(mocker, tmp_path)

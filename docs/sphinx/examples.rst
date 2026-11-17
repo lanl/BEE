@@ -279,3 +279,7 @@ CLAMR use workflow
 Add LANL example here using /usr/projects/BEE/clamr/clamr-toss ...
 
 
+.. note::
+
+   For single-file Python and YAML workflows, see :doc:`workflow_spec`.
+   The CWL examples below remain available during migration.
