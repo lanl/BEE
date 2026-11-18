@@ -37,6 +37,11 @@ To activate the python environment and build beeflow:
     poetry install
     beeflow --version
 
+Use ``poetry install --extras cwl`` when testing CWL compatibility or the legacy
+workflow-generation API. The optional dependency and adapter boundary is described
+in :doc:`workflow_formats`. A production/core-only installation does not require
+CWL packages for Python/YAML workflows.
+
 If you want to exit the python environment, enter the following command:
 
 .. code-block::

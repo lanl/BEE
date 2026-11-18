@@ -4,8 +4,8 @@ Writing BEE workflows
 BEE supports two equivalent workflow front ends: a Python file and a versioned
 YAML file. Submit **either file**, not both. YAML is not an additional settings
 file for Python workflows. Both front ends use the same validation, execution
-models, dependency graph and workers. Legacy CWL remains available during the
-migration.
+models, dependency graph and workers. CWL remains available through an optional
+compatibility adapter; see :doc:`workflow_formats` for installation and extensions.
 
 Quick start
 -----------

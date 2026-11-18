@@ -460,3 +460,8 @@ Notes:
 1.) The task workdir can be an absolute path or relative to the workdir specified by the submit command.
 
 2.) When using containers, the relative path is used. If a step depends on the output of a previous step, the task_workdir for the subsequent task must match, or you can use pre-script to place the required files in the proper subdirectory.
+.. note::
+
+   CWL compatibility requires the optional ``cwl`` installation extra. See
+   :doc:`workflow_formats` for setup and :doc:`workflow_spec` for the native
+   Python/YAML workflow authoring guide.

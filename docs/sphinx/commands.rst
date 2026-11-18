@@ -65,6 +65,10 @@ discovery distinguishes YAML workflows by ``bee_version`` and excludes them
 from job-input detection. Multiple Python/YAML workflow candidates require an
 explicit ``--main-cwl`` selection.
 
+Installed :doc:`workflow_formats` adapters also participate in discovery,
+submission and archived reexecution. CWL support requires the optional ``cwl``
+extra; direct ``.cwl`` submissions include neighboring workflow files.
+
 ``beeflow start``: Start a workflow in the ``No Start`` state.
 (For workflows submitted or reexecuted with the --no-start flag.)
 
@@ -142,5 +146,4 @@ You can use the ``beeflow config`` sub-command to configure BEE for your workflo
 ``beeflow config new``: Create a new config file.
 
 ``beeflow config show``: Show the contents of current bee.conf.
-
 

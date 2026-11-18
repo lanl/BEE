@@ -14,4 +14,5 @@ pip install --upgrade pip
 curl -L https://install.python-poetry.org/ > install-poetry.sh
 chmod +x install-poetry.sh
 ./install-poetry.sh
-poetry install || exit 1
+# Integration fixtures include legacy CWL workflows; request compatibility explicitly.
+poetry install --extras cwl || exit 1

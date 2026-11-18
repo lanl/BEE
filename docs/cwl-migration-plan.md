@@ -16,17 +16,17 @@ the `Workflow` and `Task` objects loaded into the graph database by the
 ## Migration plan
 
 The work is split into four phases. Phases 1–3 are implemented on this branch;
-phase 4 is in progress, beginning with restart dependency correctness.
+phase 4 is in progress, with restart fixes and the optional format-adapter boundary implemented.
 
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 1 | New python API (`workflow_api.py`), `BeeParser` conversion, runtime `{placeholder}` command substitution, simplified `beeflow submit` (workflow path only) | Complete |
 | 2 | Explicit `depends_on` dependencies that don't share data (graph database dependency edges); task workdirs and containers; multiple commands per task | Implemented on this branch; validation in progress |
 | 3 | Versioned YAML front end translating to the Python API; single-file/directory/archive submission, examples and authoring reference | Implemented on this branch; local validation in progress |
-| 4 | Isolate optional CWL support behind workflow-format adapters; clean up core models, add conversion and update examples/tests/docs (issues #1197-#1205) | In progress: restart dependency regression/fix; adapter and converter work pending |
+| 4 | Isolate optional CWL support behind workflow-format adapters; clean up core models, add conversion and update examples/tests/docs (issues #1197-#1205) | Restart fixes and adapters implemented; model cleanup and converter pending |
 
-The CWL parser and the older `beeflow.common.cwl.workflow` API continue to
-work unchanged, so both can be compared while the pivot progresses.
+The CWL parser and the older `beeflow.common.cwl.workflow` API remain supported
+with optional CWL dependencies installed, so both can be compared while the pivot progresses.
 
 ## Phase 4 compatibility direction
 
@@ -44,12 +44,21 @@ Neo4j rewiring stays within the driver's write transaction. Regression coverage
 goes through WorkflowInterface, including repeated restarts, mixed edges,
 upstream restarts, forward loading and task names containing numeric suffixes.
 
-Subsequent phase-4 work (design agreed, **not yet implemented**):
+The format-adapter boundary is now implemented; see the
+[adapter reference](sphinx/workflow_formats.rst) for the contract and extension example.
 
-- Built-in Python/YAML front ends and an optional CWL adapter behind a common
-  workflow-format registry, including discovery, submission and reexecution.
-- Isolated/lazy CWL imports and optional installation dependencies. Currently CWL
-  dependencies are still mandatory; the proposed `cwl` extra is not available yet.
+- Built-in Python/YAML readers and optional CWL parsing share a workflow-format
+  registry for discovery, submission, archives, reexecution and the parser CLI.
+- CWL imports are lazy. Install compatibility dependencies with
+  `pip install 'hpc-beeflow[cwl]'` (or `poetry install --extras cwl` in a checkout).
+  The core-only runtime can parse Python/YAML without CWL packages installed.
+- Installed extensions register readers through the `beeflow.workflow_formats`
+  entry point group. Adapters return common execution models and can request
+  parent-directory bundling for linked resources. Discovery does not parse or
+  execute workflow code. Broken/conflicting extensions are reported explicitly.
+
+Remaining phase-4 work:
+
 - Preserve reading existing workflow metadata/archives where practical; keep
   existing CWL execution available through its adapter. Unsupported constructs
   must be reported, not silently converted with changed semantics.
@@ -57,7 +66,7 @@ Subsequent phase-4 work (design agreed, **not yet implemented**):
   optional `--to` overriding inference. A mismatch warns; an unknown suffix
   without `--to` errors. Existing output files require an explicit overwrite
   option. Adapters advertise writing support separately from reading support.
-  No conversion CLI is implemented in the current first phase-4 slice.
+  No conversion CLI is implemented in the current adapter slice.
 - Audit feature parity (checkpoint settings, builders and scheduler options)
   before removing any legacy definitions or runtime models. Internal hint and
   requirement objects still consumed by workers are not automatically obsolete

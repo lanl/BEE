@@ -6,7 +6,8 @@ import jsonpickle
 import logging
 from beeflow.client import bee_client
 from beeflow.common.db import client_db
-from beeflow.common.object_models import Workflow
+from beeflow.common.object_models import Task, Workflow
+from beeflow.common.parser.formats import WorkflowFormat
 from requests.exceptions import ConnectionError
 from pathlib import Path
 import subprocess
@@ -1216,6 +1217,84 @@ def test_yaml_detection_preserves_unsupported_version(tmp_path):
     (tmp_path / "workflow.yml").write_text("bee_version: 99\n", encoding="utf-8")
     assert bee_client._detect_main_cwl(tmp_path) == "workflow.yml"
     assert bee_client._detect_job(tmp_path) is None
+
+
+@pytest.mark.parametrize("mode", ["file", "directory", "archive", "reexecute"])
+def test_installed_format_submission(tmp_path, mocker, mode):
+    """Installed adapters work through packaging, parsing and archived reexecution."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    source = tmp_path / "source"
+    source.mkdir()
+    spec = source / "workflow.toy"
+    spec.write_text("custom workflow definition", encoding="utf-8")
+
+    def parse(workflow_id, name, path, **kwargs):
+        assert Path(path).read_text() == "custom workflow definition"
+        return Workflow(id=workflow_id, name=name), [
+            Task(name="custom", base_command=["echo", "extension"], workflow_id=workflow_id)
+        ]
+
+    point = mocker.Mock()
+    point.name = "toy"
+    point.load.return_value = WorkflowFormat("toy", (".toy",), parse)
+    mocker.patch("beeflow.common.parser.formats.entry_points", return_value=[point])
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    if mode == "reexecute":
+        archived = tmp_path / "old-run"
+        files = archived / "cwl_files"
+        files.mkdir(parents=True)
+        (files / spec.name).write_text(spec.read_text(), encoding="utf-8")
+        (archived / "submit_command_args.yaml").write_text(
+            "main_cwl: workflow.toy\nyaml: ''\n", encoding="utf-8",
+        )
+        archive_path = tmp_path / "old-run.tgz"
+        with tarfile.open(archive_path, "w:gz") as archive:
+            archive.add(archived, arcname="old-run")
+        bee_client.reexecute("again", archive_path, workdir, no_start=True)
+    else:
+        path = spec if mode == "file" else source
+        if mode == "archive":
+            path = tmp_path / "source.tgz"
+            with tarfile.open(path, "w:gz") as archive:
+                archive.add(source, arcname="source")
+        bee_client.submit(path, name=None, workdir=workdir, main_cwl=None,
+                          job=None, no_start=True)
+    assert conn.post.call_args.kwargs["json"]["tasks"][0]["name"] == "custom"
+
+
+def test_direct_cwl_bundles_neighbors_and_job(tmp_path, mocker):
+    """The optional CWL adapter preserves linked tools and legacy job detection."""
+    conn = _mock_submit_backend(mocker, tmp_path)
+    mocker.patch("beeflow.client.bee_client._check_workdir")
+    source = tmp_path / "source"
+    source.mkdir()
+    spec = source / "workflow.cwl"
+    spec.write_text(
+        "cwlVersion: v1.0\nclass: Workflow\ninputs: {message: string}\n"
+        "outputs: {text: {type: File, outputSource: run/out}}\n"
+        "steps:\n  run:\n    run: tool.cwl\n    in: {message: message}\n    out: [out]\n",
+        encoding="utf-8",
+    )
+    (source / "tool.cwl").write_text(
+        "cwlVersion: v1.0\nclass: CommandLineTool\nbaseCommand: echo\n"
+        "inputs: {message: {type: string, inputBinding: {position: 1}}}\n"
+        "outputs: {out: {type: File, outputBinding: {glob: message.txt}}}\n"
+        "stdout: message.txt\n", encoding="utf-8",
+    )
+    (source / "input.yml").write_text("message: legacy\n", encoding="utf-8")
+    bee_client.submit(spec, name=None, workdir=tmp_path / "work", main_cwl=None,
+                      job=None, no_start=True)
+    payload = conn.post.call_args.kwargs["json"]
+    assert payload["workflow"]["inputs"][0]["value"] == "legacy"
+    assert len(payload["tasks"]) == 1
+    sent = tmp_path / "sent.tgz"
+    sent.write_bytes(base64.b64decode(payload["encoded_tarball"]))
+    with tarfile.open(sent) as archive:
+        names = archive.getnames()
+        assert "workflow/tool.cwl" in names
+        assert "workflow/input.yml" in names
 
 
 def test_submit_yaml_reports_parser_error(tmp_path, mocker):

@@ -30,6 +30,15 @@ BEE is a PyPI package that can be installed using pip. On an HPC cluster, you ma
 
     pip install hpc-beeflow
 
+Python/YAML workflows do not require CWL dependencies. For existing CWL workflows
+or the legacy Python CWL-generation API, install the optional compatibility extra:
+
+.. code-block:: sh
+
+    pip install 'hpc-beeflow[cwl]'
+
+See :doc:`workflow_formats` for format discovery and extension details.
+
 If you do not already have a python environment, you may be able to use the following example to create one (note: beeflow-env can be any environment name you choose):
 
 .. code-block::

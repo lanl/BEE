@@ -37,8 +37,7 @@ from beeflow.common.cli import NaturalOrderGroup
 from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.object_models import generate_workflow_id
-from beeflow.common.parser.yaml_workflow import is_yaml_workflow
-from beeflow.common.workflow_api import WorkflowAPIError
+from beeflow.common.parser.formats import WorkflowFormatError, get_registry
 from beeflow.client import remote_client
 from beeflow.wf_manager.models import (
     CopyWorkflowRequest,
@@ -471,15 +470,17 @@ def _dir_files(wf_dir, suffixes):
     )
 
 
-def _is_yaml_spec(path):
-    """Recognize marked workflow YAML, reporting malformed documents clearly."""
-    if pathlib.Path(path).suffix.lower() not in (".yaml", ".yml"):
-        return False
+def _workflow_format(path, required=True):
+    """Resolve installed formats and report discovery errors as client errors."""
     try:
-        return is_yaml_workflow(path)
-    except WorkflowAPIError as error:
-        error_exit(str(error))
-    return False
+        return get_registry().resolve(path, required=required)
+    except WorkflowFormatError as error:
+        return error_exit(str(error))
+
+
+def _is_workflow_file(path):
+    """Exclude any recognized workflow format from job-input candidates."""
+    return _workflow_format(path, required=False) is not None
 
 
 def _detect_main_cwl(wf_dir):
@@ -488,28 +489,16 @@ def _detect_main_cwl(wf_dir):
     Python and marked YAML specifications are preferred over CWL files.
     Multiple BEE specifications require an explicit --main-cwl selection.
     """
-    bee_candidates = _dir_files(wf_dir, (".py",)) + [
-        name for name in _dir_files(wf_dir, (".yaml", ".yml"))
-        if _is_yaml_spec(pathlib.Path(wf_dir) / name)
-    ]
-    for candidates in (sorted(bee_candidates), _dir_files(wf_dir, (".cwl",))):
-        if len(candidates) == 1:
-            return candidates[0]
-        if len(candidates) > 1:
-            error_exit(
-                f"Multiple workflow files found in {wf_dir}: "
-                f"{', '.join(candidates)}; specify the main one with --main-cwl"
-            )
-    error_exit(
-        f"No workflow file (.py, marked .yaml/.yml, or .cwl) found in {wf_dir}; "
-        "specify the main one with --main-cwl"
-    )
+    try:
+        return get_registry().discover(wf_dir)
+    except WorkflowFormatError as error:
+        return error_exit(str(error))
 
 
 def _detect_job(wf_dir):
     """Auto-detect the job input file in a directory, if there is one."""
     candidates = [name for name in _dir_files(wf_dir, (".yml", ".yaml", ".json"))
-                  if not _is_yaml_spec(pathlib.Path(wf_dir) / name)]
+                  if not _is_workflow_file(pathlib.Path(wf_dir) / name)]
     if len(candidates) > 1:
         error_exit(
             f"Multiple job input files found in {wf_dir}: "
@@ -538,11 +527,16 @@ def _package_workflow(workflow, name, main_cwl, job):
     tempdir_path), where orig_yaml_path is None when no job input file
     applies.
     """
+    if (workflow.is_file() and workflow.suffix.lower() != ".tgz"
+            and _workflow_format(workflow).bundle_directory):
+        # CWL run files and similar format-specific neighbors must travel
+        # with the main document; reuse the directory packaging path.
+        return _package_workflow(workflow.parent, name, str(workflow), job)
     tempdir_path = pathlib.Path(tempfile.mkdtemp())
     orig_yaml_path = None
 
-    if workflow.is_file() and workflow.suffix.lower() in (".py", ".yaml", ".yml"):
-        # Package just the BEE specification; the spec itself defines the
+    if workflow.is_file() and workflow.suffix.lower() != ".tgz":
+        # Package just the specification; the spec itself defines the
         # workflow inputs, so no job input file is needed
         spec_dir = tempdir_path / name
         spec_dir.mkdir()
@@ -560,7 +554,7 @@ def _package_workflow(workflow, name, main_cwl, job):
 
         orig_cwl_path = pathlib.Path(main_cwl).expanduser().resolve()
         if not orig_cwl_path.exists():
-            error_exit(f"Main CWL file {main_cwl} does not exist")
+            error_exit(f"Main workflow file {main_cwl} does not exist")
         if job is not None:
             orig_yaml_path = pathlib.Path(job).expanduser().resolve()
             if not orig_yaml_path.exists():
@@ -584,7 +578,7 @@ def _package_workflow(workflow, name, main_cwl, job):
             main_cwl = _detect_main_cwl(untar_wf_path)
         orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
         if not orig_cwl_path.exists():
-            error_exit(f"Main CWL file {main_cwl} does not exist")
+            error_exit(f"Main workflow file {main_cwl} does not exist")
         detected = _detect_job(untar_wf_path) if job is None else job
         if detected is not None:
             orig_yaml_path = untar_wf_path / pathlib.Path(detected).name
@@ -592,34 +586,21 @@ def _package_workflow(workflow, name, main_cwl, job):
                 error_exit(f"Job input file {detected} does not exist")
     else:
         error_exit(
-            f'Unsupported workflow path "{workflow}"; expected a .py/.yaml/.yml '
-            "specification, a directory, or a .tgz package"
+            f'Unsupported workflow path "{workflow}"; expected a registered '
+            "workflow file, a directory, or a .tgz package"
         )
 
-    if orig_yaml_path is not None and _is_yaml_spec(orig_yaml_path):
+    if orig_yaml_path is not None and _is_workflow_file(orig_yaml_path):
         error_exit("A BEE workflow document cannot be used as a job input file")
     return package_path, orig_cwl_path, orig_yaml_path, tempdir_path
 
 
 def _parse_workflow(name, workflow, orig_cwl_path, orig_yaml_path, workdir):
     """Parse the workflow and return the workflow and task objects."""
-    # Both BEE front ends share conversion; legacy .cwl files keep their parser.
-    from beeflow.common.parser import (  # pylint: disable=C0415
-        BeeParseError,
-        BeeParser,
-        CwlParseError,
-        CwlParser,
-    )
-
-    if pathlib.Path(orig_cwl_path).suffix.lower() in (".py", ".yaml", ".yml"):
-        parser = BeeParser()
-        parse_error = BeeParseError
-    else:
-        parser = CwlParser()
-        parse_error = CwlParseError
+    adapter = _workflow_format(orig_cwl_path)
     workflow_id = generate_workflow_id()
     try:
-        workflow_obj, tasks = parser.parse_workflow(
+        workflow_obj, tasks = adapter.parse_workflow(
             workflow_id,
             name,
             str(orig_cwl_path),
@@ -627,7 +608,7 @@ def _parse_workflow(name, workflow, orig_cwl_path, orig_yaml_path, workdir):
             workdir=workdir,
             wf_path=str(workflow),
         )
-    except parse_error as error:
+    except WorkflowFormatError as error:
         error_exit(str(error))  # Show user-friendly error, no traceback
     return workflow_obj, tasks
 
@@ -649,7 +630,7 @@ def _check_workdir(workdir):
 def submit(
     workflow: pathlib.Path = typer.Argument(
         ...,
-        help="workflow: a .py/.yaml/.yml specification, directory, or .tgz package",
+        help="workflow: a registered specification file, directory, or .tgz package",
     ),
     name: Optional[str] = typer.Option(
         None, "--name", "-N", help="workflow name (default: derived from the path)"
@@ -674,7 +655,7 @@ def submit(
 ):
     """Submit a new workflow.
 
-    The workflow path may be a Python (.py) or YAML (.yaml/.yml) specification, a
+    The workflow path may be a file supported by an installed format adapter, a
     workflow directory, or a .tgz package (created with `beeflow package`).
     For BEE specifications nothing else is required: the name, working
     directory, and job inputs are derived from the specification as needed.

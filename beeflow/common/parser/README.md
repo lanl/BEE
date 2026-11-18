@@ -16,6 +16,12 @@ See `docs/cwl-migration-plan.md` for the migration plan and a full walkthrough
 of the new API. `docs/sphinx/workflow_spec.rst` provides the Python/YAML
 authoring guide and field reference.
 
+Format selection for the parser CLI and submission is handled by
+`beeflow.common.parser.formats`. See `docs/sphinx/workflow_formats.rst` for
+optional CWL installation (`poetry install --extras cwl` for development),
+discovery rules, and installed extension entry points. `CwlParser` remains
+import-compatible but loads optional CWL packages only when parsing is requested.
+
 `BeeParser` converts a workflow written with the BEE Python workflow
 description API (`beeflow.common.workflow_api`) or its YAML front end into the `Workflow`
 and `Task` objects consumed by the `WorkflowInterface`. No CWL is generated or
