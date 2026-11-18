@@ -42,6 +42,7 @@ packages = [
 
 [tool.poetry.scripts]
 beeflow = "beeflow.client.bee_client:main"
+beeflow-ssh = "beeflow.common.scripts.ssh_wrapper:main"
 
 [tool.poetry.dependencies]
 
