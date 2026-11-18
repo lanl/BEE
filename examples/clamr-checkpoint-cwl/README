@@ -1,0 +1,13 @@
+This example builds the clamr-ffmpeg container and runs an example of
+clamr with checkpoint/restart.
+
+To run it (assuming beeflow is running):
+Do this in a working directory
+
+Copy clamr_checpoint.py and Dockerfile to the current directory then enter the
+following commands:
+
+python clamr_checkpoint.py
+beeflow submit clamr-example ./ ./clamr.cwl ./clamr.yml ./
+
+

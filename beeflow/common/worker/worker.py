@@ -5,6 +5,7 @@
 
 from abc import ABC, abstractmethod
 import os
+import shutil
 from beeflow.common import log as bee_logging
 from beeflow.common.crt_interface import ContainerRuntimeInterface
 
@@ -73,6 +74,21 @@ class Worker(ABC):
         """Return the task save path used for storing submission scripts output logs."""
         return f'{self.workdir}/workflows/{task.workflow_id}/{task.name}-{task.id[:4]}'
 
+    def save_script(self,task,sbatch_script):
+        """Save provided sbatch script into the appropriate archive and workflow directories"""
+        sbatch_script_name = os.path.basename(sbatch_script)
+
+        sbatch_archive_dir = self.task_save_path(task)
+        os.makedirs(sbatch_archive_dir,exist_ok=True)
+        sbatch_script_archive = f"{sbatch_archive_dir}/{sbatch_script_name}"
+
+        sbatch_script_dir = f"{task.workdir}/{task.name}-{task.id[:4]}"
+        os.makedirs(sbatch_script_dir, exist_ok=True)
+        sbatch_script_workdir = f"{sbatch_script_dir}/{sbatch_script_name}"
+
+        shutil.copy(sbatch_script, sbatch_script_archive)
+        shutil.copy(sbatch_script, sbatch_script_workdir)
+
     def write_script(self, task):
         """Build task script; returns filename of script."""
         # If the user has provided an sbatch script this will just return
@@ -117,19 +133,23 @@ class Worker(ABC):
         """
 
     @abstractmethod
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Cancel task with job_id; returns job_state.
 
         :param job_id: to be cancelled
         :type job_id: integer
+        :param job_info: optional job metadata (e.g., workflow_id)
+        :type job_info: dict or None
         :rtype: string
         """
 
     @abstractmethod
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):
         """Query job state for the task.
 
         :param job_id: job id to query for status.
         :type job_id: int
-        :rtype: string
+        :param job_info: optional job metadata
+        :type job_info: dict or None
+        :rtype: (string, dict)
         """

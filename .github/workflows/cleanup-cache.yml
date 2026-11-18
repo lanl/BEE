@@ -1,0 +1,32 @@
+name: Cleanup caches on closed pull requests
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  cleanup-caches:
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BRANCH: refs/pull/${{ github.event.pull_request.number }}/merge
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Cleanup Caches
+        run: |
+          echo "Fetching list of cache keys"
+          cacheKeysPerPR=$(gh cache list --ref $BRANCH --limit 20 --json id --jq '.[].id')
+
+          if [ -z "$cacheKeysPerPR" ]; then
+            echo "No caches found to delete"
+          else
+            # Make sure workflow does not fail if a cache is already deleted
+            set +e
+            echo "Deleting cache(s)..."
+            for cacheKey in $cacheKeysPerPR
+            do
+              gh cache delete $cacheKey
+            done
+          fi

@@ -23,7 +23,7 @@ BEE is python code and adheres to style guidelines specified in **setup.cfg**, e
 Important Notes:
 ----------------
 
-* To use the git hooks, you must have your Poetry environment set up and activated, as the hooks rely on the environment to run necessary checks.
+* To use the git hooks, ensure your python environment has BEE's dependencies installed via Poetry, as the hooks rely on the environment to run necessary checks. 
 * If you wish to skip running the git hook for a specific commit, you can do so by using the following command:
 
 .. code-block::

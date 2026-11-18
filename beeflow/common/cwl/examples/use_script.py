@@ -10,7 +10,7 @@ Purpose of the Workflow:
 This generator creates directory, use-script, containing:
 
      use-script.cwl
-     use-script.cwl
+     use-script.yml
      batch.sh - contains the commands defined by RUN_SH
 
 The workflow specification has one task, creating job:

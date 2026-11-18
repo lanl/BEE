@@ -431,6 +431,40 @@ class CwlParser:
         rm_line = "\n".join(rm_line)
         items.update({key: rm_line})
 
+    def _validate_workload_requirement(self, req_class, items):
+        """Validate beeflow:WorkloadRequirement fields.
+
+        :param req_class: the requirement class name
+        :type req_class: str
+        :param items: the requirement parameters
+        :type items: dict
+        """
+        if req_class != 'beeflow:WorkloadRequirement':
+            return
+
+        # Validate mode field if present
+        if 'mode' in items:
+            mode = items['mode']
+            if not isinstance(mode, str):
+                raise CwlParseError(
+                    'beeflow:WorkloadRequirement mode must be a string. '
+                    'Supported modes are "baremetal" and "scheduler".'
+                )
+            mode_lower = mode.lower()
+            if mode_lower not in ('baremetal', 'scheduler'):
+                raise CwlParseError(
+                    f'Unsupported beeflow:WorkloadRequirement mode {mode!r}. '
+                    'Supported modes are "baremetal" and "scheduler".'
+                )
+
+        # Validate scheduler field if present
+        if 'scheduler' in items:
+            scheduler = items['scheduler']
+            if not isinstance(scheduler, str):
+                raise CwlParseError(
+                    'beeflow:WorkloadRequirement scheduler must be a string.'
+                )
+
     def parse_requirements(self, requirements, as_hints=False):
         """Parse CWL hints/requirements.
 
@@ -476,18 +510,23 @@ class CwlParser:
                         raise CwlParseError(msg) from None
                 if "beeflow:bindMounts" in items:
                     self._read_requirement_file("beeflow:bindMounts", items)
+                # Validate beeflow:WorkloadRequirement fields
+                self._validate_workload_requirement(req["class"], items)
                 reqs.append(Hint(class_=req["class"], params=items))
         else:
             for req in requirements:
+                params = {
+                    k: str(v)
+                    for k, v in vars(req).items()
+                    if k not in ("extension_fields", "loadingOptions", "class_")
+                    and v is not None
+                }
+                # Validate beeflow:WorkloadRequirement fields
+                self._validate_workload_requirement(req.class_, params)
                 reqs.append(
                         Requirement(
                             class_=req.class_,
-                            params={
-                                k: str(v)
-                                for k, v in vars(req).items()
-                                if k not in ("extension_fields", "loadingOptions", "class_")
-                                and v is not None
-                                },
+                            params=params,
                             )
                         )
         return reqs

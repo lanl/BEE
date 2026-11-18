@@ -7,7 +7,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    types: [opened, synchronize, edited, labeled, unlabeled]
+    types: [opened, synchronize, labeled, unlabeled]
     branches: [main, develop]
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
     name: Pylint Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Lint
         run: |
           pip install pylint==3.3.6 2>&1 >/dev/null

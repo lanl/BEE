@@ -1,3 +1,45 @@
+### 0.1.13
+
+Major features include:
+
+Allow front-end tasks (no job submission)(#1218)
+  - Allows pre-simulation tasks such as data transfers on front-end
+  - Allows lightweight tasks (post-processing etc.) that do not require jobs
+
+Fixed bottleneck to developers and outside contributions
+  - previously caused by bot submitting coverage badges to code repository
+  - bot now makes a comment with the new coverage for reviewers
+  - badges for develop and main branches now reside in gh-pages
+
+Optimized CI tests through github's caching mechanism (#1230)
+
+Fixed slurmrestd runtime attribute (#1226)
+  - runtime is current for running tasks
+  - runtime is accurate for failed tasks, time to failure
+
+Allow user to query the latest workflow by default (no workflow id) (#1238) 
+
+Docs: Added top-level AGENTS.md for AI coding agents (#1256)
+      Improved installation instructions for developers
+
+Changelog:
+
+-  Fix github documentation build (#1237)
+-  Don't update coverage.svg until merged into develop (#1240)
+-  Bump setuptools from 75.3.0 to 78.1.1 (#1239)
+-  Move coverage badge to gh-pages (#1245)
+-  Build docs after badge gets updated in gh-pages (#1247)
+-  Fix main docs publication (#1250)
+-  Optimize CI tests through github's caching mechanism (#1230)
+-  Remove optional cloud dependencies in CI (#1251)
+-  DOCS: Get rid of poetry information that causes issues (#1255)
+-  Docs: add top-level AGENTS.md for AI coding agents (#1256)
+-  Update AGENTS.md file with correct poetry info (#1258)
+-  Ceanup caches on closed prs (#1253)
+-  Fix slurmrestd attr (#1226)
+-  Allow user query latest workflow without workflow id (#1238)
+-  Allow front-end tasks(#1218)
+
 ### 0.1.12
 
 Major features include:

@@ -1,43 +1,31 @@
-name: Build Docs
+name: Build Tag Docs
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
 
 on:
-  workflow_dispatch: {}
   push:
-    branches: [main, develop]
     tags:
       - '*'
-  pull_request:
-    types: [opened, synchronize, edited, labeled, unlabeled]
-    branches: [main, develop]
   delete:
 
 permissions:
   contents: write
 
 jobs:
-  docs:
-    if: ${{ !(contains(github.event.pull_request.labels.*.name, 'WIP (no-ci)')) && !(contains(github.event.pull_request.labels.*.name, 'WIP (lint-only)')) }}
-    name: Build Docs
+  tag-docs:
+    if: startsWith(github.ref, 'refs/tags/')
+    name: Build and Publish Tag Docs
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v5
 
-      - name: Checkout latest tag for main
-        if: github.ref == 'refs/heads/main'
-        run: |
-          git fetch --tags --force
-          LATEST_TAG="$(git tag --sort=-creatordate | head -n 1)"
-          echo "Latest tag: $LATEST_TAG"
-          git checkout "$LATEST_TAG"
-
-      - name: Install BEE and Build Docs
+      - name: Build tag docs
         run: ./ci/docs.sh
 
       - name: Publish tag docs
-        if: startsWith(github.ref, 'refs/tags/')
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -46,8 +34,18 @@ jobs:
           destination_dir: ${{ github.ref_name }}
           keep_files: true
 
-      - name: Publish latest docs to root
-        if: github.ref == 'refs/heads/main'
+      - name: Check for final release tag
+        id: final_release
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_final=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_final=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish final release docs to root
+        if: steps.final_release.outputs.is_final == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -58,10 +56,11 @@ jobs:
 
   cleanup-tag-docs:
     if: github.event_name == 'delete' && github.event.ref_type == 'tag'
+    name: Clean-Up Tag Docs
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: gh-pages
 

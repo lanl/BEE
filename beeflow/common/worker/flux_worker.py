@@ -9,6 +9,7 @@ import io
 import os
 from beeflow.common import log as bee_logging
 from beeflow.common.worker.worker import Worker
+from beeflow.common.worker.utils import format_runtime
 log = bee_logging.setup(__name__)
 
 # Map from flux states to BEE statuses
@@ -136,14 +137,14 @@ class FluxWorker(Worker):
         job_state, job_info = self.query_task(job_id)
         return job_id, job_state, job_info
 
-    def cancel_task(self, job_id):
+    def cancel_task(self, job_id, job_info=None):
         """Cancel task with job_id; returns job_state."""
         log.info(f'Cancelling task with ID: {job_id}')
         flux = self.flux.Flux()
         self.job.cancel(flux, job_id)
         return 'CANCELED'
 
-    def query_task(self, job_id):
+    def query_task(self, job_id, job_info=None):
         """Query job state for the task."""
         # TODO: How does Flux handle TIMEOUT? They don't seem to have
         # a state for this
@@ -151,6 +152,10 @@ class FluxWorker(Worker):
         flux = self.flux.Flux()
         info = self.job.get_job(flux, job_id)
         job_info = deepcopy(info)
+
+        encoded_id = self.job.JobID.encode(job_info['id'],encoding='f58')
+        job_info['id'] = encoded_id
+        job_info['runtime'] = format_runtime(job_info['runtime'])
 
         # TODO: May need to check for return codes other than 0 if
         # specified by the task (although I'm not sure how we can keep

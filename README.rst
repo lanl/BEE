@@ -3,12 +3,12 @@ BEE: Build and Execution Environment
 
 Coverage in Develop
 
-.. image:: https://github.com/lanl/BEE/raw/develop/coverage.svg
+.. image:: https://lanl.github.io/BEE/badges/develop/coverage.svg
    :alt: Coverage Badge for develop
 
 Coverage in Main
 
-.. image:: https://github.com/lanl/BEE/raw/main/coverage.svg
+.. image:: https://lanl.github.io/BEE/badges/main/coverage.svg
    :alt: Coverage Badge for main
 
 BEE is a workflow orchestration system designed to build containerized HPC applications and orchestrate workflows across HPC and cloud systems. BEE has adopted the Common Workflow Language (`CWL <https://www.commonwl.org/>`_) for specifying workflows. Complex scientific workflows specified by CWL are managed and visualized through a graph database, giving the user the ability to monitor the state of each task in the workflow. BEE runs jobs using the workload scheduler (i.e. Slurm or Flux) on the HPC system that tasks are specified to run on.
@@ -47,11 +47,11 @@ BEE Sites
      - Documentation
 
    * - Stable release
-     - ``0.1.12``
+     - ``0.1.13``
      - `https://lanl.github.io/BEE/ <https://lanl.github.io/BEE/>`__
    * - Pre-release
-     - ``0.1.13dev0``
-     - `https://lanl.github.io/BEE/0.1.13dev0/ <https://lanl.github.io/BEE/0.1.13dev0/>`__
+     - ``0.1.14dev1``
+     - `https://lanl.github.io/BEE/0.1.14dev1/ <https://lanl.github.io/BEE/0.1.14dev1/>`__
 
 
 Contact
@@ -74,22 +74,24 @@ Contributors:
 * Ragini Gupta - `raginigupta6 <https://github.com/raginigupta6>`_
 * Aaron R Hall - `arhall0 <https://github.com/arhall0>`_
 * Leah Howell - `Leahh02 <https://github.com/Leahh02>`_
+* Santiago Lopez - `santiag0-3 <https://github.com/santiag0-3>`_
 * Lilikoi Latimer - `lilikoi-l <https://github.com/lilikoi-l>`_
+* Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
+* Howard Pritchard - `hppritcha <https://github.com/hppritcha>`_
 * Andres Quan - `aquan9 <https://github.com/aquan9>`_
-* Quincy Wofford - `qwofford <https://github.com/qwofford>`_
 * Tim Randles - `trandles-lanl <https://github.com/trandles-lanl>`_
+* Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
 * Jacob Tronge - `jtronge <https://github.com/jtronge>`_
 * Kabir Vats - `kabir-vats <https://github.com/kabir-vats>`_
+* Quincy Wofford - `qwofford <https://github.com/qwofford>`_
 * Sare Beste Zeytun - `sbzeytun <https://github.com/sbzeytun>`_
-* Jeff Tamashiro - `jeffreyt <https://github.com/jeffreyt>`_
-* Wesley Mason - `wmason-lanl <https://github.com/wmason-lanl>`_
 
 Concept and Design Contributors
 
 * James Ahrens
 * Curt Canada 
-* Allen McPherson
 * Li-Ta Lo
+* Allen McPherson
 * Louis Vernon
 
 
