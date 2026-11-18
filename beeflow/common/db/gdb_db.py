@@ -304,7 +304,12 @@ class SQL_GDB:
 
 
     def add_dependencies(self, task: Task, old_task: Task=None, restarted_task=False):
-        """Add dependencies for a task based on its inputs and outputs."""
+        """Infer dependencies on load, or transfer existing edges on restart.
+
+        Restart identities come from task IDs, not display names, which the
+        workflow interface changes on each attempt. Preserve explicit flags
+        and the current predecessor IDs (those tasks may have restarted too).
+        """
         if restarted_task:
             set_restarted_wf = """
                 UPDATE workflow
@@ -315,27 +320,32 @@ class SQL_GDB:
                 WHERE depends_on_task_id = :depends_on_task_id;"""
 
             restarted_query = """
-                INSERT INTO task_restart (restarting_task_id, restarted_from_task_id)
+                INSERT OR IGNORE INTO task_restart (restarting_task_id, restarted_from_task_id)
                 VALUES (:restarting_task_id, :restarted_from_task_id);"""
 
-            dependency_query = """
-                INSERT OR IGNORE INTO task_dep (depending_task_id, depends_on_task_id)
-                SELECT DISTINCT t.id AS depending_task_id, s.id AS depends_on_task_id
-                FROM task AS s
-                JOIN task_output AS o
-                    ON o.task_id = s.id
-                JOIN task_input AS i
-                    ON i.source = o.id
-                JOIN task AS t
-                    ON t.id = i.task_id
-                WHERE
-                    s.id = :task_id
-                    AND s.workflow_id = t.workflow_id;"""
-            bdb.run(self.db_file, set_restarted_wf, {'wf_id': task.workflow_id})
-            bdb.run(self.db_file, delete_dependencies_query, {'depends_on_task_id': old_task.id})
-            bdb.run(self.db_file, restarted_query, {'restarting_task_id': task.id,
+            incoming_query = """
+                INSERT INTO task_dep (depending_task_id, depends_on_task_id, explicit)
+                SELECT depending_task_id, :new_id, explicit FROM task_dep
+                WHERE depends_on_task_id = :old_id
+                ON CONFLICT(depending_task_id, depends_on_task_id)
+                DO UPDATE SET explicit = max(task_dep.explicit, excluded.explicit);"""
+            outgoing_query = """
+                INSERT INTO task_dep (depending_task_id, depends_on_task_id, explicit)
+                SELECT :new_id, depends_on_task_id, explicit FROM task_dep
+                WHERE depending_task_id = :old_id
+                ON CONFLICT(depending_task_id, depends_on_task_id)
+                DO UPDATE SET explicit = max(task_dep.explicit, excluded.explicit);"""
+            # Copy before deleting, atomically: readers must not observe an
+            # explicit edge missing between the old and replacement attempts.
+            with bdb.create_connection(self.db_file) as connection:
+                connection.execute(set_restarted_wf, {'wf_id': task.workflow_id})
+                connection.execute(restarted_query, {'restarting_task_id': task.id,
                                                      'restarted_from_task_id': old_task.id})
-            bdb.run(self.db_file, dependency_query, {'task_id': task.id})
+                params = {'new_id': task.id, 'old_id': old_task.id}
+                connection.execute(incoming_query, params)
+                connection.execute(outgoing_query, params)
+                connection.execute(delete_dependencies_query,
+                                   {'depends_on_task_id': old_task.id})
         else:
             dependency_query = """
                 INSERT OR IGNORE INTO task_dep (depending_task_id, depends_on_task_id)
@@ -368,7 +378,8 @@ class SQL_GDB:
             bdb.run(self.db_file, dependency_query, {'task_id': task.id})
             bdb.run(self.db_file, dependent_query, {'task_id': task.id})
 
-        self._add_explicit_dependencies(task)
+        if not restarted_task:
+            self._add_explicit_dependencies(task)
 
     def _add_explicit_dependencies(self, task: Task):
         """Add explicit (non-data) depends_on edges for a task.

@@ -223,6 +223,14 @@ explicit dependencies or both are errors. Explicit dependencies hold a task
 until the dependency reaches a final state; a failed predecessor is handled
 through dependency-failure propagation, not treated as successful execution.
 
+Checkpoint restarts create a new task ID and change its display name (for example,
+``setup`` becomes ``setup-1``). Existing dependency edges are transferred by task
+ID, not resolved again from display names. Both data-flow and explicit edges
+retain their classification, and explicit dependents wait for the replacement
+attempt. The authored ``depends_on`` names remain the original specification
+names; they are not rewritten to attempt names. This does not broaden the READY
+gate to data-only edges.
+
 Resources
 ~~~~~~~~~
 

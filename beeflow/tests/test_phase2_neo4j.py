@@ -11,8 +11,10 @@ from neo4j import GraphDatabase
 import pytest
 
 from beeflow.common.gdb import neo4j_cypher as cypher
-from beeflow.common.gdb.neo4j_driver import _reconstruct_task
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver, _reconstruct_task
 from beeflow.common.object_models import StepInput, Task
+from beeflow.common.wf_interface import WorkflowInterface
+from beeflow.tests.test_restart_dependencies import exercise_restart_dependencies
 
 
 @pytest.fixture
@@ -113,3 +115,33 @@ def test_missing_input_still_blocks_readiness(live_graph):
     cypher.create_task_input_nodes(transaction, task)
     cypher.set_runnable_tasks_to_ready(transaction, workflow_id)
     assert cypher.get_task_by_id(transaction, task.id)["state"] == "WAITING"
+
+
+@pytest.mark.parametrize("mode", ["explicit", "data", "mixed"])
+@pytest.mark.parametrize("name", ["stage", "stage-7"])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_neo4j_workflow_restart_dependencies(live_graph, mocker, mode, name, reverse):
+    """Run the real WFI/driver against the live, rollback-only test transaction."""
+    transaction, workflow_id = live_graph
+    driver = object.__new__(Neo4jDriver)
+    # Redirect session boundaries to the fixture's one transaction so no writes
+    # escape rollback. Queries and returned graph data are real, not mocked.
+    driver._driver = mocker.MagicMock()  # pylint: disable=W0212
+    session = driver._driver.session.return_value.__enter__.return_value  # pylint: disable=W0212
+
+    def dispatch(callback, **kwargs):
+        return callback(transaction, **kwargs)
+
+    session.read_transaction.side_effect = dispatch
+    session.write_transaction.side_effect = dispatch
+    wfi = WorkflowInterface(workflow_id, gdb_driver=driver)
+
+    def edges():
+        records = transaction.run(
+            "MATCH (t:Task {workflow_id: $wf_id})-[r:DEPENDS_ON]->(d:Task) "
+            "RETURN t.id AS depending, d.id AS dependency, "
+            "coalesce(r.explicit, false) AS explicit", wf_id=workflow_id,
+        )
+        return [(row["depending"], row["dependency"], int(row["explicit"])) for row in records]
+
+    exercise_restart_dependencies(wfi, edges, mode, name, reverse)

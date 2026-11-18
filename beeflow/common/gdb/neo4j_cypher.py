@@ -235,7 +235,7 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
     :type task: Task
     :param old_task: the failed task, ignored if not used with restarted_task=True
     :type old_task: Task
-    :param restarted_task: restarted from failed task, only create dependencies for outputs
+    :param restarted_task: transfer predecessor/dependent edges from the old task by ID
     :type restarted_task: bool
     """
     if restarted_task:
@@ -245,43 +245,49 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
                                      "DETACH DELETE r")
         restarted_query = ("MATCH (s:Task {id: $old_task_id}), (t:Task {id: $new_task_id}) "
                            "MERGE (s)<-[:RESTARTED_FROM]-(t)")
-        dependency_query = ("MATCH (s:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
-                            "WITH s, collect(o.id) AS outputs "
-                            "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
-                            "WITH s, t, outputs, collect(i.source) as sources "
-                            "WHERE any(output IN outputs WHERE output IN sources) "
-                            "AND (s.workflow_id = t.workflow_id) "
-                            "MERGE (t)-[:DEPENDS_ON]->(s)")
+        incoming_query = ("MATCH (old:Task {id: $old_id})<-[r:DEPENDS_ON]-(t:Task), "
+                          "(replacement:Task {id: $new_id}) "
+                          "MERGE (t)-[edge:DEPENDS_ON]->(replacement) "
+                          "SET edge.explicit = coalesce(edge.explicit, false) "
+                          "OR coalesce(r.explicit, false)")
+        outgoing_query = ("MATCH (old:Task {id: $old_id})-[r:DEPENDS_ON]->(d:Task), "
+                          "(replacement:Task {id: $new_id}) "
+                          "MERGE (replacement)-[edge:DEPENDS_ON]->(d) "
+                          "SET edge.explicit = coalesce(edge.explicit, false) "
+                          "OR coalesce(r.explicit, false)")
 
         tx.run(set_restarted_wf, wf_id=task.workflow_id)
-        tx.run(delete_dependencies_query, task_id=old_task.id)
         tx.run(restarted_query, old_task_id=old_task.id, new_task_id=task.id)
-        tx.run(dependency_query, task_id=task.id)
-    else:
-        begins_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
-                        "WITH s, collect(i.source) AS sources "
-                        "MATCH (w:Workflow {id: s.workflow_id})<-[:INPUT_OF]-(i:Input) "
-                        "WITH s, w, sources, collect(i.id) AS inputs "
-                        "WHERE any(input IN sources WHERE input IN inputs) "
-                        "MERGE (s)-[:BEGINS]->(w)")
-        dependency_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
-                            "WITH s, collect(i.source) as sources "
-                            "MATCH (t:Task)<-[:OUTPUT_OF]-(o:Output) "
-                            "WITH s, t, sources, collect(o.id) as outputs "
-                            "WHERE any(input IN sources WHERE input IN outputs) "
-                            "AND s.workflow_id = t.workflow_id "
-                            "MERGE (s)-[:DEPENDS_ON]->(t)")
-        dependent_query = ("MATCH (s:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
-                           "WITH s, collect(o.id) AS outputs "
-                           "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
-                           "WITH s, t, outputs, collect(i.source) as sources "
-                           "WHERE any(output IN outputs WHERE output IN sources) "
-                           "AND s.workflow_id = t.workflow_id "
-                           "MERGE (t)-[:DEPENDS_ON]->(s)")
+        tx.run(incoming_query, old_id=old_task.id, new_id=task.id)
+        tx.run(outgoing_query, old_id=old_task.id, new_id=task.id)
+        tx.run(delete_dependencies_query, task_id=old_task.id)
+        # Do not re-infer by names: authored dependency names still refer to
+        # the logical tasks, while replacement attempts have new display names.
+        return
+    begins_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
+                    "WITH s, collect(i.source) AS sources "
+                    "MATCH (w:Workflow {id: s.workflow_id})<-[:INPUT_OF]-(i:Input) "
+                    "WITH s, w, sources, collect(i.id) AS inputs "
+                    "WHERE any(input IN sources WHERE input IN inputs) "
+                    "MERGE (s)-[:BEGINS]->(w)")
+    dependency_query = ("MATCH (s:Task {id: $task_id})<-[:INPUT_OF]-(i:Input) "
+                        "WITH s, collect(i.source) as sources "
+                        "MATCH (t:Task)<-[:OUTPUT_OF]-(o:Output) "
+                        "WITH s, t, sources, collect(o.id) as outputs "
+                        "WHERE any(input IN sources WHERE input IN outputs) "
+                        "AND s.workflow_id = t.workflow_id "
+                        "MERGE (s)-[:DEPENDS_ON]->(t)")
+    dependent_query = ("MATCH (s:Task {id: $task_id})<-[:OUTPUT_OF]-(o:Output) "
+                       "WITH s, collect(o.id) AS outputs "
+                       "MATCH (t:Task)<-[:INPUT_OF]-(i:Input) "
+                       "WITH s, t, outputs, collect(i.source) as sources "
+                       "WHERE any(output IN outputs WHERE output IN sources) "
+                       "AND s.workflow_id = t.workflow_id "
+                       "MERGE (t)-[:DEPENDS_ON]->(s)")
 
-        tx.run(begins_query, task_id=task.id, wf_id=task.workflow_id)
-        tx.run(dependency_query, task_id=task.id)
-        tx.run(dependent_query, task_id=task.id)
+    tx.run(begins_query, task_id=task.id, wf_id=task.workflow_id)
+    tx.run(dependency_query, task_id=task.id)
+    tx.run(dependent_query, task_id=task.id)
 
     # Explicit (non-data) depends_on edges. Both directions relative to load
     # order are written, mirroring the data flow queries above: MERGE makes the
