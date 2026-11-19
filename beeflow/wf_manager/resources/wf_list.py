@@ -1,12 +1,11 @@
 """The workflow list module.
 
-This contains endpoints forsubmitting, starting, and reexecuting workflows.
+This module contains endpoints for submitting, starting, and reexecuting workflows.
 """
 
 import base64
 import os
 import subprocess
-import jsonpickle
 
 from flask import request
 from pydantic_core import ValidationError
@@ -20,11 +19,11 @@ from beeflow.common.gdb import sqlite3_driver
 # from beeflow.common.wf_profiler import WorkflowProfiler
 
 from beeflow.wf_manager.models import (
-    CopyWorkflowRequest,
-    CopyWorkflowResponse,
     ListWorkflowsResponse,
     SubmitWorkflowRequest,
     SubmitWorkflowResponse,
+    RetryWorkflowRequest,
+    RetryWorkflowResponse,
 )
 from beeflow.wf_manager.resources import wf_utils
 
@@ -82,7 +81,7 @@ class WFList(Resource):
         return ListWorkflowsResponse(workflow_info_list=info).model_dump(), 200
 
     def post(self):
-        """Upload a workflown and start."""
+        """Upload a workflow and start."""
         try:
             data = SubmitWorkflowRequest.model_validate(request.json)
         except ValidationError as e:
@@ -91,7 +90,7 @@ class WFList(Resource):
                 SubmitWorkflowResponse(
                     msg="Invalid request data", status="error", wf_id=None
                 ).model_dump(),
-                400,
+                400
             )
 
         wf_id = data.workflow.id
@@ -111,20 +110,38 @@ class WFList(Resource):
             SubmitWorkflowResponse(
                 msg="Workflow uploaded", status="ok", wf_id=wf_id
             ).model_dump(),
-            201,
+            201
         )
 
     def patch(self):
-        """Copy workflow archive."""
-        wf_id = CopyWorkflowRequest.model_validate(request.json).wf_id
-        archive_dir = bc.get("DEFAULT", "bee_archive_dir")
-        archive_path = os.path.join(archive_dir, wf_id + ".tgz")
-        with open(archive_path, "rb") as archive:
-            archive_file = jsonpickle.encode(archive.read())
-        archive_filename = os.path.basename(archive_path)
-        return (
-            CopyWorkflowResponse(
-                archive_file_pickle=archive_file, archive_filename=archive_filename
-            ).model_dump(),
-            200,
-        )
+        """Retry failed workflow."""
+        try:
+            data = RetryWorkflowRequest.model_validate(request.json)
+        except ValidationError as e:
+            log.error(f"Error parsing request data: {e}")
+            return (
+                RetryWorkflowResponse(
+                    msg="Invalid request data",
+                    status="error"
+                ).model_dump(),
+                400,
+            )
+        wf_id = data.wf_id
+        try:
+            wf_utils.retry_failed_workflow(wf_id)
+            return (
+                RetryWorkflowResponse(
+                    msg="Workflow retried successfully",
+                    status="ok"
+                ).model_dump(),
+                200
+            )
+        except ValueError as e:
+            log.error(f"Cannot retry workflow that isn't FAILED: {e}")
+            return (
+                RetryWorkflowResponse(
+                    msg=f"Cannot retry workflow: {e}",
+                    status="error"
+                ).model_dump(),
+                409
+            )

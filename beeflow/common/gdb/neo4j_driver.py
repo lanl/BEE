@@ -210,6 +210,18 @@ class Neo4jDriver(GraphDatabaseDriver):
                 restarted_task=True,
             )
 
+    def reset_failed_tasks(self, workflow_id):
+        """Reset failed tasks (Neo4j backend is deprecated).
+        
+        :param workflow_id: the workflow ID
+        :type workflow_id: str
+        :raises NotImplementedError: Neo4j support is deprecated
+        """
+        raise NotImplementedError(
+            "Neo4j support is deprecated. Please use sqlite3 backend "
+            "by setting 'type = sqlite3' in the [graphdb] section of bee.conf"
+        )
+
     def finalize_task(self, task):
         """Set task state to 'COMPLETED' and set inputs from source.
 
