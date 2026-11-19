@@ -1,8 +1,9 @@
 """Charliecloud driver tests."""
+import subprocess
 import pathlib
 import pytest
 from beeflow.common.crt.charliecloud_driver import CharliecloudDriver as crt_driver
-from beeflow.common.object_models import Task, Requirement
+from beeflow.common.object_models import Hint, Task, Requirement
 
 @pytest.mark.parametrize(
     "use_container, pre_commands_exp, main_command_exp, post_commands_exp",
@@ -68,3 +69,80 @@ def test_run_text_use_container(
     assert pre_commands == pre_commands_exp
     assert main_command == main_command_exp
     assert post_commands == post_commands_exp
+
+
+def test_run_text_keeps_user_bind_mounts(mocker, tmpdir):
+    """Test that user beeflow:bindMounts survive when the task has a workdir."""
+    tmpdir_str = str(tmpdir)
+    mocker.patch("beeflow.common.config_driver.BeeConfig.get", return_value="env")
+    mocker.patch(
+        "beeflow.common.config_driver.BeeConfig.resolve_path", return_value=tmpdir_str
+    )
+    mocker.patch("os.getenv", return_value=str(tmpdir))
+    requirements = [
+        Requirement(
+            class_="DockerRequirement",
+            params={
+                "beeflow:containerName": None,
+                "beeflow:bindMounts": "/host/data: /data",
+                "beeflow:copyContainer": None,
+                "dockerPull": None,
+                "beeflow:useContainer": "cont.sqfs",
+            },
+        )
+    ]
+    task = Task(
+        name="",
+        base_command="",
+        hints=[],
+        requirements=requirements,
+        inputs=[],
+        outputs=[],
+        stdout="",
+        stderr="",
+        workflow_id="",
+        workdir=tmpdir_str,
+    )
+    driver = crt_driver()
+    res = driver.run_text(task)
+
+    main_command = " ".join(res.main_command.args)
+    # The user's mount is kept alongside the default $HOME mapping
+    assert "-b /host/data:/data" in main_command
+    assert main_command.count("-b") == 2
+
+
+def test_run_text_chains_multiple_commands():
+    """The worker command text chains commands and preserves failure status."""
+    task = Task(
+        name="multi",
+        base_command=[["echo", "ran-first"], ["false"]],
+        hints=[],
+        requirements=[],
+        inputs=[],
+        outputs=[],
+        workflow_id="wf",
+    )
+    command = " ".join(crt_driver().run_text(task).main_command.args)
+
+    result = subprocess.run(command, shell=True, capture_output=True, check=False)
+    assert result.returncode != 0
+    assert result.stdout == b"ran-first\n"
+
+
+def test_multiple_commands_append_checkpoint_to_last_command():
+    """Checkpoint arguments apply to the last command without mutating the spec."""
+    commands = [["true"], ["printf", "'%s\\n'"]]
+    task = Task(
+        name="checkpoint", base_command=commands, workflow_id="wf",
+        hints=[Hint(class_="beeflow:CheckpointRequirement", params={
+            "bee_checkpoint_file__": "/checkpoints/state.dat",
+            "restart_parameters": "--restart",
+            "add_parameters": "--resume",
+        })],
+    )
+    result = subprocess.run(" ".join(task.command), shell=True,
+                            capture_output=True, check=False)
+    assert result.returncode == 0
+    assert result.stdout == b"--restart\n/checkpoints/state.dat\n--resume\n"
+    assert task.base_command == commands

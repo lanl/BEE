@@ -5,6 +5,7 @@ from uuid import uuid4
 from copy import deepcopy
 import os
 import re
+import shlex
 from typing import Any, Optional
 from pydantic import BaseModel, model_validator
 
@@ -183,7 +184,7 @@ class Task(BaseModel):
     """Data structure for holding data about a single task."""
 
     name: str
-    base_command: str | list[str]
+    base_command: str | list[str] | list[list[str]]
     hints: Optional[list[Hint]] = []
     requirements: Optional[list[Requirement]] = []
     inputs: list[StepInput] = []
@@ -195,6 +196,10 @@ class Task(BaseModel):
     id: Optional[str] = None
     state: Optional[str] = "WAITING"
     metadata: Optional[dict] = {}
+    # Names of tasks in the same workflow this task must run after, even when
+    # no data is shared between them (stored by name so dependency edges can
+    # be remapped when a task is restarted with a new id)
+    depends_on: Optional[list[str]] = []
 
     @model_validator(mode="before")
     def generate_id_if_missing(cls, data):  # pylint: disable=E0213
@@ -232,6 +237,7 @@ class Task(BaseModel):
             workflow_id=self.workflow_id,
             id=task_id,
             workdir=self.workdir,
+            depends_on=copy_method(self.depends_on),
         )
 
         # Apply any updates if provided
@@ -373,7 +379,15 @@ class Task(BaseModel):
                 nonpositional_inputs.append(input_)
         positional_inputs.sort(key=lambda i: i.position)
 
-        if isinstance(self.base_command, list):
+        multiple_commands = (
+            isinstance(self.base_command, list)
+            and bool(self.base_command)
+            and isinstance(self.base_command[0], list)
+        )
+        if multiple_commands:
+            commands = [part[:] for part in self.base_command]
+            command = commands[0]
+        elif isinstance(self.base_command, list):
             command = self.base_command[:]
         else:
             command = [self.base_command]
@@ -389,29 +403,32 @@ class Task(BaseModel):
 
         # Fill in any {input_id} placeholders (new python API commands), e.g.
         # "grep {word} {text_file}" with word and text_file as task inputs
-        if any("{" in token for token in command):
+        commands_to_expand = commands if multiple_commands else [command]
+        if any("{" in token for part in commands_to_expand for token in part):
             input_values = {
                 input_.id: input_.value for input_ in self.inputs
                 if input_.value is not None
             }
-            for pos, token in enumerate(command):
-                for ref in re.findall(r"\{(\w+)\}", token):
-                    if ref not in input_values:
-                        raise ValueError(
-                            (
-                                "trying to construct command for task with missing "
-                                f"placeholder value (id: {ref})"
+            for part in commands_to_expand:
+                for pos, token in enumerate(part):
+                    for ref in re.findall(r"\{(\w+)\}", token):
+                        if ref not in input_values:
+                            raise ValueError(
+                                (
+                                    "trying to construct command for task with missing "
+                                    f"placeholder value (id: {ref})"
+                                )
                             )
-                        )
-                    token = token.replace("{" + ref + "}", str(input_values[ref]))
-                command[pos] = token
+                        token = token.replace("{" + ref + "}", str(input_values[ref]))
+                    part[pos] = token
 
         # Append restart parameter and checkpoint file if CheckpointRequirement specified
+        checkpoint_command = commands[-1] if multiple_commands else command
         for hint in self.hints:
             if hint.class_ == "beeflow:CheckpointRequirement":
                 if "bee_checkpoint_file__" in hint.params:
                     if "restart_parameters" in hint.params:
-                        command.append(hint.params["restart_parameters"])
+                        checkpoint_command.append(hint.params["restart_parameters"])
                     # Ignoring "container_path" for now
                     checkpoint_file = hint.params["bee_checkpoint_file__"]
                     # Charliecloud default bind mounts (this should taken from
@@ -419,9 +436,13 @@ class Task(BaseModel):
                     bind_mounts = {
                         os.getenv("HOME"): os.path.join("/home", os.getenv("USER")),
                     }
-                    command.append(convert_path(checkpoint_file, bind_mounts))
+                    checkpoint_command.append(convert_path(checkpoint_file, bind_mounts))
                     if "add_parameters" in hint.params:
-                        command.append(hint.params["add_parameters"])
+                        checkpoint_command.append(hint.params["add_parameters"])
                 break
+
+        if multiple_commands:
+            payload = " && ".join(" ".join(part) for part in commands)
+            return ["/bin/sh", "-c", shlex.quote(payload)]
 
         return command

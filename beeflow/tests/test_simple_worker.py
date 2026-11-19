@@ -56,6 +56,36 @@ def test_simple_worker_kills_process_group():
         shutil.rmtree(bee_workdir, ignore_errors=True)
 
 
+def test_simple_worker_marks_failed_second_command(tmp_path):
+    """A failing later command in a chain makes the task fail."""
+    task_workdir = tmp_path / "task-workdir"
+    bee_workdir = tmp_path / "bee-workdir"
+    task = Task(
+        name="multi-command-failure",
+        base_command=[["echo", "first-command-ran"], ["false"],
+                      ["touch", "must-not-run"]],
+        hints=[],
+        requirements=[],
+        inputs=[],
+        outputs=[],
+        stdout=None,
+        stderr=None,
+        workflow_id=uuid.uuid4().hex,
+        workdir=str(task_workdir),
+    )
+    worker = SimpleWorker(
+        bee_workdir=str(bee_workdir),
+        container_runtime="Charliecloud",
+    )
+
+    job_id, _, job_info = worker.submit_task(task)
+    os.waitpid(job_id, 0)
+    state, _ = worker.query_task(job_id, job_info=job_info)
+
+    assert state == "FAILED"
+    assert not (task_workdir / "must-not-run").exists()
+
+
 def count_processes_in_group(pgid):
     """Count the number of processes in a process group."""
     import subprocess

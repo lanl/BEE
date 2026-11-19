@@ -1,5 +1,6 @@
 """Neo4j/Cypher transaction functions used by the Neo4jDriver class."""
 
+import json
 from re import fullmatch
 from beeflow.common import log as bee_logging
 
@@ -118,19 +119,29 @@ def create_task(tx, task):
                     "SET t.workflow_id = $workflow_id "
                     "SET t.name = $name "
                     "SET t.base_command = $base_command "
+                    "SET t.base_command_json = $base_command_json "
                     "SET t.stdout = $stdout "
                     "SET t.stderr = $stderr "
                     "SET t.reqs = $reqs "
                     "SET t.hints = $hints "
                     "SET t.state = $state "
-                    "SET t.workdir = $workdir")
+                    "SET t.workdir = $workdir "
+                    "SET t.depends_on = $depends_on")
 
     # Unpack requirements, hints dictionaries into flat list
     reqs = len(task.requirements) > 0
     hints = len(task.hints) > 0
+    # Neo4j properties cannot contain nested collections. Keep legacy command
+    # properties unchanged and encode only multi-command lists as JSON.
+    nested = isinstance(task.base_command, list) and any(
+        isinstance(part, list) for part in task.base_command
+    )
     tx.run(create_query, task_id=task.id, workflow_id=task.workflow_id, name=task.name,
-           base_command=task.base_command, stdout=task.stdout, stderr=task.stderr,
-           reqs=reqs, hints=hints, state=task.state, workdir=task.workdir)
+           base_command=None if nested else task.base_command,
+           base_command_json=json.dumps(task.base_command) if nested else None,
+           stdout=task.stdout, stderr=task.stderr,
+           reqs=reqs, hints=hints, state=task.state, workdir=task.workdir,
+           depends_on=task.depends_on or [])
 
 
 def create_task_hint_nodes(tx, task):
@@ -271,6 +282,26 @@ def add_dependencies(tx, task, old_task=None, restarted_task=False):
         tx.run(begins_query, task_id=task.id, wf_id=task.workflow_id)
         tx.run(dependency_query, task_id=task.id)
         tx.run(dependent_query, task_id=task.id)
+
+    # Explicit (non-data) depends_on edges. Both directions relative to load
+    # order are written, mirroring the data flow queries above: MERGE makes the
+    # calls idempotent and flags data flow edges that already exist as explicit.
+    explicit_query = ("MATCH (s:Task {id: $task_id}) "
+                      "UNWIND $depends_on AS dep_name "
+                      "MATCH (d:Task {name: dep_name, workflow_id: $wf_id}) "
+                      "WHERE d.id <> $task_id "
+                      "MERGE (s)-[r:DEPENDS_ON]->(d) "
+                      "SET r.explicit = TRUE")
+    mirror_query = ("MATCH (t:Task) "
+                    "WHERE t.workflow_id = $wf_id AND $task_name IN t.depends_on "
+                    "AND t.id <> $task_id "
+                    "MATCH (s:Task {id: $task_id}) "
+                    "MERGE (t)-[r:DEPENDS_ON]->(s) "
+                    "SET r.explicit = TRUE")
+
+    tx.run(explicit_query, task_id=task.id, wf_id=task.workflow_id,
+           depends_on=task.depends_on or [])
+    tx.run(mirror_query, task_id=task.id, wf_id=task.workflow_id, task_name=task.name)
 
 
 def get_task_by_id(tx, task_id):
@@ -676,11 +707,20 @@ def copy_task_outputs(tx, task):
 
 
 def set_runnable_tasks_to_ready(tx, wf_id):
-    """Set task states to 'READY' if all required inputs have values."""
-    set_runnable_ready_query = ("MATCH (t:Task {workflow_id: $wf_id})<-[:INPUT_OF]-(i:Input) "
+    """Set task states to 'READY' if all required inputs have values.
+
+    A task is also held back while any explicit (non-data) dependency edge
+    points to a task that has not reached a final state.
+    """
+    set_runnable_ready_query = ("MATCH (t:Task {workflow_id: $wf_id}) "
+                                "OPTIONAL MATCH (t)<-[:INPUT_OF]-(i:Input) "
                                 "WITH t, collect(i) AS ilist "
                                 "WHERE t.state = 'WAITING' "
                                 "AND all(i IN ilist WHERE i.value IS NOT NULL) "
+                                "AND NOT EXISTS { "
+                                "MATCH (t)-[r:DEPENDS_ON]->(d:Task) "
+                                f"WHERE r.explicit AND NOT d.state IN {final_task_states} "
+                                "} "
                                 "SET t.state = 'READY'")
 
     tx.run(set_runnable_ready_query, wf_id=wf_id)

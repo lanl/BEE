@@ -34,7 +34,9 @@ def _write_test_config(dirpath):
         '[task_manager]\n'
         'container_runtime = Charliecloud\n\n'
         '[slurm]\n'
-        'use_commands = False\n'
+        'use_commands = False\n\n'
+        '[builder]\n'
+        f'container_archive = {workdir / "container_archive"}\n'
     )
     return str(conf)
 

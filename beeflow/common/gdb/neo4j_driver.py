@@ -10,6 +10,7 @@ either standardized or read from a config file.
 # Disable E1129: External module is missing proper resource context manager methods.
 # pylint:disable=E1129
 
+import json
 import time
 from beeflow.wf_manager.models import WorkflowInfo
 
@@ -796,7 +797,8 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs, metadat
     """
     return Task(
         name=task_record["name"],
-        base_command=task_record["base_command"],
+        base_command=(json.loads(task_record["base_command_json"])
+                      if task_record.get("base_command_json") else task_record["base_command"]),
         hints=hints,
         requirements=requirements,
         inputs=inputs,
@@ -808,6 +810,7 @@ def _reconstruct_task(task_record, hints, requirements, inputs, outputs, metadat
         id=task_record["id"],
         state=task_record["state"],
         workdir=task_record["workdir"],
+        depends_on=task_record["depends_on"] if "depends_on" in task_record else [],
     )
 
 

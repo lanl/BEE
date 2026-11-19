@@ -626,6 +626,56 @@ def _find_workflow_spec(module, path):
             )
 
 
+def find_dependency_cycle(tasks):
+    """Find a dependency cycle among python API workflow tasks, if one exists.
+
+    Dependencies come from both explicit depends_on references and input
+    references to other tasks' outputs, so cycles formed by either kind of
+    edge are reported. Task names are assumed unique; references to tasks
+    that are not part of the workflow are ignored here and reported by the
+    caller's membership validation.
+
+    :param tasks: the workflow tasks
+    :type tasks: list of workflow_api.Task
+    :rtype: list of str or None
+    """
+    names = {task.name for task in tasks}
+    graph = {}
+    for task in tasks:
+        deps = {dep.name for dep in task.depends_on or []}
+        deps.update(
+            value.task_name
+            for value in task.declared_values().values()
+            if isinstance(value, workflow_api.OutputRef)
+        )
+        graph[task.name] = deps & names
+
+    # Depth-first search marking: 0 unvisited, 1 on the current path, 2 done
+    color = {name: 0 for name in graph}
+
+    def visit(name, path):
+        """Follow dependencies from name, returning the cycle path if found."""
+        color[name] = 1
+        path.append(name)
+        for dep in sorted(graph[name]):
+            if color[dep] == 1:
+                return path[path.index(dep):] + [dep]
+            if color[dep] == 0:
+                found = visit(dep, path)
+                if found:
+                    return found
+        path.pop()
+        color[name] = 2
+        return None
+
+    for root in sorted(graph):
+        if color[root] == 0:
+            found = visit(root, [])
+            if found:
+                return found
+    return None
+
+
 class BeeParser:
     """Class for parsing BEE python workflow specifications.
 
@@ -750,12 +800,6 @@ class BeeParser:
                 raise BeeParseError(
                         f"task {task.name} must define a non-empty command string"
                         )
-            if len(commands) > 1:
-                raise BeeParseError(
-                        f"task {task.name}: multiple commands are not yet "
-                        "supported by the python workflow API"
-                        )
-
             declared = task.declared_values()
             for name, value in declared.items():
                 if isinstance(value, workflow_api.OutputRef):
@@ -784,52 +828,120 @@ class BeeParser:
                             "is declared"
                             )
 
+            if task.container is not None:
+                if isinstance(task.container, workflow_api.Container):
+                    image = task.container.image
+                elif isinstance(task.container, str):
+                    image = task.container
+                else:
+                    image = None
+                if not isinstance(image, str) or not image.strip():
+                    raise BeeParseError(
+                            f"task {task.name} container must be a non-empty "
+                            "image string or a Container"
+                            )
+            if task.workdir is not None and not isinstance(
+                    task.workdir, (str, os.PathLike)
+                    ):
+                raise BeeParseError(
+                        f"task {task.name} workdir must be a string or path"
+                        )
+
             for dep in task.depends_on or []:
                 if dep is not by_name.get(dep.name):
                     raise BeeParseError(
                             f"task {task.name} depends on a task "
                             f"{dep.name!r} that is not part of the workflow"
                             )
-                # Phase 1: dependencies must be implied by data flow, since
-                # the graph database infers edges from output references
-                if not any(
-                        isinstance(value, workflow_api.OutputRef)
-                        and value.task_name == dep.name
-                        for value in declared.values()
-                        ):
-                    raise BeeParseError(
-                            f"task {task.name} depends on {dep.name!r} without "
-                            "sharing any data; explicit non-data dependencies "
-                            "are not yet supported"
-                            )
+
+        cycle = find_dependency_cycle(spec.tasks)
+        if cycle:
+            raise BeeParseError(
+                    "dependency cycle detected: " + " -> ".join(cycle)
+                    )
 
     def _parse_bee_task(self, task, workflow_id, workdir):
         """Convert a workflow_api.Task into a Task object for the WF_Interface.
 
         :rtype: Task
         """
+        task_workdir = resolve_step_workdir(task.workdir, workdir)
         command, step_inputs = self._bee_command_and_inputs(task)
         step_outputs = [
                 StepOutput(
                     id=f"{task.name}/{name}",
                     type="File",
                     value=None,
-                    glob=os.path.abspath(os.path.join(workdir, glob)) if glob else glob,
+                    glob=os.path.abspath(os.path.join(task_workdir, glob)) if glob else glob,
                     )
                 for name, glob in task.outputs.items()
                 ]
+        hints = self._bee_task_hints(task)
+        requirements = []
+        container = self._bee_container(task)
+        if container is not None:
+            container_params, required = container
+            if required:
+                requirements.append(
+                        Requirement(class_="DockerRequirement", params=container_params)
+                        )
+            else:
+                hints.append(Hint(class_="DockerRequirement", params=container_params))
         return Task(
                 name=task.name,
                 base_command=command,
-                hints=self._bee_task_hints(task),
-                requirements=[],
+                hints=hints,
+                requirements=requirements,
                 inputs=step_inputs,
                 outputs=step_outputs,
                 stdout=task.stdout,
                 stderr=task.stderr,
                 workflow_id=workflow_id,
-                workdir=workdir,
+                workdir=task_workdir,
+                depends_on=[dep.name for dep in (task.depends_on or [])],
                 )
+
+    @staticmethod
+    def _bee_container(task):
+        """Convert a python API container into DockerRequirement parameters.
+
+        A registry reference becomes a dockerPull entry that the build phase
+        pulls; a local image file is used in place with beeflow:useContainer.
+        A plain string container, or Container(required=False), becomes a
+        hint (the task falls back to the default environment when the
+        container cannot be provided), while Container(required=True) becomes
+        a requirement, which fails the task instead.
+
+        :rtype: (dict, bool) or None
+        """
+        container = task.container
+        if container is None:
+            return None
+        if isinstance(container, str):
+            image, mounts, required = container, {}, False
+        else:
+            image, mounts, required = (
+                    container.image,
+                    container.bind_mounts or {},
+                    container.required,
+                    )
+        expanded = os.path.expanduser(image)
+        local_image = (
+                os.path.isfile(expanded)
+                or image.startswith(("/", "./", "../", "~"))
+                or image.endswith((".tar", ".tar.gz", ".tgz", ".sqfs",
+                                   ".squash", ".squashfs"))
+                )
+        params = {}
+        if local_image:
+            params["beeflow:useContainer"] = expanded
+        else:
+            params["dockerPull"] = image
+        if mounts:
+            params["beeflow:bindMounts"] = "\n".join(
+                    f"{host}: {target}" for host, target in mounts.items()
+                    )
+        return params, required
 
     @staticmethod
     def _bee_command_and_inputs(task):
@@ -839,9 +951,13 @@ class BeeParser:
         command property fills them in from the input values at execution
         time (object_models.Task.command).
 
-        :rtype: (list of str, list of StepInput)
+        :rtype: (list of str or list of list of str, list of StepInput)
         """
-        command = task.command_list()[0].split()
+        command_list = task.command_list()
+        if len(command_list) > 1:
+            command = [entry.split() for entry in command_list]
+        else:
+            command = command_list[0].split()
         inputs = []
         for name, value in task.declared_values().items():
             if isinstance(value, workflow_api.OutputRef):
@@ -1236,7 +1352,7 @@ def parse_args(args=None):
 
 def resolve_step_workdir(step_workdir, workdir):
     """Resolve step workdir relative to workflow workdir."""
-    if not step_workdir or step_workdir.strip() == "":
+    if step_workdir is None or str(step_workdir).strip() == "":
         return workdir
     # should be redundant
     workdir = Path(workdir).expanduser().resolve()

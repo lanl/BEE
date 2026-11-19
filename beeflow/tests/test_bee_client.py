@@ -904,6 +904,33 @@ def test_query(mocker, capsys, wf_status, exp_out):
     assert cap.out == exp_out
 
 
+def test_query_with_simple_scheduler(mocker, capsys):
+    """Simple queries display task states without looking up Slurm attributes."""
+    fake_resp = mocker.Mock()
+    fake_resp.status_code = 200
+    fake_resp.json.return_value = {
+        "tasks_status": [("", "write-check", "COMPLETED", {})],
+        "wf_status": "Completed",
+        "msg": "Workflow status retrieved successfully",
+    }
+    mock_conn = mocker.Mock()
+    mock_conn.get.return_value = fake_resp
+    mocker.patch("beeflow.client.bee_client._wfm_conn", return_value=mock_conn)
+    config_get = mocker.patch(
+        "beeflow.common.config_driver.BeeConfig.get", return_value="Simple"
+    )
+
+    bee_client.query("workflow-id")
+
+    assert capsys.readouterr().out == (
+        "Completed\n"
+        "task_name    task_state\n"
+        "-----------  ------------\n"
+        "write-check  COMPLETED\n"
+    )
+    config_get.assert_called_once_with("DEFAULT", "workload_scheduler")
+
+
 @pytest.mark.parametrize(
     "wf_status, exp_out",
     [
@@ -1222,6 +1249,27 @@ def test_submit_rejects_tmp_workdir(tmp_path, mocker, monkeypatch):
             spec, name=None, workdir=Path("/tmp/some-dir"), main_cwl=None,
             job=None, no_start=False
         )
+
+
+@pytest.mark.parametrize("workdir", ["/tmp", "/tmp/bee-workflow", "/var/tmp/bee-workflow"])
+def test_check_workdir_rejects_temporary_paths(workdir):
+    """Reject temporary paths, including symlinked macOS /tmp and /var/tmp."""
+    with pytest.raises(bee_client.ClientError, match="cannot be in"):
+        bee_client._check_workdir(workdir)
+
+
+def test_check_workdir_rejects_symlink_to_tmp(tmp_path):
+    """Resolve an arbitrary symlink before checking temporary directory ancestry."""
+    link = tmp_path / "temporary-link"
+    link.symlink_to("/tmp", target_is_directory=True)
+    with pytest.raises(bee_client.ClientError, match="cannot be in"):
+        bee_client._check_workdir(link / "workflow")
+
+
+@pytest.mark.parametrize("workdir", ["/opt/bee/workflows", "/tmp-other/workflow"])
+def test_check_workdir_allows_non_temporary_paths(workdir):
+    """Compare path components rather than rejecting a shared string prefix."""
+    bee_client._check_workdir(workdir)
 
 
 def test_submit_dir_autodetects_cwl(tmp_path, mocker, monkeypatch):
