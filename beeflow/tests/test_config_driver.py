@@ -1,8 +1,11 @@
 """Unit tests for the config driver."""
 
 import os
+import shutil
+from pathlib import Path
 import pytest
-from beeflow.common.config_driver import AlterConfig, ConfigGenerator, new
+from beeflow.common import config_driver
+from beeflow.common.config_driver import AlterConfig, BeeConfig, ConfigGenerator, new
 from beeflow.common.config_validator import ConfigValidator
 
 
@@ -184,3 +187,99 @@ def test_config_new(mocker, tmpdir, interactive, input_val, expected):
             )
         new("bee.conf", interactive=interactive)
         assert os.path.exists('bee.conf.1') == expected
+
+
+def test_init_missing_config_raises(tmp_path):
+    """Test that initializing with a missing config file gives a clear error."""
+    BeeConfig.CONFIG = None
+    with pytest.raises(RuntimeError, match='beeflow config new'):
+        BeeConfig.init(userconfig=str(tmp_path / 'missing.conf'))
+
+
+def test_alter_config_save_does_not_touch_user_config(tmp_path):
+    """Test that AlterConfig only writes the file it was loaded from."""
+    user_conf = Path(config_driver.USERCONFIG_FILE)
+    other_conf = tmp_path / 'other.conf'
+    shutil.copy(user_conf, other_conf)
+    user_conf_contents = user_conf.read_text(encoding='utf-8')
+
+    alter_config = AlterConfig(fname=str(other_conf),
+                               changes={'DEFAULT': {'max_restarts': '7'}})
+    alter_config.save()
+
+    # The changed config was written to the file it was loaded from, and the
+    # user's config file was left untouched
+    assert 'max_restarts = 7' in other_conf.read_text(encoding='utf-8')
+    assert user_conf.read_text(encoding='utf-8') == user_conf_contents
+
+
+# choose_values tests for optional options and option depends_on relations
+def test_choose_values_noninteractive_skips_optional(tmp_path):
+    """Test that non-interactive choose_values skips unsettable optional options."""
+    validator = ConfigValidator('')
+    validator.section('sec', info='')
+    validator.option('sec', 'req', info='', default='x', prompt=True)
+    validator.option('sec', 'opt', info='', default=None, prompt=True, optional=True)
+
+    config = ConfigGenerator(str(tmp_path / 'bee.conf'),
+                             validator).choose_values(interactive=False).sections
+    assert config['sec']['req'] == 'x'
+    assert 'opt' not in config['sec']
+
+
+def test_choose_values_noninteractive_skips_unmet_depends_on(tmp_path):
+    """Test that non-interactive choose_values skips options that don't apply."""
+    validator = ConfigValidator('')
+    validator.section('sec', info='')
+    validator.option('sec', 'mode', info='', default='normal', prompt=True)
+    # This option would block config generation (no default and a prompt),
+    # but it does not apply in this config context
+    validator.option('sec', 'special', info='', default=None, prompt=True,
+                     depends_on=('sec', 'mode', 'special'))
+
+    config = ConfigGenerator(str(tmp_path / 'bee.conf'),
+                             validator).choose_values(interactive=False).sections
+    assert config['sec']['mode'] == 'normal'
+    assert 'special' not in config['sec']
+
+
+def test_choose_values_interactive_optional_blank(tmp_path):
+    """Test that interactive choose_values allows leaving optional options unset."""
+    validator = ConfigValidator('')
+    validator.section('sec', info='')
+    validator.option('sec', 'opt', info='', default=None, prompt=True, optional=True,
+                     input_fn=lambda _: '')
+
+    config = ConfigGenerator(str(tmp_path / 'bee.conf'),
+                             validator).choose_values(interactive=True).sections
+    assert 'opt' not in config['sec']
+
+
+def test_config_new_noninteractive_fresh_machine(tmp_path, monkeypatch):
+    """Test that non-interactive config new completes with no images available.
+
+    On machines with no default images in /usr/projects/BEE and no pulled
+    images yet, config new must complete without prompting, and the
+    resulting config must pass validation.
+    """
+    # Neutralize validators that would create directories outside tmp_path
+    for sec_name, _ in config_driver.VALIDATOR.sections:
+        for opt_name, option in config_driver.VALIDATOR.options(sec_name):
+            if getattr(option._validator, '__name__', '') in ('make_dir', 'dir_'):
+                monkeypatch.setattr(option, '_validator', lambda value: value)
+
+    def fail_input(*args, **kwargs):
+        """Fail loudly if config generation unexpectedly prompts for input."""
+        raise AssertionError('config new unexpectedly prompted for input')
+
+    monkeypatch.setattr('builtins.input', fail_input)
+
+    conf_file = tmp_path / 'bee.conf'
+    monkeypatch.setattr(config_driver, 'USERCONFIG_FILE', str(conf_file))
+    # Pass the typer options explicitly since typer.Option objects are truthy
+    new(str(conf_file), interactive=False, flux=False, attributes=False)
+
+    assert conf_file.is_file()
+    # The generated config passes validation
+    BeeConfig.CONFIG = None
+    BeeConfig.init(userconfig=str(conf_file))

@@ -42,18 +42,21 @@ Submission and workflow commands
 This section shows what commands you can use to submit and interact with your workflows. The following are the major options:
 
 ``beeflow submit``: Submit a new workflow. By default this will also start
-jobs immediately (unless passed the ``--no-start`` option). If either the MAIN_CWL or YAML
-files are not contained immediately inside of WF_PATH, then the WF_PATH directory will
-be copied into a temporary directory and the missing files will then be copied
-into the copied WF_PATH directory before packaging and submission.
+jobs immediately (unless passed the ``--no-start`` option). The workflow path may be a
+python (.py) workflow specification, a workflow directory, or a .tgz package (created
+with ``beeflow package``). The workflow name, main workflow file, job input file, and
+working directory are all derived automatically when not given. If the main workflow
+or job input files are not contained immediately inside of a workflow directory, then
+the WF_PATH directory will be copied into a temporary directory and the missing files
+will then be copied into the copied WF_PATH directory before packaging and submission.
 
 Arguments:
-  - WF_NAME, The workflow name  [required]
-  - WF_PATH, Path to the workflow CWL tarball or directory  [required]
-  - MAIN_CWL, filename of main CWL (if using CWL tarball), path of main CWL (if using CWL directory) [required]
-  - YAML, filename of yaml file (if using CWL tarball), path of yaml file (if using CWL directory) [required]
-  - WORKDIR, working directory for workflow containing input + output files [required]
-  - ``--no-start``, don't start the workflow immediately
+  - WORKFLOW, Path to the workflow: a .py specification, a directory, or a .tgz package  [required]
+  - ``--name``, -N, workflow name (default: derived from the path)
+  - ``--workdir``, -w, working directory for workflow input and output files (default: ~/.beeflow/workflows/<name> if ~/.beeflow exists, otherwise ./bee-workflows/<name>; created if missing)
+  - ``--main-cwl``, main workflow file (default: auto-detected)
+  - ``--job``, -j, job input file (default: auto-detected)
+  - ``--no-start``, -n, don't start the workflow immediately
 
 ``beeflow start``: Start a workflow in the ``No Start`` state.
 (For workflows submitted or reexecuted with the --no-start flag.)

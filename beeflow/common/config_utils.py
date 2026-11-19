@@ -2,12 +2,16 @@
 
 import os
 import shutil
-import tempfile
 
 from configparser import ConfigParser
 
-def filter_and_validate(config, validator,config_path):
-    """Filter and validate the configuration file."""
+def filter_and_validate(config, validator):
+    """Filter and validate the configuration.
+
+    The configuration is normalized in memory (e.g. the scheduler attribute
+    sections are added/removed when the workload scheduler changes) and
+    validated; the config file itself is never modified here.
+    """
     if isinstance(config,dict):
         config_parser = ConfigParser()
         config_parser.read_dict(config)
@@ -43,26 +47,6 @@ def filter_and_validate(config, validator,config_path):
     for sec in sections_to_remove:
         if config.has_section(sec):
             config.remove_section(sec)
-
-    tmp_path = None
-    try:
-        config_dirpath = os.path.dirname(config_path)
-        fd,tmp_path = tempfile.mkstemp(dir=config_dirpath,prefix='tmp.bee.conf')
-        os.close(fd)
-        with open(tmp_path,'w',encoding='utf-8') as config_file:
-            config.write(config_file)
-        os.replace(tmp_path, config_path)
-        tmp_path = None
-    except OSError as err:
-        print(f'Could not successfully remove and rewrite attribute sections: {err}')
-
-    # if tmp_path still exits, remove it
-    finally:
-        if tmp_path and os.path.exists(tmp_path):
-            try:
-                os.remove(tmp_path)
-            except OSError as err:
-                print(f'Could not successfully remove temporary config file: {err}')
 
     default_keys = list(config['DEFAULT'])
     config = {sec_name: {key: config[sec_name][key] for key in config[sec_name]

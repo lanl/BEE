@@ -59,8 +59,8 @@ The procedure would be to submit some workflows like the following:
 
     mkdir results1
     mkdir results2
-    beeflow submit cgt1 ./cat-grep-tar.tgz workflow.cwl input.yml results1
-    beeflow submit cgt2 ./cat-grep-tar.tgz workflow.cwl input.yml results2
+    beeflow submit ./cat-grep-tar.tgz --name cgt1 --workdir results1 --main-cwl workflow.cwl --job input.yml
+    beeflow submit ./cat-grep-tar.tgz --name cgt2 --workdir results2 --main-cwl workflow.cwl --job input.yml
     beeflow list
 
 .. code-block::

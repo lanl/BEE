@@ -98,17 +98,18 @@ class BeeConfig:
         if userconfig is not None:
             USERCONFIG_FILE = userconfig
         # Try and read the file
-        while True:
-            try:
-                with open(USERCONFIG_FILE, encoding='utf-8') as fp:
-                    config.read_file(fp)
-                break
-            except FileNotFoundError:
-                print("Configuration file is missing! Generating new config file.")
-                new(USERCONFIG_FILE, interactive=False)
+        try:
+            with open(USERCONFIG_FILE, encoding='utf-8') as fp:
+                config.read_file(fp)
+        except FileNotFoundError:
+            raise RuntimeError(
+                f'Configuration file "{USERCONFIG_FILE}" does not exist; run'
+                ' "beeflow config new" (or "beeflow core pull-deps") to create'
+                ' one.'
+            ) from None
 
         # remove default keys from the other sections
-        cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR,USERCONFIG_FILE)
+        cls.CONFIG = config_utils.filter_and_validate(config, VALIDATOR)
 
     @classmethod
     def userconfig_path(cls):
@@ -276,11 +277,14 @@ VALIDATOR.option('DEFAULT', 'use_redis_container', validator=validation.bool_,
 
 VALIDATOR.option('DEFAULT', 'neo4j_image', validator=validation.file_,
                  default=NEO4J_IMAGE, info='neo4j container image',
-                 input_fn=filepath_completion_input, prompt=True)
+                 input_fn=filepath_completion_input, prompt=True,
+                 depends_on=('graphdb', 'type', 'neo4j'), optional=True)
 
 VALIDATOR.option('DEFAULT', 'redis_image', validator=validation.file_,
                  default=REDIS_IMAGE, info='redis container image',
-                 input_fn=filepath_completion_input, prompt=True)
+                 input_fn=filepath_completion_input, prompt=True,
+                 depends_on=('DEFAULT', 'use_redis_container', 'True'),
+                 optional=True)
 
 VALIDATOR.option('DEFAULT', 'spack_path', validator=validation.dir_,
                  default='.', info='Spack environment path',
@@ -482,6 +486,9 @@ class ConfigGenerator:
             self.sections[sec_name]={}
             printed = False
             for opt_name, option in self.validator.options(sec_name):
+                # Skip options that don't apply in this config context
+                if not self.validator.option_is_valid(self.sections, sec_name, opt_name):
+                    continue
                 # Print the section name if it hasn't already been printed.
                 if not printed:
                     print(f'\n## {sec_name}\n')
@@ -494,19 +501,7 @@ class ConfigGenerator:
                     this_default = "Flux"
                     option.prompt = False
                 if attributes and not interactive and opt_name == 'attributes':
-                    scheduler = self.sections.get('DEFAULT', {}).get('workload_scheduler')
-                    use_commands = self.sections.get('slurm', {}).get('use_commands', False)
-                    print(f'\nAvailable attributes for [{sec_name}]:')
-                    if scheduler == 'Slurm':
-                        attr_list = slurm_command_attr if use_commands else slurm_attr
-                    elif scheduler == 'Flux':
-                        attr_list = flux_attr
-                    else:
-                        attr_list = []
-                    print(attr_list)
-                    value = self._input_loop(opt_name, option)
-                    validated = option.validate(value)
-                    self.sections[sec_name][opt_name] = validated
+                    self._choose_attributes(sec_name, option)
                     continue
 
                 # Check for a default value
@@ -517,12 +512,37 @@ class ConfigGenerator:
                     self.sections[sec_name][opt_name] = value
                     continue
 
+                # Don't block non-interactive config generation on optional
+                # options that have no default; they can be set later (e.g.,
+                # by beeflow core pull-deps)
+                if not interactive and option.optional and this_default is None:
+                    continue
+
                 # Input and validate the value
                 value = self._input_loop(opt_name, option)
+                if value is None and option.optional:
+                    # Leave the optional option unset
+                    continue
 
                 print()
                 self.sections[sec_name][opt_name] = value
         return self
+
+    def _choose_attributes(self, sec_name, option):
+        """Choose the task attributes to display for the given section."""
+        scheduler = self.sections.get('DEFAULT', {}).get('workload_scheduler')
+        use_commands = self.sections.get('slurm', {}).get('use_commands', False)
+        print(f'\nAvailable attributes for [{sec_name}]:')
+        if scheduler == 'Slurm':
+            attr_list = slurm_command_attr if use_commands else slurm_attr
+        elif scheduler == 'Flux':
+            attr_list = flux_attr
+        else:
+            attr_list = []
+        print(attr_list)
+        value = self._input_loop('attributes', option)
+        validated = option.validate(value)
+        self.sections[sec_name]['attributes'] = validated
 
     def _input_loop(self, opt_name, option):
         """Run the input-validation loop."""
@@ -536,6 +556,9 @@ class ConfigGenerator:
                 print(f'(allowed values: {",".join(option.choices)})')
             value = input_fn(f'Enter selection for {opt_name} or\n'
                              + f'leave blank for default ({option.default}): ') or option.default
+            if value is None and option.optional:
+                # Allow optional options to be left unset
+                return None
             # Validate the input
             try:
                 option.validate(value)
@@ -580,9 +603,11 @@ class AlterConfig:
     alter_config.change_value('DEFAULT', 'neo4j_image', '/path/to/neo4j')
     """
 
-    def __init__(self, fname=USERCONFIG_FILE, validator=VALIDATOR, changes=None):
+    def __init__(self, fname=None, validator=VALIDATOR, changes=None):
         """Load the existing configuration."""
-        self.fname = fname
+        # Look up the user config file at runtime (rather than binding the
+        # default at import time) so tests can redirect the config location
+        self.fname = fname if fname is not None else USERCONFIG_FILE
         self.validator = validator
         self.config = None
         self.changes = changes if changes is not None else {}
@@ -599,7 +624,7 @@ class AlterConfig:
             with open(self.fname, encoding='utf-8') as fp:
                 config.read_file(fp)
                 self.config = config_utils.filter_and_validate(config,
-                self.validator,USERCONFIG_FILE)
+                                                               self.validator)
         except FileNotFoundError:
             for section_change in self.changes:
                 for option_change in self.changes[section_change]:
@@ -634,6 +659,9 @@ class AlterConfig:
         """Save the modified configuration back to the file."""
         if os.path.exists(self.fname):
             config_utils.backup(self.fname)
+        # Create the parent directory if necessary (e.g., on a fresh system
+        # where ~/.config/beeflow does not exist yet)
+        os.makedirs(os.path.dirname(os.path.abspath(self.fname)), exist_ok=True)
         config_utils.write_config(self.fname, self.config)
         # Print out changes
         print("Configuration saved. The following values were changed:")

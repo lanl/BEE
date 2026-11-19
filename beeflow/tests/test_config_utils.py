@@ -1,6 +1,8 @@
 """Unit tests for the config utils."""
 
 import os
+from configparser import ConfigParser
+
 from beeflow.common.config_utils import filter_and_validate, write_config, backup
 
 
@@ -22,7 +24,7 @@ class MockValidator:
         return self._called_with
 
 
-def test_filter_and_validate(tmp_path):
+def test_filter_and_validate():
     """Test filtering and validating configuration."""
     # Define the config
     sample_config = {
@@ -31,13 +33,9 @@ def test_filter_and_validate(tmp_path):
         'charliecloud': {'workload_scheduler': 'new_value', 'setup': ''}
     }
 
-    # Write the config to a file
-    temp_file = tmp_path / "test_config.conf"
-    write_config(temp_file, sample_config)
-
     # Run the function
     mocked_validator = MockValidator()
-    result = filter_and_validate(sample_config, mocked_validator,temp_file)
+    result = filter_and_validate(sample_config, mocked_validator)
 
     # Check that the validator was called with the correct filtered config
     expected_filtered_config = {
@@ -47,6 +45,28 @@ def test_filter_and_validate(tmp_path):
     }
     assert mocked_validator.called_with() == expected_filtered_config
     assert result is True
+
+
+def test_filter_and_validate_does_not_rewrite_file(tmp_path):
+    """Test that filter_and_validate never modifies the config file on disk."""
+    temp_file = tmp_path / "test_config.conf"
+    original = (
+        "[DEFAULT]\n"
+        "bee_workdir = $BEE_WORKDIR\n"
+        "workload_scheduler = Slurm\n\n"
+        "[slurm attributes]\n"
+        "attributes = partition,nodes\n"
+    )
+    temp_file.write_text(original)
+    config = ConfigParser()
+    config.read(temp_file)
+
+    mocked_validator = MockValidator()
+    result = filter_and_validate(config, mocked_validator)
+
+    # The normalization happens in memory only; the file is left untouched
+    assert result is True
+    assert temp_file.read_text() == original
 
 
 def test_write_config(tmp_path):
