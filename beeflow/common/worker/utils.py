@@ -79,10 +79,15 @@ def format_runtime(runtime):
     hours, minutes = divmod(minutes, 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-def calc_runtime(job_state,job_info):
+def calc_runtime(job_state,job_info,start_time = None, end_time = None):
     """Calculate the runtime of a task when using slurmrestd."""
-    start_time = job_info['start_time']['number']
-    end_time = job_info['end_time']['number']
+    log.info(f"Start time should NOT be none: {start_time}")
+    log.info(f"End time should be NONE the first time: {end_time}")
+    if start_time is None and job_info:
+        start_time = job_info['start_time']['number']
+
+    if end_time is None and job_info:
+        end_time = job_info['end_time']['number']
 
     cur_time = dt.now()
     cur_unix_time = int(cur_time.timestamp())

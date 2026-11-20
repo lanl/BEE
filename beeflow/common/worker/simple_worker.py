@@ -5,8 +5,9 @@ import signal
 import subprocess
 
 import os
+import time
 from beeflow.common.worker.worker import Worker
-
+from beeflow.common.worker.utils import calc_runtime
 
 class SimpleWorker(Worker):
     """Worker interface for system with no workload manager."""
@@ -37,12 +38,22 @@ class SimpleWorker(Worker):
             f'exit "$rc"'
         ], start_new_session=True)
         job_id = process.pid
+
+        submit_time = time.time()
+        paths = self._status_paths(job_id,workflow_id = task.workflow_id)
+        with open(paths['submit_time'], 'w', encoding = 'UTF-8') as fp:
+            fp.write(str(submit_time))
+
         job_info = {
             'scheduler': 'Simple',
             'pid': job_id,
             'script_path': script_path,
             'status_dir': status_dir,
             'workflow_id': task.workflow_id,  # Store for later use
+            'submit_time': submit_time,
+            'standard_error': task.outputs[1].glob if len(task.outputs) > 1 else None,
+            'standard_output': task.outputs[0].glob if len(task.outputs) > 0 else None,
+            'runtime': calc_runtime('RUNNING',{}, submit_time),
         }
         return job_id, 'RUNNING', job_info
 
@@ -88,12 +99,21 @@ class SimpleWorker(Worker):
             'pid': job_id,
             'returncode_path': paths['returncode'],
         }
+
+        # retrieve submit time to calculate runtime when task completes
+        if os.path.exists(paths['submit_time']):
+            with open(paths['submit_time'], 'r', encoding='UTF-8') as fp:
+                submit_time = float(fp.read().strip())
+
         # Check for completion first - avoids race condition
         if os.path.exists(paths['returncode']):
             with open(paths['returncode'], 'r', encoding='UTF-8') as fp:
                 return_code = int(fp.read().strip())
             job_info['return_code'] = return_code
             if return_code == 0:
+                end_time = time.time()
+                job_info['end_time'] = end_time
+                job_info['runtime'] = calc_runtime('COMPLETED', {}, submit_time,end_time) #pylint: disable=E0606
                 return 'COMPLETED', job_info
             return 'FAILED', job_info
         # If no returncode file yet, check if process still exists
@@ -128,6 +148,7 @@ class SimpleWorker(Worker):
             'status_dir': status_dir,
             'returncode': os.path.join(status_dir, f'{job_id}.returncode'),
             'done': os.path.join(status_dir, f'{job_id}.done'),
+            'submit_time': os.path.join(status_dir, f'{job_id}.submit'),
         }
 
     def build_text(self, task):
