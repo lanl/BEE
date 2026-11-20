@@ -1212,6 +1212,88 @@ def test_yaml_detection_ambiguity_and_job_exclusion(tmp_path):
         bee_client._detect_main_cwl(tmp_path)
 
 
+@pytest.mark.parametrize("option", ["--main", "--main-cwl"])
+def test_submit_cli_metadata_options(tmp_path, mocker, option):
+    from typer.testing import CliRunner
+    submit = mocker.patch.object(bee_client, "submit", return_value="wf")
+    result = CliRunner().invoke(bee_client.app, [
+        "submit", str(tmp_path), option, "nested/main.py", "--format", "python", "--no-start",
+    ])
+    assert result.exit_code == 0, result.output
+    submit.assert_called_once_with(tmp_path, None, None, "nested/main.py", None, True, "python")
+
+
+@pytest.mark.parametrize("mode", ["directory", "archive"])
+def test_nested_submission_metadata_and_reexecution(tmp_path, mocker, mode):
+    import yaml
+    conn = _mock_submit_backend(mocker, tmp_path)
+    mocker.patch.object(bee_client, "_check_workdir")
+    source = tmp_path / "source"
+    nested = source / "nested"
+    nested.mkdir(parents=True)
+    spec = nested / "workflow.yaml"
+    spec.write_text("bee_version: 1\ntasks: {run: {commands: echo}}\n", encoding="utf-8")
+    job = nested / "job.json"
+    job.write_text("{}", encoding="utf-8")
+    workflow = source
+    main = str(spec)
+    job_arg = str(job)
+    if mode == "archive":
+        workflow = tmp_path / "source.tgz"
+        with tarfile.open(workflow, "w:gz") as archive:
+            archive.add(source, arcname="source")
+        main, job_arg = "nested/workflow.yaml", "nested/job.json"
+    bee_client.submit(workflow, workdir=tmp_path / "work", main_cwl=main, job=job_arg,
+                      no_start=True)
+    metadata_path = tmp_path / "wfdir/submit_command_args.yaml"
+    metadata = yaml.safe_load(metadata_path.read_text())
+    assert metadata["spec_file"] == metadata["main_cwl"] == "nested/workflow.yaml"
+    assert metadata["job_file"] == metadata["yaml"] == "nested/job.json"
+    assert metadata["format_name"] == "yaml"
+    assert conn.post.call_args.kwargs["json"]["workflow"]["format_name"] == "yaml"
+    archived = tmp_path / "renamed.tgz"
+    with tarfile.open(archived, "w:gz") as archive:
+        archive.add(source, arcname="original-id/cwl_files")
+        archive.add(metadata_path, arcname="original-id/submit_command_args.yaml")
+    bee_client.reexecute("again", archived, tmp_path / "work", no_start=True)
+    assert conn.post.call_count == 2
+    assert yaml.safe_load(metadata_path.read_text())["spec_file"] == "nested/workflow.yaml"
+
+
+def test_reexecute_honors_saved_format(tmp_path, mocker):
+    archived = tmp_path / "original"
+    resources = archived / "cwl_files"
+    resources.mkdir(parents=True)
+    (resources / "workflow.unknown").write_text("custom workflow", encoding="utf-8")
+    (archived / "submit_command_args.yaml").write_text(
+        "spec_file: workflow.unknown\nformat_name: custom\n", encoding="utf-8",
+    )
+    filename = tmp_path / "renamed.tgz"
+    with tarfile.open(filename, "w:gz") as archive:
+        archive.add(archived, arcname="original")
+    submit = mocker.patch.object(bee_client, "submit", return_value="new-id")
+    assert bee_client.reexecute("again", filename, tmp_path, no_start=True) == "new-id"
+    assert submit.call_args.kwargs["format_name"] == "custom"
+    assert submit.call_args.kwargs["job"] is None
+
+
+def test_direct_file_metadata_uses_copied_job_location(tmp_path, mocker):
+    import yaml
+    _mock_submit_backend(mocker, tmp_path)
+    mocker.patch.object(bee_client, "_check_workdir")
+    source = tmp_path / "source"
+    inputs = source / "nested"
+    inputs.mkdir(parents=True)
+    spec = source / "workflow.yaml"
+    spec.write_text("bee_version: 1\ntasks: {run: {commands: echo}}\n", encoding="utf-8")
+    job = inputs / "job.json"
+    job.write_text("{}", encoding="utf-8")
+    bee_client.submit(spec, workdir=tmp_path / "work", job=str(job), no_start=True)
+    metadata = yaml.safe_load((tmp_path / "wfdir/submit_command_args.yaml").read_text())
+    assert metadata["spec_file"] == "workflow.yaml"
+    assert metadata["job_file"] == "job.json"  # Direct files bundle the copied job at the root.
+
+
 def test_yaml_detection_preserves_unsupported_version(tmp_path):
     """Bad workflow versions must reach schema validation, not become job inputs."""
     (tmp_path / "workflow.yml").write_text("bee_version: 99\n", encoding="utf-8")
@@ -1219,7 +1301,7 @@ def test_yaml_detection_preserves_unsupported_version(tmp_path):
     assert bee_client._detect_job(tmp_path) is None
 
 
-@pytest.mark.parametrize("mode", ["file", "directory", "archive", "reexecute"])
+@pytest.mark.parametrize("mode", ["file", "directory", "archive", "reexecute", "override"])
 def test_installed_format_submission(tmp_path, mocker, mode):
     """Installed adapters work through packaging, parsing and archived reexecution."""
     conn = _mock_submit_backend(mocker, tmp_path)
@@ -1254,13 +1336,15 @@ def test_installed_format_submission(tmp_path, mocker, mode):
             archive.add(archived, arcname="old-run")
         bee_client.reexecute("again", archive_path, workdir, no_start=True)
     else:
-        path = spec if mode == "file" else source
+        path = spec if mode in ("file", "override") else source
+        if mode == "override":
+            path = spec.rename(source / "workflow.unknown")
         if mode == "archive":
             path = tmp_path / "source.tgz"
             with tarfile.open(path, "w:gz") as archive:
                 archive.add(source, arcname="source")
         bee_client.submit(path, name=None, workdir=workdir, main_cwl=None,
-                          job=None, no_start=True)
+                          job=None, no_start=True, format_name="toy" if mode == "override" else None)
     assert conn.post.call_args.kwargs["json"]["tasks"][0]["name"] == "custom"
 
 

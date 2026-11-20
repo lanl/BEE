@@ -7,7 +7,7 @@ import os
 import re
 import shlex
 from typing import Any, Optional
-from pydantic import BaseModel, model_validator
+from pydantic import AliasChoices, BaseModel, Field, model_validator
 
 from beeflow.common.container_path import convert_path
 
@@ -96,9 +96,34 @@ class Workflow(BaseModel):
     id: str
     state: Optional[str] = "Initializing"
     workdir: Optional[str | Path | os.PathLike] = None
-    main_cwl: Optional[str | Path | os.PathLike] = None
+    spec_file: Optional[str | Path | os.PathLike] = Field(
+        default=None, validation_alias=AliasChoices("spec_file", "main_cwl"),
+        serialization_alias="main_cwl",
+    )
     wf_path: Optional[str | Path | os.PathLike] = None
-    yaml: Optional[str | Path | os.PathLike] = None
+    job_file: Optional[str | Path | os.PathLike] = Field(
+        default=None, validation_alias=AliasChoices("job_file", "yaml"),
+        serialization_alias="yaml",
+    )
+    format_name: Optional[str] = None
+
+    @property
+    def main_cwl(self):
+        """Compatibility accessor for older callers; use spec_file in new code."""
+        return self.spec_file
+
+    @main_cwl.setter
+    def main_cwl(self, value):
+        self.spec_file = value
+
+    @property
+    def yaml(self):
+        """Compatibility accessor; job inputs may be YAML, JSON or adapter-specific."""
+        return self.job_file
+
+    @yaml.setter
+    def yaml(self, value):
+        self.job_file = value
 
     def __eq__(self, other):
         """Test the equality of two workflows.

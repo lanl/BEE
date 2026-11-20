@@ -29,7 +29,8 @@ class SQL_GDB:
             yaml TEXT,
             reqs JSON,
             hints JSON,
-            restart INTEGER DEFAULT 0
+            restart INTEGER DEFAULT 0,
+            format_name TEXT
         );"""
 
         wf_inputs_stmt = """CREATE TABLE IF NOT EXISTS workflow_input (
@@ -143,6 +144,7 @@ class SQL_GDB:
              "ALTER TABLE task ADD COLUMN depends_on TEXT NOT NULL DEFAULT '[]'"),
             ("task_dep", "explicit",
              "ALTER TABLE task_dep ADD COLUMN explicit INTEGER NOT NULL DEFAULT 0"),
+            ("workflow", "format_name", "ALTER TABLE workflow ADD COLUMN format_name TEXT"),
         )
         for table, column, stmt in migrations:
             if not bdb.table_exists(self.db_file, table):
@@ -154,8 +156,8 @@ class SQL_GDB:
     def create_workflow(self, workflow: Workflow):
         """Create a workflow in the db"""
         wf_stmt = """INSERT INTO workflow (id, name, state, workdir, main_cwl,
-                    wf_path, yaml, reqs, hints, restart)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+                    wf_path, yaml, reqs, hints, restart, format_name)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
         wf_input_stmt = """INSERT INTO workflow_input (id, workflow_id, type, value)
                            VALUES (?, ?, ?, ?);"""
         wf_output_stmt = """INSERT INTO workflow_output (id, workflow_id, type, value, source)
@@ -165,8 +167,9 @@ class SQL_GDB:
         hints_json = json.dumps([h.model_dump() for h in workflow.hints])
         reqs_json = json.dumps([r.model_dump() for r in workflow.requirements])
         bdb.run(self.db_file, wf_stmt, (workflow.id, workflow.name, workflow.state,
-                                        workflow.workdir, workflow.main_cwl, workflow.wf_path,
-                                        workflow.yaml, reqs_json, hints_json, 0))
+                                        workflow.workdir, workflow.spec_file, workflow.wf_path,
+                                        workflow.job_file, reqs_json, hints_json, 0,
+                                        workflow.format_name))
 
 
         for inp in workflow.inputs:
@@ -575,9 +578,10 @@ class SQL_GDB:
             name=wf_data[1],
             state=wf_data[2],
             workdir=wf_data[3],
-            main_cwl=wf_data[4],
+            spec_file=wf_data[4],
             wf_path=wf_data[5],
-            yaml=wf_data[6],
+            job_file=wf_data[6],
+            format_name=wf_data[10] if len(wf_data) > 10 else None,
             requirements=[Requirement.model_validate(r) for r in json.loads(wf_data[7])],
             hints=[Hint.model_validate(h) for h in json.loads(wf_data[8])],
             inputs=self.get_workflow_inputs(wf_data[0]),

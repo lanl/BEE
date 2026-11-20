@@ -11,8 +11,8 @@ from neo4j import GraphDatabase
 import pytest
 
 from beeflow.common.gdb import neo4j_cypher as cypher
-from beeflow.common.gdb.neo4j_driver import Neo4jDriver, _reconstruct_task
-from beeflow.common.object_models import StepInput, Task
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver, _reconstruct_task, _reconstruct_workflow
+from beeflow.common.object_models import StepInput, Task, Workflow
 from beeflow.common.wf_interface import WorkflowInterface
 from beeflow.tests.test_restart_dependencies import exercise_restart_dependencies
 
@@ -64,6 +64,30 @@ def test_command_roundtrip(live_graph, command):
     record = cypher.get_task_by_id(transaction, task.id)
     restored = _reconstruct_task(record, [], [], [], [], {})
     assert restored.base_command == command
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_workflow_metadata_roundtrip(live_graph, legacy):
+    """Read real old nodes and write neutral metadata alongside compatibility properties."""
+    transaction, workflow_id = live_graph
+    if legacy:
+        transaction.run(
+            "MATCH (w:Workflow {id: $id}) SET w.name = 'old', w.state = 'Running', "
+            "w.main_cwl = 'old.cwl', w.yaml = 'job.yml'",
+            id=workflow_id,
+        ).consume()
+    else:
+        transaction.run("MATCH (w:Workflow {id: $id}) DELETE w", id=workflow_id).consume()
+        cypher.create_bee_node(transaction)
+        workflow = Workflow(id=workflow_id, name="new", spec_file="nested/workflow.yaml",
+                            job_file="inputs/job.json", format_name="yaml")
+        cypher.create_workflow_node(transaction, workflow)
+    record = cypher.get_workflow_by_id(transaction, workflow_id)
+    restored = _reconstruct_workflow(record, [], [], [], [])
+    assert restored.spec_file == ("old.cwl" if legacy else "nested/workflow.yaml")
+    assert restored.job_file == ("job.yml" if legacy else "inputs/job.json")
+    assert restored.format_name == (None if legacy else "yaml")
+    assert record["main_cwl"] == restored.spec_file
 
 
 def test_explicit_restart_remaps_edge(live_graph):

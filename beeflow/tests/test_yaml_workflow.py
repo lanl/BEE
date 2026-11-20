@@ -65,8 +65,8 @@ def test_yaml_python_parity(tmp_path):
                                                             workdir=str(tmp_path))
     actual_wf, actual_tasks = BeeParser().parse_workflow("wf", None, path,
                                                         workdir=str(tmp_path))
-    assert actual_wf.model_dump(exclude={"main_cwl"}) == expected_wf.model_dump(
-        exclude={"main_cwl"}
+    assert actual_wf.model_dump(exclude={"spec_file", "format_name"}) == expected_wf.model_dump(
+        exclude={"spec_file", "format_name"}
     )
     assert [task.model_dump(exclude={"id"}) for task in actual_tasks] == [
         task.model_dump(exclude={"id"}) for task in expected_tasks

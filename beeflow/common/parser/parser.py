@@ -171,9 +171,10 @@ class CwlParser:
                 outputs=workflow_outputs,
                 id=workflow_id,
                 workdir=workdir,
-                main_cwl=str(cwl_path),
+                spec_file=str(cwl_path),
                 wf_path=str(wf_path),
-                yaml=job,
+                job_file=job,
+                format_name="cwl",
                 )
         tasks = [self.parse_step(step, workflow_id, workdir) for step in self.cwl.steps]
 
@@ -751,9 +752,10 @@ class BeeParser:
                 outputs=self.workflow_outputs(self.spec.tasks),
                 id=workflow_id,
                 workdir=workdir,
-                main_cwl=self.path,
+                spec_file=self.path,
                 wf_path=str(wf_path),
-                yaml=job,
+                job_file=job,
+                format_name="python",
                 )
         return workflow, tasks
 
@@ -815,9 +817,11 @@ class BeeParser:
                 outputs=self._bee_workflow_outputs(self.spec.tasks),
                 id=workflow_id,
                 workdir=workdir,
-                main_cwl=self.path,
+                spec_file=self.path,
                 wf_path=str(wf_path),
-                yaml=job,
+                job_file=job,
+                format_name="yaml" if self.path and Path(self.path).suffix.lower()
+                in (".yaml", ".yml") else "python",
                 )
         return workflow, tasks
 

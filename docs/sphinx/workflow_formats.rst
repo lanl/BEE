@@ -58,11 +58,27 @@ Direct CWL-file submission packages the **entire parent directory** and
 auto-detects job inputs there; use a dedicated workflow directory to avoid
 including unrelated or large files.
 
-The archive layout and saved ``main_cwl``/``yaml`` metadata keys have not changed
-in this adapter slice. Reexecution still delegates to submission, which selects
-the installed adapter for the archived main file. Existing CWL archives remain
-usable with the CWL extra installed. An archive from an external format also
-requires its adapter to be installed; adapter code is not embedded in the archive.
+Workflow execution models use ``spec_file``, ``job_file`` and ``format_name``.
+The old ``main_cwl`` and ``yaml`` model attributes remain readable and writable
+aliases. Models accept either spelling; default ``model_dump()`` uses canonical
+names, while ``model_dump(by_alias=True, mode="json")`` retains legacy wire keys
+for compatibility with older workflow managers. Canonical keys win if both are
+present. SQLite retains its old path columns and adds nullable ``format_name``;
+Neo4j writes both path spellings and reads old nodes without migration.
+
+Saved submission metadata contains both path spellings and the selected adapter
+name. Existing ``cwl_files`` archive layouts are retained; readers also accept
+``workflow_files``. Reexecution honors the saved adapter, or infers it for old
+archives without ``format_name``. It locates metadata independently of the archive
+filename, preserves nested resource paths and executable permissions, and rejects
+unsafe paths, resource links/devices and ambiguous layouts. Submission metadata
+is read as safe YAML, never executable YAML objects. Old flattened metadata cannot
+recover paths that were already lost when it was written.
+
+Existing CWL archives remain usable with the CWL extra installed. An archive from
+an external format also requires its adapter to be installed; adapter code is not
+embedded in the archive. Archives containing resource links must replace those
+links with regular files before reexecution.
 
 Discovery rules
 ---------------
@@ -87,7 +103,8 @@ The built-in formats are:
 
 Lower directory priority wins, preserving native BEE-before-CWL discovery.
 Multiple files at the winning priority require explicit main-file selection
-with the existing ``--main-cwl`` option. Multiple adapters claiming the *same*
+with ``--main`` (the legacy ``--main-cwl`` spelling remains supported).
+Multiple adapters claiming the *same*
 file are an error, not a priority-based silent override. Installed extensions
 should use distinct suffixes or disjoint content probes.
 
@@ -119,7 +136,7 @@ Example module ``my_bee_format.py``:
        message = Path(spec).read_text(encoding="utf-8").strip()
        workflow = Workflow(
            id=workflow_id, name=workflow_name or Path(spec).stem,
-           main_cwl=str(spec), yaml=job, workdir=workdir, wf_path=str(wf_path),
+           spec_file=str(spec), job_file=job, workdir=workdir, wf_path=str(wf_path),
        )
        task = Task(
            name="message", workflow_id=workflow_id, base_command=["echo", message],
@@ -182,8 +199,11 @@ that logic. It must return the resulting execution models to the registry.
 
 For programmatic use, create a ``FormatRegistry``, register descriptors, and call
 ``resolve(path)`` or ``discover(directory)``. ``resolve(path, format_name=...)``
-permits explicit programmatic selection. The submission CLI does not yet expose
-a format-name override; ``--main-cwl`` selects a file, not an adapter.
+permits explicit programmatic selection. Submission accepts ``--format NAME``
+to select an installed adapter explicitly. ``--main`` selects a file, not an
+adapter; specify both when directory discovery cannot identify the desired file.
+Python callers can use ``submit(path, main_cwl=..., format_name=...)``; existing
+``main_cwl`` keyword calls remain supported with ordinary Python defaults.
 
 Testing and remaining work
 --------------------------
@@ -199,7 +219,7 @@ normalized execution models, linked CWL tools, and custom-format reexecution.
 See :doc:`workflow_testing` for service-stack tests. The adapter boundary does
 not change scoped dependency readiness or scheduler/runtime behavior.
 
-Core metadata renaming and a conversion/export command are separate subsequent
-phase-4 work. Adapters currently declare **reading**, not writing capabilities.
+A conversion/export command remains subsequent phase-4 work. Adapters currently
+declare **reading**, not writing capabilities.
 The planned converter will infer output format from ``--output`` and allow a
 ``--to`` override with a mismatch warning; no conversion CLI is provided yet.

@@ -23,7 +23,7 @@ phase 4 is in progress, with restart fixes and the optional format-adapter bound
 | 1 | New python API (`workflow_api.py`), `BeeParser` conversion, runtime `{placeholder}` command substitution, simplified `beeflow submit` (workflow path only) | Complete |
 | 2 | Explicit `depends_on` dependencies that don't share data (graph database dependency edges); task workdirs and containers; multiple commands per task | Implemented on this branch; validation in progress |
 | 3 | Versioned YAML front end translating to the Python API; single-file/directory/archive submission, examples and authoring reference | Implemented on this branch; local validation in progress |
-| 4 | Isolate optional CWL support behind workflow-format adapters; clean up core models, add conversion and update examples/tests/docs (issues #1197-#1205) | Restart fixes and adapters implemented; model cleanup and converter pending |
+| 4 | Isolate optional CWL support behind workflow-format adapters; clean up core models, add conversion and update examples/tests/docs (issues #1197-#1205) | Restart fixes, adapters and metadata compatibility implemented; converter and parity audit pending |
 
 The CWL parser and the older `beeflow.common.cwl.workflow` API remain supported
 with optional CWL dependencies installed, so both can be compared while the pivot progresses.
@@ -57,11 +57,17 @@ The format-adapter boundary is now implemented; see the
   parent-directory bundling for linked resources. Discovery does not parse or
   execute workflow code. Broken/conflicting extensions are reported explicitly.
 
+- Execution models now use `spec_file`, `job_file`, and `format_name`, retaining
+  mutable `main_cwl`/`yaml` aliases and legacy wire/database mappings. Saved
+  metadata includes canonical and legacy paths plus the selected adapter.
+  Reexecution supports old archives, renamed archives, nested resources and
+  explicit adapter selection; unsafe resource paths/links and executable YAML
+  metadata are rejected. Existing archive directory names are retained.
+
 Remaining phase-4 work:
 
-- Preserve reading existing workflow metadata/archives where practical; keep
-  existing CWL execution available through its adapter. Unsupported constructs
-  must be reported, not silently converted with changed semantics.
+- Continue preserving stored records and CWL execution through its adapter.
+  Unsupported constructs must be reported, not silently converted with changed semantics.
 - A conversion command should infer the output format from `--output`, with
   optional `--to` overriding inference. A mismatch warns; an unknown suffix
   without `--to` errors. Existing output files require an explicit overwrite

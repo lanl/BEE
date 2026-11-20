@@ -19,7 +19,6 @@ import pathlib
 import shutil
 import subprocess
 import getpass
-import tarfile
 import tempfile
 import textwrap
 import time
@@ -38,6 +37,7 @@ from beeflow.common.connection import Connection
 from beeflow.common import paths
 from beeflow.common.object_models import generate_workflow_id
 from beeflow.common.parser.formats import WorkflowFormatError, get_registry
+from beeflow.common.workflow_archive import WorkflowArchiveError, read_workflow_archive
 from beeflow.client import remote_client
 from beeflow.wf_manager.models import (
     CopyWorkflowRequest,
@@ -470,10 +470,10 @@ def _dir_files(wf_dir, suffixes):
     )
 
 
-def _workflow_format(path, required=True):
+def _workflow_format(path, required=True, format_name=None):
     """Resolve installed formats and report discovery errors as client errors."""
     try:
-        return get_registry().resolve(path, required=required)
+        return get_registry().resolve(path, required=required, format_name=format_name)
     except WorkflowFormatError as error:
         return error_exit(str(error))
 
@@ -517,10 +517,10 @@ def _copy_spec_job(job, spec_dir, spec_name):
     if path.name == spec_name:
         error_exit("Workflow and job input files must have different filenames")
     shutil.copy2(path, spec_dir)
-    return path
+    return spec_dir / path.name
 
 
-def _package_workflow(workflow, name, main_cwl, job):
+def _package_workflow(workflow, name, main_cwl, job, format_name=None):
     """Package the workflow and determine its main and job input files.
 
     Returns a tuple (package_path, orig_cwl_path, orig_yaml_path,
@@ -528,10 +528,10 @@ def _package_workflow(workflow, name, main_cwl, job):
     applies.
     """
     if (workflow.is_file() and workflow.suffix.lower() != ".tgz"
-            and _workflow_format(workflow).bundle_directory):
+            and _workflow_format(workflow, format_name=format_name).bundle_directory):
         # CWL run files and similar format-specific neighbors must travel
         # with the main document; reuse the directory packaging path.
-        return _package_workflow(workflow.parent, name, str(workflow), job)
+        return _package_workflow(workflow.parent, name, str(workflow), job, format_name)
     tempdir_path = pathlib.Path(tempfile.mkdtemp())
     orig_yaml_path = None
 
@@ -576,12 +576,12 @@ def _package_workflow(workflow, name, main_cwl, job):
         untar_wf_path = unpackage(package_path, untar_path)
         if main_cwl is None:
             main_cwl = _detect_main_cwl(untar_wf_path)
-        orig_cwl_path = untar_wf_path / pathlib.Path(main_cwl).name
+        orig_cwl_path = _packaged_file(untar_wf_path, main_cwl)
         if not orig_cwl_path.exists():
             error_exit(f"Main workflow file {main_cwl} does not exist")
         detected = _detect_job(untar_wf_path) if job is None else job
         if detected is not None:
-            orig_yaml_path = untar_wf_path / pathlib.Path(detected).name
+            orig_yaml_path = _packaged_file(untar_wf_path, detected)
             if not orig_yaml_path.exists():
                 error_exit(f"Job input file {detected} does not exist")
     else:
@@ -595,9 +595,20 @@ def _package_workflow(workflow, name, main_cwl, job):
     return package_path, orig_cwl_path, orig_yaml_path, tempdir_path
 
 
-def _parse_workflow(name, workflow, orig_cwl_path, orig_yaml_path, workdir):
+def _packaged_file(root, filename):
+    """Resolve a relative archive resource while retaining historical absolute filenames."""
+    path = pathlib.Path(filename)
+    if path.is_absolute():
+        path = pathlib.Path(path.name)  # Historical callers pass original absolute paths.
+    resolved = (root / path).resolve()
+    if not resolved.is_relative_to(root.resolve()):
+        error_exit(f"Workflow resource escapes its package: {filename}")
+    return resolved
+
+
+def _parse_workflow(name, workflow, orig_cwl_path, orig_yaml_path, workdir, format_name=None):
     """Parse the workflow and return the workflow and task objects."""
-    adapter = _workflow_format(orig_cwl_path)
+    adapter = _workflow_format(orig_cwl_path, format_name=format_name)
     workflow_id = generate_workflow_id()
     try:
         workflow_obj, tasks = adapter.parse_workflow(
@@ -613,6 +624,23 @@ def _parse_workflow(name, workflow, orig_cwl_path, orig_yaml_path, workdir):
     return workflow_obj, tasks
 
 
+def _submission_relative_path(workflow, source, tempdir, name):
+    """Keep resource paths relative to the packaged workflow root, not basenames."""
+    if source is None:
+        return ""
+    source = source.resolve()
+    roots = [tempdir / name]
+    unpacked = tempdir / "unpacked"
+    if unpacked.is_dir():
+        roots.extend(path for path in unpacked.iterdir() if path.is_dir())
+    roots.append(workflow if workflow.is_dir() else workflow.parent)
+    for root in roots:
+        root = root.resolve()
+        if source.is_relative_to(root):
+            return source.relative_to(root).as_posix()
+    return source.name  # Explicit files outside the workflow are copied to its root.
+
+
 def _check_workdir(workdir):
     """Exit with an error if the workdir is in /tmp or /var/tmp."""
     workdir = os.path.realpath(workdir)
@@ -626,8 +654,8 @@ def _check_workdir(workdir):
         error_exit('Workflow working directory cannot be in "/var/tmp"')
 
 
-@app.command()
-def submit(
+@app.command("submit")
+def _submit_cli(
     workflow: pathlib.Path = typer.Argument(
         ...,
         help="workflow: a registered specification file, directory, or .tgz package",
@@ -644,7 +672,7 @@ def submit(
         "otherwise ./bee-workflows/<name>; created if missing)",
     ),
     main_cwl: Optional[str] = typer.Option(
-        None, "--main-cwl", help="main workflow file (default: auto-detected)"
+        None, "--main", "--main-cwl", help="main workflow file (default: auto-detected)"
     ),
     job: Optional[str] = typer.Option(
         None, "--job", "-j", help="job input file (default: auto-detected)"
@@ -652,7 +680,16 @@ def submit(
     no_start: bool = typer.Option(
         False, "--no-start", "-n", help="do not start the workflow"
     ),
+    format_name: Optional[str] = typer.Option(
+        None, "--format", help="workflow adapter (default: inferred from the main file)"
+    ),
 ):
+    """Submit a workflow using a registered format adapter."""
+    return submit(workflow, name, workdir, main_cwl, job, no_start, format_name)
+
+
+def submit(workflow, name=None, workdir=None, main_cwl=None, job=None, no_start=False,
+           format_name=None):
     """Submit a new workflow.
 
     The workflow path may be a file supported by an installed format adapter, a
@@ -660,7 +697,7 @@ def submit(
     For BEE specifications nothing else is required: the name, working
     directory, and job inputs are derived from the specification as needed.
     """
-    workflow = workflow.expanduser().resolve()
+    workflow = pathlib.Path(workflow).expanduser().resolve()
     if not workflow.exists():
         error_exit(f'Workflow path "{workflow}" cannot be found')
 
@@ -682,13 +719,15 @@ def submit(
     os.makedirs(workdir, exist_ok=True)
 
     package_path, orig_cwl_path, orig_yaml_path, tempdir_path = _package_workflow(
-        workflow, name, main_cwl, job
+        workflow, name, main_cwl, job, format_name
     )
     workflow_obj, tasks = _parse_workflow(
-        name, workflow, orig_cwl_path, orig_yaml_path, workdir
+        name, workflow, orig_cwl_path, orig_yaml_path, workdir, format_name
     )
     with open(package_path, "rb") as package_file:
         encoded_tarball = base64.b64encode(package_file.read()).decode("utf-8")
+    spec_file = _submission_relative_path(workflow, orig_cwl_path, tempdir_path, name)
+    job_file = _submission_relative_path(workflow, orig_yaml_path, tempdir_path, name)
     shutil.rmtree(tempdir_path, ignore_errors=True)
 
     payload = SubmitWorkflowRequest(
@@ -703,7 +742,7 @@ def submit(
 
     try:
         conn = _wfm_conn()
-        resp = conn.post(_url(), json=payload.model_dump(), timeout=60)
+        resp = conn.post(_url(), json=payload.model_dump(by_alias=True, mode="json"), timeout=60)
     except requests.exceptions.ConnectionError:
         error_exit("Could not reach WF Manager.")
 
@@ -730,11 +769,13 @@ def submit(
     cmd = {
         "wf_name": name,
         "wf_path": str(workflow),
-        "main_cwl": orig_cwl_path.name,
-        "yaml": orig_yaml_path.name if orig_yaml_path is not None else "",
+        "main_cwl": spec_file,
+        "yaml": job_file,
+        "format_name": workflow_obj.format_name,
         "workdir": workdir,
         "wf_id": wf_id,
     }
+    cmd.update(spec_file=cmd["main_cwl"], job_file=cmd["yaml"])
 
     with open(sub_wf_dir, "w", encoding="utf-8") as command_file:
         yaml.dump(cmd, command_file)
@@ -1040,38 +1081,15 @@ def reexecute(
     workdir = os.path.abspath(workdir)
     if not os.path.exists(workdir):
         error_exit(f'Workflow working directory "{workdir}" doesn\'t exist')
-    cwl_path = pathlib.Path(tempfile.mkdtemp())
-    archive_id = str(wf_path.stem)
-    with tarfile.open(wf_path) as archive:
-        archive_cmd = yaml.load(
-            archive.extractfile(
-                str(pathlib.Path(archive_id) / "submit_command_args.yaml")
-            ).read(),
-            Loader=yaml.Loader,
-        )
-
-        cwl_files = [
-            tarinfo
-            for tarinfo in archive.getmembers()
-            if tarinfo.name.startswith(archive_id + "/cwl_files/") and tarinfo.isreg()
-        ]
-        for path in cwl_files:
-            path.name = os.path.basename(path.name)
-        archive.extractall(path=cwl_path, members=cwl_files)
-
-        main_cwl = cwl_path / pathlib.Path(archive_cmd["main_cwl"]).name
-        # Older (and python) workflow archives may not have a job input file
-        job = None
-        if archive_cmd.get("yaml"):
-            job = str(cwl_path / pathlib.Path(archive_cmd["yaml"]).name)
-
+    with tempfile.TemporaryDirectory() as resource_dir:
+        try:
+            metadata = read_workflow_archive(wf_path, resource_dir)
+        except WorkflowArchiveError as error:
+            return error_exit(str(error))
         return submit(
-            pathlib.Path(cwl_path),
-            name=wf_name,
-            workdir=pathlib.Path(workdir),
-            main_cwl=str(main_cwl),
-            job=job,
-            no_start=no_start,
+            pathlib.Path(resource_dir), name=wf_name, workdir=pathlib.Path(workdir),
+            main_cwl=metadata["spec_file"], job=metadata["job_file"], no_start=no_start,
+            format_name=metadata["format_name"],
         )
 
 

@@ -95,6 +95,7 @@ class WorkflowFormat:
                 not isinstance(task, Task) for task in tasks
             ):
                 raise TypeError("expected (Workflow, list[Task]) execution models")
+            workflow.format_name = self.name
             return workflow, tasks
         except WorkflowFormatError:
             raise
