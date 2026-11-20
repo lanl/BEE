@@ -76,8 +76,10 @@ class Workflow:
             print('Creating the workflow tarball', self.tarball)
             bee_client.package(Path(self.path), Path(tarball_dir))
             print('Submitting and starting workflow')
-            self.wf_id = bee_client.submit(self.name, self.tarball, self.main_cwl,
-                                           self.job_file, self.workdir, no_start=False)
+            self.wf_id = bee_client.submit(
+                self.tarball, name=self.name, main_cwl=self.main_cwl,
+                job=self.job_file, workdir=self.workdir, no_start=False,
+            )
         except bee_client.ClientError as error:
             raise CIError(*error.args) from error
 

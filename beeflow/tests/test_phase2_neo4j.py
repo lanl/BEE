@@ -11,8 +11,10 @@ from neo4j import GraphDatabase
 import pytest
 
 from beeflow.common.gdb import neo4j_cypher as cypher
-from beeflow.common.gdb.neo4j_driver import _reconstruct_task
-from beeflow.common.object_models import StepInput, Task
+from beeflow.common.gdb.neo4j_driver import Neo4jDriver, _reconstruct_task, _reconstruct_workflow
+from beeflow.common.object_models import StepInput, Task, Workflow
+from beeflow.common.wf_interface import WorkflowInterface
+from beeflow.tests.test_restart_dependencies import exercise_restart_dependencies
 
 
 @pytest.fixture
@@ -64,6 +66,30 @@ def test_command_roundtrip(live_graph, command):
     assert restored.base_command == command
 
 
+@pytest.mark.parametrize("legacy", [False, True])
+def test_workflow_metadata_roundtrip(live_graph, legacy):
+    """Read real old nodes and write neutral metadata alongside compatibility properties."""
+    transaction, workflow_id = live_graph
+    if legacy:
+        transaction.run(
+            "MATCH (w:Workflow {id: $id}) SET w.name = 'old', w.state = 'Running', "
+            "w.main_cwl = 'old.cwl', w.yaml = 'job.yml'",
+            id=workflow_id,
+        ).consume()
+    else:
+        transaction.run("MATCH (w:Workflow {id: $id}) DELETE w", id=workflow_id).consume()
+        cypher.create_bee_node(transaction)
+        workflow = Workflow(id=workflow_id, name="new", spec_file="nested/workflow.yaml",
+                            job_file="inputs/job.json", format_name="yaml")
+        cypher.create_workflow_node(transaction, workflow)
+    record = cypher.get_workflow_by_id(transaction, workflow_id)
+    restored = _reconstruct_workflow(record, [], [], [], [])
+    assert restored.spec_file == ("old.cwl" if legacy else "nested/workflow.yaml")
+    assert restored.job_file == ("job.yml" if legacy else "inputs/job.json")
+    assert restored.format_name == (None if legacy else "yaml")
+    assert record["main_cwl"] == restored.spec_file
+
+
 def test_explicit_restart_remaps_edge(live_graph):
     """Dependents are linked to the replacement task rather than its old ID."""
     transaction, workflow_id = live_graph
@@ -113,3 +139,33 @@ def test_missing_input_still_blocks_readiness(live_graph):
     cypher.create_task_input_nodes(transaction, task)
     cypher.set_runnable_tasks_to_ready(transaction, workflow_id)
     assert cypher.get_task_by_id(transaction, task.id)["state"] == "WAITING"
+
+
+@pytest.mark.parametrize("mode", ["explicit", "data", "mixed"])
+@pytest.mark.parametrize("name", ["stage", "stage-7"])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_neo4j_workflow_restart_dependencies(live_graph, mocker, mode, name, reverse):
+    """Run the real WFI/driver against the live, rollback-only test transaction."""
+    transaction, workflow_id = live_graph
+    driver = object.__new__(Neo4jDriver)
+    # Redirect session boundaries to the fixture's one transaction so no writes
+    # escape rollback. Queries and returned graph data are real, not mocked.
+    driver._driver = mocker.MagicMock()  # pylint: disable=W0212
+    session = driver._driver.session.return_value.__enter__.return_value  # pylint: disable=W0212
+
+    def dispatch(callback, **kwargs):
+        return callback(transaction, **kwargs)
+
+    session.read_transaction.side_effect = dispatch
+    session.write_transaction.side_effect = dispatch
+    wfi = WorkflowInterface(workflow_id, gdb_driver=driver)
+
+    def edges():
+        records = transaction.run(
+            "MATCH (t:Task {workflow_id: $wf_id})-[r:DEPENDS_ON]->(d:Task) "
+            "RETURN t.id AS depending, d.id AS dependency, "
+            "coalesce(r.explicit, false) AS explicit", wf_id=workflow_id,
+        )
+        return [(row["depending"], row["dependency"], int(row["explicit"])) for row in records]
+
+    exercise_restart_dependencies(wfi, edges, mode, name, reverse)

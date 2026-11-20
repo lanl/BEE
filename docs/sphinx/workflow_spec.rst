@@ -4,8 +4,8 @@ Writing BEE workflows
 BEE supports two equivalent workflow front ends: a Python file and a versioned
 YAML file. Submit **either file**, not both. YAML is not an additional settings
 file for Python workflows. Both front ends use the same validation, execution
-models, dependency graph and workers. Legacy CWL remains available during the
-migration.
+models, dependency graph and workers. CWL remains available through an optional
+compatibility adapter; see :doc:`workflow_formats` for installation and extensions.
 
 Quick start
 -----------
@@ -222,6 +222,14 @@ Missing references, missing placeholders, and cycles involving data references,
 explicit dependencies or both are errors. Explicit dependencies hold a task
 until the dependency reaches a final state; a failed predecessor is handled
 through dependency-failure propagation, not treated as successful execution.
+
+Checkpoint restarts create a new task ID and change its display name (for example,
+``setup`` becomes ``setup-1``). Existing dependency edges are transferred by task
+ID, not resolved again from display names. Both data-flow and explicit edges
+retain their classification, and explicit dependents wait for the replacement
+attempt. The authored ``depends_on`` names remain the original specification
+names; they are not rewritten to attempt names. This does not broaden the READY
+gate to data-only edges.
 
 Resources
 ~~~~~~~~~

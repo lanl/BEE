@@ -1,12 +1,14 @@
 """Workflow description parsers.
 
-Contains two parsers:
+The format registry routes the parser CLI to installed adapters. The historical
+parser classes remain import-compatible:
 
 * CwlParser: parses the contents of a CWL file and generates the graph
   representation of parsed workflows and tools in the graph database. This
   parser supports a subset of the CWL v1.0 standard. It is inspired by the
   CWL parser written by the SABER team at John Hopkins University (see SABER
   project at https://github.com/aplbrain/saber).
+  External CWL packages are optional and imported only on use.
 
 * BeeParser: converts a BEE python workflow specification (built with the
   python workflow description API in beeflow.common.cwl.workflow or the new
@@ -20,17 +22,15 @@ Contains two parsers:
 import sys
 import argparse
 import importlib.util
+from importlib.machinery import SourceFileLoader
 import json
 import os
 import traceback
 from pathlib import Path
 import yaml
-import cwl_utils.parser.cwl_v1_2 as cwl_parser
-from schema_salad.exceptions import ValidationException
 
 from beeflow.common import workflow_api
 from beeflow.common.parser.yaml_workflow import load_yaml_workflow
-from beeflow.common.cwl.workflow import Workflow as WorkflowSpec
 from beeflow.common.object_models import (
         Workflow,
         Task,
@@ -64,6 +64,19 @@ class CwlParseError(Exception):
         self.args = args
 
 
+def _cwl_dependencies():
+    """Import optional CWL packages only when the compatibility parser is used."""
+    try:
+        loader = importlib.import_module("cwl_utils.parser.cwl_v1_2")
+        exceptions = importlib.import_module("schema_salad.exceptions")
+    except ImportError as error:
+        raise CwlParseError(
+            "CWL support requires optional dependencies; install "
+            f"'hpc-beeflow[cwl]' ({error})"
+        ) from None
+    return loader, exceptions.ValidationException
+
+
 class CwlParser:
     """Class for parsing CWL files."""
 
@@ -92,9 +105,10 @@ class CwlParser:
         :rtype: WorkflowInterface
         """
         self.path = cwl_path
+        cwl_parser, validation_exception = _cwl_dependencies()
         try:
             self.cwl = cwl_parser.load_document(cwl_path)
-        except ValidationException as err:
+        except validation_exception as err:
             traceback.print_exc()
             raise CwlParseError(*err.args) from None
 
@@ -157,9 +171,10 @@ class CwlParser:
                 outputs=workflow_outputs,
                 id=workflow_id,
                 workdir=workdir,
-                main_cwl=str(cwl_path),
+                spec_file=str(cwl_path),
                 wf_path=str(wf_path),
-                yaml=job,
+                job_file=job,
+                format_name="cwl",
                 )
         tasks = [self.parse_step(step, workflow_id, workdir) for step in self.cwl.steps]
 
@@ -179,6 +194,7 @@ class CwlParser:
         """
         # Parse CWL file specified by run field, else parse run field as inline CommandLineTool
         if isinstance(step.run, str):
+            cwl_parser, _ = _cwl_dependencies()
             step_run = f"{os.path.dirname(step.id)}/{step.run}"
             step_cwl = cwl_parser.load_document(step_run)
             step_id = os.path.basename(step_cwl.id).split(".")[0]
@@ -590,6 +606,14 @@ class BeeParseError(Exception):
         self.args = args
 
 
+def _is_workflow_spec(value):
+    """Recognize native and already-imported legacy APIs without importing ruamel."""
+    if isinstance(value, workflow_api.Workflow):
+        return True
+    legacy = sys.modules.get("beeflow.common.cwl.workflow")
+    return legacy is not None and isinstance(value, legacy.Workflow)
+
+
 def _find_workflow_spec(module, path):
     """Find the Workflow object defined by a python workflow module.
 
@@ -604,20 +628,20 @@ def _find_workflow_spec(module, path):
     :rtype: WorkflowSpec
     """
     workflow = getattr(module, "workflow", None)
-    if isinstance(workflow, (WorkflowSpec, workflow_api.Workflow)):
+    if _is_workflow_spec(workflow):
         return workflow
     for func_name in ("build", "main"):
         func = getattr(module, func_name, None)
         if callable(func):
             result = func()
-            if isinstance(result, (WorkflowSpec, workflow_api.Workflow)):
+            if _is_workflow_spec(result):
                 return result
             workflow = getattr(module, "workflow", None)
-            if isinstance(workflow, (WorkflowSpec, workflow_api.Workflow)):
+            if _is_workflow_spec(workflow):
                 return workflow
     workflows = [
             obj for obj in vars(module).values()
-            if isinstance(obj, (WorkflowSpec, workflow_api.Workflow))
+            if _is_workflow_spec(obj)
             ]
     if len(workflows) == 1:
         return workflows[0]
@@ -728,9 +752,10 @@ class BeeParser:
                 outputs=self.workflow_outputs(self.spec.tasks),
                 id=workflow_id,
                 workdir=workdir,
-                main_cwl=self.path,
+                spec_file=self.path,
                 wf_path=str(wf_path),
-                yaml=job,
+                job_file=job,
+                format_name="python",
                 )
         return workflow, tasks
 
@@ -742,7 +767,7 @@ class BeeParser:
         :type spec: WorkflowSpec or workflow_api.Workflow or str or pathlib.Path
         :rtype: (Workflow, str or None)
         """
-        if isinstance(spec, (WorkflowSpec, workflow_api.Workflow)):
+        if _is_workflow_spec(spec):
             return spec, None
         path = Path(spec)
         if not path.is_file():
@@ -752,15 +777,25 @@ class BeeParser:
                 return load_yaml_workflow(path), str(path.resolve())
             except workflow_api.WorkflowAPIError as error:
                 raise BeeParseError(f"{path}: {error}") from None
-        if path.suffix != ".py":
+        if path.suffix.lower() != ".py":
             raise BeeParseError(f"unsupported BEE specification extension: {path.suffix}")
-        module_spec = importlib.util.spec_from_file_location(f"bee_{path.stem}", path)
+        module_name = f"bee_{path.stem}"
+        module_spec = importlib.util.spec_from_file_location(
+            module_name, path, loader=SourceFileLoader(module_name, str(path))
+        )
         module = importlib.util.module_from_spec(module_spec)
         try:
             module_spec.loader.exec_module(module)
         except Exception as err:  # pylint: disable=W0718
+            hint = ""
+            if isinstance(err, ModuleNotFoundError) and (
+                getattr(err, "name", "") or ""
+            ).split(".", maxsplit=1)[0] in {
+                "cwl_utils", "schema_salad", "ruamel",
+            }:
+                hint = "; for legacy CWL workflows install 'hpc-beeflow[cwl]'"
             raise BeeParseError(
-                    f"error executing workflow specification {path}: {err}"
+                    f"error executing workflow specification {path}: {err}{hint}"
                     ) from None
         return _find_workflow_spec(module, str(path)), str(path.resolve())
 
@@ -782,9 +817,11 @@ class BeeParser:
                 outputs=self._bee_workflow_outputs(self.spec.tasks),
                 id=workflow_id,
                 workdir=workdir,
-                main_cwl=self.path,
+                spec_file=self.path,
                 wf_path=str(wf_path),
-                yaml=job,
+                job_file=job,
+                format_name="yaml" if self.path and Path(self.path).suffix.lower()
+                in (".yaml", ".yml") else "python",
                 )
         return workflow, tasks
 
@@ -1350,7 +1387,7 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
 
     parser.add_argument(
-            "wf_file", type=str, help="CWL workflow file or BEE Python/YAML specification"
+            "wf_file", type=str, help="Workflow file supported by an installed format adapter"
             )
     parser.add_argument(
             "-i", "--inputs", type=str, help="Workflow job inputs file", required=False
@@ -1372,20 +1409,17 @@ def resolve_step_workdir(step_workdir, workdir):
 
 
 def main():
-    """Run the parser on a CWL, Python or YAML workflow and optional job file."""
+    """Run an installed workflow-format adapter with an optional job file."""
     wf_id = generate_workflow_id()
     args = parse_args()
-    if Path(args.wf_file).suffix.lower() in (".py", ".yaml", ".yml"):
-        parser = BeeParser()
-        # None lets the parser fall back to the name from the specification
-        workflow, tasks = parser.parse_workflow(
-                wf_id, None, args.wf_file, job=args.inputs
-                )
-    else:
-        parser = CwlParser()
-        workflow, tasks = parser.parse_workflow(
-            wf_id, Path(args.wf_file).stem, args.wf_file, job=args.inputs
-        )
+    from beeflow.common.parser.formats import (  # pylint: disable=C0415
+        WorkflowFormatError, get_registry,
+    )
+    try:
+        adapter = get_registry().resolve(args.wf_file)
+        workflow, tasks = adapter.parse_workflow(wf_id, None, args.wf_file, job=args.inputs)
+    except WorkflowFormatError as error:
+        raise SystemExit(str(error)) from None
     print("Parsed workflow:")
     print(workflow)
 

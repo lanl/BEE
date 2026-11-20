@@ -214,6 +214,7 @@ files = [
     {file = "cachecontrol-0.14.4-py3-none-any.whl", hash = "sha256:b7ac014ff72ee199b5f8af1de29d60239954f223e948196fa3d84adaffc71d2b"},
     {file = "cachecontrol-0.14.4.tar.gz", hash = "sha256:e6220afafa4c22a47dd0badb319f84475d79108100d04e26e8542ef7d3ab05a1"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.dependencies]
 filelock = {version = ">=3.8.0", optional = true, markers = "extra == \"filecache\""}
@@ -707,6 +708,7 @@ files = [
     {file = "cwl_upgrader-1.2.15-py3-none-any.whl", hash = "sha256:42ae4546a433a7439f56282942e3a9369d08d9a2ad31d86cddb1bb298e28640d"},
     {file = "cwl_upgrader-1.2.15.tar.gz", hash = "sha256:bb9e098ba6d1cc82c36dff1cbaad6779d6d9beab5324cf44a121d7faf7d58672"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.dependencies]
 "ruamel.yaml" = ">=0.16.0,<0.20"
@@ -726,6 +728,7 @@ files = [
     {file = "cwl-utils-0.16.tar.gz", hash = "sha256:38182e6dd12b039601ac2f72911b3d93ca4e37efca3b0165ffe162abab3edf7b"},
     {file = "cwl_utils-0.16-py3-none-any.whl", hash = "sha256:3583d02a9f066e0b2710bc974730c37cf8bb4c42c14c5be961357644a3c8f159"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.dependencies]
 CacheControl = "*"
@@ -1160,6 +1163,7 @@ files = [
     {file = "isodate-0.7.2-py3-none-any.whl", hash = "sha256:28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15"},
     {file = "isodate-0.7.2.tar.gz", hash = "sha256:4cd1aa0f43ca76f4a6c6c0292a85f40b35ec2e43e315b59f06e6d32171a953e6"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [[package]]
 name = "isort"
@@ -1435,6 +1439,7 @@ files = [
     {file = "markdown_it_py-4.2.0-py3-none-any.whl", hash = "sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a"},
     {file = "markdown_it_py-4.2.0.tar.gz", hash = "sha256:04a21681d6fbb623de53f6f364d352309d4094dd4194040a10fd51833e418d49"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.dependencies]
 mdurl = ">=0.1,<1.0"
@@ -1570,6 +1575,7 @@ files = [
     {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
     {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [[package]]
 name = "mistune"
@@ -1582,6 +1588,7 @@ files = [
     {file = "mistune-3.2.1-py3-none-any.whl", hash = "sha256:78cdb0ba5e938053ccf63651b352508d2efa9411dc8810bfb05f2dc5140c0048"},
     {file = "mistune-3.2.1.tar.gz", hash = "sha256:7c8e5501d38bac1582e067e46c8343f17d57ea1aaa735823f3aba1fd59c88a28"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [[package]]
 name = "mpi4py"
@@ -1719,6 +1726,7 @@ files = [
     {file = "msgpack-1.2.1-cp314-cp314t-win_arm64.whl", hash = "sha256:0adcf06ffde0777c0e1a9b771a2b1c4226ba1bbf748c8efcc02fcdeca3299107"},
     {file = "msgpack-1.2.1.tar.gz", hash = "sha256:04c721c2c7448767e9e3f2520a475663d8ee0f09c31890f6d2bd70fd636a9647"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [[package]]
 name = "mypy-extensions"
@@ -1731,6 +1739,7 @@ files = [
     {file = "mypy_extensions-1.1.0-py3-none-any.whl", hash = "sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505"},
     {file = "mypy_extensions-1.1.0.tar.gz", hash = "sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [[package]]
 name = "neo4j"
@@ -2116,6 +2125,7 @@ files = [
     {file = "pygments-2.20.0-py3-none-any.whl", hash = "sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176"},
     {file = "pygments-2.20.0.tar.gz", hash = "sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.extras]
 windows-terminal = ["colorama (>=0.4.6)"]
@@ -2159,6 +2169,7 @@ files = [
     {file = "pyparsing-3.3.2-py3-none-any.whl", hash = "sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d"},
     {file = "pyparsing-3.3.2.tar.gz", hash = "sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.extras]
 diagrams = ["jinja2", "railroad-diagrams"]
@@ -2400,6 +2411,7 @@ files = [
     {file = "rdflib-6.2.0-py3-none-any.whl", hash = "sha256:85c34a86dfc517a41e5f2425a41a0aceacc23983462b32e68610b9fad1383bca"},
     {file = "rdflib-6.2.0.tar.gz", hash = "sha256:62dc3c86d1712db0f55785baf8047f63731fa59b2682be03219cb89262065942"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.dependencies]
 isodate = "*"
@@ -2483,6 +2495,7 @@ files = [
     {file = "rich-15.0.0-py3-none-any.whl", hash = "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb"},
     {file = "rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.dependencies]
 markdown-it-py = ">=2.2.0"
@@ -2502,6 +2515,7 @@ files = [
     {file = "rich_argparse-1.8.0-py3-none-any.whl", hash = "sha256:d2a3ce7854654e2253c578763ab0a32f05016f23a55fadba7b9a91b6c0e92142"},
     {file = "rich_argparse-1.8.0.tar.gz", hash = "sha256:679df3d832fa94ad6e4bdb07ded088cd7ea2dddc58ae9b2b46346a40b06cbc0c"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.dependencies]
 rich = ">=11.0.0"
@@ -2517,6 +2531,7 @@ files = [
     {file = "ruamel.yaml-0.17.21-py3-none-any.whl", hash = "sha256:742b35d3d665023981bd6d16b3d24248ce5df75fdb4e2924e93a05c1f8b61ca7"},
     {file = "ruamel.yaml-0.17.21.tar.gz", hash = "sha256:8b7ce697a2f212752a35c1ac414471dc16c424c9573be4926b56ff3f5d23b7af"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.extras]
 docs = ["ryd"]
@@ -2533,6 +2548,7 @@ files = [
     {file = "schema_salad-8.9.20260417192335-py3-none-any.whl", hash = "sha256:dd7f5b1aa4d6f3ab61e7fd83d942af22d83afecc5f24f48b2027810efe6bd76f"},
     {file = "schema_salad-8.9.20260417192335.tar.gz", hash = "sha256:5ad4599231dcf7ae8ae2fc841a677db9c120544b36a6d6347ae87875b2c1b083"},
 ]
+markers = {main = "extra == \"cwl\""}
 
 [package.dependencies]
 CacheControl = {version = ">=0.13.1,<0.15", extras = ["filecache"]}
@@ -3092,7 +3108,10 @@ markupsafe = ">=2.1.1"
 [package.extras]
 watchdog = ["watchdog (>=2.3)"]
 
+[extras]
+cwl = ["cwl-utils", "ruamel.yaml"]
+
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<=3.14"
-content-hash = "1b46ab8286b71738e16b2c06e2e1e5c2abd4fbe4fa67fda2eedfb6d6bb16fc48"
+content-hash = "646e68dd9abca317042384090e9fdc7cb3de99a737c3226ad796b04837e2d174"

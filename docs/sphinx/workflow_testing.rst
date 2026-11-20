@@ -12,6 +12,8 @@ From the repository root, activate your development virtualenv, then run:
 
 .. code-block:: sh
 
+   # Include optional compatibility dependencies for the complete test suite:
+   poetry install --extras cwl
    python -W error::RuntimeWarning -m beeflow.common.parser \
      examples/yaml-workflow/workflow.yaml
    pytest beeflow/tests/test_yaml_workflow.py -q

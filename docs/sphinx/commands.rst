@@ -55,7 +55,8 @@ Arguments:
   - WORKFLOW, Path to a .py/.yaml/.yml specification, directory, or .tgz package [required]
   - ``--name``, -N, workflow name (default: derived from the path)
   - ``--workdir``, -w, working directory for workflow input and output files (default: ~/.beeflow/workflows/<name> if ~/.beeflow exists, otherwise ./bee-workflows/<name>; created if missing)
-  - ``--main-cwl``, main workflow file (default: auto-detected)
+  - ``--main``, ``--main-cwl``, main workflow file (default: auto-detected)
+  - ``--format``, installed workflow adapter name (default: inferred from the main file)
   - ``--job``, -j, job input file (default: auto-detected)
   - ``--no-start``, -n, don't start the workflow immediately
 
@@ -63,7 +64,11 @@ See :doc:`workflow_spec` for the Python/YAML authoring guide and field reference
 A single specification file is sufficient; ``--job`` is optional. Directory
 discovery distinguishes YAML workflows by ``bee_version`` and excludes them
 from job-input detection. Multiple Python/YAML workflow candidates require an
-explicit ``--main-cwl`` selection.
+explicit ``--main`` selection.
+
+Installed :doc:`workflow_formats` adapters also participate in discovery,
+submission and archived reexecution. CWL support requires the optional ``cwl``
+extra; direct ``.cwl`` submissions include neighboring workflow files.
 
 ``beeflow start``: Start a workflow in the ``No Start`` state.
 (For workflows submitted or reexecuted with the --no-start flag.)
@@ -142,5 +147,3 @@ You can use the ``beeflow config`` sub-command to configure BEE for your workflo
 ``beeflow config new``: Create a new config file.
 
 ``beeflow config show``: Show the contents of current bee.conf.
-
-

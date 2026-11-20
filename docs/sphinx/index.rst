@@ -16,6 +16,7 @@
    installation
    workflow_spec
    workflow_testing
+   workflow_formats
    examples
    bee_cwl
    commands
