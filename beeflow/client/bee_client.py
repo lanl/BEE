@@ -784,24 +784,30 @@ def query(wf_id: Optional[str] = typer.Argument(None, callback=match_short_id)):
     else:
         section= 'slurm attributes'
 
+
     attrs = config_driver.BeeConfig.get(section, 'attributes')
     logging.info(attrs)
     if isinstance(attrs,str):
         attrs = [attr.strip() for attr in attrs.split(',') if attr.strip()]
 
     attr_data=[]
+    visible_attrs = []
     for _task_id, task_name, task_state,metadata in tasks_status:
         if wf_status == 'No Start':
             typer.echo(f'{task_name}')
             continue
 
+        task_attrs = ['pid','runtime'] if metadata.get('scheduler') else attrs
+        for attr in task_attrs:
+            if metadata.get(attr) is not None and attr not in visible_attrs:
+                visible_attrs.append(attr)
+
         output_fields=[task_name,task_state]
-        for attr in attrs:
-            value = metadata.get(attr)
-            if value is not None:
-                output_fields.append(str(value))
+        for attr in visible_attrs:
+            value = metadata.get(attr) if attr in task_attrs else None
+            output_fields.append("" if value is None else str(value))
         attr_data.append(output_fields)
-    headers = ['task_name','task_state'] + attrs
+    headers = ['task_name','task_state'] + visible_attrs
     if attr_data:
         typer.echo(tabulate(attr_data,headers=headers,tablefmt="fancy grid"))
     logging.info('Query workflow:  {resp.text}')

@@ -63,6 +63,8 @@ def format_runtime(runtime):
 
 def calc_runtime(job_state,job_info,start_time = None, end_time = None):
     """Calculate the runtime of a task when using slurmrestd."""
+    log.info(f"Start time should NOT be none: {start_time}")
+    log.info(f"End time should be NONE the first time: {end_time}")
     if start_time is None and job_info:
         start_time = job_info['start_time']['number']
 

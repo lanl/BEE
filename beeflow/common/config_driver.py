@@ -348,7 +348,7 @@ slurm_command_attr= [
         "Account","AccrueTime","CPUs_Task","Command","EligibleTime",
         "EndTime","ExitCode","JobId","JobName","JobState",
         "NodeList","NumCPUs","NumNodes","NumTasks","Partition",
-        "Priority","QOS","Reason","RunTime","StartTime","StdErr",
+        "QOS","Reason","RunTime","StartTime","StdErr",
         "StdIn","StdOut","SubmitTime","TimeLimit","UserId"
     ]
 

@@ -328,7 +328,7 @@ def clean_dict(metadata):
         "AllocTRES", "Socks/Node", "CoreSpec", "MinCPUsNode", "MinMemoryNode",
         "MinTmpDiskNode", "Features", "DelayBoot", "OverSubscribe", "Contiguous",
         "Licenses", "Network","BatchHost", "NtasksPerN_B_S_C", "ReqB_S_C_T", "Socks_Node",
-        "WorkDir", "duration", "job_name","start_time","AllocNode_Sid","Priority"]
+        "WorkDir", "duration","AllocNode_Sid","Priority"]
 
     elif scheduler == 'flux':
         excluded_keys =["exception","uri","annotations","success","bank","project",
@@ -345,7 +345,7 @@ def clean_dict(metadata):
         "standard_output","standard_error","submit_time_number","submit_line",
         "suspend_time_number","tres_alloc_str","runtime","priority_number",
         "state_reason","time_limit_number","pid","script_path","status_dir","workflow_id",
-        "scheduler","returncode_path","return_code"]
+        "scheduler","returncode_path","return_code","submit_time","end_time"]
 
     for k in list(metadata):
         if scheduler == 'slurm' and not bc.get('slurm','use_commands'):
@@ -377,16 +377,20 @@ def standardize_time(metadata,scheduler):
         time_attr = {"end_time","start_time","submit_time","suspend_time","eligible_time",
                 "accrue_time","last_sched_evaluation"}
     elif scheduler == 'slurm' and bc.get('slurm', 'use_commands'):
-        time_attr = {"AccrueTime","EligibleTime","EndTime","SubmitTime","StartTime"}
+        time_attr = {"AccrueTime","EligibleTime","EndTime","SubmitTime","StartTime",
+                "submit_time","end_time"}
     elif scheduler == 'flux':
-        time_attr = {"t_run","t_inactive","t_submit"}
+        time_attr = {"t_run","t_inactive","t_submit","end_time","submit_time"}
 
     for k in list(metadata):
         if k in time_attr:
             if metadata[k] in (0.0,'Unknown'):
                 metadata[k] = 0
             elif scheduler == 'slurm' and bc.get('slurm', 'use_commands'):
-                metadata[k] = dt.fromisoformat(metadata[k]).strftime('%Y-%m-%d %H:%M:%S')
+                if isinstance(metadata[k],float):
+                    metadata[k] = dt.fromtimestamp(metadata[k]).strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    metadata[k] = dt.fromisoformat(metadata[k]).strftime('%Y-%m-%d %H:%M:%S')
             else:
                 metadata[k] = dt.fromtimestamp(metadata[k]).strftime('%Y-%m-%d %H:%M:%S')
     return metadata
