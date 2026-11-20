@@ -113,7 +113,7 @@ class SimpleWorker(Worker):
             if return_code == 0:
                 end_time = time.time()
                 job_info['end_time'] = end_time
-                job_info['runtime'] = calc_runtime('COMPLETED', {}, submit_time,end_time)
+                job_info['runtime'] = calc_runtime('COMPLETED', {}, submit_time,end_time) #pylint: disable=E0606
                 return 'COMPLETED', job_info
             return 'FAILED', job_info
         # If no returncode file yet, check if process still exists
